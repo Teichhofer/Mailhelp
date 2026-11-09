@@ -18,5 +18,8 @@ def test_blocked_task_offers_the_reconciliation_and_no_answer_field(page, mailhe
     expect(card.locator("textarea")).to_have_count(0)
     assert audit(page, "reconciliation-card-" + page.device, page.mobile) == []
     card.get_by_role("link", name="Im Vorschlagsabgleich entscheiden").click()
-    page.wait_for_url(f"{mailhelp.url}/abgleich")
+    # 5.0.5: the reconciliation opens focused on this proposal.
+    page.wait_for_url(f"{mailhelp.url}/abgleich?mail={mail_id(9)}&vorschlag=blockiert")
+    expect(page.get_by_role("link", name="Alle Vorschläge im Abgleich anzeigen")).to_be_visible()
+    assert audit(page, "reconciliation-focus-" + page.device, page.mobile) == []
     assert mailhelp.writer.created == []

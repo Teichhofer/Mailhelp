@@ -233,4 +233,5 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
 </section>""", signed_in=signed_in)
 
 
-__all__ = ["NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout", "login_page", "notice"]
+__all__ = ["NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout", "login_page",
+           "notice"]

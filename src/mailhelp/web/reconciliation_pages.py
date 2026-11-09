@@ -1,16 +1,37 @@
 """HTML of the proposal reconciliation; the site supplies the already selected data."""
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..models import MailState, Proposal
 from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import event_time
 from ..review.views import STATUS_LABELS
 from .forms import post_form
-from .pages import e
+from .pages import e, notice
 
 INTRO = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschläge und Quellen vergleichen. '
          'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
+
+
+FOCUS_INTRO = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Nur dieser Vorschlag und die Vorschläge, '
+               'mit denen Mailhelp ihn verwechseln könnte. Übernehmen legt nichts extern an; eine neue Version '
+               'muss separat bestätigt werden.</p>')
+ALL_LINK = '<p><a href="/abgleich">Alle Vorschläge im Abgleich anzeigen</a></p>'
+
+
+def focus_link(mail_id: str, proposal_id: str) -> str:
+    """5.0.5: the reconciliation restricted to one proposal and its comparison candidates."""
+    return "/abgleich?" + urlencode({"mail": mail_id, "vorschlag": proposal_id})
+
+
+def focus_missing() -> str:
+    return notice("Dieser Vorschlag steht nicht mehr zum Abgleich an.", "info") + ALL_LINK
+
+
+def no_comparison() -> str:
+    return notice("Kein anderer Vorschlag steht mehr zum Vergleich an.", "info")
 
 
 def proposal_link(proposal: Proposal) -> str:

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.4. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2728,6 +2728,15 @@ behalten“). Seit 5.0.3 zeigt eine Karte, bei der nur diese Fragen offen sind, 
 Antwortfelds „Im Vorschlagsabgleich entscheiden“; eine Textantwort aus Web oder Telegram wird
 ohne Sprachmodellaufruf mit diesem Hinweis abgelehnt und nichts gespeichert. Sind weitere
 Fragen offen, bezieht sich eine Antwort auf die erste davon.
+
+Seit 5.0.5 führt der Link der Karte auf `/abgleich?mail=<Mail-ID>&vorschlag=<Vorschlags-ID>`.
+Diese Ansicht zeigt nur diesen Vorschlag und die Vorschläge, mit denen er verglichen wird
+(die gemerkten Zuordnungskandidaten und offene, nicht eindeutig verschiedene Vorschläge
+derselben Art bzw. bei einer ungeprüften Zusatzquelle der Hauptvorschlag), jeweils mit
+„Zusatz ausdrücklich zuordnen“ und „Als eigenen Vorschlag behalten“. Ist der Vorschlag nicht
+mehr im Bestand, meldet sie „Dieser Vorschlag steht nicht mehr zum Abgleich an.“; ohne
+verbliebenen Kandidaten „Kein anderer Vorschlag steht mehr zum Vergleich an.“. Ein Link führt
+zur vollständigen Abgleichseite; ohne beide Parameter zeigt `/abgleich` wie bisher alles.
 
 Eine Webantwort meldet das Ergebnis der Auswertung: „Antwort übernommen – der Vorschlag wird
 aktualisiert.“ nur bei einer gültigen Antwort; bei einer unbrauchbaren Antwort „Antwort nicht

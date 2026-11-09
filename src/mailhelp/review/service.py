@@ -23,8 +23,7 @@ from ..domain.proposal import (
     reconciliation_only,
     required_revision_questions,
 )
-from ..models import AnswerStatus
-from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
+from ..models import AnswerStatus, MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from ..notifications.notification_context import web_reply
 from ..processing.mail_recheck import RecheckOutcome
 from .archive import record_event, record_recheck, record_relevance

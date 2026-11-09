@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import TYPE_CHECKING, Any
+from urllib.parse import parse_qs
 
 from .. import state_names
 from ..config import EventDefaultsSettings
@@ -19,11 +20,15 @@ from .auth import WebSession
 from .http import Request, Response
 from .pages import layout
 from .reconciliation_pages import (
+    ALL_LINK,
+    FOCUS_INTRO,
     INTRO,
     comparison,
     defaults_offer,
+    focus_missing,
     mail_summary,
     missing_record,
+    no_comparison,
     section_head,
     sources_fragment,
 )
@@ -90,18 +95,31 @@ class ReconciliationSite:
         try:
             items = self.service.current()
             csrf = self.site.auth.csrf_token(session.id)
-            body = INTRO + "".join(self._proposal_section(item, items, csrf) for item in items)
-            body += self._missing_records(items, csrf)
+            query = parse_qs(request.query, max_num_fields=20)
+            if "mail" in query and "vorschlag" in query:
+                body = self._focus(query["mail"][0], query["vorschlag"][0], items, csrf)
+            else:
+                body = INTRO + "".join(self._proposal_section(item, items, csrf) for item in items)
+                body += self._missing_records(items, csrf)
             return Response.html(200, layout("Vorschlagsabgleich", body + '</div>'))
         except (CorruptState, ValueError):
             return self.site._reply(request, 409, "Bestand beschädigt oder inzwischen geändert; Abgleich blockiert.")
 
-    def _proposal_section(self, item: Proposal, items: list[Proposal], csrf: str) -> str:
+    def _focus(self, mail_id: str, proposal_id: str, items: list[Proposal], csrf: str) -> str:
+        """5.0.5: only the proposal from the card and the candidates it is compared with."""
+        found = [item for item in items if (item.source_mail_id, item.id) == (mail_id, proposal_id)]
+        if not found:
+            return FOCUS_INTRO + focus_missing()
+        return FOCUS_INTRO + self._proposal_section(found[0], items, csrf, focused=True) + ALL_LINK
+
+    def _proposal_section(self, item: Proposal, items: list[Proposal], csrf: str, focused: bool = False) -> str:
         defaults = self.defaults(item)
         zone = self.site.configured_timezone
         body = section_head(item, csrf)
-        body += "".join(comparison(item, target, zone, csrf)
-                        for target in self._targets(item, items) if target is not None)
+        targets = [target for target in self._targets(item, items) if target is not None]
+        body += "".join(comparison(item, target, zone, csrf) for target in targets)
+        if focused and not targets:
+            body += no_comparison()
         if item.status in OPEN:
             candidate = reapply_defaults(item, defaults)
             if candidate.version != item.version:

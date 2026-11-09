@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.0.5 – Vorschlagsabgleich nur für den betroffenen Vorschlag
+
+- „Im Vorschlagsabgleich entscheiden“ auf einer Karte öffnet den Abgleich jetzt auf diesen
+  Vorschlag beschränkt (`/abgleich?mail=…&vorschlag=…`): Er zeigt nur ihn und die
+  Vorschläge, mit denen Mailhelp ihn verwechseln könnte, mit „Zusatz ausdrücklich
+  zuordnen“ und „Als eigenen Vorschlag behalten“. „Alle Vorschläge im Abgleich anzeigen“
+  führt zur vollständigen Seite. Ist der Vorschlag nicht mehr offen oder kein Kandidat
+  mehr übrig, sagt die Seite das.
+- Wartung: Typangabe der Antwortauswertung und Codeprüfung (ruff, mypy) wieder fehlerfrei.
+- Planung 5.0: Schritte 21.3 bis 21.8 rücken auf 5.0.6 bis 5.0.11.
+
 ## 5.0.4 – Details in der geteilten Ansicht wieder ladbar
 
 - Fehlerbehebung: Bei Vorschlägen mit „📧 Original-Mail öffnen“ zeigte die geteilte Ansicht

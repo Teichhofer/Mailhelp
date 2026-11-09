@@ -29,7 +29,7 @@ class RevisionRecovery:
     persistence: ProposalPersistence
     logger: EventLogger
     interpretation_attempts: int
-    interpret: Callable[[ProposalClarificationState], None]
+    interpret: Callable[[ProposalClarificationState], str | None]
     revise: Callable[[ProposalClarificationState], None]
 
     def resume_durable(self) -> None:

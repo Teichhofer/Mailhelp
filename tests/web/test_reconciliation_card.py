@@ -17,7 +17,8 @@ def test_a_blocked_card_offers_the_reconciliation_instead_of_an_answer_field(web
     web.site.refresh_overview(force=True)
     page = web.browser.request("GET", "/").body.decode()
     blocked = card(page, "blockiert")
-    assert '<a class="button primary" href="/abgleich">Im Vorschlagsabgleich entscheiden</a>' in blocked
+    link = f'href="/abgleich?mail={mail_id(9)}&amp;vorschlag=blockiert"'
+    assert f'<a class="button primary" {link}>Im Vorschlagsabgleich entscheiden</a>' in blocked
     assert "<textarea" not in blocked and 'value="answer"' not in blocked
     assert "Verwerfen" in blocked and "Schon erledigt" in blocked
     # A further real question stays answerable; the block is not offered as the question.

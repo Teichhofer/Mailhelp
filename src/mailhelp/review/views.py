@@ -501,19 +501,8 @@ class ReviewViews:
             example = answer_example(answerable[0])
         elif open_ and (editing or not card.writable):
             question, example = _CHANGE_QUESTION, _CHANGE_EXAMPLE
-        actions: set[CommandKind] = set()
-        if open_ and not answer_saved and not paused:
-            actions = {CommandKind.REJECT, CommandKind.ALREADY_DONE}
-            if not blocked:
-                actions.add(CommandKind.ANSWER)
-            if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
-                actions.add(CommandKind.CONFIRM)
-            if editing:
-                actions.add(CommandKind.CANCEL_CLARIFICATION)
-            if proposal.duplicate_check_failed:
-                actions.add(CommandKind.RECHECK)
-            if proposal.calendar_candidates:
-                actions.add(CommandKind.CHOOSE_EVENT)
+        actions = (_open_actions(proposal, editing, blocked)
+                   if open_ and not answer_saved and not paused else set())
         if paused:
             state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
         elif answer_saved:
@@ -554,6 +543,22 @@ class ReviewViews:
                                       for item in proposal.calendar_candidates),
             mail_link=proposal.mail_link,
         )
+
+
+def _open_actions(proposal: Proposal, editing: bool, blocked: bool) -> set[CommandKind]:
+    """The actions of an open proposal without a saved answer or pause."""
+    actions = {CommandKind.REJECT, CommandKind.ALREADY_DONE}
+    if not blocked:
+        actions.add(CommandKind.ANSWER)
+    if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
+        actions.add(CommandKind.CONFIRM)
+    if editing:
+        actions.add(CommandKind.CANCEL_CLARIFICATION)
+    if proposal.duplicate_check_failed:
+        actions.add(CommandKind.RECHECK)
+    if proposal.calendar_candidates:
+        actions.add(CommandKind.CHOOSE_EVENT)
+    return actions
 
 
 def _mail_position(mail: _MailSummary | None, proposal: Proposal) -> tuple[int, int]:

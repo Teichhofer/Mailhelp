@@ -18,6 +18,7 @@ from ..review.incoming import key_hash
 from ..review.results import ResultStatus
 from ..review.views import ProposalView, RelevanceView
 from .pages import e, layout, notice
+from .reconciliation_pages import focus_link
 
 _RESULT_KIND = {
     ResultStatus.DONE: "ok", ResultStatus.WRITTEN: "ok", ResultStatus.NOT_WRITTEN: "warn",
@@ -70,8 +71,9 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             parts.append(notice("Mailhelp hält diesen Vorschlag für möglicherweise dieselbe Sache wie einen "
                                 "anderen. Im Vorschlagsabgleich entscheidest du: zuordnen oder als eigenen "
                                 "Vorschlag behalten.", "warn")
-                         + '<p class="card-links"><a class="button primary" href="/abgleich">'
-                         'Im Vorschlagsabgleich entscheiden</a></p>')
+                         + '<p class="card-links"><a class="button primary" href="'
+                         + e(focus_link(view.mail_id, view.proposal_id))
+                         + '">Im Vorschlagsabgleich entscheiden</a></p>')
         if CommandKind.ANSWER in view.actions and view.question:
             parts.append(_answer(csrf, view))
         buttons = []
