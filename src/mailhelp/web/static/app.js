@@ -437,7 +437,7 @@
 
   function help() {
     var list = document.createElement("dl");
-    [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["C / Enter", "Bestätigen"],
+    [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["A / C / Enter", "Bestätigen"],
      ["E", "Bearbeiten"], ["X / D", "Verwerfen"], ["?", "Diese Hilfe"]].forEach(function (pair) {
       var key = document.createElement("dt"), text = document.createElement("dd");
       key.textContent = pair[0];
@@ -449,6 +449,17 @@
     var note = document.createElement("p");
     note.textContent = "Aktionen werden sofort angenommen. Weitere Vorgänge bleiben bedienbar.";
     modal("Tastenkürzel", [heading, list, note]);
+  }
+
+  // 5.0.9: the shortcuts are discoverable from the sidebar, not only by pressing "?".
+  var sidebar = document.querySelector(".app-shell .top");
+  if (sidebar) {
+    var hint = document.createElement("button");
+    hint.type = "button";
+    hint.className = "shortcut-hint";
+    hint.innerHTML = '<span aria-hidden="true">?</span><span class="nav-label">Tastenkürzel</span>';
+    hint.addEventListener("click", help);
+    sidebar.appendChild(hint);
   }
 
   document.addEventListener("keydown", function (event) {
@@ -469,7 +480,7 @@
       select(list[Math.min(list.length - 1, Math.max(0, list.indexOf(selected) + step))]);
       return;
     }
-    var action = {c: "confirm", enter: "confirm", x: "reject", d: "reject", e: "edit"}[key];
+    var action = {a: "confirm", c: "confirm", enter: "confirm", x: "reject", d: "reject", e: "edit"}[key];
     if (!action) return;
     event.preventDefault();
     var control = action === "edit" ? pane.querySelector('a[href$="/bearbeiten"]')

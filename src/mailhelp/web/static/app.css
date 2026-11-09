@@ -610,7 +610,7 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
 .nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em;
   margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text);
   font-size: .75rem; font-weight: 700; line-height: 1.6; font-variant-numeric: tabular-nums; }
-.nav-toggle { display: none; }
+:is(.nav-toggle, .shortcut-hint) { display: none; }
 .tab-bar { display: none; }
 
 @media (max-width: 899px) {
@@ -655,17 +655,18 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
     font-size: .87rem; gap: 12px; margin-bottom: 3px; min-height: 46px; padding: 10px 12px; }
   .app-shell .nav a:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
   .app-shell .nav a[aria-current="page"] { background: var(--sidebar-active); color: #ffffff; }
-  .app-shell .nav-toggle { order: 4; display: flex; align-items: center; justify-content: center; gap: 8px;
+  .app-shell :is(.nav-toggle, .shortcut-hint) { order: 4; display: flex; align-items: center; justify-content: center; gap: 8px;
     min-height: 44px; margin: 12px 0 0; padding: 8px 12px; border: 1px solid var(--sidebar-hover); border-radius: 9px;
     background: transparent; color: var(--sidebar-text); font: inherit; font-size: .8rem; cursor: pointer; }
-  .app-shell .nav-toggle:hover { background: var(--sidebar-hover); }
+  .app-shell :is(.nav-toggle, .shortcut-hint):hover { background: var(--sidebar-hover); }
+  .app-shell .shortcut-hint > span[aria-hidden] { font-weight: 700; }
   .app-shell .connection { order: 3; margin: 18px 10px 0; align-self: flex-start; font-size: .8rem; }
   .app-shell main { padding: 32px 32px 56px; }
 }
 
 @media (min-width: 900px) and (max-width: 1199px) {
   .app-shell { --sidebar-width: 76px; }
-  .app-shell .nav-toggle { display: none; }
+  .app-shell :is(.nav-toggle, .shortcut-hint) { display: none; }
   .app-shell .top { padding: 20px 10px; }
   .app-shell .brand { justify-content: center; padding: 0; font-size: 0; }
   .app-shell .nav-section { margin-bottom: 14px; }
@@ -682,7 +683,7 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
   .nav-collapsed .nav-section { margin-bottom: 14px; }
   .nav-collapsed .nav-section-label { display: none; }
   .nav-collapsed .nav a { justify-content: center; padding: 12px 0; min-height: 48px; }
-  .nav-collapsed :is(.nav, .nav-toggle) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .nav-collapsed :is(.nav, .nav-toggle, .shortcut-hint) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .nav-collapsed .nav .nav-count { position: absolute; top: 2px; right: 4px; margin: 0; }
   .nav-collapsed .connection { margin: 14px 0 0; align-self: stretch; text-align: center; font-size: .65rem; padding: 2px 4px; }
 }

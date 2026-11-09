@@ -1,5 +1,12 @@
 # Änderungen
 
+## 5.0.9 – Tastenkürzel ergänzt (Planung 5.0, Schritt 21.5)
+
+- `A` bestätigt den ausgewählten Vorgang wie `C` und Enter; die Hilfe nennt „A / C / Enter“.
+- Die Seitenleiste bietet „? Tastenkürzel“ zum Öffnen der Hilfe; eingeklappt bleibt der
+  Knopf als „?“ mit seinem Namen für Screenreader. Ohne JavaScript erscheint er nicht, weil
+  es dann keine Tastenkürzel gibt.
+
 ## 5.0.8 – Geteilte Ansicht verfeinert (Planung 5.0, Schritt 21.4)
 
 - Im Detailbereich der geteilten Ansicht (ab 1.024 px) bleibt die Entscheidungsleiste

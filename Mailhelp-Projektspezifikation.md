@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.8. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.9. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2243,7 +2243,9 @@ zum Versand oder Rückgängigmachen bleiben Auswahlwechsel per Maus und Tastatur
 gesperrt. So bleibt das ursprüngliche Formular mit seiner Vorschlagsversion verbunden.
 Nach Rückgängig ist die Auswahl sofort wieder frei, ohne einen Befehl zu senden.
 Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
-Eingabefeldern und bei geöffneten Dialogen inaktiv. Ohne JavaScript funktionieren
+Eingabefeldern und bei geöffneten Dialogen inaktiv. Seit 5.0.9 bestätigt `A` wie `C` und
+Enter; die Seitenleiste (ab 900 Pixeln, nicht in der Symbolleiste bis 1199 Pixel) enthält den
+von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Ohne JavaScript funktionieren
 alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
 die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.
 
