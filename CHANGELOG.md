@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.0.0 – Kontrastsichere Design-Tokens (Planung 5.0, Schritt 21.1)
+
+- Neue Farbpalette für hell und dunkel (Slate-Grautöne, Smaragd als Akzent) und eigene
+  Farben je Art: Termin, Aufgabe und Antwortentwurf. Alle Text- und Flächenpaare erreichen
+  mindestens 4,5:1 (WCAG AA); ein Test berechnet die Kontraste direkt aus `app.css`.
+- Die erste Fassung der Planung 5.0 sah hellere Töne vor, die nur 3,6:1 bis 3,8:1
+  erreichten; die überarbeitete Planung nutzt die dunkleren 700er-Stufen.
+- Die Seitenleiste nutzt Variablen statt fest eingetragener Farben; `theme-color`,
+  Offline-Seite und Manifest verwenden dieselbe Akzentfarbe.
+- Zahlen in Kennzahlen und Zählern mit gleich breiten Ziffern; weichere Schatten.
+
 ## 4.9.7 – Lernmodus in der Weboberfläche startet wieder (Planung Lernen, L.1–L.6)
 
 - Fehlerbehebung: Ein Lernlauf ließ sich nicht starten. Die Schätzung setzte je Mail 17

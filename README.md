@@ -13,7 +13,12 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.9.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.0.0 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
+Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
+Farben des hellen und dunklen Designs mindestens WCAG AA (4,5:1). Plan:
+[Planung 5.0](docs/Planung-5.0.md).
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach

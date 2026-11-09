@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.9.7. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2671,6 +2671,14 @@ nach Neustart werden frühere Verbindungszustände nicht als aktuelle Bestätigu
 Unbestätigte Entwürfe sind nicht enthalten; bei nicht lesbarer oder ungültiger Konfiguration
 dient die geladene Konfiguration als Rückfall. Die Ansicht löst keine externen Aufrufe aus.
 Konten- und Zustandswechsel ändern den Status-Fingerprint; reine Kontaktzeitänderungen nicht.
+
+Seit 5.0.0 stehen alle Farben als Variablen (Design-Tokens) am Anfang von `app.css`, je
+einmal für hell und dunkel: Flächen, Text, Akzent, Status, die Arten Termin
+(`--kind-event`), Aufgabe (`--kind-task`) und Antwortentwurf (`--kind-draft`) sowie die
+Seitenleiste. Jede Kombination aus Text- und Flächenfarbe erreicht mindestens 4,5:1 nach
+WCAG 2.1; ein automatischer Test berechnet die Werte aus der Datei. Farbe ist nie das
+einzige Unterscheidungsmerkmal. `theme-color` in Seiten, Offline-Seite und Manifest
+entspricht der Akzentfarbe.
 
 Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
 und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;
