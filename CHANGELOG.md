@@ -1,5 +1,19 @@
 # Änderungen
 
+## 5.0.3 – Antworten melden ihr echtes Ergebnis; Zuordnungssperren über den Abgleich
+
+- Fehlerbehebung: Die Rückfrage „Zuordnung zu bestehenden Entscheidungen prüfen“ ließ sich
+  per Text beantworten. Die Antwort ging ans Sprachmodell, wurde als unvollständig
+  verworfen, und die Weboberfläche meldete trotzdem „Antwort übernommen“. Der Vorschlag
+  kam nicht weiter. Regressionstests für Web und Telegram.
+- Ist nur noch die Zuordnung offen, zeigt die Karte kein Antwortfeld mehr, sondern
+  „Im Vorschlagsabgleich entscheiden“. Textantworten darauf werden ohne Sprachmodell
+  abgelehnt und nennen den Weg über den Abgleich. Weitere echte Fragen bleiben beantwortbar.
+- Fehlerbehebung: Die Weboberfläche meldet bei Antworten das tatsächliche Ergebnis. Eine
+  unbrauchbare Antwort zeigt die Nachfrage direkt auf der Karte (bisher nur in Telegram);
+  eine verschobene Auswertung heißt „Antwort gespeichert – die Auswertung wird automatisch
+  wiederholt“.
+
 ## 5.0.2 – Bestätigte Aufgaben erreichen wieder Todoist
 
 - Fehlerbehebung: Enthielt eine Mail mehrere Aufgaben, hielten sie sich gegenseitig für

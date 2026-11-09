@@ -26,7 +26,7 @@ from ..domain.processing import (
     ProposalRevisionStatus,
     TelegramOutboxState,
 )
-from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
+from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR, answerable_questions, reconciliation_only
 from ..formatting import format_datetime_local
 from ..models import (
     DisplayHeaders,
@@ -99,6 +99,8 @@ class ProposalView:
     base_title: str | None = None
     # Display labels of Proposal.calendar_candidates, in the same order (4.6).
     calendar_candidates: tuple[str, ...] = ()
+    # 5.0.3: only the reconciliation is open; the card links to the Vorschlagsabgleich.
+    reconciliation_required: bool = False
     # 4.7: opens the source mail in the mail program (validated Proposal.mail_link).
     mail_link: str | None = None
 
@@ -491,14 +493,19 @@ class ReviewViews:
         if label:
             card = replace(card, profile_label=label, target=proposal.target)
         question = example = None
-        if open_ and proposal.open_questions:
-            question = display_question(proposal.open_questions[0])
-            example = answer_example(proposal.open_questions[0])
+        answerable = answerable_questions(proposal)
+        # 5.0.3: a reconciliation block is decided in the Vorschlagsabgleich, not answered.
+        blocked = open_ and reconciliation_only(proposal)
+        if open_ and answerable:
+            question = display_question(answerable[0])
+            example = answer_example(answerable[0])
         elif open_ and (editing or not card.writable):
             question, example = _CHANGE_QUESTION, _CHANGE_EXAMPLE
         actions: set[CommandKind] = set()
         if open_ and not answer_saved and not paused:
-            actions = {CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.ANSWER}
+            actions = {CommandKind.REJECT, CommandKind.ALREADY_DONE}
+            if not blocked:
+                actions.add(CommandKind.ANSWER)
             if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
                 actions.add(CommandKind.CONFIRM)
             if editing:
@@ -532,8 +539,8 @@ class ReviewViews:
             state=state, editing=editing, answer_saved=answer_saved, paused=paused,
             current=current and open_, queued=queued and open_,
             question=question, example=example,
-            yes_no=bool(open_ and proposal.open_questions)
-            and yes_no_question(proposal.open_questions[0]),
+            yes_no=bool(open_ and answerable) and yes_no_question(answerable[0]),
+            reconciliation_required=blocked,
             actions=frozenset(actions),
             confirm_label="Simulieren" if self.test_mode else target,
             external_link=proposal.external_link if proposal.status == ProposalStatus.CREATED else None,

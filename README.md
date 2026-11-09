@@ -13,13 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.0.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.0.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
 Farben des hellen und dunklen Designs mindestens WCAG AA (4,5:1). 5.0.2 behebt, dass
 bestätigte Aufgaben einer Mail mit mehreren Aufgaben nicht in Todoist ankamen; Aufgaben
-werden jetzt eher angelegt als als mögliche Dublette zurückgehalten. Ab 5.0.1 liegt die
+werden jetzt eher angelegt als als mögliche Dublette zurückgehalten. Ab 5.0.3 führt eine
+offene Zuordnungsfrage direkt in den Vorschlagsabgleich, und Antworten melden ihr echtes
+Ergebnis samt Nachfrage. Ab 5.0.1 liegt die
 Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
 dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
 [Planung 5.0](docs/Planung-5.0.md).

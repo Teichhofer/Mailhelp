@@ -9,6 +9,7 @@ import httpx
 from pydantic import ValidationError
 
 from .. import state_names
+from ..domain.proposal import RECONCILIATION_HINT, answerable_questions, reconciliation_only
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
 from ..llm.adapter import RetryableError
 from ..models import (
@@ -34,7 +35,7 @@ from .writes import ProposalPersistence
 
 
 class ProposalRevisions(Protocol):
-    def answer(self, answer: str) -> None: ...
+    def answer(self, answer: str) -> str | None: ...
     def resume(self) -> None: ...
 
 
@@ -72,7 +73,8 @@ class ProposalRevisionProcessor:
         recovery.resume_durable()
         recovery.resume_legacy()
 
-    def answer(self, answer: str) -> None:
+    def answer(self, answer: str) -> str | None:
+        """Interpret *answer* for the open question; returns a follow-up question if it was unusable."""
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
         if dialog is None or dialog.proposal_id is None:
             self.logger.event(
@@ -82,26 +84,29 @@ class ProposalRevisionProcessor:
                 self.chat_id, "Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag "
                               "„Klären“, „Ändern“ oder „Manuell prüfen“ wählen."
             )
-            return
+            return None
         mail_id, proposal_id, version = dialog.reference()
         proposal = self._dialog_proposal(dialog)
         if proposal is None:
-            return
-        question = (
-            proposal.open_questions[0]
-            if proposal.open_questions
-            else "Welche Änderung soll übernommen werden?"
-        )
+            return None
+        if reconciliation_only(proposal):
+            # 5.0.3: no language model can resolve a reconciliation block.
+            self.logger.event("INFO", "telegram.dialog", "answer_rejected", reason="reconciliation_required",
+                              mail_id=mail_id, proposal_id=proposal_id, version=version)
+            self.telegram.send(self.chat_id, f"❓ {RECONCILIATION_HINT}\n„{proposal.title}“")
+            return RECONCILIATION_HINT
+        questions = answerable_questions(proposal)
+        question = questions[0] if questions else "Welche Änderung soll übernommen werden?"
         clarification_record_name = clarification_name(mail_id, proposal_id, version)
         if self._already_answered(clarification_record_name):
-            return
+            return None
         normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
         if (
             proposal.classification == ProposalClassification.NON_BINDING
             and normalized_answer == "nein"
         ):
             self._reject_non_binding(dialog, proposal, question, answer, clarification_record_name)
-            return
+            return None
         if self.revision_service is None:
             self.logger.event(
                 "ERROR",
@@ -115,7 +120,7 @@ class ProposalRevisionProcessor:
                 self.chat_id,
                 "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.",
             )
-            return
+            return None
         # This is the acknowledgement boundary: persist the authorized input
         # atomically before the first fallible interpretation call.  The raw
         # answer exists only in this state file and is never added to logs.
@@ -127,7 +132,7 @@ class ProposalRevisionProcessor:
             authorized_answer=answer,
         )
         self.store.save(clarification_record_name, pending.model_dump(mode="json"))
-        self._interpret_pending(pending)
+        return self._interpret_pending(pending)
 
     def _dialog_proposal(self, dialog: TelegramDialogState) -> Proposal | None:
         """The proposal the open question belongs to; ``None`` ends a missing or stale dialog."""
@@ -231,14 +236,14 @@ class ProposalRevisionProcessor:
         )
         self.telegram.send(self.chat_id, "✅ Vorschlag wurde verworfen.")
 
-    def _interpret_pending(self, state: ProposalClarificationState) -> None:
+    def _interpret_pending(self, state: ProposalClarificationState) -> str | None:
         interpreter = AuthorizedAnswerInterpreter(
             self.store, self.revision_service, self.telegram, self.chat_id,
             self.logger, self.configured_timezone, self.interpretation_attempts,
             self.interpretation_backoff_seconds, self._revise_answered,
             self._log_revision_failure,
         )
-        interpreter.interpret_pending(state)
+        return interpreter.interpret_pending(state)
 
 
     def _revise_answered(self, state: ProposalClarificationState) -> None:

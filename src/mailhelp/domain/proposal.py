@@ -375,13 +375,34 @@ class ProposalRevisionDelta(StrictModel):
     changes: ProposalRevisionChanges
 
 
+# Questions of the local reconciliation (Vorschlagsabgleich). A text answer cannot resolve
+# them; only an explicit assignment or "Als eigenen Vorschlag behalten" does (5.0.3).
+MATCHING_QUESTION = "Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."
+SOURCE_QUESTION = "Zuordnung der zusätzlichen Quelle prüfen."
+RECONCILIATION_QUESTIONS = frozenset({MATCHING_QUESTION, SOURCE_QUESTION})
+
+
+RECONCILIATION_HINT = ("Diese Rückfrage lässt sich nicht per Antwort klären. Bitte im Vorschlagsabgleich "
+                       "zuordnen oder „Als eigenen Vorschlag behalten“ wählen und danach bestätigen.")
+
+
+def answerable_questions(proposal: Proposal) -> list[str]:
+    """Open questions a text answer can clarify, in their order."""
+    return [question for question in proposal.open_questions if question not in RECONCILIATION_QUESTIONS]
+
+
+def reconciliation_only(proposal: Proposal) -> bool:
+    """Only the reconciliation is open; a text answer would change nothing."""
+    return bool(proposal.open_questions) and not answerable_questions(proposal)
+
+
 def required_revision_questions(proposal: Proposal) -> list[str]:
     """Derive invariant clarification questions from the revised business facts."""
     questions: list[str] = []
     if proposal.duplicate_check_failed:
         questions.append("Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen.")
     if proposal.pending_sources or proposal.matching_candidates:
-        questions.append("Zuordnung der zusätzlichen Quelle prüfen.")
+        questions.append(SOURCE_QUESTION)
     if proposal.kind == ProposalKind.EVENT:
         known_start = (proposal.known_temporal_facts.start
                        if proposal.known_temporal_facts is not None else None)

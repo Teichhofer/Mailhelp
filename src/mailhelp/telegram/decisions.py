@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from ..domain.proposal import invalidate_creation_permissions
+from ..domain.proposal import MATCHING_QUESTION, invalidate_creation_permissions
 from ..models import ActionLedgerEntry, Proposal, ProposalKind, ProposalStatus, TelegramDialogState
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.proposals import ProposalRepository
@@ -76,7 +76,7 @@ class ProposalDecisionService:
                 revised = proposal.model_copy(update={"version": proposal.version + 1,
                     "status": ProposalStatus.NEEDS_CLARIFICATION, "matching_candidates": candidates,
                     "explicit_duplicate_create_confirmed_version": None,
-                    "open_questions": ["Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."]})
+                    "open_questions": [MATCHING_QUESTION]})
                 revised = invalidate_creation_permissions(revised)
                 self._commit(proposal, revised)
                 raise StaleCommand("Offene Entscheidungen haben sich geändert; neue Version prüfen")

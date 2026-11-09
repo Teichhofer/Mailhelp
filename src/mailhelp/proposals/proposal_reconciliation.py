@@ -4,7 +4,14 @@ import json
 import os
 import re
 
-from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
+from ..domain.proposal import (
+    MATCHING_QUESTION,
+    SOURCE_QUESTION,
+    Proposal,
+    ProposalStatus,
+    invalidate_creation_permissions,
+    required_revision_questions,
+)
 from ..domain.proposal_sources import ProposalMatchDecision, ProposalReference, ProposalRelation
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..persistence.proposals import ProposalRepository
@@ -191,12 +198,11 @@ class ProposalReconciliationService:
             if source.status not in OPEN and not (source.status == ProposalStatus.MERGED and
                     source.merge_review_required and pending):
                 raise ValueError("Quelle ist bereits entschieden oder zugeordnet")
-            questions = [q for q in latest.open_questions if q != "Zuordnung der zusätzlichen Quelle prüfen."]
+            questions = [q for q in latest.open_questions if q != SOURCE_QUESTION]
             remaining = [r for r in latest.pending_sources if r != ref]
             matches = [r for r in latest.matching_candidates if r != ref]
             if not matches:
-                questions = [q for q in questions if q !=
-                    "Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."]
+                questions = [q for q in questions if q != MATCHING_QUESTION]
             base = latest.model_copy(update={"pending_sources": remaining, "matching_candidates": matches,
                                             "open_questions": questions})
             if separate:
@@ -273,8 +279,7 @@ class ProposalReconciliationService:
             proposal = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION,
                 "matching_candidates": [ProposalReference(mail_id=p.source_mail_id, proposal_id=p.id)
                                         for p in candidates[:50]],
-                "open_questions": list(dict.fromkeys([*proposal.open_questions,
-                                   "Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."]))})
+                "open_questions": list(dict.fromkeys([*proposal.open_questions, MATCHING_QUESTION]))})
         return self.save(proposal, revision)
 
     def save(self, proposal: Proposal, expected_revision=None) -> Proposal:

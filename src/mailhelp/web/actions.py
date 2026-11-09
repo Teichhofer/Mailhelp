@@ -65,6 +65,13 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
                                            "", candidate=str(index))
                               for index, label in enumerate(view.calendar_candidates))
             parts.append(f'<div class="actions">{choices}</div>')
+        if view.reconciliation_required:
+            # 5.0.3: decided by an explicit assignment, never by a text answer.
+            parts.append(notice("Mailhelp hält diesen Vorschlag für möglicherweise dieselbe Sache wie einen "
+                                "anderen. Im Vorschlagsabgleich entscheidest du: zuordnen oder als eigenen "
+                                "Vorschlag behalten.", "warn")
+                         + '<p class="card-links"><a class="button primary" href="/abgleich">'
+                         'Im Vorschlagsabgleich entscheiden</a></p>')
         if CommandKind.ANSWER in view.actions and view.question:
             parts.append(_answer(csrf, view))
         buttons = []

@@ -53,15 +53,18 @@ class AuthorizedAnswerInterpreter:
     revise: Callable[[ProposalClarificationState], None]
     log_failure: Callable[[str, str, int, Exception, ProposalRevisionStatus], None]
 
-    def interpret_pending(self, state: ProposalClarificationState) -> None:
-        """Interpret one durably stored authorized answer without logging it."""
+    def interpret_pending(self, state: ProposalClarificationState) -> str | None:
+        """Interpret one durably stored authorized answer without logging it.
+
+        Returns the follow-up question sent for an unusable answer (5.0.3), else ``None``.
+        """
         assert state.authorized_answer is not None
         name = clarification_name(state.mail_id, state.proposal_id, state.version)
         proposal = self.store.load_model(
             proposal_name(state.mail_id, state.proposal_id), Proposal
         )
         if not isinstance(proposal, Proposal) or proposal.version != state.version:
-            return
+            return None
         assert self.revision_service is not None
         current_date = datetime.now(ZoneInfo(self.configured_timezone)).date()
         # "nach 3h" for the end question is resolved against the known start.
@@ -77,13 +80,12 @@ class AuthorizedAnswerInterpreter:
             normalized = self._deterministic_answer(proposal, state, temporal_answer, current_date)
             if normalized is not None:
                 self._answered(name, state, normalized)
-                return
+                return None
             _, interpretation = self.revision_service.interpret_telegram_answer(
                 proposal, state.question, state.authorized_answer
             )
             if not interpretation.usable:
-                self._ask_again(name, state, proposal, interpretation.reason, current_date)
-                return
+                return self._ask_again(name, state, proposal, interpretation.reason, current_date)
         except (
             LlmProviderResponseInvalid,
             LlmInvalidJson,
@@ -94,20 +96,21 @@ class AuthorizedAnswerInterpreter:
             httpx.TransportError,
         ) as exc:
             self._defer_interpretation(name, state, exc)
-            return
+            return None
         except ContradictoryRevision as exc:
             if not local_temporal:
                 self._defer_interpretation(name, state, exc, contradictory=True)
-                return
+                return None
             self._mark_invalid(name, state)
             message = self._contradiction_message(state, proposal, temporal_answer, current_date)
             self._log_clarification(state, type(exc).__name__)
             self.telegram.send(self.chat_id, message)
-            return
+            return message
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.
         assert interpretation.normalized_answer is not None  # a usable interpretation carries it
         self._answered(name, state, interpretation.normalized_answer)
+        return None
 
     def _deterministic_answer(self, proposal: Proposal, state: ProposalClarificationState,
                               temporal_answer: str, current_date: date) -> str | None:
@@ -181,7 +184,7 @@ class AuthorizedAnswerInterpreter:
         )
 
     def _ask_again(self, name: str, state: ProposalClarificationState, proposal: Proposal,
-                   reason: str, current_date: date) -> None:
+                   reason: str, current_date: date) -> str:
         """An unusable answer: keep the question open and ask more concretely."""
         incomplete = IncompleteUserAnswer(reason)
         self._mark_invalid(name, state)
@@ -196,6 +199,7 @@ class AuthorizedAnswerInterpreter:
         self.telegram.send(self.chat_id,
                            f"❓ {clarification.message}\n"
                            f"„{proposal.title}“ · /abbrechen beendet die Bearbeitung")
+        return clarification.message
 
     @staticmethod
     def _contradiction_message(state: ProposalClarificationState, proposal: Proposal,

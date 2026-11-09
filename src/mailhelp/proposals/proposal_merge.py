@@ -3,7 +3,13 @@
 from datetime import datetime
 from typing import Any
 
-from ..domain.proposal import KnownTemporalFacts, Proposal, ProposalStatus, required_revision_questions
+from ..domain.proposal import (
+    SOURCE_QUESTION,
+    KnownTemporalFacts,
+    Proposal,
+    ProposalStatus,
+    required_revision_questions,
+)
 from ..domain.proposal_sources import ProposalReference
 from .proposal_matching import day
 
@@ -42,7 +48,7 @@ class _Merge:
                                 for item in [*self.previous.pending_sources, reference])
         self.changes["pending_sources"] = [ProposalReference(mail_id=mail, proposal_id=proposal)
                                            for mail, proposal in pending]
-        self.questions.append("Zuordnung der zusätzlichen Quelle prüfen.")
+        self.questions.append(SOURCE_QUESTION)
 
     def add_facts(self) -> None:
         self._upgrade_classification()

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2716,6 +2716,20 @@ Aufgabe. Weitere Aufgaben derselben Mail sind eigene Aufgaben. Aus einer anderen
 desselben Verlaufs gilt eine Aufgabe nur dann als mögliche Übereinstimmung, wenn mindestens
 60 % der Titelwörter (ohne Füllwörter) übereinstimmen; nur dann fragt Mailhelp im
 Vorschlagsabgleich nach, statt anzulegen. Die Regeln für Termine bleiben unverändert.
+
+Die Rückfragen „Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage
+freigegeben.“ und „Zuordnung der zusätzlichen Quelle prüfen.“ beantwortet keine Textantwort;
+sie entscheidet allein der Vorschlagsabgleich (zuordnen oder „Als eigenen Vorschlag
+behalten“). Seit 5.0.3 zeigt eine Karte, bei der nur diese Fragen offen sind, statt eines
+Antwortfelds „Im Vorschlagsabgleich entscheiden“; eine Textantwort aus Web oder Telegram wird
+ohne Sprachmodellaufruf mit diesem Hinweis abgelehnt und nichts gespeichert. Sind weitere
+Fragen offen, bezieht sich eine Antwort auf die erste davon.
+
+Eine Webantwort meldet das Ergebnis der Auswertung: „Antwort übernommen – der Vorschlag wird
+aktualisiert.“ nur bei einer gültigen Antwort; bei einer unbrauchbaren Antwort „Antwort nicht
+übernommen – Rückfrage: …“ mit der Nachfrage, die auch Telegram erhält; bei einer technisch
+verschobenen Auswertung „Antwort gespeichert – die Auswertung wird automatisch wiederholt.“;
+ohne verwertbares Ergebnis „Antwort nicht übernommen; der Vorschlag ist unverändert.“
 
 ## Qualitätswerkzeuge ab 4.1.11
 

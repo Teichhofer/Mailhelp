@@ -17,7 +17,13 @@ from pydantic import ValidationError
 from .. import state_names
 from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
-from ..domain.proposal import invalidate_creation_permissions, required_revision_questions
+from ..domain.proposal import (
+    RECONCILIATION_HINT,
+    invalidate_creation_permissions,
+    reconciliation_only,
+    required_revision_questions,
+)
+from ..models import AnswerStatus
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from ..notifications.notification_context import web_reply
 from ..processing.mail_recheck import RecheckOutcome
@@ -407,6 +413,9 @@ class ReviewService:
     def _answer(self, command: ReviewCommand) -> ReviewResult:
         """Point the clarification at this version, then answer like Telegram free text."""
         proposal = self._target(command)
+        if reconciliation_only(proposal):
+            # 5.0.3: only the Vorschlagsabgleich resolves this; no text answer or LLM call.
+            raise AnswerRequired(RECONCILIATION_HINT)
         pointer = self._pointer()
         target = (proposal.source_mail_id, proposal.id, proposal.version)
         if (pointer.mail_id, pointer.proposal_id, pointer.version) != target:
@@ -419,7 +428,20 @@ class ReviewService:
                 mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                 version=proposal.version).model_dump(mode="json"))
         assert command.text is not None
-        self.controller.revisions.answer(command.text)
+        follow_up = self.controller.revisions.answer(command.text)
+        # 5.0.3: report what the interpretation did instead of always "übernommen".
+        state = self.controller.store.load_model(
+            state_names.clarification(proposal.source_mail_id, proposal.id, proposal.version),
+            ProposalClarificationState)
+        if follow_up is not None:
+            return ReviewResult(status=ResultStatus.NEEDS_ANSWER,
+                                message=f"Antwort nicht übernommen – Rückfrage: {follow_up}"[:500])
+        if not isinstance(state, ProposalClarificationState) or state.answer_status == AnswerStatus.INVALID:
+            return ReviewResult(status=ResultStatus.NEEDS_ANSWER,
+                                message="Antwort nicht übernommen; der Vorschlag ist unverändert.")
+        if state.answer_status == AnswerStatus.PENDING:
+            return ReviewResult(status=ResultStatus.DONE,
+                                message="Antwort gespeichert – die Auswertung wird automatisch wiederholt.")
         return ReviewResult(status=ResultStatus.DONE, message=_DONE_MESSAGES[command.kind])
 
     def _cancel(self, command: ReviewCommand) -> ReviewResult:
