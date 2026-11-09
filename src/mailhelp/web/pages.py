@@ -8,6 +8,7 @@ adds the connection indicator and the automatic refresh.
 from __future__ import annotations
 
 import html
+from contextvars import ContextVar
 from datetime import datetime
 
 from ..formatting import format_datetime_local
@@ -43,19 +44,47 @@ NAVIGATION_ICONS = {
 }
 
 
+# 5.0.1: the phone bar at the bottom shows these routes; the others are under "Mehr".
+TAB_BAR = ("/", "/mails", "/verlauf", "/status")
+MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
+
+# Open decisions of the current request, set once by the session guard (5.0.1).
+OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
+
+
+def _icon(path: str) -> str:
+    return (f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+            f'<path d="{path}"/></svg>')
+
+
+def _link(href: str, active: str | None, open_count: int) -> str:
+    current = ' aria-current="page"' if href == active else ""
+    badge = ""
+    if href == "/" and open_count:
+        current += ' aria-describedby="offen-zahl"'
+        badge = f'<span class="nav-count" aria-hidden="true">{open_count}</span>'
+    label = dict(NAVIGATION)[href]
+    return f'<a href="{href}"{current}>{_icon(NAVIGATION_ICONS[href])}<span class="nav-label">{label}</span>{badge}</a>'
+
+
 def _navigation(active: str | None) -> str:
-    labels = dict(NAVIGATION)
+    """Sidebar (from 900 px), phone bar with "Mehr" (below 900 px); both work without JavaScript."""
+    open_count = OPEN_DECISIONS.get()
     groups = []
     for title, routes in NAVIGATION_GROUPS:
-        links = []
-        for href in routes:
-            current = ' aria-current="page"' if href == active else ""
-            icon = (f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
-                    f'<path d="{NAVIGATION_ICONS[href]}"/></svg>')
-            links.append(f'<a href="{href}"{current}>{icon}<span>{labels[href]}</span></a>')
-        groups.append(f'<div class="nav-section"><p class="nav-section-label">{title}</p>'
-                      f'{"".join(links)}</div>')
-    return '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>"
+        links = "".join(_link(href, active, open_count) for href in routes)
+        groups.append(f'<div class="nav-section"><p class="nav-section-label">{title}</p>{links}</div>')
+    described = ""
+    if open_count:
+        noun = "offene Entscheidung" if open_count == 1 else "offene Entscheidungen"
+        described = f'<span id="offen-zahl" hidden>{open_count} {noun}</span>'
+    tabs = "".join(_link(href, active, open_count) for href in TAB_BAR)
+    others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION if href not in TAB_BAR)
+    current = " has-current" if active is not None and active not in TAB_BAR else ""
+    more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">Mehr</span>'
+            f'</summary><div class="tab-menu">{others}</div></details>')
+    return (described + '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>"
+            + f'<nav class="tab-bar" aria-label="Schnellnavigation">{tabs}{more}</nav>')
 
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
@@ -204,4 +233,4 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
 </section>""", signed_in=signed_in)
 
 
-__all__ = ["NAVIGATION", "devices_page", "e", "error_page", "layout", "login_page", "notice"]
+__all__ = ["NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout", "login_page", "notice"]

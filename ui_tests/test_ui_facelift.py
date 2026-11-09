@@ -9,16 +9,21 @@ from tests.scenarios.web_scenario import mail_id
 def test_navigation_leaves_room_for_the_work_area(page, mailhelp):
     sign_in(page, mailhelp)
     nav = page.get_by_role("navigation", name="Hauptnavigation")
-    box = nav.bounding_box()
-    main = page.locator("main").bounding_box()
-    assert box is not None and main is not None
     if page.device == "desktop":
+        box = nav.bounding_box()
+        main = page.locator("main").bounding_box()
+        assert box is not None and main is not None
         assert box["x"] + box["width"] <= main["x"]
         assert box["height"] > 300
     else:
+        # 5.0.1: on phones the navigation sits in a bar at the bottom edge.
         header = page.locator("header.top").bounding_box()
-        assert header is not None and header["height"] <= 125
-        assert nav.evaluate("node => getComputedStyle(node).overflowX") == "auto"
+        assert header is not None and header["height"] <= 80
+        expect(nav).to_be_hidden()
+        tabs = page.get_by_role("navigation", name="Schnellnavigation")
+        bar = tabs.bounding_box()
+        assert bar is not None and abs(bar["y"] + bar["height"] - page.viewport_size["height"]) <= 1
+        expect(tabs.get_by_role("link")).to_have_count(4)
     assert audit(page, "facelift-overview-" + page.device, page.mobile) == []
     assert mailhelp.writer.created == []
 

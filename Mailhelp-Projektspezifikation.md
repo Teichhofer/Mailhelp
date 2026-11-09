@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2680,9 +2680,17 @@ WCAG 2.1; ein automatischer Test berechnet die Werte aus der Datei. Farbe ist ni
 einzige Unterscheidungsmerkmal. `theme-color` in Seiten, Offline-Seite und Manifest
 entspricht der Akzentfarbe.
 
-Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
-und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;
-auf Telefonen scrollt der Kopfbereich mit der Seite und verdeckt keine Aktionen. Ein Tastatur-Link
+Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
+Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
+Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste
+mit „Navigation einklappen“ auf Symbole verkleinern; die Wahl speichert der Browser je Gerät
+(`localStorage`), ohne Speicher oder ohne JavaScript bleibt sie ausgeklappt. Unter 900 Pixeln
+liegt die Navigation („Schnellnavigation“) fest am unteren Rand mit „Offen“, „Mails“,
+„Verlauf“, „Status“ und „Mehr“; „Mehr“ ist ein HTML-Ausklappmenü mit den übrigen Bereichen
+und funktioniert ohne JavaScript. Die Aktionsleisten der Karten und der Rückgängig-Hinweis
+liegen darüber. Der Eintrag „Offen“ zeigt die Zahl offener Entscheidungen (Vorschläge und
+Relevanzfragen der veröffentlichten Übersicht) und beschreibt sie für Screenreader; die
+Zahl wird je Anfrage bei der Sitzungsprüfung ermittelt. Ein Tastatur-Link
 führt direkt zum Hauptinhalt. Die Seitenüberschrift steht vor den Filtern.
 
 Vorschlagskarten bewahren Titel, Zeitangaben, Zielprofil, Status, Warnungen und offene Fragen sichtbar.

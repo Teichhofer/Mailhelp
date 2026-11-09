@@ -32,6 +32,9 @@ def test_pairing_flow_is_usable(page, mailhelp):
 
 def test_devices_page_and_sign_out(page, mailhelp):
     sign_in(page, mailhelp, f"Mein {page.device}")
+    if page.mobile:
+        # 5.0.1: on phones the less frequent areas are under "Mehr".
+        page.get_by_text("Mehr", exact=True).click()
     page.get_by_role("link", name="Geräte").click()
     expect(page.get_by_text(f"Mein {page.device}")).to_be_visible()
     expect(page.get_by_text("dieses Gerät")).to_be_visible()

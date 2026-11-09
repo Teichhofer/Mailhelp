@@ -31,7 +31,7 @@ def test_areas_have_current_navigation_and_only_their_own_controls(web, tmp_path
     configure(web, tmp_path)
     page = web.browser.request("GET", "/einstellungen?bereich=" + area).body.decode()
     assert f'href="/einstellungen?bereich={area}" aria-current="page"' in page
-    assert page.count('aria-current="page"') == 2  # Main navigation and area navigation.
+    assert page.count('aria-current="page"') == 3  # Sidebar, phone bar (5.0.1) and area navigation.
     if area == "zugangsdaten":
         assert 'id="settings-credentials"' in page and "/einstellungen/speichern" not in page
         return

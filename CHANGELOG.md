@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.0.1 – Navigation für alle Bildschirmbreiten (Planung 5.0, Schritt 21.2)
+
+- Auf dem Telefon (unter 900 px) liegt die Navigation in einer festen Leiste am unteren
+  Rand: „Offen“, „Mails“, „Verlauf“, „Status“ und „Mehr“ mit den übrigen Bereichen. Das
+  Menü „Mehr“ funktioniert ohne JavaScript; die Aktionsleiste der Karten und der
+  Rückgängig-Hinweis bleiben oberhalb der Leiste.
+- Die Seitenleiste erscheint schon ab 900 px; bis 1.199 px als schmale Symbolleiste mit
+  zugänglichen Namen. Ab 1.200 px lässt sie sich einklappen; die Wahl gilt je Gerät.
+- „Offen“ zeigt die Zahl offener Entscheidungen, für Screenreader als Beschreibung
+  („3 offene Entscheidungen“).
+
 ## 5.0.0 – Kontrastsichere Design-Tokens (Planung 5.0, Schritt 21.1)
 
 - Neue Farbpalette für hell und dunkel (Slate-Grautöne, Smaragd als Akzent) und eigene

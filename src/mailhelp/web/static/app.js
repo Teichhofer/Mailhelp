@@ -603,3 +603,29 @@
   document.getElementById("push-enable").addEventListener("click", function () { changePush(true); });
   document.getElementById("push-disable").addEventListener("click", function () { changePush(false); });
 })();
+
+// 5.0.1: from 1200 px the sidebar can be collapsed to icons; the choice is kept per device.
+(function () {
+  var top = document.querySelector(".app-shell .top");
+  if (!top) return;
+  var KEY = "mailhelp.nav-collapsed";
+  var button = document.createElement("button");
+  button.type = "button";
+  button.className = "nav-toggle";
+  function stored() {
+    try { return localStorage.getItem(KEY) === "1"; } catch (error) { return false; }
+  }
+  function apply(collapsed) {
+    document.body.classList.toggle("nav-collapsed", collapsed);
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.innerHTML = '<span aria-hidden="true">' + (collapsed ? "»" : "«") + '</span><span class="nav-label">' +
+      (collapsed ? "Navigation ausklappen" : "Navigation einklappen") + "</span>";
+  }
+  button.addEventListener("click", function () {
+    var collapsed = !document.body.classList.contains("nav-collapsed");
+    apply(collapsed);
+    try { localStorage.setItem(KEY, collapsed ? "1" : "0"); } catch (error) { return; }
+  });
+  apply(stored());
+  top.appendChild(button);
+})();

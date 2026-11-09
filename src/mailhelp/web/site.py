@@ -33,7 +33,7 @@ from .app import WebApp
 from .auth import WebAuth, WebSession
 from .http import Request, Response
 from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
-from .pages import error_page, layout, notice
+from .pages import OPEN_DECISIONS, error_page, layout, notice
 from .review_site import ReviewSite
 from .sender_site import LIST_PATH as SENDERS_PATH
 from .sender_site import SenderSite
@@ -180,9 +180,18 @@ class MailhelpSite:
                 if not self.auth.csrf_valid(session.id, form.get("csrf")):
                     self.logger.event("WARNING", "web", "csrf_rejected", path=request.path)
                     return self._forbidden()
-                return handler(request, session, form, **arguments)
-            return handler(request, session, **arguments)
+                return self._counted(handler, request, session, form, **arguments)
+            return self._counted(handler, request, session, **arguments)
         return guarded
+
+    def _counted(self, handler: Handler, *values: object, **arguments: str) -> Response:
+        """The navigation shows the open decisions of the published overview (5.0.1)."""
+        overview = self.overview()
+        token = OPEN_DECISIONS.set(len(overview.open) + len(overview.relevance))
+        try:
+            return handler(*values, **arguments)
+        finally:
+            OPEN_DECISIONS.reset(token)
 
 
     # --- pairing ------------------------------------------------------------------

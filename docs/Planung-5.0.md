@@ -2,7 +2,7 @@
 
 **Zielversion:** 5.0.7 (Schritte als Patchversionen 5.0.0 bis 5.0.7)  
 **Stand:** 9. November 2026 (überarbeitet nach Abgleich mit dem Code von 4.9.7)  
-**Status:** In Umsetzung (21.1 in 5.0.0)  
+**Status:** In Umsetzung (21.1 in 5.0.0, 21.2 in 5.0.1)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.9](Planung-4.9.md) (Konfigurierbare E-Mail-Briefings) und [Planung Lernen](Planung-Lernen.md) (4.9.7)  
 **Nachfolger:** [Planung 5.2](Planung-5.2.md) (Aufgaben und Termine nach dem Eintragen überprüfen)
@@ -85,7 +85,7 @@ Erinnerungen. Farbe ist nie das einzige Merkmal; jede Art trägt zusätzlich Sym
 | Schritt | Inhalt | Fertig, wenn … | Umfang |
 | --- | --- | --- | :---: |
 | **21.1** 5.0.0 | Design-Tokens | Neue Palette aus 1.2 als Variablen für hell und dunkel; Seitenleiste, `theme-color` und Manifest nutzen Variablen bzw. dieselbe Farbe; `tabular-nums` für Zahlen; weiche Schatten. Unit-Test berechnet die Kontraste aller Text-/Flächen-Paare (≥ 4,5:1) und der Knopfschrift (≥ 4,5:1). | S |
-| **21.2** 5.0.1 | Navigation für alle Breiten | Seitenleiste ab **900 px** (statt 1.200 px), mit Zähler offener Entscheidungen an „Offen“ und einklappbar auf Symbole (Zustand je Gerät in `localStorage`, ohne JavaScript ausgeklappt). Unter 900 px eine feste Leiste unten mit „Offen“, „Mails“, „Verlauf“, „Status“ und „Mehr“ (`<details>` mit den übrigen Bereichen, ohne JavaScript bedienbar); Platz für die sichere Zone (`env(safe-area-inset-bottom)`). | M |
+| **21.2** 5.0.1 | Navigation für alle Breiten | Seitenleiste ab **900 px** (statt 1.200 px), bis 1.199 px als Symbolleiste, damit die Split-View ab 1.024 px Platz behält; mit Zähler offener Entscheidungen an „Offen“; ab 1.200 px einklappbar auf Symbole (Zustand je Gerät in `localStorage`, ohne JavaScript ausgeklappt). Unter 900 px eine feste Leiste unten mit „Offen“, „Mails“, „Verlauf“, „Status“ und „Mehr“ (`<details>` mit den übrigen Bereichen, ohne JavaScript bedienbar); Platz für die sichere Zone (`env(safe-area-inset-bottom)`). | M |
 | **21.3** 5.0.2 | Kennzeichnung der Karten | Farbstreifen, Symbol und Text je Art (Termin, Aufgabe; Änderung und Absage aus 4.6 als eigene Variante); Beleg als gestaltetes Zitat; Antwortentwurf (4.8) in der Entwurfsfarbe. | S |
 | **21.4** 5.0.3 | Split-View verfeinern | Liste mit Statusplakette und Art-Kennzeichen; im Detail bleibt die Aktionsleiste am unteren Rand sichtbar; Breakpoint bleibt 1.024 px. | S |
 | **21.5** 5.0.4 | Tastenkürzel ergänzen | `A` zusätzlich zum Bestätigen (`C`/Enter bleiben), Hilfe nennt es; Hinweis „? Tastenkürzel“ in der Seitenleiste. | S |

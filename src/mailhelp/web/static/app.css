@@ -554,11 +554,45 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
   .settings-index a:hover, .settings-index a:focus-visible { background: var(--surface); border-color: var(--border); }
 }
 
-@media (min-width: 1200px) {
-  .app-shell { padding-left: 236px; }
-  .app-shell .top { position: fixed; inset: 0 auto 0 0; width: 236px; padding: 28px 18px 24px;
+/* 5.0.1 navigation: sidebar from 900 px (icon rail up to 1199 px or when collapsed),
+   bottom bar with "Mehr" below 900 px. Both work without JavaScript. */
+.nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em;
+  margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text);
+  font-size: .75rem; font-weight: 700; line-height: 1.6; font-variant-numeric: tabular-nums; }
+.nav-toggle { display: none; }
+.tab-bar { display: none; }
+
+@media (max-width: 899px) {
+  /* Focus and scrolled-to controls never end up under the bar at the bottom edge. */
+  html:has(.app-shell) { scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .app-shell .top { padding-bottom: 8px; }
+  .app-shell .nav { display: none; }
+  .app-shell { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .tab-bar { position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 56px;
+    padding: 4px 4px env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 12px rgba(15, 23, 42, .06); }
+  .tab-bar a, .tab-more > summary { position: relative; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; min-height: 56px; padding: 6px 2px; color: var(--muted); font-size: .72rem;
+    font-weight: 600; text-decoration: none; border-radius: 10px; cursor: pointer; list-style: none; }
+  .tab-more > summary::-webkit-details-marker { display: none; }
+  .tab-bar .nav-icon { display: block; width: 22px; height: 22px; }
+  .tab-bar a[aria-current="page"], .tab-more.has-current > summary { color: var(--accent); background: var(--accent-soft); }
+  .tab-bar .nav-count { position: absolute; top: 2px; left: calc(50% + 6px); margin: 0; }
+  .tab-more { position: relative; }
+  .tab-menu { position: absolute; right: 0; bottom: calc(100% + 8px); display: grid; gap: 2px; min-width: 220px;
+    padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, .18); }
+  .tab-menu a { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 10px 12px;
+    font-size: .95rem; color: var(--text); }
+  .card .actions { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .undo-toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width: 900px) {
+  .app-shell { --sidebar-width: 236px; padding-left: var(--sidebar-width); }
+  .app-shell .top { position: fixed; inset: 0 auto 0 0; width: var(--sidebar-width); padding: 28px 18px 24px;
     display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch;
-    background: var(--sidebar-bg); border: 0; }
+    background: var(--sidebar-bg); border: 0; overflow: hidden; }
   .app-shell .brand { color: var(--sidebar-text); margin: 0 0 28px; padding: 0 10px; font-size: 1.25rem; gap: 12px; }
   .app-shell .brand img { width: 32px; height: 32px; border-radius: 9px; }
   .app-shell .nav { display: block; width: 100%; flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto;
@@ -566,12 +600,40 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
   .app-shell .nav-section { display: block; margin-bottom: 24px; }
   .app-shell .nav-section-label { display: block; margin: 0 12px 9px; color: var(--sidebar-muted);
     font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
-  .app-shell .nav a { justify-content: flex-start; border: 0; border-radius: 9px; color: var(--sidebar-text);
+  .app-shell .nav a { position: relative; justify-content: flex-start; border: 0; border-radius: 9px; color: var(--sidebar-text);
     font-size: .87rem; gap: 12px; margin-bottom: 3px; min-height: 46px; padding: 10px 12px; }
   .app-shell .nav a:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
   .app-shell .nav a[aria-current="page"] { background: var(--sidebar-active); color: #ffffff; }
+  .app-shell .nav-toggle { order: 4; display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; margin: 12px 0 0; padding: 8px 12px; border: 1px solid var(--sidebar-hover); border-radius: 9px;
+    background: transparent; color: var(--sidebar-text); font: inherit; font-size: .8rem; cursor: pointer; }
+  .app-shell .nav-toggle:hover { background: var(--sidebar-hover); }
   .app-shell .connection { order: 3; margin: 18px 10px 0; align-self: flex-start; font-size: .8rem; }
   .app-shell main { padding: 32px 32px 56px; }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .app-shell { --sidebar-width: 76px; }
+  .app-shell .nav-toggle { display: none; }
+  .app-shell .top { padding: 20px 10px; }
+  .app-shell .brand { justify-content: center; padding: 0; font-size: 0; }
+  .app-shell .nav-section { margin-bottom: 14px; }
+  .app-shell .nav-section-label { display: none; }
+  .app-shell .nav a { justify-content: center; padding: 12px 0; min-height: 48px; }
+  .app-shell .nav .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .app-shell .nav .nav-count { position: absolute; top: 2px; right: 4px; margin: 0; }
+  .app-shell .connection { margin: 14px 0 0; align-self: stretch; text-align: center; font-size: .65rem; padding: 2px 4px; }
+}
+@media (min-width: 1200px) {
+  .app-shell.nav-collapsed { --sidebar-width: 76px; }
+  .nav-collapsed .top { padding: 20px 10px; }
+  .nav-collapsed .brand { justify-content: center; padding: 0; font-size: 0; }
+  .nav-collapsed .nav-section { margin-bottom: 14px; }
+  .nav-collapsed .nav-section-label { display: none; }
+  .nav-collapsed .nav a { justify-content: center; padding: 12px 0; min-height: 48px; }
+  .nav-collapsed :is(.nav, .nav-toggle) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .nav-collapsed .nav .nav-count { position: absolute; top: 2px; right: 4px; margin: 0; }
+  .nav-collapsed .connection { margin: 14px 0 0; align-self: stretch; text-align: center; font-size: .65rem; padding: 2px 4px; }
 }
 
 @media (max-width: 719px) {
