@@ -117,7 +117,7 @@ class ReconciliationSite:
         zone = self.site.configured_timezone
         body = section_head(item, csrf)
         targets = [target for target in self._targets(item, items) if target is not None]
-        body += "".join(comparison(item, target, zone, csrf) for target in targets)
+        body += "".join(comparison(item, target, zone, csrf, self._origin) for target in targets)
         if focused and not targets:
             body += no_comparison()
         if item.status in OPEN:
@@ -125,6 +125,13 @@ class ReconciliationSite:
             if candidate.version != item.version:
                 body += defaults_offer(item, candidate, digest(defaults.model_dump()), zone, csrf)
         return body + '</section>'
+
+    def _origin(self, proposal: Proposal) -> str:
+        """Sender and subject of the mail a proposal came from, as shown on its card."""
+        mail = self.site.views.store.peek_model(f"mail-{proposal.source_mail_id}", MailState)
+        if mail is None or mail.display_headers is None:
+            return "Herkunftsmail nicht mehr gespeichert"
+        return f"{mail.display_headers.sender} · {mail.display_headers.subject}"
 
     def _targets(self, item: Proposal, items: list[Proposal]) -> list[Proposal | None]:
         """The canonical proposal of an unchecked addition, or the open matching candidates."""

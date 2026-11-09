@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.0.6 – Abgleich zeigt beide Vorschläge vollständig
+
+- Jeder Vergleich im Vorschlagsabgleich zeigt jetzt den Vorschlag, um den es geht, und den
+  möglichen Doppelgänger nebeneinander (auf dem Telefon untereinander), jeweils mit Titel,
+  Art, Zeit bzw. Frist, Ort, Beschreibung, Beleg, Herkunftsmail (Absender · Betreff) und
+  Stand. Bisher erschienen nur Titel des Kandidaten und zwei Beschreibungen.
+- Der Vorschlag, um den es geht, ist auf einen Blick erkennbar: kräftiger Rahmen und
+  getönter Hintergrund in der Akzentfarbe sowie das Schild „Um diesen Vorschlag geht es“;
+  der Kandidat hat einen gestrichelten, neutralen Rahmen und das Schild „Möglicherweise
+  dasselbe“. Unter 480 px stehen Bezeichnung und Wert untereinander; der Titel-Link hat
+  44 px Tippfläche.
+- Planung 5.0: Schritte 21.3 bis 21.8 rücken auf 5.0.7 bis 5.0.12.
+
 ## 5.0.5 – Vorschlagsabgleich nur für den betroffenen Vorschlag
 
 - „Im Vorschlagsabgleich entscheiden“ auf einer Karte öffnet den Abgleich jetzt auf diesen

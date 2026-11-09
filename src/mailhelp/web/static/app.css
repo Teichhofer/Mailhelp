@@ -345,6 +345,30 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-r
 .facts-table dt:first-of-type, .facts-table dt:first-of-type + dd { border-top: none; }
 .facts-table dt { color: var(--muted); }
 .facts-table dd { font-weight: 600; overflow-wrap: anywhere; }
+/* 5.0.6: the proposal of the card next to each comparison candidate. */
+.compare { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 12px 0; }
+.compare-side { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; }
+.compare-side h3 { margin: 0 0 10px; }
+/* 5.0.7: the proposal in question stands out by frame, tint and label. */
+.compare-this { border: 3px solid var(--accent); background: var(--accent-soft); }
+.compare-other { border-style: dashed; }
+.compare-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .95rem;
+  border: 1px solid var(--muted); color: var(--muted);
+}
+.compare-this .compare-tag { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.compare-side dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 0;
+  align-items: baseline; }
+.compare-side dt { color: var(--muted); }
+.compare-side dd { margin: 0; overflow-wrap: anywhere; }
+.compare-side dd a { display: inline-flex; align-items: center; min-height: 44px; }
+@media (min-width: 720px) { .compare { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  .compare-side dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .compare-side dd { margin-bottom: 8px; }
+  .compare-tag { font-size: .9rem; }
+}
 .run-progress { width: 100%; height: 12px; margin: 0 0 12px; accent-color: var(--accent); }
 h3 { margin: 16px 0 8px; }
 @media (max-width: 480px) {

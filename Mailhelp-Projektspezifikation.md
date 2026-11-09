@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2737,6 +2737,15 @@ derselben Art bzw. bei einer ungeprüften Zusatzquelle der Hauptvorschlag), jewe
 mehr im Bestand, meldet sie „Dieser Vorschlag steht nicht mehr zum Abgleich an.“; ohne
 verbliebenen Kandidaten „Kein anderer Vorschlag steht mehr zum Vergleich an.“. Ein Link führt
 zur vollständigen Abgleichseite; ohne beide Parameter zeigt `/abgleich` wie bisher alles.
+
+Seit 5.0.6 zeigt jeder Vergleich – fokussiert wie auf der vollständigen Seite – zwei Spalten
+(unter 720 px untereinander, der betroffene Vorschlag zuerst): den Vorschlag, um den es geht,
+mit 3-px-Rahmen und getöntem Hintergrund in der Akzentfarbe und dem Schild „Um diesen
+Vorschlag geht es“, und den Kandidaten mit gestricheltem neutralem Rahmen und dem Schild
+„Möglicherweise dasselbe“. Beide enthalten Titel (Link zur
+Detailseite), Art, Zeit („Zeit nicht angegeben“) bzw. Frist („Ohne Frist“), Ort (nur falls
+vorhanden), Beschreibung, Beleg (auf 300 Zeichen gekürzt), Herkunft („Absender · Betreff“ der
+Quellmail oder „Herkunftsmail nicht mehr gespeichert“) und Stand (Version und Status).
 
 Eine Webantwort meldet das Ergebnis der Auswertung: „Antwort übernommen – der Vorschlag wird
 aktualisiert.“ nur bei einer gültigen Antwort; bei einer unbrauchbaren Antwort „Antwort nicht

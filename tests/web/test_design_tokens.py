@@ -10,7 +10,7 @@ CSS = (STATIC / 'app.css').read_text(encoding='utf-8')
 
 TEXTS = ('text', 'muted', 'accent', 'danger', 'ok', 'warn', 'kind-event', 'kind-task', 'kind-draft')
 SURFACES = ('bg', 'surface', 'surface-2')
-PAIRS = (('accent-text', 'accent'), ('accent', 'accent-soft'), ('text', 'accent-soft'),
+PAIRS = (('accent-text', 'accent'), ('accent', 'accent-soft'), ('text', 'accent-soft'), ('muted', 'accent-soft'),
          ('danger', 'danger-soft'), ('ok', 'ok-soft'), ('warn', 'warn-soft'),
          ('text', 'danger-soft'), ('text', 'ok-soft'), ('text', 'warn-soft'),
          ('sidebar-text', 'sidebar-bg'), ('sidebar-muted', 'sidebar-bg'),

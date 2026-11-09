@@ -1,12 +1,13 @@
 """HTML of the proposal reconciliation; the site supplies the already selected data."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from urllib.parse import urlencode
 
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..models import MailState, Proposal
 from ..proposals.proposal_reconciliation import OPEN
-from ..review.cards import event_time
+from ..review.cards import display_date, event_time, shorten
 from ..review.views import STATUS_LABELS
 from .forms import post_form
 from .pages import e, notice
@@ -74,15 +75,39 @@ def section_head(item: Proposal, csrf: str) -> str:
     return body
 
 
-def comparison(item: Proposal, target: Proposal, zone: str, csrf: str) -> str:
+def _when(proposal: Proposal, zone: str) -> str:
+    if proposal.kind == "event":
+        return event_time(proposal, zone) or "Zeit nicht angegeben"
+    return f"Fällig: {display_date(proposal.due, zone)}" if proposal.due else "Ohne Frist"
+
+
+def compare_side(this: bool, proposal: Proposal, origin: str, zone: str) -> str:
+    """5.0.6: one proposal of a comparison with everything needed to tell it apart.
+
+    5.0.7: the proposal in question stands out by frame, tint and label at a glance."""
+    rows = [("Titel", f'<a href="{e(proposal_link(proposal))}">{e(proposal.title)}</a>'),
+            ("Art", "📅 Termin" if proposal.kind == "event" else "✅ Aufgabe"),
+            ("Zeit" if proposal.kind == "event" else "Frist", e(_when(proposal, zone)))]
+    if proposal.location:
+        rows.append(("Ort", e(proposal.location)))
+    rows += [("Beschreibung", e(proposal.description or "—")),
+             ("Beleg", e(shorten(proposal.evidence, 300))),
+             ("Herkunft", e(origin)),
+             ("Stand", f"Version {proposal.version} · {e(STATUS_LABELS[proposal.status])}")]
+    cells = "".join(f"<dt>{name}</dt><dd>{value}</dd>" for name, value in rows)
+    variant, label = ("compare-this", "Um diesen Vorschlag geht es") if this else (
+        "compare-other", "Möglicherweise dasselbe")
+    return (f'<div class="compare-side {variant}"><h3><span class="compare-tag">{label}</span></h3>'
+            f'<dl>{cells}</dl></div>')
+
+
+def comparison(item: Proposal, target: Proposal, zone: str, csrf: str,
+               origin: Callable[[Proposal], str]) -> str:
     fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
                   target_mail_id=target.source_mail_id, target_proposal_id=target.id,
                   target_version=target.version)
-    body = ('<p>Vergleich mit <a href="' + e(proposal_link(target)) + '">' + e(target.title)
-            + f'</a> · Zielversion {target.version}</p><dl><dt>Quelle</dt><dd>{e(item.description)} '
-            + e(event_time(item, zone) or item.due or "")
-            + f'</dd><dt>Bisher</dt><dd>{e(target.description)} '
-            + e(event_time(target, zone) or target.due or "") + '</dd></dl>')
+    body = ('<div class="compare">' + compare_side(True, item, origin(item), zone)
+            + compare_side(False, target, origin(target), zone) + '</div>')
     if target.status in OPEN:
         body += post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen', kind="merge_proposals", **fields)
     if item.merge_review_required or item.matching_candidates:
