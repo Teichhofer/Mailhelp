@@ -88,7 +88,8 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         if CommandKind.CANCEL_CLARIFICATION in view.actions:
             buttons.append(_button_form(csrf, view, CommandKind.CANCEL_CLARIFICATION,
                                         "Bearbeitung beenden", ""))
-        parts.append(f'<div class="actions">{"".join(buttons)}</div>')
+        # 5.0.8: the decision row stays at the bottom edge of the detail pane while scrolling.
+        parts.append(f'<div class="actions decision-bar">{"".join(buttons)}</div>')
         if CommandKind.ANSWER in view.actions and not view.question:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)

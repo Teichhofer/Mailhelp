@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.0.8 – Geteilte Ansicht verfeinert (Planung 5.0, Schritt 21.4)
+
+- Im Detailbereich der geteilten Ansicht (ab 1.024 px) bleibt die Entscheidungsleiste
+  („Anlegen“, „Verwerfen“, „Schon erledigt“) beim Scrollen am unteren Rand sichtbar, auch
+  bei langen Beschreibungen und Belegen.
+- Die Liste zeigt je Eintrag Art-Kennzeichen (5.0.7) und Statusplakette; Beleg und
+  Entscheidungen erscheinen nur im Detailbereich. Der Breakpoint bleibt 1.024 px.
+
 ## 5.0.7 – Kennzeichnung der Karten (Planung 5.0, Schritt 21.3)
 
 - Jede Vorschlagskarte trägt ihre Art als farbigen Streifen am linken Rand, als Symbol und

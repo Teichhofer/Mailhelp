@@ -458,14 +458,20 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .master-pane h2 { font-size: .85rem; margin-top: 16px; }
   .master-pane .facts { font-size: .88rem; }
   .detail-pane > .card { padding: 24px; }
-  /* Only the selection is framed; "Aktuell in Telegram" stays a badge in the list. */
-  /* The kind stripe stays on the card that is current in Telegram (5.0.7). */
+  /* Only the selection is framed; "Aktuell in Telegram" stays a badge in the list,
+     and the kind stripe stays on that card (5.0.7). */
   .master-pane .card.current { border-width: 1px 1px 1px 6px;
     border-color: var(--border) var(--border) var(--border) var(--kind-colour, var(--border)); }
   .master-pane .card :is(blockquote, details, .actions, .questions, .notice, form, .card-links, p:not(.kind, .source, .labels)) { display: none; }
   /* 4.4: the outcome of an action stays visible in the list, also for unselected items. */
   .master-pane .card [data-command-result] .notice { display: block; }
   .detail-pane { display: block; padding: 4px; }
+  /* 5.0.8: the decision row of the selected item stays visible at the bottom edge. */
+  .detail-pane .card .decision-bar {
+    position: sticky; bottom: 0; z-index: 3; margin: 16px -24px 0; padding: 14px 24px;
+    background: var(--surface); border-top: 1px solid var(--border);
+  }
+  .detail-pane .card .decision-bar:last-child { margin-bottom: -24px; border-radius: 0 0 var(--radius) var(--radius); }
   /* Quick loads (e.g. a background refresh) finish before the pane dims. */
   .detail-pane[aria-busy="true"] { opacity: .6; transition: opacity .15s ease .3s; }
   .detail-pane[inert] { opacity: .4; }

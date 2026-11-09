@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.7. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.8. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2704,6 +2704,12 @@ und „🚫 Terminabsage“ (`--danger`). Der Antwortentwurf ist als „✍️ A
 `--kind-draft` markiert. Der Beleg erscheint als Zitat mit Anführungszeichen und Rand in der
 Farbe der Art auf `--surface-2`. Die in Telegram aktuelle Karte behält ihren Streifen auch in
 der Liste der geteilten Ansicht.
+
+Seit 5.0.8 bleibt im Detailbereich der geteilten Ansicht (ab 1.024 Pixeln) die
+Entscheidungsleiste eines Vorschlags (`.decision-bar`: Anlegen bzw. Dublettenprüfung,
+Verwerfen, Schon erledigt, Bearbeitung beenden) beim Scrollen am unteren Rand sichtbar. Die
+Liste zeigt je Eintrag Art, Titel, Herkunft, Statusplaketten und Zeitangaben; Beleg,
+Rückfragen und Entscheidungen stehen nur im Detailbereich.
 
 Vorschlagskarten bewahren Titel, Zeitangaben, Zielprofil, Status, Warnungen und offene Fragen sichtbar.
 Beschreibung und Beleg stehen in einer aufklappbaren Sektion; in der Detailansicht bleiben sie direkt
