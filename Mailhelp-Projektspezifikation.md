@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.10. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.11. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2710,6 +2710,9 @@ und „🚫 Terminabsage“ (`--danger`). Der Antwortentwurf ist als „✍️ A
 `--kind-draft` markiert. Der Beleg erscheint als Zitat mit Anführungszeichen und Rand in der
 Farbe der Art auf `--surface-2`. Die in Telegram aktuelle Karte behält ihren Streifen auch in
 der Liste der geteilten Ansicht.
+
+Seit 5.0.11 sind alle Bedienelemente auf Telefonen mindestens 44 Pixel hoch (Links im
+Fließtext ausgenommen); die Browser-Prüfung erzwingt den Wert auf jeder geprüften Seite.
 
 Seit 5.0.8 bleibt im Detailbereich der geteilten Ansicht (ab 1.024 Pixeln) die
 Entscheidungsleiste eines Vorschlags (`.decision-bar`: Anlegen bzw. Dublettenprüfung,

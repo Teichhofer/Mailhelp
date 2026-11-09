@@ -25,7 +25,7 @@ _AUDIT = r"""
   for (const element of document.querySelectorAll("a, button, input, textarea, summary, select")) {
     if (!visible(element) || element.type === "hidden") continue;
     const box = element.getBoundingClientRect();
-    const minimum = element.matches("p a, li a, .meta a, code a") ? 0 : 40;
+    const minimum = element.matches("p a, li a, .meta a, code a") ? 0 : 44;
     if (mobile && box.height < minimum) {
       findings.push(`Tippfläche zu klein (${Math.round(box.height)}px): ${name(element)}`);
     }

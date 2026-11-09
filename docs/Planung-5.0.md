@@ -2,7 +2,7 @@
 
 **Zielversion:** 5.0.12 (Schritte als Patchversionen 5.0.0 bis 5.0.12; 5.0.2 bis 5.0.6 sind eingeschobene Korrekturen)  
 **Stand:** 9. November 2026 (überarbeitet nach Abgleich mit dem Code von 4.9.7)  
-**Status:** In Umsetzung (21.1 in 5.0.0, 21.2 in 5.0.1, 21.3 in 5.0.7, 21.4 in 5.0.8, 21.5 in 5.0.9, 21.6 in 5.0.10; 5.0.2 bis 5.0.6 Korrekturen Aufgabenabgleich, Antworten, Detailansicht und fokussierter Abgleich)  
+**Status:** In Umsetzung (21.1 in 5.0.0, 21.2 in 5.0.1, 21.3 in 5.0.7, 21.4 in 5.0.8, 21.5 in 5.0.9, 21.6 in 5.0.10, 21.7 in 5.0.11; 5.0.2 bis 5.0.6 Korrekturen Aufgabenabgleich, Antworten, Detailansicht und fokussierter Abgleich)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.9](Planung-4.9.md) (Konfigurierbare E-Mail-Briefings) und [Planung Lernen](Planung-Lernen.md) (4.9.7)  
 **Nachfolger:** [Planung 5.1](Planung-5.1.md) (Zuverlässigere Erkennung und nachvollziehbare Entscheidungen)

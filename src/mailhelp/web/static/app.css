@@ -281,7 +281,7 @@ textarea { min-height: 88px; resize: vertical; }
 
 .button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .button.danger { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
-.button.small { min-height: 40px; padding: 6px 12px; font-size: .9rem; }
+.button.small { min-height: 44px; padding: 6px 12px; font-size: .9rem; }
 .button.link { background: none; border: none; color: var(--accent); padding: 8px 0; }
 .button:disabled { opacity: .6; cursor: wait; }
 .button:not(:disabled):hover { border-color: var(--accent); }

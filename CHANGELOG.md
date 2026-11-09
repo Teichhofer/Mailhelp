@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.0.11 – Tippflächen von 44 px (Planung 5.0, Schritt 21.7)
+
+- Die Browser-Prüfung verlangt auf Telefonen jetzt mindestens 44 px hohe Tippflächen
+  (bisher 40 px); Links im Fließtext bleiben ausgenommen.
+- Kleine Knöpfe (`.button.small`, etwa Filterchips, „Abmelden“, „Speichern“,
+  „Vergrößern“) sind dafür 44 px hoch. Alle Seiten bestehen die Prüfung auf allen Breiten.
+- Fokusring (`--focus`) und `aria-current` der unteren Leiste waren bereits umgesetzt.
+
 ## 5.0.10 – Inbox Zero mit Kennzahlen-Kacheln (Planung 5.0, Schritt 21.6)
 
 - Ohne offene Entscheidungen zeigt die Übersicht die heutigen Ergebnisse zusätzlich als

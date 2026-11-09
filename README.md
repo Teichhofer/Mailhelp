@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.0.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.0.11 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -28,7 +28,7 @@ vollständig nebeneinander. Ab 5.0.7 tragen Karten ihre Art (Termin, Aufgabe,
 Terminänderung, Terminabsage, Antwortentwurf) als farbigen Streifen, Symbol und Text; ab 5.0.8
 bleibt die Entscheidungsleiste im Detailbereich der geteilten Ansicht stets sichtbar; ab 5.0.9
 bestätigt auch `A`, und die Seitenleiste zeigt „? Tastenkürzel“; ab 5.0.10 zeigt „Alles
-erledigt“ die Tageswerte als Kacheln. Ab 5.0.1 liegt die
+erledigt“ die Tageswerte als Kacheln; ab 5.0.11 sind alle Tippflächen mindestens 44 px hoch. Ab 5.0.1 liegt die
 Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
 dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
 [Planung 5.0](docs/Planung-5.0.md).
