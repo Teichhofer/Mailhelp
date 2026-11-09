@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.0.10 – Inbox Zero mit Kennzahlen-Kacheln (Planung 5.0, Schritt 21.6)
+
+- Ohne offene Entscheidungen zeigt die Übersicht die heutigen Ergebnisse zusätzlich als
+  vier Kacheln: Termine, Aufgaben, Abgleiche und Verworfen, mit gleich breiten Ziffern
+  (`tabular-nums`); Termine und Aufgaben tragen ihre Artfarbe.
+- Dezente Einblendung, die nur bewegt (volle Lesbarkeit von Beginn an) und bei
+  „Bewegung reduzieren“ entfällt.
+
 ## 5.0.9 – Tastenkürzel ergänzt (Planung 5.0, Schritt 21.5)
 
 - `A` bestätigt den ausgewählten Vorgang wie `C` und Enter; die Hilfe nennt „A / C / Enter“.

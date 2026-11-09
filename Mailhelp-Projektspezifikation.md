@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.9. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.10. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2247,7 +2247,11 @@ Eingabefeldern und bei geöffneten Dialogen inaktiv. Seit 5.0.9 bestätigt `A` w
 Enter; die Seitenleiste (ab 900 Pixeln, nicht in der Symbolleiste bis 1199 Pixel) enthält den
 von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Ohne JavaScript funktionieren
 alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
-die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.
+die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone. Seit 5.0.10 stehen
+sie zusätzlich als Kacheln „📅 Termine“, „✅ Aufgaben“ (angelegt bzw. simuliert),
+„🔁 Abgleiche“ (bereits vorhanden) und „🗑️ Verworfen“ mit gleich breiten Ziffern da. Die
+Karte gleitet beim Erscheinen kurz nach oben, ohne Ein- oder Ausblenden; bei
+`prefers-reduced-motion: reduce` entfällt die Bewegung.
 
 **Bildvorschau.** Bei der Vorbereitung werden Rasterbilder (JPEG, PNG, WebP,
 bis 5 MB) unabhängig von der Bilderkennung als JPEG mit höchstens 1.600 px unter

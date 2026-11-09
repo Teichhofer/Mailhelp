@@ -93,12 +93,19 @@ class ExperienceSite:
         total = sum(counts.values())
         summary = (f"Heute {total} {'Vorgang' if total == 1 else 'Vorgänge'} verarbeitet: {details}."
                    if total else "Heute noch keine Vorgänge abgeschlossen.")
+        # 5.0.10: today's results as tiles; colour marks the kind, the label names it.
+        tiles = "".join(f'<div class="kpi {kind}"><dt>{label}</dt><dd>{counts[key]}</dd></div>'
+                        for key, kind, label in (("event", "kind-event", "📅 Termine"),
+                                                 ("task", "kind-task", "✅ Aufgaben"),
+                                                 ("already_exists", "", "🔁 Abgleiche"),
+                                                 ("rejected", "", "🗑️ Verworfen")))
         last = site.views.system(now).last_processed
         when = format_datetime_local(last, zone) if last else "noch keine"
         return ('<section class="card inbox-zero" aria-labelledby="inbox-zero">'
                 '<p><span class="badge ok">✓</span></p>'
                 '<h2 id="inbox-zero">Alles erledigt! Keine offenen Entscheidungen.</h2>'
-                f'<p>{e(summary)}</p><p class="meta">Letzte verarbeitete Mail: {e(when)} · '
+                f'<p>{e(summary)}</p><dl class="kpi-tiles" aria-label="Heute">{tiles}</dl>'
+                f'<p class="meta">Letzte verarbeitete Mail: {e(when)} · '
                 '<a href="/status">Serverstatus</a> · <a href="/briefing">Tagesüberblick</a></p></section>')
 
     def briefing(self, request: Request, session: WebSession) -> Response:
