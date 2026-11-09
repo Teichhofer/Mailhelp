@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.0.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.0.7 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -24,7 +24,8 @@ offene Zuordnungsfrage direkt in den Vorschlagsabgleich, und Antworten melden ih
 Ergebnis samt Nachfrage. 5.0.4 behebt, dass die geteilte Ansicht bei Vorschlägen mit
 Original-Mail-Link „Details nicht geladen“ meldete. Ab 5.0.5 zeigt der Abgleich von einer
 Karte aus nur den betroffenen Vorschlag und seine Vergleichskandidaten, ab 5.0.6 beide
-vollständig nebeneinander. Ab 5.0.1 liegt die
+vollständig nebeneinander. Ab 5.0.7 tragen Karten ihre Art (Termin, Aufgabe,
+Terminänderung, Terminabsage, Antwortentwurf) als farbigen Streifen, Symbol und Text. Ab 5.0.1 liegt die
 Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
 dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
 [Planung 5.0](docs/Planung-5.0.md).
@@ -645,6 +646,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Gesamtfahrplan und Release 4.0 | [Planung 4.0](docs/Planung-4.0.md), [Release 4.0](docs/Release-4.0.md) |
 | Qualitätsoffensive und Testinfrastruktur | [Planung 4.1](docs/Planung-4.1.md) |
 | Reaktionsschnelle Web-Aktionen | [Planung 4.2](docs/Planung-4.2.md) |
+| Geplant für 5.3: Live-Suche, Hilfschat und Dokumentationsprüfung | [Detaillierter Plan 5.3](docs/Planung-5.3.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.

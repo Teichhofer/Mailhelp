@@ -245,3 +245,18 @@ def test_interrupted_admin_command_with_receipt_is_reconciled_not_repeated(tmp_p
         result = restarted.get(entry.id).result
         assert executed == [] and result.status == ResultStatus.FAILED
         assert "Konfigurationsdienst" in result.message
+
+
+def test_a_concurrent_producer_of_the_same_command_wins_and_the_second_returns_its_entry(tmp_path, monkeypatch):
+    """Both producers passed the duplicate check; the receipt is the compare-and-set that decides."""
+    inbox = CommandInbox(JsonStore(tmp_path))
+    real = incoming.atomic_json
+    def raced(path, value, *, exclusive=False):
+        if exclusive and path.parent.name == "receipts":
+            real(path, value, exclusive=True)  # The other producer publishes the same intent first.
+            raise FileExistsError(str(path))
+        return real(path, value, exclusive=exclusive)
+    monkeypatch.setattr(incoming, "atomic_json", raced)
+    entry, created = inbox.incoming.accept(command(CommandKind.REJECT))
+    assert created is False and entry.command == command(CommandKind.REJECT)
+    assert len(receipts(tmp_path)) == 1

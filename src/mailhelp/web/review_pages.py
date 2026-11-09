@@ -51,10 +51,11 @@ def _fact(icon: str, text: str, label: str) -> str:
 
 
 def _expandable(short: str, full: str, label: str, quote: bool) -> str:
-    tag = "blockquote" if quote else "p"
+    # 5.0.7: the evidence is a styled quotation from the mail.
+    tag, end = ('blockquote class="evidence"', "blockquote") if quote else ("p", "p")
     if short == full:
-        return f"<{tag}>{e(short)}</{tag}>"
-    return (f"<{tag}>{e(short)}</{tag}><details><summary>{label} vollständig anzeigen</summary>"
+        return f"<{tag}>{e(short)}</{end}>"
+    return (f"<{tag}>{e(short)}</{end}><details><summary>{label} vollständig anzeigen</summary>"
             f'<p class="full">{e(full)}</p></details>')
 
 
@@ -144,6 +145,19 @@ def _diff_box(view: ProposalView) -> str:
             f"<ul>{lines}</ul></div>")
 
 
+# 5.0.7: every kind has a stripe colour, a symbol and a text; colour is never the only mark.
+KINDS = {"event": "📅 Termin", "task": "✅ Aufgabe", "change": "🔄 Terminänderung", "cancel": "🚫 Terminabsage"}
+
+
+def card_kind(view: ProposalView) -> str:
+    """The kind of a card: appointment, task, or a change or cancellation of an appointment (4.6)."""
+    if view.card.kind != ProposalKind.EVENT:
+        return "task"
+    if view.is_cancellation:
+        return "cancel"
+    return "change" if view.time_changes else "event"
+
+
 def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                   detail_link: bool = True) -> str:
     card = view.card
@@ -151,6 +165,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     description = (_expandable(card.description, card.description_full or card.description,
                                "Beschreibung", False) if card.description else "")
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
+    kind = card_kind(view)
     context = (f'<details class="card-context"><summary class="context-label">Beschreibung und Beleg</summary>'
                f'{description}{evidence}</details>' if detail_link else description + evidence)
     created = https_link(view.external_link)
@@ -169,8 +184,8 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     details = (f'<p class="card-links"><a class="button small" data-detail '
                f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
                if detail_link else "")
-    return f"""<article class="card{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
-<p class="kind">{"📅 Termin" if event else "✅ Aufgabe"}{version}</p>
+    return f"""<article class="card kind-{kind}{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
+<p class="kind"><span class="kind-label">{KINDS[kind]}</span>{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
 <p class="labels">{" ".join(_card_labels(view))}</p>

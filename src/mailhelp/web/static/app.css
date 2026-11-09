@@ -168,6 +168,15 @@ h3 { font-size: 1.1rem; line-height: 1.3; margin: 0; overflow-wrap: anywhere; }
 }
 
 .card.current { border: 2px solid var(--accent); }
+/* 5.0.7: kind of a card by stripe, symbol and text (colour is never the only mark). */
+.card:is(.kind-event, .kind-task, .kind-change, .kind-cancel, .kind-draft) { border-left: 6px solid var(--kind-colour); }
+.kind-event { --kind-colour: var(--kind-event); }
+.kind-task { --kind-colour: var(--kind-task); }
+.kind-change { --kind-colour: var(--kind-event); }
+.kind-cancel { --kind-colour: var(--danger); }
+.kind-draft { --kind-colour: var(--kind-draft); }
+.kind-change.card { border-left-style: double; border-left-width: 8px; }
+.kind-label { color: var(--kind-colour); font-weight: 700; }
 .card.narrow { max-width: 440px; margin: 24px auto; }
 
 .card-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
@@ -218,6 +227,16 @@ blockquote {
   border-left: 3px solid var(--border);
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+/* 5.0.7: the evidence as a styled quotation in the colour of the card's kind. */
+blockquote.evidence {
+  position: relative; padding: 10px 14px 10px 36px; border-radius: 0 12px 12px 0;
+  background: var(--surface-2); border-left-color: var(--kind-colour, var(--border));
+  color: var(--text); font-style: italic;
+}
+blockquote.evidence::before {
+  content: "„"; position: absolute; left: 10px; top: -2px; font-size: 1.8rem; line-height: 1;
+  color: var(--kind-colour, var(--muted)); font-style: normal;
 }
 
 /* Forms and buttons */
@@ -440,7 +459,9 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .master-pane .facts { font-size: .88rem; }
   .detail-pane > .card { padding: 24px; }
   /* Only the selection is framed; "Aktuell in Telegram" stays a badge in the list. */
-  .master-pane .card.current { border: 1px solid var(--border); }
+  /* The kind stripe stays on the card that is current in Telegram (5.0.7). */
+  .master-pane .card.current { border-width: 1px 1px 1px 6px;
+    border-color: var(--border) var(--border) var(--border) var(--kind-colour, var(--border)); }
   .master-pane .card :is(blockquote, details, .actions, .questions, .notice, form, .card-links, p:not(.kind, .source, .labels)) { display: none; }
   /* 4.4: the outcome of an action stays visible in the list, also for unselected items. */
   .master-pane .card [data-command-result] .notice { display: block; }

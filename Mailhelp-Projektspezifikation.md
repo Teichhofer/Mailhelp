@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.6. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2696,6 +2696,14 @@ liegen darüber. Der Eintrag „Offen“ zeigt die Zahl offener Entscheidungen (
 Relevanzfragen der veröffentlichten Übersicht) und beschreibt sie für Screenreader; die
 Zahl wird je Anfrage bei der Sitzungsprüfung ermittelt. Ein Tastatur-Link
 führt direkt zum Hauptinhalt. Die Seitenüberschrift steht vor den Filtern.
+
+Seit 5.0.7 trägt jede Vorschlagskarte ihre Art dreifach: als 6 Pixel breiten Streifen am
+linken Rand, als Symbol und als Text in der Farbe der Art – „📅 Termin“ (`--kind-event`),
+„✅ Aufgabe“ (`--kind-task`), „🔄 Terminänderung“ (Terminfarbe, zusätzlich doppelter Streifen)
+und „🚫 Terminabsage“ (`--danger`). Der Antwortentwurf ist als „✍️ Antwortentwurf“ in
+`--kind-draft` markiert. Der Beleg erscheint als Zitat mit Anführungszeichen und Rand in der
+Farbe der Art auf `--surface-2`. Die in Telegram aktuelle Karte behält ihren Streifen auch in
+der Liste der geteilten Ansicht.
 
 Vorschlagskarten bewahren Titel, Zeitangaben, Zielprofil, Status, Warnungen und offene Fragen sichtbar.
 Beschreibung und Beleg stehen in einer aufklappbaren Sektion; in der Detailansicht bleiben sie direkt

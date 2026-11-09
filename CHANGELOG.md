@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.0.7 – Kennzeichnung der Karten (Planung 5.0, Schritt 21.3)
+
+- Jede Vorschlagskarte trägt ihre Art als farbigen Streifen am linken Rand, als Symbol und
+  als Text: „📅 Termin“ (blau), „✅ Aufgabe“ (orange), „🔄 Terminänderung“ (blau mit
+  Doppelstreifen) und „🚫 Terminabsage“ (rot). Farbe ist nie das einzige Merkmal.
+- Der Beleg erscheint als gestaltetes Zitat mit Anführungszeichen in der Farbe der Art.
+- Der Antwortentwurf (4.8) ist als „✍️ Antwortentwurf“ in der Entwurfsfarbe markiert.
+- Auch die in Telegram aktuelle Karte behält in der Liste der geteilten Ansicht ihren Streifen.
+- Wartung: Der gleichzeitige Eingang desselben Befehls wird deterministisch getestet, statt
+  nur zufällig unter Last abgedeckt zu werden.
+
 ## 5.0.6 – Abgleich zeigt beide Vorschläge vollständig
 
 - Jeder Vergleich im Vorschlagsabgleich zeigt jetzt den Vorschlag, um den es geht, und den

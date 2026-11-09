@@ -129,7 +129,8 @@ class ExperienceSite:
         buttons = "".join(f'<button class="button" name="intent" value="{intent}"{locked}>{label}</button>'
                           for intent, label in (("accept", "Zusagen"), ("decline", "Absagen"),
                                                 ("question", "Rückfrage")))
-        html = (f'<section class="card draft-box" id="antwort" aria-labelledby="antwort-titel">'
+        html = (f'<section class="card draft-box kind-draft" id="antwort" aria-labelledby="antwort-titel">'
+                f'<p class="kind"><span class="kind-label">✍️ Antwortentwurf</span></p>'
                 f'<h2 id="antwort-titel">Antworten</h2>'
                 f'<form method="post" action="/mail/{mail_id}/entwurf" class="draft-intents">{hidden()}'
                 f'<input type="hidden" name="mode" value="generate"><div class="actions">{buttons}</div>'
