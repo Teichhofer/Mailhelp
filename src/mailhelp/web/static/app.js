@@ -185,7 +185,8 @@
     card.scrollIntoView({block: "nearest"});
     var number = ++requestNumber;
     pane.setAttribute("aria-busy", "true");
-    fetch(card.querySelector(".card-links a").href, {credentials: "same-origin", cache: "no-store"})
+    // 5.0.4: the marked details link, never an earlier one such as the original mail.
+    fetch(card.querySelector("a[data-detail]").href, {credentials: "same-origin", cache: "no-store"})
       .then(function (response) {
         if (!response.ok || response.redirected) throw new Error("not loaded");
         return response.text();

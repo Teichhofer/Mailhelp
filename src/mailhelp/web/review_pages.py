@@ -166,7 +166,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
     current = " current" if view.current else ""
-    details = (f'<p class="card-links"><a class="button small" '
+    details = (f'<p class="card-links"><a class="button small" data-detail '
                f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
                if detail_link else "")
     return f"""<article class="card{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
@@ -182,7 +182,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 
 def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
                    detail_link: bool = True) -> str:
-    details = (f'<p class="card-links"><a class="button small" href="/mail/{e(view.mail_id)}">'
+    details = (f'<p class="card-links"><a class="button small" data-detail href="/mail/{e(view.mail_id)}">'
                'Details</a></p>' if detail_link else "")
     return f"""<article class="card" id="r-{e(view.mail_id)}">
 <p class="kind">❔ Relevanz</p>

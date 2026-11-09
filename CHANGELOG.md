@@ -1,5 +1,15 @@
 # Änderungen
 
+## 5.0.4 – Details in der geteilten Ansicht wieder ladbar
+
+- Fehlerbehebung: Bei Vorschlägen mit „📧 Original-Mail öffnen“ zeigte die geteilte Ansicht
+  „Details nicht geladen. Bitte Verbindung und Anmeldung prüfen.“. Sie lud den ersten Link
+  der Karte – den Link zur Original-Mail (`message://…` oder Gmail) – statt der
+  Detailseite. Der Details-Link ist jetzt eigens markiert (`data-detail`) und wird allein
+  geladen. Regressionstest im Browser für Apple-Mail- und Gmail-Links. Der Fehler bestand
+  seit 4.7.3.
+- Planung 5.0: Schritte 21.3 bis 21.8 rücken auf 5.0.5 bis 5.0.10.
+
 ## 5.0.3 – Antworten melden ihr echtes Ergebnis; Zuordnungssperren über den Abgleich
 
 - Fehlerbehebung: Die Rückfrage „Zuordnung zu bestehenden Entscheidungen prüfen“ ließ sich

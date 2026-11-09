@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2325,6 +2325,10 @@ Details und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
 ### Auswahl bei Aktualisierung der Webübersicht
 
 Die Split-View behält den ausgewählten Vorgang bei automatischem und manuellem Neuladen über seine stabile Karten-ID im aktuellen Browser-Verlaufseintrag bei. Ist der Vorgang nicht mehr in der angezeigten Liste vorhanden, wird der erste verbleibende Vorgang ausgewählt. Eine leere Übersicht bleibt ohne Auswahl. Ein neu gewählter Schnellfilter beginnt mit dem ersten passenden Vorgang. Die Wiederherstellung gilt auch beim Wechsel von schmaler zu breiter Ansicht und führt keine Bestätigung oder externe Schreibaktion aus. Dafür ist keine zusätzliche Konfiguration erforderlich.
+
+Der Detailbereich lädt ausschließlich den mit `data-detail` markierten Details-Link einer
+Karte (`/vorschlag/…` oder `/mail/…`), nie einen anderen Link wie „📧 Original-Mail öffnen“
+(seit 5.0.4).
 
 Neue Daten aktualisieren die Split-View ohne Neuladen der Seite: Liste und Detailbereich werden an Ort und Stelle ersetzt, der bisherige Detailinhalt bleibt bis zum Eintreffen des neuen sichtbar, und die Scrollposition der Liste bleibt erhalten. Während eines laufenden Rückgängig-Countdowns oder bei ungespeicherten Eingaben im Detailbereich wird die Aktualisierung bis zur nächsten Prüfung zurückgestellt. Kann die Seite nicht geladen werden, wird sie normal neu geladen; in der schmalen Ansicht und auf anderen Seiten bleibt es beim Neuladen. In der Liste ist nur der ausgewählte Vorgang umrandet; der in Telegram aktuelle Vorgang ist dort allein am Hinweis „Aktuell in Telegram“ erkennbar.
 

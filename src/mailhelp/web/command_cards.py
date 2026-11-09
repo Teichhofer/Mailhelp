@@ -96,5 +96,5 @@ class CommandCards:
                     else f'/mail/{command.mail_id}')
             parts.append(f'<article class="card" id="{anchor(entry)}"><h2>Deine Aktion</h2>'
                          + self.render(entries, lambda: '')
-                         + f'<p class="card-links"><a href="{link}">Details</a></p></article>')
+                         + f'<p class="card-links"><a data-detail href="{link}">Details</a></p></article>')
         return ''.join(parts)
