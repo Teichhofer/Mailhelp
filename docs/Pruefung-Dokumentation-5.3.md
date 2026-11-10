@@ -75,6 +75,14 @@ wird mit einer verständlichen Meldung abgewiesen, ohne Modellaufruf.
 Codefehler wurden in H2 nicht gefunden. Grenzen und Standards aller Zahlenfelder werden jetzt
 automatisch mit dem Code abgeglichen; die Verständlichkeitsprüfung folgt in H6.
 
+### Laufzeit der Live-Suche (H4)
+
+Gemessen mit `ui_tests/test_ui_settings_live_search_53.py` (Chromium, Desktop-Ansicht, Windows 11,
+Python 3.12.10, vollständiger Katalog, lokaler Testserver): 100 Suchläufe mit kurzen und
+mehrteiligen Begriffen, gemessen ab der Eingabe bis zur sichtbaren Trefferliste einschließlich der
+150-ms-Verzögerung. **100 von 100** innerhalb von 300 ms; Median 217,8 ms, 95. Perzentil 240,9 ms.
+Abnahmewert (mindestens 95 %) erfüllt.
+
 ## 4. Funktionen der Weboberfläche
 
 Jede Seite der Weboberfläche mit ihrer Aufgabe und dem Ort ihrer Dokumentation; ein Test

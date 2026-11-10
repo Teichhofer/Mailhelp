@@ -779,3 +779,11 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .chart-failed-text { fill: var(--danger); }
 .chart-cost-text { fill: var(--warn); }
 .chart-bar-text { fill: var(--accent); }
+/* 5.3: live search results directly below the settings search field. */
+.settings-live-status:empty { display: none; }
+.settings-live-results { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.settings-live-results li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); overflow-wrap: anywhere; }
+.settings-live-results a { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
+.settings-live-results .meta { display: block; }
+.settings-search.searching .settings-live-results { opacity: .6; }

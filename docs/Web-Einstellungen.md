@@ -14,6 +14,15 @@ nicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „
 „Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige
 Treffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker
 (`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.
+
+Live-Suche (5.3): Auf der Übersicht und jeder Bereichsseite erscheinen beim Tippen ab dem ersten
+Zeichen bis zu zehn Treffer direkt unter dem Suchfeld, ohne Klick auf „Suchen“ und ohne neue
+Seite. Gesucht wird 150 ms nach der letzten Eingabe; eine neue Eingabe bricht die vorige Anfrage
+ab, verspätete Antworten werden verworfen. Eine Ansage nennt die Trefferzahl. Leeren entfernt die
+Treffer sofort; „Suchen“ oder Enter öffnet weiterhin die vollständige Ergebnisseite. Bei einem
+Fehler bleibt die normale Suche nutzbar. Die Sofortsuche ruft nie die KI auf und liest nur
+Bezeichnungen und Hilfetexte, keine gespeicherten Werte. Endpunkt:
+`GET /api/einstellungen/suche?suche=…` (nur angemeldet, nicht zwischengespeichert).
 Ein unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.
 
 | Bereich | Adresse | Inhalt |

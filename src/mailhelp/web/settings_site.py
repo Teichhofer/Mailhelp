@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
 
 import yaml
 
@@ -16,6 +16,7 @@ from .auth import WebSession
 from .http import Request, Response
 from .pages import layout, notice
 from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
+from .settings_search import LIVE_LIMIT, bounded, search
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
@@ -41,8 +42,18 @@ class SettingsSite:
         for method, path, handler in (
                 ("GET", "/einstellungen", self.settings), ("POST", "/einstellungen/speichern", self.save_settings),
                 ("POST", "/einstellungen/zugangsdaten/speichern", self.save_credentials),
-                ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic)):
+                ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic),
+                ("GET", "/api/einstellungen/suche", self.live_search)):
             self.site.app.route(method, path, self.site.signed_in(handler))
+
+    def live_search(self, request: Request, session: WebSession) -> Response:
+        """5.3: matches of the shared search while typing; only public metadata, never values."""
+        query = bounded(parse_qs(request.query).get("suche", [""])[0])
+        results = search(query)
+        return Response.json(200, {
+            "query": query, "total": len(results), "all": "/einstellungen?suche=" + quote(query),
+            "results": [{"id": item.id, "label": item.label, "area": item.area, "summary": item.summary,
+                         "key": item.key, "href": item.href, "path": item.path} for item in results[:LIVE_LIMIT]]})
 
     def settings(self, request: Request, session: WebSession) -> Response:
         query = parse_qs(request.query)

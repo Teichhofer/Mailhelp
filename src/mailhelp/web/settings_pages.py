@@ -255,10 +255,15 @@ def _nav(current: str) -> str:
 
 
 def _search(query: str) -> str:
+    """The search form; with JavaScript, matches appear below it while typing (5.3)."""
     return ('<form method="get" action="/einstellungen" class="settings-search" role="search">'
             '<label for="settings-search">Einstellung suchen</label><div class="settings-search-row">'
             f'<input id="settings-search" type="search" name="suche" value="{e(query)}" maxlength="80" '
-            'placeholder="z. B. Zeitzone, Aufbewahrung, Telegram"><button class="button">Suchen</button></div></form>')
+            'autocomplete="off" data-live-search="/api/einstellungen/suche" aria-controls="settings-live-results" '
+            'placeholder="z. B. Zeitzone, Aufbewahrung, Telegram"><button class="button">Suchen</button></div>'
+            '<p class="meta settings-live-status" id="settings-live-status" role="status" aria-live="polite"></p>'
+            '<ul class="settings-live-results" id="settings-live-results" aria-label="Sofort gefundene Einstellungen" '
+            'hidden></ul></form>')
 
 
 def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
@@ -355,7 +360,7 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
     elif area == CREDENTIALS_AREA:
         content = credentials_section(credentials, csrf)
     elif area:
-        content = _area(area, raw, active, revision, csrf, models, push)
+        content = _search("") + _area(area, raw, active, revision, csrf, models, push)
     else:
         content = _search("") + _overview(raw, active)
     return (body + '<div class="settings-layout">' + _nav("" if query else area)

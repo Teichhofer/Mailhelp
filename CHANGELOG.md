@@ -1,5 +1,19 @@
 # Änderungen
 
+## 5.3.3 – Live-Suche in den Einstellungen (Planung 5.3, Schritt H4)
+
+- Beim Tippen erscheinen ab dem ersten Zeichen bis zu zehn Treffer direkt unter dem Suchfeld,
+  auf der Übersicht und jetzt auch auf jeder Bereichsseite; mehr Treffer über „Alle … Ergebnisse
+  anzeigen“. Kein Klick, kein Neuladen, kein Verlaufseintrag je Buchstabe, kein KI-Aufruf.
+- Suche 150 ms nach der letzten Eingabe; neue Eingaben brechen die vorige Anfrage ab, verspätete
+  Antworten werden verworfen; Leeren entfernt Treffer sofort; während einer Eingabekomposition
+  (IME) wird nicht gesucht. Eine `aria-live`-Ansage nennt Trefferzahl oder Fehler; bei einem
+  Fehler bleibt „Suchen“ nutzbar.
+- Neuer Endpunkt `GET /api/einstellungen/suche` (nur mit Sitzung, `no-store`) mit Bezeichnung,
+  Bereich, Kurzbeschreibung, Schlüssel, Sprungziel und Bedienweg – nie Werte, Token oder
+  Zugangsdaten.
+- Laufzeit: 100 von 100 Suchläufen innerhalb von 300 ms (Median 217,8 ms) auf dem Referenzsystem.
+
 ## 5.3.2 – Gemeinsamer Suchkatalog für Einstellungen (Planung 5.3, Schritt H3)
 
 - Neuer Katalog `web/settings_search.py`: jede Einstellung der allgemeinen Bereiche und alle
