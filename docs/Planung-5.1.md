@@ -2,7 +2,7 @@
 
 **Zielversion:** 5.1.0, Umsetzungsschritte als Patchversionen 5.1.0 bis 5.1.9
 **Stand:** 9. November 2026
-**Status:** In Umsetzung (R1 in 5.1.0, R2 in 5.1.1, R3 in 5.1.2)
+**Status:** In Umsetzung (R1 in 5.1.0, R2 in 5.1.1, R3 in 5.1.2, R4 in 5.1.3)
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Qualitätsprüfung 4.1](Qualitaet-4.1.md)
 **Vorgänger:** [Planung 5.0](Planung-5.0.md) – Oberfläche und Bedienung
 **Nachfolger:** [Planung 5.2](Planung-5.2.md) – Eintragungen beim Anbieter überprüfen

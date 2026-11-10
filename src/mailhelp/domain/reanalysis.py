@@ -67,6 +67,8 @@ class ReanalysisJob(StrictModel):
     event_extraction: EventExtraction | None = None
     proposals: list[Proposal] = Field(default_factory=list, max_length=40)
     error: ReanalysisError | None = None
+    # 5.1.3: when the checked result was adopted into the mail; adopted at most once.
+    adopted_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -78,6 +80,8 @@ class ReanalysisJob(StrictModel):
             raise ValueError("Genau ein fehlgeschlagener Auftrag nennt einen Fehler")
         if self.status == ReanalysisStatus.COMPLETED and self.stage != "done":
             raise ValueError("Ein abgeschlossener Auftrag hat alle Schritte durchlaufen")
+        if self.adopted_at is not None and self.status != ReanalysisStatus.COMPLETED:
+            raise ValueError("Nur ein abgeschlossener Auftrag kann übernommen sein")
         if self.llm_calls > self.max_llm_calls:
             raise ValueError("Mehr Modellaufrufe als das Budget des Auftrags erlaubt")
         if any(item.source_mail_id != self.mail_id for item in self.proposals):

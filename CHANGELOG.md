@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.1.3 – Ergebnisvergleich und sichere Übernahme (Planung 5.1, Schritt R4)
+
+- Der Vergleich einer abgeschlossenen Nachanalyse mit den Vorschlägen der Mail benennt je
+  Eintrag: unverändert, neu, geändert (mit geänderten Feldern), geschützt (angelegt, in
+  Anlage oder unklar geschrieben), früher verworfen und nicht mehr erkannt.
+- Die Übernahme prüft Analyserunde und alle Vorschlagsversionen erneut und erfolgt höchstens
+  einmal je Auftrag. Neue Befunde werden unbestätigte Vorschläge mit Vorabprüfung,
+  Vorschlagsabgleich und Meldung; offene Vorschläge erhalten eine neue Version ohne
+  übertragene Bestätigung.
+- Angelegte oder unklar geschriebene Vorschläge behalten externe ID, Zielbindung,
+  Idempotenzschlüssel und Schreibbeleg; verworfene werden nicht wieder aktiv; nicht mehr
+  erkannte werden nicht gelöscht. Die Übernahme löst keinen Schreibzugriff aus.
+
 ## 5.1.2 – Dauerhafte Nachanalyse-Aufträge (Planung 5.1, Schritt R3)
 
 - Neue Aufträge für eine gezielte Nachanalyse (`reanalysis-<id>.json`): gebunden an die

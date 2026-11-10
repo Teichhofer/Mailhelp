@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3307,3 +3307,27 @@ gespeichert; ist `max_llm_calls_per_job` erreicht, endet der Auftrag mit
 `recover()` stellt nach einem Neustart laufende Aufträge mit einem gezählten Versuch erneut
 ein. Ein während des Laufs abgebrochener Auftrag speichert keine späteren Ergebnisse. Der
 Mailzustand bleibt unverändert; Kalender und Aufgabenlisten werden nicht berührt.
+
+### Ergebnisvergleich und Übernahme (5.1.3)
+
+`processing.reanalysis_adoption.compare(state, job)` ordnet jedem Kandidaten einer
+abgeschlossenen Nachanalyse höchstens einen Vorschlag der Mail zu – zuerst über die gleiche
+Kennung (gleiche Extraktion ergibt die gleiche ID), sonst über gleiche Art und mindestens
+60 % gemeinsame Titelwörter; zusammengeführte Vorschläge bleiben außen vor. Ausgänge:
+`unchanged` (keine Abweichung in Art, Titel, Beschreibung, Frist, Beginn, Ende, ganztägig,
+Ort, Zuständigkeit, Sicherheit, Klassifikation, offenen Fragen), `new`, `changed` (offener
+Vorschlag mit Abweichung, Feldnamen werden genannt), `protected` (nicht offener Vorschlag
+mit Abweichung), `rejected` (verworfen oder als erledigt markiert) und `missing` (nicht mehr
+erkannt). Der Vergleich ändert nichts.
+
+`ReanalysisAdoption.adopt(job_id, expected_round, expected_versions)` lehnt ab, wenn der
+Auftrag nicht abgeschlossen (`not_completed`) oder schon übernommen ist (`already_adopted`),
+die Mail fehlt (`mail_missing`) oder Analyserunde oder Vorschlagsversionen nicht mehr dem
+angezeigten Vergleich entsprechen (`stale`). Neue Befunde durchlaufen Vorabprüfung und
+Vorschlagsabgleich wie neue Vorschläge der Pipeline, werden der Mail mit Meldestatus
+`pending` (bereits vorhanden: `completed`) angehängt und über den bestehenden, idempotenten
+Meldeweg zugestellt. Geänderte offene Vorschläge erhalten die nächste Version mit den neuen
+Fakten und dem neuen Beleg; `confirmed_web_actor` wird geleert, eine frühere Bestätigung gilt
+nicht weiter. Alle anderen Vorschläge bleiben unverändert. Der Auftrag erhält `adopted_at`.
+Eine nach einem Absturz wiederholte Übernahme findet die schon gespeicherten Vorschläge als
+unverändert vor. Es entsteht kein Schreibzugriff auf Kalender oder Aufgabenlisten.
