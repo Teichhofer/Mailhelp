@@ -19,7 +19,7 @@ import hashlib
 import json
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from pydantic import Field, model_validator
 
@@ -27,6 +27,7 @@ from ._base import StrictModel
 from .proposal import ProposalStatus
 
 Operation = Literal["create", "update", "append", "cancel", "duplicate"]
+OPERATIONS: tuple[Operation, ...] = get_args(Operation)
 
 
 class VerificationState(StrEnum):
@@ -44,6 +45,9 @@ class VerificationState(StrEnum):
 FINAL = {VerificationState.VERIFIED, VerificationState.NOT_FOUND, VerificationState.MISMATCH,
          VerificationState.UNAVAILABLE, VerificationState.UNSUPPORTED,
          VerificationState.LEGACY_UNVERIFIED, VerificationState.SIMULATED}
+
+# Final states a user may check again by a read-only "Erneut prüfen".
+RECHECKABLE = {VerificationState.NOT_FOUND, VerificationState.UNAVAILABLE, VerificationState.MISMATCH}
 
 # Proposal states in which an entry may already exist at the target; none of them
 # allows another write, and duplicate checks treat them as written.

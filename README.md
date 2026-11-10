@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.2.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.2.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -704,6 +704,8 @@ auch für Outlook-Kalender und Microsoft To Do (dort tagesgenau, weil To Do nur 
 ab 5.2.3 auch für CalDAV-Kalender, CalDAV-Aufgaben und Apple Erinnerungen. Ab 5.2.4 werden
 auch geänderte, ergänzte und abgesagte Termine sowie erkannte Dubletten frisch nachgeprüft;
 eine Kalenderdatei über Telegram heißt ehrlich „bereitgestellt – Übernahme nicht prüfbar“.
+Ab 5.2.6 zeigt die Weboberfläche den Prüfstand mit Soll/Ist-Vergleich, und „Erneut prüfen“ in
+Web und Telegram liest einen nicht bestätigten Eintrag nur erneut – ohne etwas zu ändern.
 Plan: [Planung 5.2](docs/Planung-5.2.md).
 
 ## Lizenz

@@ -43,6 +43,8 @@ class CommandKind(StrEnum):
     SERIES_CONFIRM = "series_confirm"
     # 4.6: pick one of the calendar entries a change or cancellation may refer to.
     CHOOSE_EVENT = "choose_calendar_event"
+    # 5.2: read a written entry again; never writes.
+    VERIFY_ENTRY = "verify_entry"
 
 
 # Commands on a whole mail instead of one proposal.

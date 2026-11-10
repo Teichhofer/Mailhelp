@@ -472,6 +472,24 @@ h2 { overflow-wrap: anywhere; }
 .badge.info { background: var(--surface-2); color: var(--text); }
 .path-result { margin-top: 14px; padding: 12px 14px; border-left-width: 4px; border-radius: 0 12px 12px 0;
   background: var(--surface-2); }
+/* 5.2: the check of a written entry; colour repeats the text, the table names expected and actual. */
+.verification { margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--accent);
+  border-radius: 0 12px 12px 0; background: var(--surface-2); overflow-wrap: anywhere; }
+.verification p { margin: 2px 0; }
+.verification-verified { border-left-color: var(--ok); }
+.verification-mismatch, .verification-not_found, .verification-unavailable { border-left-color: var(--warn); }
+.verification-diff { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: .95rem; }
+.verification-diff th, .verification-diff td { text-align: left; vertical-align: top; padding: 6px 8px;
+  border-top: 1px solid var(--border); }
+.verification-diff thead th { color: var(--muted); font-weight: 600; border-top: 0; }
+@media (max-width:480px) {
+  .verification-diff thead { display: none; }
+  .verification-diff tr { display: grid; grid-template-columns: 1fr; padding: 6px 0;
+    border-top: 1px solid var(--border); }
+  .verification-diff th, .verification-diff td { border-top: 0; padding: 2px 0; }
+  .verification-diff td:nth-of-type(1)::before { content: "Bestätigt: "; color: var(--muted); }
+  .verification-diff td:nth-of-type(2)::before { content: "Beim Anbieter: "; color: var(--muted); }
+}
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail-pane { display: none; min-width: 0; }
 @media (min-width: 1024px) {

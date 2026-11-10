@@ -15,6 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any, TypeVar
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
@@ -27,6 +28,7 @@ from ..domain.processing import (
     TelegramOutboxState,
 )
 from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR, answerable_questions, reconciliation_only
+from ..domain.verification import OPERATIONS, WriteVerification, operation_id
 from ..formatting import format_datetime_local
 from ..models import (
     DisplayHeaders,
@@ -44,6 +46,7 @@ from ..storage import CorruptState, JsonStore
 from .calendar_display import candidate_label
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
+from .verification_texts import VerificationSummary, summary
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _SNAPSHOT = re.compile(r"-v\d+\Z")
@@ -104,6 +107,8 @@ class ProposalView:
     reconciliation_required: bool = False
     # 4.7: opens the source mail in the mail program (validated Proposal.mail_link).
     mail_link: str | None = None
+    # 5.2: the check of a written entry, if there is one.
+    verification: VerificationSummary | None = None
 
 
 @dataclass(frozen=True)
@@ -333,7 +338,7 @@ class ReviewViews:
             current = gate is not None and (gate.mail_id, gate.proposal_id) == (mail_id, proposal_id)
             queued = any((entry.mail_id, entry.proposal_id, entry.version) ==
                          (mail_id, proposal_id, item.version) for entry in outbox.entries)
-            return self._view(item, mail, clarification, pointer, current, queued)
+            return self._view(item, mail, clarification, pointer, current, queued, self._verification(reader, item))
 
     def system(self, now: datetime | None = None) -> SystemStatus:
         """Operating figures from the stored state; nothing is changed."""
@@ -474,13 +479,24 @@ class ReviewViews:
             current = (gate is not None and gate.kind == "proposal"
                        and (gate.mail_id, gate.proposal_id) == (mail_id, proposal.id))
             view = self._view(proposal, mail, clarification, pointer, current,
-                              (mail_id, proposal.id, proposal.version) in queued)
+                              (mail_id, proposal.id, proposal.version) in queued, self._verification(reader, proposal))
             result.append((view, _mail_position(mail, proposal)))
         return result
 
+    def _verification(self, reader: _Reader, proposal: Proposal) -> VerificationSummary | None:
+        if proposal.status not in {ProposalStatus.VERIFYING, ProposalStatus.CREATED}:
+            return None
+        for operation in OPERATIONS:
+            record = reader.model(state_names.write_verification(operation_id(
+                proposal.source_mail_id, proposal.id, proposal.version, operation)), WriteVerification)
+            if record is not None:
+                return summary(record, ZoneInfo(self.configured_timezone))
+        return None
+
     def _view(self, proposal: Proposal, mail: MailState | _MailSummary | None,
               clarification: ProposalClarificationState | None,
-              pointer: TelegramDialogState, current: bool, queued: bool) -> ProposalView:
+              pointer: TelegramDialogState, current: bool, queued: bool,
+              verification: VerificationSummary | None = None) -> ProposalView:
         open_ = proposal.status in _OPEN
         editing = open_ and (pointer.mail_id, pointer.proposal_id, pointer.version) == (
             proposal.source_mail_id, proposal.id, proposal.version)
@@ -517,6 +533,10 @@ class ReviewViews:
             state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
         if proposal.status == ProposalStatus.CONFIRMED and proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR:
             state = "Freigabe des Altbestands nicht prüfbar – Anlage gesperrt"
+        if verification is not None:
+            state = verification.title
+            if verification.recheckable and proposal.status == ProposalStatus.VERIFYING:
+                actions.add(CommandKind.VERIFY_ENTRY)
         headers = mail.display_headers if mail is not None else None
         target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:
@@ -543,6 +563,7 @@ class ReviewViews:
             calendar_candidates=tuple(candidate_label(item, self.configured_timezone)
                                       for item in proposal.calendar_candidates),
             mail_link=proposal.mail_link,
+            verification=verification,
         )
 
 
@@ -569,7 +590,8 @@ def _mail_position(mail: _MailSummary | None, proposal: Proposal) -> tuple[int, 
     return (mail.uid, ids.index(proposal.id) if proposal.id in ids else 0)
 
 
-_SHOWN_PREFIXES = (state_names.PROPOSAL_PREFIX, state_names.MAIL_PREFIX, state_names.CLARIFICATION_PREFIX)
+_SHOWN_PREFIXES = (state_names.PROPOSAL_PREFIX, state_names.MAIL_PREFIX, state_names.CLARIFICATION_PREFIX,
+                   state_names.WRITE_VERIFICATION_PREFIX)
 
 
 def _shown(name: str) -> bool:
@@ -582,7 +604,7 @@ def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],
     parts = [f"r:{item.mail_id}:{item.version}" for item in relevance]
     parts += [f"p:{view.mail_id}:{view.proposal_id}:{view.version}:{view.status}:"
               f"{view.state}:{view.current}" for view in open_views]
-    parts += [f"d:{view.mail_id}:{view.proposal_id}:{view.version}:{view.status}"
+    parts += [f"d:{view.mail_id}:{view.proposal_id}:{view.version}:{view.status}:{view.state}"
               for view in recent]
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]
 

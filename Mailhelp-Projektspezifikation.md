@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3549,6 +3549,18 @@ die Prüfung mit dem jeweiligen Fehlercode. `WriteVerifications` führt je Prüf
 eine Prüfung gleichzeitig aus (In-Prozess-Schutz; ein zweiter Mailhelp-Prozess ist durch die
 Zustandssperre ausgeschlossen). Abrufe laufen im Operator-Durchlauf (`resume`) außerhalb von
 Dialog- und Zustandssperre; nur das Ergebnis wird unter der Sperre gespeichert.
+
+Bedienung (5.2.6): `review.views.ProposalView.verification` (`VerificationSummary` aus
+`review.verification_texts.summary`) trägt Prüfstand, Titel, Detailtext, Abweichungstabelle und
+ob „Erneut prüfen“ möglich ist (`RECHECKABLE`: `not_found`, `unavailable`, `mismatch`). Die Karte
+zeigt dann statt der Entscheidungsleiste den Block `.verification` (Klasse
+`verification-<Zustand>`) mit Tabelle `.verification-diff` (Angabe, Bestätigt, Beim Anbieter).
+Befehl `CommandKind.VERIFY_ENTRY` (`verify_entry`, Telegram `DecisionAction.VERIFY_ENTRY`):
+nur für `VERIFYING` in genau der aktuellen Version; `WriteVerifications.restart` setzt einen
+abschließend nicht bestandenen Nachweis auf `pending` zurück (Versuche 0, neue Frist, keine
+Abweichungen, `notified` leer); sonst `StaleCommand`. Die Web-Vorabprüfung lehnt einen
+Recheck ab, wenn die Version abweicht oder die Ansicht ihn nicht anbietet. Die Web-Antwort auf
+ein Bestätigen mit `VERIFYING` lautet `review.verification_texts.VERIFYING_MESSAGE`.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

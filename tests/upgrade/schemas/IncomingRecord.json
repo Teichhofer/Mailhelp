@@ -178,7 +178,8 @@
         "recheck_mail",
         "series_answer",
         "series_confirm",
-        "choose_calendar_event"
+        "choose_calendar_event",
+        "verify_entry"
       ],
       "title": "CommandKind",
       "type": "string"

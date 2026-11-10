@@ -24,6 +24,7 @@ class DecisionAction(StrEnum):
     SEPARATE_SOURCE = "separate_source"
     RETARGET = "retarget"
     CHOOSE_EVENT = "choose_event"
+    VERIFY_ENTRY = "verify_entry"
 
 
 class RelevanceDecision(InternalTelegramModel):

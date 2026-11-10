@@ -325,6 +325,12 @@ class MailhelpSite:
         assert command.proposal_id is not None
         current = next((view for view in self._overview.open + self._overview.recent
                         if (view.mail_id, view.proposal_id) == (command.mail_id, command.proposal_id)), None)
+        if command.kind == CommandKind.VERIFY_ENTRY:
+            # 5.2: a recheck belongs to exactly the written, not yet verified version.
+            if current is not None and (command.version != current.version
+                                        or CommandKind.VERIFY_ENTRY not in current.actions):
+                return "Dieser Eintrag wird bereits geprüft oder wurde inzwischen geändert."
+            return None
         if (current is not None and (command.version < current.version
                 or (command.version == current.version and current.status not in {ProposalStatus.PENDING_CONFIRMATION,
                                           ProposalStatus.NEEDS_CLARIFICATION}))):

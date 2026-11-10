@@ -11,6 +11,7 @@ from ..persistence.ledger import ActionLedgerPort
 from ..persistence.proposals import ProposalRepository
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
+from ..review.verification_texts import VERIFYING_MESSAGE
 from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction, apply_decision
 from .client import TelegramTransport
@@ -216,7 +217,10 @@ class ProposalDecisionService:
     def _write(self, changed: Proposal) -> tuple[ResultStatus, str]:
         """Execute the confirmed write and translate its outcome."""
         result = self.writes.execute(changed)
-        if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED, ProposalStatus.VERIFYING}:
+        if result.status == ProposalStatus.VERIFYING:
+            # 5.2: written, but not yet proven by a fresh read; the check reports its own outcome.
+            return ResultStatus.WRITTEN, VERIFYING_MESSAGE
+        if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
             # The write result message already reports the outcome.
             return ResultStatus.WRITTEN, ""
         if result.status == ProposalStatus.UNCERTAIN:

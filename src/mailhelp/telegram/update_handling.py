@@ -36,6 +36,7 @@ _COMMAND_KINDS = {
     DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
     DecisionAction.REJECT: CommandKind.REJECT,
     DecisionAction.ALREADY_DONE: CommandKind.ALREADY_DONE,
+    DecisionAction.VERIFY_ENTRY: CommandKind.VERIFY_ENTRY,
 }
 
 

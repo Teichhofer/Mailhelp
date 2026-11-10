@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.2.6 – Prüfstand in Web und Telegram, geschütztes „Erneut prüfen“ (Planung 5.2, Schritt V9)
+
+- Weboberfläche: Karte und Detailseite zeigen den Prüfstand eines geschriebenen Eintrags –
+  „Gespeichert – Eintrag wird geprüft“ (mit nächstem Versuch), „Angelegt und geprüft“ (mit
+  Prüfzeit), „Eintragung noch nicht bestätigt“ (mit Grund und letzter Prüfung), „Eintrag
+  vorhanden, Angaben weichen ab“ mit einer Tabelle „Bestätigt / Beim Anbieter“ und „Kalenderdatei
+  bereitgestellt – Übernahme nicht prüfbar“. „Zuletzt erledigt“ nennt denselben Stand und
+  aktualisiert sich, wenn eine Prüfung endet.
+- „Erneut prüfen“ (Web und Telegram) liest den Eintrag nur erneut: angeboten nur bei einer
+  beendeten, nicht bestandenen Prüfung der aktuellen Version, mit gültiger, bei Ausführung erneut
+  geprüfter Sitzung, CSRF-Schutz, Versionsbezug und Idempotenzschlüssel bzw. autorisiertem
+  Telegram-Chat. Ein wiederholtes Absenden hat keine zweite Wirkung; es wird nie geschrieben.
+- Telegram-Meldungen zu nicht bestätigten Einträgen tragen die Schaltfläche „Erneut prüfen“.
+- Nach „Bestätigen“ meldet die Weboberfläche „Gespeichert – der Eintrag wird beim Anbieter
+  geprüft.“ statt „Angelegt.“, solange die Prüfung aussteht.
+- Gespeichertes Format: Befehle kennen die Art `verify_entry` (ergänzend); ältere Versionen
+  verwerfen einen solchen noch offenen Befehl.
+
 ## 5.2.5 – Dauerhafte Lese-Wiederholungen, Anbieterlimits und parallele Prüfungen (Planung 5.2, Schritt V8)
 
 - Ein `Retry-After` des Anbieters (Sekunden oder Datum, höchstens eine Stunde) verschiebt den

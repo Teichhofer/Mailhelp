@@ -1,10 +1,14 @@
 """5.2: fixed texts for the check state of a written entry, shared by Telegram and the web."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from ..domain.verification import VerificationState, WriteVerification
+from ..domain.verification import RECHECKABLE, VerificationState, WriteVerification
+
+# The answer to a confirmation whose entry is written but not yet verified.
+VERIFYING_MESSAGE = "Gespeichert – der Eintrag wird beim Anbieter geprüft."
 
 STATE_TEXTS = {
     VerificationState.PENDING: "Gespeichert – Eintrag wird geprüft",
@@ -56,3 +60,35 @@ def differences_text(record: WriteVerification, zone: ZoneInfo) -> str:
 
 def reason_text(record: WriteVerification) -> str:
     return ERROR_TEXTS.get(record.last_error or "", "die Nachprüfung war nicht möglich")
+
+
+@dataclass(frozen=True)
+class VerificationSummary:
+    """What the web shows about the check of a written entry; every value is display text."""
+
+    state: VerificationState
+    title: str
+    detail: str | None
+    differences: tuple[tuple[str, str, str], ...]
+    recheckable: bool
+
+
+def _when(value: datetime | None, zone: ZoneInfo) -> str:
+    return "–" if value is None else f"{value.astimezone(zone):%d.%m.%Y, %H:%M} Uhr"
+
+
+def summary(record: WriteVerification, zone: ZoneInfo) -> VerificationSummary:
+    detail: str | None = None
+    if record.state == VerificationState.PENDING and record.attempts:
+        detail = (f"Nachprüfung ausstehend – nächster Versuch {_when(record.next_check_at, zone)} "
+                  f"({reason_text(record)}).")
+    elif record.state == VerificationState.VERIFIED:
+        detail = f"Frisch beim Anbieter geprüft am {_when(record.checked_at, zone)}."
+    elif record.state in {VerificationState.NOT_FOUND, VerificationState.UNAVAILABLE}:
+        reason = reason_text(record)
+        detail = f"{reason[0].upper()}{reason[1:]}. Letzte Prüfung: {_when(record.checked_at, zone)}."
+    elif record.state == VerificationState.MISMATCH:
+        detail = f"Letzte Prüfung: {_when(record.checked_at, zone)}. Mailhelp ändert den Eintrag nicht automatisch."
+    rows = tuple((FIELD_LABELS.get(name, name), shown(item.expected, zone), shown(item.actual, zone))
+                 for name, item in sorted(record.differences.items()))
+    return VerificationSummary(record.state, STATE_TEXTS[record.state], detail, rows, record.state in RECHECKABLE)

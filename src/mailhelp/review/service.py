@@ -31,6 +31,7 @@ from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import ResultStatus, ReviewResult
+from .verification_texts import VERIFYING_MESSAGE
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"
@@ -217,6 +218,8 @@ class ReviewService:
             return SeriesService(self).execute(command)
         from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
+        if command.kind == CommandKind.VERIFY_ENTRY:
+            return self._verify_entry(command)
         if command.kind == CommandKind.RECHECK:
             previous = self._target(command)
             precheck = self.controller.decision_service.precheck
@@ -364,7 +367,8 @@ class ReviewService:
             web_actor=command.actor if command.source == CommandSource.WEB else None)
         if command.source == CommandSource.TELEGRAM:
             return ReviewResult(status=status, message=text)
-        message = _STATUS_MESSAGES.get(status) or _DONE_MESSAGES[command.kind]
+        # 5.2: a written but not yet verified entry is not reported as created.
+        message = (text if text == VERIFYING_MESSAGE else _STATUS_MESSAGES.get(status)) or _DONE_MESSAGES[command.kind]
         return ReviewResult(status=status, message=message)
 
     def _relevance(self, command: ReviewCommand) -> ReviewResult:
@@ -403,6 +407,18 @@ class ReviewService:
         if proposal.version != command.version or proposal.status not in _OPEN:
             raise StaleCommand("Der Vorschlag wurde inzwischen geändert oder entschieden")
         return proposal
+
+    def _verify_entry(self, command: ReviewCommand) -> ReviewResult:
+        """5.2: only a written, not verified entry of exactly this version is read again."""
+        assert command.proposal_id is not None
+        current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        if current is None or current.version != command.version or current.status != ProposalStatus.VERIFYING:
+            raise StaleCommand("Der Vorschlag wurde inzwischen geändert oder entschieden")
+        checks = getattr(self.controller.write_executor, "verification", None)
+        if checks is None or not checks.restart(current):
+            raise StaleCommand("Für diesen Eintrag läuft bereits eine Prüfung oder sie ist abgeschlossen")
+        return ReviewResult(status=ResultStatus.DONE,
+                            message="Erneute Prüfung gestartet – Mailhelp liest den Eintrag nur erneut.")
 
     def _pointer(self) -> TelegramDialogState:
         state = self.controller.store.load_model(_DIALOG, TelegramDialogState, TelegramDialogState())

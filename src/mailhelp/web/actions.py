@@ -53,6 +53,8 @@ def _button_form(csrf: str, view: ProposalView, kind: CommandKind, label: str, s
 def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
     """Renderer for the action area of a proposal card."""
     def render(view: ProposalView) -> str:
+        if view.verification is not None:
+            return verification_block(csrf, view)
         if view.answer_saved:
             return notice("Antwort gespeichert – der Vorschlag wird aktualisiert.", "info")
         if view.paused:
@@ -94,6 +96,27 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)
     return render
+
+
+def verification_block(csrf: str, view: ProposalView) -> str:
+    """5.2: the check of a written entry with an expected/actual table and a read-only recheck."""
+    item = view.verification
+    assert item is not None
+    detail = f'<p class="meta">{e(item.detail)}</p>' if item.detail else ""
+    table = ""
+    if item.differences:
+        rows = "".join(f"<tr><th scope=\"row\">{e(label)}</th><td>{e(expected)}</td><td>{e(actual)}</td></tr>"
+                       for label, expected, actual in item.differences)
+        table = ('<table class="verification-diff"><thead><tr><th scope="col">Angabe</th>'
+                 '<th scope="col">Bestätigt</th><th scope="col">Beim Anbieter</th></tr></thead>'
+                 f"<tbody>{rows}</tbody></table>")
+    button = ""
+    if CommandKind.VERIFY_ENTRY in view.actions:
+        button = ('<div class="actions">'
+                  + _button_form(csrf, view, CommandKind.VERIFY_ENTRY, "Erneut prüfen", "")
+                  + '</div><p class="meta">Liest den Eintrag nur erneut; es wird nichts geändert oder angelegt.</p>')
+    return (f'<div class="verification verification-{e(item.state.value)}">'
+            f"<p><strong>{e(item.title)}</strong></p>{detail}{table}{button}</div>")
 
 
 def _answer(csrf: str, view: ProposalView, change: bool = False) -> str:

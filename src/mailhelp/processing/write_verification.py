@@ -18,7 +18,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from threading import Lock
-from typing import Any, cast, get_args
+from typing import Any, cast
 
 import httpx
 
@@ -26,6 +26,8 @@ from .. import state_names
 from ..config import WriteVerificationSettings
 from ..domain.verification import (
     FINAL,
+    OPERATIONS,
+    RECHECKABLE,
     FieldDifference,
     Operation,
     TargetBinding,
@@ -47,7 +49,6 @@ from ..storage import JsonStore
 NOT_VISIBLE = "not_visible"
 # A cancelled entry may still be visible for a moment; only a lasting one is a deviation.
 STILL_ACTIVE = "still_active"
-OPERATIONS: tuple[Operation, ...] = get_args(Operation)
 # A provider's wait hint is honoured up to an hour; beyond the deadline the check ends unverified.
 MAX_RETRY_AFTER = 3600.0
 
@@ -256,6 +257,21 @@ class WriteVerifications:
             created = current.model_copy(update={"status": ProposalStatus.CREATED})
             persist(created)
         return created
+
+    def restart(self, proposal: Proposal) -> bool:
+        """5.2 "Erneut prüfen": schedule one more series of reads; never a write."""
+        with self.store.locked():
+            record = self.load(proposal)
+            if record is None or record.state not in RECHECKABLE:
+                return False
+            now = self.now()
+            self._save(record.model_copy(update={
+                "state": VerificationState.PENDING, "attempts": 0, "next_check_at": now, "checked_at": None,
+                "deadline_at": now + timedelta(seconds=self.settings.max_elapsed_seconds), "last_error": None,
+                "differences": {}, "notified": None, "updated_at": now}))
+        self.logger.event("INFO", "verification", "write_check_restarted", mail_id=record.mail_id,
+                          proposal_id=record.proposal_id, version=record.proposal_version)
+        return True
 
     def unsupported(self, proposal: Proposal) -> None:
         """5.2: a calendar file was delivered; whether it was imported cannot be checked."""

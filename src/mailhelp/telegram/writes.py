@@ -21,6 +21,7 @@ from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInboxState, CommandStatus
 from ..review.verification_texts import differences_text, reason_text
 from ..storage import JsonStore
+from .callbacks import Decision, DecisionAction
 from .client import TelegramTransport
 
 _WRITE_STATES = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN,
@@ -127,7 +128,7 @@ class ConfirmedWriteExecutor:
         if record is None or record.state in {VerificationState.PENDING, record.notified}:
             return changed
         if record.state != VerificationState.VERIFIED:
-            self.telegram.send(self.chat_id, self._unverified_text(proposal, record))
+            self.telegram.send(self.chat_id, self._unverified_text(proposal, record), self._recheck_button(changed))
         elif changed.status == ProposalStatus.CREATED:
             self.telegram.send(self.chat_id, self._verified_text(proposal, changed, record, result))
         self.verification.mark_notified(record)
@@ -156,6 +157,12 @@ class ConfirmedWriteExecutor:
             return (f"Bereits vorhandener gleicher Termin „{title}“ wurde erkannt und frisch geprüft. "
                     "Kein neuer Termin wurde angelegt.")
         return self._created_text(proposal, changed, verified=True)
+
+    def _recheck_button(self, proposal: Proposal) -> dict[str, Any]:
+        """A version-bound, read-only "Erneut prüfen" for the authorized chat (5.2)."""
+        token = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
+                         action=DecisionAction.VERIFY_ENTRY).encode(self.store)
+        return {"inline_keyboard": [[{"text": "Erneut prüfen", "callback_data": token}]]}
 
     def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
         if record.state == VerificationState.MISMATCH:
