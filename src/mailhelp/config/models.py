@@ -655,6 +655,15 @@ class WriteVerificationSettings(ConfigModel):
         return self
 
 
+class HelpChatSettings(ConfigModel):
+    """5.3: the help chat explains settings with the packaged documentation; it changes nothing."""
+
+    enabled: bool = True
+    max_question_chars: int = Field(default=4000, ge=100, le=8000)
+    max_context_bytes: int = Field(default=24000, ge=2000, le=48000)
+    requests_per_minute_per_session: int = Field(default=6, ge=1, le=20)
+
+
 class DailyBriefingSettings(ConfigModel):
     enabled: bool = False
     time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
@@ -727,6 +736,7 @@ class Settings(ConfigModel):
     activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
     reanalysis: ReanalysisSettings = Field(default_factory=lambda: ReanalysisSettings())
     write_verification: WriteVerificationSettings = Field(default_factory=lambda: WriteVerificationSettings())
+    help_chat: HelpChatSettings = Field(default_factory=lambda: HelpChatSettings())
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)

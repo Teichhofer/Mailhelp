@@ -1,7 +1,7 @@
 """5.3 (H7): the local reader of the packaged help sections, also without the help chat."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..helpdocs import HelpBase, HelpUnavailable, load
 from .auth import WebSession
@@ -16,6 +16,8 @@ class HelpSite:
     def __init__(self, site: MailhelpSite):
         self.site = site
         self._base: HelpBase | None = None
+        # The help chat (H9); without it the documentation stays readable.
+        self.chat: Any = None
         site.app.route("GET", "/hilfe/dokumentation", site.signed_in(self.index))
         site.app.route("GET", r"/hilfe/dokumentation/(?P<section>[a-z0-9-]{1,80}/[a-z0-9-]{1,160})",
                        site.signed_in(self.section))

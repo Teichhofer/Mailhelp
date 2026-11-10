@@ -117,6 +117,14 @@ reanalysis:
   max_llm_calls_per_job: 5   # Router, Aufgaben- und Terminextraktion plus zwei Wiederholungen
   max_attempts: 2            # Versuche je Modellaufruf nach Fehler oder Neustart
   max_jobs_per_day: 20       # gestartete Nachanalysen je Tag (Kostenschutz)
+help_chat:
+  # 5.3: Der Hilfschat erklärt Einstellungen mit der mitgelieferten Dokumentation über die aktive
+  # KI-Anbindung (Frage, kurzer Verlauf und passende Abschnitte gehen an den KI-Anbieter).
+  # Er ändert nichts. Ohne den Schritt settings_help in prompts.yaml antwortet er nicht.
+  enabled: true
+  max_question_chars: 4000              # 100–8000 Zeichen je Frage
+  max_context_bytes: 24000              # 2000–48000 Bytes Dokumentationsausschnitte je Frage
+  requests_per_minute_per_session: 6    # 1–20 neue Fragen je Sitzung und Minute
 write_verification:
   # 5.2: Nach jeder Eintragung liest Mailhelp den Eintrag frisch beim Anbieter und meldet
   # erst dann „Angelegt und geprüft“. Wiederholt werden nur Lesezugriffe, nie das Schreiben.

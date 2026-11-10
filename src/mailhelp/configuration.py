@@ -139,12 +139,16 @@ SETTINGS_FIELDS.update({
     "vision.max_images_per_mail",
     "web.lan_access",
     "web.session_days",
+    "help_chat.enabled",
+    "help_chat.max_question_chars",
+    "help_chat.max_context_bytes",
+    "help_chat.requests_per_minute_per_session",
 })
 for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts",
               "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
 
-LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications",
+LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications", "help_chat",
                "event_defaults", "proposal_reconciliation", "drafts", "auto_draft", "briefings"}
 SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
                 "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",

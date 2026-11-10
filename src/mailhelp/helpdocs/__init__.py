@@ -113,15 +113,18 @@ class HelpBase:
         """
         asked = _expanded(words(question))
         earlier = _expanded([word for text in history for word in words(text)]) - asked
-        # A follow-up such as "Und pro Postfach?" keeps the settings of the earlier questions.
-        referenced = _settings_named(asked | earlier) | ({setting_id} if setting_id else set())
+        referenced = _settings_named(asked) | ({setting_id} if setting_id else set())
+        # A follow-up such as "Und pro Postfach?" keeps the settings of the earlier questions,
+        # but only where the new question fits as well (or has no meaningful word of its own).
+        remembered = _settings_named(earlier)
         scored = []
         for section in self.sections:
             title = set(words(" ".join(section.path)))
             body = set(words(section.text))
             matched = {word for word in asked if word in title or word in body}
             score = 3 * len(asked & title) + len(matched) + len(earlier & title)
-            named = bool(referenced & set(section.setting_ids))
+            named = bool(referenced & set(section.setting_ids)) or (
+                bool(remembered & set(section.setting_ids)) and (bool(matched) or not asked))
             strong = named or len(matched) >= 2 or (len(asked) <= 2 and bool(asked & title))
             if strong:
                 scored.append((-(score + (10 if named else 0)), section.id, section))

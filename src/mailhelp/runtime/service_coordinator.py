@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..logging import JsonlLogger, log_and_continue
 from ..telegram.receiver import TelegramInbox, TelegramReceiver, UpdateSource
@@ -29,6 +29,7 @@ class ServiceCoordinator:
     diagnostics: DiagnosticsService | None = None
     learning: LearningWorker | None = None
     reanalysis: ReanalysisWorker | None = None
+    help_chat: Any = None
     oauth: BrowserOAuth | None = None
     web: WebServer | None = None
     experience: ExperienceRuntime | None = None
@@ -80,6 +81,8 @@ class ServiceCoordinator:
                 self.learning.start()
             if self.reanalysis is not None:
                 self.reanalysis.start()
+            if self.help_chat is not None:
+                self.help_chat.start()
             if self.experience is not None:
                 self.experience.start()
         except WebServerError as exc:
@@ -97,6 +100,8 @@ class ServiceCoordinator:
             self.learning.stop()
         if self.reanalysis is not None:
             self.reanalysis.stop()
+        if self.help_chat is not None:
+            self.help_chat.stop()
         if self.oauth is not None:
             self.oauth.stop()
         if self.notifications is not None:

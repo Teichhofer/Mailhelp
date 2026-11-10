@@ -341,6 +341,15 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 | Web: Sitzungsdauer (Tage) (`web.session_days`) | So lange bleibt ein gekoppeltes Gerät angemeldet, bevor es neu gekoppelt werden muss: 1–365 Tage; Standard 30. Kürzere Werte verringern das Risiko verlorener Geräte, längere ersparen Kopplungen. | Nach Neustart |
 | Web: Zugriff im eigenen Netzwerk (`web.lan_access`) | ja (true) macht die Weboberfläche im eigenen WLAN unter der privaten IP-Adresse des PCs erreichbar (unverschlüsseltes HTTP); erfordert web.host 0.0.0.0, sonst wird die Änderung abgelehnt. nein (false) beschränkt den Zugriff auf diesen PC und die freigegebenen Adressen. | Nach Neustart |
 
+## Hilfschat
+
+| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
+| --- | --- | --- |
+| Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |
+| Hilfschat: längste Frage (Zeichen) (`help_chat.max_question_chars`) | Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt. | Im laufenden Betrieb |
+| Hilfschat: Dokumentation je Frage (Bytes) (`help_chat.max_context_bytes`) | Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten. | Im laufenden Betrieb |
+| Hilfschat: Fragen je Minute (`help_chat.requests_per_minute_per_session`) | Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht. | Im laufenden Betrieb |
+
 ## Weitere Hinweise
 
 | Bereich | Erklärung |

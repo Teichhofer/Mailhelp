@@ -1,5 +1,26 @@
 # Änderungen
 
+## 5.3.8 – Sitzungsgebundener Hilfschat-Dienst (Planung 5.3, Schritt H9)
+
+- Neuer Dienst `mailhelp.helpdocs.chat`: Fragen werden nur durch ausdrückliches Absenden zu
+  Aufträgen (`queued`, `running`, `completed`, `failed`, `interrupted`, `cancelled`), gebunden an die
+  Sitzung (gespeichert unter einem Hash, nie die Sitzungskennung), mit Chatversion und
+  Idempotenzschlüssel: derselbe Schlüssel mit gleicher Frage liefert denselben Auftrag, mit anderer
+  Frage einen Konflikt.
+- Grenzen: eine laufende Frage je Chat, `help_chat.requests_per_minute_per_session`, höchstens acht
+  wartende Fragen für alle Sitzungen, zwei Worker-Threads; Modellaufrufe laufen außerhalb aller
+  Zustandssperren, die Sitzung wird unmittelbar davor erneut geprüft.
+- Ohne passende Dokumentation antwortet der Chat lokal ohne KI-Aufruf; fehlender Hilfebestand oder
+  fehlender Schritt `settings_help` ergeben einen Einrichtungshinweis; Budget-, Anbieter- und
+  Antwortfehler enden in festen, sicheren Meldungen.
+- „Chat leeren“ erhöht die Chatversion; spätere Antworten älterer Fragen werden nicht angehängt.
+  Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nie automatisch erneut
+  gesendet. Chats beendeter Sitzungen und solche ohne Aktivität seit 24 Stunden werden gelöscht.
+- Bekannte Geheimnisse aus `.env` werden vor Übertragung und Speicherung entfernt.
+- Neue Einstellungen `help_chat.enabled`, `max_question_chars`, `max_context_bytes`,
+  `requests_per_minute_per_session` (Bereich „KI und Auswertung“, im laufenden Betrieb wirksam).
+- Kontextauswahl: Einstellungsbezüge aus dem Verlauf zählen nur, wenn die neue Frage dazu passt.
+
 ## 5.3.7 – Hilfeschritt über die aktive KI-Anbindung (Planung 5.3, Schritt H8)
 
 - Neuer optionaler Prompt-Schritt `settings_help` in `prompts.yaml` (und in den Paketvorgaben).

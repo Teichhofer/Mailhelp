@@ -165,7 +165,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **230** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **234 Einstellungen**, davon **234** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -193,6 +193,10 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **230**
 | `drafts.folder` | str (optional) | – |  | Weboberfläche | ja |
 | `event_defaults.in_person_duration_minutes` | int | 180 | ≥ 1, ≤ 1440 | Weboberfläche | ja |
 | `event_defaults.video_duration_minutes` | int | 60 | ≥ 1, ≤ 1440 | Weboberfläche | ja |
+| `help_chat.enabled` | bool | True |  | Weboberfläche | ja |
+| `help_chat.max_context_bytes` | int | 24000 | ≥ 2000, ≤ 48000 | Weboberfläche | ja |
+| `help_chat.max_question_chars` | int | 4000 | ≥ 100, ≤ 8000 | Weboberfläche | ja |
+| `help_chat.requests_per_minute_per_session` | int | 6 | ≥ 1, ≤ 20 | Weboberfläche | ja |
 | `imap.batch_size` | int | 25 | ≥ 1, ≤ 1000 | Weboberfläche | ja |
 | `imap.connection_mode` | Auswahl: ssl, starttls, plain (optional) | – |  | Einrichtung | ja |
 | `imap.drafts_folder` | str (optional) | – |  | Einrichtung | ja |

@@ -143,3 +143,11 @@ def help_bubble(name: str, label: str, text: str) -> str:
             f'aria-label="Info zu {e(label)}" aria-describedby="{e(identity)}">'
             '<span aria-hidden="true">i</span></button>'
             f'<span class="setting-tooltip" role="tooltip" id="{e(identity)}">{e(text)}</span></span>')
+
+# 5.3: the help chat.
+SETTING_HELP.update({
+    "help_chat.enabled": "ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja.",
+    "help_chat.max_question_chars": "Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt.",
+    "help_chat.max_context_bytes": "Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten.",
+    "help_chat.requests_per_minute_per_session": "Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht.",
+})

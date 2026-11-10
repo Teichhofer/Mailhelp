@@ -357,6 +357,14 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         mailbox_readers(settings, secrets, _reader), dialog.send_proposal,
         lambda actor: actor.startswith("web:") and components.site.auth.active(actor.removeprefix("web:")))
     ReanalysisSite(components.site, application.services.reanalysis)
+    # 5.3: the help chat explains with the packaged documentation over the active model path.
+    from ..helpdocs.chat import HelpChat, redactor, secret_values
+    help_site = components.site.archive.help
+    help_site.chat = application.services.help_chat = HelpChat(
+        store, lambda: application.settings.help_chat, help_site.base, lambda: application.analyzer,
+        components.site.auth.active, redactor(secret_values(secrets)), logger=logger,
+        sessions=lambda: [session.id for session in components.site.auth.sessions()])
+    help_site.chat.recover()
     from .browser_accounts import attach_accounts
     attach_accounts(application, components.site, base_directory)
     from .diagnostics import DiagnosticResult, error_code
