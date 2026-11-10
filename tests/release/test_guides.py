@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-GUIDES = ["docs/Ersteinrichtung.md", "docs/Konten-verwalten.md"]
+GUIDES = ["docs/Ersteinrichtung.md", "docs/Konten-verwalten.md", "docs/Ziele-einrichten.md", "docs/Bedienung.md",
+          "docs/Fehlerbehebung.md", "docs/Betrieb.md"]
 SOURCE = " ".join(" ".join(path.read_text(encoding="utf-8").split())
                   for path in (ROOT / "src" / "mailhelp").rglob("*.py"))
 

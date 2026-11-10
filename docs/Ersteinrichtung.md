@@ -98,7 +98,7 @@ Mailhelp neu starten**.
 1. Eine Mail mit einer klaren Bitte an dich selbst senden, z. B. „Bitte bis Freitag das
    Formular zurückschicken.“
 2. Nach dem nächsten Abruf erscheint unter **Offen** ein Vorschlag mit Beleg.
-3. **Bestätigen** wählen. Mailhelp meldet erst „Gespeichert – der Eintrag wird beim Anbieter
+3. **Als Aufgabe anlegen** (bei Terminen **Im Kalender anlegen**) wählen. Mailhelp meldet erst „Gespeichert – der Eintrag wird beim Anbieter
    geprüft“ und nach dem Kontrollabruf „Angelegt und geprüft“.
 
 Für einen Durchlauf ohne echte Eintragung `test_mode: true` setzen: Bestätigungen werden dann

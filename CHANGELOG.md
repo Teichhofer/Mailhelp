@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.3.5 – Anleitungen für Ziele, Bedienung, Fehlerbehebung und Betrieb (Planung 5.3, Schritt H6)
+
+- Neue Anleitungen [Kalender und Aufgaben verbinden](docs/Ziele-einrichten.md) (alle Anbieter mit
+  Fähigkeiten, Zugängen, Kennungen und Grenzen; Konto, Zielprofil und Kalender-ID erklärt),
+  [Bedienung](docs/Bedienung.md), [Fehler beheben](docs/Fehlerbehebung.md) und
+  [Betrieb und Update](docs/Betrieb.md).
+- Korrigiert: Die Ersteinrichtung nannte eine Schaltfläche „Bestätigen“; in der Weboberfläche
+  heißt sie „Als Aufgabe anlegen“ bzw. „Im Kalender anlegen“.
+- Die Funktionsinventur verweist jede Seite auf ihre Anleitung; der Linktest umfasst alle sechs
+  Anleitungen. Der Prüfbericht nennt Umfang und Grenzen der Verständlichkeitsprüfung.
+
 ## 5.3.4 – Anleitungen Ersteinrichtung und Konten verwalten (Planung 5.3, Schritt H5)
 
 - Neue Anleitung [docs/Ersteinrichtung.md](docs/Ersteinrichtung.md): Installation unter

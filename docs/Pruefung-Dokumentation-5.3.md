@@ -2,8 +2,8 @@
 
 **Grundlage:** [Planung 5.3](Planung-5.3.md), Abschnitt 9
 **Prüfstand:** Mailhelp 5.3.0 (nach Abschluss von 5.0 bis 5.2, Commit-Folge ab `51d7c62`)
-**Status:** H1 Bestandsaufnahme, H2 Einstellungsreferenz vollständig (5.3.1). Anleitungen und
-redaktionelle Prüfung folgen in H5 und H6.
+**Status:** H1 Bestandsaufnahme, H2 Einstellungsreferenz vollständig (5.3.1), H5/H6 Anleitungen
+(5.3.4, 5.3.5). Offen für die Releaseabnahme: Docker-Wege.
 
 Dieser Bericht ist der Nachweis der Dokumentationsprüfung von 5.3. Der erzeugte Teil unten
 listet jede Einstellung und jede Kommandozeilenoption so, wie der Code sie tatsächlich kennt;
@@ -94,46 +94,71 @@ Abnahmewert (mindestens 95 %) erfüllt.
 | Konten verwalten | Zielprofil anlegen, zuordnen, entfernen | Windows 11 | `tests/profiles/test_web.py`, `test_profile_completion.py`, `test_profile_review.py` | wie beschrieben |
 | beide | jede fett genannte Bedienbezeichnung existiert, jeder Link und Anker löst auf | – | `tests/release/test_guides.py` | bestanden |
 
+### Weitere Anleitungen und Verständlichkeit (H6)
+
+Neu: [Ziele einrichten](Ziele-einrichten.md), [Bedienung](Bedienung.md),
+[Fehlerbehebung](Fehlerbehebung.md), [Betrieb](Betrieb.md). Jede Anleitung nennt Ziel,
+Voraussetzungen, Schritte mit tatsächlichen Bezeichnungen, erwartetes Ergebnis und Fehlerhilfe;
+`tests/release/test_guides.py` prüft alle sechs Anleitungen auf existierende Bedienbezeichnungen,
+Links und Anker. Beim Schreiben gefundene und korrigierte Fehler: Die Ersteinrichtung nannte eine
+Schaltfläche „Bestätigen“, die es in der Weboberfläche nicht gibt (richtig: „Als Aufgabe anlegen“
+bzw. „Im Kalender anlegen“); „Lesende Selbsttest“ statt „Lesender Selbsttest“.
+
+Verständlichkeit: Die 117 neuen Referenzzeilen folgen dem Standard aus Planung 9.3 (Wirkung,
+Werte mit Einheit und Grenzen, Standard, Bedienweg und Übernahme); für alle Zahlenfelder sind
+Grenzen und Standard automatisch abgeglichen. Die übrigen 112 Feldhilfen aus 3.x/4.x wurden auf
+diese Pflichtangaben geprüft und dort korrigiert, wo sie fehlten (siehe H2); eine sprachliche
+Neufassung jeder einzelnen Feldhilfe wurde nicht vorgenommen. Beispiele: `config.example.yaml`
+wird durch die vorhandenen Tests der ausgelieferten Konfiguration validiert; die Anleitungen
+enthalten nur synthetische Werte und Platzhalter.
+
+| Anleitung | Nachweis | System |
+| --- | --- | --- |
+| Ziele einrichten | `tests/external/*` (alle sieben Anbieter mit echtem Transport), `tests/profiles/*` | Windows 11 |
+| Bedienung | `ui_tests/test_ui_review.py`, `test_ui_split_view_50.py`, `test_ui_verification_52.py`, `test_ui_reanalysis.py` | Windows 11, Chromium |
+| Fehlerbehebung | Fehlerpfade in `tests/services/*`, `tests/external/test_verification_matrix.py` | Windows 11 |
+| Betrieb | `tests/release/test_initial_cli.py`, `tests/services/test_write_verification_upgrade.py` | Windows 11; Linux/Docker offen |
+
 ## 4. Funktionen der Weboberfläche
 
 Jede Seite der Weboberfläche mit ihrer Aufgabe und dem Ort ihrer Dokumentation; ein Test
-vergleicht die Liste mit den registrierten Seiten. „(H5)“/„(H6)“ nennt die geplante Anleitung.
+vergleicht die Liste mit den registrierten Seiten.
 Technische Endpunkte (`/api/…`, `/static/…`, `/health`, Manifest, Service-Worker) sind
 Teil der genannten Seiten und haben keine eigene Bedienung.
 
 | Seite | Funktion | Dokumentation |
 | --- | --- | --- |
-| `/` | Offen: zu entscheidende Vorschläge und Fragen | README, Bedienung (H6) |
-| `/offen` | Offene Vorschläge (Kurzform) | Bedienung (H6) |
-| `/vorschlag/…` | Vorschlag mit Beleg, Prüfstand, Bearbeiten, Versionen | README 5.1/5.2, Bedienung (H6) |
-| `/serie/…` | Termine einer Serie gemeinsam bestätigen | Bedienung (H6) |
-| `/aktion/…` | Fortschritt einer Aktion | Bedienung (H6) |
-| `/mails` | Mailarchiv | Bedienung (H6) |
-| `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | README 5.1, Bedienung (H6) |
-| `/abgleich` | Vorschlagsabgleich | README 5.0, Bedienung (H6) |
-| `/verlauf` | Verlauf und Revisionen | Bedienung (H6) |
+| `/` | Offen: zu entscheidende Vorschläge und Fragen | README, [Bedienung](Bedienung.md) |
+| `/offen` | Offene Vorschläge (Kurzform) | [Bedienung](Bedienung.md) |
+| `/vorschlag/…` | Vorschlag mit Beleg, Prüfstand, Bearbeiten, Versionen | README 5.1/5.2, [Bedienung](Bedienung.md) |
+| `/serie/…` | Termine einer Serie gemeinsam bestätigen | [Bedienung](Bedienung.md) |
+| `/aktion/…` | Fortschritt einer Aktion | [Bedienung](Bedienung.md) |
+| `/mails` | Mailarchiv | [Bedienung](Bedienung.md) |
+| `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | README 5.1, [Bedienung](Bedienung.md) |
+| `/abgleich` | Vorschlagsabgleich | README 5.0, [Bedienung](Bedienung.md) |
+| `/verlauf` | Verlauf und Revisionen | [Bedienung](Bedienung.md) |
 | `/berichte` | Tätigkeitsberichte, Export | Web-Einstellungen (activity_report) |
 | `/berichte/neu` | Neuen Tätigkeitsbericht starten | Web-Einstellungen (activity_report) |
-| `/auswertung` | Auswertung und Kennzahlen | Bedienung (H6) |
-| `/briefing` | Tagesüberblick | Bedienung (H6) |
+| `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
+| `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
-| `/status` | Status, Dienste, Neuladen | Web-Einstellungen, Betrieb (H6) |
-| `/diagnose` | Diagnose und Diagnosebericht | Fehlerbehebung (H6) |
-| `/diagnose/bericht` | Diagnosebericht herunterladen | Fehlerbehebung (H6) |
+| `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
+| `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
+| `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/benachrichtigungen` | Benachrichtigungen dieses Geräts | Web-Einstellungen (notifications) |
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
-| `/einrichtung` | Ersteinrichtung | Ersteinrichtung (H5) |
-| `/anmelden` | Anmeldung, Geräte koppeln | Ersteinrichtung (H5) |
+| `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
+| `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/einstellungen` | Einstellungsbereiche und Suche | Web-Einstellungen |
-| `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | Konten verwalten (H5) |
-| `/einstellungen/iserv` | IServ-Konten | Konten verwalten (H5) |
-| `/einstellungen/zielprofile` | Zielprofile | Ziele einrichten (H6) |
-| `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | Ziele einrichten (H6) |
+| `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | [Konten verwalten](Konten-verwalten.md) |
+| `/einstellungen/iserv` | IServ-Konten | [Konten verwalten](Konten-verwalten.md) |
+| `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](Ziele-einrichten.md) |
+| `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | [Ziele einrichten](Ziele-einrichten.md) |
 | `/einstellungen/benachrichtigungen` | Benachrichtigungsregeln | Web-Einstellungen (notifications) |
 | `/einstellungen/ignorierte-absender` | Ignorierte Absender | Web-Einstellungen |
 | `/einstellungen/web-passwort` | Web-Passwort | Web-Einstellungen |
-| `/einstellungen/neustarten` | Neustart | Betrieb (H6) |
-| `/einstellungen/beenden` | Beenden | Betrieb (H6) |
+| `/einstellungen/neustarten` | Neustart | [Betrieb](Betrieb.md) |
+| `/einstellungen/beenden` | Beenden | [Betrieb](Betrieb.md) |
 
 ## 5. Inventur der Einstellungen und Optionen
 
