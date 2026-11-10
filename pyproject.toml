@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "5.1.5"
+version = "5.1.6"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -21,6 +21,7 @@ lint = ["ruff==0.12.12", "mypy==1.17.1", "types-PyYAML==6.0.12.20250809"]
 [project.scripts]
 mailhelp = "mailhelp.cli:main"
 mailhelp-evaluate = "mailhelp.llm.evaluation:main"
+mailhelp-quality-report = "mailhelp.llm.quality_metrics:main"
 
 [tool.pytest.ini_options]
 addopts = "--cov=mailhelp --cov=devtools --cov-branch --cov-fail-under=100 --strict-markers"

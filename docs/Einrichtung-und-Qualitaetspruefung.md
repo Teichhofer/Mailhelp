@@ -233,6 +233,16 @@ in `prompts.yaml` ein `max_tokens` von 1 bis 16.000 haben. Das begrenzt Aufrufe 
 Ausgabetokens, garantiert aber keinen Eurobetrag: Eingabetokens und Modellpreise
 kommen hinzu. Das Aufrufbudget vor dem Start passend wählen.
 
+Ab 5.1.6 wertet `mailhelp-quality-report KORPUS ANTWORTEN BERICHT [--source recorded|model]`
+Antworten getrennt nach Aufgaben und Terminen aus: erkannte, übersehene und fälschlich
+vorgeschlagene Aktionen sowie Feldkorrektheit (Frist bzw. Datum und Uhrzeit, Zuständigkeit,
+Beleg, Zuordnung). Technische Ausfälle und unlesbare Antworten werden gesondert gezählt.
+`ANTWORTEN` ordnet – direkt oder unter dem Schlüssel `answers` – jeder Fall-ID `{"result": {"task_extraction": …, "event_extraction": …}}`
+oder `{"error": "…"}` zu. Mit `--source recorded` (Standard) steht im Bericht ausdrücklich,
+dass die Modellqualität nicht nachgewiesen ist; nur `--source model` für tatsächliche
+Modellausgaben setzt `model_quality_proven`. Der Befehl ruft selbst kein Modell auf.
+Korpus und aufgezeichnete Antworten für 5.1 liegen unter `tests/fixtures/mail_corpus_v4/`.
+
 Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
 Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche
 Grenzfälle ausdrücklich erlaubte Alternativen (`accept`). `mail_corpus_v1` bleibt

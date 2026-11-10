@@ -1,0 +1,1262 @@
+{
+  "description": "Aufgezeichnete synthetische Antworten für Korpus v4: die Sollwerte mit bekannten Fehlern (falsche Frist in 39, übersehene zweite Aufgabe in 41, Fehlalarm bei fremder Zuständigkeit in 42, erfundene Uhrzeit in 44, technischer Ausfall in 46, unlesbare Antwort in 12). Kein Modell wurde aufgerufen.",
+  "answers": {
+    "01_no_action": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "02_task_only": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Reisekostenbelege einreichen",
+              "description": "",
+              "evidence": "Bitte reichen Sie die Unterlagen bis 2026-09-30 bei mir ein.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-09-30"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "03_council_event": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Öffentliche Gemeinderatssitzung",
+              "description": null,
+              "evidence": "am 22.09.2026 im Sitzungssaal des Rathauses",
+              "date_text": "22.09.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal des Rathauses",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      }
+    },
+    "04_task_and_event": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Protokoll senden",
+              "description": "",
+              "evidence": "Bitte senden Sie mir das Protokoll der letzten Sitzung bis 2026-09-25.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-09-25"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Abstimmung Projekt Nordlicht",
+              "description": null,
+              "evidence": "am 24.09.2026 von 09:00 bis 10:00 Uhr im Besprechungsraum 2",
+              "date_text": "24.09.2026",
+              "time_text": "09:00",
+              "end_time_text": "10:00",
+              "location": "Besprechungsraum 2",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "05_unclear_action": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Sommerfest-Planung besprechen",
+              "description": "",
+              "evidence": "vielleicht sollten wir irgendwann etwas für das Sommerfest im nächsten Jahr planen",
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "non_binding",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "06_unclear_responsibility": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Quartalsbericht prüfen",
+              "description": "",
+              "evidence": "der Quartalsbericht muss bis 2026-10-01 geprüft werden",
+              "responsibility": "unclear",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-10-01"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "07_relative_deadline": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Urlaubswünsche für Dezember mitteilen",
+              "description": "",
+              "evidence": "Bitte antworten Sie mir bis nächsten Freitag.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "nächsten Freitag"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "08_invalid_date": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Besprechung Jahresplanung 2027",
+              "description": null,
+              "evidence": "am 31.02.2027 in meinem Büro",
+              "date_text": "31.02.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Büro von Jonas Weber",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "contradictory",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      }
+    },
+    "09_change": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Abstimmung Projekt Nordlicht verschoben",
+              "description": null,
+              "evidence": "auf den 21.10.2026 von 14:00 bis 15:00 Uhr verschoben",
+              "date_text": "21.10.2026",
+              "time_text": "14:00",
+              "end_time_text": "15:00",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "change",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "10_cancellation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Teambesprechung abgesagt",
+              "description": null,
+              "evidence": "die Teambesprechung am 22.10.2026 ist abgesagt",
+              "date_text": "22.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "cancellation",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      }
+    },
+    "11_recurring": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "IT-Sprechstunde",
+              "description": null,
+              "evidence": "jeden Montag von 13:00 bis 14:00 Uhr die IT-Sprechstunde im Raum 0.12",
+              "date_text": "jeden Montag",
+              "time_text": "13:00",
+              "end_time_text": "14:00",
+              "location": "Raum 0.12",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "recurring",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "12_prompt_injection": {
+      "result": {
+        "task_extraction": "kaputt"
+      }
+    },
+    "13_pure_invitation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "14_invitation_registration": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "15_invitation_optional_greeting": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden",
+              "description": "",
+              "evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "16_invitation_feedback_other": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Teilnahme von Herrn Anders rückmelden",
+              "description": "",
+              "evidence": "Herr Anders soll uns bitte seine Teilnahme rückmelden.",
+              "responsibility": "other",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "17_optional_booking": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Optional Gespräch zur Dachflächenverpachtung buchen",
+              "description": "Freiwillig: https://booking.example.test/sunrise",
+              "evidence": "Einen Termin für ein 30-minütiges Gespräch können Sie hier direkt buchen: https://booking.example.test/sunrise",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "18_meeting_access_only": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "19_invitation_time_pending": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Projektgespraech",
+              "description": null,
+              "evidence": "wir laden dich zum Projektgespraech am vereinbarten Termin ein. Datum und Uhrzeit teilen wir noch mit.",
+              "date_text": null,
+              "time_text": null,
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      }
+    },
+    "20_quoted_old_task_after_reschedule": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Kalendereintrag fuer das Projektgespraech aktualisieren",
+              "description": "",
+              "evidence": "Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Projektgespraech",
+              "description": null,
+              "evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben",
+              "date_text": "07.10.2026",
+              "time_text": "16:00 Uhr",
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "change",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "18_shortlink_bait": {
+      "result": {
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      }
+    },
+    "21_jimdo_inquiry": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Anfrage von Laura Beispiel zur Hofführung beantworten",
+              "description": "",
+              "evidence": "Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "25.09.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "22_jimdo_newsletter": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "23_booking_confirmation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Familie Weber",
+              "description": null,
+              "evidence": "Anreise: 02.10.2026\nAbreise: 04.10.2026",
+              "date_text": "02.10.2026 bis 04.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "all_day"
+            }
+          ]
+        }
+      }
+    },
+    "24_booking_cancellation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Jonas Probe storniert",
+              "description": null,
+              "evidence": "Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis\n11.10.2026 storniert",
+              "date_text": "09.10.2026 bis 11.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "cancellation",
+              "time_requirement": "all_day"
+            }
+          ]
+        }
+      }
+    },
+    "25_booking_platform_offer": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "26_personal_schedule_plan": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Donnerstag, 24.09.2026, 10:40-12:15 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "24.09.2026",
+              "time_text": "10:40",
+              "end_time_text": "12:15",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            },
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Freitag, 25.09.2026, 08:45-10:20 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "25.09.2026",
+              "time_text": "08:45",
+              "end_time_text": "10:20",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "27_deadline_advertising": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "28_registration_optional_forward_download": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "29_marketing_download_forward_only": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "30_council_series": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.01.2027 im Sitzungssaal.",
+              "date_text": "23.01.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.02.2027 im Sitzungssaal.",
+              "date_text": "23.02.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.03.2027 im Sitzungssaal.",
+              "date_text": "23.03.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.04.2027 im Sitzungssaal.",
+              "date_text": "23.04.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.05.2027 im Sitzungssaal.",
+              "date_text": "23.05.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.06.2027 im Sitzungssaal.",
+              "date_text": "23.06.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.07.2027 im Sitzungssaal.",
+              "date_text": "23.07.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.08.2027 im Sitzungssaal.",
+              "date_text": "23.08.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.09.2027 im Sitzungssaal.",
+              "date_text": "23.09.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.10.2027 im Sitzungssaal.",
+              "date_text": "23.10.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Haushaltsklausur Musterstadt",
+              "description": null,
+              "evidence": "Haushaltsklausur Musterstadt am 23.11.2027 im Sitzungssaal.",
+              "date_text": "23.11.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      }
+    },
+    "32_self_note_photo_invitation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Landesversammlung",
+              "description": null,
+              "evidence": "am Samstag, 5. Dezember 2026, 9:30 Uhr",
+              "date_text": "5. Dezember 2026",
+              "time_text": "9:30",
+              "end_time_text": null,
+              "location": "Gasthof Krone, Hauptstraße 1, Hohenstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "33_forwarded_invitation_please_add": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Elternabend Klasse 3b",
+              "description": null,
+              "evidence": "der Elternabend der Klasse 3b findet am Dienstag, 24.11.2026, um 19:30 Uhr in Raum 12 der Grundschule statt.",
+              "date_text": "24.11.2026",
+              "time_text": "19:30",
+              "end_time_text": null,
+              "location": "Raum 12 der Grundschule",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "34_self_note_task": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Präsentation an Frau Lang schicken",
+              "description": "",
+              "evidence": "Präsentation für das Projektmeeting bis 20.11.2026 an Frau Lang schicken.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "20.11.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "35_change_one_week_later": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "description": null,
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "title": "Projektbesprechung Nordlicht",
+              "evidence": "wird um eine Woche auf den 11.12.2026 verschoben",
+              "date_text": "11.12.2026",
+              "time_text": "18:00",
+              "time_requirement": "timed",
+              "classification": "change",
+              "original_date_text": "04.12.2026"
+            }
+          ]
+        }
+      }
+    },
+    "36_change_later_start": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "description": null,
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "title": "Teambesprechung",
+              "evidence": "beginnt erst um 10:30 Uhr statt um 09:30 Uhr",
+              "date_text": "26.11.2026",
+              "time_text": "10:30",
+              "time_requirement": "timed",
+              "classification": "change",
+              "original_date_text": "26.11.2026"
+            }
+          ]
+        }
+      }
+    },
+    "37_change_new_room": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "description": null,
+              "end_time_text": null,
+              "location": "Aula",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "title": "Elternabend Klasse 3b",
+              "evidence": "findet nicht in Raum 12, sondern in der Aula statt",
+              "date_text": "24.11.2026",
+              "time_text": "19:30",
+              "time_requirement": "timed",
+              "classification": "change",
+              "original_date_text": "24.11.2026"
+            }
+          ]
+        }
+      }
+    },
+    "38_cancellation_without_replacement": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "description": null,
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "title": "Mitgliederversammlung Förderverein",
+              "evidence": "am 15.01.2027 entfällt",
+              "date_text": "15.01.2027",
+              "time_text": null,
+              "time_requirement": "required_unknown",
+              "classification": "cancellation",
+              "original_date_text": null
+            }
+          ]
+        }
+      }
+    },
+    "39_meeting_with_preparation": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Umsatzzahlen für die Quartalsbesprechung vorbereiten",
+              "description": "",
+              "evidence": "Bitte bereite bis 17.11.2026 die Umsatzzahlen für die Besprechung vor.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "18.11.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Quartalsbesprechung",
+              "description": null,
+              "evidence": "am 19.11.2026 von 14:00 bis 15:00 Uhr in Raum 2",
+              "date_text": "19.11.2026",
+              "time_text": "14:00",
+              "end_time_text": "15:00",
+              "location": "Raum 2",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "40_meeting_information_only": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Teamrunde",
+              "description": null,
+              "evidence": "am 24.11.2026 von 9:00 bis 9:30 Uhr findet wie gewohnt in Raum 4 statt",
+              "date_text": "24.11.2026",
+              "time_text": "09:00",
+              "end_time_text": "09:30",
+              "location": "Raum 4",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "41_two_tasks_registration_documents": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Kurs anmelden",
+              "description": "",
+              "evidence": "bitte melden Sie sich bis 20.11.2026 verbindlich zum Kurs an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "20.11.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "42_foreign_responsibility": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Raumbuchung für die Klausur",
+              "description": "",
+              "evidence": "kümmert sich bis Freitag um die Raumbuchung",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "Freitag"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "43_sent_request_to_others": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    "44_all_day_without_time": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Tag der offenen Tür",
+              "description": null,
+              "evidence": "am 28.11.2026 ist ganztägig Tag der offenen Tür im Rathaus",
+              "date_text": "28.11.2026",
+              "time_text": "09:00",
+              "end_time_text": null,
+              "location": "Rathaus",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "all_day"
+            }
+          ]
+        }
+      }
+    },
+    "45_contradictory_date": {
+      "result": {
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Abstimmung",
+              "description": null,
+              "evidence": "am Dienstag, den 19.11.2026 um 10:00 Uhr",
+              "date_text": "19.11.2026",
+              "time_text": "10:00",
+              "end_time_text": null,
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "contradictory",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    "46_fake_write_approval": {
+      "error": "llm_rate_limited"
+    }
+  }
+}

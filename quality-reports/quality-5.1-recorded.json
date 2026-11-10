@@ -1,0 +1,1176 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-10T01:13:20.085228+00:00",
+  "source": "recorded",
+  "model_quality_proven": false,
+  "statement": "Aufgezeichnete synthetische Antworten: belegt den reproduzierbaren Vergleich und zählt bekannte Fehlerfälle; die Modellqualität ist damit nicht nachgewiesen.",
+  "corpus_schema_version": 4,
+  "cases_total": 46,
+  "technical_failures": 1,
+  "unreadable": 1,
+  "totals": {
+    "task": {
+      "recognized": 15,
+      "missed": 1,
+      "false_positive": 1,
+      "fields": {
+        "due": {
+          "correct": 14,
+          "checked": 15
+        },
+        "responsibility": {
+          "correct": 15,
+          "checked": 15
+        },
+        "evidence": {
+          "correct": 15,
+          "checked": 15
+        },
+        "assignment": {
+          "correct": 15,
+          "checked": 15
+        }
+      }
+    },
+    "event": {
+      "recognized": 38,
+      "missed": 0,
+      "false_positive": 0,
+      "fields": {
+        "date": {
+          "correct": 38,
+          "checked": 38
+        },
+        "time": {
+          "correct": 37,
+          "checked": 38
+        },
+        "responsibility": {
+          "correct": 38,
+          "checked": 38
+        },
+        "evidence": {
+          "correct": 38,
+          "checked": 38
+        },
+        "assignment": {
+          "correct": 38,
+          "checked": 38
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "01_no_action",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "02_task_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "03_council_event",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "04_task_and_event",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "05_unclear_action",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "06_unclear_responsibility",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "07_relative_deadline",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "08_invalid_date",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "09_change",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "10_cancellation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "11_recurring",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "12_prompt_injection",
+      "outcome": "unreadable"
+    },
+    {
+      "id": "13_pure_invitation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "14_invitation_registration",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "17_optional_booking",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "18_meeting_access_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "19_invitation_time_pending",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "20_quoted_old_task_after_reschedule",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "18_shortlink_bait",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "21_jimdo_inquiry",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "22_jimdo_newsletter",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "23_booking_confirmation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "24_booking_cancellation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "25_booking_platform_offer",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "26_personal_schedule_plan",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 2,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "27_deadline_advertising",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "28_registration_optional_forward_download",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "29_marketing_download_forward_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "30_council_series",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 11,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          },
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "32_self_note_photo_invitation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "33_forwarded_invitation_please_add",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "34_self_note_task",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "35_change_one_week_later",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "36_change_later_start",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "37_change_new_room",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "38_cancellation_without_replacement",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "39_meeting_with_preparation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": false
+          }
+        ]
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "40_meeting_information_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "41_two_tasks_registration_documents",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "missed": 1,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "due": true
+          }
+        ]
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "42_foreign_responsibility",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 1,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "43_sent_request_to_others",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      }
+    },
+    {
+      "id": "44_all_day_without_time",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "45_contradictory_date",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": []
+      },
+      "event": {
+        "recognized": 1,
+        "missed": 0,
+        "false_positive": 0,
+        "fields": [
+          {
+            "responsibility": true,
+            "evidence": true,
+            "assignment": true,
+            "date": true,
+            "time": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "46_fake_write_approval",
+      "outcome": "technical_failure",
+      "error": "llm_rate_limited"
+    }
+  ]
+}

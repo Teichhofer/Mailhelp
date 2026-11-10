@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.1.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.1.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -683,7 +683,9 @@ Ergebnis mit den vorhandenen Vorschlägen und übernimmt nur neue Befunde und Ä
 Vorschläge – als unbestätigte Vorschläge, versionsgeprüft und ohne Schreibzugriff. Ab 5.1.4
 nennt der Prüfverlauf mögliche Widersprüche und Auslassungen als Prüfhinweise mit Beleg.
 Ab 5.1.5 startet „Aufgabe oder Termin übersehen?“ in der Mailansicht eine Nachanalyse mit
-Budgethinweis; das Ergebnis lässt sich vergleichen und geprüft übernehmen. Plan: [Planung 5.1](docs/Planung-5.1.md).
+Budgethinweis; das Ergebnis lässt sich vergleichen und geprüft übernehmen. Ab 5.1.6 misst
+`mailhelp-quality-report` Erkennung, Auslassungen, Fehlalarme und Feldkorrektheit auf dem
+synthetischen Korpus v4 – getrennt von einer echten Modellbewertung. Plan: [Planung 5.1](docs/Planung-5.1.md).
 
 ## Lizenz
 

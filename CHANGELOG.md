@@ -1,5 +1,19 @@
 # Änderungen
 
+## 5.1.6 – Qualitätskorpus und Bericht (Planung 5.1, Schritt R7)
+
+- Korpus v4 (`tests/fixtures/mail_corpus_v4`): alle 38 Fälle aus v3 unverändert, jeder Fall
+  mit Zweck, dazu acht synthetische Fälle für Besprechung mit und ohne Arbeitsauftrag,
+  mehrere Aufgaben in einer Mail, fremde Zuständigkeit, eigene versandte Bitte, Datum ohne
+  Uhrzeit, widersprüchliche Angaben und eine vorgetäuschte Schreibfreigabe.
+- Neuer Befehl `mailhelp-quality-report`: Erkennung, Auslassungen, Fehlalarme und
+  Feldkorrektheit (Frist bzw. Datum und Uhrzeit, Zuständigkeit, Beleg, Zuordnung) getrennt
+  nach Aufgaben und Terminen; technische Ausfälle und unlesbare Antworten gesondert.
+- Aufgezeichnete synthetische Antworten mit bekannten Fehlern und der Bericht
+  `quality-reports/quality-5.1-recorded.json`. Er weist ausdrücklich aus, dass die
+  Modellqualität damit nicht nachgewiesen ist. Prompt-Fingerabdruck und bestehende
+  Qualitätsgates bleiben unverändert.
+
 ## 5.1.5 – Bedienung der Nachanalyse (Planung 5.1, Schritt R6)
 
 - Die Mailansicht bietet „Aufgabe oder Termin übersehen?“ mit Analyserunde, Budget

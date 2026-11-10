@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3380,3 +3380,21 @@ Angezeigt werden Status, Modellaufrufe („2 von 5“), Fehlergrund und „Vorhe
 Eintrag Titel und Wirkung (Neu, Geändert mit Feldnamen, Bereits angelegt, Früher verworfen,
 Nicht mehr erkannt, Unverändert). Ohne übernehmbare Änderung heißt es „es gibt nichts zu
 übernehmen“, und eine neue Nachanalyse kann gestartet werden.
+
+### Qualitätskorpus und Bericht (5.1.6)
+
+Korpus v4 (Schema 4) übernimmt alle Fälle aus v3 unverändert und ergänzt die Fallgruppen
+der Planung 5.1; jeder Fall hat `purpose` und vollständige Sollfelder. v3 bleibt Grundlage
+des Prompt-Fingerabdrucks.
+
+`llm.quality_metrics.report(corpus, answers, source)` vergleicht je Fall die erwarteten mit
+den gelieferten Aufgaben und Terminen. Eine Aktion gilt als erkannt, wenn ein gelieferter
+Eintrag derselben Art mindestens 50 % gemeinsame Titelwörter hat; jeder gelieferte Eintrag
+zählt höchstens einmal. Übrige erwartete Einträge sind übersehen, übrige gelieferte
+Fehlalarme. Für erkannte Paare werden geprüft: Frist (Aufgabe) bzw. Datum und Uhrzeit
+(Termin) nach dem bezeichneten Tag bzw. der Uhrzeit, Zuständigkeit, nicht leerer Beleg und
+Zuordnung (Klassifikation). Fehlende Antworten und `{"error": …}` zählen als technischer
+Ausfall, schemawidrige Antworten als unlesbar; beide bleiben im Bericht. `source` ist
+`recorded` (aufgezeichnete synthetische Antworten, `model_quality_proven: false` mit
+ausdrücklichem Hinweis) oder `model` (tatsächliche Modellausgaben). Der Befehl
+`mailhelp-quality-report` schreibt den Bericht und ruft selbst kein Modell auf.
