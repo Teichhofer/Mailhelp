@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.1.1 – Prüfverlauf in der Mailansicht (Planung 5.1, Schritt R2)
+
+- Die Mailansicht zeigt „So wurde diese Mail verarbeitet“: Eingang, Relevanz,
+  Aktionsentscheidung, Extraktion, Bewertung und Ergebnis mit Analyserunde, Ausgang als
+  beschriftete Plakette und festem Text. So lässt sich etwa „Warum wurde aus dieser Mail
+  keine Aufgabe?“ direkt beantworten.
+- Modellbegründungen stehen getrennt als „Modellbewertung, keine geprüfte Tatsache“;
+  Themen erscheinen mit ihrem Namen. Fehlende, ausgelassene und fehlgeschlagene Schritte
+  sind klar unterschieden; ein beschädigter Zustand wird gemeldet.
+- Funktioniert ohne JavaScript und auf 320 px Breite.
+
 ## 5.1.0 – Erklärungsmodell für den Verarbeitungsweg (Planung 5.1, Schritt R1)
 
 - Neues Erklärungsmodell (`review/explanation.py`): Für jede Mail beschreibt es aus dem

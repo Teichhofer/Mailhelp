@@ -454,6 +454,20 @@ h2 { overflow-wrap: anywhere; }
   border-top: 4px solid var(--kind-colour, var(--border)); }
 .kpi dt { color: var(--muted); font-size: .85rem; }
 .kpi dd { margin: 4px 0 0; font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* 5.1.1: the processing path of a mail; the badge names the outcome, the colour repeats it. */
+.path-steps { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 12px; }
+.path-step { border-left: 3px solid var(--border); padding: 2px 0 2px 14px; overflow-wrap: anywhere; }
+.path-step p { margin: 2px 0; }
+.path-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.outcome-done { border-left-color: var(--ok); }
+.outcome-failed { border-left-color: var(--danger); }
+.outcome-missing { border-left-color: var(--warn); }
+.outcome-pending { border-left-color: var(--accent); }
+.model-reason { color: var(--muted); font-style: italic; }
+.model-reason .meta { font-style: normal; }
+.path-notes { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.path-result { margin-top: 14px; padding: 12px 14px; border-left-width: 4px; border-radius: 0 12px 12px 0;
+  background: var(--surface-2); }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail-pane { display: none; min-width: 0; }
 @media (min-width: 1024px) {

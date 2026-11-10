@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3266,3 +3266,15 @@ Erklären.
   Hinweis an der Extraktion, etwa „Router erwartete 2 Aufgaben; 1 wurde extrahiert.“.
 - Doppelt empfangene Mails werden als nicht ausgewertet erklärt; eine mögliche Dublette als
   vorsorglich einzeln geprüft.
+
+### Prüfverlauf in der Mailansicht (5.1.1)
+
+Die Mailansicht (`/mail/<id>`) zeigt nach „Erkannte Vorgänge“ den Abschnitt „So wurde diese
+Mail verarbeitet“ mit der Analyserunde und dem Hinweis „aus gespeicherten Ergebnissen, ohne
+erneute Modellabfrage“. Jeder Schritt des Erklärungsmodells steht als Listeneintrag mit Titel,
+Plakette des Ausgangs (Erledigt, Ausgelassen, Fehlgeschlagen, Ausstehend, Nicht mehr
+aufbewahrt), festem Text, Themennamen aus dem Analyse-Schnappschuss und Hinweisen; das
+Ergebnis folgt hervorgehoben. Ein gespeicherter Modellgrund erscheint escaped als
+„Modellbewertung, keine geprüfte Tatsache: „…““. Ein beschädigter Mail- oder
+Analysezustand ergibt den Hinweis „Verarbeitungsweg beschädigt; bitte Protokolle prüfen.“
+statt einer Erklärung. Die Ansicht braucht kein JavaScript.

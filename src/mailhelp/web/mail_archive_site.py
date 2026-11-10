@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING
 from .. import state_names
 from ..models import MailState
 from ..review.archive import AnalysisSnapshot
+from ..review.explanation import explain
 from ..review.queries import ArchiveQuery
 from ..storage import CorruptState
-from .archive_pages import analysis_section, mail_list_page, revisions_list
+from .archive_pages import analysis_section, mail_list_page, processing_path_section, revisions_list
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout, notice
@@ -47,6 +48,19 @@ class MailArchiveSite:
         if state is None:
             return ""
         return analysis_section(mail_id, state, record)
+
+    def processing_path(self, mail_id: str) -> str:
+        """5.1.1: the stored processing path of a mail, explained without a model call."""
+        store = self.site.views.store
+        try:
+            state = store.peek_model(state_names.mail(mail_id), MailState)
+            snapshot = store.peek_model(f"analysis-{mail_id}", AnalysisSnapshot)
+        except CorruptState:
+            return notice("Verarbeitungsweg beschädigt; bitte Protokolle prüfen.", "error")
+        if state is None:
+            return ""
+        topics = snapshot.topics if snapshot is not None else {}
+        return processing_path_section(explain(state), topics)
 
     def revisions(self, mail_id: str, proposal_id: str) -> str:
         """Recorded events of one proposal with links to every stored version."""

@@ -87,6 +87,8 @@ class Step:
     # A reason a model gave, shown as its assessment; never a fact about the mail.
     model_reason: str | None = None
     notes: tuple[str, ...] = ()
+    # Topic ids of the relevance step; the view shows their configured names (5.1.1).
+    topics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -147,10 +149,10 @@ def _relevance(state: MailState) -> Step:
     text = {"relevant": "Als relevant eingestuft.",
             "irrelevant": "Als irrelevant eingeordnet; die Aktionsanalyse wurde ausgelassen.",
             "unclear": "Relevanz unklar."}[relevance.decision]
-    notes = (f"Themen: {', '.join(relevance.topic_ids)}",) if relevance.topic_ids else ()
+    topics = tuple(relevance.topic_ids)
     if relevance.reason in RULE_REASONS:
-        return Step("relevance", title, Outcome.DONE, f"{text} {RULE_REASONS[relevance.reason]}", notes=notes)
-    return Step("relevance", title, Outcome.DONE, text, model_reason=relevance.reason, notes=notes)
+        return Step("relevance", title, Outcome.DONE, f"{text} {RULE_REASONS[relevance.reason]}", topics=topics)
+    return Step("relevance", title, Outcome.DONE, text, model_reason=relevance.reason, topics=topics)
 
 
 def _irrelevant(state: MailState) -> bool:

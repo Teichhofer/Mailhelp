@@ -89,6 +89,7 @@ class ReviewSite:
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
                          after=self.site.reconciliation_page.mail_summary(mail_id)
+                         + self.site.archive.mail_archive.processing_path(mail_id)
                          + self.site.experience.editor(mail_id, csrf)
                          + self.site.archive.mail_archive.analysis(mail_id))
         return Response.html(200, page)

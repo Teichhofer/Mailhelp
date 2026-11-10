@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from ..formatting import format_datetime_local
 from ..models import MailState, Proposal
+from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery
 from ..review.search import Hit
 from .actions import recheck_form
@@ -219,6 +220,37 @@ def analysis_section(mail_id: str, state: MailState, record: dict[str, Any]) -> 
     body += "".join(f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(p.status.value)}</li>'
                     for p in state.proposals)
     return body + f'</ul><a class="button" href="/verlauf?q={mail_id}">Verlauf dieser Mail</a></section>'
+
+
+PATH_BADGES = {Outcome.DONE: "ok", Outcome.SKIPPED: "", Outcome.FAILED: "danger", Outcome.PENDING: "accent",
+               Outcome.MISSING: "warn"}
+
+
+def _path_step(step: Step, topics: dict[str, str], tag: str = "li") -> str:
+    badge = f'<span class="badge {PATH_BADGES[step.outcome]}">{OUTCOME_LABELS[step.outcome]}</span>'
+    body = (f'<{tag} class="path-step outcome-{step.outcome.value}"><p class="path-head"><strong>{e(step.title)}'
+            f'</strong> {badge}</p><p>{e(step.text)}</p>')
+    if step.topics:
+        body += f'<p>Themen: {e(", ".join(topics.get(topic, topic) for topic in step.topics))}</p>'
+    if step.model_reason:
+        body += (f'<p class="model-reason"><span class="meta">Modellbewertung, keine geprüfte Tatsache:</span> '
+                 f'„{e(step.model_reason)}“</p>')
+    if step.notes:
+        body += '<ul class="path-notes">' + "".join(f"<li>{e(note)}</li>" for note in step.notes) + "</ul>"
+    return body + f"</{tag}>"
+
+
+def processing_path_section(explanation: Explanation, topics: dict[str, str]) -> str:
+    """5.1.1: how this mail was actually processed, step by step, from stored results only."""
+    steps = "".join(_path_step(step, topics) for step in explanation.steps)
+    return ('<section class="card processing-path" aria-labelledby="verarbeitung-titel">'
+            '<h2 id="verarbeitung-titel">So wurde diese Mail verarbeitet</h2>'
+            f'<p class="meta">Analyserunde {explanation.analysis_round} · aus gespeicherten Ergebnissen, '
+            'ohne erneute Modellabfrage</p>'
+            f'<ol class="path-steps">{steps}</ol>'
+            + _path_step(explanation.result, topics, tag="div").replace(
+                'class="path-step ', 'class="path-step path-result ', 1)
+            + '</section>')
 
 
 def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]]) -> str:

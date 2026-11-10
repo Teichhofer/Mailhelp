@@ -59,7 +59,7 @@ def test_a_complete_task_mail_names_every_step_and_marks_model_reasons():
     assert steps["relevance"].text == "Als relevant eingestuft."
     # A stored model reason stays a model assessment, never part of the fixed text.
     assert steps["relevance"].model_reason == "Schulthema laut Modell"
-    assert steps["relevance"].notes == ("Themen: schule",)
+    assert (steps["relevance"].notes, steps["relevance"].topics) == ((), ("schule",))
     assert steps["decision"].text == "Erkannt: 1 mögliche Aufgabe, kein Termin."
     assert steps["decision"].model_reason == "Modell: Frist zur Abgabe genannt."
     assert steps["extraction"].text == "1 Aufgabe und 0 Termine extrahiert."
