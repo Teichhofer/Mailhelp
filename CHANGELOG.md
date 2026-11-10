@@ -1,5 +1,15 @@
 # Änderungen
 
+## 5.1.9 – Abnahme und Release 5.1 (Planung 5.1, Schritt R10)
+
+- Release-Bericht [docs/Release-5.1.md](docs/Release-5.1.md) mit allen Änderungen 5.1.0 bis
+  5.1.8, Einrichtung, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.1 ist
+  abgeschlossen.
+- Abnahme unter Windows 11 mit 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite,
+  Ruff, mypy, Prompt-Gate und Paketprüfung. Die Linux/Docker-Abnahme und ein echter
+  Modellvergleich sind nicht durchgeführt (Docker nicht verfügbar; Modelllauf nicht
+  freigegeben) und als offene Punkte benannt.
+
 ## 5.1.8 – Aufbewahrung und Gesamtsicherheit der Nachanalyse (Planung 5.1, Schritt R9)
 
 - Aufbewahrung gilt auch für Nachanalyse-Aufträge, weil Belege und Hinweis Mailinhalt sind:
