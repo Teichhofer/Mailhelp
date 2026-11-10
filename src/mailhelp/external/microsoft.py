@@ -38,6 +38,7 @@ from .contracts import (
     validation_path,
 )
 from .provider import ProviderWriter
+from .verification import EntryRead, event_facts, task_facts
 
 GRAPH = "https://graph.microsoft.com/v1.0"
 LOGIN = "https://login.microsoftonline.com"
@@ -196,6 +197,18 @@ class GraphTask(IntegrationModel):
     body: dict[str, Any] | None = None
     status: str = "notStarted"
     linkedResources: list[dict[str, Any]] = Field(default_factory=list)
+    dueDateTime: dict[str, str] | None = None
+
+
+class GraphUser(IntegrationModel):
+    id: str = Field(min_length=1)
+
+
+def _todo_day(value: date | datetime | None) -> date | None:
+    """Microsoft To Do keeps the day a task is due, not a time: compare at that precision (5.2)."""
+    if isinstance(value, datetime):
+        return value.astimezone(UTC).date()
+    return value
 
 
 class GraphResource:
@@ -205,6 +218,7 @@ class GraphResource:
     label: str
     logger: EventLogger
     policy: RetryPolicy
+    check_access: Callable[[], None]
 
     def __init__(self, token: AccessTokenProvider, target: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
@@ -258,6 +272,28 @@ class GraphResource:
                 return
             seen.add(following)
             url, params = following, None
+
+    def account_binding(self) -> str:
+        """5.2: the signed-in Microsoft account (Graph user id), read freshly."""
+        response = self._send("GET", "/me", params={"$select": "id"})
+        try:
+            return GraphUser.model_validate(response.json()).id
+        except (ValueError, ValidationError) as exc:
+            raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
+
+    def _read_by_id(self, url: str, params: dict[str, str] | None = None) -> dict[str, Any] | None:
+        """One fresh read; 404/410 count as missing only while the bound target is reachable."""
+        response = self._send("GET", url, params=params, allowed=frozenset({404, 410}))
+        if response.status_code in {404, 410}:
+            self.check_access()
+            return None
+        try:
+            item = response.json()
+        except ValueError as exc:
+            raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad <json>") from exc
+        if not isinstance(item, dict):
+            raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad <root>")
+        return item
 
 
 def _graph_time(value: dict[str, str]) -> tuple[dict[str, str], bool]:
@@ -372,6 +408,20 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
             if event is not None:
                 yield event
 
+    def expected_facts(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        return self._calendar_expected(proposal, key)
+
+    def read_entry(self, external_id: str) -> EntryRead | None:
+        """5.2: the event read freshly in the bound calendar; cancelled or deleted is not visible."""
+        item = self._read_by_id(f"{self._base}/events/{quote(external_id, safe='')}", {"$select": _EVENT_FIELDS})
+        event = None if item is None else self._overlap(item)
+        if event is None:
+            return None
+        facts = event_facts(event.summary, event.description, None, None, "date" in event.start,
+                            event.location, self.target)
+        return EntryRead({**facts, "start": event.start.get("dateTime") or event.start.get("date"),
+                          "end": event.end.get("dateTime") or event.end.get("date")}, link=event.htmlLink)
+
     def existing_event(self, event_id: str) -> CalendarOverlapEvent | None:
         """The event as it is now; ``None`` once it is deleted or cancelled (4.6)."""
         url = f"{self._base}/events/{quote(event_id, safe='')}"
@@ -460,7 +510,24 @@ class MicrosoftTodo(GraphResource, ProviderWriter):
             payload["dueDateTime"] = {"dateTime": f"{proposal.due}T00:00:00", "timeZone": "UTC"}
         tasks = self._tasks()
         return PreparedWrite(lambda: self._logged(proposal, key, lambda: {"id": self._task(uncertain_write(
-            lambda: self._send("POST", tasks, body=payload, key=key)).json()).id}))
+            lambda: self._send("POST", tasks, body=payload, key=key)).json()).id}),
+            expected=self.expected_facts(proposal, key))
+
+    def expected_facts(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if proposal.kind != ProposalKind.TASK:
+            return None
+        return task_facts(proposal.title, f"{proposal.description}\n\n[{key}]".strip(), _todo_day(proposal.due),
+                          self.target)
+
+    def read_entry(self, external_id: str) -> EntryRead | None:
+        """5.2: the task read freshly in the bound list; a completed task still exists."""
+        item = self._read_by_id(f"{self._tasks()}/{quote(external_id, safe='')}")
+        if item is None:
+            return None
+        task = self._task(item)
+        due = (task.dueDateTime or {}).get("dateTime")
+        facts = task_facts(task.title, str((task.body or {}).get("content") or ""), None, self.target)
+        return EntryRead({**facts, "due": None if not due else due[:10]}, completed=task.status == "completed")
 
     def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         cache_key = (self.service, self.target, "tasks")

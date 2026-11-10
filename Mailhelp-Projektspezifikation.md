@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3505,6 +3505,13 @@ Anbieter: Google `GET /calendars/{Ziel}/events/{id}` (Kontobindung: `id` aus
 `GET /api/v1/user`), bei 404 zusätzlich `GET /api/v1/tasks/completed/by_completion_date` für das
 Projekt der letzten 14 Tage (höchstens zehn Seiten). Externe IDs werden als ein Pfadsegment
 kodiert; Abrufe nutzen nie den Lese-Cache.
+
+Outlook und Microsoft To Do (5.2.2): Kontobindung `id` aus `GET /me`; Outlook liest
+`GET {Kalender}/events/{id}` mit `$select` und dem UTC-/Text-`Prefer`-Kopf, `isCancelled` gilt
+als nicht sichtbar; To Do liest `GET /me/todo/lists/{Liste}/tasks/{id}`. Der Sollstand von To Do
+enthält als Fälligkeit nur den Tag (UTC-Tag eines Zeitpunkts), gelesen wird der Tag von
+`dueDateTime`; `status: completed` gilt als vorhanden. Bei 404/410 wird zuerst das Ziel
+(`check_access`) gelesen.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

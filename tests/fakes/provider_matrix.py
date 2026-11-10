@@ -54,26 +54,11 @@ class ProviderMemory:
         if self.provider.startswith(('caldav','apple')):
             value=state['dav'].get(str(request.url))
             return httpx.Response(200,content=value.encode(),headers={'ETag':'"synthetic"'}) if value else httpx.Response(404)
-        path=request.url.path
-        if self.provider=='todoist' and path=='/api/v1/user':
-            return httpx.Response(200,json={'id':'synthetic-user'})
-        if self.provider=='todoist' and path.startswith('/api/v1/projects/'):
-            return httpx.Response(200,json={'id':path.rsplit('/',1)[1]})
-        if self.provider=='todoist' and path.startswith('/api/v1/tasks/'):
-            # 5.2: one task read by id for the verification.
-            wanted=path.rsplit('/',1)[1]
-            found_item=next((item for item in state['items'] if item.get('id')==wanted),None)
-            return httpx.Response(200,json=found_item) if found_item else httpx.Response(404)
+        read=self.single_read(request.url.path,state)
+        if read is not None:
+            return read
         if self.provider=='todoist':
             return httpx.Response(200,json={'results':state['items'],'next_cursor':None})
-        if self.provider=='google_calendar' and path.count('/')==4:
-            # 5.2: the calendar resource names the account behind an alias such as primary.
-            return httpx.Response(200,json={'id':'synthetic-owner@example.test'})
-        if '/events/' in request.url.path:
-            # 4.6: one event read by id, as before a change or cancellation.
-            wanted=request.url.path.rsplit('/',1)[1]
-            found_item=next((item for item in state['items'] if item.get('id')==wanted),None)
-            return httpx.Response(200,json=found_item) if found_item else httpx.Response(404)
         if self.provider=='google_calendar':
             key=request.url.params.get('privateExtendedProperty','').removeprefix('mailhelp_key=')
             items=[item for item in state['items'] if not key or
@@ -84,6 +69,23 @@ class ProviderMemory:
         items=[item for item in state['items'] if not found or any(
             prop.get('value')==found.group(1) for prop in item.get('singleValueExtendedProperties',[]))]
         return httpx.Response(200,json={'value':items})
+
+    def single_read(self,path,state):
+        """Reads of one resource: account bindings (5.2), projects and entries by id (4.6, 5.2)."""
+        if path in {'/api/v1/user','/v1.0/me'}:
+            return httpx.Response(200,json={'id':'synthetic-user'})
+        if self.provider=='todoist' and path.startswith('/api/v1/projects/'):
+            return httpx.Response(200,json={'id':path.rsplit('/',1)[1]})
+        if self.provider=='google_calendar' and path.count('/')==4:
+            # The calendar resource names the account behind an alias such as primary.
+            return httpx.Response(200,json={'id':'synthetic-owner@example.test'})
+        by_id=('/events/' in path or (self.provider=='todoist' and path.startswith('/api/v1/tasks/'))
+               or (self.provider=='microsoft_todo' and '/tasks/' in path))
+        if not by_id:
+            return None
+        wanted=path.rsplit('/',1)[1]
+        found_item=next((item for item in state['items'] if item.get('id')==wanted),None)
+        return httpx.Response(200,json=found_item) if found_item else httpx.Response(404)
 
     def writer(self):
         transport=httpx.MockTransport(self.handle)

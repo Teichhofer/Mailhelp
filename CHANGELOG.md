@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.2.2 – Nachprüfung bei Outlook und Microsoft To Do (Planung 5.2, Schritt V5)
+
+- Outlook-Kalender: neue Termine werden nach dem Anlegen im gebundenen Kalender frisch
+  abgerufen (Graph, UTC, Textinhalt) und wie bei Google verglichen; abgesagte oder gelöschte
+  Termine gelten nur bei erreichbarem Kalender als nicht auffindbar.
+- Microsoft To Do: neue Aufgaben werden in der gebundenen Liste frisch abgerufen; Titel,
+  Beschreibung und Fälligkeit werden geprüft. Microsoft To Do speichert nur den Fälligkeitstag,
+  deshalb vergleicht Mailhelp dort tagesgenau. Eine erledigte Aufgabe gilt als vorhanden.
+- Kontobindung für beide über die Microsoft-Benutzerkennung (`/me`), damit ein Kontowechsel
+  während der Prüfung erkannt wird.
+
 ## 5.2.1 – Nachprüfung neuer Aufgaben und Termine bei Google Kalender und Todoist (Planung 5.2, Schritte V2–V4)
 
 - Gemeinsamer Ablauf: Vor dem Schreiben wird eine Schreibabsicht mit dem tatsächlich
