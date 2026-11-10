@@ -343,6 +343,30 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 
 ## Hilfschat
 
+**Hilfe zu Einstellungen** (`/hilfe`) beantwortet Fragen zur Bedeutung von Einstellungen und zu
+Bedienabläufen. „Dazu fragen“ an einer Einstellung oder einem Treffer der Sofortsuche öffnet den
+Chat mit diesem Bezug. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,
+Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
+
+- **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten
+  Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)
+  über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).
+  Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende
+  Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.
+- **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.
+  Auch auf die Bitte „Stell das für mich um“ gibt er nur eine Anleitung.
+- **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den
+  KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte
+  Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.
+  Aktuelle Einstellungswerte werden nie mitgeschickt.
+- **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach
+  24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten
+  Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.
+- **Ablauf:** Pro Chat läuft eine Frage; „Antwort wird vorbereitet“ wird ohne JavaScript alle drei
+  Sekunden neu geladen. Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht
+  erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen
+  Einrichtungshinweis.
+
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
 | Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |

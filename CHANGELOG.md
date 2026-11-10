@@ -1,5 +1,21 @@
 # Änderungen
 
+## 5.3.9 – Hilfschat in der Weboberfläche (Planung 5.3, Schritt H10)
+
+- Neue Seite **Hilfe zu Einstellungen** (`/hilfe`), erreichbar über die Einstellungsübersicht und
+  über „Dazu fragen“ an jeder Einstellung und jedem Treffer der Sofortsuche (mit Bezug auf die
+  Einstellung). Antworten erscheinen als Text mit den verwendeten Dokumentationsabschnitten und
+  Einstellungen als Links, die der Server selbst erzeugt; Abschnitte einer früheren
+  Dokumentationsfassung werden nicht mit neuen Inhalten verlinkt.
+- Ohne JavaScript nutzbar: Frage senden, „Antwort wird vorbereitet“ mit automatischem Neuladen,
+  Fehler- und Unterbrechungsmeldungen, **Chat leeren**. Mit JavaScript fragt die Seite stattdessen
+  den Status ab (`GET /api/hilfe/auftrag/<id>`, nur eigene Sitzung).
+- Absenden mit Sitzung, CSRF, Chatversion und Idempotenzschlüssel; Ablehnungen mit passendem
+  Status (Konflikt, zu viele Fragen, ausgelastet, veraltet). Vor dem Absenden steht sichtbar, was an
+  den KI-Anbieter geht.
+- Einstellungsreferenz: Abschnitt „Hilfschat“ mit Quellen, Grenzen, Datenschutz, Kosten,
+  Aufbewahrung und Ablauf.
+
 ## 5.3.8 – Sitzungsgebundener Hilfschat-Dienst (Planung 5.3, Schritt H9)
 
 - Neuer Dienst `mailhelp.helpdocs.chat`: Fragen werden nur durch ausdrückliches Absenden zu

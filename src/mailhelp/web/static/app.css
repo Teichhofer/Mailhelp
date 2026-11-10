@@ -789,3 +789,11 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .settings-search.searching .settings-live-results { opacity: .6; }
 /* 5.3: packaged help sections, readable without JavaScript. */
 .help-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.55; }
+/* 5.3: help chat; answers are plain text, links come from the server. */
+.help-chat { display: grid; gap: 14px; margin: 16px 0; }
+.help-turn { padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.help-question { margin: 0 0 6px; overflow-wrap: anywhere; }
+.help-answer { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.help-sources { margin: 4px 0 0; padding-left: 18px; }
+.help-sources a, .ask-help { display: inline-block; min-height: 44px; line-height: 44px; }
+.help-form textarea { width: 100%; font-size: 16px; }

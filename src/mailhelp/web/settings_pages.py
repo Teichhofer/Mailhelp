@@ -211,7 +211,8 @@ def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, 
             f'<strong>{e(_shown(name, current))}</strong></summary>'
             f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
             f'Änderungen wirken {e(timing)}.</p>{form}</details>'
-            + help_bubble(name, setting_label(name), SETTING_HELP[name]) + '</div>')
+            + help_bubble(name, setting_label(name), SETTING_HELP[name])
+            + f'<a class="ask-help" href="/hilfe?einstellung={e(name)}">Dazu fragen</a></div>')
 
 
 # Areas of /einstellungen?bereich=…: (key, title, description, groups of SETTING_GROUPS).
@@ -359,7 +360,8 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
     query = query.strip()
     body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
             '<p class="page-intro">Konten verbinden, allgemeine Regeln festlegen und gezielt je Postfach '
-            'anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.</p></div>')
+            'anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.</p>'
+            '<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p></div>')
     if query:
         content = _search(query) + _found(query, raw, active, revision, csrf)
     elif area == CREDENTIALS_AREA:

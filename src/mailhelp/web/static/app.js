@@ -683,6 +683,13 @@
     meta.textContent = item.area + (item.key ? " · " + item.key : "") + " – " + item.summary;
     li.appendChild(link);
     li.appendChild(meta);
+    if (item.key) {
+      var ask = document.createElement("a");
+      ask.href = "/hilfe?einstellung=" + encodeURIComponent(item.key);
+      ask.className = "ask-help";
+      ask.textContent = "Dazu fragen";
+      li.appendChild(ask);
+    }
     return li;
   }
   function render(data) {
@@ -730,4 +737,21 @@
   input.addEventListener("compositionstart", function () { composing = true; });
   input.addEventListener("compositionend", function () { composing = false; schedule(); });
   input.addEventListener("input", schedule);
+})();
+
+// 5.3: while the help chat prepares an answer, read its status instead of reloading blindly.
+(function () {
+  var marker = document.querySelector("[data-help-job]");
+  if (!marker || !window.fetch) return;
+  var refresh = document.querySelector('meta[http-equiv="refresh"]');
+  if (refresh) refresh.parentNode.removeChild(refresh);
+  function poll() {
+    fetch("/api/hilfe/auftrag/" + marker.getAttribute("data-help-job"), {
+      credentials: "same-origin", headers: {Accept: "application/json"}
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (data.status === "queued" || data.status === "running") { setTimeout(poll, 1000); return; }
+      location.reload();
+    }).catch(function () { setTimeout(poll, 3000); });
+  }
+  setTimeout(poll, 1000);
 })();
