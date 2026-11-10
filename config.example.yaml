@@ -110,6 +110,13 @@ activity_report:
   max_share_of_llm_budget: 0.5     # Anteil von limits.llm_calls_per_minute
   max_fulltext_chars: 30000        # Volltext je Mail in Bericht und xlsx (1000–32000)
   export_mails_without_events: true  # Blatt „Ohne Termin“ in der xlsx-Liste
+reanalysis:
+  # 5.1: „Aufgabe oder Termin übersehen?“ analysiert eine Mail gezielt erneut. Das Ergebnis
+  # erscheint nur als unbestätigter Vorschlag; nichts wird automatisch angelegt.
+  enabled: true
+  max_llm_calls_per_job: 5   # Router, Aufgaben- und Terminextraktion plus zwei Wiederholungen
+  max_attempts: 2            # Versuche je Modellaufruf nach Fehler oder Neustart
+  max_jobs_per_day: 20       # gestartete Nachanalysen je Tag (Kostenschutz)
 push:
   # Web-Push (VAPID) für die App; nur über HTTPS oder localhost. Jedes Gerät schaltet
   # Push zusätzlich unter Einstellungen ein. Meldungen enthalten keine Mailinhalte.

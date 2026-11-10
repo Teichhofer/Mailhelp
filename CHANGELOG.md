@@ -1,5 +1,25 @@
 # Änderungen
 
+## 5.1.2 – Dauerhafte Nachanalyse-Aufträge (Planung 5.1, Schritt R3)
+
+- Neue Aufträge für eine gezielte Nachanalyse (`reanalysis-<id>.json`): gebunden an die
+  Mail, ihre Analyserunde, ihren Konfigurations-Fingerabdruck und ihre ursprüngliche
+  Postfachidentität (Konto, Ordner, UIDVALIDITY, UID).
+- Höchstens ein aktiver Auftrag je Mail und Analyserunde; derselbe Idempotenzschlüssel
+  liefert denselben Auftrag. Gestartet wird nur bei abgeschlossener Verarbeitung und
+  passender Analyserunde.
+- Jeder Modellaufruf wird vor dem Aufruf gezählt; jedes Teilergebnis wird gespeichert, bevor
+  der nächste Schritt beginnt. Nach einem Neustart setzt der Auftrag nach dem letzten
+  gespeicherten Schritt fort; ein unterbrochener Lauf zählt als Versuch.
+- Grenzen in `config.yaml` unter `reanalysis`: `enabled`, `max_llm_calls_per_job` (5),
+  `max_attempts` (2), `max_jobs_per_day` (20). Budget und Versuche beenden einen Auftrag mit
+  Begründung statt einer Kostenschleife.
+- Entfernter Mailinhalt wird nur über die gebundene Identität neu gelesen; geänderte
+  UIDVALIDITY, nicht lesbarer Ordner, fehlendes Postfach oder fehlende Mail beenden den
+  Auftrag mit erklärtem Fehler. Relative Daten beziehen sich auf den ursprünglichen Eingang.
+- Der Auftrag ändert den Mailzustand nicht und schreibt nichts nach außen; seine Vorschläge
+  sind Kandidaten für die geprüfte Übernahme (5.1.3). Noch ohne Bedienung (5.1.5).
+
 ## 5.1.1 – Prüfverlauf in der Mailansicht (Planung 5.1, Schritt R2)
 
 - Die Mailansicht zeigt „So wurde diese Mail verarbeitet“: Eingang, Relevanz,

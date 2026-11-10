@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.1.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.1.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -676,7 +676,9 @@ nichts wurde. Ab 5.1.0 beschreibt ein Erklärungsmodell den tatsächlichen Verar
 jeder Mail aus ihrem gespeicherten Zustand – mit festen Texten und ohne zusätzlichen
 Modellaufruf. Modellbegründungen bleiben als solche gekennzeichnet; nicht mehr
 aufbewahrte Ergebnisse werden als fehlend ausgewiesen. Ab 5.1.1 zeigt die Mailansicht diesen
-Weg unter „So wurde diese Mail verarbeitet“. Plan: [Planung 5.1](docs/Planung-5.1.md).
+Weg unter „So wurde diese Mail verarbeitet“. Ab 5.1.2 gibt es dauerhafte
+Nachanalyse-Aufträge mit Budget (`reanalysis` in `config.yaml`), die eine Mail gezielt erneut
+auswerten, ohne bestehende Entscheidungen zu verändern. Plan: [Planung 5.1](docs/Planung-5.1.md).
 
 ## Lizenz
 

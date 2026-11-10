@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3278,3 +3278,32 @@ Ergebnis folgt hervorgehoben. Ein gespeicherter Modellgrund erscheint escaped al
 „Modellbewertung, keine geprüfte Tatsache: „…““. Ein beschädigter Mail- oder
 Analysezustand ergibt den Hinweis „Verarbeitungsweg beschädigt; bitte Protokolle prüfen.“
 statt einer Erklärung. Die Ansicht braucht kein JavaScript.
+
+### Nachanalyse-Aufträge (5.1.2)
+
+Ein Auftrag (`domain.reanalysis.ReanalysisJob`, Datei `reanalysis-<id>.json`, Schema 1)
+enthält Mail-ID, Ausgangsrunde (`source_round`), Konfigurations-Fingerabdruck, die
+Postfachidentität der Mail, einen optionalen Hinweis (höchstens 500 Zeichen, nicht
+vertrauenswürdig), den SHA-256 des Idempotenzschlüssels, Status (`queued`, `running`,
+`completed`, `failed`, `cancelled`), Stufe (`route`, `tasks`, `events`, `build`, `done`),
+Versuche, Aufrufbudget, gezählte Aufrufe und Aufruf-IDs, die Teilergebnisse (Router, Aufgaben-
+und Terminextraktion), die gebildeten Kandidatenvorschläge und gegebenenfalls einen
+Fehlercode (`mail_missing`, `uidvalidity_changed`, `mailbox_unavailable`, `budget_exhausted`,
+`model_failed`, `stale_round`). Mailinhalt wird nie in den Auftrag kopiert.
+
+`processing.reanalysis.ReanalysisJobs.start` lehnt ab, wenn `reanalysis.enabled` aus ist,
+die Analyserunde nicht passt (`stale`), die Mail noch verarbeitet wird (`processing`), das
+Tageslimit `max_jobs_per_day` erreicht ist (`daily_limit`) oder der Schlüssel zu einer
+anderen Mail gehört (`key_conflict`). Derselbe Schlüssel und ein bereits aktiver Auftrag
+derselben Mail und Runde ergeben keinen zweiten Auftrag.
+
+`ReanalysisRunner` liest den gespeicherten Mailinhalt oder – nach Retention – die Mail
+ausschließlich über `fetch_uid` mit Ordner, UID und erwarteter UIDVALIDITY des Auftrags; der
+ursprüngliche Eingangszeitpunkt bleibt Bezug für relative Daten. Ein Hinweis wird als Feld
+`user_review_hint` neben der Mail übergeben. Vor jedem Modellaufruf wird der Zähler
+gespeichert; ist `max_llm_calls_per_job` erreicht, endet der Auftrag mit
+`budget_exhausted`. Ein Fehler zählt einen Versuch und stellt den Auftrag erneut ein; nach
+`max_attempts` endet er mit `model_failed` (ohne bisherigen Modellaufruf: `mail_missing`).
+`recover()` stellt nach einem Neustart laufende Aufträge mit einem gezählten Versuch erneut
+ein. Ein während des Laufs abgebrochener Auftrag speichert keine späteren Ergebnisse. Der
+Mailzustand bleibt unverändert; Kalender und Aufgabenlisten werden nicht berührt.

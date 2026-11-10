@@ -615,6 +615,18 @@ class ActivityReportSettings(ConfigModel):
     export_mails_without_events: bool = True
 
 
+class ReanalysisSettings(ConfigModel):
+    """5.1: deliberate re-analysis of one mail; never writes to calendars or task lists."""
+
+    enabled: bool = True
+    # Router, task and event extraction need three calls; two more allow two retries.
+    max_llm_calls_per_job: int = Field(default=5, ge=1, le=10)
+    # A failed or interrupted model call is retried at most this often in total.
+    max_attempts: int = Field(default=2, ge=1, le=5)
+    # Started re-analyses per day across all mails (cost guard).
+    max_jobs_per_day: int = Field(default=20, ge=1, le=500)
+
+
 class DailyBriefingSettings(ConfigModel):
     enabled: bool = False
     time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
@@ -685,6 +697,7 @@ class Settings(ConfigModel):
     # Trusted context for draft_reply only; tab and line breaks are the only control characters.
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
     activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
+    reanalysis: ReanalysisSettings = Field(default_factory=lambda: ReanalysisSettings())
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
