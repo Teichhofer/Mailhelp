@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 8. November 2026, Anwendungsversion 4.8.6.
+Stand: 10. November 2026, Anwendungsversion 5.3.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
@@ -185,9 +185,9 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
 | KI-Aufrufe pro Minute (`limits.llm_calls_per_minute`) | Budget von 1–600 KI-Aufrufen pro Minute. Ein kleinerer Wert bremst die Verarbeitung und reduziert Lastspitzen; ein größerer erlaubt mehr Aufrufe, soweit Anbieter und übrige Grenzen dies zulassen. Dies ist keine feste Geld- oder Tageskostengrenze. | Nach Neustart |
-| Maximale KI-Anfragegröße (Bytes) (`limits.max_llm_payload_bytes`) | Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung. | Nach Neustart |
+| Maximale KI-Anfragegröße (Bytes) (`limits.max_llm_payload_bytes`) | Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl; Standard 500000. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung. | Nach Neustart |
 | Maximale Mailgröße (Bytes) (`limits.max_mail_bytes`) | Größengrenze für den Nachrichtentext ohne Anhänge: 1024–100000000 Bytes. Anhänge haben eine eigene Grenze für die Texterkennung. | Nach Neustart |
-| Texterkennung: maximale Anhanggröße (Bytes) (`limits.max_attachment_bytes`) | Maximale Größe je Anhang für lokale Textextraktion und OCR: Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen. | Nach Neustart |
+| Texterkennung: maximale Anhanggröße (Bytes) (`limits.max_attachment_bytes`) | Maximale Größe je Anhang für lokale Textextraktion und OCR: 1024–100000000 Bytes; Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen. | Nach Neustart |
 
 ## Zeitlimits und Wiederholungen
 
@@ -234,7 +234,7 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
-| Höchstgröße je Datei (Bytes) (`attachments.max_original_bytes`) | Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 25 MB). Größere Anhänge bleiben nur im Postfach. | Nach Neustart |
+| Höchstgröße je Datei (Bytes) (`attachments.max_original_bytes`) | Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 26214400 Bytes = 25 MiB). Größere Anhänge bleiben nur im Postfach. | Nach Neustart |
 | Höchstgröße je Mail (Bytes) (`attachments.max_total_bytes`) | Höchstens so viele Bytes an Originalen je Mail: 1024–524288000 (Standard 50 MB). Weitere Anhänge derselben Mail werden nicht gespeichert. | Nach Neustart |
 | Originale speichern (`attachments.store_originals`) | ja (true) speichert Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen in der Weboberfläche. nein (false) speichert nur Bildvorschauen. Gespeicherte Originale werden mit der Aufbewahrungsfrist für Mailinhalte gelöscht. | Nach Neustart |
 
@@ -242,11 +242,11 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
-| Analysen aufbewahren (Tage) (`retention.analysis_days`) | Aufbewahrung archivierter Analysen. null übernimmt die Frist für KI-Diagnosedaten (debug_llm_days). 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
-| KI-Diagnosedaten aufbewahren (Tage) (`retention.debug_llm_days`) | Aufbewahrung von KI-Diagnosedaten im Vorgang, etwa Zusammenfassung und Validierungsfehlern; separate JSONL-Logdateien haben eigene Fristen. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
-| Mailtexte aufbewahren (Tage) (`retention.full_mail_days`) | Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
-| Verlauf aufbewahren (Tage) (`retention.history_days`) | Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
-| Tätigkeitsberichte aufbewahren (Tage) (`retention.activity_report_days`) | Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| Analysen aufbewahren (Tage) (`retention.analysis_days`) | Aufbewahrung archivierter Analysen. null übernimmt die Frist für KI-Diagnosedaten (debug_llm_days). 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| KI-Diagnosedaten aufbewahren (Tage) (`retention.debug_llm_days`) | Aufbewahrung von KI-Diagnosedaten im Vorgang, etwa Zusammenfassung und Validierungsfehlern; separate JSONL-Logdateien haben eigene Fristen. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| Mailtexte aufbewahren (Tage) (`retention.full_mail_days`) | Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht. Standard 30 Tage. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| Verlauf aufbewahren (Tage) (`retention.history_days`) | Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. Standard 90 Tage. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| Tätigkeitsberichte aufbewahren (Tage) (`retention.activity_report_days`) | Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
 | Lernbestand der Entscheidungen aufbewahren (Tage) (`retention.decision_learning_days`) | Aufbewahrung des Lernbestands manueller Entscheidungen (Mail, KI-Ergebnisse, Vorschlag vorher und nachher): 1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen sich nicht wiederherstellen. | Im laufenden Betrieb |
 | Bereinigung alle (Minuten) (`retention.cleanup_interval_minutes`) | Abstand der Aufbewahrungsbereinigung in Minuten: 0–1440; Standard 60. Die Bereinigung läuft im Verarbeitungsablauf und hält währenddessen Mailabruf und Web-Aktionen kurz an. 0 bereinigt bei jedem Abrufzyklus; größere Werte entfernen abgelaufene Inhalte entsprechend später. | Im laufenden Betrieb |
 
@@ -394,9 +394,193 @@ Anleitung: [Release 3.2](Release-3.2.md).
 
 Unter `/einstellungen?bereich=briefing`; Zeiten werden mit Komma oder Semikolon eingegeben.
 
-| Einstellung / Schl?ssel | Wirkung und Werte | ?bernahme |
+| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
 | Briefings als Postfachentwurf aktivieren (`briefings.enabled`) | Aktiviert zeitgesteuerte Briefings als IMAP-Entwürfe, Standard aus. Kein SMTP-Versand. Das Aktivieren autorisiert nur die Entwurfsablage; Kalender- und Aufgabenaktionen erfordern weiterhin eine eigene versionsbezogene Bestätigung. | Im laufenden Betrieb |
 | Uhrzeiten für Postfach-Briefings (`briefings.times`) | Eindeutige lokale Uhrzeiten im Format HH:MM, durch Komma, Semikolon oder Leerzeichen getrennt, etwa 07:00, 13:00, 18:00. Verwendet die konfigurierte Zeitzone. Aktiviert muss mindestens eine Uhrzeit angegeben sein. | Im laufenden Betrieb |
 | Zielpostfach für Briefings (`briefings.mailbox`) | Zielpostfach für die Briefing-Entwürfe. default verwendet das erste aktive Postfach; alternativ eine aktive Postfachnummer. Das Briefing sammelt offene Entscheidungen aller Postfächer. Es wird nie an fremde Empfänger versendet. | Im laufenden Betrieb |
 | Leere Postfach-Briefings auslassen (`briefings.skip_empty`) | Standard true: Ohne offene Entscheidungen und ohne relevante Zusammenfassungen wird kein leerer Entwurf angelegt. false legt stattdessen ein kurzes Alles-ruhig-Briefing ab. | Im laufenden Betrieb |
+
+## Vollständige Referenz weiterer Einstellungen (5.3)
+
+Diese Einstellungen stehen nicht in den allgemeinen Einstellungsbereichen. Sie werden in der
+Ersteinrichtung, auf eigenen Seiten (Postfach, IServ, Zielprofile, Benachrichtigungen) oder nur
+in `config.yaml` gepflegt. „Pflicht“ heißt: Der Wert muss in `config.yaml` stehen; das
+mitgelieferte `config.example.yaml` enthält ihn. Werte ohne Angabe gelten mit ihrem Standard.
+Änderungen in `config.yaml` wirken nach einem Neustart, sofern nichts anderes genannt ist.
+
+### Ersteinrichtung und Postfach 1 (älteres Einzelformat)
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `imap.host` | Mailserver des ersten Postfachs im älteren Einzelformat, z. B. `imap.example.org`; 1–253 Zeichen. Ohne `imap.mailboxes` beschreibt dieser Block Postfach 1. | Ersteinrichtung |
+| `imap.port` | Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS). | Ersteinrichtung |
+| `imap.connection_mode` | Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`. | Ersteinrichtung |
+| `imap.folders` | Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang. | Ersteinrichtung |
+| `imap.primary_folder` | Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`. | Ersteinrichtung |
+| `imap.drafts_folder` | Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`. | Ersteinrichtung |
+| `imap.historical_start` | Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf. | Ersteinrichtung |
+| `telegram.enabled` | Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche. | Ersteinrichtung |
+| `push.enabled` | Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost. | Ersteinrichtung |
+| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`. | Datei |
+| `daily_briefing.enabled` | Täglicher Tagesüberblick per Telegram; Standard aus. | Ersteinrichtung, Benachrichtigungen |
+| `daily_briefing.time` | Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30. | Ersteinrichtung, Benachrichtigungen |
+
+### Postfächer (`imap.mailboxes`)
+
+Jedes Postfach ist ein Eintrag der Liste `imap.mailboxes`. Postfächer werden unter
+**Einstellungen → Postfächer** angelegt, geprüft und geändert; nicht belegte lokale Felder erben
+die globale Einstellung. Zugangsdaten stehen als `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD` in `.env`.
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `imap.mailboxes[].id` | Nummer des Postfachs, 1–99; bestimmt die Namen der Zugangsdaten. Wird beim Anlegen vergeben und nicht geändert. | Postfachseite |
+| `imap.mailboxes[].label` | Anzeigename, 1–40 Zeichen; Standard „Postfach“. | Postfachseite |
+| `imap.mailboxes[].enabled` | Ob das Postfach abgerufen wird; Standard an. Ein deaktiviertes Postfach bleibt eingetragen. | Datei |
+| `imap.mailboxes[].host` | Mailserver, 1–253 Zeichen (Pflicht). | Postfachseite |
+| `imap.mailboxes[].port` | Port 1–65535 (Pflicht). | Postfachseite |
+| `imap.mailboxes[].connection_mode` | `ssl` (Standard), `starttls` oder `plain`. | Postfachseite |
+| `imap.mailboxes[].folders` | Gelesene Ordner, 1–100 (Pflicht); der erste ist der Posteingang. | Postfachseite |
+| `imap.mailboxes[].primary_folder` | Posteingang; Standard `INBOX`. | Postfachseite |
+| `imap.mailboxes[].drafts_folder` | Entwurfsordner, 1–500 Zeichen; Standard `Drafts`. | Postfachseite |
+| `imap.mailboxes[].historical_start` | Startgrenze dieses Postfachs; leer bedeutet alle Mails. | Postfachseite |
+| `imap.mailboxes[].own_addresses` | Weitere eigene Absenderadressen (Aliase), höchstens 20; der IMAP-Benutzername zählt bereits. Mails von diesen Adressen gelten als eigene Notiz oder Weiterleitung. | Datei |
+| `imap.mailboxes[].target_profile` | Zielprofil 1–99 für neue Vorschläge dieses Postfachs; Standard 1. Bestehende Vorschläge bleiben an ihr Ziel gebunden. | Postfachseite (Ziele) |
+| `imap.mailboxes[].mail_client` | Wohin „Original-Mail öffnen“ führt: `auto` (Standard), `apple_mail`, `gmail_web`, `outlook_web` oder `none`. | Postfachseite (Ziele) |
+| `imap.mailboxes[].event_defaults.video_duration_minutes` | Lokale Standarddauer für Videotermine, 1–1440 Minuten; leer erbt global. | Postfachseite (Ziele) |
+| `imap.mailboxes[].event_defaults.in_person_duration_minutes` | Lokale Standarddauer für Präsenztermine, 1–1440 Minuten; leer erbt global. | Postfachseite (Ziele) |
+| `imap.mailboxes[].personal_info` | Eigene Rolle, Signatur und Angaben für Antwortentwürfe dieses Postfachs, bis 2000 Zeichen; leer erbt global. | Postfachseite (Antworten) |
+| `imap.mailboxes[].smart_reply` | Antwortentwürfe für dieses Postfach; leer erbt global. | Postfachseite (Antworten) |
+| `imap.mailboxes[].auto_draft` | Entwürfe ohne Klick im Entwurfsordner ablegen; leer erbt global (Standard aus). | Postfachseite (Antworten) |
+| `imap.mailboxes[].activity_report_folder` | Vorausgewählter Ordner für Tätigkeitsberichte. | Postfachseite (Antworten) |
+| `imap.mailboxes[].retention.full_mail_days` | Volltexte kürzer aufbewahren als global: Tage, `disabled` (sofort entfernen) oder `unlimited` (nur bei global unbegrenzter Aufbewahrung). | Postfachseite (Antworten) |
+| `imap.mailboxes[].daily_briefing` | Dieses Postfach im Tagesüberblick als eigenen Abschnitt zeigen; Standard an. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.quiet_hours.enabled` | Eigene Ruhezeiten für dieses Postfach; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.quiet_hours.start` | Beginn der Ruhezeit, HH:MM; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.quiet_hours.end` | Ende der Ruhezeit, HH:MM; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.quiet_hours.allow_system_errors` | Betriebsfehler trotz Ruhezeit melden; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.categories.decisions` | Kanäle (`telegram`, `web_push`) für Entscheidungen dieses Postfachs; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.categories.action_results` | Kanäle für Ergebnisse von Eintragungen; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.categories.daily_briefing` | Kanäle für den Tagesüberblick; leer erbt global. | Postfachseite (Benachrichtigungen) |
+| `imap.mailboxes[].notifications.categories.system_errors` | Kanäle für Betriebsfehler; leer erbt global. | Postfachseite (Benachrichtigungen) |
+
+Änderungen auf der Postfachseite sind Entwürfe; übernommen wird nach erneuter ausdrücklicher
+Bestätigung. Die Übernahme erfolgt zwischen Mailzyklen bzw. nach einem Neustart (siehe oben).
+
+### IServ-Konten (`iserv.accounts`)
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `iserv.accounts[].id` | Nummer 1–10; bestimmt die Zugangsdaten `ISERV_<n>_USERNAME`/`_PASSWORD`. | IServ-Seite |
+| `iserv.accounts[].label` | Anzeigename, 1–40 Zeichen; Standard „Elternbriefe“. | IServ-Seite |
+| `iserv.accounts[].server` | HTTPS-Adresse der Schule (Pflicht, bis 253 Zeichen); ein kopierter IServ-Link wird auf die Schuladresse gekürzt. | IServ-Seite |
+| `iserv.accounts[].mailbox` | Postfach 1–99, dessen Zielprofil und Standards gelten; muss aktiv sein. Standard 1. | IServ-Seite |
+| `iserv.accounts[].enabled` | Konto abrufen; Standard an. | IServ-Seite |
+| `iserv.accounts[].historical_start` | Startgrenze; leer übernimmt die des Postfachs. | IServ-Seite |
+
+### Weitere Zielprofile (`target_profiles`)
+
+Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet
+**Einstellungen → Zielprofile**. Die Felder entsprechen `targets` (siehe „Ziele“).
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `target_profiles[].id` | Nummer 2–99 (Pflicht). | Zielprofilseite |
+| `target_profiles[].label` | Anzeigename, 1–40 Zeichen (Pflicht). | Zielprofilseite |
+| `target_profiles[].calendar_provider` | `google` (Standard), `caldav` oder `outlook`. | Zielprofilseite |
+| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`. | Zielprofilseite |
+| `target_profiles[].google_calendar` | Kalender-ID bei Google, bis 500 Zeichen. | Zielprofilseite |
+| `target_profiles[].todoist_project` | Todoist-Projekt-ID, bis 500 Zeichen. | Zielprofilseite |
+| `target_profiles[].caldav_calendar_url` | Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen. | Zielprofilseite |
+| `target_profiles[].caldav_task_url` | Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen. | Zielprofilseite |
+| `target_profiles[].outlook_calendar` | Outlook-Kalender, Standard `default`. | Zielprofilseite |
+| `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |
+| `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |
+
+### Benachrichtigungen (`notifications`)
+
+Unter **Einstellungen → Benachrichtigungen** und in der Ersteinrichtung. Fehlt der ganze Block
+`notifications`, meldet Mailhelp alle Kategorien per Telegram (Entscheidungen und Tagesüberblick
+zusätzlich per Push, falls aktiv) mit Inhalt `summary`. Ist der Block vorhanden, gelten seine Werte.
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `notifications.quiet_hours.enabled` | Ruhezeiten: in diesem Zeitraum werden Meldungen zurückgehalten; Standard aus. | Benachrichtigungen |
+| `notifications.quiet_hours.start` | Beginn, HH:MM; Standard 22:00. | Benachrichtigungen |
+| `notifications.quiet_hours.end` | Ende, HH:MM; Standard 07:30. | Benachrichtigungen |
+| `notifications.quiet_hours.allow_system_errors` | Betriebsfehler auch in der Ruhezeit melden; Standard aus. | Benachrichtigungen |
+| `notifications.batching.enabled` | Meldungen in einem Zeitfenster bündeln; Standard aus. | Benachrichtigungen |
+| `notifications.batching.window_seconds` | Bündelungsfenster 1–86400 Sekunden; Standard 300. | Benachrichtigungen |
+| `notifications.categories.decisions` | Kanäle (`telegram`, `web_push`) für Entscheidungen; eine leere Liste meldet diese Kategorie nicht. | Benachrichtigungen |
+| `notifications.categories.action_results` | Kanäle für Ergebnisse von Eintragungen. | Benachrichtigungen |
+| `notifications.categories.daily_briefing` | Kanäle für den Tagesüberblick. | Benachrichtigungen |
+| `notifications.categories.system_errors` | Kanäle für Betriebsfehler. | Benachrichtigungen |
+| `notifications.telegram_content` | `neutral` (Standard): Telegram-Meldungen ohne Mailinhalte; `summary`: mit kurzer Übersicht der Entscheidungen bzw. dem Tagesüberblick. | Benachrichtigungen |
+| `notifications.delivery.max_attempts` | Zustellversuche je Meldung, 1–10; Standard 3. | Benachrichtigungen |
+| `notifications.delivery.initial_backoff_seconds` | Wartezeit vor dem zweiten Versuch, 1–86400 Sekunden; Standard 30. | Benachrichtigungen |
+| `notifications.delivery.max_backoff_seconds` | Längste Wartezeit zwischen Versuchen, 1–86400 Sekunden; Standard 900. | Benachrichtigungen |
+| `notifications.delivery.max_pending` | Höchstens wartende Meldungen, 1–100000; Standard 1000. | Benachrichtigungen |
+| `notifications.delivery.history_days` | Aufbewahrung des Zustellverlaufs, 1–3650 Tage; Standard 30. | Benachrichtigungen |
+
+### KI-Anbindung, Nachanalyse und Nachprüfung
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `llm.provider` | `openrouter` (Standard) oder `ollama` (lokaler Server). `--ollama HOST:PORT` beim Start überschreibt die Wahl. Mit `openrouter` ist `OPENROUTER_API_KEY` in `.env` nötig. | Datei |
+| `llm.ollama_address` | Adresse des Ollama-Servers bei `llm.provider: ollama`; Standard `localhost:11434`, auch `http://localhost:11434`. | Datei |
+| `retries.provider_retry` | Wiederholungen eines KI-Aufrufs nach vorübergehendem Anbieterfehler, 0–10 (Pflicht). Jede Wiederholung zählt gegen `limits.llm_calls_per_minute`. | Datei |
+| `retries.json_repair` | Korrekturversuche, wenn die KI kein gültiges JSON liefert, 0–10 (Pflicht). | Datei |
+| `retries.schema_repair` | Korrekturversuche, wenn das JSON nicht dem erwarteten Aufbau entspricht, 0–10 (Pflicht). | Datei |
+| `reanalysis.enabled` | „Aufgabe oder Termin übersehen?“ anbieten; Standard an. | Datei |
+| `reanalysis.max_llm_calls_per_job` | KI-Aufrufe je Nachanalyse, 1–10; Standard 5 (drei Schritte und zwei Wiederholungen). | Datei |
+| `reanalysis.max_attempts` | Versuche je Modellaufruf nach Fehler oder Neustart, 1–5; Standard 2. | Datei |
+| `reanalysis.max_jobs_per_day` | Gestartete Nachanalysen je Tag über alle Mails, 1–500; Standard 20 (Kostenschutz). | Datei |
+| `write_verification.max_attempts` | Kontrollabrufe nach einer Eintragung, 1–10; Standard 5. Der erste Abruf ist Versuch 1. | Datei |
+| `write_verification.retry_delays_seconds` | Wartezeit vor jedem weiteren Abruf, genau `max_attempts − 1` Werte zu 1–3600 Sekunden; Standard `[1, 5, 15, 60]`. Ein `Retry-After` des Anbieters kann länger sein. | Datei |
+| `write_verification.max_elapsed_seconds` | Höchstdauer der Prüfung, 10–86400 Sekunden, mindestens die Summe der Wartezeiten; Standard 300. Danach bleibt der Eintrag ausdrücklich ungeprüft. | Datei |
+
+### Sicherheitsgrenzen beim Zerlegen von Mails
+
+Eine Mail, die eine dieser Grenzen überschreitet, wird nicht ausgewertet: Sie erscheint mit dem
+Hinweis „Die Nachricht überschreitet ein Sicherheitslimit“ und ohne KI-Aufruf. Die Standards
+reichen für gewöhnliche Mails; erhöhen nur bei wiederholt betroffenen, vertrauenswürdigen Mails.
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `limits.max_header_bytes` | Größe aller Kopfzeilen, 256–1000000 Bytes; Standard 64000. | Datei |
+| `limits.max_display_header_characters` | Längste angezeigte Kopfzeile (Absender, Betreff), 1–10000 Zeichen; Standard 500. Längere werden als „—“ angezeigt. | Datei |
+| `limits.max_mime_parts` | Teile einer Mail, 1–10000; Standard 100. | Datei |
+| `limits.max_decoded_text_bytes` | Entschlüsselter Text aller Teile, 1–100000000 Bytes; Standard 1000000. | Datei |
+| `limits.max_html_characters` | Länge des HTML-Teils, 1–100000000 Zeichen; Standard 1000000. | Datei |
+| `limits.max_html_tags` | HTML-Elemente, 1–1000000; Standard 20000. | Datei |
+| `limits.max_html_depth` | Verschachtelungstiefe des HTML, 1–10000; Standard 100. | Datei |
+
+### Pfade, Protokolle und Webserver
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `data_directory` | Verzeichnis der Zustandsdaten (Pflicht); darunter `production` bzw. `test` je nach Testmodus. Relativ zur Konfiguration. | Datei |
+| `logging.directory` | Verzeichnis der Protokolle (Pflicht); `--log-directory` überschreibt es für einen Start. | Datei |
+| `logging.console.format` | Bildschirmausgabe als `text` (Standard) oder `jsonl`. | Datei |
+| `logging.file.filename` | Datei des Anwendungsprotokolls im Protokollverzeichnis (Pflicht). | Datei |
+| `logging.file.format` | `jsonl` (Standard) oder `text`. | Datei |
+| `logging.file.max_bytes` | Größe, ab der die Datei gewechselt wird, größer 0 (Pflicht). | Datei |
+| `logging.file.backup_count` | Aufbewahrte ältere Dateien, ab 0 (Pflicht). | Datei |
+| `logging.file.retention_days` | Höchstalter der Protokolldateien, 1–3650 Tage (Pflicht). | Datei |
+| `logging.llm.filename` | Datei des KI-Protokolls (Pflicht). Inhalte von Anfragen und Antworten stehen dort nur mit `logging.llm.include_requests`/`include_responses`. | Datei |
+| `logging.llm.format` | `jsonl` (Standard) oder `text`. | Datei |
+| `logging.llm.max_bytes` | Wechselgröße, größer 0 (Pflicht). | Datei |
+| `logging.llm.backup_count` | Aufbewahrte ältere Dateien, ab 0 (Pflicht). | Datei |
+| `logging.llm.retention_days` | Höchstalter, 1–3650 Tage (Pflicht). | Datei |
+| `logging.telegram.filename` | Datei des Telegram-Nachrichtenprotokolls; Standard `telegram/messages.jsonl`. | Datei |
+| `logging.telegram.format` | `jsonl` (Standard) oder `text`. | Datei |
+| `logging.telegram.max_bytes` | Wechselgröße, größer 0; Standard 10000000. | Datei |
+| `logging.telegram.backup_count` | Aufbewahrte ältere Dateien, ab 0; Standard 5. | Datei |
+| `logging.telegram.retention_days` | Höchstalter, 1–3650 Tage; Standard 30. | Datei |
+| `logging.modules` | Protokollstufe je Modul, z. B. `openrouter: INFO`; Standard leer. | Datei |
+| `timeouts.telegram_poll_seconds` | Wartezeit einer Telegram-Abfrage auf neue Nachrichten, 1–50 Sekunden (Pflicht). | Datei |
+| `web.enabled` | Weboberfläche starten; Standard aus. | Datei |
+| `web.host` | Netzwerkadresse des Webservers; Standard `127.0.0.1` (nur dieser PC). `0.0.0.0` ist für `web.lan_access` nötig. | Datei |
+| `web.port` | Port 1–65535; Standard 8765. | Datei |
+| `web.allowed_hosts` | Erlaubte Host-Angaben im Browseraufruf (Schutz vor DNS-Rebinding), 1–20 Einträge; Standard `127.0.0.1:8765`, `localhost:8765`. | Datei |
+| `web.google_redirect_uri` | Rücksprungadresse der Google-Anmeldung; muss in der Google-Cloud-Konsole eingetragen sein. Standard `http://localhost:8765/auth/google/callback`. | Datei |

@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.3.1 – Vollständige und geprüfte Einstellungsreferenz (Planung 5.3, Schritt H2)
+
+- Alle 229 Einstellungen haben einen eigenen Eintrag in `docs/Web-Einstellungen.md` mit Wirkung,
+  Werten und Bedienweg; neu beschrieben sind 117 Einstellungen für Postfächer, IServ-Konten,
+  Zielprofile, Benachrichtigungen, Sicherheitsgrenzen, Protokolle, Pfade, Webserver,
+  KI-Anbindung, Nachanalyse und Nachprüfung.
+- Korrigiert: Die Aufbewahrungshilfen sagten, offene Vorgänge blieben „geschätzt“ – richtig ist
+  „geschützt“ (Regressionstest). Fehlende Wertebereiche und Standards ergänzt; beschädigte Umlaute
+  in der Briefing-Tabelle repariert.
+- Tests gleichen jetzt jede Zahlengrenze und jeden Zahlenstandard des Codes mit der Referenz ab
+  und verlangen für jede Einstellung einen eigenen Eintrag. Die Inventur unterscheidet Postfach-,
+  IServ- und Zielprofilseite als Bedienweg.
+
 ## 5.3.0 – Bestandsaufnahme der Einstellungen und Funktionen (Planung 5.3, Schritt H1)
 
 - Neuer Prüfbericht [docs/Pruefung-Dokumentation-5.3.md](docs/Pruefung-Dokumentation-5.3.md):

@@ -2,7 +2,8 @@
 
 **Grundlage:** [Planung 5.3](Planung-5.3.md), Abschnitt 9
 **Prüfstand:** Mailhelp 5.3.0 (nach Abschluss von 5.0 bis 5.2, Commit-Folge ab `51d7c62`)
-**Status:** Bestandsaufnahme (H1). Die fachliche Prüfung je Zeile folgt in H2 und H6.
+**Status:** H1 Bestandsaufnahme, H2 Einstellungsreferenz vollständig (5.3.1). Anleitungen und
+redaktionelle Prüfung folgen in H5 und H6.
 
 Dieser Bericht ist der Nachweis der Dokumentationsprüfung von 5.3. Der erzeugte Teil unten
 listet jede Einstellung und jede Kommandozeilenoption so, wie der Code sie tatsächlich kennt;
@@ -59,7 +60,22 @@ wird mit einer verständlichen Meldung abgewiesen, ohne Modellaufruf.
 
 **Abnahmefälle:** Planung 5.3, Abschnitte 13 und 14, ohne Abweichung.
 
-## 3. Funktionen der Weboberfläche
+## 3. Befunde und Korrekturen der Einstellungsreferenz (H2)
+
+| Befund | Art | Korrektur und Nachweis |
+| --- | --- | --- |
+| 117 von 229 Einstellungen ohne eigenen Eintrag (Postfächer, IServ, Zielprofile, Benachrichtigungen, Grenzen, Protokolle, Pfade, Webserver, KI-Anbindung, Nachanalyse, Nachprüfung) | fehlt | Abschnitt „Vollständige Referenz weiterer Einstellungen (5.3)“ in [Web-Einstellungen](Web-Einstellungen.md); Test `test_every_setting_has_its_own_entry_in_the_reference` |
+| Aufbewahrungshilfen: „Offene Vorgänge bleiben **geschätzt**“ statt „geschützt“ (fünf Einträge und Feldhilfe) | falsch | korrigiert; Regressionstest `test_open_cases_are_named_protected_not_estimated_in_every_retention_help` |
+| `limits.max_attachment_bytes` ohne Wertebereich | unvollständig | 1024–100000000 Bytes ergänzt; Test `test_every_numeric_limit_in_the_code_is_named_in_the_reference` |
+| `retention.full_mail_days`, `retention.history_days`, `limits.max_llm_payload_bytes` ohne Standard; `attachments.max_original_bytes` nur als „25 MB“ | unvollständig | Standards 30, 90, 500000 und 26214400 Bytes (25 MiB) ergänzt; Test `test_every_numeric_default_in_the_code_is_named_in_the_reference` |
+| Tabellenkopf „Postfach-Briefings (4.9)“ mit beschädigten Umlauten | Darstellung | repariert |
+| Kopf der Referenz nannte 4.8.6 | veraltet | Stand 5.3.1 mit Verweis auf diesen Bericht |
+| Bedienweg der Postfach-, IServ- und Zielprofilfelder als „Datei“ eingestuft | Inventur | Inventur unterscheidet Postfach-, IServ- und Zielprofilseite |
+
+Codefehler wurden in H2 nicht gefunden. Grenzen und Standards aller Zahlenfelder werden jetzt
+automatisch mit dem Code abgeglichen; die Verständlichkeitsprüfung folgt in H6.
+
+## 4. Funktionen der Weboberfläche
 
 Jede Seite der Weboberfläche mit ihrer Aufgabe und dem Ort ihrer Dokumentation; ein Test
 vergleicht die Liste mit den registrierten Seiten. „(H5)“/„(H6)“ nennt die geplante Anleitung.
@@ -100,11 +116,11 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/einstellungen/neustarten` | Neustart | Betrieb (H6) |
 | `/einstellungen/beenden` | Beenden | Betrieb (H6) |
 
-## 4. Inventur der Einstellungen und Optionen
+## 5. Inventur der Einstellungen und Optionen
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **230** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -122,134 +138,134 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112**
 | `briefings.mailbox` | int oder Auswahl: default | 'default' |  | Weboberfläche | ja |
 | `briefings.skip_empty` | bool | True |  | Weboberfläche | ja |
 | `briefings.times` | list[str] | ['07:00', '13:00', '18:00'] | Länge ≤ 1440 | Weboberfläche | ja |
-| `daily_briefing.enabled` | bool | False |  | Einrichtung | **fehlt** |
+| `daily_briefing.enabled` | bool | False |  | Einrichtung | ja |
 | `daily_briefing.include_calendar` | bool | True |  | Weboberfläche | ja |
 | `daily_briefing.include_open` | bool | True |  | Weboberfläche | ja |
 | `daily_briefing.include_tasks` | bool | True |  | Weboberfläche | ja |
-| `daily_briefing.time` | str | '07:30' |  | Einrichtung | **fehlt** |
-| `data_directory` | Path | Pflicht |  | Datei | **fehlt** |
+| `daily_briefing.time` | str | '07:30' |  | Einrichtung | ja |
+| `data_directory` | Path | Pflicht |  | Datei | ja |
 | `drafts.enabled` | bool | True |  | Weboberfläche | ja |
 | `drafts.folder` | str (optional) | – |  | Weboberfläche | ja |
 | `event_defaults.in_person_duration_minutes` | int | 180 | ≥ 1, ≤ 1440 | Weboberfläche | ja |
 | `event_defaults.video_duration_minutes` | int | 60 | ≥ 1, ≤ 1440 | Weboberfläche | ja |
 | `imap.batch_size` | int | 25 | ≥ 1, ≤ 1000 | Weboberfläche | ja |
-| `imap.connection_mode` | Auswahl: ssl, starttls, plain (optional) | – |  | Einrichtung | **fehlt** |
-| `imap.drafts_folder` | str (optional) | – |  | Einrichtung | **fehlt** |
-| `imap.folders` | list[str] (optional) | – | Länge ≥ 1, Länge ≤ 100 | Einrichtung | **fehlt** |
+| `imap.connection_mode` | Auswahl: ssl, starttls, plain (optional) | – |  | Einrichtung | ja |
+| `imap.drafts_folder` | str (optional) | – |  | Einrichtung | ja |
+| `imap.folders` | list[str] (optional) | – | Länge ≥ 1, Länge ≤ 100 | Einrichtung | ja |
 | `imap.global_newest_first` | bool | False |  | Weboberfläche | ja |
-| `imap.historical_start` | datetime (optional) | – |  | Einrichtung | **fehlt** |
-| `imap.host` | str (optional) | – | Länge ≥ 1, Länge ≤ 253 | Einrichtung | **fehlt** |
-| `imap.mailboxes[].activity_report_folder` | str (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].auto_draft` | bool (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].connection_mode` | Auswahl: ssl, starttls, plain | 'ssl' |  | Datei | **fehlt** |
-| `imap.mailboxes[].daily_briefing` | bool | True |  | Datei | **fehlt** |
-| `imap.mailboxes[].drafts_folder` | str | 'Drafts' | Länge ≥ 1, Länge ≤ 500 | Datei | **fehlt** |
-| `imap.mailboxes[].enabled` | bool | True |  | Datei | **fehlt** |
-| `imap.mailboxes[].event_defaults.in_person_duration_minutes` | int (optional) | – | ≥ 1, ≤ 1440 | Datei | **fehlt** |
-| `imap.mailboxes[].event_defaults.video_duration_minutes` | int (optional) | – | ≥ 1, ≤ 1440 | Datei | **fehlt** |
-| `imap.mailboxes[].folders` | list[str] | Pflicht | Länge ≥ 1, Länge ≤ 100 | Datei | **fehlt** |
-| `imap.mailboxes[].historical_start` | datetime (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].host` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | Datei | **fehlt** |
-| `imap.mailboxes[].id` | int | Pflicht | ≥ 1, ≤ 99 | Datei | **fehlt** |
-| `imap.mailboxes[].label` | str | 'Postfach' | Länge ≥ 1, Länge ≤ 40 | Datei | **fehlt** |
-| `imap.mailboxes[].mail_client` | Auswahl: auto, apple_mail, gmail_web, outlook_web, none | 'auto' |  | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.categories.action_results` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.categories.daily_briefing` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.categories.decisions` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.categories.system_errors` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.quiet_hours.allow_system_errors` | bool (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.quiet_hours.enabled` | bool (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.quiet_hours.end` | str (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].notifications.quiet_hours.start` | str (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].own_addresses` | list[str] | [] | Länge ≤ 20 | Datei | **fehlt** |
-| `imap.mailboxes[].personal_info` | str (optional) | – | Länge ≤ 2000 | Datei | **fehlt** |
-| `imap.mailboxes[].port` | int | Pflicht | ≥ 1, ≤ 65535 | Datei | **fehlt** |
-| `imap.mailboxes[].primary_folder` | str | 'INBOX' |  | Datei | **fehlt** |
-| `imap.mailboxes[].retention.full_mail_days` | int oder Auswahl: disabled, unlimited | Pflicht |  | Datei | **fehlt** |
-| `imap.mailboxes[].smart_reply` | bool (optional) | – |  | Datei | **fehlt** |
-| `imap.mailboxes[].target_profile` | int | 1 | ≥ 1, ≤ 99 | Datei | **fehlt** |
-| `imap.port` | int (optional) | – | ≥ 1, ≤ 65535 | Einrichtung | **fehlt** |
-| `imap.primary_folder` | str (optional) | – |  | Einrichtung | **fehlt** |
-| `iserv.accounts[].enabled` | bool | True |  | Datei | **fehlt** |
-| `iserv.accounts[].historical_start` | datetime (optional) | – |  | Datei | **fehlt** |
-| `iserv.accounts[].id` | int | Pflicht | ≥ 1, ≤ 10 | Datei | **fehlt** |
-| `iserv.accounts[].label` | str | 'Elternbriefe' | Länge ≥ 1, Länge ≤ 40 | Datei | **fehlt** |
-| `iserv.accounts[].mailbox` | int | 1 | ≥ 1, ≤ 99 | Datei | **fehlt** |
-| `iserv.accounts[].server` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | Datei | **fehlt** |
+| `imap.historical_start` | datetime (optional) | – |  | Einrichtung | ja |
+| `imap.host` | str (optional) | – | Länge ≥ 1, Länge ≤ 253 | Einrichtung | ja |
+| `imap.mailboxes[].activity_report_folder` | str (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].auto_draft` | bool (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].connection_mode` | Auswahl: ssl, starttls, plain | 'ssl' |  | Postfachseite | ja |
+| `imap.mailboxes[].daily_briefing` | bool | True |  | Postfachseite | ja |
+| `imap.mailboxes[].drafts_folder` | str | 'Drafts' | Länge ≥ 1, Länge ≤ 500 | Postfachseite | ja |
+| `imap.mailboxes[].enabled` | bool | True |  | Datei | ja |
+| `imap.mailboxes[].event_defaults.in_person_duration_minutes` | int (optional) | – | ≥ 1, ≤ 1440 | Postfachseite | ja |
+| `imap.mailboxes[].event_defaults.video_duration_minutes` | int (optional) | – | ≥ 1, ≤ 1440 | Postfachseite | ja |
+| `imap.mailboxes[].folders` | list[str] | Pflicht | Länge ≥ 1, Länge ≤ 100 | Postfachseite | ja |
+| `imap.mailboxes[].historical_start` | datetime (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].host` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | Postfachseite | ja |
+| `imap.mailboxes[].id` | int | Pflicht | ≥ 1, ≤ 99 | Postfachseite | ja |
+| `imap.mailboxes[].label` | str | 'Postfach' | Länge ≥ 1, Länge ≤ 40 | Postfachseite | ja |
+| `imap.mailboxes[].mail_client` | Auswahl: auto, apple_mail, gmail_web, outlook_web, none | 'auto' |  | Postfachseite | ja |
+| `imap.mailboxes[].notifications.categories.action_results` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Postfachseite | ja |
+| `imap.mailboxes[].notifications.categories.daily_briefing` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Postfachseite | ja |
+| `imap.mailboxes[].notifications.categories.decisions` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Postfachseite | ja |
+| `imap.mailboxes[].notifications.categories.system_errors` | list[Auswahl: telegram, web_push] (optional) | – | Länge ≤ 2 | Postfachseite | ja |
+| `imap.mailboxes[].notifications.quiet_hours.allow_system_errors` | bool (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].notifications.quiet_hours.enabled` | bool (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].notifications.quiet_hours.end` | str (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].notifications.quiet_hours.start` | str (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].own_addresses` | list[str] | [] | Länge ≤ 20 | Datei | ja |
+| `imap.mailboxes[].personal_info` | str (optional) | – | Länge ≤ 2000 | Postfachseite | ja |
+| `imap.mailboxes[].port` | int | Pflicht | ≥ 1, ≤ 65535 | Postfachseite | ja |
+| `imap.mailboxes[].primary_folder` | str | 'INBOX' |  | Postfachseite | ja |
+| `imap.mailboxes[].retention.full_mail_days` | int oder Auswahl: disabled, unlimited | Pflicht |  | Postfachseite | ja |
+| `imap.mailboxes[].smart_reply` | bool (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].target_profile` | int | 1 | ≥ 1, ≤ 99 | Postfachseite | ja |
+| `imap.port` | int (optional) | – | ≥ 1, ≤ 65535 | Einrichtung | ja |
+| `imap.primary_folder` | str (optional) | – |  | Einrichtung | ja |
+| `iserv.accounts[].enabled` | bool | True |  | IServ-Seite | ja |
+| `iserv.accounts[].historical_start` | datetime (optional) | – |  | IServ-Seite | ja |
+| `iserv.accounts[].id` | int | Pflicht | ≥ 1, ≤ 10 | IServ-Seite | ja |
+| `iserv.accounts[].label` | str | 'Elternbriefe' | Länge ≥ 1, Länge ≤ 40 | IServ-Seite | ja |
+| `iserv.accounts[].mailbox` | int | 1 | ≥ 1, ≤ 99 | IServ-Seite | ja |
+| `iserv.accounts[].server` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | IServ-Seite | ja |
 | `learning.decision_llm_content` | bool | False |  | Weboberfläche | ja |
 | `learning.parallel_llm_calls` | int | 4 | ≥ 1, ≤ 100 | Weboberfläche | ja |
 | `limits.llm_calls_per_minute` | int | Pflicht | ≥ 1, ≤ 600 | Weboberfläche | ja |
 | `limits.max_attachment_bytes` | int | 5000000 | ≥ 1024, ≤ 100000000 | Weboberfläche | ja |
-| `limits.max_decoded_text_bytes` | int | 1000000 | ≥ 1, ≤ 100000000 | Datei | **fehlt** |
-| `limits.max_display_header_characters` | int | 500 | ≥ 1, ≤ 10000 | Datei | **fehlt** |
-| `limits.max_header_bytes` | int | 64000 | ≥ 256, ≤ 1000000 | Datei | **fehlt** |
-| `limits.max_html_characters` | int | 1000000 | ≥ 1, ≤ 100000000 | Datei | **fehlt** |
-| `limits.max_html_depth` | int | 100 | ≥ 1, ≤ 10000 | Datei | **fehlt** |
-| `limits.max_html_tags` | int | 20000 | ≥ 1, ≤ 1000000 | Datei | **fehlt** |
+| `limits.max_decoded_text_bytes` | int | 1000000 | ≥ 1, ≤ 100000000 | Datei | ja |
+| `limits.max_display_header_characters` | int | 500 | ≥ 1, ≤ 10000 | Datei | ja |
+| `limits.max_header_bytes` | int | 64000 | ≥ 256, ≤ 1000000 | Datei | ja |
+| `limits.max_html_characters` | int | 1000000 | ≥ 1, ≤ 100000000 | Datei | ja |
+| `limits.max_html_depth` | int | 100 | ≥ 1, ≤ 10000 | Datei | ja |
+| `limits.max_html_tags` | int | 20000 | ≥ 1, ≤ 1000000 | Datei | ja |
 | `limits.max_llm_payload_bytes` | int | 500000 | ≥ 1, ≤ 100000000 | Weboberfläche | ja |
 | `limits.max_mail_bytes` | int | Pflicht | ≥ 1024, ≤ 100000000 | Weboberfläche | ja |
-| `limits.max_mime_parts` | int | 100 | ≥ 1, ≤ 10000 | Datei | **fehlt** |
-| `llm.ollama_address` | str | 'localhost:11434' |  | Datei | **fehlt** |
-| `llm.provider` | Auswahl: openrouter, ollama | 'openrouter' |  | Datei | **fehlt** |
+| `limits.max_mime_parts` | int | 100 | ≥ 1, ≤ 10000 | Datei | ja |
+| `llm.ollama_address` | str | 'localhost:11434' |  | Datei | ja |
+| `llm.provider` | Auswahl: openrouter, ollama | 'openrouter' |  | Datei | ja |
 | `logging.console.enabled` | bool | True |  | Weboberfläche | ja |
-| `logging.console.format` | Auswahl: text, jsonl | 'text' |  | Datei | **fehlt** |
+| `logging.console.format` | Auswahl: text, jsonl | 'text' |  | Datei | ja |
 | `logging.console.level` | str | 'INFO' |  | Weboberfläche | ja |
-| `logging.directory` | Path | Pflicht |  | Datei | **fehlt** |
-| `logging.file.backup_count` | int | Pflicht | ≥ 0 | Datei | **fehlt** |
+| `logging.directory` | Path | Pflicht |  | Datei | ja |
+| `logging.file.backup_count` | int | Pflicht | ≥ 0 | Datei | ja |
 | `logging.file.enabled` | bool | True |  | Weboberfläche | ja |
-| `logging.file.filename` | Path | Pflicht |  | Datei | **fehlt** |
-| `logging.file.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | **fehlt** |
+| `logging.file.filename` | Path | Pflicht |  | Datei | ja |
+| `logging.file.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | ja |
 | `logging.file.level` | str | 'INFO' |  | Weboberfläche | ja |
-| `logging.file.max_bytes` | int | Pflicht | > 0 | Datei | **fehlt** |
-| `logging.file.retention_days` | int | Pflicht | > 0, ≤ 3650 | Datei | **fehlt** |
-| `logging.llm.backup_count` | int | Pflicht | ≥ 0 | Datei | **fehlt** |
+| `logging.file.max_bytes` | int | Pflicht | > 0 | Datei | ja |
+| `logging.file.retention_days` | int | Pflicht | > 0, ≤ 3650 | Datei | ja |
+| `logging.llm.backup_count` | int | Pflicht | ≥ 0 | Datei | ja |
 | `logging.llm.enabled` | bool | True |  | Weboberfläche | ja |
-| `logging.llm.filename` | Path | Pflicht |  | Datei | **fehlt** |
-| `logging.llm.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | **fehlt** |
+| `logging.llm.filename` | Path | Pflicht |  | Datei | ja |
+| `logging.llm.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | ja |
 | `logging.llm.include_requests` | bool | False |  | Weboberfläche | ja |
 | `logging.llm.include_responses` | bool | False |  | Weboberfläche | ja |
 | `logging.llm.level` | str | 'INFO' |  | Weboberfläche | ja |
-| `logging.llm.max_bytes` | int | Pflicht | > 0 | Datei | **fehlt** |
-| `logging.llm.retention_days` | int | Pflicht | > 0, ≤ 3650 | Datei | **fehlt** |
-| `logging.modules` | dict[str, str] | {} |  | Datei | **fehlt** |
-| `logging.telegram.backup_count` | int | 5 | ≥ 0 | Datei | **fehlt** |
+| `logging.llm.max_bytes` | int | Pflicht | > 0 | Datei | ja |
+| `logging.llm.retention_days` | int | Pflicht | > 0, ≤ 3650 | Datei | ja |
+| `logging.modules` | dict[str, str] | {} |  | Datei | ja |
+| `logging.telegram.backup_count` | int | 5 | ≥ 0 | Datei | ja |
 | `logging.telegram.enabled` | bool | True |  | Weboberfläche | ja |
-| `logging.telegram.filename` | Path | WindowsPath('telegram/messages.jsonl') |  | Datei | **fehlt** |
-| `logging.telegram.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | **fehlt** |
+| `logging.telegram.filename` | Path | WindowsPath('telegram/messages.jsonl') |  | Datei | ja |
+| `logging.telegram.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | ja |
 | `logging.telegram.level` | str | 'INFO' |  | Weboberfläche | ja |
-| `logging.telegram.max_bytes` | int | 10000000 | > 0 | Datei | **fehlt** |
-| `logging.telegram.retention_days` | int | 30 | > 0, ≤ 3650 | Datei | **fehlt** |
+| `logging.telegram.max_bytes` | int | 10000000 | > 0 | Datei | ja |
+| `logging.telegram.retention_days` | int | 30 | > 0, ≤ 3650 | Datei | ja |
 | `metrics.electricity_eur_per_kwh` | float | 0.3 | ≥ 0, ≤ 100 | Weboberfläche | ja |
 | `metrics.enabled` | bool | True |  | Weboberfläche | ja |
 | `metrics.exchange_rate_date` | date (optional) | – |  | Weboberfläche | ja |
 | `metrics.ollama_power_watts` | float | 300 | ≥ 0, ≤ 100000 | Weboberfläche | ja |
 | `metrics.retention_days` | int | 90 | ≥ 1, ≤ 3650 | Weboberfläche | ja |
 | `metrics.usd_per_eur` | float (optional) | 1.1 | > 0 | Weboberfläche | ja |
-| `notifications.batching.enabled` | bool | False |  | Einrichtung | **fehlt** |
-| `notifications.batching.window_seconds` | int | 300 | ≥ 1, ≤ 86400 | Einrichtung | **fehlt** |
-| `notifications.categories.action_results` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | **fehlt** |
-| `notifications.categories.daily_briefing` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | **fehlt** |
-| `notifications.categories.decisions` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | **fehlt** |
-| `notifications.categories.system_errors` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | **fehlt** |
-| `notifications.delivery.history_days` | int | 30 | ≥ 1, ≤ 3650 | Einrichtung | **fehlt** |
-| `notifications.delivery.initial_backoff_seconds` | int | 30 | ≥ 1, ≤ 86400 | Einrichtung | **fehlt** |
-| `notifications.delivery.max_attempts` | int | 3 | ≥ 1, ≤ 10 | Einrichtung | **fehlt** |
-| `notifications.delivery.max_backoff_seconds` | int | 900 | ≥ 1, ≤ 86400 | Einrichtung | **fehlt** |
-| `notifications.delivery.max_pending` | int | 1000 | ≥ 1, ≤ 100000 | Einrichtung | **fehlt** |
-| `notifications.quiet_hours.allow_system_errors` | bool | False |  | Einrichtung | **fehlt** |
-| `notifications.quiet_hours.enabled` | bool | False |  | Einrichtung | **fehlt** |
-| `notifications.quiet_hours.end` | str | '07:30' |  | Einrichtung | **fehlt** |
-| `notifications.quiet_hours.start` | str | '22:00' |  | Einrichtung | **fehlt** |
-| `notifications.telegram_content` | Auswahl: neutral, summary | 'neutral' |  | Einrichtung | **fehlt** |
+| `notifications.batching.enabled` | bool | False |  | Einrichtung | ja |
+| `notifications.batching.window_seconds` | int | 300 | ≥ 1, ≤ 86400 | Einrichtung | ja |
+| `notifications.categories.action_results` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | ja |
+| `notifications.categories.daily_briefing` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | ja |
+| `notifications.categories.decisions` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | ja |
+| `notifications.categories.system_errors` | list[Auswahl: telegram, web_push] | [] | Länge ≤ 2 | Einrichtung | ja |
+| `notifications.delivery.history_days` | int | 30 | ≥ 1, ≤ 3650 | Einrichtung | ja |
+| `notifications.delivery.initial_backoff_seconds` | int | 30 | ≥ 1, ≤ 86400 | Einrichtung | ja |
+| `notifications.delivery.max_attempts` | int | 3 | ≥ 1, ≤ 10 | Einrichtung | ja |
+| `notifications.delivery.max_backoff_seconds` | int | 900 | ≥ 1, ≤ 86400 | Einrichtung | ja |
+| `notifications.delivery.max_pending` | int | 1000 | ≥ 1, ≤ 100000 | Einrichtung | ja |
+| `notifications.quiet_hours.allow_system_errors` | bool | False |  | Einrichtung | ja |
+| `notifications.quiet_hours.enabled` | bool | False |  | Einrichtung | ja |
+| `notifications.quiet_hours.end` | str | '07:30' |  | Einrichtung | ja |
+| `notifications.quiet_hours.start` | str | '22:00' |  | Einrichtung | ja |
+| `notifications.telegram_content` | Auswahl: neutral, summary | 'neutral' |  | Einrichtung | ja |
 | `personal_info` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `poll_interval_seconds` | int | Pflicht | ≥ 5, ≤ 86400 | Weboberfläche | ja |
 | `proposal_reconciliation.max_semantic_candidates` | int | 8 | ≥ 1, ≤ 50 | Weboberfläche | ja |
-| `push.enabled` | bool | False |  | Einrichtung | **fehlt** |
-| `push.subject` | str | 'mailto:admin@example.invalid' |  | Datei | **fehlt** |
-| `reanalysis.enabled` | bool | True |  | Datei | **fehlt** |
-| `reanalysis.max_attempts` | int | 2 | ≥ 1, ≤ 5 | Datei | **fehlt** |
-| `reanalysis.max_jobs_per_day` | int | 20 | ≥ 1, ≤ 500 | Datei | **fehlt** |
-| `reanalysis.max_llm_calls_per_job` | int | 5 | ≥ 1, ≤ 10 | Datei | **fehlt** |
+| `push.enabled` | bool | False |  | Einrichtung | ja |
+| `push.subject` | str | 'mailto:admin@example.invalid' |  | Datei | ja |
+| `reanalysis.enabled` | bool | True |  | Datei | ja |
+| `reanalysis.max_attempts` | int | 2 | ≥ 1, ≤ 5 | Datei | ja |
+| `reanalysis.max_jobs_per_day` | int | 20 | ≥ 1, ≤ 500 | Datei | ja |
+| `reanalysis.max_llm_calls_per_job` | int | 5 | ≥ 1, ≤ 10 | Datei | ja |
 | `retention.activity_report_days` | int oder Auswahl: disabled, unlimited | 365 |  | Weboberfläche | ja |
 | `retention.analysis_days` | int oder Auswahl: disabled, unlimited (optional) | – |  | Weboberfläche | ja |
 | `retention.cleanup_interval_minutes` | int | 60 | ≥ 0, ≤ 1440 | Weboberfläche | ja |
@@ -259,23 +275,23 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112**
 | `retention.history_days` | int oder Auswahl: disabled, unlimited | 90 |  | Weboberfläche | ja |
 | `retries.interpretation_attempts` | int | 3 | ≥ 1, ≤ 20 | Weboberfläche | ja |
 | `retries.interpretation_backoff_seconds` | int | 60 | ≥ 1, ≤ 86400 | Weboberfläche | ja |
-| `retries.json_repair` | int | Pflicht | ≥ 0, ≤ 10 | Datei | **fehlt** |
-| `retries.provider_retry` | int | Pflicht | ≥ 0, ≤ 10 | Datei | **fehlt** |
+| `retries.json_repair` | int | Pflicht | ≥ 0, ≤ 10 | Datei | ja |
+| `retries.provider_retry` | int | Pflicht | ≥ 0, ≤ 10 | Datei | ja |
 | `retries.revision_attempts` | int | 3 | ≥ 1, ≤ 20 | Weboberfläche | ja |
 | `retries.revision_backoff_seconds` | int | 60 | ≥ 1, ≤ 86400 | Weboberfläche | ja |
-| `retries.schema_repair` | int | Pflicht | ≥ 0, ≤ 10 | Datei | **fehlt** |
+| `retries.schema_repair` | int | Pflicht | ≥ 0, ≤ 10 | Datei | ja |
 | `smart_reply` | bool | False |  | Weboberfläche | ja |
-| `target_profiles[].caldav_calendar_url` | str | '' | Länge ≤ 2000 | Datei | **fehlt** |
-| `target_profiles[].caldav_task_url` | str | '' | Länge ≤ 2000 | Datei | **fehlt** |
-| `target_profiles[].calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Datei | **fehlt** |
-| `target_profiles[].google_calendar` | str | '' | Länge ≤ 500 | Datei | **fehlt** |
-| `target_profiles[].id` | int | Pflicht | ≥ 2, ≤ 99 | Datei | **fehlt** |
-| `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Datei | **fehlt** |
-| `target_profiles[].microsoft_tenant` | str | 'common' |  | Datei | **fehlt** |
-| `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Datei | **fehlt** |
-| `target_profiles[].outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Datei | **fehlt** |
-| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Datei | **fehlt** |
-| `target_profiles[].todoist_project` | str | '' | Länge ≤ 500 | Datei | **fehlt** |
+| `target_profiles[].caldav_calendar_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
+| `target_profiles[].caldav_task_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
+| `target_profiles[].calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Zielprofilseite | ja |
+| `target_profiles[].google_calendar` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].id` | int | Pflicht | ≥ 2, ≤ 99 | Zielprofilseite | ja |
+| `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Zielprofilseite | ja |
+| `target_profiles[].microsoft_tenant` | str | 'common' |  | Zielprofilseite | ja |
+| `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Zielprofilseite | ja |
+| `target_profiles[].todoist_project` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
 | `targets.caldav_calendar_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Weboberfläche | ja |
@@ -286,7 +302,7 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112**
 | `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Weboberfläche | ja |
 | `targets.todoist_project` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `telegram.chat_id` | int | 1 |  | Weboberfläche | ja |
-| `telegram.enabled` | bool | True |  | Einrichtung | **fehlt** |
+| `telegram.enabled` | bool | True |  | Einrichtung | ja |
 | `telegram.sequential_questions` | bool | True |  | Weboberfläche | ja |
 | `telegram.user_id` | int | 1 | > 0 | Weboberfläche | ja |
 | `test_mode` | bool | False |  | Weboberfläche | ja |
@@ -318,7 +334,7 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112**
 | `timeouts.telegram.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.telegram.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
 | `timeouts.telegram.timeout_seconds` | float | Pflicht | ≥ 1, ≤ 300 | Weboberfläche | ja |
-| `timeouts.telegram_poll_seconds` | int | Pflicht | ≥ 1, ≤ 50 | Datei | **fehlt** |
+| `timeouts.telegram_poll_seconds` | int | Pflicht | ≥ 1, ≤ 50 | Datei | ja |
 | `timeouts.todoist.initial_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 30 | Weboberfläche | ja |
 | `timeouts.todoist.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.todoist.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
@@ -328,16 +344,16 @@ Erzeugt mit `python -m devtools.inventory`: **230 Einstellungen**, davon **112**
 | `vision.max_edge_pixels` | int | 1600 | ≥ 512, ≤ 4096 | Weboberfläche | ja |
 | `vision.max_image_bytes` | int | 5000000 | ≥ 10240, ≤ 50000000 | Weboberfläche | ja |
 | `vision.max_images_per_mail` | int | 3 | ≥ 1, ≤ 10 | Weboberfläche | ja |
-| `web.allowed_hosts` | list[str] | ['127.0.0.1:8765', 'localhost:8765'] | Länge ≥ 1, Länge ≤ 20 | Datei | **fehlt** |
-| `web.enabled` | bool | False |  | Datei | **fehlt** |
-| `web.google_redirect_uri` | str | 'http://localhost:8765/auth/google/call… |  | Datei | **fehlt** |
-| `web.host` | str | '127.0.0.1' |  | Datei | **fehlt** |
+| `web.allowed_hosts` | list[str] | ['127.0.0.1:8765', 'localhost:8765'] | Länge ≥ 1, Länge ≤ 20 | Datei | ja |
+| `web.enabled` | bool | False |  | Datei | ja |
+| `web.google_redirect_uri` | str | 'http://localhost:8765/auth/google/call… |  | Datei | ja |
+| `web.host` | str | '127.0.0.1' |  | Datei | ja |
 | `web.lan_access` | bool | False |  | Weboberfläche | ja |
-| `web.port` | int | 8765 | ≥ 1, ≤ 65535 | Datei | **fehlt** |
+| `web.port` | int | 8765 | ≥ 1, ≤ 65535 | Datei | ja |
 | `web.session_days` | int | 30 | ≥ 1, ≤ 365 | Weboberfläche | ja |
-| `write_verification.max_attempts` | int | 5 | ≥ 1, ≤ 10 | Datei | **fehlt** |
-| `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | **fehlt** |
-| `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | **fehlt** |
+| `write_verification.max_attempts` | int | 5 | ≥ 1, ≤ 10 | Datei | ja |
+| `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | ja |
+| `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | ja |
 
 **24 Kommandozeilenoptionen** (`mailhelp --help`):
 

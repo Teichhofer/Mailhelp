@@ -91,12 +91,26 @@ def _limits(field: FieldInfo) -> str:
     return ", ".join(found)
 
 
+# Fields edited on their own pages instead of the general settings areas.
+MAILBOX_ADD = {"id", "label", "host", "port", "folders", "connection_mode", "primary_folder", "drafts_folder",
+               "historical_start"}
+
+
 def _path(key: str, web: set[str], setup: set[str]) -> str:
+    from mailhelp.web.mailbox_site import FIELDS
     plain = key.replace("[]", "")
     if plain in web or key in web:
         return "Weboberfläche"
     if plain in setup or key in setup:
         return "Einrichtung"
+    if key.startswith("imap.mailboxes[]."):
+        local = key.removeprefix("imap.mailboxes[].")
+        if local in MAILBOX_ADD or any(local in fields for fields in FIELDS.values()):
+            return "Postfachseite"
+    if key.startswith("iserv.accounts[]."):
+        return "IServ-Seite"
+    if key.startswith("target_profiles[]."):
+        return "Zielprofilseite"
     return "Datei"
 
 

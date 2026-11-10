@@ -20,8 +20,8 @@ SETTING_HELP = {
     "targets.google_calendar": "ID des Zielkalenders für neue Terminvorschläge. primary bezeichnet den Hauptkalender; eine konkrete Kalender-ID wählt einen anderen zugänglichen Kalender. Bestehende Termine werden nicht verschoben. Nicht leer, höchstens 500 Zeichen. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
     "limits.llm_calls_per_minute": "Budget von 1–600 KI-Aufrufen pro Minute. Ein kleinerer Wert bremst die Verarbeitung und reduziert Lastspitzen; ein größerer erlaubt mehr Aufrufe, soweit Anbieter und übrige Grenzen dies zulassen. Dies ist keine feste Geld- oder Tageskostengrenze.",
     "limits.max_mail_bytes": "Größengrenze für den Nachrichtentext ohne Anhänge: 1024–100000000 Bytes. Anhänge haben eine eigene Grenze für die Texterkennung.",
-    "limits.max_attachment_bytes": "Maximale Größe je Anhang für lokale Textextraktion und OCR: Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen.",
-    "limits.max_llm_payload_bytes": "Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung.",
+    "limits.max_attachment_bytes": "Maximale Größe je Anhang für lokale Textextraktion und OCR: 1024–100000000 Bytes; Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen.",
+    "limits.max_llm_payload_bytes": "Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl; Standard 500000. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung.",
     "logging.console.level": "Mindeststufe der Konsolenmeldungen: DEBUG zeigt auch Diagnoseangaben, INFO den normalen Ablauf, WARNING nur Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Ausgabe und erschweren die Fehlersuche. Inhaltsprotokolle werden separat gesteuert.",
     "logging.file.level": "Mindeststufe der allgemeinen Logdatei: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Datenmenge. Separate KI-Inhaltslogs werden damit nicht aktiviert oder deaktiviert.",
     "logging.llm.include_requests": "ja (true) erlaubt vollständige KI-Anfragen im separaten KI-Log, sofern dieses aktiviert ist. Das kann Prompts und private Mailinhalte speichern und benötigt mehr Speicher. nein (false) lässt die vollständigen Anfrageinhalte weg. Bereits geschriebene Logs werden dadurch nicht gelöscht.",
@@ -36,13 +36,13 @@ SETTING_HELP = {
 
 _RETENTION = (" 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. "
               "Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, "
-              "unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte "
+              "unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte "
               "lassen sich durch späteres Verlängern der Frist nicht wiederherstellen.")
 for _name, _text in {
-    "full_mail_days": "Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht.",
+    "full_mail_days": "Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht. Standard 30 Tage.",
     "debug_llm_days": "Aufbewahrung von KI-Diagnosedaten im Vorgang, etwa Zusammenfassung und Validierungsfehlern; separate JSONL-Logdateien haben eigene Fristen.",
     "analysis_days": "Aufbewahrung archivierter Analysen. null übernimmt die Frist für KI-Diagnosedaten (debug_llm_days).",
-    "history_days": "Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten.",
+    "history_days": "Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. Standard 90 Tage.",
 }.items():
     SETTING_HELP["retention." + _name] = _text + _RETENTION
 
@@ -55,7 +55,7 @@ SETTING_HELP.update({
     "targets.microsoft_todo_list": "ID der Microsoft-To-Do-Liste oder default für die Standardliste „Aufgaben“. Nur bei Aufgabendienst microsoft_todo benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
     "targets.microsoft_tenant": "Microsoft-Mandant für die Anmeldung: common (private und geschäftliche Konten), consumers, organizations oder die Mandanten-ID. Gilt für Outlook-Kalender und Microsoft To Do.",
     "attachments.store_originals": "ja (true) speichert Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen in der Weboberfläche. nein (false) speichert nur Bildvorschauen. Gespeicherte Originale werden mit der Aufbewahrungsfrist für Mailinhalte gelöscht.",
-    "attachments.max_original_bytes": "Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 25 MB). Größere Anhänge bleiben nur im Postfach.",
+    "attachments.max_original_bytes": "Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 26214400 Bytes = 25 MiB). Größere Anhänge bleiben nur im Postfach.",
     "attachments.max_total_bytes": "Höchstens so viele Bytes an Originalen je Mail: 1024–524288000 (Standard 50 MB). Weitere Anhänge derselben Mail werden nicht gespeichert.",
 })
 

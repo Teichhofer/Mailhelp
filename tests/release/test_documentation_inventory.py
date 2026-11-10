@@ -17,7 +17,8 @@ def test_the_committed_inventory_is_current():
 def test_every_setting_has_a_way_to_change_it_and_every_option_is_listed():
     rows = inventory.settings_rows(inventory.REFERENCE.read_text(encoding="utf-8"))
     assert len(rows) > 200 and len({row.key for row in rows}) == len(rows)
-    assert {row.path for row in rows} == {"Weboberfläche", "Einrichtung", "Datei"}
+    assert {row.path for row in rows} == {"Weboberfläche", "Einrichtung", "Datei", "Postfachseite", "IServ-Seite",
+                                          "Zielprofilseite"}
     keys = {row.key for row in rows}
     assert {"poll_interval_seconds", "write_verification.max_attempts", "imap.mailboxes[].host",
             "imap.mailboxes[].retention.full_mail_days", "iserv.accounts[].server"} <= keys
@@ -57,3 +58,44 @@ def test_a_forward_reference_is_resolved_in_the_module_of_its_model():
     resolved = inventory._resolved(typing.ForwardRef("Settings | None"), MailboxSettings)
     assert set(typing.get_args(resolved)) == {Settings, type(None)}
     assert inventory._resolved(int, MailboxSettings) is int
+
+
+def test_every_numeric_limit_in_the_code_is_named_in_the_reference():
+    import re
+    reference = inventory.REFERENCE.read_text(encoding="utf-8")
+    lines, wrong = reference.splitlines(), []
+    for row in inventory.settings_rows(reference):
+        numbers = re.findall(r"[≥≤<>] (-?[\d.]+)", row.limits)
+        if not numbers or "Länge" in row.limits:
+            continue
+        entry = re.sub(r"[.  ]", "", " ".join(line for line in lines if f"`{row.key}`" in line))
+        wrong += [(row.key, number) for number in numbers if re.sub(r"\.0$", "", number).replace(".", "") not in entry]
+    assert wrong == []
+
+
+def test_every_setting_has_its_own_entry_in_the_reference():
+    rows = inventory.settings_rows(inventory.REFERENCE.read_text(encoding="utf-8"))
+    assert [row.key for row in rows if not row.documented] == []
+
+
+def test_open_cases_are_named_protected_not_estimated_in_every_retention_help():
+    # Regression 5.3.1: the retention help said open cases stay "geschätzt" (estimated).
+    from mailhelp.web.setting_help import SETTING_HELP
+    retention = [text for key, text in SETTING_HELP.items() if key.startswith("retention.")]
+    assert retention and all("geschätzt" not in text for text in retention)
+    shared = [text for text in retention if "Offene Vorgänge" in text]
+    assert len(shared) >= 4 and all("Offene Vorgänge bleiben geschützt" in text for text in shared)
+    assert "Offene Vorgänge bleiben geschätzt" not in inventory.REFERENCE.read_text(encoding="utf-8")
+
+
+def test_every_numeric_default_in_the_code_is_named_in_the_reference():
+    import re
+    reference = inventory.REFERENCE.read_text(encoding="utf-8")
+    lines, wrong = reference.splitlines(), []
+    for row in inventory.settings_rows(reference):
+        if not re.fullmatch(r"-?\d+(\.\d+)?", row.default) or row.key.startswith("telegram."):
+            continue  # the Telegram ids have placeholder defaults and are always configured
+        entry = re.sub(r"[.  ]", "", " ".join(line for line in lines if f"`{row.key}`" in line))
+        if re.sub(r"\.0$", "", row.default).replace(".", "") not in entry:
+            wrong.append(row.key)
+    assert wrong == []
