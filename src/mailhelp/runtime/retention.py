@@ -33,6 +33,7 @@ class CleanupResult:
     debug_scrubbed: int = 0
     activity_scrubbed: int = 0
     reanalysis_removed: int = 0
+    verification_removed: int = 0
 
 
 class RetentionService:
@@ -129,11 +130,15 @@ class RetentionService:
         analysis = self.settings.debug_llm_days if self.settings.analysis_days is None else self.settings.analysis_days
         reanalysis_removed = ReanalysisJobs(self.store, ReanalysisSettings(), self.logger).remove_expired(
             analysis, self.settings.full_mail_days, now, self._expired)
+        from ..processing.write_verification import WriteVerifications
+        # 5.2: expected facts are mail content; a check still running keeps its record.
+        verification_removed = WriteVerifications(self.store, logger=self.logger).remove_expired(
+            self.settings.full_mail_days, now, self._expired)
         result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed, activity_scrubbed,
-                               reanalysis_removed)
+                               reanalysis_removed, verification_removed)
         self.logger.event("INFO", "retention", "cleanup_completed", processed_at=now.isoformat(),
                           scanned_count=scanned, protected_count=protected,
                           mail_count=mail_scrubbed, debug_count=debug_scrubbed,
                           activity_count=activity_scrubbed, learning_count=learning_removed,
-                          reanalysis_count=reanalysis_removed)
+                          reanalysis_count=reanalysis_removed, verification_count=verification_removed)
         return result

@@ -132,6 +132,9 @@ def _written(proposal: Proposal, result: dict[str, Any], how: How,
             return verifying, {**result, "verifying": True}
     created = _with_external_result(proposal, result)
     persist(created)
+    if checker is not None and how == "found_by_key":
+        # Found without a saved intent: written before 5.2; it stays visibly unverified.
+        checker[0].legacy(created)
     return created, result
 
 

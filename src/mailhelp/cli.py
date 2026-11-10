@@ -190,6 +190,20 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         from .runtime.local_pairing import request_local_code
         request_local_code(args.config_directory)
         return 0
+    if args.prepare_rollback:
+        from .config import read_yaml
+        from .processing.write_verification import prepare_rollback
+        settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
+        namespace = "test" if settings.test_mode else "production"
+        with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
+            converted, waiting = prepare_rollback(store)
+        if waiting:
+            print(f"Rückkehr nicht vorbereitet: {waiting} „Erneut prüfen“-Aktion(en) warten noch. "
+                  "Mailhelp kurz laufen lassen und erneut versuchen.", file=sys.stderr)
+            return 1
+        print(f"Rückkehr vorbereitet: {converted} Eintrag/Einträge von „wird geprüft“ auf „angelegt“ "
+              "umgestellt (externe ID bleibt; nichts wird erneut angelegt).")
+        return 0
     if args.reset_web_password:
         from .config import read_yaml
         from .runtime.web_password import WebPassword
@@ -223,6 +237,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
+    parser.add_argument("--prepare-rollback", action="store_true",
+                        help=("5.2: vor der Rückkehr zu einer Version vor 5.2.0 alle Einträge „wird geprüft“ "
+                              "auf „angelegt“ umstellen; nur bei beendetem Dienst"))
     parser.add_argument("--reset-web-password", action="store_true",
                         help="Am Host Web-Passwort zurücksetzen und alle Websitzungen abmelden")
     parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")

@@ -43,7 +43,7 @@ from ..external.verification import EntryReader, How, compare
 from ..llm.adapter import PermanentError, RetryableError
 from ..logging import EventLogger, NullLogger
 from ..models import Proposal, ProposalStatus
-from ..storage import JsonStore
+from ..storage import CorruptState, JsonStore
 
 # A read that may succeed later; every other failure ends the automatic checks.
 NOT_VISIBLE = "not_visible"
@@ -273,6 +273,42 @@ class WriteVerifications:
                           proposal_id=record.proposal_id, version=record.proposal_version)
         return True
 
+    def remove_expired(self, period: Any, now: datetime,
+                       expired: Callable[[Any, datetime, datetime], bool]) -> int:
+        """5.2: records follow the period of full mail content; a VERIFYING proposal keeps its record.
+
+        Deleting the record of an entry still being checked would only make Mailhelp rebuild it
+        and read again; damaged records are left to the store's quarantine.
+        """
+        removed = 0
+        for name in self.store.names(state_names.WRITE_VERIFICATION_PREFIX):
+            try:
+                record = self.store.load_model(name, WriteVerification)
+            except CorruptState:
+                continue
+            if record is None or not expired(period, record.updated_at, now):
+                continue
+            with self.store.locked():
+                current = self.store.load_model(state_names.proposal(record.mail_id, record.proposal_id), Proposal)
+                if (current is not None and current.status == ProposalStatus.VERIFYING
+                        and current.version == record.proposal_version):
+                    continue
+                self.store.delete(name)
+            removed += 1
+        return removed
+
+    def legacy(self, proposal: Proposal) -> None:
+        """5.2: an entry written before verification existed: known, but explicitly not verified."""
+        now, expected = self.now(), {"kind": proposal.kind.value, "title": proposal.title}
+        self._save(WriteVerification(
+            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, "create"),
+            mail_id=proposal.source_mail_id, proposal_id=proposal.id, proposal_version=proposal.version,
+            idempotency_key=idempotency_key(proposal), operation="create",
+            target=TargetBinding(profile=proposal.target_profile, provider="unbekannt", account="unbekannt",
+                                 container=proposal.target),
+            expected=expected, expected_fingerprint=fingerprint(expected),
+            state=VerificationState.LEGACY_UNVERIFIED, deadline_at=now, created_at=now, updated_at=now))
+
     def unsupported(self, proposal: Proposal) -> None:
         """5.2: a calendar file was delivered; whether it was imported cannot be checked."""
         assert proposal.external_id is not None
@@ -292,3 +328,31 @@ class WriteVerifications:
             current = self.store.load_model(state_names.write_verification(record.id), WriteVerification)
             if current is not None and current.state == record.state:
                 self._save(current.model_copy(update={"notified": current.state}))
+
+
+def prepare_rollback(store: JsonStore) -> tuple[int, int]:
+    """5.2: make the state readable for versions before 5.2.0, which do not know ``VERIFYING``.
+
+    Every ``VERIFYING`` proposal becomes ``CREATED`` with its external id; those versions never
+    write a created entry again. Refused while an "Erneut prüfen" command is still queued, since
+    older versions cannot read it. Returns (converted proposals, waiting commands).
+    """
+    from ..persistence.proposals import ProposalRepository
+    from ..review.commands import CommandKind, ReviewCommand
+    from ..review.inbox import CommandInboxState, CommandStatus
+    with store.locked():
+        inbox = store.load_model("command-inbox", CommandInboxState, CommandInboxState())
+        waiting = sum(1 for entry in inbox.entries if entry.status == CommandStatus.QUEUED
+                      and isinstance(entry.command, ReviewCommand)
+                      and entry.command.kind == CommandKind.VERIFY_ENTRY)
+        if waiting:
+            return 0, waiting
+        repository, converted = ProposalRepository(store), 0
+        for name in store.names(state_names.PROPOSAL_PREFIX):
+            proposal = store.load_model(name, Proposal)
+            if proposal is None or proposal.status != ProposalStatus.VERIFYING or name != state_names.proposal(
+                    proposal.source_mail_id, proposal.id):
+                continue
+            repository.save_revision(proposal.model_copy(update={"status": ProposalStatus.CREATED}))
+            converted += 1
+    return converted, 0

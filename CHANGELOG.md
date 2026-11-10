@@ -1,5 +1,19 @@
 # Änderungen
 
+## 5.2.7 – Upgrade, Aufbewahrung, Testmodus und Rückkehr (Planung 5.2, Schritt V10)
+
+- Aufbewahrung: Prüfnachweise enthalten bestätigte Fachangaben und folgen deshalb der Frist für
+  vollständige Mailinhalte (`retention.full_mail_days`). Der Nachweis eines Eintrags, der noch
+  geprüft wird, bleibt erhalten; beschädigte Nachweise bleiben der Quarantäne überlassen.
+- Upgrade: Vor 5.2 angelegte Einträge bleiben „Angelegt“ und werden nicht rückwirkend geprüft;
+  das Upgrade löst keine Abrufe aus. Wird nach einem unklaren Schreiben aus der Zeit vor 5.2 ein
+  Eintrag wiedergefunden, steht er ausdrücklich auf „Angelegt (vor 5.2, nicht nachgeprüft)“.
+- Testmodus: weiterhin weder Schreib- noch Lesezugriffe und kein erfundener Prüfnachweis.
+- Rückkehr: Versionen ab 5.2.0 kennen „wird geprüft“ und schreiben solche Einträge nie erneut.
+  Für eine Rückkehr zu einer früheren Version stellt `mailhelp --prepare-rollback` (bei beendetem
+  Dienst) alle Einträge „wird geprüft“ auf „angelegt“ um; die externe ID bleibt, nichts wird
+  angelegt. Solange eine „Erneut prüfen“-Aktion wartet, lehnt der Befehl ab.
+
 ## 5.2.6 – Prüfstand in Web und Telegram, geschütztes „Erneut prüfen“ (Planung 5.2, Schritt V9)
 
 - Weboberfläche: Karte und Detailseite zeigen den Prüfstand eines geschriebenen Eintrags –

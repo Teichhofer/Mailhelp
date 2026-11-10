@@ -304,7 +304,8 @@ def test_an_entry_found_without_a_saved_intent_is_not_compared_with_guessed_fact
     provider.by_key[KEY] = {"id": "t7"}  # e.g. an existing entry completed by another operation
     found, result = execute_confirmed(confirmed(status="uncertain"), VerifyingWriter(provider),
                                       persistence.persist, verification=checks)
-    assert found.status == ProposalStatus.CREATED and "verifying" not in result and record(store) is None
+    assert found.status == ProposalStatus.CREATED and "verifying" not in result
+    assert record(store).state == VerificationState.LEGACY_UNVERIFIED  # 5.2.7: visibly not verified
 
 
 def test_a_report_is_not_marked_when_the_state_changed_meanwhile(setup):

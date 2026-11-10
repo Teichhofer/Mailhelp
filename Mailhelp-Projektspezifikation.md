@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.6. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3561,6 +3561,19 @@ abschließend nicht bestandenen Nachweis auf `pending` zurück (Versuche 0, neue
 Abweichungen, `notified` leer); sonst `StaleCommand`. Die Web-Vorabprüfung lehnt einen
 Recheck ab, wenn die Version abweicht oder die Ansicht ihn nicht anbietet. Die Web-Antwort auf
 ein Bestätigen mit `VERIFYING` lautet `review.verification_texts.VERIFYING_MESSAGE`.
+
+Upgrade, Aufbewahrung und Rückkehr (5.2.7): Vorschläge `CREATED` ohne Prüfnachweis stammen
+aus der Zeit vor 5.2 und bleiben ungeprüft „Angelegt“; es gibt keine Massenabfrage. Ein nach
+`WRITING`/`UNCERTAIN` ohne Schreibabsicht wiedergefundener Eintrag erhält den Nachweis
+`legacy_unverified` („Angelegt (vor 5.2, nicht nachgeprüft)“). `RetentionService` löscht
+Prüfnachweise nach `retention.full_mail_days` (`CleanupResult.verification_removed`, Log
+`verification_count`), außer der zugehörige Vorschlag steht in derselben Version auf
+`VERIFYING`. Testmodus: keine Schreib- und Lesezugriffe, kein Nachweis. Rückkehr: 5.2.0 bis
+5.2.5 lesen alle Zustände, kennen aber den Befehl `verify_entry` nicht; ältere Versionen kennen
+`verifying` nicht. `mailhelp --prepare-rollback` (Dienst beendet, Zustandssperre) stellt jeden
+aktuellen `VERIFYING`-Vorschlag samt Mail-Projektion auf `CREATED` um und bricht mit Exitcode 1 ab,
+solange ein `verify_entry`-Befehl wartet. Prüfnachweise bleiben liegen und werden von älteren
+Versionen nicht gelesen.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

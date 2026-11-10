@@ -60,6 +60,9 @@ class VerificationPort(Protocol):
     def unsupported(self, proposal: Proposal) -> None:
         """Record a delivered calendar file whose import cannot be checked."""
 
+    def legacy(self, proposal: Proposal) -> None:
+        """Record an entry found again that was written before 5.2: explicitly not verified."""
+
     def begin(self, proposal: Proposal, result: dict[str, Any], how: How, reader: EntryReader) -> Proposal | None:
         """Save the receipt and return the ``VERIFYING`` proposal; ``None`` if nothing can be compared."""
 
