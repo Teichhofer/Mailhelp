@@ -641,3 +641,16 @@
   apply(stored());
   top.appendChild(button);
 })();
+
+// 5.3: a link to one setting (…#einstellung-…) opens it, also after a direct page load.
+(function () {
+  function openTarget() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var row = id ? document.getElementById(id) : null;
+    if (!row || !row.classList.contains("setting-row")) return;
+    var details = row.querySelector("details");
+    if (details) details.open = true;
+  }
+  window.addEventListener("hashchange", openTarget);
+  openTarget();
+})();

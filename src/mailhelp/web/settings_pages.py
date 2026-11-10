@@ -10,6 +10,7 @@ from .credential_pages import credentials_section
 from .forms import field, post_form, select
 from .pages import e, notice
 from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
+from .settings_search import anchor, search
 
 SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
                   "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
@@ -200,7 +201,7 @@ def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, 
     timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
     form = post_form("/einstellungen/speichern", csrf, _input(name, saved, raw), "Prüfen",
                      name=name, expected_hash=revision)
-    return ('<div class="setting-row"><details class="setting">'
+    return (f'<div class="setting-row" id="{anchor(name)}"><details class="setting">'
             f'<summary><span>{e(setting_label(name))}</span>'
             f'<strong>{e(_shown(name, current))}</strong></summary>'
             f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
@@ -319,19 +320,25 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
 
 
 def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str) -> str:
+    """5.3: the full result page of the shared search; same matches and order as the live search."""
     if raw is None:
         return notice("Konfigurationsdienst nicht verfügbar.", "warn")
-    words = query.casefold().split()
-    body = ""
-    for key, title, _text, groups in AREAS:
-        for group in groups:
-            names = [name for name in _names(group)
-                     if all(word in f"{setting_label(name)} {name} {group} {title}".casefold() for word in words)]
-            if names:
-                body += (f'<section class="settings-section"><h2>{e(group)}</h2>'
-                         f'<p class="meta">Bereich <a href="/einstellungen?bereich={key}">{e(title)}</a></p>'
-                         + "".join(_setting_row(name, raw, active, revision, csrf) for name in names) + "</section>")
-    return body or notice(f"Keine Einstellung zu „{query}“ gefunden.", "info")
+    results = search(query)
+    if not results:
+        return notice(f"Keine Einstellung zu „{query}“ gefunden.", "info")
+    areas = {title: key for key, title, *_ in AREAS}
+    rows = "".join(f'<p class="meta">Bereich <a href="/einstellungen?bereich={areas[item.area]}">{e(item.area)}</a>'
+                   f" · {e(item.group)}</p>" + _setting_row(item.key, raw, active, revision, csrf)
+                   for item in results if item.key is not None)
+    pages = "".join(f'<li><a href="{e(item.href)}">{e(item.label)}</a> <span class="meta">{e(item.summary)}</span></li>'
+                    for item in results if item.key is None)
+    count = len(results)
+    body = f'<p class="meta" role="status">{count} Treffer für „{e(query)}“</p>'
+    if rows:
+        body += f'<section class="settings-section"><h2>Einstellungen</h2>{rows}</section>'
+    if pages:
+        body += f'<section class="settings-section"><h2>Seiten</h2><ul class="search-pages">{pages}</ul></section>'
+    return body
 
 
 def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] | None,

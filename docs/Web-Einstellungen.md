@@ -6,8 +6,14 @@ Stand: 10. November 2026, Anwendungsversion 5.3.1; Inventur aller Schlüssel: [P
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
 markieren gespeicherte, noch nicht aktive Änderungen. Verglichen wird mit den Werten, die der
 nächste Start anwenden würde: Eine in `config.yaml` fehlende Einstellung gilt mit ihrem
-Standardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`) findet Einstellungen,
-deren Bezeichnung, Feldname, Gruppe oder Bereich alle eingegebenen Wörter enthält.
+Standardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`, höchstens 80 Zeichen)
+findet Einstellungen und Seiten (Postfächer, IServ, Zielprofile, Zugangsdaten, Themen, Geräte,
+Neustart …), deren Bezeichnung, Schlüssel, Gruppe, Bereich, Hilfetext oder Synonyme alle
+eingegebenen Wörter enthalten. Großschreibung, Leerraum und Umlaute (`ä`/`ae`, `ß`/`ss`) zählen
+nicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „Konto“, „Abruf“ und
+„Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige
+Treffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker
+(`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.
 Ein unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.
 
 | Bereich | Adresse | Inhalt |

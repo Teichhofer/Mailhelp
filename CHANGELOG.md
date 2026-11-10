@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.3.2 – Gemeinsamer Suchkatalog für Einstellungen (Planung 5.3, Schritt H3)
+
+- Neuer Katalog `web/settings_search.py`: jede Einstellung der allgemeinen Bereiche und alle
+  Sonderseiten (Postfächer, IServ, Zielprofile, Zugangsdaten, Einrichtung, Diagnose, Themen,
+  ignorierte Absender, Benachrichtigungsprofil, Geräte, Neustart, Neuladen, Selbsttest, Beenden)
+  mit Bezeichnung, Bereich, Kurzbeschreibung, Hilfetext, Synonymen und Sprungziel.
+- Die Suche findet jetzt auch Hilfetexte und Synonyme („KI“/„Modell“, „Postfach“/„Konto“,
+  „Abruf“/„Intervall“ …), behandelt Umlaute und ausgeschriebene Formen gleich und ordnet exakte
+  Treffer vor Wortanfängen und übrigen Treffern. Die Ergebnisseite nennt die Trefferzahl und
+  listet Seiten getrennt von Einstellungen.
+- Jede Einstellung hat einen stabilen Anker (`#einstellung-<schlüssel>`); ein solcher Link klappt
+  die Einstellung auch nach einem direkten Seitenaufruf auf.
+
 ## 5.3.1 – Vollständige und geprüfte Einstellungsreferenz (Planung 5.3, Schritt H2)
 
 - Alle 229 Einstellungen haben einen eigenen Eintrag in `docs/Web-Einstellungen.md` mit Wirkung,
