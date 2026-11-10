@@ -9,8 +9,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
 
@@ -22,6 +26,26 @@ STOPWORDS = frozenset(
     "einem einen einer es fuer gibt habe hat ich ihr im in ist ja kann man mich mir mit muss nach nicht noch "
     "nur oder sich sie sind so soll und uns von vor wann warum was weil wenn wer wie wird wo zu zum zur "
     "mailhelp bitte genau unterschied zwischen bedeutet macht".split())
+
+
+class HelpAnswer(BaseModel):
+    """5.3 (H8): the structured answer of the ``settings_help`` step."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    answer: str = Field(min_length=1, max_length=4000)
+    source_ids: list[str] = Field(default_factory=list, max_length=MAX_SECTIONS)
+    setting_ids: list[str] = Field(default_factory=list, max_length=10)
+    needs_clarification: bool = False
+
+
+def answer_validator(sources: list[str], settings: list[str]) -> Callable[[Any], HelpAnswer]:
+    """Only sources that were sent and settings from the catalog; anything else is a schema error."""
+    def validate(value: Any) -> HelpAnswer:
+        answer = HelpAnswer.model_validate(value)
+        if set(answer.source_ids) - set(sources) or set(answer.setting_ids) - set(settings):
+            raise ValueError("Unbekannte Quellen- oder Einstellungskennung")
+        return answer
+    return validate
 
 
 class HelpUnavailable(Exception):

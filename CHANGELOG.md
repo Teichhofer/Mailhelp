@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.3.7 – Hilfeschritt über die aktive KI-Anbindung (Planung 5.3, Schritt H8)
+
+- Neuer optionaler Prompt-Schritt `settings_help` in `prompts.yaml` (und in den Paketvorgaben).
+  Er verwendet über die neue, validierte Routenreferenz `model_route: action_router` dasselbe
+  Modell und dieselbe Anbieterroute wie die Mailabfragen, mit eigenen Parametern (bis 1500
+  Ausgabetokens, geringer Begründungsaufwand). Im Ollama-Modus gilt das aktive lokale Modell.
+  Aufrufzähler, Budget, Wiederholungen und Antwortkorrekturen sind die vorhandenen.
+- Strukturierte Antwort (`answer`, `source_ids`, `setting_ids`, `needs_clarification`): Quellen nur
+  aus den übergebenen Abschnitten, Einstellungen nur aus dem Katalog; alles andere zählt als
+  ungültige Antwort und nutzt höchstens die vorhandenen Korrekturversuche.
+- Kein Einfluss auf vorhandene Mails: Der Fingerprint der Mail-Analyse ist mit und ohne den
+  Schritt identisch; eine nicht genutzte Routenreferenz wird nicht gespeichert. Das Prompt-Gate
+  und die eingefrorene Qualitätsgrundlage 5.1 bewerten `prompts.yaml` ohne den Hilfeschritt, weil er
+  nie eine Mail sieht; beide Grundlagen bleiben unverändert gültig.
+- Eigene `prompts.yaml`: Der Schritt wird nicht still eingefügt; ohne ihn bleibt der übrige Betrieb
+  unverändert, der Hilfschat (ab 5.3.8) nennt dann einen Einrichtungshinweis. Zum Übernehmen den
+  Block `settings_help` aus der mitgelieferten `prompts.yaml` kopieren.
+
 ## 5.3.6 – Geprüfte Dokumentation als Hilfebestand (Planung 5.3, Schritt H7)
 
 - Die freigegebene Dokumentation (Einstellungsreferenz und die sechs Anleitungen; keine Planungen,

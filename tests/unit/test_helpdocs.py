@@ -85,3 +85,15 @@ def test_no_section_is_claimed_for_an_unrelated_or_empty_question_and_limits_hol
     small = base.select("Postfach Kalender Aufgaben", budget=3000)
     assert sum(section.size for section in small) <= 3000
     assert base.get("betrieb/sicherung").title == "Sicherung" and base.get("gibt-es-nicht") is None
+
+
+def test_a_checkout_with_crlf_line_endings_still_matches(tmp_path):
+    # Git with core.autocrlf may check the packaged JSON out with CRLF; reading in text mode
+    # folds it, so the revision still matches.
+    copy = tmp_path / "hilfe"
+    copy.mkdir()
+    for name in ("sections.json", "manifest.json"):
+        text = (DIRECTORY / name).read_text(encoding="utf-8")
+        (copy / name).write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+    assert load(copy).revision == load().revision
+    assert help_index.main(["--check"], target=copy) == 0

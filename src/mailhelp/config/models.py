@@ -10,7 +10,16 @@ from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from ..notifications.notification_config import NotificationOverrides, NotificationSettings
 from ..runtime.metrics import MetricsSettings
@@ -874,9 +883,22 @@ class PromptStep(BaseModel):
     provider_preferences: OpenRouterProviderPreferences | None = None
     provider_retries: int = Field(default=1, ge=0, le=10)
     output_token_retry: OutputTokenRetry | None = None
+    # 5.3: use the model and routes of another step (e.g. the help chat uses action_router's),
+    # instead of copying a model name; own parameters such as max_tokens still apply.
+    model_route: str | None = Field(default=None, pattern=r"^[a-z_]{1,64}$")
+
+    @model_serializer(mode="wrap")
+    def _without_unused_route(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        # 5.3: an unused route reference is not written, so every earlier fingerprint stays valid.
+        data: dict[str, Any] = handler(self)
+        if data.get("model_route") is None:
+            data.pop("model_route", None)
+        return data
 
     @model_validator(mode="after")
     def valid_routes(self) -> PromptStep:
+        if self.model_route is not None and (self.model or self.routes is not None or self.provider_preferences):
+            raise ValueError("model_route schließt model, routes und provider_preferences aus")
         if self.routes is not None and self.provider_preferences is not None:
             raise ValueError("provider_preferences gilt nur ohne routes; dort je Route angeben")
         if self.routes is not None:
@@ -995,7 +1017,8 @@ class OllamaPromptSettings(ConfigModel):
 
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
 OPTIONAL_PROMPT_STEPS = frozenset({
-    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match"})
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match",
+    "settings_help"})
 
 
 class PromptConfig(BaseModel):
@@ -1016,12 +1039,19 @@ class PromptConfig(BaseModel):
             raise ValueError("prompts enthält nicht genau die erforderlichen Schritte")
         default_model = self.defaults.get("model")
         for name, step in self.prompts.items():
-            if step.routes is None and not step.model and not default_model:
+            if step.model_route is not None:
+                target = self.prompts.get(step.model_route)
+                if target is None or target.model_route is not None:
+                    raise ValueError(f"prompts.{name}.model_route verweist auf keinen Schritt mit eigenem Modell")
+            elif step.routes is None and not step.model and not default_model:
                 raise ValueError(f"prompts.{name} benötigt ein Primärmodell")
         return self
 
     def resolved(self, step: str) -> tuple[str, dict[str, Any], str]:
         item = self.prompts[step]
+        if item.model_route is not None:
+            routed, inherited, _prompt = self.resolved(item.model_route)
+            return routed, _deep_merge(inherited, item.parameters), item.system_prompt
         model = item.model or self.defaults.get("model")
         if not isinstance(model, str) or not model or model.startswith("<"):
             raise ValueError(f"prompts.{step}.model ist nicht eingerichtet")
@@ -1034,6 +1064,10 @@ class PromptConfig(BaseModel):
     def resolved_routes(self, step: str) -> tuple[list[LlmRoute], str, int]:
         """Return an ordered, validated strategy (primary route first)."""
         item = self.prompts[step]
+        if item.model_route is not None:
+            routes, _prompt, _retries = self.resolved_routes(item.model_route)
+            return ([route.model_copy(update={"parameters": _deep_merge(route.parameters, item.parameters)})
+                     for route in routes], item.system_prompt, item.provider_retries)
         if item.routes is not None:
             return item.routes, item.system_prompt, item.provider_retries
         model, parameters, prompt = self.resolved(step)

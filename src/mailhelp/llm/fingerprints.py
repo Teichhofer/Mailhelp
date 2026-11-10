@@ -59,7 +59,8 @@ SOURCES = frozenset({"iserv"})
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
-    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match"})
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match",
+    "settings_help"})
 
 
 def _hash(value: Any) -> str:

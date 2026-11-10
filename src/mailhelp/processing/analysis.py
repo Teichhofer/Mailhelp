@@ -377,6 +377,15 @@ class Analyzer:
             schema=Relevance,
         )
 
+    def settings_help(self, question: str, sources: list[Any], history: list[dict[str, str]],
+                      settings: list[dict[str, str]]) -> tuple[str, Any]:
+        """5.3: an answer from the given help sections only, over the active model path."""
+        from ..helpdocs import HelpAnswer, answer_validator
+        payload = {"question": question, "history": history, "settings": settings,
+                   "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}
+        validate = answer_validator([item.id for item in sources], [item["id"] for item in settings])
+        return self._classified_run("settings_help", payload, validate, schema=HelpAnswer)
+
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
                     reason: str | None = None):
         """Reply draft for one requested intent (``accept``, ``decline``, ``question``).
