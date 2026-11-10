@@ -787,3 +787,5 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .settings-live-results a { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
 .settings-live-results .meta { display: block; }
 .settings-search.searching .settings-live-results { opacity: .6; }
+/* 5.3: packaged help sections, readable without JavaScript. */
+.help-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.55; }

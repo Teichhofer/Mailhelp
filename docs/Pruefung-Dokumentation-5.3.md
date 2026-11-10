@@ -150,6 +150,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/einstellungen` | Einstellungsbereiche und Suche | Web-Einstellungen |
+| `/hilfe/dokumentation` | Mitgelieferte Dokumentation lesen, auch ohne KI | Web-Einstellungen (Hilfe) |
 | `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | [Konten verwalten](Konten-verwalten.md) |
 | `/einstellungen/iserv` | IServ-Konten | [Konten verwalten](Konten-verwalten.md) |
 | `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](Ziele-einrichten.md) |

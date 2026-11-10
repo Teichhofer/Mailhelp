@@ -37,6 +37,8 @@ class ArchiveSite:
         self.history = HistorySite(self)
         self.proposal_edit = ProposalEditSite(self)
         self.settings = SettingsSite(self)
+        from .help_site import HelpSite
+        self.help = HelpSite(self.site)
         self.shutdown = ShutdownSite(self)
 
     def parameters(self, request: Request) -> dict[str, str]:

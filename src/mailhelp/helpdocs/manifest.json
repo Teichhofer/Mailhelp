@@ -1,0 +1,36 @@
+{
+ "app_version": "5.3.6",
+ "revision": "10f5589d7fd0b4f0fc181bbf1952cd4c0eb2aaa101fb125c7e8415e0c586fbac",
+ "schema_version": 1,
+ "sections": 77,
+ "sources": [
+  {
+   "path": "docs/Web-Einstellungen.md",
+   "sha256": "4d4886f25346dd81252eecece02d5c797ce0d2eda42557743ab28c3b4371a447"
+  },
+  {
+   "path": "docs/Ersteinrichtung.md",
+   "sha256": "c51d3c594e7fa2636cb1eb980e46b8d044f13b1108458a7e5050d2e9a48479e7"
+  },
+  {
+   "path": "docs/Konten-verwalten.md",
+   "sha256": "723caa43b1af9bc2cc0e2b6a7a0a6aee369163a111c38612f2105f276c73110c"
+  },
+  {
+   "path": "docs/Ziele-einrichten.md",
+   "sha256": "8f481fd6f19c8372b65015f8e43f9d3390502f06072c6fbfa257d1fda27196d9"
+  },
+  {
+   "path": "docs/Bedienung.md",
+   "sha256": "b1c4d1a401db4bf6cc23505fcd930074b23b5e0f5af25b74f78670b72f062f07"
+  },
+  {
+   "path": "docs/Fehlerbehebung.md",
+   "sha256": "c0e99029fa0df5c41e6d761f1c67031233e98e3a9dfbdde964dae11ebca204eb"
+  },
+  {
+   "path": "docs/Betrieb.md",
+   "sha256": "f2b851b1d703a820d404c88e8533267382760a3abea8d18fff8df0ee09b05bdd"
+  }
+ ]
+}

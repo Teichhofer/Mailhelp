@@ -1,0 +1,1120 @@
+[
+ {
+  "id": "web-einstellungen/einstellungen-der-weboberflaeche",
+  "path": [
+   "Einstellungen der Weboberfläche"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Stand: 10. November 2026, Anwendungsversion 5.3.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).\n\n`/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.\nKontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln\nmarkieren gespeicherte, noch nicht aktive Änderungen. Verglichen wird mit den Werten, die der\nnächste Start anwenden würde: Eine in `config.yaml` fehlende Einstellung gilt mit ihrem\nStandardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`, höchstens 80 Zeichen)\nfindet Einstellungen und Seiten (Postfächer, IServ, Zielprofile, Zugangsdaten, Themen, Geräte,\nNeustart …), deren Bezeichnung, Schlüssel, Gruppe, Bereich, Hilfetext oder Synonyme alle\neingegebenen Wörter enthalten. Großschreibung, Leerraum und Umlaute (`ä`/`ae`, `ß`/`ss`) zählen\nnicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „Konto“, „Abruf“ und\n„Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige\nTreffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker\n(`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.\n\nLive-Suche (5.3): Auf der Übersicht und jeder Bereichsseite erscheinen beim Tippen ab dem ersten\nZeichen bis zu zehn Treffer direkt unter dem Suchfeld, ohne Klick auf „Suchen“ und ohne neue\nSeite. Gesucht wird 150 ms nach der letzten Eingabe; eine neue Eingabe bricht die vorige Anfrage\nab, verspätete Antworten werden verworfen. Eine Ansage nennt die Trefferzahl. Leeren entfernt die\nTreffer sofort; „Suchen“ oder Enter öffnet weiterhin die vollständige Ergebnisseite. Bei einem\nFehler bleibt die normale Suche nutzbar. Die Sofortsuche ruft nie die KI auf und liest nur\nBezeichnungen und Hilfetexte, keine gespeicherten Werte. Endpunkt:\n`GET /api/einstellungen/suche?suche=…` (nur angemeldet, nicht zwischengespeichert).\nEin unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.\n\n| Bereich | Adresse | Inhalt |\n| --- | --- | --- |\n| Mailabruf | `?bereich=abruf` | Abruf, Mailgrenzen, Zeitlimits, Wiederholungen |\n| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Push-Steuerung |\n| Antworten und Termine | `?bereich=antworten` | Antworten, Termindauern, Abgleich, Ziele |\n| KI und Auswertung | `?bereich=ki` | Modelltabelle (nur lesend), Bilder, Lernen, Berichte, Kosten |\n| Daten und Protokolle | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |\n| Weboberfläche und System | `?bereich=system` | Sitzungen, Netzwerk, Geräte, Neustart, Beenden |\n| Zugangsdaten | `?bereich=zugangsdaten` | Passwörter und API-Schlüssel |\n\nAuf großen Bildschirmen bleibt die Bereichsnavigation neben den Werten erreichbar;\nauf dem Handy steht sie oberhalb der Einstellungsgruppen. Speichern und Bestätigung\nlaufen weiterhin über `/einstellungen/speichern` und die Befehlswarteschlange.",
+  "title": "Einstellungen der Weboberfläche"
+ },
+ {
+  "id": "web-einstellungen/postfach-hinzufuegen-35",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Postfach hinzufügen (3.5)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter `/einstellungen/postfaecher` Server, Port, SSL/TLS, STARTTLS oder unverschlüsselte Verbindung,\nBenutzername, Passwort, Quellordner und Entwurfsordner gemeinsam eingeben. Der erste Quellordner\nist der Posteingang. Die Startgrenze ist mit heute vorbelegt (00:00 Uhr in der konfigurierten\nZeitzone); leer bedeutet alle vorhandenen Mails. **Verbindung prüfen und Postfach aktivieren**\nprüft Anmeldung, Ordnerliste und lesenden Zugriff. Doppelte Konten (auch deaktivierte) werden\nabgewiesen. Fehlermeldungen enthalten keine Serverantworten oder Zugangsdaten; übrige Eingaben\nbleiben erhalten, das Passwortfeld wird geleert.\n\nErst nach erfolgreicher Prüfung werden `config.yaml` und `.env` gespeichert. Neue Reader werden\nzwischen Mailzyklen ergänzt, einschließlich Postfachlabels, Metriken, Antwortentwürfen und\nPostfachfiltern. Verbindungsfehler beim Nachladen lassen die bisherigen Reader weiterlaufen und\nwerden im nächsten Zyklus erneut versucht. Gespeicherte Konten sind auch nach einem Neustart aktiv.\nLeere Zugangsfelder verwenden bereits hinterlegte `IMAP_<id>_USERNAME`/`IMAP_<id>_PASSWORD`.\nProzessvariablen haben Vorrang; widersprechende Eingaben werden zurückgewiesen.\n\nSitzung, CSRF, Entwurfsversion, Konfigurations- und `.env`-Hash sowie Idempotenzschlüssel werden\ngeprüft; die Sitzung erneut unmittelbar vor dem Schreiben. Unterbrochene Aktivierungen werden\nmit demselben Schlüssel nicht erneut ausgeführt: Seite neu laden und gespeicherten Stand prüfen.\nAndere Entwürfe bleiben erhalten. Die Karten unterscheiden aktiv, deaktiviert, Entwurf,\ngespeichert mit ausstehender Aktivierung und Änderungen im Entwurf. Die eingeklappte Alternative\n**Stattdessen nur als Entwurf hinzufügen** bleibt verfügbar. Änderungen und Entfernen bestehender\nPostfächer benötigen weiterhin Entwurfsübernahme und Neustart.\n\nEinrichtungsentwürfe unter `/einrichtung` und das Versandprofil unter\n`/einstellungen/benachrichtigungen` bearbeiten ebenfalls `config.yaml`.\nSpeichern erhält zunächst den Entwurf. Erst die gezeigte, versionsbezogene Übernahme aktiviert\nÄnderungen; Verbindungs- und Zieländerungen benötigen eine aktuelle erfolgreiche Diagnose.\nFeldnamen, Grenzwerte, Kanalwahl und Sofort-/Neustartwirkung:\n[Betriebsanleitung 3.0](Release-3.0.md#konfigurationsvertrag).\n\nJedes Info-Symbol erklärt, was die Einstellung verändert und welche Folgen andere Werte haben. Mit der Maus darüberfahren, per Tab fokussieren oder auf dem Handy antippen. Escape blendet die Blase aus. Das Lesen verändert keine Einstellung.\n\nNeben **Mailhelp beenden** steht **Mailhelp neu starten**. Beide Aktionen haben\neine eigene Bestätigungsseite. Neustarten stoppt den laufenden Dienst kontrolliert\nund startet denselben Interpreter mit denselben Optionen neu. Gespeicherte Einstellungen,\nZugangsdaten und Code werden neu geladen; Einrichtungsentwürfe werden dadurch nicht\nübernommen. Offene Vorgänge bleiben erhalten. Danach die Weboberfläche erneut öffnen.\n\nDie folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderungen werden erst nach der separaten Bestätigung gespeichert. „Im laufenden Betrieb“ bedeutet Übernahme an der nächsten sicheren Stelle; andere Einstellungen erfordern einen Neustart. Zahlen mit Dezimalpunkt eingeben, z. B. `0.30`. `null`, `disabled` und `unlimited` nur verwenden, wo sie unten erlaubt sind. Bei Zahlenfeldern lassen sich Sonderwerte gegebenenfalls nur direkt in `config.yaml` setzen.",
+  "title": "Postfach hinzufügen (3.5)"
+ },
+ {
+  "id": "web-einstellungen/zugangsdaten",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Zugangsdaten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Der separate Bereich **Zugangsdaten** ist über die Bereichsübersicht erreichbar.\nEr gruppiert Postfächer, OpenRouter, Telegram und die eingerichteten Zielprofile.\nJeder Eintrag zeigt nur „vorhanden“ oder „fehlt“ und bietet ein leeres Passwortfeld\nfür einen neuen Wert. Bestehende Werte werden auch nach dem Speichern nicht angezeigt.\n\n„Zugang speichern“ ersetzt ausschließlich den gewählten Schlüssel in `.env`;\nKommentare und andere Schlüssel bleiben erhalten. Die Werte gelten nach einem Neustart.\nProzessvariablen haben Vorrang und werden gesondert gekennzeichnet. Bei zusätzlichen\nZielprofilen wird eine geerbte Client-ID bzw. ein geerbter Client-Schlüssel angezeigt;\nein dort gespeicherter Wert ist eine eigene Überschreibung für dieses Profil.\nGespeicherte Microsoft-Anmeldungen werden über `mailhelp --microsoft-login` erneuert,\nGoogle-Anmeldungen über `mailhelp --google-auth` (für zusätzliche Profile mit `--profile`).\n\nDie Formulare prüfen Sitzung, CSRF, Konfigurations- und `.env`-Version sowie einen\nIdempotenzschlüssel. Ein veraltetes Formular überschreibt keine neueren Änderungen.\nUnterbrochene Speichervorgänge werden bei einer Wiederholung anhand des Dateistands\nabgeglichen. Die Belege unter `credential-edits.json` enthalten nur schlüsselgebundene\nHMACs und Statusdaten; Zugangswerte werden weder in HTML noch in Logs oder der\nBefehlswarteschlange gespeichert. Das Bearbeiten löst keine externe Anlage aus.\nDie Oberfläche funktioniert auch ohne JavaScript.\n\n**Alle Zugangsdaten und neue Konten** öffnet `/einstellungen/zugangsdaten`.\nDiese vollständige Kontenübersicht berücksichtigt auch IServ-Konten und Postfächer\nim aktuellen Einrichtungsentwurf. Hier müssen neue Werte ausdrücklich bestätigt werden;\ndie Formulare prüfen den `.env`-Dateistand und verhindern wiederholte Schreibvorgänge\nüber wertfreie Belege unter `secret-operations.json`. Die Diagnose verwendet dort\ngespeicherte Werte sofort. So lässt sich ein neues Konto prüfen, bevor sein\nKonfigurationsentwurf übernommen wird. Die im vorigen Absatz beschriebenen HMAC-Belege\ngelten für den Schnellzugriff innerhalb der allgemeinen Einstellungsseite.",
+  "title": "Zugangsdaten"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "IServ-Konten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter `/einstellungen/iserv` lassen sich Konten als Einrichtungsentwurf anlegen und ändern.\n„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ [HH:MM]` (z. B. `01.09.2026 07:30`),\n`JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.\nEin reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;\nfür `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeichert.\nIm Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des\nzugeordneten Postfachs. Deutsche Angaben mit Uhrzeit gelten in der konfigurierten Zeitzone.\nUngültige Daten und ISO-Zeitpunkte ohne Offset werden abgewiesen.\nZugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und\nausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.\nEin Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.\nDann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.",
+  "title": "IServ-Konten"
+ },
+ {
+  "id": "web-einstellungen/diagramme-der-auswertung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Diagramme der Auswertung"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Ein Klick auf ein Diagramm oder seine Schaltfläche **Vergrößern** öffnet eine große Ansicht.\nBei kleinen Bildschirmen lässt sich die Grafik darin horizontal verschieben. **Schließen**\noder Escape beendet die Ansicht und setzt den Tastaturfokus auf **Vergrößern** zurück.\nBeim Darüberfahren, Fokussieren mit Tab oder Antippen eines Balkens werden Zeitraum bzw.\nKategorie, Datenreihe und Wert mit Einheit angezeigt. Die Details bleiben auch beim Bewegen\nder Maus auf den Hinweis lesbar; Escape blendet sie aus. Die Daten ändern sich dadurch nicht.\nTabellen und SVG-Beschreibungen sind weiterhin ohne JavaScript verfügbar.",
+  "title": "Diagramme der Auswertung"
+ },
+ {
+  "id": "web-einstellungen/kontenstatus",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Kontenstatus"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Die Statusseite zeigt unter **Konfigurierte Konten** alle gespeicherten IMAP- und IServ-Konten,\nKalender und Aufgaben je Zielprofil sowie Telegram. Kontonummer und Anzeigename unterscheiden\ndie Zugänge. Auch deaktivierte Konten und nicht verwendete Zielprofile bleiben sichtbar.\nEin Konto beginnt nach jedem Dienststart mit „noch nicht geprüft“. Ein belegter erfolgreicher\nKontakt zeigt seinen Zeitpunkt; ein fehlgeschlagener Versuch zeigt „Fehler“. Die Ergebnisse\neines Kontos bestätigen kein anderes Konto. Offene IMAP-Ordnerfehler halten den Kontostatus\nauf „Fehler“, auch wenn ein anderer Ordner erfolgreich gelesen wurde.\n\nBereits übernommene Verbindungsänderungen zeigen bis zum Dienstneustart „Neustart erforderlich“;\nunbestätigte Entwürfe werden nicht aufgeführt. Ist die gespeicherte Konfiguration vorübergehend\nnicht lesbar oder ungültig, zeigt die Seite die Konten des laufenden Dienstes.\nDer Seitenaufruf startet weder eine Anmeldung noch eine externe Schreibaktion. Statuswechsel\naktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden sie nicht ständig neu.",
+  "title": "Kontenstatus"
+ },
+ {
+  "id": "web-einstellungen/mailabruf-und-betrieb",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Mailabruf und Betrieb"
+  ],
+  "setting_ids": [
+   "imap.batch_size",
+   "imap.global_newest_first",
+   "poll_interval_seconds",
+   "test_mode",
+   "timezone"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Abrufintervall (Sekunden) (`poll_interval_seconds`) | Abstand zwischen Mailabrufen: 5–86400 Sekunden. 60 prüft etwa jede Minute, 300 etwa alle fünf Minuten. Kleinere Werte erkennen neue Mails früher, größere entlasten den Mailserver. Ein laufender Durchlauf kann den nächsten Abruf verzögern. | Im laufenden Betrieb |\n| Trockenlauf (`test_mode`) | ja (true) aktiviert den Trockenlauf: bestätigte Kalender- und Todoist-Aktionen werden simuliert; Testdaten werden getrennt gespeichert. nein (false) aktiviert echte Schreibaktionen nach ausdrücklicher Bestätigung. Der Trockenlauf verhindert nicht sämtliche Netzwerkzugriffe, etwa Mailabruf und KI-Aufrufe. | Nach Neustart |\n| Zeitzone (`timezone`) | Zeitzone für lokale Datums- und Zeitangaben, z. B. Europe/Berlin mit automatischer Sommerzeit oder UTC ohne Zeitumstellung. Verwende einen gültigen IANA-Zeitzonennamen. Eine andere Zone verändert die Interpretation lokaler Terminzeiten und deren Anzeige. | Nach Neustart |\n| Mails je Abrufdurchlauf (`imap.batch_size`) | Höchstens so viele neue Mails nimmt ein Abrufdurchlauf über alle Postfächer auf: 1–1000; Standard 25. Größere Werte arbeiten Rückstände schneller ab, verlängern aber einen einzelnen Durchlauf; kleinere verteilen die Arbeit auf mehr Durchläufe. --max-mails ersetzt den Wert für einen einzelnen Lauf. | Nach Neustart |\n| Neueste Mails zuerst (alle Postfächer) (`imap.global_newest_first`) | ja (true) wählt je Durchlauf die neuesten Mails über alle Postfächer und Ordner nach Empfangszeit. nein (false) arbeitet Postfach für Postfach und Ordner für Ordner in der konfigurierten Reihenfolge. Die Einstellung bestimmt nur die Reihenfolge, nicht welche Mails verarbeitet werden. | Nach Neustart |",
+  "title": "Mailabruf und Betrieb"
+ },
+ {
+  "id": "web-einstellungen/antworten",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Antworten"
+  ],
+  "setting_ids": [
+   "auto_draft",
+   "drafts.enabled",
+   "drafts.folder",
+   "personal_info",
+   "smart_reply"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Ab 4.8.5 sperrt `drafts.enabled: false` neue Entwürfe und neue Ablagen global.\nGespeicherte Entwürfe im Postfach bleiben erhalten. Automatische Ablage benötigt\nzusätzlich `smart_reply: true` und `auto_draft: true`; beide bleiben standardmäßig aus.\n`drafts.enabled`, `drafts.folder` und `auto_draft` werden ohne Neustart übernommen.\nDer Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgabe.\n`auto_draft` ist auch unter Postfächer → Antworten überschreibbar.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Antwortentwürfe zulassen (`drafts.enabled`) | Globaler Schalter für manuelle und automatische Antwortentwürfe, Standard an. false verhindert neue Entwürfe und neue Ablagen. Bereits im Postfach abgelegte Entwürfe bleiben erhalten. smart_reply und auto_draft behalten ihre eigenen Einstellungen. | Im laufenden Betrieb |\n| Entwurfsordner überschreiben (null: Postfachvorgabe) (`drafts.folder`) | Optionaler IMAP-Entwurfsordner für alle Postfächer. null verwendet deren drafts_folder. Fehlt der bevorzugte Ordner, sucht Mailhelp nach der SPECIAL-USE-Kennzeichnung oder üblichen Entwurfsordnernamen. Keine Ordner werden angelegt. Gilt für künftige Ablagen ohne Neustart. | Im laufenden Betrieb |\n| Antwortentwürfe automatisch im Postfach ablegen (`auto_draft`) | ja (true) legt bei erkanntem schriftlichem Antwortbedarf automatisch einen Entwurf ab; benötigt smart_reply und drafts.enabled. Standard aus. Mailhelp versendet nie selbst. Pro Postfach überschreibbar; wird am nächsten sicheren Verarbeitungspunkt übernommen. | Im laufenden Betrieb |\n| Persönliche Angaben für Antworten (`personal_info`) | Bis zu 2000 Zeichen, z. B. Name, Rolle, Signatur oder gewünschte Anrede. Diese Angaben erhält das KI-Modell beim Erstellen eines Antwort-Entwurfs. Leer bedeutet keine persönlichen Zusatzangaben. Mehr Kontext kann Ton und Inhalt des Entwurfs verändern; die Angaben werden nicht für die Mailanalyse verwendet. | Im laufenden Betrieb |\n| Antwortentwürfe anbieten (`smart_reply`) | ja (true) bietet KI-Antwortentwürfe an; benötigt drafts.enabled und den Schritt draft_reply in prompts.yaml. Ohne auto_draft wird nur nach ausdrücklichem Speichern im Entwurfsordner abgelegt. Mailhelp versendet nie selbst. Postfächer können den Wert einzeln überschreiben. | Nach Neustart |",
+  "title": "Antworten"
+ },
+ {
+  "id": "web-einstellungen/ziele",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Ziele"
+  ],
+  "setting_ids": [
+   "targets.caldav_calendar_url",
+   "targets.caldav_task_url",
+   "targets.calendar_provider",
+   "targets.google_calendar",
+   "targets.microsoft_tenant",
+   "targets.microsoft_todo_list",
+   "targets.outlook_calendar",
+   "targets.task_provider",
+   "targets.todoist_project"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Aufgabendienst (`targets.task_provider`) | Dienst für neue Aufgabenvorschläge: todoist, microsoft_todo (Microsoft To Do), caldav (Aufgabenliste mit VTODO, z. B. Nextcloud Tasks) oder apple_reminders (iCloud-Erinnerungen über CalDAV; auf die neuen iCloud-Erinnerungen aktualisierte Listen sind dort nicht erreichbar). Der Wechsel wirkt nach einem Neustart. Zuerst das passende Ziel eintragen, dann den Dienst wechseln. | Nach Neustart |\n| CalDAV-Aufgabenliste (Adresse) (`targets.caldav_task_url`) | Vollständige https-Adresse der CalDAV-Aufgabenliste (VTODO), z. B. https://cloud.example.org/remote.php/dav/calendars/anna/tasks/. Bei Apple Erinnerungen eine Adresse unter https://caldav.icloud.com. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |\n| CalDAV-Kalender (Adresse) (`targets.caldav_calendar_url`) | Vollständige https-Adresse der CalDAV-Kalendersammlung, z. B. https://cloud.example.org/remote.php/dav/calendars/anna/personal/. Nur bei Kalenderdienst caldav benötigt; Anmeldung mit CALDAV_USERNAME und App-Passwort CALDAV_PASSWORD. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |\n| Google-Kalender (`targets.google_calendar`) | ID des Zielkalenders für neue Terminvorschläge. primary bezeichnet den Hauptkalender; eine konkrete Kalender-ID wählt einen anderen zugänglichen Kalender. Bestehende Termine werden nicht verschoben. Nicht leer, höchstens 500 Zeichen. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |\n| Kalenderdienst (`targets.calendar_provider`) | Dienst für neue Terminvorschläge: google (Google Kalender), caldav (z. B. Nextcloud, iCloud, mailbox.org) oder outlook (Outlook / Microsoft 365). Der Wechsel wirkt nach einem Neustart; bereits bestätigte Vorschläge für das bisherige Ziel werden nicht in das neue geschrieben. Zuerst das passende Ziel eintragen, dann den Dienst wechseln. Zugangsdaten unter Einstellungen → Zugangsdaten oder in der .env-Datei eintragen. | Nach Neustart |\n| Microsoft-Mandant (`targets.microsoft_tenant`) | Microsoft-Mandant für die Anmeldung: common (private und geschäftliche Konten), consumers, organizations oder die Mandanten-ID. Gilt für Outlook-Kalender und Microsoft To Do. | Nach Neustart |\n| Microsoft-To-Do-Liste (`targets.microsoft_todo_list`) | ID der Microsoft-To-Do-Liste oder default für die Standardliste „Aufgaben“. Nur bei Aufgabendienst microsoft_todo benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |\n| Outlook-Kalender (`targets.outlook_calendar`) | ID des Outlook-Kalenders oder default für den Standardkalender des angemeldeten Microsoft-Kontos. Nur bei Kalenderdienst outlook benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |\n| Todoist-Projekt (`targets.todoist_project`) | ID des Todoist-Projekts für neue Aufgabenvorschläge, nicht dessen Anzeigename. Eine andere ID lenkt neue Vorschläge in ein anderes Projekt; bestehende Aufgaben werden nicht verschoben. Nicht leer, höchstens 500 Zeichen. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |",
+  "title": "Ziele"
+ },
+ {
+  "id": "web-einstellungen/aufrufbudget-und-mailgrenzen",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Aufrufbudget und Mailgrenzen"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute",
+   "limits.max_attachment_bytes",
+   "limits.max_llm_payload_bytes",
+   "limits.max_mail_bytes"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| KI-Aufrufe pro Minute (`limits.llm_calls_per_minute`) | Budget von 1–600 KI-Aufrufen pro Minute. Ein kleinerer Wert bremst die Verarbeitung und reduziert Lastspitzen; ein größerer erlaubt mehr Aufrufe, soweit Anbieter und übrige Grenzen dies zulassen. Dies ist keine feste Geld- oder Tageskostengrenze. | Nach Neustart |\n| Maximale KI-Anfragegröße (Bytes) (`limits.max_llm_payload_bytes`) | Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl; Standard 500000. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung. | Nach Neustart |\n| Maximale Mailgröße (Bytes) (`limits.max_mail_bytes`) | Größengrenze für den Nachrichtentext ohne Anhänge: 1024–100000000 Bytes. Anhänge haben eine eigene Grenze für die Texterkennung. | Nach Neustart |\n| Texterkennung: maximale Anhanggröße (Bytes) (`limits.max_attachment_bytes`) | Maximale Größe je Anhang für lokale Textextraktion und OCR: 1024–100000000 Bytes; Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen. | Nach Neustart |",
+  "title": "Aufrufbudget und Mailgrenzen"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Zeitlimits und Wiederholungen"
+  ],
+  "setting_ids": [
+   "retries.interpretation_attempts",
+   "retries.interpretation_backoff_seconds",
+   "timeouts.caldav.initial_backoff_seconds",
+   "timeouts.caldav.max_backoff_seconds",
+   "timeouts.caldav.retries",
+   "timeouts.caldav.timeout_seconds",
+   "timeouts.google_calendar.initial_backoff_seconds",
+   "timeouts.google_calendar.max_backoff_seconds",
+   "timeouts.google_calendar.retries",
+   "timeouts.google_calendar.timeout_seconds",
+   "timeouts.imap.initial_backoff_seconds",
+   "timeouts.imap.max_backoff_seconds",
+   "timeouts.imap.retries",
+   "timeouts.imap.timeout_seconds",
+   "timeouts.microsoft.initial_backoff_seconds"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Antworten verstehen: Versuche (`retries.interpretation_attempts`) | Gesamtzahl der Versuche beim Verstehen einer Telegram-Antwort: 1–20, einschließlich des ersten Versuchs. 1 erlaubt keinen erneuten Versuch; 3 erlaubt bis zu drei Versuche. Höhere Werte können vorübergehende KI-Fehler auffangen, verlängern aber die Verarbeitung und können mehr KI-Aufrufe verursachen. | Nach Neustart |\n| Antworten verstehen: Wartezeit (s) (`retries.interpretation_backoff_seconds`) | Wartezeit vor einem erneuten Versuch beim Verstehen einer Telegram-Antwort: 1–86400 Sekunden. 60 bedeutet eine Minute, 300 fünf Minuten. Größere Werte geben dem Dienst mehr Erholungszeit und verzögern die Fortsetzung. Wenn nur ein Versuch erlaubt ist, entsteht keine Wiederholung. | Nach Neustart |\n| CalDAV: erste Wartezeit (s) (`timeouts.caldav.initial_backoff_seconds`) | CalDAV: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| CalDAV: längste Wartezeit (s) (`timeouts.caldav.max_backoff_seconds`) | CalDAV: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| CalDAV: Wiederholungen (`timeouts.caldav.retries`) | CalDAV: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| CalDAV: Zeitlimit (s) (`timeouts.caldav.timeout_seconds`) | CalDAV: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Google Kalender: erste Wartezeit (s) (`timeouts.google_calendar.initial_backoff_seconds`) | Google Kalender: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Google Kalender: längste Wartezeit (s) (`timeouts.google_calendar.max_backoff_seconds`) | Google Kalender: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Google Kalender: Wiederholungen (`timeouts.google_calendar.retries`) | Google Kalender: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| Google Kalender: Zeitlimit (s) (`timeouts.google_calendar.timeout_seconds`) | Google Kalender: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| IMAP: erste Wartezeit (s) (`timeouts.imap.initial_backoff_seconds`) | IMAP: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| IMAP: längste Wartezeit (s) (`timeouts.imap.max_backoff_seconds`) | IMAP: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| IMAP: Wiederholungen (`timeouts.imap.retries`) | IMAP: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| IMAP: Zeitlimit (s) (`timeouts.imap.timeout_seconds`) | IMAP: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Microsoft 365: erste Wartezeit (s) (`timeouts.microsoft.initial_backoff_seconds`) | Microsoft 365: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |",
+  "title": "Zeitlimits und Wiederholungen"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen-2",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Zeitlimits und Wiederholungen"
+  ],
+  "setting_ids": [
+   "timeouts.microsoft.max_backoff_seconds",
+   "timeouts.microsoft.retries",
+   "timeouts.microsoft.timeout_seconds",
+   "timeouts.ollama.initial_backoff_seconds",
+   "timeouts.ollama.max_backoff_seconds",
+   "timeouts.ollama.retries",
+   "timeouts.ollama.timeout_seconds",
+   "timeouts.openrouter.initial_backoff_seconds",
+   "timeouts.openrouter.max_backoff_seconds",
+   "timeouts.openrouter.retries",
+   "timeouts.openrouter.timeout_seconds",
+   "timeouts.telegram.initial_backoff_seconds",
+   "timeouts.telegram.max_backoff_seconds",
+   "timeouts.telegram.retries",
+   "timeouts.telegram.timeout_seconds",
+   "timeouts.todoist.initial_backoff_seconds"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Microsoft 365: längste Wartezeit (s) (`timeouts.microsoft.max_backoff_seconds`) | Microsoft 365: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Microsoft 365: Wiederholungen (`timeouts.microsoft.retries`) | Microsoft 365: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| Microsoft 365: Zeitlimit (s) (`timeouts.microsoft.timeout_seconds`) | Microsoft 365: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Ollama: erste Wartezeit (s) (`timeouts.ollama.initial_backoff_seconds`) | Ollama: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Ollama: längste Wartezeit (s) (`timeouts.ollama.max_backoff_seconds`) | Ollama: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Ollama: Wiederholungen (`timeouts.ollama.retries`) | Ollama: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| Ollama: Zeitlimit (s) (`timeouts.ollama.timeout_seconds`) | Ollama: Zeitlimit eines Aufrufversuchs: 1–1800 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| OpenRouter: erste Wartezeit (s) (`timeouts.openrouter.initial_backoff_seconds`) | OpenRouter: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| OpenRouter: längste Wartezeit (s) (`timeouts.openrouter.max_backoff_seconds`) | OpenRouter: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| OpenRouter: Wiederholungen (`timeouts.openrouter.retries`) | OpenRouter: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| OpenRouter: Zeitlimit (s) (`timeouts.openrouter.timeout_seconds`) | OpenRouter: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Telegram: erste Wartezeit (s) (`timeouts.telegram.initial_backoff_seconds`) | Telegram: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Telegram: längste Wartezeit (s) (`timeouts.telegram.max_backoff_seconds`) | Telegram: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Telegram: Wiederholungen (`timeouts.telegram.retries`) | Telegram: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| Telegram: Zeitlimit (s) (`timeouts.telegram.timeout_seconds`) | Telegram: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Todoist: erste Wartezeit (s) (`timeouts.todoist.initial_backoff_seconds`) | Todoist: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |",
+  "title": "Zeitlimits und Wiederholungen"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen-3",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Zeitlimits und Wiederholungen"
+  ],
+  "setting_ids": [
+   "retries.revision_attempts",
+   "retries.revision_backoff_seconds",
+   "timeouts.todoist.max_backoff_seconds",
+   "timeouts.todoist.retries",
+   "timeouts.todoist.timeout_seconds"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Todoist: längste Wartezeit (s) (`timeouts.todoist.max_backoff_seconds`) | Todoist: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |\n| Todoist: Wiederholungen (`timeouts.todoist.retries`) | Todoist: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |\n| Todoist: Zeitlimit (s) (`timeouts.todoist.timeout_seconds`) | Todoist: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |\n| Überarbeitung: Versuche (`retries.revision_attempts`) | Gesamtzahl der Versuche beim Überarbeiten eines Vorschlags: 1–20, einschließlich des ersten Versuchs. 1 erlaubt keinen erneuten Versuch; 3 erlaubt bis zu drei Versuche. Höhere Werte können vorübergehende KI-Fehler auffangen, verlängern aber die Verarbeitung und können mehr KI-Aufrufe verursachen. | Nach Neustart |\n| Überarbeitung: Wartezeit (s) (`retries.revision_backoff_seconds`) | Wartezeit vor einem erneuten Versuch beim Überarbeiten eines Vorschlags: 1–86400 Sekunden. 60 bedeutet eine Minute, 300 fünf Minuten. Größere Werte geben dem Dienst mehr Erholungszeit und verzögern die Fortsetzung. Wenn nur ein Versuch erlaubt ist, entsteht keine Wiederholung. | Nach Neustart |",
+  "title": "Zeitlimits und Wiederholungen"
+ },
+ {
+  "id": "web-einstellungen/originalanhaenge",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Originalanhänge"
+  ],
+  "setting_ids": [
+   "attachments.max_original_bytes",
+   "attachments.max_total_bytes",
+   "attachments.store_originals"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Höchstgröße je Datei (Bytes) (`attachments.max_original_bytes`) | Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 26214400 Bytes = 25 MiB). Größere Anhänge bleiben nur im Postfach. | Nach Neustart |\n| Höchstgröße je Mail (Bytes) (`attachments.max_total_bytes`) | Höchstens so viele Bytes an Originalen je Mail: 1024–524288000 (Standard 50 MB). Weitere Anhänge derselben Mail werden nicht gespeichert. | Nach Neustart |\n| Originale speichern (`attachments.store_originals`) | ja (true) speichert Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen in der Weboberfläche. nein (false) speichert nur Bildvorschauen. Gespeicherte Originale werden mit der Aufbewahrungsfrist für Mailinhalte gelöscht. | Nach Neustart |",
+  "title": "Originalanhänge"
+ },
+ {
+  "id": "web-einstellungen/aufbewahrung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Aufbewahrung"
+  ],
+  "setting_ids": [
+   "retention.activity_report_days",
+   "retention.analysis_days",
+   "retention.cleanup_interval_minutes",
+   "retention.debug_llm_days",
+   "retention.decision_learning_days",
+   "retention.full_mail_days",
+   "retention.history_days"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Analysen aufbewahren (Tage) (`retention.analysis_days`) | Aufbewahrung archivierter Analysen. null übernimmt die Frist für KI-Diagnosedaten (debug_llm_days). 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |\n| KI-Diagnosedaten aufbewahren (Tage) (`retention.debug_llm_days`) | Aufbewahrung von KI-Diagnosedaten im Vorgang, etwa Zusammenfassung und Validierungsfehlern; separate JSONL-Logdateien haben eigene Fristen. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |\n| Mailtexte aufbewahren (Tage) (`retention.full_mail_days`) | Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht. Standard 30 Tage. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |\n| Verlauf aufbewahren (Tage) (`retention.history_days`) | Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. Standard 90 Tage. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |\n| Tätigkeitsberichte aufbewahren (Tage) (`retention.activity_report_days`) | Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschützt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |\n| Lernbestand der Entscheidungen aufbewahren (Tage) (`retention.decision_learning_days`) | Aufbewahrung des Lernbestands manueller Entscheidungen (Mail, KI-Ergebnisse, Vorschlag vorher und nachher): 1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen sich nicht wiederherstellen. | Im laufenden Betrieb |\n| Bereinigung alle (Minuten) (`retention.cleanup_interval_minutes`) | Abstand der Aufbewahrungsbereinigung in Minuten: 0–1440; Standard 60. Die Bereinigung läuft im Verarbeitungsablauf und hält währenddessen Mailabruf und Web-Aktionen kurz an. 0 bereinigt bei jedem Abrufzyklus; größere Werte entfernen abgelaufene Inhalte entsprechend später. | Im laufenden Betrieb |",
+  "title": "Aufbewahrung"
+ },
+ {
+  "id": "web-einstellungen/protokollierung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Protokollierung"
+  ],
+  "setting_ids": [
+   "logging.console.enabled",
+   "logging.console.level",
+   "logging.file.enabled",
+   "logging.file.level",
+   "logging.llm.enabled",
+   "logging.llm.include_requests",
+   "logging.llm.include_responses",
+   "logging.llm.level",
+   "logging.telegram.enabled",
+   "logging.telegram.level"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Konsole: Mindeststufe (`logging.console.level`) | Mindeststufe der Konsolenmeldungen: DEBUG zeigt auch Diagnoseangaben, INFO den normalen Ablauf, WARNING nur Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Ausgabe und erschweren die Fehlersuche. Inhaltsprotokolle werden separat gesteuert. | Nach Neustart |\n| Logdatei: Mindeststufe (`logging.file.level`) | Mindeststufe der allgemeinen Logdatei: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Datenmenge. Separate KI-Inhaltslogs werden damit nicht aktiviert oder deaktiviert. | Nach Neustart |\n| KI-Anfragen vollständig protokollieren (`logging.llm.include_requests`) | ja (true) erlaubt vollständige KI-Anfragen im separaten KI-Log, sofern dieses aktiviert ist. Das kann Prompts und private Mailinhalte speichern und benötigt mehr Speicher. nein (false) lässt die vollständigen Anfrageinhalte weg. Bereits geschriebene Logs werden dadurch nicht gelöscht. | Nach Neustart |\n| KI-Antworten vollständig protokollieren (`logging.llm.include_responses`) | ja (true) erlaubt vollständige KI-Antworten im separaten KI-Log, sofern dieses aktiviert ist. Das hilft bei der Fehlersuche, kann aber private Inhalte speichern. nein (false) lässt vollständige Antwortinhalte weg. Bereits geschriebene Logs werden dadurch nicht gelöscht. | Nach Neustart |\n| Konsolenausgabe aktivieren (`logging.console.enabled`) | ja (true) schreibt Meldungen ins Terminal bzw. in das Containerprotokoll. nein (false) unterdrückt die Konsolenausgabe; die Logdatei bleibt davon unberührt. | Nach Neustart |\n| Logdatei aktivieren (`logging.file.enabled`) | ja (true) schreibt die allgemeine Logdatei im Logverzeichnis. nein (false) schreibt keine allgemeine Logdatei; die Fehlersuche wird dadurch erschwert. | Nach Neustart |\n| KI-Log aktivieren (`logging.llm.enabled`) | ja (true) schreibt das separate KI-Log mit Aufrufmetadaten; vollständige Inhalte nur, wenn zusätzlich Anfragen oder Antworten freigegeben sind. nein (false) schreibt kein KI-Log. | Nach Neustart |\n| KI-Log: Mindeststufe (`logging.llm.level`) | Mindeststufe des KI-Logs: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Datenmenge. | Nach Neustart |\n| Telegram-Log aktivieren (`logging.telegram.enabled`) | ja (true) schreibt ein separates Prüfprotokoll der Telegram-Nachrichten einschließlich Inhalten. nein (false) verzichtet darauf; Zustellungen bleiben im allgemeinen Log ohne Inhalte sichtbar. | Nach Neustart |\n| Telegram-Log: Mindeststufe (`logging.telegram.level`) | Mindeststufe des Telegram-Logs: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. | Nach Neustart |",
+  "title": "Protokollierung"
+ },
+ {
+  "id": "web-einstellungen/kosten-und-messung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Kosten und Messung"
+  ],
+  "setting_ids": [
+   "metrics.electricity_eur_per_kwh",
+   "metrics.enabled",
+   "metrics.exchange_rate_date",
+   "metrics.ollama_power_watts",
+   "metrics.retention_days",
+   "metrics.usd_per_eur"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Strompreis (EUR/kWh) (`metrics.electricity_eur_per_kwh`) | Strompreis für lokale KI-Kostenschätzungen: 0–100 EUR/kWh. 0.30 bedeutet 30 Cent je kWh. Ein höherer Preis erhöht die Schätzung proportional; 0 ergibt keine geschätzten Stromkosten. Der Wert beeinflusst weder Cloudpreise noch den Stromverbrauch. | Im laufenden Betrieb |\n| Metrikerfassung aktivieren (`metrics.enabled`) | ja (true) erfasst Messwerte zu KI-Aufrufen, Laufzeiten und Kosten ohne Mailinhalte. nein (false) stoppt neue Messungen; bereits erfasste Werte bleiben bis zur Bereinigung vorhanden. Diese Einstellung schaltet weder KI-Aufrufe noch die allgemeinen Logs ab. | Im laufenden Betrieb |\n| Wechselkurs vom (`metrics.exchange_rate_date`) | Bezugsdatum des manuell gepflegten Wechselkurses im Format JJJJ-MM-TT, z. B. 2026-10-12. null lässt das Datum offen. Es kennzeichnet die Aktualität des Kurses und verändert den Umrechnungsfaktor nicht. Ein Datum ist nur mit gesetztem Wechselkurs erlaubt. | Im laufenden Betrieb |\n| Ollama-Leistung (Watt) (`metrics.ollama_power_watts`) | Angenommene Leistungsaufnahme während lokaler KI-Aufrufe: 0–100000 Watt. 300 steht für 300 W; doppelte Leistung ergibt bei gleicher Dauer doppelte geschätzte Stromkosten. 0 ergibt keine geschätzten Stromkosten. Dies misst oder begrenzt die tatsächliche Hardwareleistung nicht. | Im laufenden Betrieb |\n| Einzelmessungen aufbewahren (Tage) (`metrics.retention_days`) | Aufbewahrung einzelner Messungen: 1–3650 Tage. 30 hält ungefähr einen Monat, 90 ungefähr drei Monate vor. Kürzere Fristen sparen Speicher, schränken aber rückblickende Auswertungen ein. Ältere Messungen werden bereinigt; disabled und unlimited sind hier nicht erlaubt. | Im laufenden Betrieb |\n| Wechselkurs (USD je EUR) (`metrics.usd_per_eur`) | US-Dollar je Euro, größer als 0: Bei 1.1 werden 11 USD als 10 EUR angezeigt. Ein höherer Kurs ergibt für denselben Dollarbetrag weniger Euro. null deaktiviert die Euro-Umrechnung; dann muss auch das Kursdatum null sein. Der Kurs wird manuell gepflegt, nicht automatisch abgerufen. | Im laufenden Betrieb |",
+  "title": "Kosten und Messung"
+ },
+ {
+  "id": "web-einstellungen/telegram",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Telegram"
+  ],
+  "setting_ids": [
+   "telegram.chat_id",
+   "telegram.sequential_questions",
+   "telegram.user_id"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Telegram: berechtigte Benutzer-ID (`telegram.user_id`) | Numerische Telegram-ID des einzigen Kontos, dessen Eingaben Mailhelp annimmt; größer als 0. Nachrichten anderer Konten werden ignoriert. Eine falsche ID sperrt die Bedienung über Telegram aus; die Weboberfläche bleibt nutzbar. | Nach Neustart |\n| Telegram: Chat für Nachrichten (`telegram.chat_id`) | Numerische ID des Chats, in den Mailhelp schreibt; bei einem Privatchat meist gleich der Benutzer-ID. Eine falsche ID führt zu Zustellfehlern; Diagnose und --check-access melden sie und nennen gefundene Chats. | Nach Neustart |\n| Telegram: Entscheidungen nacheinander (`telegram.sequential_questions`) | ja (true) zeigt jeweils nur die aktuelle Entscheidung mit Schaltflächen; weitere folgen nacheinander. nein (false) sendet alle offenen Vorschläge sofort. Nacheinander verhindert verwechselte Antworten, wenn viele Fragen gleichzeitig offen sind. | Nach Neustart |",
+  "title": "Telegram"
+ },
+ {
+  "id": "web-einstellungen/bildauswertung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Bildauswertung"
+  ],
+  "setting_ids": [
+   "vision.enabled",
+   "vision.max_edge_pixels",
+   "vision.max_image_bytes",
+   "vision.max_images_per_mail"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Bildanhänge und Scans auswerten (`vision.enabled`) | ja (true) lässt Bildanhänge und gescannte PDFs vom KI-Modell lesen (Schritt vision_ocr in prompts.yaml), damit Termine und Aufgaben darin erkannt werden; die Bilder werden dafür übertragen und verursachen Kosten. nein (false) wertet nur Text aus. | Nach Neustart |\n| Bildauswertung: Bilder je Mail (`vision.max_images_per_mail`) | Höchstens so viele Bilder je Mail werden ausgewertet: 1–10; Standard 3. Mehr Bilder erfassen umfangreiche Scans vollständiger und erhöhen Kosten und Laufzeit. | Nach Neustart |\n| Bildauswertung: Höchstgröße je Bild (Bytes) (`vision.max_image_bytes`) | Zusätzliche Größengrenze für die Bildauswertung: 10240–50000000 Bytes; Standard 5000000 (5 MB). Die Texterkennungsgrenze limits.max_attachment_bytes gilt zusätzlich; bei ihrer Überschreitung entsteht eine manuelle Prüfaufgabe. | Nach Neustart |\n| Bildauswertung: längste Kante (Pixel) (`vision.max_edge_pixels`) | Bilder werden vor der Übertragung auf diese längste Kante verkleinert: 512–4096 Pixel; Standard 1600. Größere Werte erhalten feine Schrift besser und erhöhen Datenmenge und Kosten. | Nach Neustart |",
+  "title": "Bildauswertung"
+ },
+ {
+  "id": "web-einstellungen/tagesueberblick",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Tagesüberblick"
+  ],
+  "setting_ids": [
+   "daily_briefing.include_calendar",
+   "daily_briefing.include_open",
+   "daily_briefing.include_tasks"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Tagesüberblick: Termine (`daily_briefing.include_calendar`) | ja (true) nimmt die heutigen Termine des Zielkalenders in den Tagesüberblick auf. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick. | Nach Neustart |\n| Tagesüberblick: Aufgaben (`daily_briefing.include_tasks`) | ja (true) nimmt fällige Aufgaben der Aufgabenliste in den Tagesüberblick auf. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick. | Nach Neustart |\n| Tagesüberblick: offene Entscheidungen (`daily_briefing.include_open`) | ja (true) nennt im Tagesüberblick die offenen Vorschläge und Rückfragen. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick. | Nach Neustart |",
+  "title": "Tagesüberblick"
+ },
+ {
+  "id": "web-einstellungen/taetigkeitsberichte",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Tätigkeitsberichte"
+  ],
+  "setting_ids": [
+   "activity_report.enabled",
+   "activity_report.export_mails_without_events",
+   "activity_report.max_fulltext_chars",
+   "activity_report.max_llm_calls",
+   "activity_report.max_mails",
+   "activity_report.max_share_of_llm_budget"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Tätigkeitsberichte aktivieren (`activity_report.enabled`) | ja (true) erlaubt Tätigkeitsberichte in der Weboberfläche: ein reiner Lesedurchlauf durch ein Postfach zu einem Thema mit XLSX-Export; benötigt die Schritte activity_relevance und activity_events in prompts.yaml. nein (false) blendet die Funktion aus. | Nach Neustart |\n| Tätigkeitsbericht: höchstens Mails (`activity_report.max_mails`) | Ein Bericht pausiert nach so vielen gelesenen Mails: 1–20000; Standard 2000. Größere Werte erfassen längere Zeiträume und erhöhen Laufzeit und KI-Kosten. | Nach Neustart |\n| Tätigkeitsbericht: höchstens KI-Aufrufe (`activity_report.max_llm_calls`) | Ein Bericht pausiert nach so vielen KI-Aufrufen: 1–50000; Standard 3000. Die Grenze schützt vor unerwartet hohen Kosten; ein pausierter Bericht lässt sich fortsetzen. | Nach Neustart |\n| Tätigkeitsbericht: Anteil am KI-Budget (`activity_report.max_share_of_llm_budget`) | Anteil von limits.llm_calls_per_minute, den ein laufender Bericht nutzen darf: größer als 0 bis 1; Standard 0.5. Kleinere Werte lassen der normalen Mailverarbeitung mehr Spielraum und verlangsamen den Bericht. | Nach Neustart |\n| Tätigkeitsbericht: Zeichen je Volltext (`activity_report.max_fulltext_chars`) | Volltexte im Export werden auf so viele Zeichen gekürzt: 1000–32000; Standard 30000, passend zur Zellgrenze von Excel. | Nach Neustart |\n| Tätigkeitsbericht: Mails ohne Termine exportieren (`activity_report.export_mails_without_events`) | ja (true) exportiert auch relevante Mails ohne erkannte Termine. nein (false) exportiert nur Mails mit erkannten Terminen. | Nach Neustart |",
+  "title": "Tätigkeitsberichte"
+ },
+ {
+  "id": "web-einstellungen/lernmodus",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Lernmodus"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "learning.parallel_llm_calls"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Lernmodus: parallele KI-Aufrufe (`learning.parallel_llm_calls`) | Gleichzeitige KI-Aufrufe im Lernmodus (--learn): 1–100; Standard 4. Mehr parallele Aufrufe beschleunigen das Lernen und erhöhen Lastspitzen; das Minutenbudget limits.llm_calls_per_minute gilt weiterhin. | Nach Neustart |\n| Lernbestand: vollständige KI-Inhalte übernehmen (`learning.decision_llm_content`) | ja (true) übernimmt vollständige KI-Anfragen und -Antworten aus dem KI-Log in jeden Datensatz des Entscheidungs-Lernbestands; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. nein (false, Standard) speichert nur die Aufruf-IDs. | Nach Neustart |",
+  "title": "Lernmodus"
+ },
+ {
+  "id": "web-einstellungen/weboberflaeche",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Weboberfläche"
+  ],
+  "setting_ids": [
+   "web.lan_access",
+   "web.session_days"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Web: Sitzungsdauer (Tage) (`web.session_days`) | So lange bleibt ein gekoppeltes Gerät angemeldet, bevor es neu gekoppelt werden muss: 1–365 Tage; Standard 30. Kürzere Werte verringern das Risiko verlorener Geräte, längere ersparen Kopplungen. | Nach Neustart |\n| Web: Zugriff im eigenen Netzwerk (`web.lan_access`) | ja (true) macht die Weboberfläche im eigenen WLAN unter der privaten IP-Adresse des PCs erreichbar (unverschlüsseltes HTTP); erfordert web.host 0.0.0.0, sonst wird die Änderung abgelehnt. nein (false) beschränkt den Zugriff auf diesen PC und die freigegebenen Adressen. | Nach Neustart |",
+  "title": "Weboberfläche"
+ },
+ {
+  "id": "web-einstellungen/weitere-hinweise",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Weitere Hinweise"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Bereich | Erklärung |\n| --- | --- |\n| Modelle (nur lesend) | Die Tabelle zeigt die tatsächlich verwendeten KI-Modelle, Parameter und deren Quelle. Andere Modelle können Qualität, Geschwindigkeit und Kosten verändern. Parameter und Modelle werden in prompts.yaml gepflegt; ein Start mit --ollama kann die Modellwahl ersetzen. Hier ist die Anzeige nur lesbar. |\n| Benachrichtigungen | Push aktivieren meldet diesen Browser für inhaltsneutrale Hinweise an; Mailbetreff und Mailtext werden nicht übertragen. Push deaktivieren beendet das Abonnement dieses Browsers. Andere Geräte bleiben unverändert. Die Funktion benötigt serverseitig aktiviertes Web-Push und deine Browserfreigabe; HTTPS oder localhost ist erforderlich. |",
+  "title": "Weitere Hinweise"
+ },
+ {
+  "id": "web-einstellungen/termindauern-und-vorschlagsabgleich-24",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Termindauern und Vorschlagsabgleich (2.4)"
+  ],
+  "setting_ids": [
+   "event_defaults.in_person_duration_minutes",
+   "event_defaults.video_duration_minutes",
+   "proposal_reconciliation.max_semantic_candidates"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Einstellung | Wirkung |\n| --- | --- |\n| `event_defaults.video_duration_minutes` · Standarddauer Videokonferenz (Minuten) | Standarddauer Videokonferenz: 1–1440 Minuten; Standard 60. Ergänzt ein fehlendes Ende nur bei eindeutigem Beginn und belegter Online-Teilnahme. Explizite Endzeiten und Dauern haben Vorrang. Bestehende Vorschläge werden nicht automatisch umgerechnet; Speichern autorisiert keine Kalenderaktion. |\n| `event_defaults.in_person_duration_minutes` · Standarddauer Präsenztermin (Minuten) | Standarddauer Präsenztermin: 1–1440 Minuten; Standard 180. Ergänzt ein fehlendes Ende bei belegter Präsenz und eindeutigem Beginn. Eine Anschrift in der Signatur belegt keine Präsenz. Explizite Zeitangaben haben Vorrang; die Annahme wird im Vorschlag angezeigt. |\n| `proposal_reconciliation.max_semantic_candidates` · Abgleich: höchstens KI-Kandidaten | 1–50 mögliche offene Vorschläge je semantischem KI-Vergleich; Standard 8. Weitere plausible Treffer blockieren die automatische Zuordnung, statt als fehlende Dublette zu gelten. Ein fehlender Vergleichsprompt erfordert bei unklaren Fällen eine manuelle Zuordnung. |",
+  "title": "Termindauern und Vorschlagsabgleich (2.4)"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten-3310",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "IServ-Konten (3.3.10)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter `/einstellungen/iserv` werden IServ-Konten für Elternbriefe angelegt, geändert, aktiviert,\ndeaktiviert und entfernt. Je Konto: Anzeigename, HTTPS-Adresse der Schule (ein kopierter IServ-Link\noder die Adresse ohne `https://` wird auf die Schuladresse gekürzt), das Postfach, dessen Zielprofil\nund Standards gelten, und optional die Startgrenze (`TT.MM.JJJJ [HH:MM]` oder ISO 8601; leer: die des\nPostfachs). Ungültige Angaben nennt die Seite mit ihrer Ursache.\nJede Änderung ist ein Entwurf; übernommen wird nach aktueller Diagnose `iserv` und ausdrücklicher\nBestätigung. Elternbriefe gelten immer als relevant. Die Zugangsdaten gehören auf die Seite\nZugangsdaten. Wirkung nach dem nächsten Neustart.",
+  "title": "IServ-Konten (3.3.10)"
+ },
+ {
+  "id": "web-einstellungen/zugangsdaten-3311",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Zugangsdaten (3.3.11)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "`/einstellungen/zugangsdaten` zeigt für jeden benötigten Eintrag nur „hinterlegt“ oder „fehlt“ und\nnimmt neue Werte nur schreibend an: `IMAP_<n>_USERNAME/_PASSWORD` je Postfach (bei Postfach 1 im\nälteren Format `IMAP_USERNAME/_PASSWORD`), `ISERV_<n>_USERNAME/_PASSWORD` je IServ-Konto,\n`OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN` bei aktivem Telegram und die Geheimnisse der Kalender- und\nAufgabendienste je Zielprofil. Jede Änderung wird ausdrücklich bestätigt; ersetzt wird nur die\nbetroffene Zeile in `.env`. `MAILHELP_WEB_SECRET` bleibt ausgenommen. Werte aus der Prozessumgebung\nhaben Vorrang und werden als solche gekennzeichnet. Diagnose und Einrichtung lesen neue Werte\nsofort, der Mailabruf nach dem nächsten Neustart.",
+  "title": "Zugangsdaten (3.3.11)"
+ },
+ {
+  "id": "web-einstellungen/postfaecher-und-zielprofile-32",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Postfächer und Zielprofile (3.2)"
+  ],
+  "setting_ids": [
+   "personal_info",
+   "retention.full_mail_days",
+   "smart_reply"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter `/einstellungen/postfaecher` zeigt jedes Postfach die Tabs Ziele, Filter, Themen, Antworten\nund Benachrichtigungen. Nicht belegte Felder erben global; Zurücksetzen entfernt die lokale Regel.\nProfil 1 ist der bestehende `targets`-Abschnitt; weitere Profile verwaltet `/einstellungen/zielprofile`.\nVerwendete Profile lassen sich erst nach Auflösen aller angezeigten Verweise entfernen.\n\n| Lokale Einstellung | Wirkung |\n| --- | --- |\n| `target_profile` | ID 1–99 eines konfigurierten Profils; gilt nach Neustart für neue Vorschläge. Bestehende Vorschläge bleiben gebunden. |\n| `personal_info`, `smart_reply` | Eigene Rolle/Signatur und Antwortentwürfe für dieses Postfach; Speicherung bleibt im Ursprungspostfach. |\n| `notifications.quiet_hours`, `notifications.categories` | Vererbte Ruhezeiten und Kategoriekanäle; gemeinsame Queue mit getrennten Postfachbündeln. |\n| `daily_briefing` | Dieses Postfach als eigenen Abschnitt ein-/ausschließen. |\n| `activity_report_folder` | Vorausgewählter Ordner für Tätigkeitsberichte. |\n| `retention.full_mail_days` | Volltexte kürzer aufbewahren als global; `disabled` entfernt Inhalte, `unlimited` nur bei global unbegrenzter Aufbewahrung. |\n| `event_defaults` | Lokale Standarddauern in Minuten, 1–1440; explizite Mailzeiten haben Vorrang. |\n| Themen-Geltungsbereich | Global, nur dieses Postfach oder hier ausschließen; eigene Fingerprints nur betroffener Postfächer. |\n| Filter | Lokale Adress-/Domainsperren und exakte Ausnahmen von globalen Sperren. |\n\nSpeichern erstellt einen Einrichtungsentwurf. Die Übernahme benötigt eine erneute ausdrückliche lokale\nBestätigung. Ziel-/Verbindungsänderungen verlangen aktuelle lesende Diagnosen. Der Entwurf zeigt laufende\nMails, die durch eine relevante Änderung zurückgehalten werden. Zugangsdaten werden\ngetrennt unter **Einstellungen → Zugangsdaten** direkt in `.env` bearbeitet.\nAnleitung: [Release 3.2](Release-3.2.md).",
+  "title": "Postfächer und Zielprofile (3.2)"
+ },
+ {
+  "id": "web-einstellungen/postfach-briefings-49",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Postfach-Briefings (4.9)"
+  ],
+  "setting_ids": [
+   "briefings.enabled",
+   "briefings.mailbox",
+   "briefings.skip_empty",
+   "briefings.times"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter `/einstellungen?bereich=briefing`; Zeiten werden mit Komma oder Semikolon eingegeben.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Briefings als Postfachentwurf aktivieren (`briefings.enabled`) | Aktiviert zeitgesteuerte Briefings als IMAP-Entwürfe, Standard aus. Kein SMTP-Versand. Das Aktivieren autorisiert nur die Entwurfsablage; Kalender- und Aufgabenaktionen erfordern weiterhin eine eigene versionsbezogene Bestätigung. | Im laufenden Betrieb |\n| Uhrzeiten für Postfach-Briefings (`briefings.times`) | Eindeutige lokale Uhrzeiten im Format HH:MM, durch Komma, Semikolon oder Leerzeichen getrennt, etwa 07:00, 13:00, 18:00. Verwendet die konfigurierte Zeitzone. Aktiviert muss mindestens eine Uhrzeit angegeben sein. | Im laufenden Betrieb |\n| Zielpostfach für Briefings (`briefings.mailbox`) | Zielpostfach für die Briefing-Entwürfe. default verwendet das erste aktive Postfach; alternativ eine aktive Postfachnummer. Das Briefing sammelt offene Entscheidungen aller Postfächer. Es wird nie an fremde Empfänger versendet. | Im laufenden Betrieb |\n| Leere Postfach-Briefings auslassen (`briefings.skip_empty`) | Standard true: Ohne offene Entscheidungen und ohne relevante Zusammenfassungen wird kein leerer Entwurf angelegt. false legt stattdessen ein kurzes Alles-ruhig-Briefing ab. | Im laufenden Betrieb |",
+  "title": "Postfach-Briefings (4.9)"
+ },
+ {
+  "id": "web-einstellungen/vollstaendige-referenz-weiterer-einstellungen-53",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Diese Einstellungen stehen nicht in den allgemeinen Einstellungsbereichen. Sie werden in der\nErsteinrichtung, auf eigenen Seiten (Postfach, IServ, Zielprofile, Benachrichtigungen) oder nur\nin `config.yaml` gepflegt. „Pflicht“ heißt: Der Wert muss in `config.yaml` stehen; das\nmitgelieferte `config.example.yaml` enthält ihn. Werte ohne Angabe gelten mit ihrem Standard.\nÄnderungen in `config.yaml` wirken nach einem Neustart, sofern nichts anderes genannt ist.",
+  "title": "Vollständige Referenz weiterer Einstellungen (5.3)"
+ },
+ {
+  "id": "web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Ersteinrichtung und Postfach 1 (älteres Einzelformat)"
+  ],
+  "setting_ids": [
+   "daily_briefing.enabled",
+   "daily_briefing.time",
+   "imap.connection_mode",
+   "imap.drafts_folder",
+   "imap.folders",
+   "imap.historical_start",
+   "imap.host",
+   "imap.port",
+   "imap.primary_folder",
+   "push.enabled",
+   "push.subject",
+   "telegram.enabled"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `imap.host` | Mailserver des ersten Postfachs im älteren Einzelformat, z. B. `imap.example.org`; 1–253 Zeichen. Ohne `imap.mailboxes` beschreibt dieser Block Postfach 1. | Ersteinrichtung |\n| `imap.port` | Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS). | Ersteinrichtung |\n| `imap.connection_mode` | Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`. | Ersteinrichtung |\n| `imap.folders` | Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang. | Ersteinrichtung |\n| `imap.primary_folder` | Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`. | Ersteinrichtung |\n| `imap.drafts_folder` | Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`. | Ersteinrichtung |\n| `imap.historical_start` | Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf. | Ersteinrichtung |\n| `telegram.enabled` | Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche. | Ersteinrichtung |\n| `push.enabled` | Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost. | Ersteinrichtung |\n| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`. | Datei |\n| `daily_briefing.enabled` | Täglicher Tagesüberblick per Telegram; Standard aus. | Ersteinrichtung, Benachrichtigungen |\n| `daily_briefing.time` | Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30. | Ersteinrichtung, Benachrichtigungen |",
+  "title": "Ersteinrichtung und Postfach 1 (älteres Einzelformat)"
+ },
+ {
+  "id": "web-einstellungen/postfaecher-imapmailboxes",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Postfächer (`imap.mailboxes`)"
+  ],
+  "setting_ids": [
+   "imap.mailboxes[].activity_report_folder",
+   "imap.mailboxes[].auto_draft",
+   "imap.mailboxes[].connection_mode",
+   "imap.mailboxes[].daily_briefing",
+   "imap.mailboxes[].drafts_folder",
+   "imap.mailboxes[].enabled",
+   "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+   "imap.mailboxes[].event_defaults.video_duration_minutes",
+   "imap.mailboxes[].folders",
+   "imap.mailboxes[].historical_start",
+   "imap.mailboxes[].host",
+   "imap.mailboxes[].id",
+   "imap.mailboxes[].label",
+   "imap.mailboxes[].mail_client",
+   "imap.mailboxes[].notifications.categories.action_results",
+   "imap.mailboxes[].notifications.categories.daily_briefing",
+   "imap.mailboxes[].notifications.categories.decisions",
+   "imap.mailboxes[].notifications.categories.system_errors",
+   "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+   "imap.mailboxes[].notifications.quiet_hours.enabled",
+   "imap.mailboxes[].notifications.quiet_hours.end",
+   "imap.mailboxes[].notifications.quiet_hours.start",
+   "imap.mailboxes[].own_addresses",
+   "imap.mailboxes[].personal_info",
+   "imap.mailboxes[].port",
+   "imap.mailboxes[].primary_folder",
+   "imap.mailboxes[].retention.full_mail_days",
+   "imap.mailboxes[].smart_reply",
+   "imap.mailboxes[].target_profile"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Jedes Postfach ist ein Eintrag der Liste `imap.mailboxes`. Postfächer werden unter\n**Einstellungen → Postfächer** angelegt, geprüft und geändert; nicht belegte lokale Felder erben\ndie globale Einstellung. Zugangsdaten stehen als `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD` in `.env`.\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `imap.mailboxes[].id` | Nummer des Postfachs, 1–99; bestimmt die Namen der Zugangsdaten. Wird beim Anlegen vergeben und nicht geändert. | Postfachseite |\n| `imap.mailboxes[].label` | Anzeigename, 1–40 Zeichen; Standard „Postfach“. | Postfachseite |\n| `imap.mailboxes[].enabled` | Ob das Postfach abgerufen wird; Standard an. Ein deaktiviertes Postfach bleibt eingetragen. | Datei |\n| `imap.mailboxes[].host` | Mailserver, 1–253 Zeichen (Pflicht). | Postfachseite |\n| `imap.mailboxes[].port` | Port 1–65535 (Pflicht). | Postfachseite |\n| `imap.mailboxes[].connection_mode` | `ssl` (Standard), `starttls` oder `plain`. | Postfachseite |\n| `imap.mailboxes[].folders` | Gelesene Ordner, 1–100 (Pflicht); der erste ist der Posteingang. | Postfachseite |\n| `imap.mailboxes[].primary_folder` | Posteingang; Standard `INBOX`. | Postfachseite |\n| `imap.mailboxes[].drafts_folder` | Entwurfsordner, 1–500 Zeichen; Standard `Drafts`. | Postfachseite |\n| `imap.mailboxes[].historical_start` | Startgrenze dieses Postfachs; leer bedeutet alle Mails. | Postfachseite |\n| `imap.mailboxes[].own_addresses` | Weitere eigene Absenderadressen (Aliase), höchstens 20; der IMAP-Benutzername zählt bereits. Mails von diesen Adressen gelten als eigene Notiz oder Weiterleitung. | Datei |\n| `imap.mailboxes[].target_profile` | Zielprofil 1–99 für neue Vorschläge dieses Postfachs; Standard 1. Bestehende Vorschläge bleiben an ihr Ziel gebunden. | Postfachseite (Ziele) |\n| `imap.mailboxes[].mail_client` | Wohin „Original-Mail öffnen“ führt: `auto` (Standard), `apple_mail`, `gmail_web`, `outlook_web` oder `none`. | Postfachseite (Ziele) |\n| `imap.mailboxes[].event_defaults.video_duration_minutes` | Lokale Standarddauer für Videotermine, 1–1440 Minuten; leer erbt global. | Postfachseite (Ziele) |\n| `imap.mailboxes[].event_defaults.in_person_duration_minutes` | Lokale Standarddauer für Präsenztermine, 1–1440 Minuten; leer erbt global. | Postfachseite (Ziele) |\n| `imap.mailboxes[].personal_info` | Eigene Rolle, Signatur und Angaben für Antwortentwürfe dieses Postfachs, bis 2000 Zeichen; leer erbt global. | Postfachseite (Antworten) |\n| `imap.mailboxes[].smart_reply` | Antwortentwürfe für dieses Postfach; leer erbt global. | Postfachseite (Antworten) |\n| `imap.mailboxes[].auto_draft` | Entwürfe ohne Klick im Entwurfsordner ablegen; leer erbt global (Standard aus). | Postfachseite (Antworten) |\n| `imap.mailboxes[].activity_report_folder` | Vorausgewählter Ordner für Tätigkeitsberichte. | Postfachseite (Antworten) |\n| `imap.mailboxes[].retention.full_mail_days` | Volltexte kürzer aufbewahren als global: Tage, `disabled` (sofort entfernen) oder `unlimited` (nur bei global unbegrenzter Aufbewahrung). | Postfachseite (Antworten) |\n| `imap.mailboxes[].daily_briefing` | Dieses Postfach im Tagesüberblick als eigenen Abschnitt zeigen; Standard an. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.quiet_hours.enabled` | Eigene Ruhezeiten für dieses Postfach; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.quiet_hours.start` | Beginn der Ruhezeit, HH:MM; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.quiet_hours.end` | Ende der Ruhezeit, HH:MM; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.quiet_hours.allow_system_errors` | Betriebsfehler trotz Ruhezeit melden; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.categories.decisions` | Kanäle (`telegram`, `web_push`) für Entscheidungen dieses Postfachs; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.categories.action_results` | Kanäle für Ergebnisse von Eintragungen; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.categories.daily_briefing` | Kanäle für den Tagesüberblick; leer erbt global. | Postfachseite (Benachrichtigungen) |\n| `imap.mailboxes[].notifications.categories.system_errors` | Kanäle für Betriebsfehler; leer erbt global. | Postfachseite (Benachrichtigungen) |\n\nÄnderungen auf der Postfachseite sind Entwürfe; übernommen wird nach erneuter ausdrücklicher\nBestätigung. Die Übernahme erfolgt zwischen Mailzyklen bzw. nach einem Neustart (siehe oben).",
+  "title": "Postfächer (`imap.mailboxes`)"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten-iservaccounts",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "IServ-Konten (`iserv.accounts`)"
+  ],
+  "setting_ids": [
+   "iserv.accounts[].enabled",
+   "iserv.accounts[].historical_start",
+   "iserv.accounts[].id",
+   "iserv.accounts[].label",
+   "iserv.accounts[].mailbox",
+   "iserv.accounts[].server"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `iserv.accounts[].id` | Nummer 1–10; bestimmt die Zugangsdaten `ISERV_<n>_USERNAME`/`_PASSWORD`. | IServ-Seite |\n| `iserv.accounts[].label` | Anzeigename, 1–40 Zeichen; Standard „Elternbriefe“. | IServ-Seite |\n| `iserv.accounts[].server` | HTTPS-Adresse der Schule (Pflicht, bis 253 Zeichen); ein kopierter IServ-Link wird auf die Schuladresse gekürzt. | IServ-Seite |\n| `iserv.accounts[].mailbox` | Postfach 1–99, dessen Zielprofil und Standards gelten; muss aktiv sein. Standard 1. | IServ-Seite |\n| `iserv.accounts[].enabled` | Konto abrufen; Standard an. | IServ-Seite |\n| `iserv.accounts[].historical_start` | Startgrenze; leer übernimmt die des Postfachs. | IServ-Seite |",
+  "title": "IServ-Konten (`iserv.accounts`)"
+ },
+ {
+  "id": "web-einstellungen/weitere-zielprofile-targetprofiles",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Weitere Zielprofile (`target_profiles`)"
+  ],
+  "setting_ids": [
+   "target_profiles[].caldav_calendar_url",
+   "target_profiles[].caldav_task_url",
+   "target_profiles[].calendar_provider",
+   "target_profiles[].google_calendar",
+   "target_profiles[].id",
+   "target_profiles[].label",
+   "target_profiles[].microsoft_tenant",
+   "target_profiles[].microsoft_todo_list",
+   "target_profiles[].outlook_calendar",
+   "target_profiles[].task_provider",
+   "target_profiles[].todoist_project"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet\n**Einstellungen → Zielprofile**. Die Felder entsprechen `targets` (siehe „Ziele“).\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `target_profiles[].id` | Nummer 2–99 (Pflicht). | Zielprofilseite |\n| `target_profiles[].label` | Anzeigename, 1–40 Zeichen (Pflicht). | Zielprofilseite |\n| `target_profiles[].calendar_provider` | `google` (Standard), `caldav` oder `outlook`. | Zielprofilseite |\n| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`. | Zielprofilseite |\n| `target_profiles[].google_calendar` | Kalender-ID bei Google, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].todoist_project` | Todoist-Projekt-ID, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_calendar_url` | Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_task_url` | Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].outlook_calendar` | Outlook-Kalender, Standard `default`. | Zielprofilseite |\n| `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |\n| `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |",
+  "title": "Weitere Zielprofile (`target_profiles`)"
+ },
+ {
+  "id": "web-einstellungen/benachrichtigungen-notifications",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Benachrichtigungen (`notifications`)"
+  ],
+  "setting_ids": [
+   "notifications.batching.enabled",
+   "notifications.batching.window_seconds",
+   "notifications.categories.action_results",
+   "notifications.categories.daily_briefing",
+   "notifications.categories.decisions",
+   "notifications.categories.system_errors",
+   "notifications.delivery.history_days",
+   "notifications.delivery.initial_backoff_seconds",
+   "notifications.delivery.max_attempts",
+   "notifications.delivery.max_backoff_seconds",
+   "notifications.delivery.max_pending",
+   "notifications.quiet_hours.allow_system_errors",
+   "notifications.quiet_hours.enabled",
+   "notifications.quiet_hours.end",
+   "notifications.quiet_hours.start",
+   "notifications.telegram_content"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Unter **Einstellungen → Benachrichtigungen** und in der Ersteinrichtung. Fehlt der ganze Block\n`notifications`, meldet Mailhelp alle Kategorien per Telegram (Entscheidungen und Tagesüberblick\nzusätzlich per Push, falls aktiv) mit Inhalt `summary`. Ist der Block vorhanden, gelten seine Werte.\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `notifications.quiet_hours.enabled` | Ruhezeiten: in diesem Zeitraum werden Meldungen zurückgehalten; Standard aus. | Benachrichtigungen |\n| `notifications.quiet_hours.start` | Beginn, HH:MM; Standard 22:00. | Benachrichtigungen |\n| `notifications.quiet_hours.end` | Ende, HH:MM; Standard 07:30. | Benachrichtigungen |\n| `notifications.quiet_hours.allow_system_errors` | Betriebsfehler auch in der Ruhezeit melden; Standard aus. | Benachrichtigungen |\n| `notifications.batching.enabled` | Meldungen in einem Zeitfenster bündeln; Standard aus. | Benachrichtigungen |\n| `notifications.batching.window_seconds` | Bündelungsfenster 1–86400 Sekunden; Standard 300. | Benachrichtigungen |\n| `notifications.categories.decisions` | Kanäle (`telegram`, `web_push`) für Entscheidungen; eine leere Liste meldet diese Kategorie nicht. | Benachrichtigungen |\n| `notifications.categories.action_results` | Kanäle für Ergebnisse von Eintragungen. | Benachrichtigungen |\n| `notifications.categories.daily_briefing` | Kanäle für den Tagesüberblick. | Benachrichtigungen |\n| `notifications.categories.system_errors` | Kanäle für Betriebsfehler. | Benachrichtigungen |\n| `notifications.telegram_content` | `neutral` (Standard): Telegram-Meldungen ohne Mailinhalte; `summary`: mit kurzer Übersicht der Entscheidungen bzw. dem Tagesüberblick. | Benachrichtigungen |\n| `notifications.delivery.max_attempts` | Zustellversuche je Meldung, 1–10; Standard 3. | Benachrichtigungen |\n| `notifications.delivery.initial_backoff_seconds` | Wartezeit vor dem zweiten Versuch, 1–86400 Sekunden; Standard 30. | Benachrichtigungen |\n| `notifications.delivery.max_backoff_seconds` | Längste Wartezeit zwischen Versuchen, 1–86400 Sekunden; Standard 900. | Benachrichtigungen |\n| `notifications.delivery.max_pending` | Höchstens wartende Meldungen, 1–100000; Standard 1000. | Benachrichtigungen |\n| `notifications.delivery.history_days` | Aufbewahrung des Zustellverlaufs, 1–3650 Tage; Standard 30. | Benachrichtigungen |",
+  "title": "Benachrichtigungen (`notifications`)"
+ },
+ {
+  "id": "web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "KI-Anbindung, Nachanalyse und Nachprüfung"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute",
+   "llm.ollama_address",
+   "llm.provider",
+   "reanalysis.enabled",
+   "reanalysis.max_attempts",
+   "reanalysis.max_jobs_per_day",
+   "reanalysis.max_llm_calls_per_job",
+   "retries.json_repair",
+   "retries.provider_retry",
+   "retries.schema_repair",
+   "write_verification.max_attempts",
+   "write_verification.max_elapsed_seconds",
+   "write_verification.retry_delays_seconds"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `llm.provider` | `openrouter` (Standard) oder `ollama` (lokaler Server). `--ollama HOST:PORT` beim Start überschreibt die Wahl. Mit `openrouter` ist `OPENROUTER_API_KEY` in `.env` nötig. | Datei |\n| `llm.ollama_address` | Adresse des Ollama-Servers bei `llm.provider: ollama`; Standard `localhost:11434`, auch `http://localhost:11434`. | Datei |\n| `retries.provider_retry` | Wiederholungen eines KI-Aufrufs nach vorübergehendem Anbieterfehler, 0–10 (Pflicht). Jede Wiederholung zählt gegen `limits.llm_calls_per_minute`. | Datei |\n| `retries.json_repair` | Korrekturversuche, wenn die KI kein gültiges JSON liefert, 0–10 (Pflicht). | Datei |\n| `retries.schema_repair` | Korrekturversuche, wenn das JSON nicht dem erwarteten Aufbau entspricht, 0–10 (Pflicht). | Datei |\n| `reanalysis.enabled` | „Aufgabe oder Termin übersehen?“ anbieten; Standard an. | Datei |\n| `reanalysis.max_llm_calls_per_job` | KI-Aufrufe je Nachanalyse, 1–10; Standard 5 (drei Schritte und zwei Wiederholungen). | Datei |\n| `reanalysis.max_attempts` | Versuche je Modellaufruf nach Fehler oder Neustart, 1–5; Standard 2. | Datei |\n| `reanalysis.max_jobs_per_day` | Gestartete Nachanalysen je Tag über alle Mails, 1–500; Standard 20 (Kostenschutz). | Datei |\n| `write_verification.max_attempts` | Kontrollabrufe nach einer Eintragung, 1–10; Standard 5. Der erste Abruf ist Versuch 1. | Datei |\n| `write_verification.retry_delays_seconds` | Wartezeit vor jedem weiteren Abruf, genau `max_attempts − 1` Werte zu 1–3600 Sekunden; Standard `[1, 5, 15, 60]`. Ein `Retry-After` des Anbieters kann länger sein. | Datei |\n| `write_verification.max_elapsed_seconds` | Höchstdauer der Prüfung, 10–86400 Sekunden, mindestens die Summe der Wartezeiten; Standard 300. Danach bleibt der Eintrag ausdrücklich ungeprüft. | Datei |",
+  "title": "KI-Anbindung, Nachanalyse und Nachprüfung"
+ },
+ {
+  "id": "web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Sicherheitsgrenzen beim Zerlegen von Mails"
+  ],
+  "setting_ids": [
+   "limits.max_decoded_text_bytes",
+   "limits.max_display_header_characters",
+   "limits.max_header_bytes",
+   "limits.max_html_characters",
+   "limits.max_html_depth",
+   "limits.max_html_tags",
+   "limits.max_mime_parts"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Eine Mail, die eine dieser Grenzen überschreitet, wird nicht ausgewertet: Sie erscheint mit dem\nHinweis „Die Nachricht überschreitet ein Sicherheitslimit“ und ohne KI-Aufruf. Die Standards\nreichen für gewöhnliche Mails; erhöhen nur bei wiederholt betroffenen, vertrauenswürdigen Mails.\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `limits.max_header_bytes` | Größe aller Kopfzeilen, 256–1000000 Bytes; Standard 64000. | Datei |\n| `limits.max_display_header_characters` | Längste angezeigte Kopfzeile (Absender, Betreff), 1–10000 Zeichen; Standard 500. Längere werden als „—“ angezeigt. | Datei |\n| `limits.max_mime_parts` | Teile einer Mail, 1–10000; Standard 100. | Datei |\n| `limits.max_decoded_text_bytes` | Entschlüsselter Text aller Teile, 1–100000000 Bytes; Standard 1000000. | Datei |\n| `limits.max_html_characters` | Länge des HTML-Teils, 1–100000000 Zeichen; Standard 1000000. | Datei |\n| `limits.max_html_tags` | HTML-Elemente, 1–1000000; Standard 20000. | Datei |\n| `limits.max_html_depth` | Verschachtelungstiefe des HTML, 1–10000; Standard 100. | Datei |",
+  "title": "Sicherheitsgrenzen beim Zerlegen von Mails"
+ },
+ {
+  "id": "web-einstellungen/pfade-protokolle-und-webserver",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Pfade, Protokolle und Webserver"
+  ],
+  "setting_ids": [
+   "data_directory",
+   "logging.console.format",
+   "logging.directory",
+   "logging.file.backup_count",
+   "logging.file.filename",
+   "logging.file.format",
+   "logging.file.max_bytes",
+   "logging.file.retention_days",
+   "logging.llm.backup_count",
+   "logging.llm.filename",
+   "logging.llm.format",
+   "logging.llm.include_requests",
+   "logging.llm.max_bytes",
+   "logging.llm.retention_days",
+   "logging.modules",
+   "logging.telegram.backup_count",
+   "logging.telegram.filename",
+   "logging.telegram.format",
+   "logging.telegram.max_bytes",
+   "logging.telegram.retention_days",
+   "timeouts.telegram_poll_seconds",
+   "web.allowed_hosts",
+   "web.enabled",
+   "web.google_redirect_uri",
+   "web.host",
+   "web.lan_access",
+   "web.port"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `data_directory` | Verzeichnis der Zustandsdaten (Pflicht); darunter `production` bzw. `test` je nach Testmodus. Relativ zur Konfiguration. | Datei |\n| `logging.directory` | Verzeichnis der Protokolle (Pflicht); `--log-directory` überschreibt es für einen Start. | Datei |\n| `logging.console.format` | Bildschirmausgabe als `text` (Standard) oder `jsonl`. | Datei |\n| `logging.file.filename` | Datei des Anwendungsprotokolls im Protokollverzeichnis (Pflicht). | Datei |\n| `logging.file.format` | `jsonl` (Standard) oder `text`. | Datei |\n| `logging.file.max_bytes` | Größe, ab der die Datei gewechselt wird, größer 0 (Pflicht). | Datei |\n| `logging.file.backup_count` | Aufbewahrte ältere Dateien, ab 0 (Pflicht). | Datei |\n| `logging.file.retention_days` | Höchstalter der Protokolldateien, 1–3650 Tage (Pflicht). | Datei |\n| `logging.llm.filename` | Datei des KI-Protokolls (Pflicht). Inhalte von Anfragen und Antworten stehen dort nur mit `logging.llm.include_requests`/`include_responses`. | Datei |\n| `logging.llm.format` | `jsonl` (Standard) oder `text`. | Datei |\n| `logging.llm.max_bytes` | Wechselgröße, größer 0 (Pflicht). | Datei |\n| `logging.llm.backup_count` | Aufbewahrte ältere Dateien, ab 0 (Pflicht). | Datei |\n| `logging.llm.retention_days` | Höchstalter, 1–3650 Tage (Pflicht). | Datei |\n| `logging.telegram.filename` | Datei des Telegram-Nachrichtenprotokolls; Standard `telegram/messages.jsonl`. | Datei |\n| `logging.telegram.format` | `jsonl` (Standard) oder `text`. | Datei |\n| `logging.telegram.max_bytes` | Wechselgröße, größer 0; Standard 10000000. | Datei |\n| `logging.telegram.backup_count` | Aufbewahrte ältere Dateien, ab 0; Standard 5. | Datei |\n| `logging.telegram.retention_days` | Höchstalter, 1–3650 Tage; Standard 30. | Datei |\n| `logging.modules` | Protokollstufe je Modul, z. B. `openrouter: INFO`; Standard leer. | Datei |\n| `timeouts.telegram_poll_seconds` | Wartezeit einer Telegram-Abfrage auf neue Nachrichten, 1–50 Sekunden (Pflicht). | Datei |\n| `web.enabled` | Weboberfläche starten; Standard aus. | Datei |\n| `web.host` | Netzwerkadresse des Webservers; Standard `127.0.0.1` (nur dieser PC). `0.0.0.0` ist für `web.lan_access` nötig. | Datei |\n| `web.port` | Port 1–65535; Standard 8765. | Datei |\n| `web.allowed_hosts` | Erlaubte Host-Angaben im Browseraufruf (Schutz vor DNS-Rebinding), 1–20 Einträge; Standard `127.0.0.1:8765`, `localhost:8765`. | Datei |\n| `web.google_redirect_uri` | Rücksprungadresse der Google-Anmeldung; muss in der Google-Cloud-Konsole eingetragen sein. Standard `http://localhost:8765/auth/google/callback`. | Datei |",
+  "title": "Pfade, Protokolle und Webserver"
+ },
+ {
+  "id": "ersteinrichtung/ersteinrichtung",
+  "path": [
+   "Ersteinrichtung"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "Stand: Mailhelp 5.3. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten\ngeprüften Vorschlag. Sie gilt für Windows 11 und Linux; Abweichungen für Docker sind markiert.\n\n**Ziel:** Mailhelp läuft, ist im Browser erreichbar, liest ein Postfach, hat eine KI-Anbindung\nund kennt Kalender und Aufgabenliste. Eine externe Eintragung geschieht erst nach deiner\nausdrücklichen Bestätigung.",
+  "title": "Ersteinrichtung"
+ },
+ {
+  "id": "ersteinrichtung/voraussetzungen",
+  "path": [
+   "Ersteinrichtung",
+   "Voraussetzungen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "- Python 3.12 (Windows: `py -3.12`, Linux: `python3.12`) oder Docker mit Compose.\n- Zugangsdaten eines IMAP-Postfachs (Server, Port, Benutzername, Passwort oder App-Passwort).\n- Ein Schlüssel für OpenRouter **oder** ein lokal laufender Ollama-Server.\n- Optional: Zugänge zu Google Kalender/Todoist, Outlook/Microsoft To Do oder einem\n  CalDAV-Server; optional ein Telegram-Bot mit deiner Benutzer- und Chat-ID.",
+  "title": "Voraussetzungen"
+ },
+ {
+  "id": "ersteinrichtung/1-installieren",
+  "path": [
+   "Ersteinrichtung",
+   "1. Installieren"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "**Windows 11** (PowerShell im Mailhelp-Verzeichnis):\n\n```powershell\npy -3.12 -m venv .venv\n.venv\\Scripts\\python -m pip install -r requirements.lock\n.venv\\Scripts\\python -m pip install --no-deps -e .\n```\n\n**Linux:**\n\n```sh\npython3.12 -m venv .venv\n.venv/bin/python -m pip install -r requirements.lock\n.venv/bin/python -m pip install --no-deps -e .\n```\n\n**Docker:** keine Installation nötig; weiter mit Schritt 2.",
+  "title": "1. Installieren"
+ },
+ {
+  "id": "ersteinrichtung/2-starten-und-den-terminal-code-ablesen",
+  "path": [
+   "Ersteinrichtung",
+   "2. Starten und den Terminal-Code ablesen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "Ohne `config.yaml` startet Mailhelp den geschützten Einrichtungsassistenten.\n\n- Windows: `.venv\\Scripts\\mailhelp --config-directory .`\n- Linux: `.venv/bin/mailhelp --config-directory .`\n- Docker: `docker compose -f compose.setup.yaml up --build`\n\n**Ergebnis:** Das Terminal zeigt einen Einmalcode und die Adresse `http://localhost:8765`.\nFehlt der Code, mit `mailhelp --pair --config-directory .` einen neuen anfordern (Docker:\n`docker compose exec mailhelp mailhelp --pair --config-directory /config`).",
+  "title": "2. Starten und den Terminal-Code ablesen"
+ },
+ {
+  "id": "ersteinrichtung/3-im-browser-koppeln",
+  "path": [
+   "Ersteinrichtung",
+   "3. Im Browser koppeln"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "1. `http://localhost:8765/einrichtung/start` öffnen.\n2. Den Code in **Code aus der Mailhelp-Konsole** eingeben und **Gerät koppeln** wählen.\n\n**Ergebnis:** Die Seite „Mailhelp einrichten: Web-Zugang und Zeitzone“ erscheint (Schritt 1 von 5).",
+  "title": "3. Im Browser koppeln"
+ },
+ {
+  "id": "ersteinrichtung/4-assistent-durchlaufen",
+  "path": [
+   "Ersteinrichtung",
+   "4. Assistent durchlaufen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "Jeder Schritt hat **Speichern und weiter**; über die Schrittliste kommst du jederzeit zurück.\nPasswortfelder bleiben leer angezeigt: **Leer: gespeicherten Wert behalten**.\n\n1. **Web-Zugang und Zeitzone:** **Zeitzone** prüfen (z. B. `Europe/Berlin`) und ein\n   **Web-Passwort (mindestens 12 Zeichen)** vergeben.\n2. **Postfach:** **IMAP-Server**, **Port**, **Verschlüsselung** (`ssl` meist Port 993,\n   `starttls` meist 143), Benutzername (`IMAP_USERNAME`) und Passwort (`IMAP_PASSWORD`)\n   eintragen und **Verbindung jetzt prüfen** wählen. Danach **Posteingang** und\n   **Entwurfsordner** aus der gefundenen Ordnerliste wählen.\n3. **KI-Anbieter:** `openrouter` mit `OPENROUTER_API_KEY` oder `ollama` mit\n   **Ollama-Adresse (HOST:PORT)**; **Verbindung jetzt prüfen** wählen.\n4. **Kalender und Aufgaben:** **Kalenderdienst** und **Aufgabendienst** wählen und die passende\n   Kennung eintragen (**Google-Kalender-ID**, **Todoist-Projekt-ID**, **CalDAV-Kalenderadresse**,\n   **CalDAV-Aufgabenadresse**, **Outlook-Kalender-ID**, **Microsoft-To-Do-Liste**). Für Google und\n   Microsoft stehen **Google verbinden** bzw. **Microsoft verbinden** bereit. Einzelheiten:\n   [Einstellungen, Abschnitt Ziele](Web-Einstellungen.md#ziele).\n5. **Abschluss:** Das **Prüfergebnis** lesen, **Konfiguration speichern und Normalbetrieb\n   starten** ankreuzen und **Speichern und starten** wählen.\n\n**Ergebnis:** „Einrichtung abgeschlossen“. `config.yaml` und `.env` sind gespeichert; die\nZugangsdaten stehen nur in `.env`.",
+  "title": "4. Assistent durchlaufen"
+ },
+ {
+  "id": "ersteinrichtung/5-anmelden-und-verbindungen-pruefen",
+  "path": [
+   "Ersteinrichtung",
+   "5. Anmelden und Verbindungen prüfen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "1. `http://localhost:8765/anmelden` öffnen und mit dem Web-Passwort anmelden. Weitere Geräte\n   koppelst du mit **Code per Telegram senden** (bei aktivem Telegram) oder einem neuen\n   Terminal-Code.\n2. **Einstellungen → Diagnose** öffnen: Die Prüfungen lesen nur und ändern nichts.\n3. Unter **Status** siehst du den letzten Kontakt je Dienst; das Postfach erscheint nach dem\n   ersten Mailabruf.",
+  "title": "5. Anmelden und Verbindungen prüfen"
+ },
+ {
+  "id": "ersteinrichtung/6-gespeicherten-und-aktiven-stand-erkennen",
+  "path": [
+   "Ersteinrichtung",
+   "6. Gespeicherten und aktiven Stand erkennen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "In **Einstellungen** steht bei jeder Einstellung „aktiv“ oder „gespeichert – wirkt erst nach\neinem Neustart“ bzw. „… an der nächsten sicheren Stelle“. Neustart: **Einstellungen →\nMailhelp neu starten**.",
+  "title": "6. Gespeicherten und aktiven Stand erkennen"
+ },
+ {
+  "id": "ersteinrichtung/7-erster-testfall",
+  "path": [
+   "Ersteinrichtung",
+   "7. Erster Testfall"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "1. Eine Mail mit einer klaren Bitte an dich selbst senden, z. B. „Bitte bis Freitag das\n   Formular zurückschicken.“\n2. Nach dem nächsten Abruf erscheint unter **Offen** ein Vorschlag mit Beleg.\n3. **Als Aufgabe anlegen** (bei Terminen **Im Kalender anlegen**) wählen. Mailhelp meldet erst „Gespeichert – der Eintrag wird beim Anbieter\n   geprüft“ und nach dem Kontrollabruf „Angelegt und geprüft“.\n\nFür einen Durchlauf ohne echte Eintragung `test_mode: true` setzen: Bestätigungen werden dann\nnur simuliert.",
+  "title": "7. Erster Testfall"
+ },
+ {
+  "id": "ersteinrichtung/wenn-etwas-nicht-klappt",
+  "path": [
+   "Ersteinrichtung",
+   "Wenn etwas nicht klappt"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "| Meldung oder Lage | Nächster Schritt |\n| --- | --- |\n| „Mailhelp läuft bereits …“ | Laufende Instanz über **Einstellungen → Mailhelp beenden** oder Strg+C beenden |\n| Code abgelaufen oder vergessen | `mailhelp --pair --config-directory .` |\n| Postfachprüfung scheitert | Server, Port und Verschlüsselung prüfen; Fehlermeldungen nennen die Ursache ohne Zugangsdaten |\n| Web-Passwort vergessen | Am Rechner `mailhelp --reset-web-password --config-directory .` |\n| Docker: Dateirechte unter Linux | `mkdir -p data logs` und `sudo chown 65532:65532 data logs` |\n\nWeiter: [Konten verwalten](Konten-verwalten.md), [Einstellungen](Web-Einstellungen.md).",
+  "title": "Wenn etwas nicht klappt"
+ },
+ {
+  "id": "konten-verwalten/konten-verwalten",
+  "path": [
+   "Konten verwalten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "Stand: Mailhelp 5.3. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in\neiner bereits eingerichteten Installation hinzufügen, ändern und entfernen.\n\n**Grundsatz:** Zugangsdaten stehen nur in `.env` und werden unter **Einstellungen →\nZugangsdaten** gepflegt; angezeigt wird nur „hinterlegt“ oder „fehlt“. Änderungen an Postfächern\nund Zielen sind Entwürfe und werden erst nach einer erneuten ausdrücklichen Bestätigung\nübernommen. Keine dieser Seiten legt Aufgaben oder Termine an.",
+  "title": "Konten verwalten"
+ },
+ {
+  "id": "konten-verwalten/ein-weiteres-postfach-hinzufuegen",
+  "path": [
+   "Konten verwalten",
+   "Ein weiteres Postfach hinzufügen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "**Voraussetzung:** Server, Port, Verbindungsart und Zugangsdaten des Postfachs.\n\n1. **Einstellungen → Postfächer** öffnen und **Postfach hinzufügen** wählen.\n2. Ausfüllen:\n   - **Anzeigename**, z. B. „Schule“.\n   - **IMAP-Server** und **Port**.\n   - **Verbindungsart**: **SSL/TLS (meist Port 993)**, **STARTTLS (meist Port 143)** oder\n     **Unverschlüsselt (nur im eigenen Netz)**.\n   - **Benutzername (meist die vollständige E-Mail-Adresse)** und **Passwort oder App-Passwort**.\n   - **Ordner (kommagetrennt, der erste ist der Posteingang)** und **Ordner für\n     Antwortentwürfe**.\n   - **Ältere Mails nicht verarbeiten vor (leer: alle vorhandenen Mails)**, vorbelegt mit heute.\n3. **Verbindung prüfen und Postfach aktivieren** wählen.\n\n**Ergebnis:** Nach erfolgreicher Prüfung von Anmeldung, Ordnerliste und Lesezugriff werden\n`config.yaml` und `.env` gespeichert (`IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`). Das neue\nPostfach wird zwischen zwei Mailzyklen ergänzt, ohne Neustart. Schlägt die Prüfung fehl, bleiben\nalle Eingaben außer dem Passwort erhalten; die Meldung nennt die Ursache ohne Serverantwort.\nDoppelte Konten werden abgewiesen. Wer nicht sofort aktivieren will, wählt **Stattdessen nur\nals Entwurf hinzufügen**.",
+  "title": "Ein weiteres Postfach hinzufügen"
+ },
+ {
+  "id": "konten-verwalten/ein-postfach-einem-anderen-kalender-oder-einer-anderen-aufgabenliste-zuordnen",
+  "path": [
+   "Konten verwalten",
+   "Ein Postfach einem anderen Kalender oder einer anderen Aufgabenliste zuordnen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "1. Unter **Einstellungen → Zielprofile** mit **Zielprofil hinzufügen** ein Profil anlegen\n   (Bezeichnung, Kalenderdienst, Aufgabendienst und die jeweiligen Kennungen) – siehe\n   „Weitere Ziele“ unten.\n2. **Einstellungen → Postfächer**, das Postfach öffnen, Reiter **Ziele**, **Zielprofil** auf das\n   neue Profil setzen.\n3. **Entwurf prüfen** und anschließend **Entwurf übernehmen** bestätigen.\n\n**Ergebnis:** Neue Vorschläge dieses Postfachs gehen an das neue Ziel. Bereits vorhandene\nVorschläge bleiben an ihr bisheriges Ziel gebunden; für das neue Ziel ist eine neue Bestätigung\nnötig.",
+  "title": "Ein Postfach einem anderen Kalender oder einer anderen Aufgabenliste zuordnen"
+ },
+ {
+  "id": "konten-verwalten/regeln-je-postfach",
+  "path": [
+   "Konten verwalten",
+   "Regeln je Postfach"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "Auf der Postfachseite gibt es die Reiter **Ziele**, **Filter**, **Themen**, **Antworten** und\n**Benachrichtigungen**. Nicht belegte Felder erben die globale Einstellung; Zurücksetzen\nentfernt die lokale Regel. Beispiele: eigene Standarddauern für Termine, eigene Signatur für\nAntwortentwürfe, kürzere Aufbewahrung, eigene Ruhezeiten, lokale Absendersperren oder\nAusnahmen von globalen Sperren. Alle Felder: [Einstellungen](Web-Einstellungen.md#postfächer-imapmailboxes).",
+  "title": "Regeln je Postfach"
+ },
+ {
+  "id": "konten-verwalten/iserv-konto-ergaenzen",
+  "path": [
+   "Konten verwalten",
+   "IServ-Konto ergänzen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "1. **Einstellungen → IServ-Konten**, **IServ-Konto hinzufügen**.\n2. Anzeigename, Adresse der Schule (ein kopierter IServ-Link wird auf die Schuladresse gekürzt),\n   das Postfach, dessen Zielprofil und Standards gelten, und optional eine Startgrenze eintragen.\n3. Zugangsdaten unter **Einstellungen → Zugangsdaten** hinterlegen\n   (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).\n4. Die Diagnose `iserv` ausführen und die Änderung ausdrücklich bestätigen.\n\n**Ergebnis:** Elternbriefe werden nach dem nächsten Neustart abgerufen und gelten immer als\nrelevant.",
+  "title": "IServ-Konto ergänzen"
+ },
+ {
+  "id": "konten-verwalten/weitere-ziele-kalender-und-aufgabenlisten",
+  "path": [
+   "Konten verwalten",
+   "Weitere Ziele (Kalender und Aufgabenlisten)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "Profil 1 ist das Ziel aus der Ersteinrichtung (**Standardprofil 1 bearbeiten**). Weitere Profile\n(Nummer 2–99) unter **Einstellungen → Zielprofile**:\n\n1. **Zielprofil hinzufügen**, Bezeichnung, Kalenderdienst (Google, CalDAV, Outlook) und\n   Aufgabendienst (Todoist, Microsoft To Do, CalDAV, Apple Erinnerungen) wählen.\n2. Die Kennungen eintragen; bei Google bzw. Microsoft über **Google verbinden** bzw.\n   **Microsoft verbinden** anmelden und bei Google **Google-Kalender auswählen**.\n3. **Zugriffe prüfen**: Die Diagnose liest nur und legt nichts an.\n4. Den Entwurf prüfen und übernehmen.",
+  "title": "Weitere Ziele (Kalender und Aufgabenlisten)"
+ },
+ {
+  "id": "konten-verwalten/aendern-deaktivieren-und-entfernen",
+  "path": [
+   "Konten verwalten",
+   "Ändern, deaktivieren und entfernen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "| Vorhaben | Weg | Wirkung |\n| --- | --- | --- |\n| Postfacheinstellung ändern | Postfachseite, Reiter wählen, **Entwurf prüfen**, **Entwurf übernehmen** | zwischen Mailzyklen bzw. nach Neustart |\n| Postfach entfernen | Postfachseite, **Postfach entfernen**, bestätigen | wird aus der Konfiguration entfernt und nicht mehr abgerufen |\n| Postfach vorübergehend abschalten | in `config.yaml` `enabled: false` beim Postfach | nach Neustart |\n| Zielprofil entfernen | Zielprofilseite, **Profil entfernen** | erst möglich, wenn kein Postfach es mehr verwendet („Verwendet von: …“) |\n| IServ-Konto ändern oder deaktivieren | IServ-Seite | nach Bestätigung und Neustart |\n| Zugangsdaten erneuern | **Einstellungen → Zugangsdaten** | Diagnose sofort, Mailabruf nach Neustart |",
+  "title": "Ändern, deaktivieren und entfernen"
+ },
+ {
+  "id": "konten-verwalten/wenn-etwas-nicht-klappt",
+  "path": [
+   "Konten verwalten",
+   "Wenn etwas nicht klappt"
+  ],
+  "setting_ids": [],
+  "source": "docs/Konten-verwalten.md",
+  "text": "| Lage | Nächster Schritt |\n| --- | --- |\n| „Es sind bereits … Postfächer eingerichtet.“ | Ein vorhandenes Postfach entfernen oder ändern |\n| Prüfung meldet falsche Anmeldedaten | Benutzername meist die vollständige Adresse; bei Zwei-Faktor-Schutz ein App-Passwort verwenden |\n| Ordner fehlt | Ordnernamen genau so eintragen, wie der Server sie meldet; die Prüfung zeigt die gefundene Liste |\n| Ziel nicht erreichbar | **Zugriffe prüfen**; bei Google oder Microsoft die Anmeldung erneuern |\n| Zielprofil lässt sich nicht entfernen | Unter „Verwendet von“ genannte Postfächer erst einem anderen Profil zuordnen |",
+  "title": "Wenn etwas nicht klappt"
+ },
+ {
+  "id": "ziele-einrichten/kalender-und-aufgaben-verbinden",
+  "path": [
+   "Kalender und Aufgaben verbinden"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "Stand: Mailhelp 5.3. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste\nbestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`\naus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein\n**Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.\nListen-ID das konkrete Ziel innerhalb dieses Kontos.\n\nMailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten\nVorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.",
+  "title": "Kalender und Aufgaben verbinden"
+ },
+ {
+  "id": "ziele-einrichten/anbieter-und-ihre-faehigkeiten",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Anbieter und ihre Fähigkeiten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "| Anbieter | Rolle | Zugang (`.env`) | Kennung | Geprüft wird | Grenzen |\n| --- | --- | --- | --- | --- | --- |\n| Google Kalender | Kalender | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` | Kalender-ID oder `primary` | Titel, Zeiten, Ganztägigkeit, Ort, Beschreibung | Rücksprungadresse muss in der Google-Konsole eingetragen sein |\n| Todoist | Aufgaben | `TODOIST_TOKEN` | Projekt-ID | Titel, Beschreibung, Fälligkeit, Projekt | Änderungen und Absagen nur für Termine |\n| Outlook | Kalender | `MICROSOFT_CLIENT_ID`, optional `MICROSOFT_CLIENT_SECRET`, Anmeldung per Gerätecode | Kalender oder `default` | wie Google | Absagen löschen den Termin |\n| Microsoft To Do | Aufgaben | wie Outlook | Liste oder `default` („Aufgaben“) | Titel, Beschreibung, Fälligkeitstag | nur tagesgenau, keine Uhrzeit |\n| CalDAV | Kalender und Aufgaben | `CALDAV_USERNAME`, `CALDAV_PASSWORD` (App-Passwort) | Adresse der Sammlung | Ressource mit UID, Feldern, Status | Serientermine werden nie verändert |\n| Apple Erinnerungen | Aufgaben (über CalDAV) | wie CalDAV (iCloud-App-Passwort) | Adresse der Liste | wie CalDAV | auf neue iCloud-Erinnerungen umgestellte Listen sind über CalDAV nicht erreichbar |\n| Kalenderdatei | Kalender (über Telegram) | – | – | nicht prüfbar | ob die Datei importiert wurde, kann Mailhelp nicht wissen |",
+  "title": "Anbieter und ihre Fähigkeiten"
+ },
+ {
+  "id": "ziele-einrichten/google-kalender",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Google Kalender"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "1. Unter **Einstellungen → Zugangsdaten** Client-ID und Client-Geheimnis des\n   Webanwendungs-Clients hinterlegen; die **Google-Rückleitungsadresse (Webanwendungs-Client)**\n   muss in der Google-Cloud-Konsole eingetragen sein.\n2. **Google verbinden** wählen, im Google-Fenster zustimmen und **Google-Anmeldung abschließen**.\n3. **Google-Kalender auswählen** und den gewünschten Kalender übernehmen.\n4. **Zugriffe prüfen**.\n\nAlternativ ohne Webanwendungs-Client: [Google: OAuth-Playground-Anleitung](Google-OAuth-Playground.md).",
+  "title": "Google Kalender"
+ },
+ {
+  "id": "ziele-einrichten/todoist",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Todoist"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "1. Den API-Token aus den Todoist-Einstellungen unter **Einstellungen → Zugangsdaten** als\n   `TODOIST_TOKEN` hinterlegen.\n2. Die **Todoist-Projekt-ID** eintragen (aus der Projektadresse im Browser).\n3. **Zugriffe prüfen**.",
+  "title": "Todoist"
+ },
+ {
+  "id": "ziele-einrichten/outlook-und-microsoft-to-do",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Outlook und Microsoft To Do"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "1. `MICROSOFT_CLIENT_ID` hinterlegen (App-Registrierung mit „Öffentliche Clientflows zulassen“).\n2. **Microsoft verbinden**, **Anmeldung starten**, den angezeigten Code mit **Code kopieren**\n   übernehmen und bei Microsoft eingeben. Am Rechner geht das auch mit\n   `mailhelp --microsoft-login --config-directory .`.\n3. **Outlook-Kalender-ID** bzw. **Microsoft-To-Do-Liste** eintragen (`default` für den\n   Standardkalender bzw. die Liste „Aufgaben“) und **Zugriffe prüfen**.",
+  "title": "Outlook und Microsoft To Do"
+ },
+ {
+  "id": "ziele-einrichten/caldav-und-apple-erinnerungen",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "CalDAV und Apple Erinnerungen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "1. `CALDAV_USERNAME` und `CALDAV_PASSWORD` hinterlegen; bei iCloud ein App-Passwort verwenden.\n2. **CalDAV-Kalenderadresse** bzw. **CalDAV-Aufgabenadresse** als vollständige Adresse der\n   Sammlung eintragen.\n3. **Zugriffe prüfen**: Mailhelp prüft lesend, ob die Adresse eine Kalendersammlung ist und den\n   passenden Eintragstyp annimmt.",
+  "title": "CalDAV und Apple Erinnerungen"
+ },
+ {
+  "id": "ziele-einrichten/ziel-sicher-wechseln",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Ziel sicher wechseln"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "Ein geändertes Ziel gilt für neue Vorschläge. Bereits angezeigte Vorschläge bleiben an das Ziel\ngebunden, für das sie erstellt wurden; nach einem Zielwechsel sperrt Mailhelp ihre Anlage und\nverlangt eine neue Bestätigung. Ein Zielprofil lässt sich erst entfernen, wenn kein Postfach es\nmehr verwendet. Anleitung zur Zuordnung: [Konten verwalten](Konten-verwalten.md).",
+  "title": "Ziel sicher wechseln"
+ },
+ {
+  "id": "bedienung/alltagsbedienung",
+  "path": [
+   "Alltagsbedienung"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Stand: Mailhelp 5.3. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails\nnachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.",
+  "title": "Alltagsbedienung"
+ },
+ {
+  "id": "bedienung/offene-entscheidungen",
+  "path": [
+   "Alltagsbedienung",
+   "Offene Entscheidungen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "**Offen** zeigt alle Vorschläge, die eine Entscheidung brauchen. Jede Karte nennt Art (Aufgabe\noder Termin), Titel, Zeiten, Ziel und den Beleg aus der Mail. Auf großen Bildschirmen steht die\nListe links und der gewählte Vorschlag rechts; die Taste `A` legt den gewählten Vorschlag an.\n\n| Schaltfläche | Wirkung |\n| --- | --- |\n| **Als Aufgabe anlegen** / **Im Kalender anlegen** | legt genau diese Version an; 5 Sekunden lang rückgängig zu machen |\n| **Verwerfen** | keine Anlage |\n| **Schon erledigt** | als erledigt vermerken, keine Anlage |\n| **Antwort senden** | beantwortet eine Rückfrage oder ändert Angaben („Titel: …“, „Ort: …“) |\n| **Bearbeitung beenden** | verwirft eine angefangene Änderung |\n| **Dublettenprüfung wiederholen** | nach einer fehlgeschlagenen Prüfung auf vorhandene Einträge |\n| **Erneut anlegen** | nur nach Rückfrage, wenn derselbe Eintrag schon früher angelegt wurde |\n\nBei Änderungen oder Absagen eines vorhandenen Termins heißt die Schaltfläche **Bestehenden\nTermin aktualisieren** bzw. **Termin absagen**. Passt eine Änderung zu mehreren Terminen, wählst\ndu mit „Diesen Termin meinen: …“ den richtigen. Hält Mailhelp zwei Vorschläge für dieselbe\nSache, entscheidest du im **Vorschlagsabgleich**.",
+  "title": "Offene Entscheidungen"
+ },
+ {
+  "id": "bedienung/nach-dem-anlegen",
+  "path": [
+   "Alltagsbedienung",
+   "Nach dem Anlegen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:\n\n| Anzeige | Bedeutung |\n| --- | --- |\n| Gespeichert – Eintrag wird geprüft | geschrieben, Kontrollabruf läuft |\n| Angelegt und geprüft | der Anbieter zeigt den Eintrag mit den bestätigten Angaben |\n| Eintragung noch nicht bestätigt | nicht auffindbar oder Abruf nicht möglich; der Grund steht dabei |\n| Eintrag vorhanden, Angaben weichen ab | Tabelle „Bestätigt / Beim Anbieter“ |\n| Kalenderdatei bereitgestellt – Übernahme in den Kalender nicht prüfbar | per Telegram gesendete Datei |\n\n**Erneut prüfen** liest nur noch einmal; Mailhelp ändert, repariert oder wiederholt nie eine\nAnlage.",
+  "title": "Nach dem Anlegen"
+ },
+ {
+  "id": "bedienung/mails-nachlesen",
+  "path": [
+   "Alltagsbedienung",
+   "Mails nachlesen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "**Mails** listet alle verarbeiteten Mails. Die Mailseite zeigt „So wurde diese Mail\nverarbeitet“ mit jedem Schritt und seinem Ergebnis. Hat Mailhelp etwas übersehen, startet\n**Aufgabe oder Termin übersehen?** eine gezielte Nachanalyse (**Erneut analysieren**, begrenzt\ndurch ein Tageslimit). Neue Befunde übernimmst du mit **Ergebnis übernehmen** als unbestätigte\nVorschläge; **Nachanalyse abbrechen** beendet eine laufende.",
+  "title": "Mails nachlesen"
+ },
+ {
+  "id": "bedienung/weitere-seiten",
+  "path": [
+   "Alltagsbedienung",
+   "Weitere Seiten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "| Seite | Inhalt |\n| --- | --- |\n| **Verlauf** | jede Änderung und Entscheidung mit Version |\n| **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |\n| **Themen** | was als relevant gilt |\n| **Status** | letzter Kontakt je Dienst, laufender Schritt |\n\nAntwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.",
+  "title": "Weitere Seiten"
+ },
+ {
+  "id": "fehlerbehebung/fehler-beheben",
+  "path": [
+   "Fehler beheben"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute"
+  ],
+  "source": "docs/Fehlerbehebung.md",
+  "text": "Stand: Mailhelp 5.3. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt\nEinträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern\ngleicht sie zuerst mit dem Anbieter ab.\n\n| Lage | Ursache | Nächster Schritt |\n| --- | --- | --- |\n| Anmeldung am Postfach fehlgeschlagen | Benutzername, Passwort oder Verbindungsart falsch | **Einstellungen → Zugangsdaten** prüfen; bei Zwei-Faktor-Schutz App-Passwort; **Zugriffe prüfen** |\n| Ordner fehlt | Ordnername anders als auf dem Server | auf der Postfachseite die gefundene Ordnerliste übernehmen |\n| Google: Anmeldung abgelaufen (`token_refresh_denied` im Protokoll) | Refresh-Token widerrufen oder abgelaufen | **Google verbinden** erneut ausführen |\n| Microsoft: Anmeldung abgelehnt | Token abgelaufen | **Microsoft verbinden** oder `mailhelp --microsoft-login` |\n| Anbieter nicht erreichbar | Netzwerk oder Störung beim Anbieter | abwarten; Mailhelp versucht es erneut. **Status** zeigt den letzten Kontakt |\n| KI-Budget erschöpft | `limits.llm_calls_per_minute` erreicht | nichts tun: die Mail wird automatisch später ausgewertet |\n| „Die Nachricht überschreitet ein Sicherheitslimit“ | Mail zu groß oder zu verschachtelt | Grenzen unter `limits` nur für vertrauenswürdige Mails erhöhen |\n| Einstellung „gespeichert – wirkt erst nach einem Neustart“ | noch nicht aktiv | **Einstellungen → Mailhelp neu starten** |\n| Eintragung noch nicht bestätigt | Eintrag beim Anbieter nicht sichtbar oder Abruf verweigert | Eintrag beim Anbieter ansehen; danach **Erneut prüfen** |\n| Unklarer Schreiberfolg | Antwort des Anbieters ging verloren | nichts tun: Mailhelp gleicht ab und legt nicht erneut an |\n| Ziel geändert, Anlage gesperrt | Vorschlag für ein anderes Ziel bestätigt | ursprüngliches Ziel wiederherstellen oder den neuen Vorschlag bestätigen |\n| „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |\n| Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |",
+  "title": "Fehler beheben"
+ },
+ {
+  "id": "fehlerbehebung/diagnose",
+  "path": [
+   "Fehler beheben",
+   "Diagnose"
+  ],
+  "setting_ids": [
+   "logging.directory"
+  ],
+  "source": "docs/Fehlerbehebung.md",
+  "text": "**Einstellungen → Diagnose** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und\nHandlungsempfehlung; die Kachel **Lesender Selbsttest** unter Einstellungen prüft alle Komponenten. Der Diagnosebericht\nenthält keine Zugangsdaten. Protokolle stehen im Protokollverzeichnis (`logging.directory`);\nInhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.",
+  "title": "Diagnose"
+ },
+ {
+  "id": "betrieb/betrieb-und-update",
+  "path": [
+   "Betrieb und Update"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Stand: Mailhelp 5.3.",
+  "title": "Betrieb und Update"
+ },
+ {
+  "id": "betrieb/starten-pruefen-beenden",
+  "path": [
+   "Betrieb und Update",
+   "Starten, prüfen, beenden"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "| Befehl oder Seite | Wirkung |\n| --- | --- |\n| `mailhelp --check --config-directory .` | prüft die Konfiguration ohne Netzwerkzugriff |\n| `mailhelp --check-access --config-directory .` | prüft alle Zugänge lesend |\n| `mailhelp --config-directory .` | startet den Dienst |\n| **Einstellungen → Mailhelp neu starten** | kontrollierter Neustart; gespeicherte Änderungen werden wirksam |\n| **Einstellungen → Mailhelp beenden** | Dienst anhalten |\n\nPro Datenverzeichnis läuft nur eine Instanz. **Konfiguration neu laden** wechselt Verbindungen\nohne Prozessneustart.",
+  "title": "Starten, prüfen, beenden"
+ },
+ {
+  "id": "betrieb/speichern-aktivieren-neuladen-und-neustart",
+  "path": [
+   "Betrieb und Update",
+   "Speichern, Aktivieren, Neuladen und Neustart"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "| Schritt | Was geschieht | Wann wirkt es |\n| --- | --- | --- |\n| Speichern | Eine geänderte Einstellung wird nach der Vorschau („Prüfen“) in `config.yaml` geschrieben. Die Seite zeigt „gespeichert“, bis sie wirkt. | – |\n| Im laufenden Betrieb übernehmen | Einstellungen wie Abrufintervall, Aufbewahrung, Messung, persönliche Angaben, Benachrichtigungen, Termindauern, Vorschlagsabgleich, Entwürfe und Briefings übernimmt Mailhelp selbst. | an der nächsten sicheren Stelle, ohne Neustart |\n| Aktivieren | Postfächer, IServ-Konten und Zielprofile werden auf ihren Seiten als Entwurf gespeichert und erst nach erneuter ausdrücklicher Bestätigung aktiviert (**Entwurf übernehmen**, **Verbindung prüfen und Postfach aktivieren**). | zwischen zwei Mailzyklen |\n| Konfiguration neu laden | **Konfiguration ausdrücklich neu laden** übernimmt Themen, Prompts, Postfächer, Zugangsdaten und Zielprofile, nachdem unfertige Analysen abgeschlossen sind. | am nächsten sicheren Zeitpunkt, ohne Prozessneustart |\n| Neustart | **Mailhelp neu starten** beendet den Dienst kontrolliert und startet ihn neu; alle übrigen gespeicherten Einstellungen sowie Web-Zugang und Datenverzeichnis werden wirksam. | sofort nach dem Neustart |\n\nSpeichern oder Aktivieren legt nie Aufgaben oder Termine an; dafür ist immer die ausdrückliche\nBestätigung eines Vorschlags nötig.",
+  "title": "Speichern, Aktivieren, Neuladen und Neustart"
+ },
+ {
+  "id": "betrieb/sicherung",
+  "path": [
+   "Betrieb und Update",
+   "Sicherung"
+  ],
+  "setting_ids": [
+   "data_directory"
+  ],
+  "source": "docs/Betrieb.md",
+  "text": "Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das Datenverzeichnis\n(`data_directory`, Zustände als lesbare JSON-Dateien) und bei Bedarf das Protokollverzeichnis.\n`.env` enthält Zugangsdaten und gehört nicht in fremde Hände.",
+  "title": "Sicherung"
+ },
+ {
+  "id": "betrieb/update",
+  "path": [
+   "Betrieb und Update",
+   "Update"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.\n2. Neuen Stand holen und in derselben virtuellen Umgebung installieren:\n   `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.\n3. `mailhelp --check --config-directory .` und danach starten.\n\nNeue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue\nPrompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige\nRelease-Bericht beschreibt die Übernahme.",
+  "title": "Update"
+ },
+ {
+  "id": "betrieb/aufbewahrung",
+  "path": [
+   "Betrieb und Update",
+   "Aufbewahrung"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Mailinhalte, Verlauf, Diagnosedaten, Prüfnachweise und Lernprotokolle folgen den Fristen unter\n`retention`; offene Vorgänge bleiben geschützt. Die Originalmails im Postfach werden nie gelöscht.",
+  "title": "Aufbewahrung"
+ },
+ {
+  "id": "betrieb/rueckkehr-zur-vorversion",
+  "path": [
+   "Betrieb und Update",
+   "Rückkehr zur Vorversion"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Vor der Rückkehr zu einer Version vor 5.2.0 bei beendetem Dienst\n`mailhelp --prepare-rollback --config-directory .` ausführen. Einzelheiten stehen im\nRelease-Bericht der jeweiligen Version.",
+  "title": "Rückkehr zur Vorversion"
+ }
+]

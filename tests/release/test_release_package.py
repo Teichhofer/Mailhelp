@@ -56,7 +56,8 @@ def test_built_artifacts_exclude_private_runtime_files():
     assert wheel.is_file() and source.is_file(), "Build artifacts for the current version must exist"
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
-        for module in ("domain/event_series.py", "review/series.py", "review/series_offers.py", "web/series_site.py",
+        for module in ("helpdocs/sections.json", "helpdocs/manifest.json", "helpdocs/__init__.py",
+                       "domain/event_series.py", "review/series.py", "review/series_offers.py", "web/series_site.py",
                        "telegram/series.py", "proposals/revision_protection.py", "defaults/prompts.yaml",
                        "proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",
                        "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py",

@@ -1,5 +1,20 @@
 # Änderungen
 
+## 5.3.6 – Geprüfte Dokumentation als Hilfebestand (Planung 5.3, Schritt H7)
+
+- Die freigegebene Dokumentation (Einstellungsreferenz und die sechs Anleitungen; keine Planungen,
+  Release-Berichte oder privaten Dateien) wird mit `python -m devtools.help_index` reproduzierbar
+  in Abschnitte zerlegt und als Paketressource `mailhelp/helpdocs` mit Versionsmanifest
+  (Anwendungsversion, Revision, Quellen-Prüfsummen) ausgeliefert; `--check` und ein Buildtest
+  stellen sicher, dass der Bestand den Quellen entspricht und im Wheel steckt.
+- Lokaler Leser unter `/hilfe/dokumentation` (nur angemeldet): alle Abschnitte ohne KI und ohne
+  Repository erreichbar. Ein fehlender, beschädigter oder fremder Bestand wird verständlich
+  gemeldet; Einstellungen und Suche funktionieren weiter.
+- Deterministische Kontextauswahl für den Hilfschat: höchstens sechs Abschnitte innerhalb eines
+  Bytebudgets, Vorrang für genannte Einstellungen, Anschlussfragen über den Verlauf; ein einzelnes
+  gemeinsames Wort reicht nie für einen Zusammenhang.
+- Neuer Abschnitt „Speichern, Aktivieren, Neuladen und Neustart“ im Betriebsdokument.
+
 ## 5.3.5 – Anleitungen für Ziele, Bedienung, Fehlerbehebung und Betrieb (Planung 5.3, Schritt H6)
 
 - Neue Anleitungen [Kalender und Aufgaben verbinden](docs/Ziele-einrichten.md) (alle Anbieter mit
