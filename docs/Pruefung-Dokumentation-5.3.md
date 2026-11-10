@@ -2,8 +2,8 @@
 
 **Grundlage:** [Planung 5.3](Planung-5.3.md), Abschnitt 9
 **Prüfstand:** Mailhelp 5.3.0 (nach Abschluss von 5.0 bis 5.2, Commit-Folge ab `51d7c62`)
-**Status:** H1 Bestandsaufnahme, H2 Einstellungsreferenz vollständig (5.3.1), H5/H6 Anleitungen
-(5.3.4, 5.3.5). Offen für die Releaseabnahme: Docker-Wege.
+**Status:** abgeschlossen mit Release 5.3.11 ([Release-Bericht](Release-5.3.md)). Offen: Docker-Wege
+und die Bewertung echter Modellantworten des Hilfschats (Freigabe erforderlich).
 
 Dieser Bericht ist der Nachweis der Dokumentationsprüfung von 5.3. Der erzeugte Teil unten
 listet jede Einstellung und jede Kommandozeilenoption so, wie der Code sie tatsächlich kennt;

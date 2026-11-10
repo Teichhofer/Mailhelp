@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "5.3.10"
+version = "5.3.11"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -173,6 +173,9 @@ include = [
   "/docs/Planung-5.0.md", "/docs/Release-5.0.md",
   "/docs/Planung-5.1.md", "/docs/Release-5.1.md",
   "/docs/Planung-5.2.md", "/docs/Release-5.2.md",
+  "/docs/Planung-5.3.md", "/docs/Release-5.3.md", "/docs/Pruefung-Dokumentation-5.3.md",
+  "/docs/Ersteinrichtung.md", "/docs/Konten-verwalten.md", "/docs/Ziele-einrichten.md", "/docs/Bedienung.md",
+  "/docs/Fehlerbehebung.md", "/docs/Betrieb.md",
   "/docs/Planung-Fristen-Zusammenfassung.md", "/docs/Planung-4.6.md", "/docs/Release-4.6.md", "/docs/Planung-4.7.md", "/docs/Release-4.7.md", "/docs/Planung-4.8.md", "/docs/Release-4.8.md",
   "/docs/Planung-3.6.md", "/docs/Planung-3.7.md", "/docs/Zustandsregeln-3.6.md",
   "/docs/Release-3.7.md", "/docs/Google-OAuth-Playground.md", "/docs/Einrichtung-und-Qualitaetspruefung.md",

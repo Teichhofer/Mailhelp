@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.3.11 – Abnahme und Release 5.3 (Planung 5.3, Schritt H12)
+
+- Release-Bericht [docs/Release-5.3.md](docs/Release-5.3.md) mit allen Änderungen 5.3.0 bis 5.3.10,
+  Einrichtung, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.3 ist abgeschlossen.
+- Abnahme unter Windows 11: 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite 351 von 351,
+  Live-Suche unter 300 ms, Lasttests, Ruff, mypy, Prompt-Gate, Inventur- und Hilfebestandsprüfung,
+  Paketprüfung. Offen und benannt: Linux/Docker (nicht verfügbar) und die Bewertung echter
+  Modellantworten (Freigabe erforderlich); der Chat ist eine eigene Seite statt eines
+  Seitenbereichs.
+- Das Quellarchiv enthält Planung, Release-Bericht, Prüfbericht und alle aktuellen Anleitungen.
+
 ## 5.3.10 – Abnahmematrix, Fragenkorpus und Paketbetrieb (Planung 5.3, Schritt H11)
 
 - Synthetischer Fragenkorpus mit 40 Fällen (Einstellungen, Einrichtung, Fehler, fehlende Quellen,
