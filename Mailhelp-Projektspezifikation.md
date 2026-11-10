@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.3.12. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.3.13. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2172,6 +2172,13 @@ werden keine Analysen und Web-Befehle mehr ausgeführt. Nach Auslieferung der An
 der Lebenszyklus `Application.stop()` auf – denselben Weg wie SIGINT/SIGTERM. Zustände:
 `running → stop_requested → stopping → stopped`, jeweils protokolliert. Eine
 Stoppanforderung gilt nur für ihren Prozess und wird nie wiederholt.
+Eine abgelehnte Bestätigung antwortet mit 409, nennt den Grund und protokolliert
+`stop_refused` mit einem festen Grundcode: `stale_process` (Seite eines früheren Starts,
+etwa von vor einem Neustart), `unconfirmed`, `invalid_key`, `unauthorized` oder
+`already_requested`. Bei den ersten drei zeigt die Antwort eine neue, an den laufenden
+Prozess gebundene Bestätigung; ausgeführt wird nur diese ausdrücklich bestätigte neue
+Anforderung. Ohne gültige Sitzung oder bei bereits laufendem Stopp gibt es keine neue
+Bestätigung.
 
 Neben „Mailhelp beenden“ steht in den Einstellungen „Mailhelp neu starten“.
 `GET /einstellungen/neustarten` zeigt die Bestätigungsseite; der bestätigte POST

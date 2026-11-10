@@ -78,6 +78,9 @@ eine eigene Bestätigungsseite. Neustarten stoppt den laufenden Dienst kontrolli
 und startet denselben Interpreter mit denselben Optionen neu. Gespeicherte Einstellungen,
 Zugangsdaten und Code werden neu geladen; Einrichtungsentwürfe werden dadurch nicht
 übernommen. Offene Vorgänge bleiben erhalten. Danach die Weboberfläche erneut öffnen.
+Stammt eine Bestätigung von einem früheren Start (zum Beispiel von einer Seite, die vor einem
+Neustart geöffnet wurde) oder ist sie unvollständig, nennt Mailhelp den Grund und zeigt auf
+derselben Seite eine neue Bestätigung.
 
 Die folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderungen werden erst nach der separaten Bestätigung gespeichert. „Im laufenden Betrieb“ bedeutet Übernahme an der nächsten sicheren Stelle; andere Einstellungen erfordern einen Neustart. Zahlen mit Dezimalpunkt eingeben, z. B. `0.30`. `null`, `disabled` und `unlimited` nur verwenden, wo sie unten erlaubt sind. Bei Zahlenfeldern lassen sich Sonderwerte gegebenenfalls nur direkt in `config.yaml` setzen.
 

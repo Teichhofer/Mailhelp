@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.3.13 – Beenden und Neustart nach Ablehnung wieder möglich
+
+- Behoben: Nach einem Neustart über die Weboberfläche führten **Mailhelp beenden** und
+  **Mailhelp neu starten** nur zur Meldung „nicht bestätigt oder Anforderung veraltet“, ohne
+  Grund und ohne Weg nach vorn. Eine abgelehnte Bestätigung nennt jetzt den Grund und zeigt bei
+  einer Bestätigung von einem früheren Start oder einer unvollständigen Bestätigung sofort eine
+  neue, an den laufenden Prozess gebundene Bestätigung (Regressionstests).
+- Das Protokoll enthält bei jeder Ablehnung `stop_refused` mit festem Grundcode
+  (`stale_process`, `unconfirmed`, `invalid_key`, `unauthorized`, `already_requested`); ohne
+  gültige Sitzung oder bei bereits laufendem Stopp gibt es keine neue Bestätigung.
+
 ## 5.3.12 – Chatsymbol für den Hilfschat
 
 - Auf allen Einstellungsseiten (`/einstellungen…` und `/themen`) öffnet ein rundes Chatsymbol

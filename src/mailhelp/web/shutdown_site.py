@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..runtime.lifecycle import StopRefused
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
@@ -39,21 +40,29 @@ class ShutdownSite:
             'Offene Vorgänge bleiben gespeichert. Neustart erfolgt am PC oder über den Container/Dienst; '
             'ein Supervisor kann automatisch neu starten. Windows und andere Prozesse werden nicht beendet.')
         heading = "Mailhelp neu starten?" if restart else "Mailhelp beenden?"
-        button = "Mailhelp ausdrücklich neu starten" if restart else "Mailhelp ausdrücklich beenden"
         body = f'<h1>{heading}</h1>' + notice(explanation, "warn")
-        body += post_form(request.path, self.site.auth.csrf_token(session.id), '', button,
-                          process=lifecycle.process, confirm="yes")
+        body += self._form(request, session, restart)
         return Response.html(200, layout(action, body))
+
+    def _form(self, request: Request, session: WebSession, restart: bool) -> str:
+        """A fresh confirmation bound to the running process."""
+        assert self.archive.lifecycle is not None
+        button = "Mailhelp ausdrücklich neu starten" if restart else "Mailhelp ausdrücklich beenden"
+        return post_form(request.path, self.site.auth.csrf_token(session.id), '', button,
+                         process=self.archive.lifecycle.process, confirm="yes")
 
     def stop(self, request: Request, session: WebSession, form: dict[str, str], *, restart: bool = False) -> Response:
         lifecycle = self.archive.lifecycle
         action = "Neustart" if restart else "Beenden"
-        try:
-            if lifecycle is None or form.get("confirm") != "yes":
-                raise ValueError("Bestätigung fehlt")
-            callback = lifecycle.request(form["process"], form["key"], f"web:{session.id}", restart=restart)
-        except (ValueError, KeyError):
+        if lifecycle is None:
             return self.site._reply(request, 409, f"{action} nicht bestätigt oder Anforderung veraltet.")
+        try:
+            if form.get("confirm") != "yes":
+                raise StopRefused("unconfirmed", "Bestätigung fehlt")
+            callback = lifecycle.request(form.get("process", ""), form.get("key", ""), f"web:{session.id}",
+                                         restart=restart)
+        except StopRefused as refused:
+            return self._refused(request, session, refused.reason, restart)
         heading = f"{action} angefordert"
         explanation = ('Mailhelp startet nach dem kontrollierten Stopp neu. Anschließend '
                        '<a href="/">Weboberfläche erneut öffnen</a>.' if restart else
@@ -63,3 +72,27 @@ class ShutdownSite:
             heading, f'<h1>{heading}</h1><p>{explanation}</p>'))
         response.after_send = callback
         return response
+
+    def _refused(self, request: Request, session: WebSession, reason: str, restart: bool) -> Response:
+        """Say why, log a fixed reason code and offer a fresh confirmation where it can help."""
+        action = "Neustart" if restart else "Beenden"
+        self.site.logger.event("WARNING", "lifecycle", "stop_refused", reason=reason, restart=restart)
+        text = REFUSALS[reason].format(action=action)
+        if request.wants_json():
+            return Response.json(409, {"error": text, "reason": reason})
+        body = f"<h1>{action} nicht ausgeführt</h1>" + notice(text, "warn")
+        if reason in RETRYABLE:
+            body += self._form(request, session, restart)
+        return Response.html(409, layout(action, body))
+
+
+# Fixed texts for the refusal codes of :class:`StopRefused`; no request data is shown.
+REFUSALS = {
+    "stale_process": ("Die Bestätigung stammte von einem früheren Mailhelp-Start, zum Beispiel von vor einem "
+                      "Neustart. Bitte hier erneut bestätigen."),
+    "unconfirmed": "Die Bestätigung war unvollständig. Bitte hier erneut bestätigen.",
+    "invalid_key": "Die Bestätigung war unvollständig. Bitte hier erneut bestätigen.",
+    "unauthorized": "Die Anmeldung dieses Geräts ist nicht mehr gültig. Bitte neu anmelden.",
+    "already_requested": "{action} wurde bereits angefordert und läuft.",
+}
+RETRYABLE = {"stale_process", "unconfirmed", "invalid_key"}

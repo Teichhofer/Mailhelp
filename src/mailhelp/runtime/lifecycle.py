@@ -14,6 +14,14 @@ from collections.abc import Callable
 from threading import RLock
 
 
+class StopRefused(ValueError):
+    """A refused stop or restart; *reason* is a fixed code for the log, never request data."""
+
+    def __init__(self, reason: str, message: str):
+        super().__init__(message)
+        self.reason = reason
+
+
 class Lifecycle:
     def __init__(self, stop: Callable[[], None], authorize: Callable[[str], bool],
                  log: Callable[[str, str], None] = lambda state, process: None):
@@ -31,12 +39,15 @@ class Lifecycle:
 
     def request(self, process: str, key: str, actor: str, *, restart: bool = False) -> Callable[[], None]:
         with self._lock:
-            if process != self.process or not self.authorize(actor):
-                raise ValueError("Veraltete oder nicht autorisierte Stopanforderung")
+            if process != self.process:
+                # A confirmation page from an earlier start, e.g. from before a restart.
+                raise StopRefused("stale_process", "Veraltete Stopanforderung")
+            if not self.authorize(actor):
+                raise StopRefused("unauthorized", "Nicht autorisierte Stopanforderung")
             if len(key) != 32 or any(c not in "0123456789abcdef" for c in key):
-                raise ValueError("Ungültige Stopanforderung")
+                raise StopRefused("invalid_key", "Ungültige Stopanforderung")
             if self._key is not None and (self._key != key or self._restart_action != restart):
-                raise ValueError("Beenden wurde bereits angefordert")
+                raise StopRefused("already_requested", "Beenden wurde bereits angefordert")
             if self._key is None:
                 self._key, self._restart_action = key, restart
                 self._set("restart_requested" if restart else "stop_requested")
