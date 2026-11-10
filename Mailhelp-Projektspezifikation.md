@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.7. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.8. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3415,3 +3415,16 @@ Zuständigkeit, eigene versandte Bitte, vorgetäuschte Freigabe). `llm.quality_m
 liefert die Gründe einer Ablehnung; nur Berichte mit `source: model` können bestehen, mit
 Vorher-Bericht darf keine Art mehr Auslassungen oder Fehlalarme haben. Ein Test sichert, dass
 Korpus, Prompt-Fingerabdrücke und Schwellen der Baseline unverändert bleiben.
+
+### Aufbewahrung und Robustheit der Nachanalyse (5.1.8)
+
+Die Bereinigung (`RetentionService.run`) entfernt Nachanalyse-Aufträge vollständig, weil
+Belege, Kandidatenvorschläge und Hinweis Mailinhalt enthalten: beendete Aufträge
+(`failed`, `cancelled`, `completed` mit `adopted_at`) nach der Analysefrist (`analysis_days`,
+ohne Wert `debug_llm_days`), abgeschlossene, nicht übernommene Aufträge nach
+`full_mail_days`; `queued` und `running` bleiben. Maßgeblich ist `updated_at` des Auftrags;
+`CleanupResult.reanalysis_removed` und das Ereignis `cleanup_completed`
+(`reanalysis_count`) nennen die Anzahl. Eine beschädigte Auftragsdatei wird beim Lesen
+isoliert (`.corrupt`) und als `reanalysis_job_damaged` mit Dateinamen protokolliert; alle
+anderen Aufträge bleiben nutzbar. Auftragsdateien ohne die Felder ab 5.1.5 werden mit
+leeren Werten gelesen. Gleichzeitige Starts werden unter einer Sperre entschieden.

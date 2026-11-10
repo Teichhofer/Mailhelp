@@ -141,6 +141,8 @@ retention:
   # Weboberfläche. Fehlt der Schlüssel, gilt wie bisher debug_llm_days. 30 bewusst setzen,
   # damit Analysen nach Abschluss eines Vorgangs 30 Tage sichtbar bleiben.
   # analysis_days: 30
+  # Ab 5.1.8 gilt diese Analysefrist auch für beendete Nachanalysen (fehlgeschlagen,
+  # abgebrochen oder übernommen); nicht übernommene Ergebnisse folgen full_mail_days.
   # Ab 1.2: angezeigter Entscheidungsverlauf (Ereignisse, ältere Vorschlagsversionen).
   history_days: 90
   # Ab 2.2: Volltexte und Belegzitate abgeschlossener Tätigkeitsberichte; Termine,

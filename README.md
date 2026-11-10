@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.1.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.1.8 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -687,7 +687,8 @@ Budgethinweis; das Ergebnis lässt sich vergleichen und geprüft übernehmen. Ab
 `mailhelp-quality-report` Erkennung, Auslassungen, Fehlalarme und Feldkorrektheit auf dem
 synthetischen Korpus v4 – getrennt von einer echten Modellbewertung. 5.1.7 behebt, dass Mails
 eines Postfachs mit eigenen Einstellungen nach einer Unterbrechung dauerhaft unbearbeitet
-blieben, und friert eine Qualitäts-Baseline mit festen Abnahmeschwellen ein. Plan: [Planung 5.1](docs/Planung-5.1.md).
+blieben, und friert eine Qualitäts-Baseline mit festen Abnahmeschwellen ein. Ab 5.1.8 gelten die
+Aufbewahrungsfristen auch für Nachanalyse-Aufträge. Plan: [Planung 5.1](docs/Planung-5.1.md).
 
 ## Lizenz
 

@@ -20,6 +20,7 @@ from ..domain.mail import MailState
 from ..domain.reanalysis import ACTIVE, ReanalysisError, ReanalysisJob, ReanalysisStatus, adoption_pending
 from ..mailbox.imap import FetchedMail, FolderNotReadable, UIDValidityChanged
 from ..mailbox.mime import prepare
+from ..storage import CorruptState
 from .perspective import Perspective, read_perspective
 
 PREFIX = "reanalysis-"
@@ -73,8 +74,32 @@ class ReanalysisJobs:
         self.lock = threading.Lock()
 
     def all(self) -> list[ReanalysisJob]:
-        jobs = [self.store.load_model(name, ReanalysisJob) for name in self.store.names(PREFIX)]
+        jobs = []
+        for name in self.store.names(PREFIX):
+            try:
+                jobs.append(self.store.load_model(name, ReanalysisJob))
+            except CorruptState:
+                # 5.1.8: the store isolated the damaged file; the other jobs stay usable.
+                self.logger.event("ERROR", "reanalysis", "reanalysis_job_damaged", state_name=name)
         return sorted((job for job in jobs if isinstance(job, ReanalysisJob)), key=lambda job: job.created_at)
+
+    def remove_expired(self, finished_period: Any, result_period: Any, now: datetime,
+                       expired: Callable[[Any, datetime, datetime], bool]) -> int:
+        """5.1.8: retention for jobs: their evidence and hint are mail content.
+
+        Finished jobs (failed, cancelled or adopted) follow the analysis period, a result that
+        was never adopted follows the period of full mail content; active jobs stay.
+        """
+        removed = 0
+        with self.lock:
+            for job in self.all():
+                if job.status in ACTIVE:
+                    continue
+                waiting = job.status == ReanalysisStatus.COMPLETED and job.adopted_at is None
+                if expired(result_period if waiting else finished_period, job.updated_at, now):
+                    self.store.delete(PREFIX + job.id)
+                    removed += 1
+        return removed
 
     def for_mail(self, mail_id: str) -> list[ReanalysisJob]:
         return [job for job in self.all() if job.mail_id == mail_id]

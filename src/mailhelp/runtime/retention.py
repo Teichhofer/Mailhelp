@@ -30,6 +30,7 @@ class CleanupResult:
     mail_scrubbed: int = 0
     debug_scrubbed: int = 0
     activity_scrubbed: int = 0
+    reanalysis_removed: int = 0
 
 
 class RetentionService:
@@ -121,9 +122,16 @@ class RetentionService:
         from ..activity.store import ActivityReportStore
         activity_scrubbed = ActivityReportStore(self.store).remove_expired_texts(
             self.settings.activity_report_days, now)
-        result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed, activity_scrubbed)
+        from ..config import ReanalysisSettings
+        from ..processing.reanalysis import ReanalysisJobs
+        analysis = self.settings.debug_llm_days if self.settings.analysis_days is None else self.settings.analysis_days
+        reanalysis_removed = ReanalysisJobs(self.store, ReanalysisSettings(), self.logger).remove_expired(
+            analysis, self.settings.full_mail_days, now, self._expired)
+        result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed, activity_scrubbed,
+                               reanalysis_removed)
         self.logger.event("INFO", "retention", "cleanup_completed", processed_at=now.isoformat(),
                           scanned_count=scanned, protected_count=protected,
                           mail_count=mail_scrubbed, debug_count=debug_scrubbed,
-                          activity_count=activity_scrubbed, learning_count=learning_removed)
+                          activity_count=activity_scrubbed, learning_count=learning_removed,
+                          reanalysis_count=reanalysis_removed)
         return result

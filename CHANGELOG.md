@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.1.8 – Aufbewahrung und Gesamtsicherheit der Nachanalyse (Planung 5.1, Schritt R9)
+
+- Aufbewahrung gilt auch für Nachanalyse-Aufträge, weil Belege und Hinweis Mailinhalt sind:
+  beendete Aufträge (fehlgeschlagen, abgebrochen, übernommen) folgen der Analysefrist
+  (`analysis_days`, sonst `debug_llm_days`), nicht übernommene Ergebnisse `full_mail_days`;
+  laufende Aufträge bleiben. Die Bereinigung meldet die Zahl entfernter Aufträge.
+- Eine beschädigte Auftragsdatei wird isoliert und protokolliert; Liste, Mailansicht und
+  Hintergrunddienst arbeiten mit den übrigen Aufträgen weiter.
+- Abgesichert: Auftragsdateien von vor 5.1.5 bleiben lesbar; gleichzeitige Starts für eine
+  Mail ergeben genau einen Auftrag. Fehlende Originale, Versionskonflikte und Neustarts
+  waren bereits mit 5.1.2 bis 5.1.5 geprüft.
+
 ## 5.1.7 – Gezielte Erkennungsverbesserungen (Planung 5.1, Schritt R8)
 
 - Fehlerbehebung: Die Wiederaufnahme unfertiger Mails verglich deren Konfiguration mit der
