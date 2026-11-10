@@ -50,6 +50,19 @@ MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 
 # Open decisions of the current request, set once by the session guard (5.0.1).
 OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
+# 5.3.12: whether the current request shows the floating help chat button (settings pages).
+HELP_BUTTON: ContextVar[bool] = ContextVar("help_button", default=False)
+HELP_ICON = "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"
+
+
+def shows_help_button(path: str) -> bool:
+    """The settings area: every page below /einstellungen and the topics page."""
+    return path == "/themen" or path == "/einstellungen" or path.startswith("/einstellungen/")
+
+
+def _help_button() -> str:
+    return ('<a class="help-fab" href="/hilfe" aria-label="Hilfschat öffnen" title="Hilfschat öffnen">'
+            + _icon(HELP_ICON) + "</a>")
 
 
 def _icon(path: str) -> str:
@@ -129,6 +142,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <main id="inhalt">{before}
 {content}
 {after}</main>
+{_help_button() if signed_in and HELP_BUTTON.get() else ""}
 </body>
 </html>
 """
@@ -233,5 +247,5 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
 </section>""", signed_in=signed_in)
 
 
-__all__ = ["NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout", "login_page",
-           "notice"]
+__all__ = ["HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout",
+           "login_page", "notice"]

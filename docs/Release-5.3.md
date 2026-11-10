@@ -25,6 +25,7 @@ braucht weiterhin die ausdrückliche, versionsbezogene Bestätigung.
 | 5.3.9 | H10 | Chatseite **Hilfe zu Einstellungen** mit „Dazu fragen“, Quellenlinks und Betrieb ohne JavaScript |
 | 5.3.10 | H11 | Fragenkorpus (40 Fälle), Abnahmematrix, Paketbetrieb außerhalb des Checkouts |
 | 5.3.11 | H12 | Abnahme und dieser Bericht |
+| 5.3.12 | – | Nachtrag: Chatsymbol unten rechts auf allen Einstellungsseiten öffnet den Hilfschat |
 
 ### Während der Prüfung gefundene und behobene Fehler
 

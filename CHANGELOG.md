@@ -1,5 +1,14 @@
 # Änderungen
 
+## 5.3.12 – Chatsymbol für den Hilfschat
+
+- Auf allen Einstellungsseiten (`/einstellungen…` und `/themen`) öffnet ein rundes Chatsymbol
+  unten rechts den Hilfschat **Hilfe zu Einstellungen**. Auf dem Handy liegt es über der unteren
+  Leiste, im Druck entfällt es; es funktioniert ohne JavaScript und ist für Screenreader als
+  „Hilfschat öffnen“ benannt. Auf der Hilfeseite selbst und in anderen Bereichen erscheint es nicht.
+- Behoben vor der Auslieferung: Unter 720 Pixel Breite blendete die allgemeine Regel für
+  Navigationssymbole das Symbol im Knopf aus (Regressionstest im Browser).
+
 ## 5.3.11 – Abnahme und Release 5.3 (Planung 5.3, Schritt H12)
 
 - Release-Bericht [docs/Release-5.3.md](docs/Release-5.3.md) mit allen Änderungen 5.3.0 bis 5.3.10,

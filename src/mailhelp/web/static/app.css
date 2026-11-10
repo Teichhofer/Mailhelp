@@ -797,3 +797,16 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .help-sources { margin: 4px 0 0; padding-left: 18px; }
 .help-sources a, .ask-help { display: inline-block; min-height: 44px; line-height: 44px; }
 .help-form textarea { width: 100%; font-size: 16px; }
+/* 5.3.12: floating help chat button on the settings pages, above the phone tab bar. */
+.help-fab { position: fixed; right: calc(20px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 25; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px;
+  border-radius: 50%; background: var(--accent); color: var(--accent-text);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .25); }
+.help-fab:hover { filter: brightness(1.08); }
+.help-fab:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.help-fab .nav-icon { display: block; width: 26px; height: 26px; stroke-width: 1.9; }
+.app-shell main:has(~ .help-fab) { padding-bottom: 88px; }
+@media (max-width: 899px) {
+  .help-fab { bottom: calc(76px + env(safe-area-inset-bottom)); right: calc(16px + env(safe-area-inset-right)); }
+}
+@media print { .help-fab { display: none; } }

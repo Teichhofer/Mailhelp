@@ -33,7 +33,7 @@ from .app import WebApp
 from .auth import WebAuth, WebSession
 from .http import Request, Response
 from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
-from .pages import OPEN_DECISIONS, error_page, layout, notice
+from .pages import HELP_BUTTON, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
 from .review_site import ReviewSite
 from .sender_site import LIST_PATH as SENDERS_PATH
 from .sender_site import SenderSite
@@ -187,13 +187,18 @@ class MailhelpSite:
             return self._counted(handler, request, session, **arguments)
         return guarded
 
-    def _counted(self, handler: Handler, *values: object, **arguments: str) -> Response:
-        """The navigation shows the open decisions of the published overview (5.0.1)."""
+    def _counted(self, handler: Handler, request: Request, *values: object, **arguments: str) -> Response:
+        """The navigation shows the open decisions of the published overview (5.0.1).
+
+        Settings pages also show the floating help chat button (5.3.12).
+        """
         overview = self.overview()
         token = OPEN_DECISIONS.set(len(overview.open) + len(overview.relevance))
+        button = HELP_BUTTON.set(shows_help_button(request.path))
         try:
-            return handler(*values, **arguments)
+            return handler(request, *values, **arguments)
         finally:
+            HELP_BUTTON.reset(button)
             OPEN_DECISIONS.reset(token)
 
 

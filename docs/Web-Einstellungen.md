@@ -344,8 +344,9 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 ## Hilfschat
 
 **Hilfe zu Einstellungen** (`/hilfe`) beantwortet Fragen zur Bedeutung von Einstellungen und zu
-Bedienabläufen. „Dazu fragen“ an einer Einstellung oder einem Treffer der Sofortsuche öffnet den
-Chat mit diesem Bezug. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,
+Bedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem
+Handy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer
+der Sofortsuche öffnet den Chat mit diesem Bezug. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,
 Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 
 - **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten

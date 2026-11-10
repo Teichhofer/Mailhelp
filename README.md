@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.3.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.3.12 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -725,6 +725,7 @@ Einstellungen und Optionen im [Prüfbericht](docs/Pruefung-Dokumentation-5.3.md)
 Ab 5.3.3 erscheinen Treffer der Einstellungssuche schon beim Tippen; ab 5.3.9 beantwortet
 **Hilfe zu Einstellungen** Fragen mit Quellen aus der mitgelieferten Dokumentation (Schritt
 `settings_help` in `prompts.yaml`, Einstellungen unter `help_chat`); der Chat ändert nichts.
+Ab 5.3.12 öffnet ein Chatsymbol unten rechts auf allen Einstellungsseiten den Hilfschat.
 Plan: [Planung 5.3](docs/Planung-5.3.md); Abnahme, Upgrade und Grenzen: [Release-Bericht 5.3](docs/Release-5.3.md).
 
 ## Lizenz
