@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.4. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3541,6 +3541,14 @@ Kalenderdatei (`CalendarFileWriter`): Ergebnis `operation: calendar_file`, der V
 
 Serien (`review.series`): jeder Termin ist ein eigener Vorschlag und erhält seinen eigenen
 Prüfnachweis; wiederkehrende Kalenderserien (RRULE) werden nicht verändert.
+
+Wiederholungen (5.2.5): Der nächste Abruf folgt nach `max(retry_delays_seconds[n], Retry-After)`;
+`Retry-After` wird als Sekunden oder HTTP-Datum mit Zone gelesen und auf 3600 s begrenzt, eine
+Angabe ohne Zone oder ungültige Angabe zählt nicht. Liegt der Termin nach `deadline_at`, endet
+die Prüfung mit dem jeweiligen Fehlercode. `WriteVerifications` führt je Prüfkennung höchstens
+eine Prüfung gleichzeitig aus (In-Prozess-Schutz; ein zweiter Mailhelp-Prozess ist durch die
+Zustandssperre ausgeschlossen). Abrufe laufen im Operator-Durchlauf (`resume`) außerhalb von
+Dialog- und Zustandssperre; nur das Ergebnis wird unter der Sperre gespeichert.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
+from threading import Lock
 from typing import Any, cast, get_args
 
 import httpx
@@ -46,10 +48,28 @@ NOT_VISIBLE = "not_visible"
 # A cancelled entry may still be visible for a moment; only a lasting one is a deviation.
 STILL_ACTIVE = "still_active"
 OPERATIONS: tuple[Operation, ...] = get_args(Operation)
+# A provider's wait hint is honoured up to an hour; beyond the deadline the check ends unverified.
+MAX_RETRY_AFTER = 3600.0
 
 
 def idempotency_key(proposal: Proposal) -> str:
     return f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
+
+
+def retry_after(error: Exception, now: datetime) -> float:
+    """Seconds a provider asked to wait (``Retry-After`` as seconds or HTTP date); 0 without a hint."""
+    if not isinstance(error, httpx.HTTPStatusError):
+        return 0.0
+    value = error.response.headers.get("Retry-After", "").strip()
+    if value.isdigit():
+        return min(float(value), MAX_RETRY_AFTER)
+    try:
+        moment = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if moment.tzinfo is None:
+        return 0.0
+    return min(max((moment - now).total_seconds(), 0.0), MAX_RETRY_AFTER)
 
 
 def _read_error(error: Exception) -> tuple[str, bool]:
@@ -73,6 +93,8 @@ class WriteVerifications:
                  now: Callable[[], datetime] = lambda: datetime.now(UTC), logger: EventLogger | None = None):
         self.store, self.settings = store, settings or WriteVerificationSettings()
         self.now, self.logger = now, logger or NullLogger()
+        # At most one running check per operation, even if a reload or a second caller asks again.
+        self._guard, self._active = Lock(), set[str]()
 
     def load(self, proposal: Proposal) -> WriteVerification | None:
         """The record of this version's single write operation, whichever it is."""
@@ -162,7 +184,16 @@ class WriteVerifications:
         assert record.next_check_at is not None  # a pending check with a receipt is always scheduled
         if record.next_check_at > self.now():
             return proposal, record
-        record = self._save(self._attempt(record, reader))
+        with self._guard:
+            if record.id in self._active:
+                return proposal, record
+            self._active.add(record.id)
+        try:
+            # The read runs outside every state lock; only the result is saved under it.
+            record = self._save(self._attempt(record, reader))
+        finally:
+            with self._guard:
+                self._active.discard(record.id)
         self.logger.event("INFO", "verification", "write_checked", mail_id=record.mail_id,
                           proposal_id=record.proposal_id, version=record.proposal_version,
                           attempt=record.attempts, state=record.state.value, error=record.last_error,
@@ -186,7 +217,9 @@ class WriteVerifications:
             found = reader.read_entry(record.receipt.external_id)
         except Exception as error:
             code, transient = _read_error(error)
+            wait = retry_after(error, now)
         else:
+            wait = 0.0
             if record.operation == "cancel":
                 # A cancellation is proven by the entry no longer being active at the bound target.
                 if found is None:
@@ -199,7 +232,7 @@ class WriteVerifications:
             else:
                 code, transient = NOT_VISIBLE, True
         delays = self.settings.retry_delays_seconds
-        due = now + timedelta(seconds=delays[attempts - 1]) if attempts <= len(delays) else None
+        due = (now + timedelta(seconds=max(delays[attempts - 1], wait))) if attempts <= len(delays) else None
         if transient and due is not None and due <= record.deadline_at:
             return record.model_copy(update={**base, "state": VerificationState.PENDING, "next_check_at": due,
                                               "last_error": code})

@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.2.5 – Dauerhafte Lese-Wiederholungen, Anbieterlimits und parallele Prüfungen (Planung 5.2, Schritt V8)
+
+- Ein `Retry-After` des Anbieters (Sekunden oder Datum, höchstens eine Stunde) verschiebt den
+  nächsten Abruf; reicht die Prüfdauer dafür nicht, endet die Prüfung verständlich ungeprüft
+  („der Anbieter hat zu viele Anfragen gemeldet“), ohne schnelle Schleife.
+- Je Operation läuft höchstens eine Prüfung gleichzeitig, auch wenn ein zweiter Aufrufer
+  (Neuladen, zweiter Durchlauf) sie zeitgleich anstößt.
+- Abgesichert durch Tests: Der Abruf hält keine Zustandssperre, ein Neustart setzt die
+  gespeicherte Prüfung mit Versuchszähler und Termin fort, ein neuer Token für dasselbe Konto ist
+  erlaubt, ein anderes Konto oder Ziel stoppt die Prüfung.
+
 ## 5.2.4 – Nachprüfung von Änderungen, Absagen, Dubletten und Kalenderdateien (Planung 5.2, Schritt V7)
 
 - Jede vorbereitete Kalenderoperation trägt ihre Operation und ihren Sollstand: geänderter
