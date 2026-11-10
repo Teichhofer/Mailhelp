@@ -99,7 +99,7 @@ class ConfirmedWriteExecutor:
             return self._write_failed(proposal, exc)
         self._profile_health(proposal, "")
         if result.get("verifying"):
-            return self._verify(proposal, changed, writer)
+            return self._verify(proposal, changed, writer, result)
         if result.get("target_mismatch"):
             self._report_target_mismatch(proposal)
             return changed
@@ -118,7 +118,8 @@ class ConfirmedWriteExecutor:
             self.persistence.persist(changed.model_copy(update={"simulation_notified": True}))
         return changed
 
-    def _verify(self, proposal: Proposal, changed: Proposal, writer: ExternalWriter) -> Proposal:
+    def _verify(self, proposal: Proposal, changed: Proposal, writer: ExternalWriter,
+                result: dict[str, Any]) -> Proposal:
         """One due read of a written entry; each final outcome is reported once (5.2)."""
         if self.verification is None or not isinstance(writer, EntryReader):
             return changed  # stays VERIFYING; nothing may write it again
@@ -128,9 +129,33 @@ class ConfirmedWriteExecutor:
         if record.state != VerificationState.VERIFIED:
             self.telegram.send(self.chat_id, self._unverified_text(proposal, record))
         elif changed.status == ProposalStatus.CREATED:
-            self.telegram.send(self.chat_id, self._created_text(proposal, changed, verified=True))
+            self.telegram.send(self.chat_id, self._verified_text(proposal, changed, record, result))
         self.verification.mark_notified(record)
         return changed
+
+    def _verified_text(self, proposal: Proposal, changed: Proposal, record: WriteVerification,
+                       result: dict[str, Any]) -> str:
+        """The success message of the verified operation; details only while the write result is known."""
+        title, operation = proposal.title, record.operation
+        assert record.receipt is not None
+        if operation == "cancel" and record.receipt.result == "existing":
+            return f"✅ Termin „{title}“ war im Kalender bereits abgesagt oder gelöscht (geprüft); nichts geändert."
+        if operation == "cancel":
+            return f"✅ Termin „{title}“ im Kalender abgesagt und geprüft."
+        if operation == "update":
+            changes = "; ".join(result.get("time_changes") or proposal.time_changes) or "bestätigte Angaben übernommen"
+            return (f"✅ Bestehender Termin „{title}“ geändert und geprüft: {changes}. Titel und Beschreibung "
+                    "bleiben erhalten; die Änderung ist in der Beschreibung vermerkt.")
+        if operation == "append" and result.get("time_changes"):
+            return (f"✅ Bestehender Termin „{title}“ aktualisiert und geprüft: {'; '.join(result['time_changes'])}. "
+                    "Die Änderung ist in der Terminbeschreibung vermerkt.")
+        if operation == "append":
+            return (f"Bereits vorhandener gleicher Termin „{title}“ wurde erkannt; fehlende Informationen wurden "
+                    "ergänzt und geprüft. Kein neuer Termin wurde angelegt.")
+        if operation == "duplicate":
+            return (f"Bereits vorhandener gleicher Termin „{title}“ wurde erkannt und frisch geprüft. "
+                    "Kein neuer Termin wurde angelegt.")
+        return self._created_text(proposal, changed, verified=True)
 
     def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
         if record.state == VerificationState.MISMATCH:
@@ -200,6 +225,9 @@ class ConfirmedWriteExecutor:
         operation = result.get("operation")
         if result.get("authorization_invalid"):
             return "Anlage blockiert: Freigabe, Vorschlagsversion oder Websitzung ist nicht mehr gültig."
+        if operation == "calendar_file":
+            return (f"📎 Kalenderdatei für „{proposal.title}“{self._event_time_details(changed)} bereitgestellt – "
+                    "Übernahme in den Kalender nicht prüfbar.")
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
             return f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, aber nicht angelegt (nur simuliert)."

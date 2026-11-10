@@ -46,6 +46,10 @@ def _point(raw: dict[str, str]) -> str | None:
     return raw.get("dateTime") or raw.get("date")
 
 
+# 5.2: after a cancellation the entry must no longer be active at the bound target.
+CANCELLED: dict[str, Any] = {"kind": "event", "status": "cancelled"}
+
+
 def _raise(error: Exception) -> dict[str, Any]:
     """A prepared write whose outcome is already known to be a refusal."""
     raise error
@@ -88,9 +92,11 @@ class CalendarOperations(HttpTransport):
                     base = body.get("description", existing.description)
                     body["description"] = f"{base}\n\n{note}" if base else note
                 return PreparedWrite(lambda: self._update_calendar_event(
-                    existing.id, body, key, proposal, changes))
+                    existing.id, body, key, proposal, changes),
+                    expected=self._existing_expected(existing, body), kind="append")
             return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
-                    "operation": "duplicate_skipped"}, requires_write=False)
+                    "operation": "duplicate_skipped"}, requires_write=False,
+                    expected=self._existing_expected(existing, {}), kind="duplicate")
         body = self._calendar_event_body(proposal, key)
         return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body),
                              expected=self._event_expected(proposal, body))
@@ -148,7 +154,8 @@ class CalendarOperations(HttpTransport):
             return PreparedWrite(partial(_raise, exc))
         if existing is None and proposal.is_cancellation:
             # Already deleted or cancelled (by hand or by an earlier, unclear attempt): done, no second write.
-            return PreparedWrite(lambda: {"id": event_id, "operation": "already_cancelled"}, requires_write=False)
+            return PreparedWrite(lambda: {"id": event_id, "operation": "already_cancelled"}, requires_write=False,
+                                 expected=CANCELLED, kind="cancel")
         if existing is None:
             # A change never recreates an entry the user deleted.
             return PreparedWrite(partial(_raise, PermanentError(
@@ -157,15 +164,25 @@ class CalendarOperations(HttpTransport):
             # Only the status changes; Outlook deletes, Google and CalDAV mark it cancelled.
             body: dict[str, Any] = {"status": "cancelled", "extendedProperties": {"private": {"mailhelp_key": key}}}
             operation = "event_cancelled"
+            expected = CANCELLED
         else:
             body, operation = self._change_body(proposal, key, existing), "event_changed"
+            expected = self._existing_expected(existing, body)
         changes = proposal.time_changes
 
         def change() -> dict[str, Any]:
             result = self._update_calendar_event(event_id, body, key, proposal, changes)
             return {**result, "operation": operation}
 
-        return PreparedWrite(change)
+        return PreparedWrite(change, expected=expected,
+                             kind="cancel" if proposal.is_cancellation else "update")
+
+    def _existing_expected(self, existing: CalendarOverlapEvent, body: dict[str, Any]) -> dict[str, Any]:
+        """The existing entry with exactly the confirmed changes; its own title always stays."""
+        start, end = body.get("start", existing.start), body.get("end", existing.end)
+        facts = event_facts(existing.summary, body.get("description", existing.description), None, None,
+                            "dateTime" not in start, body.get("location", existing.location), self.target)
+        return {**facts, "start": _point(start), "end": _point(end)}
 
     def _change_body(self, proposal: Proposal, key: str, existing: CalendarOverlapEvent) -> dict[str, Any]:
         # Revalidate at the external trust boundary, as for a new event.

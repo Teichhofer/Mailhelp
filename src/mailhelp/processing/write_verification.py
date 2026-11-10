@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any, cast, get_args
 
 import httpx
 
@@ -24,6 +24,8 @@ from .. import state_names
 from ..config import WriteVerificationSettings
 from ..domain.verification import (
     FINAL,
+    FieldDifference,
+    Operation,
     TargetBinding,
     VerificationState,
     WriteReceipt,
@@ -41,6 +43,9 @@ from ..storage import JsonStore
 
 # A read that may succeed later; every other failure ends the automatic checks.
 NOT_VISIBLE = "not_visible"
+# A cancelled entry may still be visible for a moment; only a lasting one is a deviation.
+STILL_ACTIVE = "still_active"
+OPERATIONS: tuple[Operation, ...] = get_args(Operation)
 
 
 def idempotency_key(proposal: Proposal) -> str:
@@ -70,9 +75,14 @@ class WriteVerifications:
         self.now, self.logger = now, logger or NullLogger()
 
     def load(self, proposal: Proposal) -> WriteVerification | None:
-        name = state_names.write_verification(
-            operation_id(proposal.source_mail_id, proposal.id, proposal.version, "create"))
-        return self.store.load_model(name, WriteVerification)
+        """The record of this version's single write operation, whichever it is."""
+        for operation in OPERATIONS:
+            name = state_names.write_verification(
+                operation_id(proposal.source_mail_id, proposal.id, proposal.version, operation))
+            record = self.store.load_model(name, WriteVerification)
+            if record is not None:
+                return record
+        return None
 
     def _save(self, record: WriteVerification) -> WriteVerification:
         record = WriteVerification.model_validate(record.model_dump())
@@ -83,16 +93,20 @@ class WriteVerifications:
         return TargetBinding(profile=proposal.target_profile, provider=provider_key(cast(TargetWriter, reader)),
                              account=reader.account_binding(), container=proposal.target)
 
-    def intent(self, proposal: Proposal, reader: EntryReader, expected: dict[str, Any]) -> None:
+    def intent(self, proposal: Proposal, reader: EntryReader, expected: dict[str, Any],
+               operation: Operation = "create") -> None:
         """Save the expected facts before the write; a known receipt is never replaced."""
         existing = self.load(proposal)
         if existing is not None and existing.receipt is not None:
             return
+        if existing is not None and existing.operation != operation:
+            # The preparation now chose another operation (e.g. a duplicate appeared): one record only.
+            self.store.delete(state_names.write_verification(existing.id))
         now = self.now()
         self._save(WriteVerification(
-            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, "create"),
+            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, operation),
             mail_id=proposal.source_mail_id, proposal_id=proposal.id, proposal_version=proposal.version,
-            idempotency_key=idempotency_key(proposal), operation="create",
+            idempotency_key=idempotency_key(proposal), operation=operation,
             target=self._binding(proposal, reader), expected=expected, expected_fingerprint=fingerprint(expected),
             deadline_at=now + timedelta(seconds=self.settings.max_elapsed_seconds), created_at=now, updated_at=now))
 
@@ -123,10 +137,11 @@ class WriteVerifications:
             return None
         now = self.now()
         target = existing.target if existing is not None else self._binding(proposal, reader)
+        operation: Operation = existing.operation if existing is not None else "create"
         return self._save(WriteVerification(
-            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, "create"),
+            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, operation),
             mail_id=proposal.source_mail_id, proposal_id=proposal.id, proposal_version=proposal.version,
-            idempotency_key=idempotency_key(proposal), operation="create", target=target,
+            idempotency_key=idempotency_key(proposal), operation=operation, target=target,
             receipt=WriteReceipt(external_id=external_id, written_at=now, result=how),
             expected=expected, expected_fingerprint=fingerprint(expected), next_check_at=now,
             deadline_at=now + timedelta(seconds=self.settings.max_elapsed_seconds), created_at=now, updated_at=now))
@@ -172,16 +187,26 @@ class WriteVerifications:
         except Exception as error:
             code, transient = _read_error(error)
         else:
-            if found is not None:
+            if record.operation == "cancel":
+                # A cancellation is proven by the entry no longer being active at the bound target.
+                if found is None:
+                    return record.model_copy(update={**base, "state": VerificationState.VERIFIED})
+                code, transient = STILL_ACTIVE, True
+            elif found is not None:
                 differences = compare(record.expected, found.facts)
                 state = VerificationState.MISMATCH if differences else VerificationState.VERIFIED
                 return record.model_copy(update={**base, "state": state, "differences": differences})
-            code, transient = NOT_VISIBLE, True
+            else:
+                code, transient = NOT_VISIBLE, True
         delays = self.settings.retry_delays_seconds
         due = now + timedelta(seconds=delays[attempts - 1]) if attempts <= len(delays) else None
         if transient and due is not None and due <= record.deadline_at:
             return record.model_copy(update={**base, "state": VerificationState.PENDING, "next_check_at": due,
                                               "last_error": code})
+        if code == STILL_ACTIVE:
+            return record.model_copy(update={**base, "state": VerificationState.MISMATCH, "last_error": code,
+                                              "differences": {"status": FieldDifference(
+                                                  expected="abgesagt", actual="weiterhin aktiv")}})
         final = VerificationState.NOT_FOUND if code == NOT_VISIBLE else VerificationState.UNAVAILABLE
         return record.model_copy(update={**base, "state": final, "last_error": code})
 
@@ -198,6 +223,20 @@ class WriteVerifications:
             created = current.model_copy(update={"status": ProposalStatus.CREATED})
             persist(created)
         return created
+
+    def unsupported(self, proposal: Proposal) -> None:
+        """5.2: a calendar file was delivered; whether it was imported cannot be checked."""
+        assert proposal.external_id is not None
+        now, expected = self.now(), {"kind": "event", "title": proposal.title}
+        self._save(WriteVerification(
+            id=operation_id(proposal.source_mail_id, proposal.id, proposal.version, "create"),
+            mail_id=proposal.source_mail_id, proposal_id=proposal.id, proposal_version=proposal.version,
+            idempotency_key=idempotency_key(proposal), operation="create",
+            target=TargetBinding(profile=proposal.target_profile, provider="calendar_file", account="telegram",
+                                 container=proposal.target),
+            receipt=WriteReceipt(external_id=proposal.external_id, written_at=now, result="created"),
+            expected=expected, expected_fingerprint=fingerprint(expected), state=VerificationState.UNSUPPORTED,
+            deadline_at=now, created_at=now, updated_at=now))
 
     def mark_notified(self, record: WriteVerification) -> None:
         with self.store.locked():

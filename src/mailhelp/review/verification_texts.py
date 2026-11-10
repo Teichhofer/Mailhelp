@@ -19,7 +19,7 @@ STATE_TEXTS = {
 
 FIELD_LABELS = {"title": "Titel", "description": "Beschreibung", "due": "Fälligkeit", "start": "Beginn",
                 "end": "Ende", "all_day": "Ganztägig", "location": "Ort", "container": "Projekt/Kalender",
-                "kind": "Art"}
+                "kind": "Art", "status": "Status", "uid": "Kennung"}
 
 ERROR_TEXTS = {
     "not_visible": "der Eintrag ist beim Anbieter nicht auffindbar",
@@ -30,6 +30,7 @@ ERROR_TEXTS = {
     "invalid_response": "der Anbieter hat eine ungültige Antwort geliefert",
     "target_changed": "das konfigurierte Ziel wurde inzwischen geändert",
     "account_changed": "inzwischen ist ein anderes Konto angemeldet",
+    "still_active": "der Termin ist beim Anbieter weiterhin aktiv",
 }
 
 

@@ -1,5 +1,24 @@
 # Änderungen
 
+## 5.2.4 – Nachprüfung von Änderungen, Absagen, Dubletten und Kalenderdateien (Planung 5.2, Schritt V7)
+
+- Jede vorbereitete Kalenderoperation trägt ihre Operation und ihren Sollstand: geänderter
+  Termin (`update`), ergänzte Dublette (`append`), erkannte Dublette ohne Schreibzugriff
+  (`duplicate`) und Absage (`cancel`). Verglichen wird der vorhandene Eintrag mit genau den
+  bestätigten Änderungen; sein eigener Titel bleibt Teil des Sollstands.
+- Eine Absage gilt erst als geprüft, wenn der Termin am gebundenen Ziel abgesagt oder entfernt
+  ist; bleibt er aktiv, meldet Mailhelp nach den Lese-Wiederholungen „Status: erwartet abgesagt,
+  gefunden weiterhin aktiv“. Ein schon vorher abgesagter Termin wird ohne Schreibzugriff geprüft.
+- Auch eine unklar gebliebene Änderung oder Ergänzung wird nach dem Wiederfinden gegen ihre
+  gespeicherte Schreibabsicht geprüft. Wählt eine neue Vorbereitung eine andere Operation,
+  ersetzt sie die alte Schreibabsicht derselben Version.
+- Meldungen nennen das Ergebnis: „… geändert und geprüft“, „… abgesagt und geprüft“, „… ergänzt
+  und geprüft“, „… erkannt und frisch geprüft“.
+- Kalenderdateien über Telegram: „📎 Kalenderdatei … bereitgestellt – Übernahme in den Kalender
+  nicht prüfbar“ statt „Angelegt“; der Prüfnachweis steht auf `unsupported`.
+- Serien: Jeder Termin einer Serie ist ein eigener Vorschlag mit eigenem Prüfnachweis;
+  wiederkehrende Kalenderserien werden weiterhin nie verändert.
+
 ## 5.2.3 – Nachprüfung bei CalDAV und Apple Erinnerungen (Planung 5.2, Schritt V6)
 
 - CalDAV-Kalender, CalDAV-Aufgaben und Apple Erinnerungen lesen die geschriebene Ressource

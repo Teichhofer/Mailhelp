@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3520,6 +3520,27 @@ unvollständige Termine sind `invalid_response`, `STATUS:CANCELLED` ist nicht si
 `STATUS:COMPLETED` oder `COMPLETED` gilt als vorhanden, `CANCELLED` als nicht sichtbar. Bei
 404/410 wird die Sammlung per PROPFIND geprüft. Kontobindung: `<Benutzer>@<Host>`. Ein
 PUT-Ergebnis `already_present` (412 mit `If-None-Match: *`) wird wie ein Fund geprüft.
+
+Operationen (5.2.4): `PreparedWrite.kind` nennt die Operation, `expected` ihren Sollstand.
+`create` – Neuanlage wie oben. `update` (bestätigte Änderung, `target_event_id`) und `append`
+(ergänzte Dublette, auch mit bestätigten neuen Zeiten) – der zuvor frisch gelesene vorhandene
+Eintrag mit genau den Feldern des Änderungsauftrags (Zeiten, Ort, Beschreibung mit Vermerk); der
+Titel des Eintrags bleibt. `duplicate` (gleicher Termin, kein Schreibzugriff) – der vorhandene
+Eintrag, wie er gelesen wurde. `cancel` (Absage oder schon abgesagt) – Sollstand
+`{"kind": "event", "status": "cancelled"}`; bestanden, wenn der Abruf am gebundenen Ziel nichts
+Aktives findet. Ein weiterhin aktiver Termin ist `still_active` (Lese-Wiederholung) und nach
+Erschöpfung `mismatch` mit `status: abgesagt → weiterhin aktiv`. Schreibbelege: `created`,
+`updated`, `appended`, `cancelled`, `existing` (Dublette oder schon abgesagt) und `found_by_key`.
+Je Vorschlagsversion gibt es genau einen Prüfnachweis; wählt eine neue Vorbereitung eine andere
+Operation, ersetzt deren Schreibabsicht die alte. `WriteVerifications.load` sucht über alle
+Operationen.
+
+Kalenderdatei (`CalendarFileWriter`): Ergebnis `operation: calendar_file`, der Vorschlag wird
+`CREATED`, der Prüfnachweis `unsupported` (Anbieter `calendar_file`, Konto `telegram`). Meldung:
+„📎 Kalenderdatei für „…“ … bereitgestellt – Übernahme in den Kalender nicht prüfbar.“
+
+Serien (`review.series`): jeder Termin ist ein eigener Vorschlag und erhält seinen eigenen
+Prüfnachweis; wiederkehrende Kalenderserien (RRULE) werden nicht verändert.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

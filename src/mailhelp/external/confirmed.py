@@ -13,6 +13,10 @@ from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_
 from .roles import provider_key
 from .verification import EntryReader, How, VerificationPort
 
+# The receipt of each write operation (5.2); a found entry is "found_by_key".
+RECEIPTS: dict[str, How] = {"create": "created", "update": "updated", "append": "appended",
+                            "cancel": "cancelled", "duplicate": "existing"}
+
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
                       test_mode: bool = False, *, authorize: Callable[[], bool] | None = None,
@@ -74,12 +78,12 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     # including when the confirmed record was resumed in a fresh process.
     if authorize is not None and not authorize():
         return proposal, {"authorization_invalid": True}
-    if prepared.expected is None or not prepared.requires_write:
-        checker = None  # only a plain new entry has expected facts so far
+    if prepared.expected is None:
+        checker = None  # an operation without expected facts cannot be compared
     if checker is not None:
         # The write intent with its expected facts is durable before the write (5.2, 3.2).
         assert prepared.expected is not None
-        checker[0].intent(proposal, checker[1], prepared.expected)
+        checker[0].intent(proposal, checker[1], prepared.expected, prepared.kind)
     if prepared.requires_write:
         persist(writing)
     try: result = prepared.operation()
@@ -91,7 +95,17 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
         failed = writing.model_copy(update={"status": ProposalStatus.FAILED})
         persist(failed)
         return failed, {}
-    return _written(writing, result, "created", checker, persist)
+    return _finish(writing, result, prepared, checker, verification, persist)
+
+
+def _finish(writing: Proposal, result: dict[str, Any], prepared: PreparedWrite,
+            checker: tuple[VerificationPort, EntryReader] | None, verification: VerificationPort | None,
+            persist: Callable[[Proposal], None]) -> tuple[Proposal, dict[str, Any]]:
+    how: How = "existing" if result.get("operation") == "already_cancelled" else RECEIPTS[prepared.kind]
+    written = _written(writing, result, how, checker, persist)
+    if verification is not None and result.get("operation") == "calendar_file":
+        verification.unsupported(written[0])
+    return written
 
 
 def _found(proposal: Proposal, writer: ExternalWriter, key: str) -> dict[str, Any] | None:
@@ -111,8 +125,7 @@ def _written(proposal: Proposal, result: dict[str, Any], how: How,
              persist: Callable[[Proposal], None]) -> tuple[Proposal, dict[str, Any]]:
     """A known write result: ``VERIFYING`` with a durable receipt, or ``CREATED`` without a check."""
     _external_id(result)
-    # "already_present": a CalDAV resource of this very version exists; it is checked like a find.
-    if checker is not None and result.get("operation") in {None, "already_present"}:
+    if checker is not None:
         verifying = checker[0].begin(proposal, result, how, checker[1])
         if verifying is not None:
             persist(verifying)

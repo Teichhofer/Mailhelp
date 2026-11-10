@@ -32,6 +32,9 @@ class FakeGoogleCalendar:
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         path = request.url.path
+        if path.count("/") == 4:
+            # 5.2: the calendar resource; its id names the account behind an alias such as primary.
+            return httpx.Response(200, json={"id": "owner@example.test"})
         event_id = path.split("/events/", 1)[1] if "/events/" in path else None
         kind = "list" if event_id is None else ("patch" if request.method == "PATCH" else "get")
         if (request.method, kind) in self.fail:

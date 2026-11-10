@@ -18,12 +18,12 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from ..domain.verification import FieldDifference
+from ..domain.verification import FieldDifference, Operation
 from ..models import Proposal
 
 TEMPORAL = ("due", "start", "end")
 # How the written entry became known: by the write answer, found by its key, or already there.
-How = Literal["created", "found_by_key", "existing"]
+How = Literal["created", "found_by_key", "updated", "appended", "cancelled", "existing"]
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,12 @@ class EntryReader(Protocol):
 class VerificationPort(Protocol):
     """The durable receipts of a write; implemented by ``processing.write_verification``."""
 
-    def intent(self, proposal: Proposal, reader: EntryReader, expected: dict[str, Any]) -> None: ...
+    def intent(self, proposal: Proposal, reader: EntryReader, expected: dict[str, Any],
+               operation: Operation = "create") -> None:
+        """Save the expected facts of the coming write; a known receipt is never replaced."""
+
+    def unsupported(self, proposal: Proposal) -> None:
+        """Record a delivered calendar file whose import cannot be checked."""
 
     def begin(self, proposal: Proposal, result: dict[str, Any], how: How, reader: EntryReader) -> Proposal | None:
         """Save the receipt and return the ``VERIFYING`` proposal; ``None`` if nothing can be compared."""

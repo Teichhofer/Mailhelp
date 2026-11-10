@@ -42,7 +42,8 @@ class CalendarFileWriter:
         self.logger.event("INFO", "calendar_file", "create_completed", call_id=key,
                           mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                           filename=filename)
-        return {"id": f"calendar-file:{digest}"}
+        # 5.2: delivered, but whether the file was imported into a calendar cannot be checked.
+        return {"id": f"calendar-file:{digest}", "operation": "calendar_file"}
 
 
 def calendar_file(proposal: Proposal, key: str) -> bytes:

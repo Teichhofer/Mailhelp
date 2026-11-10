@@ -1097,7 +1097,11 @@ def test_production_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_pat
         assert b"SUMMARY:Planung\r\n" in content
         assert "Planung" in caption
         # One message reports the creation; no second confirmation follows.
-        assert transport.sent[-1][1] == "✅ Angelegt im Kalender: „Planung“ · 10.05.2026, 08:00 Uhr"
+        # 5.2: a delivered file is no proof of an import into the calendar.
+        assert transport.sent[-1][1] == ("📎 Kalenderdatei für „Planung“ · 10.05.2026, 08:00 Uhr bereitgestellt – "
+                                         "Übernahme in den Kalender nicht prüfbar.")
+        (record,) = [store.load(name) for name in store.names("write-verification-")]
+        assert record["state"] == "unsupported" and record["target"]["provider"] == "calendar_file"
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):

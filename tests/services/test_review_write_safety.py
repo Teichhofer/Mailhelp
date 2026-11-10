@@ -145,6 +145,8 @@ def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path
     found = False
     item = event(status="confirmed", description="Agenda")
     name = f"proposal-{item.source_mail_id}-{item.id}"
+    existing = {"id": "old", "summary": "Bestand", "start": {"dateTime": item.start.isoformat()},
+                "end": {"dateTime": item.end.isoformat()}}
     def handler(request):
         requests.append(request)
         if request.method == "GET":
@@ -152,9 +154,9 @@ def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path
                 return httpx.Response(200, json={"items": [{"id": "result"}] if found else []})
             if request.url.path == "/calendar/v3/calendars/calendar":  # 5.2: the account binding
                 return httpx.Response(200, json={"id": "owner@example.test"})
-            if request.url.path.endswith("/events/result"):  # 5.2: the fresh read
-                return httpx.Response(200, json={**posted, "id": "result"})
-            return httpx.Response(200, json={"items": [{"id": "old", "start": {}, "end": {}}]})
+            if request.url.path.endswith("/events/result"):  # 5.2: the fresh read of the written entry
+                return httpx.Response(200, json={**existing, **posted, "id": "result"})
+            return httpx.Response(200, json={"items": [existing]})
         assert request.method == operation and store.load(name)["status"] == "writing"
         posted.update(json.loads(request.content))
         if failure == "timeout":

@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..domain.verification import Operation
 from ..llm.adapter import PermanentError, RetryableError, UncertainWriteError
 from ..models import Proposal
 
@@ -80,8 +81,9 @@ class CalendarOverlapEvent(IntegrationModel):
 class PreparedWrite:
     operation: Callable[[], dict[str, Any]]
     requires_write: bool = True
-    # 5.2: the facts a plain new entry is written with; a written entry is compared with them.
+    # 5.2: the facts the entry has after this operation; a written entry is compared with them.
     expected: dict[str, Any] | None = None
+    kind: Operation = "create"
 
 
 class ExternalWriter(Protocol):
