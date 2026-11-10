@@ -2,7 +2,7 @@
 
 **Zielversion:** 5.2.0, Umsetzung in Patchversionen 5.2.x
 **Stand:** 9. November 2026
-**Status:** In Umsetzung (V1 in 5.2.0; V2–V4 gemeinsam in 5.2.1, die folgenden Schritte rücken je eine Patchversion vor)
+**Status:** Abgeschlossen (5.2.0 bis 5.2.9; V2–V4 gemeinsam in 5.2.1, die folgenden Schritte rückten je eine Patchversion vor). Abnahme und Grenzen: [Release 5.2](Release-5.2.md)
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Gesamtfahrplan](Planung-4.0.md)
 **Vorgänger:** [Planung 5.1](Planung-5.1.md) – Zuverlässigere Erkennung und nachvollziehbare Entscheidungen
 **Technischer Ausgangsstand:** 4.9.6. Änderungen aus zwischenzeitlichen Versionen werden vor der Umsetzung abgeglichen.

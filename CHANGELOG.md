@@ -1,5 +1,14 @@
 # Änderungen
 
+## 5.2.9 – Abnahme und Release 5.2 (Planung 5.2, Schritt V12)
+
+- Release-Bericht [docs/Release-5.2.md](docs/Release-5.2.md) mit allen Änderungen 5.2.0 bis
+  5.2.8, Einrichtung, Upgrade, Rückkehr, Anbieter-/Operationsübersicht, Nachweisen und Grenzen;
+  Planung 5.2 ist abgeschlossen.
+- Abnahme unter Windows 11 mit 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite, Lasttests,
+  Ruff, mypy, Prompt-Gate, Paketprüfung und harten Prozessabbrüchen. Die Linux/Docker-Abnahme ist
+  nicht durchgeführt (Docker nicht verfügbar) und als offener Punkt benannt.
+
 ## 5.2.8 – Anbieter- und Fehlermatrix, Prozessabbrüche (Planung 5.2, Schritt V11)
 
 - Matrix über alle sieben Online-Adapter mit ihrem echten Transport (Google Kalender, Todoist,
