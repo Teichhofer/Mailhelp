@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3331,3 +3331,21 @@ Fakten und dem neuen Beleg; `confirmed_web_actor` wird geleert, eine frühere Be
 nicht weiter. Alle anderen Vorschläge bleiben unverändert. Der Auftrag erhält `adopted_at`.
 Eine nach einem Absturz wiederholte Übernahme findet die schon gespeicherten Vorschläge als
 unverändert vor. Es entsteht kein Schreibzugriff auf Kalender oder Aufgabenlisten.
+
+### Konsistenzhinweise (5.1.4)
+
+`review.consistency.hints(state)` berechnet Hinweise deterministisch aus dem gespeicherten
+Zustand; derselbe Zustand ergibt dieselben Hinweise, Doppelte werden zusammengefasst. Jeder
+Hinweis hat Regel, Schwere (`info`, `warn`), Text, Beleg und Analyserunde:
+
+| Regel | Schwere | Auslöser |
+| --- | --- | --- |
+| `count_conflict` | warn | Gespeicherter Zählkonflikt zwischen Router und Extraktion |
+| `possible_omission` | info | Relevante Mail, Zusammenfassung nennt Fristen, kein Aufgabenvorschlag |
+| `unassigned_duty` | info | Terminvorschlag erwähnt Anmeldung, Rückmeldung, Zu-/Absage oder Teilnahme; kein Aufgabenvorschlag |
+| `contradiction` | warn | Vorschlag mit widersprüchlichen Angaben oder Aufgabenfrist vor dem Eingang der Mail |
+| `incomplete` | warn | Verarbeitungsfehler, gekürzter Mailtext, ausgelassene oder nicht lesbare Anhänge |
+
+Zusammengeführte Vorschläge zählen nicht mit. Hinweise behaupten keine übersehene Aktion,
+erzeugen keine Aufgabe und starten keine Nachanalyse. Die Mailansicht zeigt sie unter
+„Prüfhinweise“ mit Plakette („Hinweis“ bzw. „Prüfen“) und „Beleg: …“.

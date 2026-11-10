@@ -466,6 +466,10 @@ h2 { overflow-wrap: anywhere; }
 .model-reason { color: var(--muted); font-style: italic; }
 .model-reason .meta { font-style: normal; }
 .path-notes { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.path-hints { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.path-hints li { overflow-wrap: anywhere; }
+.path-hints .meta { display: block; margin-top: 2px; }
+.badge.info { background: var(--surface-2); color: var(--text); }
 .path-result { margin-top: 14px; padding: 12px 14px; border-left-width: 4px; border-radius: 0 12px 12px 0;
   background: var(--surface-2); }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }

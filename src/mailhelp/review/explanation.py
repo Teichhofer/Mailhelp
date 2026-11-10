@@ -204,11 +204,11 @@ def _extraction(state: MailState) -> Step:
     events = len(state.event_extraction.events) if state.event_extraction is not None else 0
     text = (f"{_plural(tasks, 'Aufgabe', 'Aufgaben')} und "
             f"{_plural(events, 'Termin', 'Termine')} extrahiert.")
-    notes = tuple(_conflict_note(conflict) for conflict in state.extraction_count_conflicts)
+    notes = tuple(conflict_note(conflict) for conflict in state.extraction_count_conflicts)
     return Step("extraction", title, Outcome.DONE, text, notes=notes)
 
 
-def _conflict_note(conflict: ExtractionCountConflict) -> str:
+def conflict_note(conflict: ExtractionCountConflict) -> str:
     """A router count the extraction did not match, e.g. two expected tasks and one extracted."""
     names = ("Aufgabe", "Aufgaben") if conflict.category == "task" else ("Termin", "Termine")
     verb = "wurde" if conflict.actual_count == 1 else "wurden"

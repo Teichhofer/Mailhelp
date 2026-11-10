@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from ..formatting import format_datetime_local
 from ..models import MailState, Proposal
+from ..review.consistency import Hint
 from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery
 from ..review.search import Hit
@@ -240,7 +241,17 @@ def _path_step(step: Step, topics: dict[str, str], tag: str = "li") -> str:
     return body + f"</{tag}>"
 
 
-def processing_path_section(explanation: Explanation, topics: dict[str, str]) -> str:
+def _hints(hints: tuple[Hint, ...]) -> str:
+    """5.1.4: possible contradictions with their evidence; never a claim of a missed action."""
+    if not hints:
+        return ""
+    items = "".join(f'<li class="hint-{hint.severity}"><span class="badge {hint.severity}">'
+                    f'{"Prüfen" if hint.severity == "warn" else "Hinweis"}</span> {e(hint.text)} '
+                    f'<span class="meta">Beleg: {e(hint.evidence)}</span></li>' for hint in hints)
+    return f'<h3>Prüfhinweise</h3><ul class="path-hints">{items}</ul>'
+
+
+def processing_path_section(explanation: Explanation, topics: dict[str, str], hints: tuple[Hint, ...] = ()) -> str:
     """5.1.1: how this mail was actually processed, step by step, from stored results only."""
     steps = "".join(_path_step(step, topics) for step in explanation.steps)
     return ('<section class="card processing-path" aria-labelledby="verarbeitung-titel">'
@@ -250,7 +261,7 @@ def processing_path_section(explanation: Explanation, topics: dict[str, str]) ->
             f'<ol class="path-steps">{steps}</ol>'
             + _path_step(explanation.result, topics, tag="div").replace(
                 'class="path-step ', 'class="path-step path-result ', 1)
-            + '</section>')
+            + _hints(hints) + '</section>')
 
 
 def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]]) -> str:

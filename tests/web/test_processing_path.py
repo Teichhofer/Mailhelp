@@ -59,3 +59,17 @@ def test_a_damaged_state_or_snapshot_is_reported_without_a_path(web):
     assert "Verarbeitungsweg beschädigt; bitte Protokolle prüfen." in page
     assert "So wurde diese Mail verarbeitet" not in page
     assert web.site.archive.mail_archive.processing_path(mail_id(84)) == ""
+
+
+def test_hints_appear_with_their_evidence_and_start_nothing(web):
+    from mailhelp.domain.extraction import Summary
+    save_mail(web.store, 85, "Schule <schule@example.test>", "Elternabend", [], text="Info", steps=DONE,
+              relevance=Relevance(decision="relevant", topic_ids=[], reason="x"),
+              summary=Summary(sentences=["Elternabend"], deadlines=["Rückmeldung bis <Freitag>"]))
+    html = section(web, 85)
+    assert '<h3>Prüfhinweise</h3><ul class="path-hints"><li class="hint-info"><span class="badge info">Hinweis</span>' in html
+    assert "Beleg: Zusammenfassung: Rückmeldung bis &lt;Freitag&gt;" in html
+    assert web.store.names("reanalysis-") == [] and web.writer.created == 0
+    save_mail(web.store, 86, "Schule <schule@example.test>", "Info", [], text="Info", steps=DONE,
+              relevance=Relevance(decision="relevant", topic_ids=[], reason="x"))
+    assert "Prüfhinweise" not in section(web, 86)

@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.1.4 – Konsistenzhinweise (Planung 5.1, Schritt R5)
+
+- Der Prüfverlauf zeigt „Prüfhinweise“ aus den gespeicherten Ergebnissen, je mit stabiler
+  Regel, Schwere, Beleg und Analyserunde: Zählkonflikt zwischen Router und Extraktion,
+  mögliche Auslassung (Frist in der Zusammenfassung ohne Aufgabenvorschlag), nicht
+  zugeordnete Anmelde- oder Rückmeldepflicht zu einem Termin, widersprüchliche Angaben oder
+  eine Frist vor dem Eingang der Mail sowie unvollständige Verarbeitung (Fehler, gekürzter
+  Text, ausgelassene oder unlesbare Anhänge).
+- Ein Hinweis behauptet keine übersehene Aktion und startet keine Nachanalyse; eine Frist
+  allein erzeugt keine Aufgabe. Gleiche Hinweise erscheinen nur einmal.
+- Die Plakette „info“ (etwa „Bereits vorhanden“) hat jetzt eine eigene, kontrastgeprüfte Farbe.
+
 ## 5.1.3 – Ergebnisvergleich und sichere Übernahme (Planung 5.1, Schritt R4)
 
 - Der Vergleich einer abgeschlossenen Nachanalyse mit den Vorschlägen der Mail benennt je

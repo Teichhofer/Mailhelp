@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from .. import state_names
 from ..models import MailState
 from ..review.archive import AnalysisSnapshot
+from ..review.consistency import hints
 from ..review.explanation import explain
 from ..review.queries import ArchiveQuery
 from ..storage import CorruptState
@@ -60,7 +61,7 @@ class MailArchiveSite:
         if state is None:
             return ""
         topics = snapshot.topics if snapshot is not None else {}
-        return processing_path_section(explain(state), topics)
+        return processing_path_section(explain(state), topics, hints(state))
 
     def revisions(self, mail_id: str, proposal_id: str) -> str:
         """Recorded events of one proposal with links to every stored version."""

@@ -3,7 +3,7 @@ from playwright.sync_api import expect
 
 from checks import audit
 from conftest import sign_in
-from mailhelp.domain.extraction import ActionRoute
+from mailhelp.domain.extraction import ActionRoute, Summary
 from mailhelp.domain.relevance import Relevance
 from tests.scenarios.web_scenario import mail_id, save_mail
 
@@ -17,7 +17,8 @@ def seed(mailhelp):
     save_mail(mailhelp.store, 90, "Schule <schule@x.test>", "Elternabend am Donnerstag", [], text="Info",
               steps=DONE, relevance=Relevance(decision="relevant", topic_ids=[], reason="Schulinformation"),
               action_route=ActionRoute(action_state="none", task_count=0, event_count=0,
-                                       reason="Die Mail informiert nur über einen Termin der Schule."))
+                                       reason="Die Mail informiert nur über einen Termin der Schule."),
+              summary=Summary(sentences=["Elternabend"], deadlines=["Rückmeldung bis Freitag"]))
 
 
 def test_the_processing_path_explains_a_mail_without_a_task(page, mailhelp):
@@ -29,6 +30,9 @@ def test_the_processing_path_explains_a_mail_without_a_task(page, mailhelp):
     expect(path.locator("ol > li")).to_have_count(5)
     expect(path.locator(".path-result")).to_contain_text("Keine Aktion erkannt.")
     expect(path.locator(".model-reason").last).to_contain_text("Modellbewertung, keine geprüfte Tatsache")
+    # 5.1.4: a hint names its evidence and stays readable on every width.
+    expect(path.locator(".path-hints li")).to_have_count(1)
+    expect(path.locator(".path-hints li")).to_contain_text("Beleg: Zusammenfassung: Rückmeldung bis Freitag")
     box = path.bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= page.viewport_size["width"] + 1
     assert audit(page, "processing-path-" + page.device, page.mobile) == []
