@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.3.4 – Anleitungen Ersteinrichtung und Konten verwalten (Planung 5.3, Schritt H5)
+
+- Neue Anleitung [docs/Ersteinrichtung.md](docs/Ersteinrichtung.md): Installation unter
+  Windows 11 und Linux, Docker-Weg, Terminal-Code, Koppeln, die fünf Schritte des Assistenten mit
+  den tatsächlichen Feld- und Schaltflächennamen, Verbindungen prüfen, gespeicherten und aktiven
+  Stand erkennen, ein erster Testfall mit geprüfter Eintragung und Fehlerhilfe.
+- Neue Anleitung [docs/Konten-verwalten.md](docs/Konten-verwalten.md): weiteres Postfach,
+  Zuordnung zu einem anderen Kalender, Regeln je Postfach, IServ, weitere Zielprofile sowie Ändern,
+  Deaktivieren und Entfernen mit Wirkung und Fehlerhilfe.
+- Ein Test prüft, dass jede fett genannte Bedienbezeichnung in der Anwendung existiert und jeder
+  Link samt Anker auflöst. Das README verweist auf die aktuellen Anleitungen; Release-Berichte
+  sind als Historie gekennzeichnet. Der Docker-Weg ist nicht nachvollzogen (Docker nicht verfügbar).
+
 ## 5.3.3 – Live-Suche in den Einstellungen (Planung 5.3, Schritt H4)
 
 - Beim Tippen erscheinen ab dem ersten Zeichen bis zu zehn Treffer direkt unter dem Suchfeld,

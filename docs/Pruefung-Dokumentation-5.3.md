@@ -83,6 +83,17 @@ mehrteiligen Begriffen, gemessen ab der Eingabe bis zur sichtbaren Trefferliste 
 150-ms-Verzögerung. **100 von 100** innerhalb von 300 ms; Median 217,8 ms, 95. Perzentil 240,9 ms.
 Abnahmewert (mindestens 95 %) erfüllt.
 
+### Nachvollzug der Anleitungen (H5)
+
+| Anleitung | Schritt | System | Nachweis | Beobachtet |
+| --- | --- | --- | --- | --- |
+| [Ersteinrichtung](Ersteinrichtung.md) | leeres Verzeichnis bis „Einrichtung abgeschlossen“ (Koppeln, fünf Schritte, Prüfungen, Speichern und starten) | Windows 11, Chromium, synthetische Dienste | `ui_tests/test_ui_initial_setup.py` (auch ohne JavaScript und mobil) | Überschriften, Felder und Schaltflächen wie beschrieben |
+| Ersteinrichtung | Docker-Weg (`compose.setup.yaml`) | Linux/Docker | **nicht nachvollzogen** – Docker auf dem Prüfrechner nicht verfügbar | offen |
+| [Konten verwalten](Konten-verwalten.md) | zweites Postfach in bestehender Installation hinzufügen und aktivieren | Windows 11, Chromium | `ui_tests/test_ui_settings35.py` | Prüfung, Speichern und Ergänzen wie beschrieben |
+| Konten verwalten | IServ-Konto anlegen und aktivieren | Windows 11 | `tests/web/test_iserv_web.py`, `tests/web/test_iserv_activation.py` | wie beschrieben |
+| Konten verwalten | Zielprofil anlegen, zuordnen, entfernen | Windows 11 | `tests/profiles/test_web.py`, `test_profile_completion.py`, `test_profile_review.py` | wie beschrieben |
+| beide | jede fett genannte Bedienbezeichnung existiert, jeder Link und Anker löst auf | – | `tests/release/test_guides.py` | bestanden |
+
 ## 4. Funktionen der Weboberfläche
 
 Jede Seite der Weboberfläche mit ihrer Aufgabe und dem Ort ihrer Dokumentation; ein Test
