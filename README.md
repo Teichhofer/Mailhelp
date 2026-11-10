@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.2.9 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.3.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -709,6 +709,14 @@ Web und Telegram liest einen nicht bestätigten Eintrag nur erneut – ohne etwa
 Vor einer Rückkehr zu einer Version vor 5.2.0 den Dienst beenden und `mailhelp --prepare-rollback`
 ausführen; er stellt „wird geprüft“ auf „angelegt“ um, ohne etwas anzulegen.
 Plan: [Planung 5.2](docs/Planung-5.2.md); Einrichtung, Upgrade, Rückkehr, Nachweise und Grenzen: [Release-Bericht 5.2](docs/Release-5.2.md).
+
+## Einstellungssuche, Hilfschat und geprüfte Dokumentation (5.3)
+
+Version 5.3 bringt eine Live-Suche in den Einstellungen, einen Hilfschat, der über die aktive
+KI-Anbindung mit geprüften Dokumentationsausschnitten antwortet, und eine vollständige Prüfung
+der Dokumentation. Ab 5.3.0 erzeugt `python -m devtools.inventory` die Inventur aller
+Einstellungen und Optionen im [Prüfbericht](docs/Pruefung-Dokumentation-5.3.md).
+Plan: [Planung 5.3](docs/Planung-5.3.md).
 
 ## Lizenz
 

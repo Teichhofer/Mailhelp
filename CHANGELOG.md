@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.3.0 – Bestandsaufnahme der Einstellungen und Funktionen (Planung 5.3, Schritt H1)
+
+- Neuer Prüfbericht [docs/Pruefung-Dokumentation-5.3.md](docs/Pruefung-Dokumentation-5.3.md):
+  Abgleich des Stands nach 5.2, festgelegte Verträge für Suchkatalog, Such-API, Hilfebestand,
+  Modellanbindung, Chatzustand und Worker (zwei Threads, acht wartende Aufträge, je Chat einer).
+- Inventur aus dem Code: `python -m devtools.inventory` listet alle 229 Einstellungen mit Typ,
+  Standard, Grenzen, Bedienweg (Weboberfläche, Einrichtung, Datei) und ob die Einstellungsreferenz
+  sie beschreibt, dazu alle Kommandozeilenoptionen; `--check` erkennt einen veralteten Bericht.
+  Die Seiten der Weboberfläche sind mit ihrer Dokumentation aufgeführt; ein Test gleicht sie mit
+  den registrierten Seiten ab.
+- Befund der Inventur: 117 Einstellungen, vor allem Postfach-, IServ- und Dateieinstellungen,
+  haben noch keinen eigenen Eintrag in der Einstellungsreferenz; sie werden in H2 ergänzt.
+
 ## 5.2.9 – Abnahme und Release 5.2 (Planung 5.2, Schritt V12)
 
 - Release-Bericht [docs/Release-5.2.md](docs/Release-5.2.md) mit allen Änderungen 5.2.0 bis
