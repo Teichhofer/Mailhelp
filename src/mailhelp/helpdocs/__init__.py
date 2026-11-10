@@ -20,12 +20,16 @@ from .. import __version__
 
 DIRECTORY = Path(__file__).resolve().parent
 MAX_SECTIONS = 6
+STEM = 5
+# A word of at least this length that occurs in at most three sections carries a topic on its own.
+RARE_LENGTH, RARE_SECTIONS = 8, 3
 # Words that carry no meaning on their own; a match on them never selects a section.
 STOPWORDS = frozenset(
     "aber alle als also auch auf aus bei bin bis das dass dem den der des die dies diese dieser doch ein eine "
     "einem einen einer es fuer gibt habe hat ich ihr im in ist ja kann man mich mir mit muss nach nicht noch "
     "nur oder sich sie sind so soll und uns von vor wann warum was weil wenn wer wie wird wo zu zum zur "
-    "mailhelp bitte genau unterschied zwischen bedeutet macht".split())
+    "mailhelp bitte genau unterschied zwischen bedeutet macht mein meine meinen meiner dein deine einer einen "
+    "einem eines dann denn".split())
 
 
 class HelpAnswer(BaseModel):
@@ -66,18 +70,24 @@ class Section:
         return len(self.text.encode("utf-8"))
 
 
+def stems(text: str) -> list[str]:
+    """Meaningful words shortened to five letters, so inflected forms meet ("starte", "starten")."""
+    return [word[:STEM] for word in words(text)]
+
+
 def words(text: str) -> list[str]:
     from ..web.settings_search import normalize
     return [word for word in re.findall(r"[a-z0-9_.]+", normalize(text)) if len(word) > 2 and word not in STOPWORDS]
 
 
-def _expanded(terms: list[str]) -> set[str]:
+def _expanded(terms: set[str]) -> set[str]:
+    """The stems of the question with the stems of their synonyms."""
     from ..web.settings_search import SYNONYMS, normalize
     found = set(terms)
     for group in SYNONYMS:
-        folded = {normalize(item) for item in group}
+        folded = {word[:STEM] for item in group for word in normalize(item).split()}
         if found & folded:
-            found |= {word for item in folded for word in item.split()}
+            found |= folded
     return found
 
 
@@ -107,25 +117,31 @@ class HelpBase:
                limit: int = MAX_SECTIONS, budget: int = 24000) -> list[Section]:
         """At most *limit* relevant sections within *budget* bytes, best first; never a guess.
 
-        A section counts only if it names the referenced setting, or if at least two different
-        meaningful words of the question (or one word of a short question in its title) occur in it.
-        Earlier questions add their words with lower weight for follow-up questions.
+        A section counts if it names a referenced setting, if two different words of the question
+        (or one word and a synonym) occur in it, if a rare word of the question (in at most three
+        sections) occurs in it, or if a word of a short question is in its title. Words are compared
+        by a short stem, so "starte" finds "starten". Earlier questions help follow-up questions.
         """
-        asked = _expanded(words(question))
-        earlier = _expanded([word for text in history for word in words(text)]) - asked
-        referenced = _settings_named(asked) | ({setting_id} if setting_id else set())
+        own = set(stems(question))
+        specific = {word[:STEM] for word in words(question) if len(word) >= RARE_LENGTH}
+        asked = _expanded(own)
+        earlier = _expanded({word for text in history for word in stems(text)}) - asked
+        referenced = _settings_named(set(words(question))) | ({setting_id} if setting_id else set())
         # A follow-up such as "Und pro Postfach?" keeps the settings of the earlier questions,
         # but only where the new question fits as well (or has no meaningful word of its own).
-        remembered = _settings_named(earlier)
+        remembered = _settings_named({word for text in history for word in words(text)})
+        frequency = self._frequency()
         scored = []
         for section in self.sections:
-            title = set(words(" ".join(section.path)))
-            body = set(words(section.text))
-            matched = {word for word in asked if word in title or word in body}
-            score = 3 * len(asked & title) + len(matched) + len(earlier & title)
+            title, body = self._index[section.id]
+            hits = {word for word in own if word in title or word in body}
+            synonym = bool((asked - own) & (title | body))
+            score = 3 * len(asked & title) + len(hits) + int(synonym) + len(earlier & title)
             named = bool(referenced & set(section.setting_ids)) or (
-                bool(remembered & set(section.setting_ids)) and (bool(matched) or not asked))
-            strong = named or len(matched) >= 2 or (len(asked) <= 2 and bool(asked & title))
+                bool(remembered & set(section.setting_ids)) and (bool(hits) or not own))
+            rare = any(frequency[word] <= RARE_SECTIONS for word in hits & specific)
+            strong = (named or len(hits) >= 2 or (bool(hits) and synonym) or rare
+                      or (len(own) <= 2 and bool(asked & title)))
             if strong:
                 scored.append((-(score + (10 if named else 0)), section.id, section))
         chosen: list[Section] = []
@@ -137,6 +153,23 @@ class HelpBase:
                 chosen.append(section)
                 used += section.size
         return chosen
+
+    @property
+    def _index(self) -> dict[str, tuple[set[str], set[str]]]:
+        cached = self.__dict__.get("_cached_index")
+        if cached is None:
+            cached = {section.id: (set(stems(" ".join(section.path))), set(stems(section.text)))
+                      for section in self.sections}
+            object.__setattr__(self, "_cached_index", cached)
+        return cached
+
+    def _frequency(self) -> dict[str, int]:
+        """In how many sections each stem occurs; rare stems carry a topic on their own."""
+        counts: dict[str, int] = {}
+        for title, body in self._index.values():
+            for word in title | body:
+                counts[word] = counts.get(word, 0) + 1
+        return counts
 
 
 def load(directory: Path = DIRECTORY, version: str = __version__) -> HelpBase:

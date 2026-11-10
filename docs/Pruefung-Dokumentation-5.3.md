@@ -119,6 +119,28 @@ enthalten nur synthetische Werte und Platzhalter.
 | Fehlerbehebung | Fehlerpfade in `tests/services/*`, `tests/external/test_verification_matrix.py` | Windows 11 |
 | Betrieb | `tests/release/test_initial_cli.py`, `tests/services/test_write_verification_upgrade.py` | Windows 11; Linux/Docker offen |
 
+### Abnahmematrix (H11, Planung Abschnitt 13)
+
+| Bereich | Nachweis |
+| --- | --- |
+| Live-Eingabe, Suche, Suchrennen, Navigation | `ui_tests/test_ui_settings_live_search_53.py`, `test_ui_settings_search_53.py`, `tests/web/test_settings_search.py`, `test_settings_live_search.py` |
+| Barrierefreiheit | axe-core- und 44-px-Prüfung in allen neuen Browsertests auf Desktop, Mobilgerät und 320 px |
+| Kontextauswahl, Quellenbestand | `tests/unit/test_helpdocs.py`, `tests/evaluation/test_help_chat_corpus.py` (40 Fälle), `tests/web/test_help_site.py` (Pfadtraversal, fremde Kennungen) |
+| Modellbindung, LLM-Fehler | `tests/unit/test_settings_help_llm.py`, `tests/unit/test_help_chat.py` (401/403, 429/Budget, 5xx/Timeout, ungültiges JSON, fremde Quellen) |
+| Last | Warteschlange mit acht Plätzen und zwei Workern, Sitzungslimit (`test_help_chat.py`); Mailverarbeitung unberührt (Lasttests 4.2/4.4.1 unverändert) |
+| Autorisierung, Wiederholung | `tests/web/test_help_chat_web.py` (Sitzung, CSRF, fremder Auftrag, Konflikt, veraltete Chatversion) |
+| Neustart, Abbruch | `test_a_restart_interrupts_open_questions_and_cleans_up`, `test_clearing_forgets_the_chat_and_drops_a_late_answer` (prozessintern simuliert; kein harter Prozessabbruch) |
+| Unvertrauenswürdige Inhalte | escapte Antworten und Fragen, serverseitige Links, kein Werkzeug zum Ändern (`test_help_chat_web.py`, Korpusgruppe „manipulation“) |
+| Datenschutz | Entfernen bekannter Geheimnisse, Löschung beendeter Sitzungen und nach 24 Stunden, `no-store`, keine PWA-Kopie (Service-Worker speichert nur die Oberfläche) |
+| Dokumentation, Anleitungen | Inventur- und Anleitungstests (`test_documentation_inventory.py`, `test_guides.py`) |
+| Distribution | `test_the_wheel_serves_help_and_search_outside_the_checkout` (entpacktes Wheel außerhalb des Checkouts); Docker nicht geprüft |
+| Ohne JavaScript | Formularsuche, Chatformular mit Statusseite und Neuladen, Dokumentationsleser (`test_help_chat_web.py`, `test_settings_search.py`) |
+
+Während H11 verbessert: Die Kontextauswahl vergleicht Wortstämme („starte“/„starten“), zählt
+Synonyme nicht zur Fragelänge, nimmt seltene Fachwörter als Bezug und kennt Synonyme für
+Rückkehr, Sicherung, Neustart und Ruhezeiten. Vorher fanden etwa „Wie verbinde ich Todoist?“,
+„Wie starte ich Mailhelp neu?“ und „Wie stelle ich Ruhezeiten ein?“ keinen Abschnitt.
+
 ## 4. Funktionen der Weboberfläche
 
 Jede Seite der Weboberfläche mit ihrer Aufgabe und dem Ort ihrer Dokumentation; ein Test

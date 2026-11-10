@@ -1,6 +1,7 @@
 """Verify real distribution contents and configuration away from a checkout."""
 import os
 import shutil
+import sys
 import tarfile
 import tomllib
 import zipfile
@@ -113,3 +114,23 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"docs/Planung-5.1.md", "docs/Release-5.1.md"} <= names
         assert {"docs/Planung-5.2.md", "docs/Release-5.2.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)
+
+
+def test_the_wheel_serves_help_and_search_outside_the_checkout(tmp_path):
+    """5.3: the packaged help works from an installed wheel without the repository or its docs."""
+    import subprocess
+
+    from mailhelp import __version__
+    wheel = Path(__file__).resolve().parents[2] / "dist" / f"mailhelp-{__version__}-py3-none-any.whl"
+    assert wheel.is_file(), "Build artifacts for the current version must exist"
+    with zipfile.ZipFile(wheel) as archive:
+        archive.extractall(tmp_path / "wheel")
+    script = ("import mailhelp, mailhelp.helpdocs as h, mailhelp.web.settings_search as s; "
+              "b = h.load(); print(mailhelp.__file__); print(len(b.sections), b.select('Abrufintervall')[0].id, "
+              "len(s.search('Zeitzone')))")
+    result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, capture_output=True, text=True, check=True,
+                            env={**os.environ, "PYTHONPATH": str(tmp_path / "wheel")})
+    location, summary = result.stdout.strip().splitlines()
+    assert Path(location).resolve().is_relative_to((tmp_path / "wheel").resolve())
+    count, first, found = summary.split()
+    assert int(count) > 50 and first == "web-einstellungen/mailabruf-und-betrieb" and int(found) >= 1

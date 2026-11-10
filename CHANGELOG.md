@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.3.10 – Abnahmematrix, Fragenkorpus und Paketbetrieb (Planung 5.3, Schritt H11)
+
+- Synthetischer Fragenkorpus mit 40 Fällen (Einstellungen, Einrichtung, Fehler, fehlende Quellen,
+  Manipulationsversuche) und deterministischer Prüfung der Kontextauswahl und des Quellenvertrags;
+  die Qualität echter Modellantworten ist damit ausdrücklich nicht gemessen.
+- Bessere Kontextauswahl: Vergleich über Wortstämme, Synonyme zählen nicht zur Länge der Frage,
+  seltene Fachwörter (ab acht Buchstaben, höchstens drei Abschnitte) gelten als Bezug, neue
+  Synonyme für Rückkehr, Sicherung, Neustart und Ruhezeiten; einzelne häufige Wörter reichen
+  weiterhin nicht.
+- Paketbetrieb: Ein entpacktes Wheel liefert Hilfebestand und Suche außerhalb des Checkouts.
+- Prüfbericht mit der vollständigen Abnahmematrix und ihren Nachweisen und Grenzen.
+
 ## 5.3.9 – Hilfschat in der Weboberfläche (Planung 5.3, Schritt H10)
 
 - Neue Seite **Hilfe zu Einstellungen** (`/hilfe`), erreichbar über die Einstellungsübersicht und

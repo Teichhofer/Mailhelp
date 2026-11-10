@@ -97,3 +97,13 @@ def test_a_checkout_with_crlf_line_endings_still_matches(tmp_path):
         (copy / name).write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
     assert load(copy).revision == load().revision
     assert help_index.main(["--check"], target=copy) == 0
+
+
+def test_a_section_larger_than_the_remaining_budget_is_left_out():
+    base = load()
+    question = "Wie lege ich ein zweites Postfach an und ordne ihm einen anderen Kalender zu?"
+    full = base.select(question)
+    smallest = min(section.size for section in full)
+    assert base.select(question, budget=1) == []
+    kept = base.select(question, budget=smallest)
+    assert [section.size for section in kept] == [smallest] and len(kept) < len(full)

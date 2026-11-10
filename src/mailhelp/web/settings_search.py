@@ -18,7 +18,7 @@ SYNONYMS: tuple[tuple[str, ...], ...] = (
     ("postfach", "konto", "imap", "mailkonto"),
     ("abruf", "intervall", "abrufen", "polling"),
     ("telegram", "bot", "chat"),
-    ("push", "benachrichtigung", "meldung", "hinweis"),
+    ("push", "benachrichtigung", "meldung", "hinweis", "ruhezeit"),
     ("kalender", "termin", "google", "outlook", "caldav"),
     ("aufgabe", "todoist", "todo", "erinnerung"),
     ("aufbewahrung", "loeschen", "frist", "retention"),
@@ -26,6 +26,9 @@ SYNONYMS: tuple[tuple[str, ...], ...] = (
     ("passwort", "zugangsdaten", "token", "schluessel"),
     ("entwurf", "antwort", "reply"),
     ("zeitlimit", "timeout", "wartezeit"),
+    ("rueckkehr", "zurueck", "vorversion", "rollback", "downgrade"),
+    ("sicherung", "sichern", "backup"),
+    ("neustart", "neu starten", "restart"),
 )
 
 
