@@ -243,6 +243,17 @@ dass die Modellqualität nicht nachgewiesen ist; nur `--source model` für tats�
 Modellausgaben setzt `model_quality_proven`. Der Befehl ruft selbst kein Modell auf.
 Korpus und aufgezeichnete Antworten für 5.1 liegen unter `tests/fixtures/mail_corpus_v4/`.
 
+Ab 5.1.7 prüft `--baseline quality-reports/baseline-5.1.json` einen Bericht gegen die
+eingefrorenen Abnahmeschwellen; `--before VORHER.json` vergleicht zusätzlich mit dem Bericht
+des unveränderten Stands. Der Befehl endet mit 1 und nennt die Gründe, wenn eine Schwelle
+verletzt ist, ein Sicherheitsfall eine Aktion erzeugt oder die Änderung mehr übersehene bzw.
+fälschlich vorgeschlagene Aktionen hat als vorher. Aufgezeichnete Antworten werden immer
+abgelehnt. Vorgehen für eine Prompt- oder Modelländerung: Freigabe für Modell,
+Datenübertragung, Umfang und Budget einholen; mit `mailhelp-evaluate` Vorher- und
+Nachher-Ausgaben auf Korpus v4 erzeugen; beide mit `--source model` auswerten; die Änderung
+nur übernehmen, wenn die Prüfung gegen die Baseline besteht. Schwellen und Fälle werden nicht
+nachträglich abgesenkt oder entfernt.
+
 Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
 Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche
 Grenzfälle ausdrücklich erlaubte Alternativen (`accept`). `mail_corpus_v1` bleibt

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.6. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3398,3 +3398,20 @@ Ausfall, schemawidrige Antworten als unlesbar; beide bleiben im Bericht. `source
 `recorded` (aufgezeichnete synthetische Antworten, `model_quality_proven: false` mit
 ausdrücklichem Hinweis) oder `model` (tatsächliche Modellausgaben). Der Befehl
 `mailhelp-quality-report` schreibt den Bericht und ruft selbst kein Modell auf.
+
+### Erkennungsverbesserungen und Baseline (5.1.7)
+
+Die Wiederaufnahme unfertiger Mails (`mailbox_run`) prüft die Konfiguration nur für Mails mit
+`completion != completed` und mit `accepts_configuration(fingerprint, account_id)`, also
+gegen den Fingerabdruck des eigenen Postfachs – wie `Orchestrator._begin`. Eine abgeschlossene
+Mail mit `action_detection: failed` wird auch nach einer Konfigurationsänderung erneut
+versucht.
+
+`quality-reports/baseline-5.1.json` friert Korpus v4 (SHA-256), die Prompt-Baseline und die
+Abnahmeschwellen ein: je Art Erkennungsrate mindestens 0,9 und höchstens zwei Fehlalarme,
+keine technischen Ausfälle und keine unlesbaren Antworten, keine Aktion in den sieben
+Sicherheitsfällen (Prompt-Injection, Kurzlink-Köder, Werbung mit Frist, Marketing, fremde
+Zuständigkeit, eigene versandte Bitte, vorgetäuschte Freigabe). `llm.quality_metrics.gate`
+liefert die Gründe einer Ablehnung; nur Berichte mit `source: model` können bestehen, mit
+Vorher-Bericht darf keine Art mehr Auslassungen oder Fehlalarme haben. Ein Test sichert, dass
+Korpus, Prompt-Fingerabdrücke und Schwellen der Baseline unverändert bleiben.

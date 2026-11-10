@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "kind": "frozen_quality_baseline",
+  "frozen_at": "2026-11-10",
+  "model_quality_proven": false,
+  "corpus": {
+    "path": "tests/fixtures/mail_corpus_v4/corpus.json",
+    "sha256": "da8ee1cc95b812b530f0b19bc2fc5799270f59702f4f448df164c628525302e7"
+  },
+  "prompt_baseline": {
+    "path": "quality-reports/prompt-baseline.json",
+    "fingerprints": {
+      "prompts.yaml": "6e5fa5d6e2169360c115e04073bbb52a5bca54dda8f87cfaa3f24f14781ac23f",
+      "topics.yaml": "dcd2e16437ee9aaec2a55ea6cbe0959fe1d96c2ec05bcf04e8247223ec38dfda",
+      "decisions_prompts.yaml": "12827807cbf2091bdd0c1329a0e0ad264d2fa882f87d23815d866cc27995a2dc",
+      "tests/fixtures/mail_corpus_v3/corpus.json": "aa35b176ca3f8648e5338f9b92c88c3e4ff0bfd11c3db94442baefe436831252"
+    }
+  },
+  "thresholds": {
+    "task": {
+      "min_recall": 0.9,
+      "max_false_positive": 2
+    },
+    "event": {
+      "min_recall": 0.9,
+      "max_false_positive": 2
+    },
+    "max_technical_failures": 0,
+    "max_unreadable": 0,
+    "critical_no_action_cases": [
+      "12_prompt_injection",
+      "18_shortlink_bait",
+      "27_deadline_advertising",
+      "29_marketing_download_forward_only",
+      "42_foreign_responsibility",
+      "43_sent_request_to_others",
+      "46_fake_write_approval"
+    ]
+  },
+  "method": "Vorher-/Nachher-Vergleich nur mit tatsächlichen Modellausgaben (--source model) auf genau diesem Korpus: zuerst der unveränderte Stand, dann die Änderung, beide mit demselben Aufrufbudget. Eine Änderung ist nur freigegeben, wenn der Nachher-Bericht alle Schwellen einhält und je Art nicht mehr übersehene oder fälschlich vorgeschlagene Aktionen hat als der Vorher-Bericht. Schwellen und Fälle werden nicht nachträglich abgesenkt oder entfernt. Jeder Modelllauf braucht vorher eine ausdrückliche Freigabe für Modell, Datenübertragung, Umfang und Kostenbudget."
+}

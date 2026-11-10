@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.1.7 – Gezielte Erkennungsverbesserungen (Planung 5.1, Schritt R8)
+
+- Fehlerbehebung: Die Wiederaufnahme unfertiger Mails verglich deren Konfiguration mit der
+  globalen statt mit der des eigenen Postfachs (seit 3.2 je Postfach). Mails eines Postfachs
+  mit eigenen Einstellungen warteten deshalb dauerhaft („configuration_changed“ bei jedem
+  Abruf), und eine abgeschlossene Mail mit fehlgeschlagener Aktionserkennung wurde nie
+  wiederholt – aus ihr konnte so keine Aufgabe und kein Termin entstehen. Die Wiederaufnahme
+  prüft jetzt wie die Verarbeitung selbst: nur unfertige Mails, gegen ihr Postfach.
+  Regressionstest.
+- Eingefrorene Qualitäts-Baseline `quality-reports/baseline-5.1.json`: Fingerabdruck von
+  Korpus v4, Prompt-Baseline, feste Abnahmeschwellen (Erkennungsrate je Art mindestens 90 %,
+  höchstens zwei Fehlalarme, keine technischen Ausfälle, sieben Sicherheitsfälle ohne Aktion)
+  und dokumentierte Vergleichsmethode.
+- `mailhelp-quality-report --baseline … [--before …]` prüft einen Bericht gegen die Baseline
+  und endet mit 1 bei einem Verstoß; nur tatsächliche Modellausgaben können eine Änderung
+  belegen. Ein echter Modelllauf wurde nicht durchgeführt; er braucht eine gesonderte
+  Freigabe.
+
 ## 5.1.6 – Qualitätskorpus und Bericht (Planung 5.1, Schritt R7)
 
 - Korpus v4 (`tests/fixtures/mail_corpus_v4`): alle 38 Fälle aus v3 unverändert, jeder Fall

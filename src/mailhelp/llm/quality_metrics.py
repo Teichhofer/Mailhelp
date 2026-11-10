@@ -119,6 +119,43 @@ def report(corpus: dict[str, Any], answers: dict[str, Any], source: Source) -> d
     }
 
 
+def _actions_of(case: dict[str, Any]) -> int:
+    return sum(case[kind]["recognized"] + case[kind]["false_positive"] for kind in KINDS)
+
+
+def gate(after: dict[str, Any], baseline: dict[str, Any], before: dict[str, Any] | None = None) -> list[str]:
+    """Reasons a model change fails the frozen baseline (5.1.7); an empty list means it passes.
+
+    Only reports of real model outputs can pass; recorded answers never prove a change.
+    With *before*, the change must not add missed or false actions of either kind.
+    """
+    reasons = []
+    if not after["model_quality_proven"] or (before is not None and not before["model_quality_proven"]):
+        return ["Nur tatsächliche Modellausgaben (--source model) können eine Änderung belegen."]
+    limits = baseline["thresholds"]
+    for kind in KINDS:
+        totals, limit = after["totals"][kind], limits[kind]
+        expected = totals["recognized"] + totals["missed"]
+        if expected and totals["recognized"] / expected < limit["min_recall"]:
+            reasons.append(f"{kind}: Erkennungsrate unter {limit['min_recall']:.0%}")
+        if totals["false_positive"] > limit["max_false_positive"]:
+            reasons.append(f"{kind}: mehr als {limit['max_false_positive']} Fehlalarme")
+        if before is not None:
+            for name in ("missed", "false_positive"):
+                if totals[name] > before["totals"][kind][name]:
+                    reasons.append(f"{kind}: mehr {name} als vor der Änderung")
+    if after["technical_failures"] > limits["max_technical_failures"]:
+        reasons.append("Technische Ausfälle über der Schwelle")
+    if after["unreadable"] > limits["max_unreadable"]:
+        reasons.append("Unlesbare Antworten über der Schwelle")
+    cases = {case["id"]: case for case in after["cases"]}
+    for case_id in limits["critical_no_action_cases"]:
+        case = cases.get(case_id)
+        if case is None or case["outcome"] != "scored" or _actions_of(case):
+            reasons.append(f"Sicherheitsfall {case_id} ohne sicheres Ergebnis")
+    return reasons
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Erkennungsqualität getrennt nach Aufgaben und Terminen.")
     parser.add_argument("corpus", type=Path)
@@ -126,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="JSON: Fall-ID → {result: …} oder {error: …}, auch unter dem Schlüssel answers")
     parser.add_argument("output", type=Path)
     parser.add_argument("--source", choices=["recorded", "model"], default="recorded")
+    parser.add_argument("--baseline", type=Path, help="eingefrorene Baseline; Abbruch mit 1 bei Verstoß")
+    parser.add_argument("--before", type=Path, help="Bericht des unveränderten Stands für den Vergleich")
     arguments = parser.parse_args(argv)
     corpus = json.loads(arguments.corpus.read_text(encoding="utf-8"))
     answers = json.loads(arguments.answers.read_text(encoding="utf-8"))
@@ -134,5 +173,12 @@ def main(argv: list[str] | None = None) -> int:
     result = report(corpus, answers, arguments.source)
     arguments.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(result["statement"])
-    return 0
+    if arguments.baseline is None:
+        return 0
+    baseline = json.loads(arguments.baseline.read_text(encoding="utf-8"))
+    before = json.loads(arguments.before.read_text(encoding="utf-8")) if arguments.before else None
+    reasons = gate(result, baseline, before)
+    for reason in reasons:
+        print("Nicht freigegeben:", reason)
+    return 1 if reasons else 0
 

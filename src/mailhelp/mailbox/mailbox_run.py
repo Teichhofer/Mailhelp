@@ -675,8 +675,12 @@ class MailboxRunService:
                 if reader is None:
                     self._report_unavailable(state.imap.account_id)
                     continue
-                if not getattr(self.orchestrator, "accepts_configuration",
-                               lambda fp: fp == self.orchestrator.config_fingerprint)(state.config_fingerprint):
+                # 5.1.7: like processing itself, only an unfinished mail needs its configuration,
+                # and it is the configuration of its own mailbox (3.2), not the global one.
+                accepts = getattr(self.orchestrator, "accepts_configuration",
+                                  lambda fp, account=None: fp == self.orchestrator.config_fingerprint)
+                if (state.steps.completion != "completed"
+                        and not accepts(state.config_fingerprint, state.imap.account_id)):
                     if budget.blocked_remaining == 0:
                         break
                     budget.take_blocked()
