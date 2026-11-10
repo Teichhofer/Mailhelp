@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.4. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3349,3 +3349,34 @@ Hinweis hat Regel, Schwere (`info`, `warn`), Text, Beleg und Analyserunde:
 Zusammengeführte Vorschläge zählen nicht mit. Hinweise behaupten keine übersehene Aktion,
 erzeugen keine Aufgabe und starten keine Nachanalyse. Die Mailansicht zeigt sie unter
 „Prüfhinweise“ mit Plakette („Hinweis“ bzw. „Prüfen“) und „Beleg: …“.
+
+### Bedienung der Nachanalyse (5.1.5)
+
+Für eine abgeschlossen verarbeitete Mail zeigt die Mailansicht den Abschnitt „Aufgabe oder
+Termin übersehen?“ (`#nachanalyse`). Ohne aktiven Auftrag der aktuellen Analyserunde enthält
+er Analyserunde, Wirkung (bestehende Entscheidungen bleiben, neue Befunde nur unbestätigt),
+Budget („höchstens N kostenpflichtige Modellaufrufe; heute noch M von X Nachanalysen“), ein
+optionales Hinweisfeld (500 Zeichen) und „Erneut analysieren“; bei erreichtem Tageslimit ist
+der Knopf gesperrt, bei `reanalysis.enabled: false` erscheint ein Hinweis.
+
+| Aktion | Route | Prüfungen |
+| --- | --- | --- |
+| Start | `POST /mail/<id>/nachanalyse` | Sitzung, CSRF, Analyserunde, Idempotenzschlüssel; der Auftrag speichert die Sitzung |
+| Abbruch | `POST /mail/<id>/nachanalyse/<auftrag>/abbrechen` | Sitzung, CSRF, Zugehörigkeit zur Mail |
+| Übernahme | `POST /mail/<id>/nachanalyse/<auftrag>/uebernehmen` | Sitzung, CSRF, abgeschlossener Auftrag, Runde und Versionen (JSON) |
+
+Abgelehnte Formulare ergeben 409 mit Erklärung. Die Übernahme wird am Auftrag vorgemerkt
+(`adoption_round`, `adoption_versions`, `adoption_actor`); der Hintergrunddienst
+`runtime.reanalysis_worker.ReanalysisWorker` prüft die vormerkende Sitzung erneut, führt die
+Übernahme aus und stellt neue Vorschläge über Telegram zu. Ablehnungen stehen in
+`adoption_error` (`session_ended`, `stale`, `already_adopted`, `mail_missing`) und werden
+angezeigt; nach `stale`, `already_adopted` oder `mail_missing` wird wieder ein Start
+angeboten. Der Dienst startet mit der Weboberfläche, stellt unterbrochene Aufträge wieder ein,
+führt zuerst vorgemerkte Übernahmen und dann wartende Aufträge aus und öffnet je Auftrag
+höchstens eine IMAP-Sitzung zum gebundenen Postfach (`mailbox_account_id`). Endete die
+startende Sitzung vor dem Lauf, endet der Auftrag mit `session_ended` ohne Modellaufruf.
+
+Angezeigt werden Status, Modellaufrufe („2 von 5“), Fehlergrund und „Vorher und nachher“: je
+Eintrag Titel und Wirkung (Neu, Geändert mit Feldnamen, Bereits angelegt, Früher verworfen,
+Nicht mehr erkannt, Unverändert). Ohne übernehmbare Änderung heißt es „es gibt nichts zu
+übernehmen“, und eine neue Nachanalyse kann gestartet werden.

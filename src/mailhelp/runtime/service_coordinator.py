@@ -21,12 +21,14 @@ if TYPE_CHECKING:
     from .experience import ExperienceRuntime
     from .learning_worker import LearningWorker
     from .oauth_web import BrowserOAuth
+    from .reanalysis_worker import ReanalysisWorker
 
 
 @dataclass
 class ServiceCoordinator:
     diagnostics: DiagnosticsService | None = None
     learning: LearningWorker | None = None
+    reanalysis: ReanalysisWorker | None = None
     oauth: BrowserOAuth | None = None
     web: WebServer | None = None
     experience: ExperienceRuntime | None = None
@@ -76,6 +78,8 @@ class ServiceCoordinator:
                 self.oauth.start_worker()
             if self.learning is not None:
                 self.learning.start()
+            if self.reanalysis is not None:
+                self.reanalysis.start()
             if self.experience is not None:
                 self.experience.start()
         except WebServerError as exc:
@@ -91,6 +95,8 @@ class ServiceCoordinator:
             self.diagnostics.stop()
         if self.learning is not None:
             self.learning.stop()
+        if self.reanalysis is not None:
+            self.reanalysis.stop()
         if self.oauth is not None:
             self.oauth.stop()
         if self.notifications is not None:

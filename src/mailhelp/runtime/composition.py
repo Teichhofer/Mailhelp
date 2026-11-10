@@ -347,6 +347,15 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     application.web_site = components.site
     application.services.learning = LearningWorker(application, components.site, secrets)
     LearningSite(components.site, application.services.learning)
+    # 5.1.5: "Aufgabe oder Termin übersehen?" – bounded re-analysis in its own thread.
+    from ..web.reanalysis_site import ReanalysisSite
+    from .experience import _reader
+    from .reanalysis_worker import ReanalysisWorker, mailbox_readers
+    application.services.reanalysis = ReanalysisWorker(
+        store, settings.reanalysis, application.orchestrator, logger,
+        mailbox_readers(settings, secrets, _reader), dialog.send_proposal,
+        lambda actor: actor.startswith("web:") and components.site.auth.active(actor.removeprefix("web:")))
+    ReanalysisSite(components.site, application.services.reanalysis)
     from .browser_accounts import attach_accounts
     attach_accounts(application, components.site, base_directory)
     from .diagnostics import DiagnosticResult, error_code

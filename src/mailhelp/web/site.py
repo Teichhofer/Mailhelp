@@ -53,6 +53,7 @@ Handler = Callable[..., Response]
 if TYPE_CHECKING:
     from ..notifications.notification_runtime import NotificationRuntime
     from ..runtime.metrics import MetricsRecorder
+    from .reanalysis_site import ReanalysisSite
 
 
 class MailhelpSite:
@@ -124,6 +125,8 @@ class MailhelpSite:
         from .reconciliation_site import ReconciliationSite
         self.reconciliation_page = ReconciliationSite(self)
         self.notification_runtime: NotificationRuntime | None = None
+        # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
+        self.reanalysis_page: ReanalysisSite | None = None
         self.commands.changed = self.refresh_overview
         self._overview_revision = -1
         self.refresh_overview()

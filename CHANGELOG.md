@@ -1,5 +1,20 @@
 # Änderungen
 
+## 5.1.5 – Bedienung der Nachanalyse (Planung 5.1, Schritt R6)
+
+- Die Mailansicht bietet „Aufgabe oder Termin übersehen?“ mit Analyserunde, Budget
+  (höchstens `max_llm_calls_per_job` Modellaufrufe, verbleibende Nachanalysen des Tages) und
+  einem optionalen Hinweis. Danach zeigt sie Fortschritt, Modellaufrufe, Fehlergrund und
+  „Vorher und nachher“ mit der Wirkung jedes Eintrags.
+- „Ergebnis übernehmen“ wird vorgemerkt und vom Hintergrunddienst ausgeführt; neue Befunde
+  erscheinen als unbestätigte Vorschläge. Nichts wird angelegt.
+- Start, Abbruch und Übernahme prüfen Sitzung und CSRF; Analyserunde und angezeigte Versionen
+  werden bei der Ausführung erneut geprüft, die auslösende Sitzung ebenfalls. Wiederholte
+  Klicks bleiben wirkungslos. Ohne JavaScript nutzbar.
+- Ergibt eine Nachanalyse nichts Neues, kann sofort eine weitere gestartet werden.
+- Der Hintergrunddienst läuft mit der Weboberfläche, stellt unterbrochene Aufträge nach einem
+  Neustart wieder ein und öffnet je Auftrag höchstens eine IMAP-Sitzung zum gebundenen Postfach.
+
 ## 5.1.4 – Konsistenzhinweise (Planung 5.1, Schritt R5)
 
 - Der Prüfverlauf zeigt „Prüfhinweise“ aus den gespeicherten Ergebnissen, je mit stabiler

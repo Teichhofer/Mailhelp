@@ -17,7 +17,7 @@ from typing import Any, Protocol
 from .. import state_names
 from ..config import ReanalysisSettings
 from ..domain.mail import MailState
-from ..domain.reanalysis import ACTIVE, ReanalysisError, ReanalysisJob, ReanalysisStatus
+from ..domain.reanalysis import ACTIVE, ReanalysisError, ReanalysisJob, ReanalysisStatus, adoption_pending
 from ..mailbox.imap import FetchedMail, FolderNotReadable, UIDValidityChanged
 from ..mailbox.mime import prepare
 from .perspective import Perspective, read_perspective
@@ -88,7 +88,7 @@ class ReanalysisJobs:
         self.store.save(PREFIX + job.id, job.model_dump(mode="json"))
 
     def start(self, state: MailState, *, expected_round: int, hint: str | None,
-              key: str) -> tuple[ReanalysisJob, bool]:
+              key: str, actor: str | None = None) -> tuple[ReanalysisJob, bool]:
         """A job for *state*; repeating the request returns the same job instead of a second one."""
         if not self.settings.enabled:
             raise ReanalysisRefused("disabled")
@@ -113,13 +113,30 @@ class ReanalysisJobs:
                 raise ReanalysisRefused("daily_limit")
             job = ReanalysisJob(id=digest[:32], mail_id=state.id, source_round=state.analysis_round,
                                 config_fingerprint=state.config_fingerprint, imap=state.imap,
-                                hint=(hint or "").strip()[:500] or None, key_hash=digest,
+                                hint=(hint or "").strip()[:500] or None, key_hash=digest, actor=actor,
                                 max_attempts=self.settings.max_attempts,
                                 max_llm_calls=self.settings.max_llm_calls_per_job, created_at=now, updated_at=now)
             self.save(job)
         self.logger.event("INFO", "reanalysis", "reanalysis_queued", job_id=job.id, mail_id=job.mail_id,
                           round=job.source_round)
         return job, True
+
+    def request_adoption(self, job_id: str, *, expected_round: int, expected_versions: dict[str, int],
+                         actor: str) -> ReanalysisJob:
+        """Note an adoption for the background service; repeating it changes nothing."""
+        with self.lock:
+            job = self.get(job_id)
+            if job is None or job.status != ReanalysisStatus.COMPLETED:
+                raise ReanalysisRefused("not_completed")
+            if job.adopted_at is not None or adoption_pending(job):
+                return job
+            job.adoption_round, job.adoption_versions = expected_round, dict(expected_versions)
+            job.adoption_actor, job.adoption_error = actor, None
+            self.save(job)
+        return job
+
+    def pending_adoption(self) -> ReanalysisJob | None:
+        return next((job for job in self.all() if adoption_pending(job)), None)
 
     def cancel(self, job_id: str) -> ReanalysisJob | None:
         with self.lock:
@@ -155,8 +172,9 @@ class ReanalysisJobs:
 class ReanalysisRunner:
     """Executes queued jobs step by step within their call budget and attempt limit."""
 
-    def __init__(self, jobs: ReanalysisJobs, engine: Engine, reader_for: Callable[[str], Reader | None]):
-        self.jobs, self.engine, self.reader_for = jobs, engine, reader_for
+    def __init__(self, jobs: ReanalysisJobs, engine: Engine, reader_for: Callable[[str], Reader | None],
+                 authorized: Callable[[str], bool] = lambda actor: True):
+        self.jobs, self.engine, self.reader_for, self.authorized = jobs, engine, reader_for, authorized
 
     def run_next(self) -> ReanalysisJob | None:
         job = self.jobs.next_queued()
@@ -170,6 +188,9 @@ class ReanalysisRunner:
             job = current
             job.status = ReanalysisStatus.RUNNING
             self.jobs.save(job)
+        if job.actor is not None and not self.authorized(job.actor):
+            # The session that asked for the paid calls ended before they ran.
+            return self._finish(job, ReanalysisStatus.FAILED, ReanalysisError.SESSION_ENDED)
         try:
             state = self._source(job)
             self._steps(job, state)

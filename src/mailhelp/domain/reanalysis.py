@@ -34,9 +34,16 @@ class ReanalysisError(StrEnum):
     BUDGET_EXHAUSTED = "budget_exhausted"
     MODEL_FAILED = "model_failed"
     STALE_ROUND = "stale_round"
+    # 5.1.5: the web session that started the job ended before it ran.
+    SESSION_ENDED = "session_ended"
 
 
 ACTIVE = {ReanalysisStatus.QUEUED, ReanalysisStatus.RUNNING}
+
+
+def adoption_pending(job: ReanalysisJob) -> bool:
+    """A requested adoption that the background service has not yet run or refused."""
+    return job.adoption_round is not None and job.adopted_at is None and job.adoption_error is None
 FINISHED = {ReanalysisStatus.COMPLETED, ReanalysisStatus.FAILED, ReanalysisStatus.CANCELLED}
 
 # The steps in order; "route" to "events" are the paid model calls. Reading the mail
@@ -55,6 +62,8 @@ class ReanalysisJob(StrictModel):
     # The user's short note for this analysis; untrusted input, never a write approval.
     hint: str | None = Field(default=None, min_length=1, max_length=500)
     key_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    # 5.1.5: the web session that started the job; checked again before it runs.
+    actor: str | None = Field(default=None, pattern=r"^web:.+$", max_length=200)
     status: ReanalysisStatus = ReanalysisStatus.QUEUED
     stage: Stage = "route"
     attempts: int = Field(default=0, ge=0)
@@ -69,6 +78,12 @@ class ReanalysisJob(StrictModel):
     error: ReanalysisError | None = None
     # 5.1.3: when the checked result was adopted into the mail; adopted at most once.
     adopted_at: datetime | None = None
+    # 5.1.5: an adoption requested on the web, run by the background service with the shown
+    # round and versions; a refusal keeps its reason for the page.
+    adoption_round: int | None = Field(default=None, ge=1)
+    adoption_versions: dict[str, int] | None = None
+    adoption_actor: str | None = Field(default=None, pattern=r"^web:.+$", max_length=200)
+    adoption_error: str | None = Field(default=None, pattern=r"^[a-z_]{1,40}$")
     created_at: datetime
     updated_at: datetime
 
@@ -80,6 +95,11 @@ class ReanalysisJob(StrictModel):
             raise ValueError("Genau ein fehlgeschlagener Auftrag nennt einen Fehler")
         if self.status == ReanalysisStatus.COMPLETED and self.stage != "done":
             raise ValueError("Ein abgeschlossener Auftrag hat alle Schritte durchlaufen")
+        requested = (self.adoption_round, self.adoption_versions, self.adoption_actor)
+        if any(value is not None for value in requested) and None in requested:
+            raise ValueError("Eine Übernahmeanfrage nennt Runde, Versionen und Sitzung")
+        if self.adoption_round is not None and self.status != ReanalysisStatus.COMPLETED:
+            raise ValueError("Nur ein abgeschlossener Auftrag kann übernommen werden")
         if self.adopted_at is not None and self.status != ReanalysisStatus.COMPLETED:
             raise ValueError("Nur ein abgeschlossener Auftrag kann übernommen sein")
         if self.llm_calls > self.max_llm_calls:
