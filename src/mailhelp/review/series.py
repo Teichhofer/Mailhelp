@@ -173,7 +173,7 @@ class SeriesService:
             status, message = self.controller.decision_service._write(current)
             result = ReviewResult(status=status, message=message)
         elif current is not None and current.version == original.version and current.status in {
-                ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
+                ProposalStatus.CREATED, ProposalStatus.SIMULATED, ProposalStatus.VERIFYING}:
             result = ReviewResult(status=ResultStatus.WRITTEN, message="Bereits abgeschlossen.")
         else:
             raise StaleCommand("Serie während der Anlage geändert; verbleibende Termine neu prüfen und bestätigen.")

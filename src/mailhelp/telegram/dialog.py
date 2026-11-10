@@ -214,7 +214,8 @@ class TelegramDialogController:
     def persist(self, proposal: Proposal) -> None:
         """Compatibility port; persistence itself belongs to the repository."""
         self.repository.save_revision(proposal)
-        if proposal.status == ProposalStatus.CREATED:
+        # 5.2: a written entry is booked before it is verified, so no duplicate slips through.
+        if proposal.status in {ProposalStatus.CREATED, ProposalStatus.VERIFYING}:
             self.ledger.book_created(proposal)
 
     def send(self, chat_id: int, text: str) -> None:

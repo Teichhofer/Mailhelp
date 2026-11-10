@@ -19,6 +19,8 @@ _OPEN_PROPOSALS = {
     ProposalStatus.CONFIRMED,
     ProposalStatus.WRITING,
     ProposalStatus.UNCERTAIN,
+    # 5.2: written but not yet verified; its mail keeps the content verification may show.
+    ProposalStatus.VERIFYING,
 }
 
 _REMOVED = {"schema_version": 1, "removed": True}

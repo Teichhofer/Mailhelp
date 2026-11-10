@@ -58,6 +58,8 @@ class ProposalStatus(StrEnum):
     FAILED = "failed"
     UNCERTAIN = "uncertain"
     MERGED = "merged"
+    # 5.2: written with a known external id, not yet proven by a fresh read at the target.
+    VERIFYING = "verifying"
 
 
 class DuplicateSource(StrEnum):
@@ -286,6 +288,8 @@ class Proposal(StrictModel):
         """Simulation, cancellation, existing entries and readiness for confirmation."""
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
+        if self.status == ProposalStatus.VERIFYING and self.external_id is None:
+            raise ValueError("Ein geschriebener, noch ungeprüfter Vorschlag nennt seine externe ID")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
         if self.kind == ProposalKind.TASK and self.target_event_id is not None:

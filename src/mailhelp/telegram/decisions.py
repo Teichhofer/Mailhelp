@@ -216,7 +216,7 @@ class ProposalDecisionService:
     def _write(self, changed: Proposal) -> tuple[ResultStatus, str]:
         """Execute the confirmed write and translate its outcome."""
         result = self.writes.execute(changed)
-        if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
+        if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED, ProposalStatus.VERIFYING}:
             # The write result message already reports the outcome.
             return ResultStatus.WRITTEN, ""
         if result.status == ProposalStatus.UNCERTAIN:

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.1.9. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3428,3 +3428,38 @@ ohne Wert `debug_llm_days`), abgeschlossene, nicht übernommene Aufträge nach
 isoliert (`.corrupt`) und als `reanalysis_job_damaged` mit Dateinamen protokolliert; alle
 anderen Aufträge bleiben nutzbar. Auftragsdateien ohne die Felder ab 5.1.5 werden mit
 leeren Werten gelesen. Gleichzeitige Starts werden unter einer Sperre entschieden.
+
+## Version 5.2 – Geprüfte Eintragungen
+
+### Zustands- und Prüfvertrag (5.2.0)
+
+`ProposalStatus.VERIFYING` bezeichnet einen Vorschlag mit bekanntem Schreibresultat und
+externer ID (Pflicht), dessen Nachprüfung noch nicht bestanden ist. `UNCERTAIN` bleibt dem
+tatsächlich unklaren Schreibresultat vorbehalten. Erlaubte Übergänge
+(`domain.verification.TRANSITIONS`): `CONFIRMED → WRITING | SIMULATED | FAILED`,
+`WRITING → VERIFYING | UNCERTAIN | FAILED`, `UNCERTAIN → VERIFYING | UNCERTAIN`,
+`VERIFYING → VERIFYING | CREATED`, `CREATED → CREATED`. Kein geschriebener Zustand führt zurück
+zu `CONFIRMED` oder `WRITING`.
+
+`domain.verification.WriteVerification` (Schema 1, Datei `write-verification-<id>.json`): `id`
+ist der SHA-256 (32 Zeichen) aus Mail, Vorschlag, Version und Operation (`create`, `update`,
+`append`, `cancel`, `duplicate`); dazu Idempotenzschlüssel, `target` (Profil, Anbieter,
+stabile Kontobindung, Kalender-/Projekt-/Listen-ID bzw. CalDAV-Sammlung), `receipt` (externe
+ID, Zeitpunkt, Revision/ETag, Ergebnis), `expected` mit `expected_fingerprint`, `state`,
+`attempts`, `checked_at`, `next_check_at` (genau bei `pending`), `deadline_at`, `last_error`
+(Code) und `differences` (Feld → erwarteter/tatsächlicher Wert, je höchstens 500 Zeichen,
+genau bei `mismatch`). Ohne Schreibbeleg sind nur `legacy_unverified` und `simulated` zulässig.
+
+Statusverbraucher und ihr Umgang mit `VERIFYING`:
+
+| Verbraucher | Verhalten |
+| --- | --- |
+| `external.confirmed.execute_confirmed` | kein Abgleich, kein Schreiben; Rückgabe `{"verifying": true}` |
+| `telegram.dialog.persist` / Aktionsledger | bucht den Eintrag wie `CREATED`, damit keine Dublette entsteht |
+| `proposals.proposal_reconciliation.PROTECTED` | geschützt vor Zusammenführung |
+| `runtime.retention` | Mail gilt als offen; Inhalte bleiben |
+| `persistence.proposals` (Schreibversuche) | wird als Schreibversuch geführt |
+| `review.series` | gilt als bereits abgeschlossen; kein weiterer Schreibversuch |
+| `telegram.decisions` | Ergebnis `WRITTEN` |
+| Weboberfläche | Plakette „Gespeichert – Eintrag wird geprüft“ |
+| Vorschlagsabgleich der Nachanalyse (5.1.3) | geschützt wie geschriebene Vorschläge |

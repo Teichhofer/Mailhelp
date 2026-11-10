@@ -202,7 +202,7 @@ class ProposalRepository:
                         force: bool = False) -> list[WriteAttemptReference]:
         tracked = proposal.status in {
             ProposalStatus.WRITING, ProposalStatus.CREATED,
-            ProposalStatus.FAILED, ProposalStatus.UNCERTAIN,
+            ProposalStatus.FAILED, ProposalStatus.UNCERTAIN, ProposalStatus.VERIFYING,
         }
         if not tracked and not force:
             return state.write_attempts

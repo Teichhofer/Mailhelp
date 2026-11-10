@@ -1,0 +1,295 @@
+{
+  "$defs": {
+    "FieldDifference": {
+      "additionalProperties": false,
+      "description": "A bounded expected/actual pair for display; never a full provider response.",
+      "properties": {
+        "actual": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actual"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected"
+        }
+      },
+      "title": "FieldDifference",
+      "type": "object"
+    },
+    "TargetBinding": {
+      "additionalProperties": false,
+      "description": "The target the write was authorized for; verification never follows another one.",
+      "properties": {
+        "account": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Account",
+          "type": "string"
+        },
+        "container": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Container",
+          "type": "string"
+        },
+        "profile": {
+          "minimum": 1,
+          "title": "Profile",
+          "type": "integer"
+        },
+        "provider": {
+          "maxLength": 30,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile",
+        "provider",
+        "account",
+        "container"
+      ],
+      "title": "TargetBinding",
+      "type": "object"
+    },
+    "VerificationState": {
+      "enum": [
+        "pending",
+        "verified",
+        "not_found",
+        "mismatch",
+        "unavailable",
+        "unsupported",
+        "legacy_unverified",
+        "simulated"
+      ],
+      "title": "VerificationState",
+      "type": "string"
+    },
+    "WriteReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "External Id",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "created",
+            "found_by_key",
+            "updated",
+            "appended",
+            "cancelled",
+            "existing"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision"
+        },
+        "written_at": {
+          "format": "date-time",
+          "title": "Written At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "external_id",
+        "written_at",
+        "result"
+      ],
+      "title": "WriteReceipt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "checked_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checked At"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline_at": {
+      "format": "date-time",
+      "title": "Deadline At",
+      "type": "string"
+    },
+    "differences": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FieldDifference"
+      },
+      "maxProperties": 30,
+      "title": "Differences",
+      "type": "object"
+    },
+    "expected": {
+      "additionalProperties": true,
+      "title": "Expected",
+      "type": "object"
+    },
+    "expected_fingerprint": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Expected Fingerprint",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "last_error": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Error"
+    },
+    "mail_id": {
+      "pattern": "^[a-f0-9]{24}$",
+      "title": "Mail Id",
+      "type": "string"
+    },
+    "next_check_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Check At"
+    },
+    "operation": {
+      "enum": [
+        "create",
+        "update",
+        "append",
+        "cancel",
+        "duplicate"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "proposal_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "proposal_version": {
+      "minimum": 1,
+      "title": "Proposal Version",
+      "type": "integer"
+    },
+    "receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WriteReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "state": {
+      "$ref": "#/$defs/VerificationState",
+      "default": "pending"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetBinding"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "mail_id",
+    "proposal_id",
+    "proposal_version",
+    "idempotency_key",
+    "operation",
+    "target",
+    "expected",
+    "expected_fingerprint",
+    "deadline_at",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "WriteVerification",
+  "type": "object"
+}

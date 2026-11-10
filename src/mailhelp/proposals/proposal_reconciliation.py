@@ -20,7 +20,8 @@ from .proposal_matching import compatible, reference_key, relationship, same_thr
 from .proposal_merge import merge_facts
 
 OPEN = {ProposalStatus.NEEDS_CLARIFICATION, ProposalStatus.PENDING_CONFIRMATION}
-PROTECTED = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED}
+PROTECTED = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED,
+             ProposalStatus.VERIFYING}
 
 
 def _journal_reference(proposal: Proposal) -> tuple[str, str | None]:

@@ -17,9 +17,11 @@ from ..domain.processing import (
 )
 from ..domain.proposal import ActionLedger
 from ..domain.proposal_sources import ProposalRelation
+from ..domain.reanalysis import ReanalysisJob
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
+from ..domain.verification import WriteVerification
 from ..notifications.notifications import NotificationQueue
 from ..review.incoming import IncomingRecord
 from ..review.series import SeriesReceipt
@@ -51,6 +53,7 @@ __all__ = [
     "ProposalMatchCache",
     "ProposalMergeJournal",
     "ProposalRelation",
+    "ReanalysisJob",
     "RelevanceDialog",
     "ReloadState",
     "ReportMail",
@@ -58,6 +61,7 @@ __all__ = [
     "SeriesReceipt",
     "SeriesOffer",
     "TelegramDialogState",
+    "WriteVerification",
     "TelegramOffset",
     "TelegramOutboxState",
 ]

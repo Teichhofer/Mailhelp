@@ -31,6 +31,7 @@ _STATE_BADGE = {
     ProposalStatus.UNCERTAIN: "warn",
     ProposalStatus.CONFIRMED: "accent",
     ProposalStatus.WRITING: "accent",
+    ProposalStatus.VERIFYING: "accent",
     ProposalStatus.ALREADY_EXISTS: "info",
     ProposalStatus.MERGED: "info",
 }

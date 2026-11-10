@@ -1,5 +1,22 @@
 # Änderungen
 
+## 5.2.0 – Zustands- und Prüfvertrag für Eintragungen (Planung 5.2, Schritt V1)
+
+- Neuer Vorschlagsstatus `VERIFYING` („Gespeichert – Eintrag wird geprüft“): geschrieben mit
+  bekannter externer ID, aber noch nicht durch einen frischen Abruf beim Anbieter bestätigt.
+  Er erlaubt nie einen weiteren Schreibversuch.
+- Prüfnachweis `WriteVerification` (`write-verification-<operation>.json`): Identität,
+  gebundenes Ziel (Profil, Anbieter, Konto, Kalender/Projekt/Liste), Schreibbeleg, Sollstand
+  mit Fingerabdruck, Prüfstand (`pending`, `verified`, `not_found`, `mismatch`, `unavailable`,
+  `unsupported`, `legacy_unverified`, `simulated`), Wiederanlauf und begrenzte Abweichungen.
+- Erlaubte Übergänge der Schreibzustände festgelegt: `CREATED` nur noch über `VERIFYING`.
+- Alle Statusverbraucher behandeln `VERIFYING` sicher: Aktionsledger bucht den Eintrag,
+  Vorschlagsabgleich und Aufbewahrung schützen ihn, Serien und Schreibablauf werten ihn als
+  geschrieben. Noch erzeugt kein Schreibweg diesen Status (folgt mit 5.2.1).
+- Gespeichertes Format: Vorschläge kennen den Wert `verifying` (rein ergänzend, keine Migration);
+  Nachanalyse-Aufträge und Prüfnachweise stehen in der Liste der gespeicherten Modelle mit
+  Schema-Schnappschuss. Ältere Versionen lesen `verifying` nicht; die Rückkehr regelt 5.2.9.
+
 ## 5.1.9 – Abnahme und Release 5.1 (Planung 5.1, Schritt R10)
 
 - Release-Bericht [docs/Release-5.1.md](docs/Release-5.1.md) mit allen Änderungen 5.1.0 bis

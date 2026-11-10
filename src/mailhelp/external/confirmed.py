@@ -21,6 +21,9 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
                          "Ersatz-Neuanlagen dürfen extern angelegt werden")
     if proposal.status == ProposalStatus.SIMULATED:
         return proposal, {"simulation": True}
+    if proposal.status == ProposalStatus.VERIFYING:
+        # 5.2: the entry is written; only a read may follow, never a second write.
+        return proposal, {"verifying": True}
     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
             or proposal.open_questions):
         raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")

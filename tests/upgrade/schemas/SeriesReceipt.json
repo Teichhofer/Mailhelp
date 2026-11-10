@@ -1013,7 +1013,8 @@
         "rejected",
         "failed",
         "uncertain",
-        "merged"
+        "merged",
+        "verifying"
       ],
       "title": "ProposalStatus",
       "type": "string"

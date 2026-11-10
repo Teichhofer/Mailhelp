@@ -1,0 +1,1613 @@
+{
+  "$defs": {
+    "ActionRoute": {
+      "additionalProperties": false,
+      "description": "Bounded action classification before detailed extraction.\n\nFor ``unclear`` the counters are the number of possible task/event\ncandidates seen by the router.  One of them may be zero.  A counted\ncandidate is still extracted so that its uncertainty can be reviewed in a\nconcrete proposal instead of being hidden behind a generic message.  An\n``unclear`` route without any candidate has nothing to review and is\ntreated as ``none``; otherwise it only produced an unanswerable hint.",
+      "properties": {
+        "action_state": {
+          "enum": [
+            "none",
+            "task",
+            "event",
+            "task_and_event",
+            "unclear"
+          ],
+          "title": "Action State",
+          "type": "string"
+        },
+        "event_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Event Count",
+          "type": "integer"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "reply_needed": {
+          "default": false,
+          "title": "Reply Needed",
+          "type": "boolean"
+        },
+        "reply_reason": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply Reason"
+        },
+        "task_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Task Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action_state",
+        "task_count",
+        "event_count",
+        "reason"
+      ],
+      "title": "ActionRoute",
+      "type": "object"
+    },
+    "CalendarCandidate": {
+      "additionalProperties": false,
+      "description": "An existing calendar entry a change or cancellation may refer to (4.6, 17.3).\n\nOnly entries found by the calendar search are stored; the user picks one of them.",
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            }
+          ],
+          "title": "End"
+        },
+        "event_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            }
+          ],
+          "title": "Start"
+        },
+        "title": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "start",
+        "end"
+      ],
+      "title": "CalendarCandidate",
+      "type": "object"
+    },
+    "DuplicateMatchInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "details": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Details",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "matched_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matched Time"
+        },
+        "matched_title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Matched Title",
+          "type": "string"
+        },
+        "similarity_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Similarity Score"
+        },
+        "source": {
+          "$ref": "#/$defs/DuplicateSource"
+        }
+      },
+      "required": [
+        "source",
+        "matched_title"
+      ],
+      "title": "DuplicateMatchInfo",
+      "type": "object"
+    },
+    "DuplicateSource": {
+      "enum": [
+        "action_ledger",
+        "google_calendar",
+        "todoist"
+      ],
+      "title": "DuplicateSource",
+      "type": "string"
+    },
+    "EventExtraction": {
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/ExtractedEvent"
+          },
+          "maxItems": 20,
+          "title": "Events",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "EventExtraction",
+      "type": "object"
+    },
+    "ExtractedEvent": {
+      "additionalProperties": false,
+      "description": "Unnormalised event facts; missing facts remain explicitly absent.",
+      "properties": {
+        "certainty": {
+          "enum": [
+            "certain",
+            "uncertain",
+            "contradictory"
+          ],
+          "title": "Certainty",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "new",
+            "non_binding",
+            "already_completed",
+            "change",
+            "cancellation",
+            "recurring",
+            "unsupported"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "date_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Text"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "duration_is_upper_bound": {
+          "default": false,
+          "title": "Duration Is Upper Bound",
+          "type": "boolean"
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Minutes"
+        },
+        "end_time_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Time Text"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "original_date_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Date Text"
+        },
+        "responsibility": {
+          "enum": [
+            "user",
+            "other",
+            "unclear"
+          ],
+          "title": "Responsibility",
+          "type": "string"
+        },
+        "time_requirement": {
+          "$ref": "#/$defs/TimeRequirement"
+        },
+        "time_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Text"
+        },
+        "timezone_offset_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timezone Offset Text"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "required": [
+        "title",
+        "evidence",
+        "time_requirement",
+        "responsibility",
+        "certainty",
+        "classification"
+      ],
+      "title": "ExtractedEvent",
+      "type": "object"
+    },
+    "ExtractedTask": {
+      "additionalProperties": false,
+      "description": "Unnormalised task facts copied from an untrusted message.",
+      "properties": {
+        "certainty": {
+          "enum": [
+            "certain",
+            "uncertain",
+            "contradictory"
+          ],
+          "title": "Certainty",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "new",
+            "non_binding",
+            "already_completed",
+            "change",
+            "cancellation",
+            "recurring",
+            "unsupported"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "due_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due Text"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "responsibility": {
+          "enum": [
+            "user",
+            "other",
+            "unclear"
+          ],
+          "title": "Responsibility",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "evidence",
+        "responsibility",
+        "certainty",
+        "classification"
+      ],
+      "title": "ExtractedTask",
+      "type": "object"
+    },
+    "KnownTemporalFacts": {
+      "additionalProperties": false,
+      "description": "Valid temporal facts retained while an event interval is incomplete.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Time"
+        }
+      },
+      "title": "KnownTemporalFacts",
+      "type": "object"
+    },
+    "MailImapIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "folder": {
+          "minLength": 1,
+          "title": "Folder",
+          "type": "string"
+        },
+        "uid": {
+          "minimum": 1,
+          "title": "Uid",
+          "type": "integer"
+        },
+        "uidvalidity": {
+          "minimum": 1,
+          "title": "Uidvalidity",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "account_id",
+        "folder",
+        "uidvalidity",
+        "uid"
+      ],
+      "title": "MailImapIdentity",
+      "type": "object"
+    },
+    "Proposal": {
+      "additionalProperties": false,
+      "properties": {
+        "all_day": {
+          "default": false,
+          "title": "All Day",
+          "type": "boolean"
+        },
+        "base_title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Title"
+        },
+        "calendar_candidates": {
+          "items": {
+            "$ref": "#/$defs/CalendarCandidate"
+          },
+          "maxItems": 10,
+          "title": "Calendar Candidates",
+          "type": "array"
+        },
+        "canonical_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "certainty": {
+          "$ref": "#/$defs/ProposalCertainty"
+        },
+        "classification": {
+          "$ref": "#/$defs/ProposalClassification"
+        },
+        "confirmed_web_actor": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "pattern": "^web:.+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmed Web Actor"
+        },
+        "default_duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Duration Minutes"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "duplicate_check_failed": {
+          "default": false,
+          "title": "Duplicate Check Failed",
+          "type": "boolean"
+        },
+        "duplicate_match": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DuplicateMatchInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration_is_upper_bound": {
+          "default": false,
+          "title": "Duration Is Upper Bound",
+          "type": "boolean"
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Minutes"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "end_origin": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "mail_end",
+            "mail_duration",
+            "calendar",
+            "standard",
+            "manual"
+          ],
+          "title": "End Origin",
+          "type": "string"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "explicit_create_fallback_confirmed": {
+          "default": false,
+          "title": "Explicit Create Fallback Confirmed",
+          "type": "boolean"
+        },
+        "explicit_duplicate_create_confirmed_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explicit Duplicate Create Confirmed Version"
+        },
+        "explicit_non_binding_create_confirmed": {
+          "default": false,
+          "title": "Explicit Non Binding Create Confirmed",
+          "type": "boolean"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "is_cancellation": {
+          "default": false,
+          "title": "Is Cancellation",
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/ProposalKind"
+        },
+        "known_temporal_facts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KnownTemporalFacts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "mail_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "pattern": "^(?:message://%3C[!#-&(-;=?-~]+%3E|https://mail\\.google\\.com/mail/u/0/#search/rfc822msgid%3A[!#-&(-;=?-~]+|https://outlook\\.office\\.com/mail/search\\?q=[!#-&(-;=?-~]+)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mail Link"
+        },
+        "matching_candidates": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Matching Candidates",
+          "type": "array"
+        },
+        "meeting_mode": {
+          "default": "unknown",
+          "enum": [
+            "video",
+            "in_person",
+            "hybrid",
+            "unknown"
+          ],
+          "title": "Meeting Mode",
+          "type": "string"
+        },
+        "merge_review_required": {
+          "default": false,
+          "title": "Merge Review Required",
+          "type": "boolean"
+        },
+        "open_questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "original_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Date"
+        },
+        "pending_sources": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Pending Sources",
+          "type": "array"
+        },
+        "protected_fields": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Protected Fields",
+          "type": "array"
+        },
+        "reconciliation_journal": {
+          "anyOf": [
+            {
+              "pattern": "^reconciliation-merge-[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciliation Journal"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "const": "already_done",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolution"
+        },
+        "responsibility": {
+          "$ref": "#/$defs/ProposalResponsibility"
+        },
+        "schema_version": {
+          "const": 3,
+          "default": 3,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "separated_from": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Separated From",
+          "type": "array"
+        },
+        "series_key": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Series Key"
+        },
+        "simulation_notified": {
+          "default": false,
+          "title": "Simulation Notified",
+          "type": "boolean"
+        },
+        "source_mail_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Mail Id",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ProposalSource"
+          },
+          "maxItems": 1000,
+          "title": "Sources",
+          "type": "array"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "status": {
+          "$ref": "#/$defs/ProposalStatus",
+          "default": "pending_confirmation"
+        },
+        "target": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "target_event_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Event Id"
+        },
+        "target_profile": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Target Profile",
+          "type": "integer"
+        },
+        "target_provider": {
+          "default": "",
+          "maxLength": 30,
+          "title": "Target Provider",
+          "type": "string"
+        },
+        "temporal_fact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalFact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_changes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Time Changes",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "uncertain_notified": {
+          "default": false,
+          "title": "Uncertain Notified",
+          "type": "boolean"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "responsibility",
+        "certainty",
+        "classification",
+        "title",
+        "evidence",
+        "source_mail_id",
+        "target"
+      ],
+      "title": "Proposal",
+      "type": "object"
+    },
+    "ProposalCertainty": {
+      "enum": [
+        "certain",
+        "uncertain",
+        "contradictory"
+      ],
+      "title": "ProposalCertainty",
+      "type": "string"
+    },
+    "ProposalClassification": {
+      "enum": [
+        "new",
+        "non_binding",
+        "already_completed",
+        "change",
+        "cancellation",
+        "recurring",
+        "unsupported"
+      ],
+      "title": "ProposalClassification",
+      "type": "string"
+    },
+    "ProposalKind": {
+      "enum": [
+        "task",
+        "event"
+      ],
+      "title": "ProposalKind",
+      "type": "string"
+    },
+    "ProposalReference": {
+      "additionalProperties": false,
+      "properties": {
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalReference",
+      "type": "object"
+    },
+    "ProposalResponsibility": {
+      "enum": [
+        "user",
+        "other",
+        "unclear"
+      ],
+      "title": "ProposalResponsibility",
+      "type": "string"
+    },
+    "ProposalSource": {
+      "additionalProperties": false,
+      "properties": {
+        "anchors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Anchors",
+          "type": "array"
+        },
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent At"
+        },
+        "subject": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalSource",
+      "type": "object"
+    },
+    "ProposalStatus": {
+      "enum": [
+        "needs_clarification",
+        "pending_confirmation",
+        "already_exists",
+        "confirmed",
+        "writing",
+        "created",
+        "simulated",
+        "rejected",
+        "failed",
+        "uncertain",
+        "merged",
+        "verifying"
+      ],
+      "title": "ProposalStatus",
+      "type": "string"
+    },
+    "ReanalysisError": {
+      "enum": [
+        "mail_missing",
+        "uidvalidity_changed",
+        "mailbox_unavailable",
+        "budget_exhausted",
+        "model_failed",
+        "stale_round",
+        "session_ended"
+      ],
+      "title": "ReanalysisError",
+      "type": "string"
+    },
+    "ReanalysisStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "title": "ReanalysisStatus",
+      "type": "string"
+    },
+    "TaskExtraction": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/ExtractedTask"
+          },
+          "maxItems": 20,
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks"
+      ],
+      "title": "TaskExtraction",
+      "type": "object"
+    },
+    "TemporalFact": {
+      "additionalProperties": false,
+      "description": "Structured date fact created at the raw-extraction trust boundary.",
+      "properties": {
+        "normalized_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normalized Date"
+        },
+        "raw_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Text"
+        },
+        "status": {
+          "$ref": "#/$defs/TemporalResolutionStatus"
+        },
+        "year_source": {
+          "$ref": "#/$defs/YearSource",
+          "default": "unknown"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TemporalFact",
+      "type": "object"
+    },
+    "TemporalResolutionStatus": {
+      "description": "Application-owned resolution state for an extracted date expression.",
+      "enum": [
+        "resolved",
+        "unresolved",
+        "conflicting"
+      ],
+      "title": "TemporalResolutionStatus",
+      "type": "string"
+    },
+    "TimeRequirement": {
+      "description": "Explicit mail evidence about whether an event needs clock times.",
+      "enum": [
+        "all_day",
+        "timed",
+        "required_unknown"
+      ],
+      "title": "TimeRequirement",
+      "type": "string"
+    },
+    "YearSource": {
+      "description": "Why a normalized date has the year that it has.",
+      "enum": [
+        "explicit_mail",
+        "mail_context",
+        "telegram",
+        "unknown"
+      ],
+      "title": "YearSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_route": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionRoute"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "actor": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "pattern": "^web:.+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Actor"
+    },
+    "adopted_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adopted At"
+    },
+    "adoption_actor": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "pattern": "^web:.+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adoption Actor"
+    },
+    "adoption_error": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z_]{1,40}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adoption Error"
+    },
+    "adoption_round": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adoption Round"
+    },
+    "adoption_versions": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adoption Versions"
+    },
+    "attempts": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "call_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Call Ids",
+      "type": "array"
+    },
+    "config_fingerprint": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Config Fingerprint",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReanalysisError"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "event_extraction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EventExtraction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "hint": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hint"
+    },
+    "id": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "imap": {
+      "$ref": "#/$defs/MailImapIdentity"
+    },
+    "key_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Key Hash",
+      "type": "string"
+    },
+    "llm_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Llm Calls",
+      "type": "integer"
+    },
+    "mail_id": {
+      "pattern": "^[a-f0-9]{24}$",
+      "title": "Mail Id",
+      "type": "string"
+    },
+    "max_attempts": {
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    },
+    "max_llm_calls": {
+      "minimum": 1,
+      "title": "Max Llm Calls",
+      "type": "integer"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/Proposal"
+      },
+      "maxItems": 40,
+      "title": "Proposals",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_round": {
+      "minimum": 1,
+      "title": "Source Round",
+      "type": "integer"
+    },
+    "stage": {
+      "default": "route",
+      "enum": [
+        "route",
+        "tasks",
+        "events",
+        "build",
+        "done"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ReanalysisStatus",
+      "default": "queued"
+    },
+    "task_extraction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskExtraction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "mail_id",
+    "source_round",
+    "config_fingerprint",
+    "imap",
+    "key_hash",
+    "max_attempts",
+    "max_llm_calls",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "ReanalysisJob",
+  "type": "object"
+}

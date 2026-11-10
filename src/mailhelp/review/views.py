@@ -59,6 +59,7 @@ STATUS_LABELS = {
     ProposalStatus.CONFIRMED: "Bestätigt – wird angelegt",
     ProposalStatus.WRITING: "Wird angelegt",
     ProposalStatus.CREATED: "Angelegt",
+    ProposalStatus.VERIFYING: "Gespeichert – Eintrag wird geprüft",
     ProposalStatus.SIMULATED: "Simuliert (Testmodus)",
     ProposalStatus.REJECTED: "Verworfen",
     ProposalStatus.FAILED: "Anlage fehlgeschlagen",
