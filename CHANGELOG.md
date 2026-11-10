@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.2.8 – Anbieter- und Fehlermatrix, Prozessabbrüche (Planung 5.2, Schritt V11)
+
+- Matrix über alle sieben Online-Adapter mit ihrem echten Transport (Google Kalender, Todoist,
+  Outlook, Microsoft To Do, CalDAV-Kalender, CalDAV-Aufgaben, Apple Erinnerungen): korrekter
+  Eintrag, erst später sichtbar, dauerhaft 404, 401, 403, 429, 5xx, ungültige Antwort und ein von
+  Hand geänderter Titel. Jeder Fall endet im erwarteten Prüfstand mit genau einem Schreibzugriff;
+  vor 5.2 hätte jeder Fall direkt nach der Schreibantwort als „angelegt“ gegolten.
+- Harte Prozessabbrüche (echter Kindprozess, `kill`) nach dem Schreibbeleg vor dem ersten Abruf
+  und nach einem bestandenen Abruf vor dem Speichern von „angelegt“: nach zwei Neustarts ist der
+  Eintrag geprüft angelegt, das Aktionsledger hat einen Eintrag, der Anbieter genau eine Anlage.
+- Testhilfe: Der simulierte Anbieterspeicher kennt den Abruf erledigter Todoist-Aufgaben und
+  das Verwerfen eines Microsoft-Tokens.
+
 ## 5.2.7 – Upgrade, Aufbewahrung, Testmodus und Rückkehr (Planung 5.2, Schritt V10)
 
 - Aufbewahrung: Prüfnachweise enthalten bestätigte Fachangaben und folgen deshalb der Frist für

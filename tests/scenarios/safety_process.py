@@ -22,6 +22,14 @@ def _writer(provider,checkpoint,mode):
     return PersistentWriter(Path(provider), checkpoint, mode)
 
 
+def _verification_checkpoints(checkpoint, name, value, authoritative):
+    """5.2: after the receipt and VERIFYING, before the first read; after a passed read."""
+    if authoritative and value["status"] == "verifying":
+        checkpoint("V1")
+    if name.startswith("write-verification-") and value.get("state") == "verified":
+        checkpoint("V2")
+
+
 def run_application(directory, provider, point, connection, mode, coverage_file):
     # Explicit collection also covers processes terminated with kill()/TerminateProcess.
     # Flush at every checkpoint: hard termination cannot run atexit handlers.
@@ -55,6 +63,7 @@ def run_application(directory, provider, point, connection, mode, coverage_file)
                     checkpoint("A1")
                 if authoritative and value["status"] == "created":
                     checkpoint("A4")
+                _verification_checkpoints(checkpoint, name, value, authoritative)
                 if name.startswith("reconciliation-merge-") and value["status"] == "prepared":
                     checkpoint("A5")
                 if authoritative and value["id"] == "target" and value["version"] == 2:

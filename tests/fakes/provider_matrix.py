@@ -74,6 +74,8 @@ class ProviderMemory:
         """Reads of one resource: account bindings (5.2), projects and entries by id (4.6, 5.2)."""
         if path in {'/api/v1/user','/v1.0/me'}:
             return httpx.Response(200,json={'id':'synthetic-user'})
+        if path=='/api/v1/tasks/completed/by_completion_date':
+            return httpx.Response(200,json={'items':[],'next_cursor':None})
         if self.provider=='todoist' and path.startswith('/api/v1/projects/'):
             return httpx.Response(200,json={'id':path.rsplit('/',1)[1]})
         if self.provider=='google_calendar' and path.count('/')==4:
@@ -93,7 +95,7 @@ class ProviderMemory:
             return HttpWriter(self.provider,'synthetic-token','synthetic-target',transport=transport,calendar_timezone='UTC')
         if self.provider in {'outlook_calendar','microsoft_todo'}:
             cls=OutlookCalendar if self.provider=='outlook_calendar' else MicrosoftTodo
-            return cls(SimpleNamespace(access_token=lambda:'synthetic-token'),'synthetic-target',transport=transport)
+            return cls(SimpleNamespace(access_token=lambda:'synthetic-token',invalidate=lambda:None),'synthetic-target',transport=transport)
         cls={'caldav_calendar':CalDavCalendar,'caldav_tasks':CalDavTasks,'apple_reminders':AppleReminders}[self.provider]
         return cls('https://dav.example.test/synthetic/','synthetic-user','synthetic-password',transport=transport)
 
