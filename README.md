@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.2.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.2.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -700,7 +700,8 @@ Kalender nach dem Anlegen frisch abgerufen und mit den bestätigten Angaben verg
 der Abruf wird bei Bedarf wiederholt, nie die Anlage. Weicht etwas ab oder bleibt der Eintrag
 unauffindbar, meldet Mailhelp das einmal in Telegram und lässt den Eintrag unverändert.
 Einstellbar unter `write_verification` (Versuche, Abstände, Prüfdauer). Ab 5.2.2 gilt das
-auch für Outlook-Kalender und Microsoft To Do (dort tagesgenau, weil To Do nur den Tag speichert).
+auch für Outlook-Kalender und Microsoft To Do (dort tagesgenau, weil To Do nur den Tag speichert),
+ab 5.2.3 auch für CalDAV-Kalender, CalDAV-Aufgaben und Apple Erinnerungen.
 Plan: [Planung 5.2](docs/Planung-5.2.md).
 
 ## Lizenz

@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.2.3 – Nachprüfung bei CalDAV und Apple Erinnerungen (Planung 5.2, Schritt V6)
+
+- CalDAV-Kalender, CalDAV-Aufgaben und Apple Erinnerungen lesen die geschriebene Ressource
+  frisch aus der gebundenen Sammlung und prüfen VEVENT bzw. VTODO: UID, Titel, Beschreibung,
+  Zeiten bzw. Fälligkeit und Ort. Eine Zusage des Servers zum PUT allein gilt nicht als Nachweis.
+- Erledigte Aufgaben gelten als vorhanden, abgesagte Termine und Aufgaben als nicht sichtbar;
+  ein 404 zählt nur, wenn die Sammlung selbst erreichbar ist. Adressen außerhalb der Sammlung
+  werden nie gelesen.
+- Antwortet ein PUT mit 412, weil die Ressource derselben Vorschlagsversion schon besteht, wird
+  sie wie ein wiedergefundener Eintrag geprüft.
+- Kontobindung: der konfigurierte Benutzer am Server; ein neues App-Passwort ist kein Kontowechsel.
+- Damit prüfen alle Online-Zielanbieter neue Einträge; ein Vertragstest sichert das ab.
+
 ## 5.2.2 – Nachprüfung bei Outlook und Microsoft To Do (Planung 5.2, Schritt V5)
 
 - Outlook-Kalender: neue Termine werden nach dem Anlegen im gebundenen Kalender frisch

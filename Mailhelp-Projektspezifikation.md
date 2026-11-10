@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3512,6 +3512,14 @@ als nicht sichtbar; To Do liest `GET /me/todo/lists/{Liste}/tasks/{id}`. Der Sol
 enthält als Fälligkeit nur den Tag (UTC-Tag eines Zeitpunkts), gelesen wird der Tag von
 `dueDateTime`; `status: completed` gilt als vorhanden. Bei 404/410 wird zuerst das Ziel
 (`check_access`) gelesen.
+
+CalDAV und Apple Erinnerungen (5.2.3): Die externe ID ist die Ressourcenadresse; gelesen wird
+nur ein Mitglied der gebundenen Sammlung (`_member`), sonst `invalid_response`. Der Sollstand
+enthält zusätzlich `uid` (`resource_uid` des Idempotenzschlüssels). VEVENT: Serien oder
+unvollständige Termine sind `invalid_response`, `STATUS:CANCELLED` ist nicht sichtbar. VTODO:
+`STATUS:COMPLETED` oder `COMPLETED` gilt als vorhanden, `CANCELLED` als nicht sichtbar. Bei
+404/410 wird die Sammlung per PROPFIND geprüft. Kontobindung: `<Benutzer>@<Host>`. Ein
+PUT-Ergebnis `already_present` (412 mit `If-None-Match: *`) wird wie ein Fund geprüft.
 
 Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
 (genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`

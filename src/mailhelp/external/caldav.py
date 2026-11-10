@@ -27,8 +27,11 @@ from .contracts import (
 )
 from .ical import _ical_datetime
 from .icalendar_data import (
+    Component,
+    boundary,
     event_resource,
     event_summary,
+    master,
     open_todo,
     parse_calendar,
     resource_uid,
@@ -36,6 +39,7 @@ from .icalendar_data import (
     updated_event,
 )
 from .provider import ProviderWriter
+from .verification import EntryRead, event_facts, task_facts
 
 DAV, CALDAV = "DAV:", "urn:ietf:params:xml:ns:caldav"
 MAX_XML_BYTES = 5_000_000
@@ -78,6 +82,7 @@ class DavResource:
         self.target = collection
         self.client = httpx.Client(timeout=timeout, transport=transport, auth=(username, password),
                                    follow_redirects=False)
+        self._username = username
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
         self._read_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
@@ -141,6 +146,19 @@ class DavResource:
             "PUT", url, content=content, allowed=frozenset({412}),
             headers={"If-None-Match": "*", "Content-Type": "text/calendar; charset=utf-8"}))
         return {"id": url, "operation": "already_present"} if response.status_code == 412 else {"id": url}
+
+    def account_binding(self) -> str:
+        """5.2: the configured user at the server; an app password may change, the account may not."""
+        return f"{self._username}@{urlsplit(self.collection).hostname}"
+
+    def _fresh(self, external_id: str) -> Component | None:
+        """One fresh GET of a member resource; 404/410 count only while the collection is reachable."""
+        url = self._member(external_id)
+        response = self._send("GET", url, allowed=frozenset({404, 410}))
+        if response.status_code in {404, 410}:
+            self.check_access()
+            return None
+        return parse_calendar(response.content)
 
     def _report(self, body: bytes) -> Iterator[tuple[str, bytes]]:
         """(address, calendar data) of every resource a calendar-query returns."""
@@ -225,6 +243,30 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
         self._set_cached(cache_key, events)
         return events
 
+    def _event_expected(self, proposal: Proposal, body: dict[str, Any]) -> dict[str, Any]:
+        key = body["extendedProperties"]["private"]["mailhelp_key"]
+        return {**super()._event_expected(proposal, body), "uid": resource_uid(key)}
+
+    def expected_facts(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        return self._calendar_expected(proposal, key)
+
+    def read_entry(self, external_id: str) -> EntryRead | None:
+        """5.2: the VEVENT read freshly from its resource in the bound collection."""
+        calendar = self._fresh(external_id)
+        if calendar is None:
+            return None
+        fields = event_summary(calendar, self.calendar_timezone or "UTC")
+        if fields is None:
+            raise ValueError(f"{self.label}: ungültige Antwort (Serie oder unvollständiger Termin)")
+        if fields["cancelled"]:
+            return None
+        start, end = fields["start"], fields["end"]
+        facts = event_facts(fields["summary"], fields["description"], None, None, "date" in start,
+                            fields["location"], self.target)
+        uid = master(calendar, "VEVENT").text("UID")
+        return EntryRead({**facts, "start": start.get("dateTime") or start.get("date"),
+                          "end": end.get("dateTime") or end.get("date"), "uid": uid})
+
     def existing_event(self, event_id: str) -> CalendarOverlapEvent | None:
         """The event as it is now; ``None`` once it is deleted or cancelled (4.6)."""
         url = self._member(event_id)
@@ -250,7 +292,31 @@ class CalDavTasks(DavResource, ProviderWriter):
             raise ValueError(f"{self.label} akzeptiert nur Aufgaben")
         content = todo_resource(resource_uid(key), proposal.title,
                                 f"{proposal.description}\n\n[{key}]".strip(), proposal.due, key)
-        return PreparedWrite(lambda: self._logged(proposal, key, lambda: self._put_new(key, content)))
+        return PreparedWrite(lambda: self._logged(proposal, key, lambda: self._put_new(key, content)),
+                             expected=self.expected_facts(proposal, key))
+
+    def expected_facts(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if proposal.kind != ProposalKind.TASK:
+            return None
+        return {**task_facts(proposal.title, f"{proposal.description}\n\n[{key}]".strip(), proposal.due,
+                             self.target), "uid": resource_uid(key)}
+
+    def read_entry(self, external_id: str) -> EntryRead | None:
+        """5.2: the VTODO read freshly from its resource; completed still exists, cancelled does not."""
+        calendar = self._fresh(external_id)
+        if calendar is None:
+            return None
+        todo = next((child for child in calendar.children if child.name == "VTODO"), None)
+        if todo is None:
+            raise ValueError(f"{self.label}: ungültige Antwort (keine Aufgabe)")
+        status = todo.text("STATUS").upper()
+        if status == "CANCELLED":
+            return None
+        due = boundary(todo.get("DUE"), "UTC")
+        facts = task_facts(todo.text("SUMMARY"), todo.text("DESCRIPTION"), None, self.target)
+        return EntryRead({**facts, "due": None if due is None else due.get("dateTime") or due.get("date"),
+                          "uid": todo.text("UID")},
+                         completed=status == "COMPLETED" or todo.get("COMPLETED") is not None)
 
     def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         cache_key = (self.service, self.target, "tasks")

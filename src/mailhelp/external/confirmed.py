@@ -111,7 +111,8 @@ def _written(proposal: Proposal, result: dict[str, Any], how: How,
              persist: Callable[[Proposal], None]) -> tuple[Proposal, dict[str, Any]]:
     """A known write result: ``VERIFYING`` with a durable receipt, or ``CREATED`` without a check."""
     _external_id(result)
-    if checker is not None and "operation" not in result:
+    # "already_present": a CalDAV resource of this very version exists; it is checked like a find.
+    if checker is not None and result.get("operation") in {None, "already_present"}:
         verifying = checker[0].begin(proposal, result, how, checker[1])
         if verifying is not None:
             persist(verifying)
