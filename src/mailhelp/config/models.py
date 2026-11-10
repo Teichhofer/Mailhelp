@@ -627,6 +627,25 @@ class ReanalysisSettings(ConfigModel):
     max_jobs_per_day: int = Field(default=20, ge=1, le=500)
 
 
+class WriteVerificationSettings(ConfigModel):
+    """5.2: fresh reads after a write; only reads are repeated, never the write."""
+
+    # The first read counts as attempt 1; one delay precedes every further attempt.
+    max_attempts: int = Field(default=5, ge=1, le=10)
+    retry_delays_seconds: list[int] = Field(default_factory=lambda: [1, 5, 15, 60], max_length=9)
+    max_elapsed_seconds: int = Field(default=300, ge=10, le=86400)
+
+    @model_validator(mode="after")
+    def bounded(self) -> WriteVerificationSettings:
+        if len(self.retry_delays_seconds) != self.max_attempts - 1:
+            raise ValueError("write_verification.retry_delays_seconds braucht genau max_attempts - 1 Werte")
+        if any(not 1 <= delay <= 3600 for delay in self.retry_delays_seconds):
+            raise ValueError("write_verification.retry_delays_seconds: jeder Wert zwischen 1 und 3600 Sekunden")
+        if sum(self.retry_delays_seconds) > self.max_elapsed_seconds:
+            raise ValueError("write_verification: die Verzögerungen überschreiten max_elapsed_seconds")
+        return self
+
+
 class DailyBriefingSettings(ConfigModel):
     enabled: bool = False
     time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
@@ -698,6 +717,7 @@ class Settings(ConfigModel):
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
     activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
     reanalysis: ReanalysisSettings = Field(default_factory=lambda: ReanalysisSettings())
+    write_verification: WriteVerificationSettings = Field(default_factory=lambda: WriteVerificationSettings())
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)

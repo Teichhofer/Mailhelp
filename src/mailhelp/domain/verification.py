@@ -9,6 +9,9 @@ repairs, changes or deletes an entry, and it never allows a second write.
 The record ``write-verification-<operation>.json`` keeps what verification and a
 restart need: the identity of the write, the bound target, the write receipt, the
 expected facts with their fingerprint, the check state and the last comparison.
+Before the write the same record is saved as a *write intent* (pending, without a
+receipt and without a check time): it keeps the prepared expected facts, so an entry
+found again after an unclear write is compared with what was really sent.
 """
 from __future__ import annotations
 
@@ -116,6 +119,8 @@ class WriteVerification(StrictModel):
     deadline_at: datetime
     last_error: str | None = Field(default=None, pattern=r"^[a-z0-9_]{1,60}$")
     differences: dict[str, FieldDifference] = Field(default_factory=dict, max_length=30)
+    # The check state last reported to the user; a report is never sent twice.
+    notified: VerificationState | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -129,12 +134,17 @@ class WriteVerification(StrictModel):
         if self.expected_fingerprint != fingerprint(self.expected):
             raise ValueError("Der Sollstand passt nicht zu seinem Fingerabdruck")
         live = self.state not in {VerificationState.LEGACY_UNVERIFIED, VerificationState.SIMULATED}
-        if live and self.receipt is None:
+        if live and self.receipt is None and not self.is_intent:
             raise ValueError("Eine Nachprüfung braucht einen Schreibbeleg mit externer ID")
-        if (self.state == VerificationState.PENDING) != (self.next_check_at is not None):
+        if self.receipt is not None and (self.state == VerificationState.PENDING) != (self.next_check_at is not None):
             raise ValueError("Genau eine ausstehende Prüfung hat einen nächsten Prüfzeitpunkt")
         if self.state == VerificationState.VERIFIED and (self.checked_at is None or self.differences):
             raise ValueError("Eine bestandene Prüfung hat einen Prüfzeitpunkt und keine Abweichung")
         if (self.state == VerificationState.MISMATCH) != bool(self.differences):
             raise ValueError("Genau eine Abweichung nennt die abweichenden Felder")
         return self
+
+    @property
+    def is_intent(self) -> bool:
+        """Saved before the write: pending, no receipt and no check time yet."""
+        return self.state == VerificationState.PENDING and self.receipt is None and self.next_check_at is None

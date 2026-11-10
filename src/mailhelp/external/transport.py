@@ -28,6 +28,7 @@ class HttpTransport:
     _read_cache: dict[tuple[Any, ...], tuple[float, Any]]
     _cache_ttl: float
     _create_prepared: Callable[[Proposal, str, str, dict[str, Any]], dict[str, Any]]
+    check_access: Callable[[], None]
 
     def _get_cached(self, key: tuple[Any, ...]) -> Any | None:
         if key in self._read_cache:

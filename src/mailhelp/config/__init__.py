@@ -79,6 +79,7 @@ from .models import (
     TopicsConfig,
     VisionSettings,
     WebSettings,
+    WriteVerificationSettings,
     _deep_merge,
     checked_parameters,
 )
@@ -129,6 +130,7 @@ __all__ = [
     "ProposalReconciliationSettings",
     "PushSettings",
     "ReanalysisSettings",
+    "WriteVerificationSettings",
     "REASONING_EFFORTS",
     "RetentionPeriod",
     "RetentionSettings",

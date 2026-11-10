@@ -80,6 +80,8 @@ class CalendarOverlapEvent(IntegrationModel):
 class PreparedWrite:
     operation: Callable[[], dict[str, Any]]
     requires_write: bool = True
+    # 5.2: the facts a plain new entry is written with; a written entry is compared with them.
+    expected: dict[str, Any] | None = None
 
 
 class ExternalWriter(Protocol):

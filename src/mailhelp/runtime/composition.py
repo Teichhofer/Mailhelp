@@ -235,6 +235,7 @@ def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: J
         sequential_questions=settings.telegram.sequential_questions,
         inbox=telegram_inbox,
         commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
+        write_verification=settings.write_verification,
     )
     from ..review.learning_log import DecisionLearningLog
     llm_log = logger.llm

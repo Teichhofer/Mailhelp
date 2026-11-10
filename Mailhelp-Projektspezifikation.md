@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.2.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.2.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3454,7 +3454,7 @@ Statusverbraucher und ihr Umgang mit `VERIFYING`:
 
 | Verbraucher | Verhalten |
 | --- | --- |
-| `external.confirmed.execute_confirmed` | kein Abgleich, kein Schreiben; Rückgabe `{"verifying": true}` |
+| `external.confirmed.execute_confirmed` | kein Abgleich, kein Schreiben; Rückgabe `{"verifying": true}`; die Prüfung übernimmt `ConfirmedWriteExecutor` |
 | `telegram.dialog.persist` / Aktionsledger | bucht den Eintrag wie `CREATED`, damit keine Dublette entsteht |
 | `proposals.proposal_reconciliation.PROTECTED` | geschützt vor Zusammenführung |
 | `runtime.retention` | Mail gilt als offen; Inhalte bleiben |
@@ -3463,3 +3463,56 @@ Statusverbraucher und ihr Umgang mit `VERIFYING`:
 | `telegram.decisions` | Ergebnis `WRITTEN` |
 | Weboberfläche | Plakette „Gespeichert – Eintrag wird geprüft“ |
 | Vorschlagsabgleich der Nachanalyse (5.1.3) | geschützt wie geschriebene Vorschläge |
+
+### Gemeinsamer Prüfablauf, Google Kalender und Todoist (5.2.1)
+
+Ein Writer ist prüfbar, wenn er `external.verification.EntryReader` erfüllt
+(`account_binding()`, `expected_facts(proposal, key)`, `read_entry(external_id)`); seit 5.2.1
+gilt das für `HttpWriter` (Google Kalender und Todoist). `execute_confirmed(...,
+verification=...)` arbeitet dann so:
+
+1. `PreparedWrite.expected` enthält für eine einfache Neuanlage den normalisierten Sollstand
+   (Aufgabe: `kind`, `title`, `description`, `due`, `container`; Termin zusätzlich `start`,
+   `end`, `all_day`, `location`). Vor `WRITING` speichert `WriteVerifications.intent` die
+   Schreibabsicht: Prüfnachweis im Zustand `pending` ohne Schreibbeleg und ohne
+   `next_check_at`, mit Zielbindung (Kontobindung frisch vom Anbieter).
+2. Nach einer Schreibantwort mit ID speichert `begin` den Schreibbeleg (`created`) mit
+   `next_check_at = jetzt` und erst danach den Vorschlag als `VERIFYING`. Ein nach `WRITING`
+   oder `UNCERTAIN` über den Schlüssel gefundener Eintrag erhält den Beleg `found_by_key`, aber
+   nur mit gespeicherter Schreibabsicht; ohne sie bleibt es beim bisherigen `CREATED`.
+   Ergebnisse mit `operation` (Änderung, Ergänzung, Absage, Dublette) laufen bis Schritt V7 unverändert.
+3. `ConfirmedWriteExecutor` ruft danach und bei jedem Durchlauf von `resume()` (für
+   `VERIFYING`) `WriteVerifications.check` auf: höchstens ein fälliger Abruf außerhalb jeder
+   Zustandssperre. Vor dem Abruf werden Ziel (`target_changed`) und Konto (`account_changed`)
+   gegen die Bindung geprüft.
+
+Vergleich (`external.verification.compare`, deterministisch, ohne LLM): Text mit
+vereinheitlichten Zeilenenden und ohne umgebende Leerzeichen, leer = fehlend; Zeitpunkte als
+Zeitpunkte (`Z` = `+00:00`), eine Zeit ohne Zone wird mit der gesendeten Wanduhrzeit verglichen;
+ein Datum ist nie gleich einem Zeitpunkt; boolesche Werte exakt.
+
+Ergebnis eines Abrufs: Übereinstimmung → `verified`, danach wird der Vorschlag `CREATED`, aber
+nur wenn die gespeicherte Version, ihr Status `VERIFYING` und die externe ID noch passen.
+Abweichung → `mismatch` (Ende). Nicht sichtbar (404/410 bei erreichbarem Ziel, abgesagt,
+gelöscht) → `not_visible`, ebenso 429 (`rate_limited`), 5xx, Timeout und Verbindungsfehler
+(`provider_unavailable`): erneuter Abruf nach `retry_delays_seconds`, solange Versuche und
+`deadline_at` reichen, sonst `not_found` bzw. `unavailable`. 401/403 oder ein nicht erreichbares
+Ziel (`access_denied`), andere 4xx (`provider_refused`) und ungültige Antworten
+(`invalid_response`) enden sofort mit `unavailable`. Kein Ergebnis führt zu einem Schreibzugriff.
+
+Anbieter: Google `GET /calendars/{Ziel}/events/{id}` (Kontobindung: `id` aus
+`GET /calendars/{Ziel}`); Todoist `GET /api/v1/tasks/{id}` (Kontobindung: `id` aus
+`GET /api/v1/user`), bei 404 zusätzlich `GET /api/v1/tasks/completed/by_completion_date` für das
+Projekt der letzten 14 Tage (höchstens zehn Seiten). Externe IDs werden als ein Pfadsegment
+kodiert; Abrufe nutzen nie den Lese-Cache.
+
+Konfiguration `write_verification`: `max_attempts` (1–10, Standard 5), `retry_delays_seconds`
+(genau `max_attempts − 1` Werte zu 1–3600 s, Standard `[1, 5, 15, 60]`), `max_elapsed_seconds`
+(10–86400, Standard 300, mindestens die Summe der Verzögerungen).
+
+Meldungen (Telegram, je Endzustand genau einmal über `WriteVerification.notified`):
+„✅ Angelegt und geprüft als Aufgabe/im Kalender: …“, „⚠️ Eintrag vorhanden, Angaben weichen
+ab: … – Feld: erwartet …, gefunden …“ und „⚠️ Eintragung noch nicht bestätigt: … wurde
+gespeichert, aber <Grund>.“ Ein ausstehender Abruf erzeugt keine Meldung. Die Texte stehen in
+`review.verification_texts`. Protokolliert wird nur `write_checked` mit Kennungen, Versuch,
+Zustand, Fehlercode und Feldnamen.

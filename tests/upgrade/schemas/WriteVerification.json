@@ -225,6 +225,17 @@
       "default": null,
       "title": "Next Check At"
     },
+    "notified": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VerificationState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "operation": {
       "enum": [
         "create",

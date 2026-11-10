@@ -9,13 +9,41 @@ from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import httpx
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from ..domain.event_titles import titles_related
 from ..llm.adapter import PermanentError, uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
-from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
+from .contracts import (
+    CalendarEventResponse,
+    CalendarListResponse,
+    CalendarOverlapEvent,
+    IntegrationModel,
+    PreparedWrite,
+    validation_path,
+)
 from .transport import HttpTransport
+from .verification import EntryRead, event_facts
+
+
+class CalendarEventRead(IntegrationModel):
+    """One event as read for verification; unknown fields are ignored."""
+
+    id: str = Field(min_length=1)
+    summary: str = ""
+    description: str = ""
+    location: str | None = None
+    htmlLink: str | None = None
+    start: dict[str, str]
+    end: dict[str, str]
+
+
+class CalendarResource(IntegrationModel):
+    id: str = Field(min_length=1)
+
+
+def _point(raw: dict[str, str]) -> str | None:
+    return raw.get("dateTime") or raw.get("date")
 
 
 def _raise(error: Exception) -> dict[str, Any]:
@@ -64,7 +92,47 @@ class CalendarOperations(HttpTransport):
             return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
                     "operation": "duplicate_skipped"}, requires_write=False)
         body = self._calendar_event_body(proposal, key)
-        return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body))
+        return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body),
+                             expected=self._event_expected(proposal, body))
+
+    def _calendar_expected(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        """The facts of a plain new event; a change or cancellation has none here."""
+        if proposal.kind != ProposalKind.EVENT or proposal.target_event_id is not None:
+            return None
+        return self._event_expected(proposal, self._calendar_event_body(proposal, key))
+
+    def _event_expected(self, proposal: Proposal, body: dict[str, Any]) -> dict[str, Any]:
+        return event_facts(body["summary"], body["description"], proposal.start, proposal.end, proposal.all_day,
+                           body.get("location"), self.target)
+
+    def _calendar_account(self) -> str:
+        """The calendar's own id; for ``primary`` that is the account, never the alias."""
+        response = self._get(f"/calendars/{self.target}", {})
+        try: return CalendarResource.model_validate(response.json()).id
+        except (ValueError, ValidationError) as exc:
+            raise ValueError("Google Calendar: ungültige Antwort am Schlüsselpfad "
+                             f"{validation_path(exc)}") from exc
+
+    def _read_calendar(self, external_id: str) -> EntryRead | None:
+        """A fresh read by id in the bound calendar; cancelled or gone counts only there."""
+        url = f"/calendars/{self.target}/events/{quote(external_id, safe='')}"
+        self.logger.event("DEBUG", self.service, "http_request", method="GET", url=url)
+        response = self.client.get(url, headers=self._auth_headers())
+        if response.status_code in {404, 410}:
+            self.check_access()
+            return None
+        self._raise_for_status(response)
+        try:
+            data = response.json()
+            if isinstance(data, dict) and data.get("status") == "cancelled":
+                return None
+            event = CalendarEventRead.model_validate(data)
+        except (ValueError, ValidationError) as exc:
+            raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                             f"{validation_path(exc)}") from exc
+        all_day = "dateTime" not in event.start
+        facts = event_facts(event.summary, event.description, None, None, all_day, event.location, self.target)
+        return EntryRead({**facts, "start": _point(event.start), "end": _point(event.end)}, link=event.htmlLink)
 
     def _prepare_target(self, proposal: Proposal, key: str, event_id: str) -> PreparedWrite:
         """Change or cancel the confirmed existing entry (Planung 4.6, 17.5/17.6).

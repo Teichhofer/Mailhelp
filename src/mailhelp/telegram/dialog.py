@@ -7,6 +7,7 @@ from collections.abc import Callable
 from threading import RLock
 
 from .. import state_names
+from ..config import WriteVerificationSettings
 from ..domain.processing import (
     ProposalClarificationState,
     ProposalRevisionStatus,
@@ -15,6 +16,7 @@ from ..domain.processing import (
 from ..external.contracts import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
+from ..processing.write_verification import WriteVerifications
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.learning_log import DecisionLearningLog
@@ -84,6 +86,7 @@ class TelegramDialogController:
         sequential_questions: bool = True,
         inbox: TelegramInbox | None = None,
         commands: CommandInbox | None = None,
+        write_verification: WriteVerificationSettings | None = None,
     ):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = (
             store, telegram, user_id, chat_id, logger)
@@ -107,6 +110,7 @@ class TelegramDialogController:
         self.interpretation_backoff_seconds = interpretation_backoff_seconds
         self.revision_attempts = revision_attempts
         self.revision_backoff_seconds = revision_backoff_seconds
+        self.write_verification = write_verification
         self.updates = TelegramUpdateHandler(self)
         self._compose(sequential_questions)
 
@@ -157,6 +161,7 @@ class TelegramDialogController:
             test_mode,
             self.ledger,
             configured_timezone,
+            WriteVerifications(store, self.write_verification, logger=logger),
         )
         write_executor.web_authorizer = self._web_write_authorized
         write_executor.telegram_authorizer = lambda actor: actor == f"telegram:{self.user_id}:{self.chat_id}"

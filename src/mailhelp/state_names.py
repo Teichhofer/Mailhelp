@@ -13,6 +13,8 @@ MAIL_RUN_PREFIX = "mail-run-"
 PROPOSAL_PREFIX = "proposal-"
 CLARIFICATION_PREFIX = "clarification-"
 DRAFT_PREFIX = "draft-"
+# 5.2: write receipt and check state of one write operation.
+WRITE_VERIFICATION_PREFIX = "write-verification-"
 # The folders each mailbox server reported at the first poll after a start.
 MAILBOX_FOLDERS = "mailbox-folders"
 
@@ -37,6 +39,10 @@ def proposal(mail_id: str, proposal_id: str, version: int | str | None = None) -
     """The current proposal, or with *version* its immutable snapshot."""
     name = f"{PROPOSAL_PREFIX}{mail_id}-{proposal_id}"
     return name if version is None else f"{name}-v{version}"
+
+
+def write_verification(operation_id: str) -> str:
+    return f"{WRITE_VERIFICATION_PREFIX}{operation_id}"
 
 
 def proposals_of(mail_id: str) -> str:

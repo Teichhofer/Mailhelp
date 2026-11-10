@@ -25,6 +25,7 @@ from .contracts import (
 )
 from .todoist import TodoistOperations
 from .transport import HttpTransport
+from .verification import EntryRead
 
 
 class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport, TargetWriter):
@@ -70,6 +71,20 @@ class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport, TargetWri
 
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]:
         return self.prepare(proposal, key).operation()
+
+    # 5.2: the read contract (``EntryReader``); every call is a fresh request, never the cache.
+    def account_binding(self) -> str:
+        return self._todoist_account() if self.service == "todoist" else self._calendar_account()
+
+    def expected_facts(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if self.service == "todoist":
+            return self._todoist_expected(proposal, key)
+        return self._calendar_expected(proposal, key)
+
+    def read_entry(self, external_id: str) -> EntryRead | None:
+        if self.service == "todoist":
+            return self._read_todoist(external_id)
+        return self._read_calendar(external_id)
 
 
     def prepare(self, proposal: Proposal, key: str) -> PreparedWrite:

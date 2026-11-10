@@ -9,18 +9,22 @@ from zoneinfo import ZoneInfo
 
 from .. import state_names
 from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
+from ..domain.verification import VerificationState, WriteVerification
 from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..external.roles import writer_for
+from ..external.verification import EntryReader
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..persistence.ledger import ActionLedgerPort
+from ..processing.write_verification import WriteVerifications
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInboxState, CommandStatus
+from ..review.verification_texts import differences_text, reason_text
 from ..storage import JsonStore
 from .client import TelegramTransport
 
 _WRITE_STATES = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN,
-                 ProposalStatus.SIMULATED}
+                 ProposalStatus.SIMULATED, ProposalStatus.VERIFYING}
 
 
 def _status(proposal: Proposal) -> ProposalStatus:
@@ -50,6 +54,7 @@ class ConfirmedWriteExecutor:
         test_mode: bool,
         ledger: ActionLedgerPort,
         configured_timezone: str = "UTC",
+        verification: WriteVerifications | None = None,
     ):
         self.store, self.writers, self.persistence = store, writers, persistence
         self.telegram, self.chat_id, self.test_mode, self.ledger = (
@@ -59,6 +64,8 @@ class ConfirmedWriteExecutor:
             ledger,
         )
         self.configured_timezone = configured_timezone
+        # 5.2: a written entry is CREATED only after a fresh read proved it.
+        self.verification = verification
         self._reported_target_mismatches: set[tuple[str, str, int]] = set()
         self._reported_authorization_failures: set[tuple[str, str, int]] = set()
         self._repaired = False
@@ -86,10 +93,13 @@ class ConfirmedWriteExecutor:
             return proposal
         try:
             changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode,
-                                               authorize=lambda: self._authorized(proposal))
+                                               authorize=lambda: self._authorized(proposal),
+                                               verification=self.verification)
         except Exception as exc:
             return self._write_failed(proposal, exc)
         self._profile_health(proposal, "")
+        if result.get("verifying"):
+            return self._verify(proposal, changed, writer)
         if result.get("target_mismatch"):
             self._report_target_mismatch(proposal)
             return changed
@@ -107,6 +117,28 @@ class ConfirmedWriteExecutor:
         elif changed.status == ProposalStatus.SIMULATED:
             self.persistence.persist(changed.model_copy(update={"simulation_notified": True}))
         return changed
+
+    def _verify(self, proposal: Proposal, changed: Proposal, writer: ExternalWriter) -> Proposal:
+        """One due read of a written entry; each final outcome is reported once (5.2)."""
+        if self.verification is None or not isinstance(writer, EntryReader):
+            return changed  # stays VERIFYING; nothing may write it again
+        changed, record = self.verification.check(changed, writer, self.persistence.persist)
+        if record is None or record.state in {VerificationState.PENDING, record.notified}:
+            return changed
+        if record.state != VerificationState.VERIFIED:
+            self.telegram.send(self.chat_id, self._unverified_text(proposal, record))
+        elif changed.status == ProposalStatus.CREATED:
+            self.telegram.send(self.chat_id, self._created_text(proposal, changed, verified=True))
+        self.verification.mark_notified(record)
+        return changed
+
+    def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
+        if record.state == VerificationState.MISMATCH:
+            return (f"⚠️ Eintrag vorhanden, Angaben weichen ab: „{proposal.title}“ – "
+                    f"{differences_text(record, ZoneInfo(self.configured_timezone))}. "
+                    "Mailhelp ändert den Eintrag nicht automatisch und legt keinen neuen an.")
+        return (f"⚠️ Eintragung noch nicht bestätigt: „{proposal.title}“ wurde gespeichert, aber "
+                f"{reason_text(record)}. Mailhelp legt den Eintrag nicht erneut an.")
 
     def _authorized(self, proposal: Proposal) -> bool:
         actor = proposal.confirmed_web_actor
@@ -198,9 +230,9 @@ class ConfirmedWriteExecutor:
                     "automatisch wiederholt.")
         return f"Erstellen von „{proposal.title}“ fehlgeschlagen."
 
-    def _created_text(self, proposal: Proposal, changed: Proposal) -> str:
+    def _created_text(self, proposal: Proposal, changed: Proposal, verified: bool = False) -> str:
         where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
-        text = f"✅ Angelegt {where}: „{proposal.title}“"
+        text = f"✅ Angelegt{' und geprüft' if verified else ''} {where}: „{proposal.title}“"
         if proposal.kind == ProposalKind.EVENT:
             text += self._event_time_details(changed)
         if changed.external_link:

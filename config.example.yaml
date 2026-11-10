@@ -117,6 +117,12 @@ reanalysis:
   max_llm_calls_per_job: 5   # Router, Aufgaben- und Terminextraktion plus zwei Wiederholungen
   max_attempts: 2            # Versuche je Modellaufruf nach Fehler oder Neustart
   max_jobs_per_day: 20       # gestartete Nachanalysen je Tag (Kostenschutz)
+write_verification:
+  # 5.2: Nach jeder Eintragung liest Mailhelp den Eintrag frisch beim Anbieter und meldet
+  # erst dann „Angelegt und geprüft“. Wiederholt werden nur Lesezugriffe, nie das Schreiben.
+  max_attempts: 5                      # der erste Abruf ist Versuch 1
+  retry_delays_seconds: [1, 5, 15, 60] # Wartezeit vor Versuch 2, 3, 4 und 5
+  max_elapsed_seconds: 300             # danach bleibt der Eintrag ausdrücklich ungeprüft
 push:
   # Web-Push (VAPID) für die App; nur über HTTPS oder localhost. Jedes Gerät schaltet
   # Push zusätzlich unter Einstellungen ein. Meldungen enthalten keine Mailinhalte.

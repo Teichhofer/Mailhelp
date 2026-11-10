@@ -37,11 +37,17 @@ def test_changed_target_never_reconciles_or_writes(kind, status, test_mode):
 
 
 def test_target_change_survives_restart_and_new_target_needs_new_confirmation(tmp_path):
-    requests = []
+    requests, posted = [], {}
     def handler(request):
         requests.append(request)
-        return httpx.Response(200, json={"results": [], "next_cursor": None}
-            if request.method == "GET" else {"id": "created"})
+        if request.method == "POST":
+            posted.update(json.loads(request.content), id="created")
+            return httpx.Response(200, json={"id": "created"})
+        if request.url.path == "/api/v1/user":  # 5.2: the account binding
+            return httpx.Response(200, json={"id": "synthetic-user"})
+        if request.url.path == "/api/v1/tasks/created":  # 5.2: the fresh read of the written task
+            return httpx.Response(200, json={**posted, "due": None})
+        return httpx.Response(200, json={"results": [], "next_cursor": None})
     writer = HttpWriter("todoist", "synthetic", "new-target", transport=httpx.MockTransport(handler))
     item = proposal(target="approved-target", status="confirmed")
     name = f"proposal-{item.source_mail_id}-{item.id}"
@@ -69,7 +75,8 @@ def test_target_change_survives_restart_and_new_target_needs_new_confirmation(tm
             telegram.updates = [callback(3, f"proposal:{item.source_mail_id}:p1:2:confirm")]
             dialog.poll_once()
             assert store.load(name)["status"] == "created"
-            assert json.loads(requests[-1].content)["project_id"] == "new-target"
+            assert posted["project_id"] == "new-target"
+            assert [r.url.path for r in requests if r.method == "POST"] == ["/api/v1/tasks"]
     finally:
         writer.close()
 
@@ -134,7 +141,7 @@ def test_calendar_preflight_failure_retries_after_restart_without_false_uncertai
 @pytest.mark.parametrize("failure", ["timeout", "invalid_response"])
 def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path, operation, failure):
     from mailhelp.models import CalendarDuplicateDecision
-    requests = []
+    requests, posted = [], {}
     found = False
     item = event(status="confirmed", description="Agenda")
     name = f"proposal-{item.source_mail_id}-{item.id}"
@@ -143,8 +150,13 @@ def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path
         if request.method == "GET":
             if "privateExtendedProperty" in request.url.params:
                 return httpx.Response(200, json={"items": [{"id": "result"}] if found else []})
+            if request.url.path == "/calendar/v3/calendars/calendar":  # 5.2: the account binding
+                return httpx.Response(200, json={"id": "owner@example.test"})
+            if request.url.path.endswith("/events/result"):  # 5.2: the fresh read
+                return httpx.Response(200, json={**posted, "id": "result"})
             return httpx.Response(200, json={"items": [{"id": "old", "start": {}, "end": {}}]})
         assert request.method == operation and store.load(name)["status"] == "writing"
+        posted.update(json.loads(request.content))
         if failure == "timeout":
             raise httpx.ReadTimeout("synthetic", request=request)
         return httpx.Response(200, json={})

@@ -1,5 +1,33 @@
 # Änderungen
 
+## 5.2.1 – Nachprüfung neuer Aufgaben und Termine bei Google Kalender und Todoist (Planung 5.2, Schritte V2–V4)
+
+- Gemeinsamer Ablauf: Vor dem Schreiben wird eine Schreibabsicht mit dem tatsächlich
+  vorbereiteten Sollstand gespeichert, nach einer eindeutigen Schreibantwort der Schreibbeleg –
+  beides vor dem ersten Kontrollabruf. Der Vorschlag steht dann auf „Gespeichert – Eintrag wird
+  geprüft“ und wird erst nach einem frischen, bestandenen Abruf „Angelegt und geprüft“.
+- Auch ein nach unklarem Schreiben über den Schlüssel wiedergefundener Eintrag wird geprüft,
+  und zwar gegen die gespeicherte Schreibabsicht. Ohne Schreibabsicht (andere Operation oder
+  vor 5.2 geschrieben) bleibt es beim bisherigen Ergebnis; es wird nichts geraten.
+- Google Kalender: Einzelabruf im gebundenen Kalender; Titel, Beschreibung (mit Videolink und
+  Standarddauer-Hinweis), Beginn/Ende als Zeitpunkte, Ganztägigkeit und Ort werden verglichen.
+  Abgesagte oder gelöschte Termine gelten nur als nicht auffindbar, wenn der Kalender selbst
+  erreichbar ist. Die Kontobindung ist die Kalender-ID des Anbieters, bei `primary` also das
+  Konto und nicht der Alias.
+- Todoist: Einzelabruf der Aufgabe mit Projekt, Titel, Beschreibung und Fälligkeit (Datum oder
+  Zeitpunkt, `Z` und Offset gleichwertig). Eine bereits erledigte Aufgabe wird unter den kürzlich
+  erledigten Aufgaben des Projekts gefunden und gilt nicht als fehlend. Kontobindung über `/user`.
+- Nur Lesezugriffe werden wiederholt: höchstens fünf Versuche mit 1, 5, 15 und 60 Sekunden
+  Abstand innerhalb von 300 Sekunden (neuer Block `write_verification` in `config.yaml`). 401/403,
+  ungültige Antworten und echte Abweichungen beenden die Prüfung sofort; ein Timeout, 429 oder
+  5xx gilt nie als Löschung. Ein anderes Ziel oder Konto stoppt die Prüfung mit Hinweis.
+- Ein verspätetes Prüfergebnis bestätigt nie eine neuere Vorschlagsversion. Jedes Endergebnis
+  wird in Telegram genau einmal gemeldet: „✅ Angelegt und geprüft …“, „⚠️ Eintrag vorhanden,
+  Angaben weichen ab …“ mit Soll/Ist oder „⚠️ Eintragung noch nicht bestätigt …“ mit Grund.
+  Mailhelp ändert, repariert oder wiederholt dabei nie eine Anlage.
+- Outlook, Microsoft To Do, CalDAV/Apple, Änderungen, Absagen, Dubletten und Kalenderdateien
+  folgen in den nächsten Schritten; dort bleibt es vorerst beim bisherigen Ablauf.
+
 ## 5.2.0 – Zustands- und Prüfvertrag für Eintragungen (Planung 5.2, Schritt V1)
 
 - Neuer Vorschlagsstatus `VERIFYING` („Gespeichert – Eintrag wird geprüft“): geschrieben mit

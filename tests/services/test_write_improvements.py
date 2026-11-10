@@ -1,4 +1,5 @@
 """Regression tests for authorization and exact, complete external reconciliation."""
+import json
 import types
 
 import httpx
@@ -13,6 +14,7 @@ from mailhelp.telegram import Decision, DecisionAction
 from tests.fakes.shared_core import proposal
 from tests.fakes.shared_telegram_dialog import callback, controller, message
 from tests.fakes.shared_write_improvements import event as event
+from tests.fakes.verifying_writer import provider_reads
 
 
 @pytest.mark.parametrize("description", [
@@ -137,12 +139,14 @@ def test_calendar_later_page_failure_never_causes_creation(failure):
 
 @pytest.mark.parametrize("kind", ["task", "event"])
 def test_non_binding_agreement_still_requires_current_authorized_confirmation(tmp_path, kind):
-    requests = []
+    requests, posted = [], {}
     service = "todoist" if kind == "task" else "google_calendar"
     def handler(request):
         requests.append(request)
         if request.method == "GET":
-            return httpx.Response(200, json={"results": [], "next_cursor": None, "items": []})
+            return provider_reads(request, posted) or httpx.Response(
+                200, json={"results": [], "next_cursor": None, "items": []})
+        posted.update(json.loads(request.content), id="created")
         return httpx.Response(200, json={"id": "created"})
     writer = HttpWriter(service, "synthetic", "target", calendar_timezone="UTC",
                         transport=httpx.MockTransport(handler))
@@ -214,14 +218,18 @@ def test_calendar_duplicate_override_only_applies_to_confirmed_version(authorize
 
 @pytest.mark.parametrize("interruption", ["before_write", "uncertain", "late_success"])
 def test_explicit_calendar_duplicate_survives_restart_without_blind_retries(tmp_path, monkeypatch, interruption):
-    requests = []
+    requests, posted = [], {}
     recoverable = False
     def handler(request):
         requests.append(request)
         if request.method == "GET":
+            read = provider_reads(request, posted)  # 5.2: only the account and the written entry
+            if read is not None:
+                return read
             assert "privateExtendedProperty" in request.url.params
             return httpx.Response(200, json={"items": [{"id": "new"}] if recoverable else []})
         assert request.method == "POST"
+        posted.update(json.loads(request.content), id="new")
         if interruption != "before_write":
             raise httpx.ReadTimeout("synthetic uncertain write", request=request)
         return httpx.Response(200, json={"id": "new"})
