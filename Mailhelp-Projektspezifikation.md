@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.1. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3783,3 +3783,23 @@ aktuellen Datei; ein fehlendes oder manipuliertes Formularfeld kann ihn nicht l�
 Neue Formulare markieren Listen als zeilengetrennt. Semikolons werden dann nicht aufgeteilt.
 Alte Semikolonformulare bleiben kompatibel. Hashprüfung, Sitzung, CSRF, Idempotenz und
 ausdrückliche Bestätigung verwenden weiterhin ausschließlich den AdminCommand-Schreibpfad.
+
+### Themenbearbeitung mit Vorschau (5.7.2, S3)
+
+`/themen/{art}/{id}` und `/themen/{art}/neu` zeigen Name, Beschreibung, Beispiele,
+Ausschlüsse (je Zeile ein Eintrag, leere Zeilen entfallen) und den Schalter „Aktiv“.
+Bestehende IDs sind nur Anzeige; neue IDs werden aus dem Namen vorgeschlagen
+(`[a-z0-9_-]`, höchstens 64 Zeichen) und müssen dokumentübergreifend eindeutig sein. Die
+Eingaben werden gegen `RuleTopic` und das vollständige Themendokument geprüft; der
+Postfachbereich wird aus der aktuellen Datei übernommen.
+
+POST `/themen/pruefen` (Sitzung, CSRF, Dateihash, Entwurfsversion, Idempotenzschlüssel)
+speichert nur einen sitzungseigenen, versionierten Vorschauentwurf (`topic-draft-*`,
+24 Stunden gültig) und schreibt keine Themendatei. Derselbe Schlüssel mit anderen Eingaben
+wird abgewiesen. Die Vorschau zeigt bisherige und neue Regel mit markierten Feldern. Erst
+POST `/themen/speichern` mit Entwurfskennung, gleicher Version, gleichem Hash und
+ausdrücklicher Bestätigung reiht den unveränderten AdminCommand ein; Autorisierung und
+Dateistand werden davor und bei Ausführung erneut geprüft. Eine wiederholte identische
+Bestätigung führt zur bestehenden Aktion. Unveränderte Themen erzeugen keinen Befehl.
+Vorschauen zu einer älteren Dateirevision gelten nicht mehr als ausstehend.
+

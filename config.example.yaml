@@ -200,6 +200,7 @@ vision:
 learning:
   # Themenpflege: /themen mit Suche und Statusfilter; Bearbeitung auf einer eigenen Seite.
   # Vorhandene Postfachbereiche werden dabei unverändert erhalten.
+  # 5.7.2: Jede Änderung wird erst als Vorschau gezeigt und danach ausdrücklich bestätigt.
   # 5.7: /lernen bündelt Postfachlernen und /lernen/entscheidungen.
   # Regellernen wertet vorhandene Entscheidungen aus, ohne Mails abzurufen.
   # Erst die ausdrückliche Webfreigabe startet die kostenpflichtige Analyse über

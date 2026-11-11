@@ -149,6 +149,8 @@ class SettingsSite:
         configuration = self.archive.configuration
         if configuration is None:
             return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
+        if "draft_id" in form:
+            return self.topic_site.editing.confirm(request, session, form)
         try:
             if form.get("original_id") and form["id"] != form["original_id"]:
                 raise ValueError("IDs dürfen nicht geändert werden")

@@ -8,8 +8,7 @@ from urllib.parse import urlencode
 import yaml
 
 from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig, read_yaml
-from ..configuration import AdminCommand, AdminKind, file_hash
-from .forms import post_form
+from ..configuration import AdminCommand, AdminKind
 from .http import Request, Response
 from .pages import e, layout
 from .settings_search import normalize
@@ -36,8 +35,8 @@ class TopicSite:
         self.settings, self.archive = settings, settings.archive
         self.site: MailhelpSite = settings.site
         self.site.app.route("GET", "/themen", self.site.signed_in(self.home))
-        self.site.app.route("GET", r"/themen/(?P<kind>relevant|ausschluss)/(?P<identity>[a-z0-9_-]{1,64})",
-                            self.site.signed_in(self.editor))
+        from .topic_editor import TopicEditor
+        self.editing = TopicEditor(self)
 
     def documents(self) -> dict[str, list[Topic]]:
         result = {}
@@ -91,6 +90,12 @@ class TopicSite:
         body += ('</select><button class="button">Themen suchen</button></form>'
                  f'<p><a class="button" href="/themen/{kind}/neu">Neues Thema</a></p>')
         selected = sorted(documents[kind], key=lambda item: (not item.enabled, item.name.casefold(), item.id))
+        drafts = self.editing.drafts("web:" + session.id)
+        if drafts:
+            body += '<section class="card"><h2>Ausstehende Themenänderungen</h2><ul>'
+            body += "".join(f'<li><a href="/themen/entwurf/{identity}">{e(name)}: Vorschau anzeigen</a></li>'
+                            for identity, _category, _topic_id, name in drafts)
+            body += '</ul></section>'
         count = sum(matches(topic, query, status) for topic in selected)
         body += ('<p role="status" id="topic-count" aria-live="polite">'
                  f'{count} von {len(selected)} Themen angezeigt.</p>'
@@ -100,6 +105,7 @@ class TopicSite:
                  '<th scope="col">Beispiele / Ausschlüsse</th><th scope="col">Beschreibung</th>'
                  '<th scope="col">Bearbeiten</th></tr></thead><tbody>')
         pending = self.pending()
+        pending.update((category, identity) for _draft, category, identity, _name in drafts)
         for topic in selected:
             body += self.row(kind, topic, (KINDS[kind][0], topic.id) in pending, not matches(topic, query, status))
         body += '</tbody></table><script src="/static/topics.js" defer></script>'
@@ -121,40 +127,3 @@ class TopicSite:
                 f'<a class="button" href="{topic_link(kind, topic.id)}" aria-label="{e(topic.name)} bearbeiten">'
                 'Bearbeiten</a></td></tr>')
 
-    def editor(self, request: Request, session: Any, kind: str, identity: str) -> Response:
-        if self.archive.configuration is None:
-            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
-        try:
-            documents = self.documents()
-            parameters = self.archive.parameters(request)
-            new = identity == "neu" and parameters.get("vorhanden") != "1"
-            topic = (Topic(id="neu", name="", description="", enabled=True) if new else
-                     next((item for item in documents[kind] if item.id == identity), None))
-            if topic is None:
-                return self.site._reply(request, 404, "Thema nicht gefunden.")
-            revision = file_hash(self.archive.configuration.directory / KINDS[kind][1])
-        except (ValueError, KeyError, OSError, yaml.YAMLError):
-            return self.site._reply(request, 400, "Themendatei nicht lesbar.")
-        return Response.html(200, layout("Thema bearbeiten", self.edit_form(kind, topic, new, revision, session),
-                                        active="/einstellungen"))
-
-    def edit_form(self, kind: str, topic: Topic, new: bool, revision: str, session: Any) -> str:
-        body = ('<div class="page-heading"><p class="eyebrow">Themen</p><h1>'
-                + ("Neues Thema" if new else e(topic.name)) + '</h1></div>'
-                f'<p><a href="/themen?art={kind}">Zur Themenübersicht</a></p>'
-                f'<p>Geltungsbereich: {e(self.scope(topic))}</p>')
-        fields = (f'<label>Themen-ID<input name="id" value="{"" if new else e(topic.id)}"'
-                  f'{"" if new else " readonly"} required></label>'
-                  f'<label>Name<input name="name" value="{e(topic.name)}" required></label>')
-        for key, title, value in (("description", "Beschreibung", topic.description),
-                                  ("examples", "Beispiele (ein Eintrag je Zeile)", "\n".join(topic.examples)),
-                                  ("exclusions", "Ausschlüsse (ein Eintrag je Zeile)", "\n".join(topic.exclusions))):
-            fields += f'<label>{title}<textarea name="{key}" rows="4">{e(value)}</textarea></label>'
-        fields += ('<label>Aktiv<select name="enabled">'
-                   f'<option value="true"{" selected" if topic.enabled else ""}>Ja</option>'
-                   f'<option value="false"{" selected" if not topic.enabled else ""}>Nein</option></select></label>'
-                   '<label><input type="checkbox" name="confirm" value="yes" required> '
-                   'Änderung ausdrücklich speichern</label>')
-        return body + post_form("/themen/speichern", self.site.auth.csrf_token(session.id), fields,
-                                category=KINDS[kind][0], expected_hash=revision,
-                                original_id="" if new else topic.id, list_format="lines")

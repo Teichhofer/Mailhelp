@@ -177,23 +177,25 @@ def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
 
 
 def test_themes_create_disable_conflict_and_authorization(web, tmp_path):
+    from tests.fakes.topic_forms import confirmation, preview
     service, *_ = configure(web, tmp_path)
-    form = web.form('/themen/relevant/neu', action='/themen/speichern', original_id='')
-    data = {**form, 'id': 'sport', 'name': 'Sport', 'description': 'Sport', 'enabled': 'true',
-            'examples': 'Training\nVerein', 'exclusions': '', 'confirm': 'yes'}
+    shown = preview(web, '/themen/relevant/neu', id='sport', name='Sport', description='Sport',
+                    examples='Training' + chr(10) + 'Verein')
+    data = confirmation(shown)
     response = web.browser.request('POST', '/themen/speichern', data)
     assert response.status == 303
     web.run()
     topics = yaml.safe_load((tmp_path / 'topics.yaml').read_text())['topics']
     assert len(topics) == 2 and topics[-1]['examples'] == ['Training', 'Verein']
-    assert web.browser.request('POST', '/themen/speichern', data).status == 409
-    form = web.form('/themen/relevant/sport', action='/themen/speichern', original_id='sport')
-    data.update(form)
-    data['enabled'] = 'false'
+    # 5.7.2: the same confirmation again is the same action, never a second write.
+    again = web.browser.request('POST', '/themen/speichern', data)
+    assert again.status == 303 and again.headers['Location'] == response.headers['Location']
+    data = confirmation(preview(web, '/themen/relevant/sport', name='Sport', description='Sport',
+                                examples='Training', enabled=''))
     assert web.browser.request('POST', '/themen/speichern', data).status == 303
     web.run()
     assert yaml.safe_load((tmp_path / 'topics.yaml').read_text())['topics'][-1]['enabled'] is False
-    assert web.browser.request('POST', '/themen/speichern', {**data, 'id': 'changed'}).status == 422
+    assert preview(web, '/themen/relevant/sport', id='changed', name='Sport', description='Sport').status == 422
 
 
 def test_stop_requires_post_confirm_live_session_and_current_process(web, tmp_path):
@@ -365,11 +367,9 @@ def test_metrics_compaction_recovery_validation_and_logging(tmp_path, monkeypatc
 
 
 def test_queued_admin_recovery_and_irrelevant_topics(web, tmp_path):
+    from tests.fakes.topic_forms import save
     service, *_ = configure(web, tmp_path)
-    form = web.form('/themen/ausschluss/neu', action='/themen/speichern', category='irrelevant')
-    data = {**form, 'id': 'ads', 'name': 'Werbung', 'description': 'Werbung', 'enabled': 'true',
-            'examples': '', 'exclusions': '', 'confirm': 'yes'}
-    assert web.browser.request('POST', '/themen/speichern', data).status == 303
+    assert save(web, '/themen/ausschluss/neu', id='ads', name='Werbung', description='Werbung').status == 303
     web.run()
     assert yaml.safe_load((tmp_path/'irrelevant_topics.yaml').read_text())['topics'][0]['id'] == 'ads'
     entry = web.commands._entries()[-1]

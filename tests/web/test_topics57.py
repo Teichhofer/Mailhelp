@@ -87,7 +87,9 @@ def test_individual_links_and_reserved_new_id_are_operable(topics):
     web, _path = catalog(topics)
     for route in ("/themen/relevant/school", "/themen/relevant/neu?vorhanden=1", "/themen/ausschluss/neu"):
         response = web.browser.request("GET", route)
-        assert response.status == 200 and 'action="/themen/speichern"' in response.body.decode()
+        # 5.7.2: the editor asks for a preview first; only the preview offers the confirmation.
+        page = response.body.decode()
+        assert response.status == 200 and 'action="/themen/pruefen"' in page and 'action="/themen/speichern"' not in page
     assert web.browser.request("GET", "/themen/relevant/missing").status == 404
     assert web.browser.request("GET", "/themen/relevant/school?x=1&x=2").status == 400
     assert Browser(web.app).request("GET", "/themen/relevant/school").status == 303
@@ -121,3 +123,14 @@ def test_legacy_semicolon_forms_remain_compatible(topics):
     assert web.browser.request("POST", "/themen/speichern", form).status == 303
     web.run()
     assert yaml.safe_load((path / "topics.yaml").read_text(encoding="utf-8"))["topics"][0]["examples"] == ["Alt", "Zweites"]
+
+
+def test_legacy_forms_without_a_preview_keep_their_checks(topics):
+    # 5.7.2: forms opened before the update still post directly; their checks stay unchanged.
+    web, path = topics
+    before = (path / "topics.yaml").read_text(encoding="utf-8")
+    assert web.browser.request("POST", "/themen/speichern", fields(topics, id="other")).status == 422
+    assert web.browser.request("POST", "/themen/speichern", fields(topics, expected_hash="0" * 64)).status == 409
+    assert web.browser.request("POST", "/themen/speichern", fields(topics, enabled="vielleicht")).status == 422
+    web.run()
+    assert (path / "topics.yaml").read_text(encoding="utf-8") == before

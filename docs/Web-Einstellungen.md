@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 11. November 2026, Anwendungsversion 5.7.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 11. November 2026, Anwendungsversion 5.7.2; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 ## Themenübersicht
 
@@ -12,6 +12,22 @@ Deaktivierte Themen stehen am Ende. „Änderung ausstehend“ markiert wartende
 „Bearbeiten“ und „Neues Thema“ öffnen jeweils eine eigene Seite. Bestehende Postfachbereiche
 werden nur angezeigt und beim Speichern aus der aktuellen Datei erhalten. In Beispielen und
 Ausschlüssen steht ein Eintrag je Zeile; ein Semikolon bleibt Teil des Eintrags.
+
+### Thema bearbeiten
+
+1. In der Übersicht „Bearbeiten“ oder „Neues Thema“ wählen.
+2. Name, Beschreibung, Beispiele und Ausschlüsse anpassen; „Aktiv“ ein- oder ausschalten.
+   Bei einem neuen Thema wird die Themen-ID aus dem Namen vorgeschlagen und kann vor dem
+   ersten Speichern geändert werden. Die ID eines bestehenden Themas bleibt fest.
+3. „Änderung prüfen“ wählen. Die Vorschau zeigt links die bisherige und rechts die neue
+   Regel; geänderte Felder sind markiert. Die Vorschau speichert noch nichts.
+4. „Änderung ausdrücklich speichern“ ankreuzen und „Änderung speichern“ wählen. Mit
+   „Weiter bearbeiten“ geht es ohne Speichern zurück.
+
+Fehler stehen direkt am betroffenen Feld; die Eingaben bleiben erhalten. Wurde die
+Themendatei inzwischen geändert, „Neu laden“ wählen und die Änderung erneut prüfen. Eine
+offene Vorschau erscheint in der Übersicht unter „Ausstehende Themenänderungen“ und verfällt
+nach 24 Stunden. Das letzte aktive relevante Thema kann nicht deaktiviert werden.
 
 Ausschlussthemen sind negative Kategorien für Lern- und Entscheidungstests. Im normalen
 Mailbetrieb wirken die relevanten Themen und ihre Ausschlüsse; die Datei ist kein weiterer

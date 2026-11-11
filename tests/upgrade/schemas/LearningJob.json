@@ -223,6 +223,11 @@
       ],
       "default": null
     },
+    "started_at": {
+      "default": 0,
+      "title": "Started At",
+      "type": "number"
+    },
     "status": {
       "default": "empty",
       "enum": [

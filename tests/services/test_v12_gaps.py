@@ -532,17 +532,20 @@ def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
     from mailhelp.config import Topic
     from mailhelp.llm.learning import save_topics
     from mailhelp.models import LearnedCategory
+    from tests.fakes.topic_forms import confirmation, hidden, preview
     configure(web, tmp_path)
-    form = web.form("/themen/relevant/neu", action="/themen/speichern", original_id="")
-    # The learning mode adds a topic while the form is open in the browser.
+    form = hidden(web.browser.request("GET", "/themen/relevant/neu").body.decode(), "/themen/pruefen")
+    shown = preview(web, "/themen/relevant/neu", id="judo", name="Judo", description="Judo")
+    # The learning mode adds a topic while the form or the preview is open in the browser.
     existing = [Topic.model_validate(item) for item in
                 yaml.safe_load((tmp_path / "topics.yaml").read_text(encoding="utf-8"))["topics"]]
     save_topics(tmp_path / "topics.yaml", existing,
                 [LearnedCategory(name="Verein", description="Vereinspost", examples=["Training"])])
     learned = (tmp_path / "topics.yaml").read_text(encoding="utf-8")
-    data = {**form, "id": "sport", "name": "Sport", "description": "Sport", "enabled": "true",
-            "examples": "", "exclusions": "", "confirm": "yes"}
-    assert web.browser.request("POST", "/themen/speichern", data).status == 409
+    data = {**form, "id": "sport", "name": "Sport", "description": "Sport", "enabled": "yes",
+            "examples": "", "exclusions": ""}
+    assert web.browser.request("POST", "/themen/pruefen", data).status == 409
+    assert web.browser.request("POST", "/themen/speichern", confirmation(shown)).status == 409
     web.run()
     assert (tmp_path / "topics.yaml").read_text(encoding="utf-8") == learned
 

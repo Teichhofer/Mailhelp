@@ -7,7 +7,7 @@ Die Arbeitspakete werden einzeln als 5.7.0–5.7.5 committet.
 | --- | --- | --- |
 | S1: Gemeinsame Lernübersicht | 5.7.0 | umgesetzt, gezielte Abnahme |
 | S2: Themenübersicht | 5.7.1 | umgesetzt, gezielt abgenommen |
-| S3: Themenbearbeitung mit Vorschau | 5.7.2 | ausstehend |
+| S3: Themenbearbeitung mit Vorschau | 5.7.2 | umgesetzt, gezielt abgenommen |
 | S4: Gemeinsame Gestaltung | 5.7.3 | ausstehend |
 | S5: Dokumentation und Hilfe | 5.7.4 | ausstehend |
 | S6: Gesamtabnahme | 5.7.5 | ausstehend |
@@ -45,3 +45,26 @@ Vorschau, Feldfehler und die gesonderte Bestätigung werden in S3 ergänzt.
 Abnahme S2: 38 relevante Python-Tests, 100 % Zeilen-/Branch-Abdeckung der neuen Themenseite;
 zusätzliche Bestandstests (68) und sechs Browserprüfungen auf Desktop/Mobil/schmal mit und
 ohne JavaScript. Das neue `topics.js` ist in die verbindliche Browser-Coverage aufgenommen.
+
+## S3 – Themenbearbeitung mit Vorschau
+
+Jedes Thema wird auf einer eigenen Seite bearbeitet: deutsche Beschriftungen mit Kurzhilfe,
+ein Eintrag je Zeile, ein Schalter „Aktiv“ und bei neuen Themen eine aus dem Namen
+vorgeschlagene ID. „Änderung prüfen“ speichert nur eine sitzungseigene, versionierte
+Vorschau und schreibt keine Themendatei. Erst die ausdrückliche Bestätigung auf der
+Vorschauseite reiht den bestehenden AdminCommand ein; Sitzung, CSRF, Dateihash,
+Entwurfsversion und Idempotenzschlüssel werden dabei erneut geprüft. Feldfehler stehen am
+Feld, Konflikte bieten „Neu laden“. Offene Vorschauen erscheinen in der Übersicht und
+verfallen nach 24 Stunden; Vorschauen einer älteren Dateirevision gelten als veraltet.
+Formulare von vor dem Update speichern weiterhin mit ihren bisherigen Prüfungen.
+
+Zusätzlich behoben: Der Schemasnapshot von `LearningJob` war seit 5.7.0 nicht an das neue
+Feld `started_at` angepasst. Das Feld hat einen Standardwert; bestehende Zustände bleiben
+gültig, eine Migration ist nicht nötig. Der Snapshot wurde bewusst neu geschrieben.
+
+Abnahme S3: Vollständiger Python-Prüfpfad vor den letzten Ergänzungen 4727 bestanden;
+danach 892 Web-, E2E-, Upgrade- und Themenprüfungen bestanden, neue Module 100 % Zeilen und
+Branches. 13 neue Python-Tests für Vorschau, Bestätigung, Idempotenz, Sitzungsbindung,
+Ablauf, Autorisierung, Konflikte und beschädigte Zustände; vier bestehende Tests auf den
+zweistufigen Ablauf umgestellt. 18 Browserprüfungen (Desktop/Mobil/schmal, mit und ohne
+JavaScript) für Übersicht, Bearbeitung, Vorschau und ID-Vorschlag.

@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.7.2 – Themenbearbeitung mit Vorschau (S3)
+
+- Eigene Bearbeitungsseite je Thema mit deutschen Beschriftungen, Kurzhilfe, Schalter
+  „Aktiv“ und einem Eintrag je Zeile; leere Zeilen werden ignoriert.
+- „Änderung prüfen“ zeigt bisherige und neue Regel mit markierten Feldern. Erst dort wird die
+  Änderung ausdrücklich bestätigt und als AdminCommand eingereiht; ohne Änderung gibt es
+  nichts zu bestätigen.
+- Neue Themen erhalten eine aus dem Namen vorgeschlagene ID; bestehende IDs bleiben fest.
+- Feldfehler stehen am Feld, Eingaben bleiben erhalten; Dateikonflikte bieten „Neu laden“.
+- Vorschauen gehören der Websitzung, sind versioniert, verfallen nach 24 Stunden und
+  autorisieren keinen Schreibzugriff. Doppelte Bestätigungen führen zur selben Aktion.
+
 ## 5.7.1 – Kompakte Themenübersicht (S2)
 
 - Themen als Tabelle bzw. mobile Karten statt vollständiger Formularstapel; Reiter,
