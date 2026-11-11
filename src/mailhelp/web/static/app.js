@@ -785,6 +785,9 @@ function randomHexKey() {
       state = saved;
     } else { forget(); }
   } catch (error) { blocked = true; }
+  // 5.5.2: the reading position of the conversation; a manipulated value starts at the top.
+  state.scroll = Number.isFinite(state.scroll) && state.scroll >= 0 ? state.scroll : 0;
+  var restored = false, scrollTimer;
   var initial = new URL(location.href);
   if (initial.searchParams.get("hilfe") === "offen") {
     state.opened = true;
@@ -855,7 +858,7 @@ function randomHexKey() {
     panel.hidden = !state.opened;
     root.querySelector(".help-fab").setAttribute("aria-expanded", String(state.opened));
     restoreDraft(); place(state.x, state.y);
-    if (focus && question()) question().focus();
+    if (focus && question()) question().focus({preventScroll: true});  // keep the reading position
   }
   function failure(error) { message.textContent = error.message; }
   function refresh(force) {
@@ -874,18 +877,22 @@ function randomHexKey() {
       if (force || stamp !== data.stamp) {
         var input = question(), focused = document.activeElement === input;
         var start = input ? input.selectionStart : 0, end = input ? input.selectionEnd : 0;
-        var scroll = content.scrollTop;
+        // After a page change the saved position counts; later a reader at the end follows
+        // new content, a reader further up keeps the place.
+        var following = restored && content.scrollTop + content.clientHeight >= content.scrollHeight - 4;
+        var scroll = restored ? content.scrollTop : state.scroll;
         content.innerHTML = data.html;
         if (stamp) message.textContent = "Gespräch aktualisiert.";
         stamp = data.stamp;
-        restoreDraft(); content.scrollTop = scroll;
+        restoreDraft(); content.scrollTop = following ? content.scrollHeight : scroll;
+        if (!content.hidden) { restored = true; state.scroll = content.scrollTop; }
         if (focused && question()) { question().focus({preventScroll: true}); question().setSelectionRange(start, end); }
       }
       show(false); store();
     }).catch(failure);
   }
   function open(link) {
-    trigger = link; state.opened = true;
+    trigger = link; state.opened = true; restored = false;  // reopening returns to the reading position
     content.textContent = ""; doc.hidden = true; content.hidden = false;
     doc.querySelector(".help-document-text").textContent = "";
     var url = new URL(link.href || location.href, location.href);
@@ -928,12 +935,21 @@ function randomHexKey() {
       var parsed = new DOMParser().parseFromString(html, "text/html");
       var main = parsed.querySelector("main");
       doc.querySelector(".help-document-text").textContent = main.textContent;
+      if (!content.hidden) { state.scroll = content.scrollTop; store(); }
       content.hidden = true; doc.hidden = false;
     }).catch(failure);
   }
   root.addEventListener("click", function (event) {
-    if (event.target.closest("[data-help-back]")) { docSequence++; doc.hidden = true; content.hidden = false; }
+    if (event.target.closest("[data-help-back]")) {
+      docSequence++; doc.hidden = true; content.hidden = false; content.scrollTop = state.scroll; restored = true;
+    }
   });
+  content.addEventListener("scroll", function () {
+    // Emptying or rebuilding the content also scrolls; only a restored view is a reading position.
+    if (!restored) return;
+    state.scroll = content.scrollTop;
+    clearTimeout(scrollTimer); scrollTimer = setTimeout(store, 150);
+  }, {passive: true});
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!root.contains(form)) {
@@ -957,6 +973,8 @@ function randomHexKey() {
     json(form.action, body).then(function (data) {
       state.draft = ""; content.innerHTML = data.html; stamp = "";
       if (clear) { doc.hidden = true; content.hidden = false; }
+      // A cleared chat starts at the top; a sent question shows its pending notice at the end.
+      content.scrollTop = clear ? 0 : content.scrollHeight; state.scroll = content.scrollTop;
       restoreDraft(); message.textContent = ""; remember().catch(failure);
     }).catch(failure).finally(function () { busy = false; });
   }, true);
@@ -982,12 +1000,15 @@ function randomHexKey() {
   function resize() { place(state.x, state.y); }
   window.addEventListener("resize", resize);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
-  window.addEventListener("pagehide", function () { store(); panel.hidden = true; clearTimeout(timer); });
+  window.addEventListener("pagehide", function () {
+    if (restored && !content.hidden) state.scroll = content.scrollTop;
+    store(); panel.hidden = true; clearTimeout(timer);
+  });
   window.addEventListener("beforeunload", function (event) {
     if (blocked && unsaved) { event.preventDefault(); event.returnValue = ""; }
   });
   window.addEventListener("pageshow", function (event) { if (event.persisted) { refresh(true); schedule(); } });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(false); });
   function schedule() { clearTimeout(timer); timer = setTimeout(function () { refresh(false); schedule(); }, 2000); }
-  show(false); remember().catch(failure); refresh(false); schedule();
+  show(false); content.scrollTop = state.scroll; remember().catch(failure); refresh(false); schedule();
 })();

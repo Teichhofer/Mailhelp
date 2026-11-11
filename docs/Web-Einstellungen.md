@@ -383,7 +383,7 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
   **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape
   schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.
 - **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den
-  Zustand und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens
+  Zustand, die Leseposition im Gespräch und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens
   24 Stunden. Keine Tokens eingeben; dies ist keine Geheimnisablage. Der Gesprächsverlauf bleibt
   serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben
   Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.

@@ -57,7 +57,9 @@ vorhandenen Frageentwurf zu überschreiben. Frage eingeben und **Frage senden** 
 Während die Antwort entsteht, kannst du suchen, Werte bearbeiten und Änderungen bestätigen
 und speichern. Der Chat bleibt geöffnet; Antworten laden die Einstellungsseite nicht neu.
 
-Quellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt zum Verlauf zurück. Den Kopf
+Quellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt an dieselbe Stelle im Verlauf
+zurück. Auch nach einem Seitenwechsel, Neuladen oder erneutem Öffnen steht das Gespräch an der
+zuletzt gelesenen Stelle; wer ganz unten liest, sieht neue Antworten automatisch. Den Kopf
 ziehen (oder den Titel fokussieren und die Pfeiltasten verwenden), um verdeckte Einstellungen
 freizugeben.
 **Hilfschat schließen** blendet das Fenster aus. Beim Wiederöffnen sind Gespräch und Entwurf

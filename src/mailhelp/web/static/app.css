@@ -841,7 +841,10 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 #help-window-status { margin: 0; padding: 0 12px; font-size: .9rem; }
 .help-document-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* Explicit confirmations remain operable even when the window overlaps their form. */
-#inhalt form:has(input[name="confirm"][value="yes"]) { position: relative; z-index: 26; background: var(--surface); }
+/* 5.5.2: only their buttons and only while the window is open; a whole raised form (the topics
+   page is one) covered the window's own controls and, when closed, the chat button. */
+body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][value="yes"]) button {
+  position: relative; z-index: 26; }
 @media (max-width: 899px) {
   #help-window { bottom: calc(140px + env(safe-area-inset-bottom)); right: 12px; }
 }

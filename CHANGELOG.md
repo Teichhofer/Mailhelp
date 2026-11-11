@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.5.2 – Leseposition im Hilfschat (Planung 5.5, S3)
+
+- Das Chatfenster merkt sich die Leseposition des Gesprächs im Tab (`sessionStorage`, Feld
+  `scroll`) und stellt sie nach Seitenwechsel, Neuladen, erneutem Öffnen und der Rückkehr aus
+  einer Dokumentationsquelle wieder her. Wer am Ende liest, folgt neuen Antworten; wer weiter
+  oben liest, bleibt dort. „Chat leeren“ beginnt oben; ein ungültiger gespeicherter Wert auch.
+- Behoben: Das Öffnen fokussierte das Fragefeld und scrollte dabei ans Ende des Verlaufs.
+- Behoben: Bestätigungsformulare lagen immer über dem Hilfschat, auch bei geschlossenem
+  Fenster. Auf dem Handy verdeckte die Themenseite so den Schließen-Knopf und danach das
+  Chatsymbol. Jetzt liegen nur noch die Schaltflächen solcher Formulare und nur bei geöffnetem
+  Fenster darüber (Regressionstest im Browser).
+
 ## 5.5.1 – Kostenhinweis eingeklappt (Planung 5.5, S2)
 
 - Der Kosten- und Datenschutzhinweis unter dem Fragefeld belegt nur noch eine Zeile

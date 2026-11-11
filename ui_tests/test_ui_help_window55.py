@@ -36,3 +36,24 @@ def test_window55_fallback_keys_work_without_crypto_random_uuid(page, mailhelp, 
     assert keys and all(re.fullmatch(r"[0-9a-f]{32}", key) for key in keys)
     assert len(set(keys)) == len(keys)
     assert page.errors == []
+
+
+def test_window55_the_chat_button_stays_usable_over_a_confirmation_form(page, mailhelp):
+    # 5.5.2 regression: whole confirmation forms were raised above the help window, also while
+    # it was closed. The topics page is one such form: it covered the window's close button
+    # and afterwards the chat button. Only the confirming buttons need to stay on top.
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + "/themen")
+    page.get_by_label("Hilfschat öffnen", exact=True).click()
+    window = page.get_by_role("region", name="Hilfe zu Einstellungen", exact=True)
+    expect(window).to_be_visible()
+    form = page.locator('#inhalt form:has(input[name="confirm"][value="yes"])').first
+    button = form.locator("button").last
+    assert form.evaluate("form => getComputedStyle(form).zIndex") == "auto"
+    assert button.evaluate("button => getComputedStyle(button).zIndex") == "26"
+    page.get_by_role("button", name="Hilfschat schließen", exact=True).click(timeout=5000)
+    expect(window).to_be_hidden()
+    assert button.evaluate("button => getComputedStyle(button).zIndex") == "auto"
+    page.get_by_label("Hilfschat öffnen", exact=True).click(timeout=5000)
+    expect(window).to_be_visible()
+    assert page.errors == []

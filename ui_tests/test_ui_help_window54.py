@@ -128,6 +128,8 @@ def test_window54_keyboard_position_and_drag_are_restored(page, mailhelp):
     panel = page.locator("#help-window")
     # 5.5: the focusable title moves the window with the arrow keys; other keys do nothing.
     title = page.locator(".help-window-head h2")
+    # Opening ends by focusing the question; only then may the title take the focus.
+    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_be_focused()
     start = panel.bounding_box()
     title.focus()
     page.keyboard.press("ArrowUp")

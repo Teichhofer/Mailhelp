@@ -3656,3 +3656,13 @@ Geheimnisse; Autorisierung leisten weiterhin Sitzung und CSRF.
 
 Der Kosten- und Datenschutzhinweis des Frageformulars ist ein natives `<details>` mit der
 Zusammenfassung „Kostenpflichtig“, im Ruhezustand geschlossen. Der Wortlaut bleibt unverändert.
+
+### Leseposition (5.5.2)
+
+`sessionStorage` (`mailhelp.help-window.v1`) enthält zusätzlich `scroll`, die Scrollposition von
+`#help-window-content` als nicht negative Zahl; ungültige Werte gelten als 0. Gespeichert wird
+nach einer kurzen Scrollpause, vor dem Verlassen der Seite und vor dem Öffnen einer Quelle.
+Wiederhergestellt wird beim Seitenaufbau, beim erneuten Öffnen und bei „Zurück zum Gespräch“.
+Bei neuen Inhalten folgt die Ansicht nur, wenn sie zuvor am Ende stand. Ohne Browserspeicher
+gilt die Position nur im aktuellen Dokument; der serverseitige Fallback speichert sie nicht.
+Bestätigungsformulare heben bei geöffnetem Fenster nur ihre Schaltflächen über das Fenster.
