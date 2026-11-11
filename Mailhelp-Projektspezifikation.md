@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.2. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3803,3 +3803,21 @@ Dateistand werden davor und bei Ausführung erneut geprüft. Eine wiederholte id
 Bestätigung führt zur bestehenden Aktion. Unveränderte Themen erzeugen keinen Befehl.
 Vorschauen zu einer älteren Dateirevision gelten nicht mehr als ausstehend.
 
+### Einheitliche Gestaltung der Lernseiten (5.7.3, S4)
+
+Themenvorschau und Regellernen verwenden denselben Vergleich (`rule_compare`): Name,
+Beschreibung, Beispiele, Ausschlüsse, Aktivierung und Geltungsbereich. Geänderte Felder
+erscheinen als Tabelle „Feld / Bisher / Neu“ mit dem Textabzeichen „geändert“ (bei neuen
+Themen „neu“), Listen zeilenweise mit „+ neu“ und „− entfernt“. Unveränderte Felder stehen
+in einem eingeklappten Bereich. Alle Werte werden maskiert; Skripte sind nicht nötig.
+
+Die Prüfansicht des Regellernens beginnt mit einer Zusammenfassung (Anzahl Änderungen,
+neue Themen, Deaktivierungen, Anzahl Belege) und Sprunglinks `#vorschlag-n`. Jede Karte
+zeigt Art und Auswahl im Kopf, die Begründung, eine kurze Belegliste (Betreff, Signal,
+Datum) mit aufklappbarem Auszug, den Vergleich und die bearbeitbaren Felder. Eine feste
+Aktionsleiste nennt „n von m Vorschlägen ausgewählt“; `learning.js` aktualisiert die Zahl
+ohne Netzwerkaufruf, ohne Skript zeigt der Server die Zahl der zurückgegebenen Auswahl.
+Formularfelder, Validierung und Schreibpfad bleiben unverändert.
+
+Das Startformular des Lernlaufs gruppiert Postfach und Ordner, Umfang sowie Kosten und
+Budget in Feldgruppen; die Parameter und die Schätzung bleiben unverändert.

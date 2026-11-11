@@ -57,8 +57,11 @@ def test_preview_shows_before_and_after_and_only_confirmation_writes(topics):
     shown = preview(web, "/themen/relevant/school", name="Schule", description="Schulpost und Elternbriefe",
                     examples="Elternabend; Klasse 3\n\n  Zeugnis  ")
     page = shown.body.decode()
-    assert "<h1>Änderung prüfen</h1>" in page and "Bisherige Regel" in page and "Neue Regel" in page
-    assert page.count('<span class="badge">geändert</span>') == 2  # description and examples
+    assert "<h1>Änderung prüfen</h1>" in page and '<th scope="col">Bisher</th><th scope="col">Neu</th>' in page
+    # 5.7.3: only changed fields are open, lists line by line; the rest is folded away.
+    assert page.count('<span class="badge warn">geändert</span>') == 2  # description and examples
+    assert "Geänderte Felder (2)" in page and "Unveränderte Felder anzeigen (4)" in page
+    assert '<span class="diff-mark">+ neu:</span> Zeugnis' in page and "<li>Elternabend; Klasse 3</li>" in page
     assert 'name="confirm" value="yes" required' in page and "Weiter bearbeiten" in page
     web.run()
     assert (path / "topics.yaml").read_text(encoding="utf-8") == before, "Die Vorschau schreibt nichts"
@@ -150,7 +153,7 @@ def test_pending_previews_are_listed_until_their_command_is_queued(topics):
     identity = draft_id(actor(web), "relevant", "school")
     assert f'/themen/entwurf/{identity}">Schule: Vorschau anzeigen' in overview and "Änderung ausstehend" in overview
     resumed = web.browser.request("GET", f"/themen/entwurf/{identity}")
-    assert resumed.status == 200 and "Neue Regel" in resumed.body.decode()
+    assert resumed.status == 200 and "Geänderte Felder (2)" in resumed.body.decode()
     # Reopening the editor keeps the previewed values for further editing.
     assert ">Entwurf</textarea>" in web.browser.request("GET", "/themen/relevant/school").body.decode()
     assert web.browser.request("POST", "/themen/speichern", confirmation(shown)).status == 303

@@ -4,7 +4,7 @@
 
 **Stand:** 11. November 2026
 
-**Status:** S1–S3 umgesetzt und gezielt abgenommen; S4–S6 folgen.
+**Status:** S1–S4 umgesetzt und gezielt abgenommen; S5–S6 folgen.
 
 **Ausgangsstand:** 5.6.0 ([Planung 5.6](Planung-5.6.md), [Release 5.6](Release-5.6.md)).
 Version 5.7 beginnt erst, wenn 5.6.0 vollständig abgenommen und committet ist.

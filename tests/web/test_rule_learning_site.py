@@ -5,17 +5,20 @@ import pytest
 
 from mailhelp.rule_learning.models import RuleAnalysis
 from mailhelp.rule_learning.service import STATE
-from mailhelp.web.rule_learning_site import RuleLearningSite, value_text
+from mailhelp.web.rule_compare import shown
+from mailhelp.web.rule_learning_site import RuleLearningSite
 from tests.fakes.rule_learning import RuleHarness, proposal, record, topic
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser
 
 
-@pytest.mark.parametrize("value,expected", [(True, "Ja"), (False, "Nein"), (None, "alle Postfächer"),
-                                         ([], "Keine"), ([1, 2], "1, 2"), (["Beispiel"], "Beispiel"),
-                                         ("Schule", "Schule")])
-def test_previous_rule_values_are_readable_without_python_representations(value, expected):
-    assert value_text(value) == expected
+@pytest.mark.parametrize("key,value,expected", [
+    ("enabled", True, "Ja"), ("enabled", False, "Nein"), ("mailboxes", None, "alle Postfächer"),
+    ("mailboxes", [], "keine"), ("mailboxes", [1, 2], "Postfach 1, Postfach 2"), ("examples", [], "Keine"),
+    ("examples", ["A", "B"], "A" + chr(10) + "B"), ("name", "Schule", "Schule")])
+def test_previous_rule_values_are_readable_without_python_representations(key, value, expected):
+    # 5.7.3: the shared comparison replaced value_text; values still never show as Python reprs.
+    assert shown(key, value) == expected
 
 
 @pytest.fixture

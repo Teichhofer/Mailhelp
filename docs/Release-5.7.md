@@ -8,7 +8,7 @@ Die Arbeitspakete werden einzeln als 5.7.0–5.7.5 committet.
 | S1: Gemeinsame Lernübersicht | 5.7.0 | umgesetzt, gezielte Abnahme |
 | S2: Themenübersicht | 5.7.1 | umgesetzt, gezielt abgenommen |
 | S3: Themenbearbeitung mit Vorschau | 5.7.2 | umgesetzt, gezielt abgenommen |
-| S4: Gemeinsame Gestaltung | 5.7.3 | ausstehend |
+| S4: Gemeinsame Gestaltung | 5.7.3 | umgesetzt, gezielt abgenommen |
 | S5: Dokumentation und Hilfe | 5.7.4 | ausstehend |
 | S6: Gesamtabnahme | 5.7.5 | ausstehend |
 
@@ -68,3 +68,29 @@ Branches. 13 neue Python-Tests für Vorschau, Bestätigung, Idempotenz, Sitzungs
 Ablauf, Autorisierung, Konflikte und beschädigte Zustände; vier bestehende Tests auf den
 zweistufigen Ablauf umgestellt. 18 Browserprüfungen (Desktop/Mobil/schmal, mit und ohne
 JavaScript) für Übersicht, Bearbeitung, Vorschau und ID-Vorschlag.
+
+## S4 – Gemeinsame Gestaltung
+
+Themenvorschau und Regellernen zeigen Änderungen mit demselben Vergleich: nur geänderte
+Felder offen, Listen zeilenweise als „+ neu“ / „− entfernt“, unveränderte Felder eingeklappt.
+Die Prüfansicht des Regellernens hat eine Zusammenfassung mit Sprunglinks, die Auswahl im
+Kopf jeder Karte, eine kurze Belegliste mit aufklappbarem Auszug und eine feste Aktionsleiste
+mit Auswahlzähler (`learning.js`, ohne Skript serverseitig). Das Lernlauf-Startformular ist
+in Schritte gegliedert. Abzeichen tragen ihre Bedeutung als Text.
+
+Abweichung von der Planung: Die Ordner des Lernlaufs bleiben ein Textfeld mit der Liste der
+verfügbaren Ordner darunter. Auswahlfelder je Ordner hätten ohne JavaScript nicht zum
+gewählten Postfach gepasst; ein Postfachwechsel hätte einen zusätzlichen Seitenaufruf erfordert.
+Vollständige Belegauszüge und Antworten bleiben verfügbar, sind aber eingeklappt.
+
+Gefunden und behoben während der Browserprüfung: Die feste Aktionsleiste verdeckte auf
+kleinen Bildschirmen das zuletzt in den sichtbaren Bereich gescrollte Bedienelement.
+`scroll-padding-bottom` hält gescrollte und fokussierte Elemente oberhalb der Leiste.
+
+Bereits seit 5.7.1 scheiterte die Browserprüfung `test_window55_the_chat_button_stays_usable_over_a_confirmation_form`: Sie öffnete `/themen` und erwartete dort ein Bestätigungsformular, das die Themenübersicht nicht mehr hat. Die Prüfung verwendet jetzt die Bestätigung der Themenvorschau und prüft weiterhin, dass das Formular (als feste Leiste mit z-index 4) unter Hilfefenster und Chatknopf bleibt.
+
+Abnahme S4: 2955 bestehende Python-Tests (Web, Dienste, Unit) bestanden; fünf neue Tests für
+Vergleich, Zusammenfassung, Belege und Auswahlzähler; die nicht mehr benötigte Funktion
+`value_text` wurde durch den gemeinsamen Vergleich ersetzt und ihr Test übertragen. 25 Browserprüfungen
+für Regellernen, Themenbearbeitung und Lernlauf auf Desktop/Mobil/schmal mit Barrierefreiheitsprüfung
+(axe, WCAG 2.1 AA), mit und ohne JavaScript. `learning.js` ist Teil der verbindlichen Browser-Coverage.

@@ -54,13 +54,21 @@ Mails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu igno
 und zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen
 keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.
 
+Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Übersicht zeigt zwei Karten mit
+Zweck, aktuellem Stand und einem Kostenhinweis: **Aus dem Postfach lernen** (der Lernlauf unten)
+und **Aus Entscheidungen lernen** (Regeln aus deinen bisherigen Entscheidungen verbessern, siehe
+[Aus Entscheidungen lernen](#aus-entscheidungen-lernen)). Das Öffnen der Übersicht oder einer
+Karte startet nichts und kostet nichts. Die Themen selbst werden unter Einstellungen → Themen
+verwaltet.
+
 ### Lernlauf in der Weboberfläche starten
 
 1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`) und
    „Aus dem Postfach lernen öffnen“ wählen (`/lernen/postfach`). Die Übersicht startet nichts.
-2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt
-   `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen.
-3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist
+2. Unter **Neuer Lernlauf** im Schritt „1. Postfach und Ordner“ das **Postfach** wählen und die
+   **Ordner** eintragen (ein Name je Zeile, vorbelegt `INBOX`); darunter stehen die verfügbaren
+   Ordner je Postfach. Im Schritt „2. Umfang“ die **Anzahl Mails** (1–1000, vorbelegt 20) angeben.
+3. Im Schritt „3. Kosten und Budget“ **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist
    deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen.
 4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten
    Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag.
@@ -109,10 +117,47 @@ Unter **Einstellungen → KI und Auswertung** stehen dazu `learning.parallel_llm
 
 Unabhängig vom Lernmodus legt Mailhelp jede manuelle Entscheidung über einen Vorschlag mit Mail,
 KI-Ergebnissen, ursprünglichem und entschiedenem Vorschlag im Lernbestand ab
-(`data/<Betriebsart>/learning/decisions.jsonl`). Er ist Material für spätere Auswertungen;
-Mailhelp ändert dadurch nicht selbständig seine Themen oder Entscheidungen. Vollständige
+(`data/<Betriebsart>/learning/decisions.jsonl`). Er ist das Material für
+[Aus Entscheidungen lernen](#aus-entscheidungen-lernen); Mailhelp ändert dadurch nicht
+selbständig seine Themen oder Entscheidungen, sondern nur nach deiner Freigabe und Bestätigung. Vollständige
 KI-Anfragen und -Antworten kommen nur mit `learning.decision_llm_content` hinzu. Die
 Aufbewahrung regelt `retention.decision_learning_days` (Standard unbegrenzt).
+
+### Aus Entscheidungen lernen
+
+Unter Lernen „Aus Entscheidungen lernen öffnen“ wählen (`/lernen/entscheidungen`). Auch
+die Themenverwaltung (Einstellungen → Themen) verlinkt diese Seite. Diese Funktion verwendet die
+bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion benötigt den
+Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
+aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie üblich neu laden.
+
+1. Den Hinweis zur Datenübertragung und möglichen Kosten lesen. Nur nach Ankreuzen der
+   ausdrücklichen Freigabe „Entscheidungen analysieren“ wählen. Begrenzte Auszüge und
+   Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
+2. Nach Abschluss oben die Zusammenfassung lesen; die Links springen zu den einzelnen
+   Vorschlägen. In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
+   neue und entfernte Beispiele sind mit „+ neu“ und „− entfernt“ markiert, unveränderte Felder
+   lassen sich aufklappen. „Entscheidungsbelege“ listet Betreff, Entscheidung und Datum; der
+   Auszug öffnet sich mit „Auszug anzeigen“. Eine abgelehnte Aufgabe macht
+   ihre Mail nicht automatisch irrelevant; „bereits erledigt“ bleibt ein positives Beispiel.
+3. Name, Beschreibung, Beispiele, Ausschlüsse und Aktivierung bei Bedarf ändern. Beispiele
+   und Ausschlüsse stehen einzeln je Zeile. Vorhandene Themen-IDs und Postfachbereiche bleiben
+   stabil. Optional unter „Vollständiges Themen-YAML bearbeiten (optional)“ ein vollständiges
+   Thema eintragen; dieses ersetzt dann die Feldwerte.
+4. Gewünschte Vorschläge oben in der jeweiligen Karte auswählen; die Leiste am unteren Rand
+   zeigt, wie viele ausgewählt sind. Die Regeländerungen gesondert bestätigen und
+   „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
+   YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
+   geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
+5. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
+   Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
+   Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
+
+Neue Analysen übernehmen relevante Regeln am nächsten sicheren Verarbeitungspunkt. Die
+Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmodus; für
+normale Mailanalysen wirken die relevanten Themen und deren Ausschlüsse. Bestehende
+Kalendereinträge und Aufgaben werden durch Regellernen nicht geändert. Eine neue Analyse
+ersetzt einen noch offenen Prüfentwurf; ein Neustart wiederholt keine laufende KI-Analyse.
 
 ## Weitere Seiten
 
@@ -143,39 +188,8 @@ verändert selbst keine Daten.
 | --- | --- |
 | **Verlauf** | jede Änderung und Entscheidung mit Version |
 | **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |
-| **Themen** | was als relevant gilt |
+| **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |
+| **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |
 | **Status** | letzter Kontakt je Dienst, laufender Schritt |
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.
-
-### Aus Entscheidungen lernen
-
-Unter Lernen „Aus Entscheidungen lernen öffnen“ wählen (`/lernen/entscheidungen`). Auch
-die Themenverwaltung verlinkt diese Seite. Diese Funktion verwendet die
-bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion benötigt den
-Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
-aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie üblich neu laden.
-
-1. Den Hinweis zur Datenübertragung und möglichen Kosten lesen. Nur nach Ankreuzen der
-   ausdrücklichen Freigabe „Entscheidungen analysieren“ wählen. Begrenzte Auszüge und
-   Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
-2. Nach Abschluss jede bisherige Regel links mit der vorgeschlagenen Regel rechts vergleichen.
-   „Entscheidungsbelege“ zeigt die zugrunde liegenden Auszüge. Eine abgelehnte Aufgabe macht
-   ihre Mail nicht automatisch irrelevant; „bereits erledigt“ bleibt ein positives Beispiel.
-3. Name, Beschreibung, Beispiele, Ausschlüsse und Aktivierung bei Bedarf ändern. Beispiele
-   und Ausschlüsse stehen einzeln je Zeile. Vorhandene Themen-IDs und Postfachbereiche bleiben
-   stabil. Optional unter „Vollständiges Themen-YAML bearbeiten (optional)“ ein vollständiges
-   Thema eintragen; dieses ersetzt dann die Feldwerte.
-4. Gewünschte Vorschläge einzeln auswählen, die Regeländerungen gesondert bestätigen und
-   „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
-   YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
-   geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
-5. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
-   Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
-   Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
-
-Neue Analysen übernehmen relevante Regeln am nächsten sicheren Verarbeitungspunkt. Die
-Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmodus; für
-normale Mailanalysen wirken die relevanten Themen und deren Ausschlüsse. Bestehende
-Kalendereinträge und Aufgaben werden durch Regellernen nicht geändert. Eine neue Analyse
-ersetzt einen noch offenen Prüfentwurf; ein Neustart wiederholt keine laufende KI-Analyse.

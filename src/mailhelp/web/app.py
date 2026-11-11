@@ -17,6 +17,7 @@ STATIC_FILES = {
     "app.js": "text/javascript; charset=utf-8",
     "setup.js": "text/javascript; charset=utf-8",
     "topics.js": "text/javascript; charset=utf-8",
+    "learning.js": "text/javascript; charset=utf-8",
     "icon-192.png": "image/png",
     "icon-512.png": "image/png",
     "icon-maskable-512.png": "image/png",

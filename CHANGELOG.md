@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.7.3 – Einheitliche Gestaltung der Lernseiten (S4)
+
+- Gemeinsamer Vergleich „bisher/neu“ für Themenvorschau und Regellernen: nur geänderte
+  Felder offen, Beispiele und Ausschlüsse zeilenweise als „+ neu“ oder „− entfernt“
+  markiert, unveränderte Felder eingeklappt. Markierungen stehen als Text, nicht nur als Farbe.
+- Regellernen: Zusammenfassung mit Anzahl je Art und Sprunglinks, Auswahl im Kopf jeder
+  Vorschlagskarte, kurze Belegliste (Betreff, Entscheidung, Datum) mit aufklappbarem Auszug
+  und eine feste Aktionsleiste mit „n von m Vorschlägen ausgewählt“.
+- Lernlauf: Startformular in Schritte gegliedert (Postfach und Ordner, Umfang, Kosten und
+  Budget, Schätzung); verfügbare Ordner stehen direkt unter dem Ordnerfeld.
+
 ## 5.7.2 – Themenbearbeitung mit Vorschau (S3)
 
 - Eigene Bearbeitungsseite je Thema mit deutschen Beschriftungen, Kurzhilfe, Schalter

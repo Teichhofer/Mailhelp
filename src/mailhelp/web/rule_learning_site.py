@@ -13,24 +13,18 @@ from .http import Request, Response
 from .learning_overview import UPDATED
 from .learning_pages import heading
 from .pages import e, layout, notice
+from .rule_compare import compare
 from .site import MailhelpSite
 
 LABELS = {"id": "Themen-ID", "name": "Name", "description": "Beschreibung",
           "examples": "Beispiele (ein Eintrag je Zeile)", "exclusions": "Ausschlüsse (ein Eintrag je Zeile)",
           "enabled": "Aktiv", "mailboxes": "Geltungsbereich"}
+SIGNALS = {"positive_already_done": "Bereits erledigt (relevant)", "rejected_proposal": "Vorschlag abgelehnt",
+           "manual_correction": "Von Hand korrigiert", "relevance_disagreement": "Relevanz korrigiert",
+           "unclassified_confirmation": "Bestätigt ohne Thema"}
 STATUSES = {"empty": "Bereit", "queued": "Wartet", "running": "Analyse läuft", "review": "Vorschläge prüfen",
             "committing": "Übernahme unvollständig", "done": "Übernommen", "failed": "Analyse fehlgeschlagen",
             "interrupted": "Analyse unterbrochen"}
-
-
-def value_text(value: Any) -> str:
-    if isinstance(value, bool):
-        return "Ja" if value else "Nein"
-    if value is None:
-        return "alle Postfächer"
-    if isinstance(value, list):
-        return ", ".join(str(item) for item in value) or "Keine"
-    return str(value)
 
 
 class RuleLearningSite:
@@ -90,32 +84,56 @@ class RuleLearningSite:
                 f'<input type="hidden" name="key" value="{secrets.token_hex(16)}">'
                 f'<input type="hidden" name="action" value="{action}">{body}</form>')
 
+    @staticmethod
+    def action(proposal: Any, old: dict[str, Any] | None) -> str:
+        if old is None:
+            return "Neues Thema"
+        return "Deaktivierung" if proposal.action == "disable" else "Änderung"
+
+    @staticmethod
+    def evidence(items: list[dict[str, Any]]) -> str:
+        """Short entries (subject, decision, date); the excerpt opens on demand."""
+        body = f'<details class="rule-evidence"><summary>Entscheidungsbelege ({len(items)})</summary><ul>'
+        for item in items:
+            date = item.get("recorded_at", "")[:10]
+            changes = "".join(f"<dt>{e(key)}</dt><dd>{e(value)}</dd>" for key, value in item["changes"].items())
+            body += (f'<li><strong>{e(item["subject"] or "Ohne Betreff")}</strong> · '
+                     f'{e(SIGNALS.get(item["signal"], item["signal"]))}' + (f" · {e(date)}" if date else "")
+                     + '<details><summary>Auszug anzeigen</summary>'
+                     f'<p class="compare-text">{e(item["text"]) or "Kein Textauszug."}</p>'
+                     + (f"<dl>{changes}</dl>" if changes else "")
+                     + (f'<p>Antwort: {e(item["answer"])}</p>' if item.get("answer") else "")
+                     + "</details></li>")
+        return body + "</ul></details>"
+
     def review(self, session: WebSession, state: RuleState, values: dict[str, str]) -> str:
-        body = (f'<h2>Vorschläge prüfen</h2><p>{len(state.evidence)} verwendete Belege; '
-                f'{state.skipped} beschädigte, doppelte oder ungeeignete Zeilen übersprungen.</p>')
         known = {item["id"]: item for item in state.evidence}
+        olds = [next((topic for topic in state.documents[proposal.category]["topics"]
+                      if topic["id"] == proposal.topic_id), None) for proposal in state.proposals]
+        kinds = [self.action(proposal, old) for proposal, old in zip(state.proposals, olds, strict=True)]
+        counts = ", ".join(f"{kinds.count(kind)} {label}" for kind, label in (
+            ("Änderung", "Änderungen"), ("Neues Thema", "neue Themen"), ("Deaktivierung", "Deaktivierungen"))
+            if kinds.count(kind))
+        body = (f'<section class="card rule-summary"><h2>Vorschläge prüfen</h2><p>{len(state.proposals)} Vorschläge'
+                + (f": {counts}" if counts else "") + f' · aus {len(state.evidence)} Entscheidungen; '
+                f'{state.skipped} beschädigte, doppelte oder ungeeignete Zeilen übersprungen.</p><ol>'
+                + "".join(f'<li><a href="#vorschlag-{index + 1}">{e(proposal.proposed.name)}</a> · {kind}</li>'
+                          for index, (proposal, kind) in enumerate(zip(state.proposals, kinds, strict=True)))
+                + '</ol></section>')
         for index, proposal in enumerate(state.proposals):
-            old = next((topic for topic in state.documents[proposal.category]["topics"]
-                        if topic["id"] == proposal.topic_id), None)
-            body += (f'<section class="card rule-review"><h3>{e(proposal.proposed.name)}</h3>'
-                     f'<p>{e(proposal.rationale)}</p><details><summary>Entscheidungsbelege</summary><ul>'
-                     + "".join(f'<li>{e(known[key]["subject"])} · {e(known[key]["signal"])}</li>'
-                               for key in proposal.evidence) + '</ul>'
-                     + "".join(f'<p>{e(known[key]["text"])}</p><pre>{e(known[key]["changes"])}</pre>'
-                               f'<p>{e(known[key].get("answer", ""))}</p>' for key in proposal.evidence)
-                     + '</details><div class="rule-diff">'
-                     '<section><h4>Bisherige Regel</h4>')
-            if old is None:
-                body += '<p>Neues Thema; bisher keine Regel vorhanden.</p>'
-            else:
-                body += ("<dl>" + "".join(f'<dt>{e(LABELS.get(key, key))}</dt><dd>{e(value_text(value))}</dd>'
-                                          for key, value in old.items()) + "</dl>")
-            body += '</section><section><h4>Vorgeschlagene Regel · bearbeiten</h4>'
+            old = olds[index]
+            body += (f'<section class="card rule-review" id="vorschlag-{index + 1}"><div class="card-head">'
+                     f'<h3>{e(proposal.proposed.name)}</h3><span class="badge accent">{kinds[index]}</span></div>'
+                     f'<label class="rule-select"><input type="checkbox" name="selected-{index}" value="yes"'
+                     f' data-rule-select{" checked" if values.get(f"selected-{index}") == "yes" else ""}>'
+                     ' Diesen Vorschlag übernehmen</label>'
+                     f'<p>{e(proposal.rationale)}</p>'
+                     + self.evidence([known[key] for key in proposal.evidence])
+                     + '<div class="rule-diff"><section><h4>Bisherige Regel und Vorschlag</h4>'
+                     + compare(old, proposal.proposed.model_dump(mode="json")) + '</section>'
+                     '<section><h4>Vorgeschlagene Regel · bearbeiten</h4>')
             scope = proposal.proposed.mailboxes
             body += f'<p>Geltungsbereich: {e(scope if scope is not None else "alle Postfächer")}</p>'
-            body += (f'<label><input type="checkbox" name="selected-{index}" value="yes"'
-                     f'{" checked" if values.get(f"selected-{index}") == "yes" else ""}>'
-                     ' Diesen Vorschlag übernehmen</label>')
             fields = proposal.proposed.model_dump(mode="json")
             body += (f'<input type="hidden" name="mailboxes-{index}" '
                      f'value="{e(json.dumps(fields["mailboxes"]))}">')
@@ -124,8 +142,7 @@ class RuleLearningSite:
                 text = ("\n".join(default) if isinstance(default, list)
                         else str(default).lower() if key == "enabled" else default)
                 value = values.get(f"{key}-{index}", str(text))
-                badge = ' <span class="badge">geändert</span>' if old is None or old.get(key) != fields[key] else ""
-                body += f'<label for="rule-{index}-{key}">{e(LABELS[key])}{badge}</label>'
+                body += f'<label for="rule-{index}-{key}">{e(LABELS[key])}</label>'
                 if key == "enabled":
                     body += (f'<select id="rule-{index}-{key}" name="{key}-{index}">'
                              f'<option value="true"{" selected" if value == "true" else ""}>Ja</option>'
@@ -138,9 +155,13 @@ class RuleLearningSite:
                      f'<label for="rule-{index}-yaml">YAML ersetzt die Feldwerte vollständig</label>'
                      f'<textarea id="rule-{index}-yaml" name="yaml-{index}" rows="8">'
                      f'{e(values.get(f"yaml-{index}", ""))}</textarea></details></section></div></section>')
-        body += ('<label><input type="checkbox" name="confirm" value="yes" required> '
+        selected = sum(values.get(f"selected-{index}") == "yes" for index in range(len(state.proposals)))
+        body += ('<div class="confirm-bar"><p role="status" data-rule-count>'
+                 f'{selected} von {len(state.proposals)} Vorschlägen ausgewählt.</p>'
+                 '<label><input type="checkbox" name="confirm" value="yes" required> '
                  'Ausgewählte Regeländerungen ausdrücklich bestätigen</label>'
-                 '<button class="button" type="submit">Ausgewählte Änderungen prüfen und übernehmen</button>')
+                 '<button class="button" type="submit">Ausgewählte Änderungen prüfen und übernehmen</button></div>'
+                 '<script src="/static/learning.js" defer></script>')
         return self.form(session, state, "apply", body)
 
     @staticmethod

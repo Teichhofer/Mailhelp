@@ -43,17 +43,23 @@ def test_window55_the_chat_button_stays_usable_over_a_confirmation_form(page, ma
     # it was closed. The topics page is one such form: it covered the window's close button
     # and afterwards the chat button. Only the confirming buttons need to stay on top.
     sign_in(page, mailhelp)
-    page.goto(mailhelp.url + "/themen")
+    # 5.7.2: the topic overview has no forms any more; its confirmation is on the preview page.
+    page.goto(mailhelp.url + "/themen/relevant/school")
+    page.get_by_label("Beschreibung", exact=True).fill("Schule und Elternbriefe")
+    page.get_by_role("button", name="Änderung prüfen", exact=True).click()
+    expect(page.get_by_role("heading", name="Änderung prüfen", exact=True)).to_be_visible()
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     window = page.get_by_role("region", name="Hilfe zu Einstellungen", exact=True)
     expect(window).to_be_visible()
     form = page.locator('#inhalt form:has(input[name="confirm"][value="yes"])').first
     button = form.locator("button").last
-    assert form.evaluate("form => getComputedStyle(form).zIndex") == "auto"
+    # 5.7.3: the preview's form is a sticky action bar (z-index 4), still below the window (24).
+    assert form.evaluate("form => getComputedStyle(form).zIndex") in {"auto", "4"}
     assert button.evaluate("button => getComputedStyle(button).zIndex") == "26"
     page.get_by_role("button", name="Hilfschat schließen", exact=True).click(timeout=5000)
     expect(window).to_be_hidden()
     assert button.evaluate("button => getComputedStyle(button).zIndex") == "auto"
+    assert form.evaluate("form => getComputedStyle(form).zIndex") in {"auto", "4"}
     page.get_by_label("Hilfschat öffnen", exact=True).click(timeout=5000)
     expect(window).to_be_visible()
     assert page.errors == []

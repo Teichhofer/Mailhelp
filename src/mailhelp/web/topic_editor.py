@@ -16,7 +16,7 @@ from ..storage import CorruptState, JsonStore
 from .forms import field, post_form
 from .http import Request, Response
 from .pages import e, layout, notice
-from .rule_learning_site import value_text
+from .rule_compare import compare
 from .topic_drafts import TopicDraft, TopicFieldError, draft_id, owner, proposed_id
 from .topic_site import KINDS, topic_link
 
@@ -212,24 +212,16 @@ class TopicEditor:
         if state.topic is None:
             return self.site._reply(Request("GET", "/themen"), 422, "Kein gültiger Prüfentwurf; neu laden.")
         if state.before is not None and state.topic.model_dump() == state.before.model_dump():
-            return Response.html(200, layout("Unverändert", '<h1>Keine Änderung</h1>'
-                '<p>Es gibt nichts zu bestätigen.</p><p><a href="/themen">Zur Themenübersicht</a></p>',
+            return Response.html(200, layout("Unverändert", '<div class="page-heading"><p class="eyebrow">'
+                + KINDS[state.kind][2] + '</p><h1>Keine Änderung</h1><p>Es gibt nichts zu bestätigen.</p></div>'
+                '<p><a href="/themen">Zur Themenübersicht</a></p>',
                 active="/einstellungen"))
-        body = '<h1>Änderung prüfen</h1><div class="rule-diff">'
-        for title, topic in (("Bisherige Regel", state.before), ("Neue Regel", state.topic)):
-            body += f'<section><h2>{title}</h2>'
-            if topic is None:
-                body += '<p>Neues Thema.</p>'
-            else:
-                body += '<dl>'
-                previous = state.before.model_dump() if state.before else {}
-                for key, value in topic.model_dump(mode="json").items():
-                    changed = title == "Neue Regel" and previous.get(key) != value
-                    badge = ' <span class="badge">geändert</span>' if changed else ""
-                    body += f'<dt>{LABELS[key]}{badge}</dt><dd>{e(value_text(value))}</dd>'
-                body += '</dl>'
-            body += '</section>'
-        body += '</div><form method="post" action="/themen/speichern" class="stack">'
+        before = state.before.model_dump(mode="json") if state.before is not None else None
+        body = ('<div class="page-heading"><p class="eyebrow">' + KINDS[state.kind][2] + '</p>'
+                '<h1>Änderung prüfen</h1><p>Bisherige und neue Regel im Vergleich. Gespeichert wird erst nach '
+                f'Ihrer ausdrücklichen Bestätigung.</p></div><p>Themen-ID: <code>{e(state.topic.id)}</code></p>'
+                + compare(before, state.topic.model_dump(mode="json")))
+        body += '<form method="post" action="/themen/speichern" class="stack confirm-bar">'
         for key, value in {"csrf": self.site.auth.csrf_token(session.id), "key": state.key, "draft_id": identity,
                            "draft_version": state.version, "expected_hash": state.expected_hash}.items():
             body += field(key, "", value, hidden=True)
