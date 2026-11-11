@@ -378,8 +378,10 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 - **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach
   24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten
   Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.
-- **Fenster bedienen:** Den Kopf ziehen, um das Fenster zu verschieben. Per Tastatur den Titel
-  „Hilfe zu Einstellungen“ fokussieren und die Pfeiltasten verwenden. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.
+- **Fenster bedienen:** Den Kopf ziehen, um das Fenster zu verschieben, und an einem Rand oder
+  einer Ecke ziehen, um die Größe zu ändern (mindestens 280 × 180 Pixel, höchstens bis zum
+  Bildschirmrand). Per Tastatur den Titel „Hilfe zu Einstellungen“ fokussieren: Pfeiltasten
+  verschieben, Umschalt+Pfeiltasten ändern die Größe. Die Größe merkt sich der Browser-Tab. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.
   **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape
   schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.
 - **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den

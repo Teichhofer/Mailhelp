@@ -787,6 +787,10 @@ function randomHexKey() {
   } catch (error) { blocked = true; }
   // 5.5.2: the reading position of the conversation; a manipulated value starts at the top.
   state.scroll = Number.isFinite(state.scroll) && state.scroll >= 0 ? state.scroll : 0;
+  // 5.5.3: the size chosen at the border; a manipulated value falls back to the default size.
+  var MIN_WIDTH = 280, MIN_HEIGHT = 180;
+  if (!(Number.isFinite(state.width) && state.width >= MIN_WIDTH)) delete state.width;
+  if (!(Number.isFinite(state.height) && state.height >= MIN_HEIGHT)) delete state.height;
   var restored = false, scrollTimer;
   var initial = new URL(location.href);
   if (initial.searchParams.get("hilfe") === "offen") {
@@ -841,11 +845,23 @@ function randomHexKey() {
     if (blocked) return fallback();
     return Promise.resolve();
   }
-  function place(x, y) {
+  // The height above the bottom navigation; a window never grows beyond it.
+  function room() {
     var viewport = window.visualViewport;
     var bottom = document.querySelector("nav.tab-bar");
-    var available = (viewport ? viewport.height : innerHeight) - bottom.getBoundingClientRect().height - 24;
-    panel.style.maxHeight = Math.max(120, Math.min(520, available * 0.78)) + "px";
+    return (viewport ? viewport.height : innerHeight) - bottom.getBoundingClientRect().height - 24;
+  }
+  function place(x, y) {
+    var viewport = window.visualViewport;
+    var available = room();
+    // 5.5.3: a size chosen at the border wins over the default; a smaller screen limits it.
+    if (state.height) {
+      var height = Math.max(120, Math.min(state.height, available));
+      panel.style.height = height + "px"; panel.style.maxHeight = height + "px";
+    } else {
+      panel.style.maxHeight = Math.max(120, Math.min(520, available * 0.78)) + "px";
+    }
+    if (state.width) panel.style.width = Math.min(state.width, innerWidth - 16) + "px";
     var box = panel.getBoundingClientRect();
     if (Number.isFinite(x) && Number.isFinite(y)) {
       state.x = Math.max(8, Math.min(x, innerWidth - box.width - 8));
@@ -988,14 +1004,49 @@ function randomHexKey() {
     if (drag) { place(event.clientX - drag.x, event.clientY - drag.y); store(true); }
   });
   head.addEventListener("pointerup", function () { drag = null; });
-  // 5.5: without the arrow buttons the focusable title moves the window with the arrow keys.
+  // 5.5.3: resize at every border and corner; the opposite border stays where it is.
+  function size(width, height, right, bottom, box) {
+    state.width = Math.round(Math.max(Math.min(MIN_WIDTH, innerWidth - 16), Math.min(width, innerWidth - 16)));
+    state.height = Math.round(Math.max(Math.min(MIN_HEIGHT, room()), Math.min(height, room())));
+    place(right === null ? box.x : right - state.width, bottom === null ? box.y : bottom - state.height);
+  }
+  ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach(function (edge) {
+    var grip = document.createElement("div");
+    grip.className = "help-resize help-resize-" + edge;
+    grip.dataset.edge = edge; grip.setAttribute("aria-hidden", "true");
+    panel.appendChild(grip);
+  });
+  var sizing = null;
+  panel.addEventListener("pointerdown", function (event) {
+    var grip = event.target.closest(".help-resize");
+    if (!grip) return;
+    event.preventDefault();
+    sizing = {edge: grip.dataset.edge, x: event.clientX, y: event.clientY, box: panel.getBoundingClientRect()};
+    grip.setPointerCapture(event.pointerId);
+  });
+  panel.addEventListener("pointermove", function (event) {
+    if (!sizing) return;
+    var edge = sizing.edge, box = sizing.box, width = box.width, height = box.height;
+    var dx = event.clientX - sizing.x, dy = event.clientY - sizing.y;
+    if (edge.indexOf("e") >= 0) width = box.width + dx;
+    if (edge.indexOf("w") >= 0) width = box.width - dx;
+    if (edge.indexOf("s") >= 0) height = box.height + dy;
+    if (edge.indexOf("n") >= 0) height = box.height - dy;
+    size(width, height, edge.indexOf("w") >= 0 ? box.right : null, edge.indexOf("n") >= 0 ? box.bottom : null, box);
+    store(true);
+  });
+  panel.addEventListener("pointerup", function () { sizing = null; });
+  // 5.5: without the arrow buttons the focusable title moves the window with the arrow keys;
+  // with Shift they change its size (right/down larger, left/up smaller).
   var STEPS = {ArrowLeft: [-40, 0], ArrowRight: [40, 0], ArrowUp: [0, -40], ArrowDown: [0, 40]};
   head.querySelector("h2").addEventListener("keydown", function (event) {
     var step = STEPS[event.key];
     if (!step) return;
     event.preventDefault();
     var box = panel.getBoundingClientRect();
-    place(box.x + step[0], box.y + step[1]); store(true);
+    if (event.shiftKey) size(box.width + step[0], box.height + step[1], null, null, box);
+    else place(box.x + step[0], box.y + step[1]);
+    store(true);
   });
   function resize() { place(state.x, state.y); }
   window.addEventListener("resize", resize);

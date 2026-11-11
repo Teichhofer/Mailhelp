@@ -3666,3 +3666,12 @@ Wiederhergestellt wird beim Seitenaufbau, beim erneuten Öffnen und bei „Zurü
 Bei neuen Inhalten folgt die Ansicht nur, wenn sie zuvor am Ende stand. Ohne Browserspeicher
 gilt die Position nur im aktuellen Dokument; der serverseitige Fallback speichert sie nicht.
 Bestätigungsformulare heben bei geöffnetem Fenster nur ihre Schaltflächen über das Fenster.
+
+### Fenstergröße (5.5.3)
+
+Das Skript ergänzt acht Greifzonen (`.help-resize-n|s|e|w|ne|nw|se|sw`). Ziehen ändert Breite
+und Höhe; bei linken bzw. oberen Zonen bleibt die rechte bzw. untere Kante stehen. Grenzen:
+Breite 280 Pixel bis Viewportbreite − 16, Höhe 180 Pixel bis zur verfügbaren Höhe über der
+unteren Navigation (jeweils kleiner, wenn der Bildschirm es verlangt). Umschalt+Pfeiltasten auf
+dem Titel ändern die Größe in 40-Pixel-Schritten. `sessionStorage` speichert `width` und
+`height`; Werte unter dem Minimum oder keine Zahlen werden verworfen.

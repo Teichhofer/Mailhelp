@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.5.3 – Fenstergröße am Rand ändern (Planung 5.5, S4)
+
+- Das Chatfenster lässt sich an allen vier Rändern und Ecken größer und kleiner ziehen; der
+  Mauszeiger zeigt die Richtung (`ew-`, `ns-`, `nwse-`, `nesw-resize`). Die gegenüberliegende
+  Kante bleibt stehen. Grenzen: mindestens 280 × 180 Pixel, höchstens bis 8 Pixel vor den
+  Bildschirmrand bzw. bis über die untere Navigation.
+- Per Tastatur ändern Umschalt+Pfeiltasten auf dem fokussierten Titel die Größe.
+- Die Größe bleibt im Tab gespeichert (`width`, `height`); ein kleinerer Bildschirm begrenzt
+  sie, ein ungültiger gespeicherter Wert führt zur Standardgröße. Ohne JavaScript gilt die
+  feste Standardgröße.
+
 ## 5.5.2 – Leseposition im Hilfschat (Planung 5.5, S3)
 
 - Das Chatfenster merkt sich die Leseposition des Gesprächs im Tab (`sessionStorage`, Feld

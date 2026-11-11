@@ -828,6 +828,15 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 #help-window.help-top-left, #help-window.help-top-right { top: 8px; bottom: auto; }
 #help-window.help-top-left, #help-window.help-bottom-left { left: 8px; right: auto; }
 .help-window-head button { min-width: 44px; min-height: 44px; font-size: 1.3rem; }
+/* 5.5.3: grips at the borders and corners (added by the script; without it the size is fixed). */
+.help-resize { position: absolute; z-index: 2; touch-action: none; }
+.help-resize-n, .help-resize-s { left: 14px; right: 14px; height: 8px; cursor: ns-resize; }
+.help-resize-e, .help-resize-w { top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.help-resize-n { top: 0; } .help-resize-s { bottom: 0; } .help-resize-e { right: 0; } .help-resize-w { left: 0; }
+.help-resize-ne, .help-resize-nw, .help-resize-se, .help-resize-sw { width: 14px; height: 14px; }
+.help-resize-nw { top: 0; left: 0; cursor: nwse-resize; } .help-resize-se { bottom: 0; right: 0; cursor: nwse-resize; }
+.help-resize-ne { top: 0; right: 0; cursor: nesw-resize; } .help-resize-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+#help-window { min-width: min(280px, calc(100vw - 16px)); }
 .help-cost-hint { margin: 0; font-size: .9rem; color: var(--muted); }
 .help-cost-hint summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; width: fit-content; }
 .help-cost-hint summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

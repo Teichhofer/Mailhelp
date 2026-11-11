@@ -61,7 +61,8 @@ Quellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt an dieselbe Ste
 zurück. Auch nach einem Seitenwechsel, Neuladen oder erneutem Öffnen steht das Gespräch an der
 zuletzt gelesenen Stelle; wer ganz unten liest, sieht neue Antworten automatisch. Den Kopf
 ziehen (oder den Titel fokussieren und die Pfeiltasten verwenden), um verdeckte Einstellungen
-freizugeben.
+freizugeben. Für mehr Platz am Rand oder an einer Ecke ziehen (per Tastatur Umschalt+Pfeiltasten
+auf dem Titel); die Größe bleibt beim Seitenwechsel erhalten.
 **Hilfschat schließen** blendet das Fenster aus. Beim Wiederöffnen sind Gespräch und Entwurf
 noch vorhanden, solange die Sitzung und Aufbewahrung gelten. **Chat leeren** verwirft die Inhalte
 und hält das Fenster offen. Die ungesendete Frage sichert Mailhelp beim Tippen automatisch;
