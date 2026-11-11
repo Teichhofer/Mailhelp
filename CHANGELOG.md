@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.5.5 – Abnahme und Release 5.5 (Planung 5.5, S6)
+
+- Releasebericht [docs/Release-5.5.md](docs/Release-5.5.md) mit allen Schritten 5.5.0–5.5.4,
+  Abweichungen vom Plan, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.5 abgeschlossen.
+- Browsertests: Wartebedingungen als Funktionen (die Inhaltsrichtlinie der Seite verbietet
+  `eval`, das Playwright für wiederholt geprüfte Ausdrücke braucht); Größentest wartet auf das
+  Anpassen nach einer Bildschirmänderung.
+
 ## 5.5.4 – Kurze Chatantworten (Planung 5.5, S5)
 
 - Der Schritt `settings_help` liefert zusätzlich `short_answer` (Kernaussage in 1–2 Sätzen,

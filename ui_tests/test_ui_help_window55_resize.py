@@ -50,7 +50,7 @@ def test_window55_left_and_top_borders_grow_the_window_and_the_size_is_kept(page
     assert abs((taller["y"] + taller["height"]) - (wider["y"] + wider["height"])) <= 2  # bottom stays
     page.reload()
     expect(panel).to_be_visible()
-    page.wait_for_function("document.getElementById('help-window').style.width !== ''")
+    page.wait_for_function("() => document.getElementById('help-window').style.width !== ''")
     kept = panel.bounding_box()
     assert abs(kept["width"] - taller["width"]) <= 2 and abs(kept["height"] - taller["height"]) <= 2
     assert audit(page, "help-window55-resize-" + page.device, page.mobile) == []
@@ -70,6 +70,8 @@ def test_window55_corners_respect_the_minimum_and_the_screen(page, mailhelp):
     # A smaller screen limits the window; the chosen size returns on a larger one.
     viewport = page.viewport_size
     page.set_viewport_size({"width": 320, "height": 480})
+    # The window follows on the browser's resize event.
+    page.wait_for_function("() => document.getElementById('help-window').getBoundingClientRect().right <= 320")
     shrunk = panel.bounding_box()
     assert shrunk["x"] >= 0 and shrunk["x"] + shrunk["width"] <= 320
     page.set_viewport_size(viewport)

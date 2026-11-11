@@ -173,7 +173,7 @@ def test_window54_delayed_snapshot_does_not_reopen_a_closed_window(page, mailhel
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     expect(window(page)).to_be_visible()
     page.get_by_role("button", name="Hilfschat schließen", exact=True).click()
-    page.wait_for_function("document.querySelector('#help-window').hidden")
+    page.wait_for_function("() => document.querySelector('#help-window').hidden")
     assert held
     held[0][0].fulfill(json=held[0][1])
     page.unroute("**/api/hilfe/fenster**")
