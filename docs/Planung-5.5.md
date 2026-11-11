@@ -4,7 +4,7 @@
 
 **Stand:** 11. November 2026
 
-**Status:** In Umsetzung; S1 mit 5.5.0, S2 mit 5.5.1, S3 mit 5.5.2, S4 mit 5.5.3 umgesetzt.
+**Status:** In Umsetzung; S1 mit 5.5.0, S2 mit 5.5.1, S3 mit 5.5.2, S4 mit 5.5.3, S5 mit 5.5.4 umgesetzt.
 
 **Umsetzung:** Die Patchnummern beginnen bei 5.5.0 (S1) und enden bei 5.5.5 (S6), damit jeder
 Commit die Version lückenlos erhöht. Zur Tastaturbedienung ohne Pfeilschaltflächen siehe 2.2.

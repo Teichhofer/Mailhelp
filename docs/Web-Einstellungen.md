@@ -366,6 +366,8 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 - **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten
   Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)
   über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).
+  Im Fenster erscheint zuerst eine Kurzantwort in ein bis zwei Sätzen; **Ausführliche Antwort
+  anzeigen** klappt die vollständige Anleitung auf. Beide Fassungen entstehen im selben KI-Aufruf.
   Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende
   Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.
 - **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.

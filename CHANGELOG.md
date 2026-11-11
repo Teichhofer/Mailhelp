@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.5.4 – Kurze Chatantworten (Planung 5.5, S5)
+
+- Der Schritt `settings_help` liefert zusätzlich `short_answer` (Kernaussage in 1–2 Sätzen,
+  höchstens 300 Zeichen) im selben Aufruf: keine zusätzlichen Kosten oder Wartezeit.
+- Das Fenster zeigt die Kurzantwort; **Ausführliche Antwort anzeigen** klappt die vollständige
+  Antwort auf (natives `<details>`, ohne JavaScript bedienbar). Fehlt eine verwendbare Kurzantwort
+  (eigenes Prompt ohne das Feld, zu lang, Verlauf von vor 5.5.4), leitet Mailhelp den ersten Satz
+  ab. Eigene Hinweise wie „kein passender Abschnitt“ erscheinen immer vollständig.
+- Die Kurzantwort wird wie die Antwort um bekannte Zugangsdaten bereinigt gespeichert.
+- Eigene `prompts.yaml`: Das neue Feld ist optional; zum Übernehmen den Absatz „Antworte nur als
+  JSON …“ aus der mitgelieferten Vorlage in `settings_help` kopieren.
+
 ## 5.5.3 – Fenstergröße am Rand ändern (Planung 5.5, S4)
 
 - Das Chatfenster lässt sich an allen vier Rändern und Ecken größer und kleiner ziehen; der

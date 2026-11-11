@@ -53,7 +53,8 @@ Vorschläge; **Nachanalyse abbrechen** beendet eine laufende.
 
 Das Chatsymbol unten rechts öffnet **Hilfe zu Einstellungen** als kleines Fenster über der
 aktuellen Einstellungsseite. „Dazu fragen“ übernimmt den Bezug einer Einstellung, ohne einen
-vorhandenen Frageentwurf zu überschreiben. Frage eingeben und **Frage senden** wählen.
+vorhandenen Frageentwurf zu überschreiben. Frage eingeben und **Frage senden** wählen. Die
+Antwort erscheint zuerst kurz; **Ausführliche Antwort anzeigen** zeigt alle Schritte.
 Während die Antwort entsteht, kannst du suchen, Werte bearbeiten und Änderungen bestätigen
 und speichern. Der Chat bleibt geöffnet; Antworten laden die Einstellungsseite nicht neu.
 

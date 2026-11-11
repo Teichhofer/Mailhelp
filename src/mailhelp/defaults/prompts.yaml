@@ -913,7 +913,10 @@ prompts:
       darf weder ein automatisch erzeugtes Passwort noch eine geänderte Anmeldung erfinden.
       Reichen die Abschnitte nicht, sage das, setze "needs_clarification" auf true und
       stelle eine gezielte Rückfrage.
-      Antworte nur als JSON mit den Feldern "answer" (Text, höchstens 4000 Zeichen),
+      Antworte nur als JSON mit den Feldern "short_answer" (die Kernaussage in 1 bis 2
+      vollständigen Sätzen, höchstens 300 Zeichen, ohne Aufzählung; sie erscheint zuerst im
+      kleinen Hilfefenster), "answer" (die vollständige Antwort mit allen Schritten, höchstens
+      4000 Zeichen; sie wird auf Wunsch eingeblendet und darf die Kernaussage wiederholen),
       "source_ids" (Kennungen der tatsächlich verwendeten Abschnitte, höchstens 6),
       "setting_ids" (Kennungen aus "settings", höchstens 10) und "needs_clarification".
   diagnostic_test:

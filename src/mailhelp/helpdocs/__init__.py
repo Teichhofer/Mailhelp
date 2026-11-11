@@ -37,9 +37,37 @@ class HelpAnswer(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
     answer: str = Field(min_length=1, max_length=4000)
+    # 5.5.4: the core statement for the small window, written in the same call (no extra cost).
+    short_answer: str = Field(default="", max_length=1000)
     source_ids: list[str] = Field(default_factory=list, max_length=MAX_SECTIONS)
     setting_ids: list[str] = Field(default_factory=list, max_length=10)
     needs_clarification: bool = False
+
+
+SHORT_ANSWER = 300
+# A sentence ends at . ! ? before a space or the end, but not after a digit ("1.", "3. Mai").
+_SENTENCE_END = re.compile(r"(?<![0-9])[.!?](?=\s|$)")
+
+
+def derive_short_answer(text: str, limit: int = SHORT_ANSWER) -> str:
+    """The first sentence of at least 20 characters, shortened at a word to ``limit``.
+
+    Used when a model (or an answer from before 5.5.4) gives no usable short answer.
+    """
+    text = " ".join(text.split())
+    end = next((match.end() for match in _SENTENCE_END.finditer(text) if match.end() >= 20), len(text))
+    first = text[:end]
+    if len(first) <= limit:
+        return first
+    return first[:limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def concise(answer: str, short_answer: str) -> str:
+    """What the window shows first: the model's short answer if it is short, else derived."""
+    short = " ".join(short_answer.split())
+    if short and len(short) <= SHORT_ANSWER:
+        return short
+    return derive_short_answer(short or answer)
 
 
 def answer_validator(sources: list[str], settings: list[str]) -> Callable[[Any], HelpAnswer]:

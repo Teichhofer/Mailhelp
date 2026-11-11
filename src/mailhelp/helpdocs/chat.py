@@ -61,6 +61,8 @@ class Turn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question: str
     answer: str
+    # 5.5.4: empty for local answers and turns stored before; the window then derives one.
+    short_answer: str = Field(default="", max_length=1000)
     source_ids: list[str] = Field(default_factory=list)
     setting_ids: list[str] = Field(default_factory=list)
     needs_clarification: bool = False
@@ -258,8 +260,9 @@ class HelpChat:
             self._finish(session_id, job, "failed", classify(error))
             return
         self._finish(session_id, job, "completed", turn=Turn(
-            question=job.question, answer=self.redact(answer.answer), source_ids=answer.source_ids,
-            setting_ids=answer.setting_ids, needs_clarification=answer.needs_clarification, revision=base.revision))
+            question=job.question, answer=self.redact(answer.answer), short_answer=self.redact(answer.short_answer),
+            source_ids=answer.source_ids, setting_ids=answer.setting_ids,
+            needs_clarification=answer.needs_clarification, revision=base.revision))
 
     def _before_call(self, session_id: str, job: Job) -> None:
         """Recheck every paid attempt, including provider and structured-answer retries."""

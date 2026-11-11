@@ -794,6 +794,11 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .help-turn { padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .help-question { margin: 0 0 6px; overflow-wrap: anywhere; }
 .help-answer { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.help-answer-full { margin: 6px 0 0; }
+.help-answer-full summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; width: fit-content;
+  color: var(--accent); }
+.help-answer-full summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.help-answer-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
 .help-sources { margin: 4px 0 0; padding-left: 18px; }
 .help-sources a, .ask-help { display: inline-block; min-height: 44px; line-height: 44px; }
 .help-form textarea { width: 100%; font-size: 16px; }

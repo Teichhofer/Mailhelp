@@ -3675,3 +3675,13 @@ Breite 280 Pixel bis Viewportbreite − 16, Höhe 180 Pixel bis zur verfügbaren
 unteren Navigation (jeweils kleiner, wenn der Bildschirm es verlangt). Umschalt+Pfeiltasten auf
 dem Titel ändern die Größe in 40-Pixel-Schritten. `sessionStorage` speichert `width` und
 `height`; Werte unter dem Minimum oder keine Zahlen werden verworfen.
+
+### Kurzantwort (5.5.4)
+
+`HelpAnswer` und `Turn` enthalten `short_answer` (optional, höchstens 1000 Zeichen; Altbestände
+ohne Feld bleiben gültig). Angezeigt wird `concise()`: die Kurzantwort des Modells, wenn sie
+höchstens 300 Zeichen hat, sonst `derive_short_answer()` – der erste Satz mit mindestens
+20 Zeichen (Punkte nach Ziffern beenden keinen Satz), an einer Wortgrenze auf 300 Zeichen
+gekürzt. Ist sie gleich der Antwort oder ist die Antwort ein lokaler Hinweis, erscheint nur die
+Antwort; sonst folgt ein geschlossenes `<details class="help-answer-full">` mit der vollständigen
+Antwort. Der Verlauf an das Modell enthält weiterhin die vollständigen Antworten.

@@ -98,6 +98,18 @@ class HelpSite:
             parts += f'<p class="meta">Einstellungen</p><ul class="help-sources">{"".join(settings)}</ul>'
         return parts
 
+    @staticmethod
+    def _answer(turn: Any) -> str:
+        """5.5.4: the short answer first; the complete one is a native, closed disclosure."""
+        from ..helpdocs import concise
+        short = concise(turn.answer, turn.short_answer)
+        # Mailhelp's own short notices (no matching section) are always shown in full.
+        if turn.local or short == " ".join(turn.answer.split()):
+            return f'<div class="help-answer">{e(turn.answer)}</div>'
+        return (f'<div class="help-answer help-answer-short">{e(short)}</div>'
+                '<details class="help-answer-full"><summary>Ausführliche Antwort anzeigen</summary>'
+                f'<div class="help-answer-text">{e(turn.answer)}</div></details>')
+
     def setting(self, value: str) -> str:
         from .settings_search import catalog
         return value if any(item.key == value and value for item in catalog()) else ""
@@ -143,7 +155,7 @@ class HelpSite:
         state = self.chat.state(session.id)
         turns = "".join(
             f'<article class="help-turn"><p class="help-question"><strong>Frage:</strong> {e(turn.question)}</p>'
-            f'<div class="help-answer">{e(turn.answer)}</div>{self._sources(turn)}</article>' for turn in state.turns)
+            f'{self._answer(turn)}{self._sources(turn)}</article>' for turn in state.turns)
         current = [job for job in state.jobs if job.chat_version == state.version]  # cleared ones stay hidden
         pending = next((job for job in current if job.status in {"queued", "running"}), None)
         last = current[-1] if current else None
