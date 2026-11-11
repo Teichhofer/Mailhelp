@@ -52,9 +52,11 @@ _SENTENCE_END = re.compile(r"(?<![0-9])[.!?](?=\s|$)")
 def derive_short_answer(text: str, limit: int = SHORT_ANSWER) -> str:
     """The first sentence of at least 20 characters, shortened at a word to ``limit``.
 
-    Used when a model (or an answer from before 5.5.4) gives no usable short answer.
+    Used when a model (or an answer from before 5.5.4) gives no usable short answer. Markdown
+    marks are removed first (5.5.6), so a cut never leaves a dangling ``**``.
     """
-    text = " ".join(text.split())
+    from .markdown import plain
+    text = " ".join(plain(text).split())
     end = next((match.end() for match in _SENTENCE_END.finditer(text) if match.end() >= 20), len(text))
     first = text[:end]
     if len(first) <= limit:
@@ -63,11 +65,21 @@ def derive_short_answer(text: str, limit: int = SHORT_ANSWER) -> str:
 
 
 def concise(answer: str, short_answer: str) -> str:
-    """What the window shows first: the model's short answer if it is short, else derived."""
+    """What the window shows first: the model's short answer if it is short, else derived.
+
+    The length counts the visible text; a short answer may keep its inline Markdown.
+    """
+    from .markdown import plain
     short = " ".join(short_answer.split())
-    if short and len(short) <= SHORT_ANSWER:
+    if short and len(" ".join(plain(short).split())) <= SHORT_ANSWER:
         return short
     return derive_short_answer(short or answer)
+
+
+def same_text(first: str, second: str) -> bool:
+    """Whether two answers read the same once Markdown marks and spacing are ignored."""
+    from .markdown import plain
+    return " ".join(plain(first).split()) == " ".join(plain(second).split())
 
 
 def answer_validator(sources: list[str], settings: list[str]) -> Callable[[Any], HelpAnswer]:

@@ -3685,3 +3685,13 @@ höchstens 300 Zeichen hat, sonst `derive_short_answer()` – der erste Satz mit
 gekürzt. Ist sie gleich der Antwort oder ist die Antwort ein lokaler Hinweis, erscheint nur die
 Antwort; sonst folgt ein geschlossenes `<details class="help-answer-full">` mit der vollständigen
 Antwort. Der Verlauf an das Modell enthält weiterhin die vollständigen Antworten.
+
+### Markdown-Antworten (5.5.6)
+
+`settings_help` schreibt `answer` und `short_answer` in einer Markdown-Teilmenge.
+`helpdocs.markdown.render()` maskiert den gesamten Text und erzeugt ausschließlich `p`, `br`,
+`strong`, `em`, `code`, `pre`, `ol` (mit `start`), `ul`, `li` und für Überschriften
+`<p class="help-md-heading"><strong>…</strong></p>`. Links und Bilder ergeben nur ihren Text;
+Tabellen und HTML bleiben Text. Nur `*` und `**` formatieren, Unterstriche nicht.
+`plain()` entfernt die Zeichen für Kurzantwort-Ableitung, Längenprüfung und Vergleich.
+Die Dokumentationsansicht im Fenster bleibt Klartext.

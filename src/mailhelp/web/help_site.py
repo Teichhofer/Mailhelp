@@ -100,15 +100,20 @@ class HelpSite:
 
     @staticmethod
     def _answer(turn: Any) -> str:
-        """5.5.4: the short answer first; the complete one is a native, closed disclosure."""
-        from ..helpdocs import concise
+        """5.5.4: the short answer first; the complete one is a native, closed disclosure.
+
+        5.5.6: both are written in a small Markdown subset and rendered by the escaping
+        renderer of ``helpdocs.markdown``; no markup of the model reaches the page.
+        """
+        from ..helpdocs import concise, same_text
+        from ..helpdocs.markdown import render
         short = concise(turn.answer, turn.short_answer)
         # Mailhelp's own short notices (no matching section) are always shown in full.
-        if turn.local or short == " ".join(turn.answer.split()):
-            return f'<div class="help-answer">{e(turn.answer)}</div>'
-        return (f'<div class="help-answer help-answer-short">{e(short)}</div>'
+        if turn.local or same_text(short, turn.answer):
+            return f'<div class="help-answer">{render(turn.answer)}</div>'
+        return (f'<div class="help-answer help-answer-short">{render(short)}</div>'
                 '<details class="help-answer-full"><summary>Ausführliche Antwort anzeigen</summary>'
-                f'<div class="help-answer-text">{e(turn.answer)}</div></details>')
+                f'<div class="help-answer-text">{render(turn.answer)}</div></details>')
 
     def setting(self, value: str) -> str:
         from .settings_search import catalog

@@ -381,13 +381,12 @@
   ],
   "setting_ids": [
    "help_chat.enabled",
-   "help_chat.max_context_bytes",
    "help_chat.max_question_chars",
    "reanalysis.max_jobs_per_day",
    "web.port"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Ab 5.4.1 entfernt **Chat leeren** auch Fragetexte und Feldbezüge aus gespeicherten Aufträgen.\nNur inhaltsfreie Auftragskennungen, Status und Hashes bleiben gegen doppelte Übertragung erhalten.\nFrüher geleerte Altbestände werden beim nächsten Start bereinigt. Ein ausgeschalteter Hilfschat\nstartet auch für wartende Fragen und Wiederholungen keinen weiteren Modellaufruf.\n\nDie Suche findet auch Datei- und Einrichtungseinstellungen, etwa `web.port` und\n`reanalysis.max_jobs_per_day`. Solche Treffer nennen den Bedienweg und öffnen die passende\nmitgelieferte Dokumentation; sie bieten kein Webformular zum Ändern eines Dateiwerts.\n\n**Hilfe zu Einstellungen** beantwortet Fragen zur Bedeutung von Einstellungen und zu\nBedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem\nHandy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer\nder Sofortsuche öffnet dasselbe kleine Fenster mit diesem Bezug. Die Einstellungsseite bleibt\nbedienbar. Suche, Bereichswechsel, Bearbeiten, Bestätigen und Speichern schließen das Fenster\nnicht. Alte `/hilfe`-Links öffnen es auf der Einstellungsübersicht. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,\nSuchen und Hilfetexte lösen nie einen KI-Aufruf aus.\n\n- **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten\n  Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)\n  über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).\n  Im Fenster erscheint zuerst eine Kurzantwort in ein bis zwei Sätzen; **Ausführliche Antwort\n  anzeigen** klappt die vollständige Anleitung auf. Beide Fassungen entstehen im selben KI-Aufruf.\n  Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende\n  Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.\n- **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.\n  Auch auf die Bitte „Stell das für mich um“ gibt er nur eine Anleitung.\n- **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den\n  KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte\n  Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.\n  Aktuelle Einstellungswerte werden nie mitgeschickt. Im Fenster steht dieser Hinweis\n  eingeklappt unter **Kostenpflichtig**; ein Klick oder die Eingabetaste klappt ihn auf.\n- **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach\n  24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten\n  Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.\n- **Fenster bedienen:** Den Kopf ziehen, um das Fenster zu verschieben, und an einem Rand oder\n  einer Ecke ziehen, um die Größe zu ändern (mindestens 280 × 180 Pixel, höchstens bis zum\n  Bildschirmrand). Per Tastatur den Titel „Hilfe zu Einstellungen“ fokussieren: Pfeiltasten\n  verschieben, Umschalt+Pfeiltasten ändern die Größe. Die Größe merkt sich der Browser-Tab. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.\n  **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape\n  schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.\n- **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den\n  Zustand, die Leseposition im Gespräch und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens\n  24 Stunden. Keine Tokens eingeben; dies ist keine Geheimnisablage. Der Gesprächsverlauf bleibt\n  serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben\n  Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.\n- **Ohne Browserspeicher/JavaScript:** Ein serverseitiger Zustand erhält das geöffnete Fenster.\n  Ohne JavaScript bleibt eine ungesendete Frage bei einem Seitenwechsel nicht erhalten; eine neue\n  Antwort erscheint beim nächsten Seitenaufruf oder Neuladen. Das Fenster lässt sich dann nicht\n  verschieben; verdeckt es eine Schaltfläche, das Suchfeld mit der Eingabetaste absenden oder das\n  Fenster schließen. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch\n  neu geladen. Bei gesperrtem Browserspeicher sichert JavaScript den Entwurf vor Navigation;\n  scheitert die Sicherung, bleibt die aktuelle Seite erhalten und zeigt den Fehler.\n- **Ablauf:** Pro Chat läuft eine Frage; mit JavaScript wird nur das Fenster aktualisiert.\n  Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht\n  erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen\n  Einrichtungshinweis.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |\n| Hilfschat: längste Frage (Zeichen) (`help_chat.max_question_chars`) | Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt. | Im laufenden Betrieb |\n| Hilfschat: Dokumentation je Frage (Bytes) (`help_chat.max_context_bytes`) | Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten. | Im laufenden Betrieb |",
+  "text": "Ab 5.4.1 entfernt **Chat leeren** auch Fragetexte und Feldbezüge aus gespeicherten Aufträgen.\nNur inhaltsfreie Auftragskennungen, Status und Hashes bleiben gegen doppelte Übertragung erhalten.\nFrüher geleerte Altbestände werden beim nächsten Start bereinigt. Ein ausgeschalteter Hilfschat\nstartet auch für wartende Fragen und Wiederholungen keinen weiteren Modellaufruf.\n\nDie Suche findet auch Datei- und Einrichtungseinstellungen, etwa `web.port` und\n`reanalysis.max_jobs_per_day`. Solche Treffer nennen den Bedienweg und öffnen die passende\nmitgelieferte Dokumentation; sie bieten kein Webformular zum Ändern eines Dateiwerts.\n\n**Hilfe zu Einstellungen** beantwortet Fragen zur Bedeutung von Einstellungen und zu\nBedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem\nHandy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer\nder Sofortsuche öffnet dasselbe kleine Fenster mit diesem Bezug. Die Einstellungsseite bleibt\nbedienbar. Suche, Bereichswechsel, Bearbeiten, Bestätigen und Speichern schließen das Fenster\nnicht. Alte `/hilfe`-Links öffnen es auf der Einstellungsübersicht. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,\nSuchen und Hilfetexte lösen nie einen KI-Aufruf aus.\n\n- **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten\n  Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)\n  über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).\n  Im Fenster erscheint zuerst eine Kurzantwort in ein bis zwei Sätzen; **Ausführliche Antwort\n  anzeigen** klappt die vollständige Anleitung auf. Beide Fassungen entstehen im selben KI-Aufruf.\n  Die KI schreibt sie als Markdown; das Fenster zeigt nummerierte Schritte, Aufzählungen,\n  **Fettdruck**, `Code` und Zwischenüberschriften formatiert an. HTML, Bilder und Links aus der\n  Antwort werden nie übernommen; die geprüften Quellen stehen darunter.\n  Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende\n  Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.\n- **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.\n  Auch auf die Bitte „Stell das für mich um“ gibt er nur eine Anleitung.\n- **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den\n  KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte\n  Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.\n  Aktuelle Einstellungswerte werden nie mitgeschickt. Im Fenster steht dieser Hinweis\n  eingeklappt unter **Kostenpflichtig**; ein Klick oder die Eingabetaste klappt ihn auf.\n- **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach\n  24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten\n  Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.\n- **Fenster bedienen:** Den Kopf ziehen, um das Fenster zu verschieben, und an einem Rand oder\n  einer Ecke ziehen, um die Größe zu ändern (mindestens 280 × 180 Pixel, höchstens bis zum\n  Bildschirmrand). Per Tastatur den Titel „Hilfe zu Einstellungen“ fokussieren: Pfeiltasten\n  verschieben, Umschalt+Pfeiltasten ändern die Größe. Die Größe merkt sich der Browser-Tab. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.\n  **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape\n  schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.\n- **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den\n  Zustand, die Leseposition im Gespräch und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens\n  24 Stunden. Keine Tokens eingeben; dies ist keine Geheimnisablage. Der Gesprächsverlauf bleibt\n  serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben\n  Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.\n- **Ohne Browserspeicher/JavaScript:** Ein serverseitiger Zustand erhält das geöffnete Fenster.\n  Ohne JavaScript bleibt eine ungesendete Frage bei einem Seitenwechsel nicht erhalten; eine neue\n  Antwort erscheint beim nächsten Seitenaufruf oder Neuladen. Das Fenster lässt sich dann nicht\n  verschieben; verdeckt es eine Schaltfläche, das Suchfeld mit der Eingabetaste absenden oder das\n  Fenster schließen. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch\n  neu geladen. Bei gesperrtem Browserspeicher sichert JavaScript den Entwurf vor Navigation;\n  scheitert die Sicherung, bleibt die aktuelle Seite erhalten und zeigt den Fehler.\n- **Ablauf:** Pro Chat läuft eine Frage; mit JavaScript wird nur das Fenster aktualisiert.\n  Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht\n  erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen\n  Einrichtungshinweis.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |\n| Hilfschat: längste Frage (Zeichen) (`help_chat.max_question_chars`) | Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt. | Im laufenden Betrieb |",
   "title": "Hilfschat"
  },
  {
@@ -397,10 +396,11 @@
    "Hilfschat"
   ],
   "setting_ids": [
+   "help_chat.max_context_bytes",
    "help_chat.requests_per_minute_per_session"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "| Hilfschat: Fragen je Minute (`help_chat.requests_per_minute_per_session`) | Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht. | Im laufenden Betrieb |",
+  "text": "| Hilfschat: Dokumentation je Frage (Bytes) (`help_chat.max_context_bytes`) | Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten. | Im laufenden Betrieb |\n| Hilfschat: Fragen je Minute (`help_chat.requests_per_minute_per_session`) | Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht. | Im laufenden Betrieb |",
   "title": "Hilfschat"
  },
  {
@@ -1043,6 +1043,71 @@
   "source": "docs/Bedienung.md",
   "text": "**Mails** listet alle verarbeiteten Mails. Die Mailseite zeigt „So wurde diese Mail\nverarbeitet“ mit jedem Schritt und seinem Ergebnis. Hat Mailhelp etwas übersehen, startet\n**Aufgabe oder Termin übersehen?** eine gezielte Nachanalyse (**Erneut analysieren**, begrenzt\ndurch ein Tageslimit). Neue Befunde übernimmst du mit **Ergebnis übernehmen** als unbestätigte\nVorschläge; **Nachanalyse abbrechen** beendet eine laufende.",
   "title": "Mails nachlesen"
+ },
+ {
+  "id": "bedienung/lernmodus-lernfunktion",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Der Lernmodus hilft, Themen und Filter einzurichten: Mailhelp liest eine Auswahl vorhandener\nMails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu ignorierende Absender\nund zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen\nkeine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.",
+  "title": "Lernmodus (Lernfunktion)"
+ },
+ {
+  "id": "bedienung/lernlauf-in-der-weboberflaeche-starten",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)",
+   "Lernlauf in der Weboberfläche starten"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`).\n2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt\n   `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen.\n3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist\n   deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen.\n4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten\n   Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag.\n5. **Lesenden Lernlauf kostenpflichtig starten** wählen. Für 20 Mails reicht je nach Modell\n   typischerweise ein Budget von etwa 1 USD.\n\nWährend des Laufs zeigt die Seite „Läuft: … Mails geprüft, … Fehler“. Mit **Pausieren**,\n**Fortsetzen** und **Abbrechen** steuerst du ihn. Das Budget wird vor jedem KI-Aufruf geprüft;\nder Lauf hält an, bevor es überschritten würde. Wurde die Konfiguration seit dem Start geändert,\nlässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.",
+  "title": "Lernlauf in der Weboberfläche starten"
+ },
+ {
+  "id": "bedienung/ergebnis-pruefen-und-uebernehmen",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)",
+   "Ergebnis prüfen und übernehmen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Beschreibung, die\nBelege aus den Mails und die Absender:\n\n- **Übernahme:** **Nicht übernehmen**, **Thema** (relevant, `topics.yaml`) oder **Ausschlussthema**\n  (irrelevant, `irrelevant_topics.yaml`).\n- **Für alle Postfächer** übernimmt das Thema global statt nur für das gewählte Postfach.\n- **Absender bei Ausschlussthema ignorieren** setzt bei einem Ausschlussthema die Absender\n  zusätzlich auf die Liste der ignorierten Absender (`irrelevant-senders.json`).\n- **Auswahl als Entwurf speichern** merkt die Entscheidung je Vorschlag.\n\nUnter **Zusätzliche Abrufordner** wählst du Ordner aus, die künftig mit abgerufen werden\n(**Ordnerauswahl speichern**). Erst **Ausgewählte Themen, Filter und Ordner ausdrücklich\nübernehmen** schreibt alles gemeinsam in die Konfiguration; **Verwerfen** verwirft das Ergebnis.\nDanach **Konfiguration neu laden** wählen, damit der Mailabruf die neuen Themen verwendet.",
+  "title": "Ergebnis prüfen und übernehmen"
+ },
+ {
+  "id": "bedienung/lernmodus-im-terminal-und-einstellungen",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)",
+   "Lernmodus im Terminal und Einstellungen"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "learning.parallel_llm_calls"
+  ],
+  "source": "docs/Bedienung.md",
+  "text": "Alternativ läuft der Lernmodus interaktiv im Terminal: `mailhelp --learn 20 --mailbox 1\n--config-directory .` liest 20 Mails und fragt die Themen nacheinander ab. Bei mehreren\nPostfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür\n`compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.\n\nUnter **Einstellungen → KI und Auswertung** stehen dazu `learning.parallel_llm_calls`\n(gleichzeitige KI-Aufrufe im Lernmodus, Standard 4) und `learning.decision_llm_content`.",
+  "title": "Lernmodus im Terminal und Einstellungen"
+ },
+ {
+  "id": "bedienung/lernbestand",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)",
+   "Lernbestand"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "retention.decision_learning_days"
+  ],
+  "source": "docs/Bedienung.md",
+  "text": "Unabhängig vom Lernmodus legt Mailhelp jede manuelle Entscheidung über einen Vorschlag mit Mail,\nKI-Ergebnissen, ursprünglichem und entschiedenem Vorschlag im Lernbestand ab\n(`data/<Betriebsart>/learning/decisions.jsonl`). Er ist Material für spätere Auswertungen;\nMailhelp ändert dadurch nicht selbständig seine Themen oder Entscheidungen. Vollständige\nKI-Anfragen und -Antworten kommen nur mit `learning.decision_llm_content` hinzu. Die\nAufbewahrung regelt `retention.decision_learning_days` (Standard unbegrenzt).",
+  "title": "Lernbestand"
  },
  {
   "id": "bedienung/hilfe-beim-einstellen",

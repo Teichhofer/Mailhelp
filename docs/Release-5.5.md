@@ -36,6 +36,13 @@ Vorgänger: [Release 5.4](Release-5.4.md).
 
 Jeder Fehler hat einen Regressionstest, der vor dem Fix scheiterte.
 
+## Nachtrag 5.5.6
+
+- Der Hilfschat beantwortet Fragen zur Lernfunktion: neue Anleitung **Lernmodus (Lernfunktion)**
+  in der Bedienungsanleitung und eine Synonymgruppe für die Abschnittsauswahl.
+- Antworten kommen als Markdown und erscheinen formatiert; der Renderer erzeugt nur eine feste,
+  sichere Auswahl an Elementen und übernimmt kein Markup der KI.
+
 ## Upgrade und Rückkehr
 
 Dienst stoppen, Konfiguration und Zustand sichern, Paket bzw. Image aktualisieren, neu starten.

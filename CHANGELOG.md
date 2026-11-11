@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.5.6 – Formatierte Chatantworten und Hilfe zur Lernfunktion
+
+- Behoben: Der Hilfschat konnte Fragen zur Lernfunktion nicht beantworten. Die freigegebenen
+  Anleitungen beschrieben den Lernmodus nur als zwei Einstellungen, und Wörter wie
+  „Lernfunktion“, „lernt“ oder „Lernen“ fanden keinen Abschnitt. Neu: Anleitung **Lernmodus
+  (Lernfunktion)** in `docs/Bedienung.md` (Lernlauf starten, Kosten und Budget, Ergebnis prüfen
+  und übernehmen, Terminal, Einstellungen, Lernbestand) und eine Synonymgruppe für Hilfschat und
+  Einstellungssuche (Regressionstests mit sieben typischen Fragen).
+- Behoben: Antworten erschienen als unformatierter Fließtext. `settings_help` liefert `answer`
+  und `short_answer` jetzt als Markdown; das Fenster zeigt Absätze, nummerierte Schritte,
+  Aufzählungen, **fett**, *kursiv*, `Code`, Zwischenüberschriften und Codeblöcke formatiert an.
+- Sicherheit: Ein eigener, kleiner Renderer (`helpdocs/markdown.py`) maskiert zuerst den ganzen
+  Text und erzeugt nur diese Elemente; HTML, Bilder und Links der KI-Antwort werden nie zu Markup
+  (Links zeigen nur ihren Text). Unterstriche formatieren nicht, damit Einstellungsschlüssel
+  erhalten bleiben. Kurzantworten werden aus dem Text ohne Markdown-Zeichen abgeleitet.
+- Eigene `prompts.yaml`: Die Formatierungsregeln stehen im Schritt `settings_help` der
+  mitgelieferten Vorlage; ältere Prompts liefern weiter Fließtext, der als Absatz erscheint.
+
 ## 5.5.5 – Abnahme und Release 5.5 (Planung 5.5, S6)
 
 - Releasebericht [docs/Release-5.5.md](docs/Release-5.5.md) mit allen Schritten 5.5.0–5.5.4,

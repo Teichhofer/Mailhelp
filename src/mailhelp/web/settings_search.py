@@ -32,6 +32,8 @@ SYNONYMS: tuple[tuple[str, ...], ...] = (
     ("rueckkehr", "zurueck", "vorversion", "rollback", "downgrade"),
     ("sicherung", "sichern", "backup"),
     ("neustart", "neu starten", "restart"),
+    # 5.5.6: "Lernfunktion", "lernt" or "Lernlauf" reach the learning mode and its settings.
+    ("lernen", "lernt", "lernmodus", "lernlauf", "lernfunktion", "lernbestand", "learn"),
 )
 
 

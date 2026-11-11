@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.5.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/Planung-5.5.md),
 [Release 5.5](docs/Release-5.5.md)). 5.5.0 behebt
@@ -24,7 +24,9 @@ Datenschutzhinweis eingeklappt unter **Kostenpflichtig**; ab 5.5.2 behält der C
 Leseposition über Seitenwechsel, Neuladen und die Dokumentationsansicht hinweg; ab 5.5.3 lässt
 sich das Fenster an Rändern und Ecken vergrößern und verkleinern; ab 5.5.4 zeigt es zuerst eine
 Kurzantwort und die ausführliche Antwort auf Wunsch (ohne zusätzlichen KI-Aufruf). 5.5.5 schließt
-5.5 mit der Gesamtabnahme ab.
+5.5 mit der Gesamtabnahme ab. 5.5.6 formatiert Chatantworten (Markdown: Schritte, Listen,
+Hervorhebungen) und ergänzt die Anleitung zum Lernmodus, sodass der Hilfschat Fragen zur
+Lernfunktion beantworten kann.
 
 Version 5.4 öffnet den Hilfschat als kleines verschiebbares Fenster über den Einstellungen.
 Er bleibt beim Suchen, Bearbeiten, Bestätigen und Speichern geöffnet. Gespräch und Frageentwurf

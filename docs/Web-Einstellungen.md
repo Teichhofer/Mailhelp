@@ -368,6 +368,9 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
   über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).
   Im Fenster erscheint zuerst eine Kurzantwort in ein bis zwei Sätzen; **Ausführliche Antwort
   anzeigen** klappt die vollständige Anleitung auf. Beide Fassungen entstehen im selben KI-Aufruf.
+  Die KI schreibt sie als Markdown; das Fenster zeigt nummerierte Schritte, Aufzählungen,
+  **Fettdruck**, `Code` und Zwischenüberschriften formatiert an. HTML, Bilder und Links aus der
+  Antwort werden nie übernommen; die geprüften Quellen stehen darunter.
   Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende
   Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.
 - **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.

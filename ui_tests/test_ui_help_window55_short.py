@@ -46,3 +46,40 @@ def test_window55_short_answer_with_the_full_answer_on_request(page, mailhelp):
     expect(full).to_be_visible()
     assert audit(page, "help-window55-short-" + page.device, page.mobile) == []
     assert page.errors == []
+
+
+class MarkdownAnswer(BothVersions):
+    def settings_help(self, question, sources, history, settings, *, before_call=lambda: None):
+        before_call()
+        return "synthetic", HelpAnswer(
+            answer="### Lernlauf starten\n\n1. **Lernen** öffnen\n2. **Schätzung anzeigen** wählen\n"
+                   "3. Mit `--learn 20` geht es auch im Terminal\n\n- Liest nur\n- <b>kein HTML</b>",
+            short_answer="Unter **Lernen** einen lesenden Lernlauf starten.",
+            source_ids=[sources[0].id])
+
+
+def test_window55_markdown_answers_are_formatted_in_the_window(page, mailhelp):
+    # 5.5.6: answers arrive as Markdown and are shown as lists and emphasis, never as raw marks.
+    service = chat_service(mailhelp)
+    service.analyzer = MarkdownAnswer
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + "/einstellungen")
+    page.get_by_label("Hilfschat öffnen", exact=True).click()
+    page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Wie funktioniert die Lernfunktion?")
+    page.get_by_role("button", name="Frage senden", exact=True).click()
+    expect(page.get_by_text("Antwort wird vorbereitet", exact=False)).to_be_visible()
+    service.run_once()
+    window = page.locator("#help-window")
+    short = window.locator(".help-answer-short")
+    expect(short.locator("strong")).to_have_text("Lernen", timeout=10000)
+    expect(short).not_to_contain_text("**")
+    window.get_by_text("Ausführliche Antwort anzeigen", exact=True).click()
+    full = window.locator(".help-answer-text")
+    expect(full.locator("ol > li")).to_have_count(3)
+    expect(full.locator("ol > li").first.locator("strong")).to_have_text("Lernen")
+    expect(full.locator("code")).to_have_text("--learn 20")
+    expect(full.locator("ul > li")).to_have_text(["Liest nur", "<b>kein HTML</b>"])
+    expect(full.locator(".help-md-heading")).to_have_text("Lernlauf starten")
+    assert full.locator("b").count() == 0
+    assert audit(page, "help-window55-markdown-" + page.device, page.mobile) == []
+    assert page.errors == []

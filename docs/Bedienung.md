@@ -47,6 +47,66 @@ verarbeitet“ mit jedem Schritt und seinem Ergebnis. Hat Mailhelp etwas überse
 durch ein Tageslimit). Neue Befunde übernimmst du mit **Ergebnis übernehmen** als unbestätigte
 Vorschläge; **Nachanalyse abbrechen** beendet eine laufende.
 
+## Lernmodus (Lernfunktion)
+
+Der Lernmodus hilft, Themen und Filter einzurichten: Mailhelp liest eine Auswahl vorhandener
+Mails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu ignorierende Absender
+und zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen
+keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.
+
+### Lernlauf in der Weboberfläche starten
+
+1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`).
+2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt
+   `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen.
+3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist
+   deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen.
+4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten
+   Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag.
+5. **Lesenden Lernlauf kostenpflichtig starten** wählen. Für 20 Mails reicht je nach Modell
+   typischerweise ein Budget von etwa 1 USD.
+
+Während des Laufs zeigt die Seite „Läuft: … Mails geprüft, … Fehler“. Mit **Pausieren**,
+**Fortsetzen** und **Abbrechen** steuerst du ihn. Das Budget wird vor jedem KI-Aufruf geprüft;
+der Lauf hält an, bevor es überschritten würde. Wurde die Konfiguration seit dem Start geändert,
+lässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.
+
+### Ergebnis prüfen und übernehmen
+
+Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Beschreibung, die
+Belege aus den Mails und die Absender:
+
+- **Übernahme:** **Nicht übernehmen**, **Thema** (relevant, `topics.yaml`) oder **Ausschlussthema**
+  (irrelevant, `irrelevant_topics.yaml`).
+- **Für alle Postfächer** übernimmt das Thema global statt nur für das gewählte Postfach.
+- **Absender bei Ausschlussthema ignorieren** setzt bei einem Ausschlussthema die Absender
+  zusätzlich auf die Liste der ignorierten Absender (`irrelevant-senders.json`).
+- **Auswahl als Entwurf speichern** merkt die Entscheidung je Vorschlag.
+
+Unter **Zusätzliche Abrufordner** wählst du Ordner aus, die künftig mit abgerufen werden
+(**Ordnerauswahl speichern**). Erst **Ausgewählte Themen, Filter und Ordner ausdrücklich
+übernehmen** schreibt alles gemeinsam in die Konfiguration; **Verwerfen** verwirft das Ergebnis.
+Danach **Konfiguration neu laden** wählen, damit der Mailabruf die neuen Themen verwendet.
+
+### Lernmodus im Terminal und Einstellungen
+
+Alternativ läuft der Lernmodus interaktiv im Terminal: `mailhelp --learn 20 --mailbox 1
+--config-directory .` liest 20 Mails und fragt die Themen nacheinander ab. Bei mehreren
+Postfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür
+`compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.
+
+Unter **Einstellungen → KI und Auswertung** stehen dazu `learning.parallel_llm_calls`
+(gleichzeitige KI-Aufrufe im Lernmodus, Standard 4) und `learning.decision_llm_content`.
+
+### Lernbestand
+
+Unabhängig vom Lernmodus legt Mailhelp jede manuelle Entscheidung über einen Vorschlag mit Mail,
+KI-Ergebnissen, ursprünglichem und entschiedenem Vorschlag im Lernbestand ab
+(`data/<Betriebsart>/learning/decisions.jsonl`). Er ist Material für spätere Auswertungen;
+Mailhelp ändert dadurch nicht selbständig seine Themen oder Entscheidungen. Vollständige
+KI-Anfragen und -Antworten kommen nur mit `learning.decision_llm_content` hinzu. Die
+Aufbewahrung regelt `retention.decision_learning_days` (Standard unbegrenzt).
+
 ## Weitere Seiten
 
 ### Hilfe beim Einstellen
