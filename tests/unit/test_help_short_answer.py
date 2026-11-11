@@ -74,3 +74,34 @@ def test_the_stored_short_answer_is_redacted(tmp_path):
         chat.run_once()
         turn = chat.state("s" * 16).turns[0]
     assert turn.short_answer == "Kurz mit [entfernt]." and turn.answer == "Lang mit [entfernt]."
+
+
+# 5.5.7 regression: the real model looped on version numbers of section titles until its limit.
+LOOP = "### Weiteres Postfach hinzufügen (Weboberfläche 3.5+ / 5.3+ / 4.9+ / " + "3.0+ / 5.3+ / " * 40
+
+
+def test_a_looping_answer_is_recognised_and_normal_answers_are_not():
+    from mailhelp.helpdocs import repetitive
+    assert repetitive(LOOP)
+    assert repetitive("Kurz " + "ab " * 7)
+    for normal in ("1. Öffnen. 2. Prüfen. 3. Speichern.", "- a\n- b\n- c\n- d\n- e\n- f\n- g",
+                   "Werte: 5, 10, 30, 60, 300 oder 86400 Sekunden.", "Ja. Ja. Ja. Gut.", ""):
+        assert not repetitive(normal)
+
+
+def test_the_validator_rejects_a_looping_answer_or_short_answer():
+    from mailhelp.helpdocs import answer_validator
+    validate = answer_validator(["a/b"], [])
+    assert validate({"answer": "So geht es.", "source_ids": ["a/b"]}).answer == "So geht es."
+    for value in ({"answer": LOOP}, {"answer": "So geht es.", "short_answer": "x / y / " * 10}):
+        with pytest.raises(ValueError, match="wiederholt sich"):
+            validate(value)
+
+
+def test_an_answer_must_name_its_sections_unless_it_asks_back():
+    # 5.5.7 regression: the real model returned answers without "source_ids" and "short_answer".
+    from mailhelp.helpdocs import answer_validator
+    validate = answer_validator(["a/b"], [])
+    with pytest.raises(ValueError, match="keine verwendeten Abschnitte"):
+        validate({"answer": "Richtig, aber ohne Quellen."})
+    assert validate({"answer": "Welche Einstellung meinst du?", "needs_clarification": True}).source_ids == []

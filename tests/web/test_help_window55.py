@@ -39,7 +39,7 @@ def test_window55_short_answer_first_and_the_full_one_closed_behind_it(web):
                             short_answer="Kurz <i>und</i> knapp.", revision=revision))
     assert '<div class="help-answer help-answer-short"><p>Kurz &lt;i&gt;und&lt;/i&gt; knapp.</p></div>' in page
     assert ('<details class="help-answer-full"><summary>Ausführliche Antwort anzeigen</summary>'
-            '<div class="help-answer-text"><p>Lang &lt;b&gt;eins&lt;/b&gt;. 1. Schritt. 2. Schritt.</p></div>'
+            '<div class="help-answer-text"><p>Lang &lt;b&gt;eins&lt;/b&gt;.</p><ol><li>Schritt.</li><li>Schritt.</li></ol></div>'
             '</details>') in page
     assert "<details class=\"help-answer-full\" open" not in page and "<b>eins" not in page
 

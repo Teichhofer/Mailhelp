@@ -90,8 +90,14 @@ Danach **Konfiguration neu laden** wählen, damit der Mailabruf die neuen Themen
 
 ### Lernmodus im Terminal und Einstellungen
 
-Alternativ läuft der Lernmodus interaktiv im Terminal: `mailhelp --learn 20 --mailbox 1
---config-directory .` liest 20 Mails und fragt die Themen nacheinander ab. Bei mehreren
+Alternativ läuft der Lernmodus interaktiv im Terminal. Dieser Befehl liest 20 Mails und fragt
+die Themen nacheinander ab:
+
+```sh
+mailhelp --learn 20 --mailbox 1 --config-directory .
+```
+
+Bei mehreren
 Postfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür
 `compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.
 

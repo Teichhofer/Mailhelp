@@ -1,5 +1,25 @@
 # Änderungen
 
+## 5.5.7 – Hilfschat mit echtem Modell geprüft und abgesichert
+
+Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 Anfragen, etwa
+0,04 USD; Berichte unter `quality-reports/help-chat-5.5.*-2026-11-11*.json`) zeigten:
+
+- Behoben: Das Modell schickt Markdown nie mit Zeilenumbrüchen. Eine Überschrift verschluckte
+  so alle Schritte, Listen erschienen nicht. Der Renderer stellt einzeilige nummerierte Listen
+  (1., 2., 3. … in Folge) und an Überschriften angehängten Text wieder her; Daten wie „3. Mai“
+  und Codeblöcke bleiben unverändert.
+- Behoben: Bei Abschnittstiteln mit Versionsangaben geriet das Modell in eine Endlosschleife
+  („3.0+ / 5.3+ / …“) bis zum Tokenlimit. Der Prompt verbietet Überschriften und
+  Versionsangaben aus Titeln; eine sich wiederholende Antwort wird abgewiesen statt angezeigt.
+- Behoben: Antworten ohne `source_ids` und `short_answer`. Der Prompt verlangt alle Felder; eine
+  Antwort ohne Quellen (außer einer Rückfrage) wird abgewiesen und im Betrieb einmal korrigiert.
+- `settings_help.max_tokens` von 1500 auf 3000 erhöht.
+- Anleitung Lernmodus: Terminalbefehl als Codeblock (stand vorher in einer umbrochenen Codezeile).
+- Ergebnis des letzten Laufs: 9 von 10 Antworten erfüllen alle Anforderungen (Quellen,
+  Kurzantwort bis 300 Zeichen, Formatierung, richtige Bezeichnungen, keine behaupteten Aktionen);
+  eine wurde vom Validator abgewiesen (im Betrieb folgt dann ein Korrekturversuch).
+
 ## 5.5.6 – Formatierte Chatantworten und Hilfe zur Lernfunktion
 
 - Behoben: Der Hilfschat konnte Fragen zur Lernfunktion nicht beantworten. Die freigegebenen

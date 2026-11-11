@@ -88,8 +88,24 @@ def answer_validator(sources: list[str], settings: list[str]) -> Callable[[Any],
         answer = HelpAnswer.model_validate(value)
         if set(answer.source_ids) - set(sources) or set(answer.setting_ids) - set(settings):
             raise ValueError("Unbekannte Quellen- oder Einstellungskennung")
+        if repetitive(answer.answer) or repetitive(answer.short_answer):
+            raise ValueError("Die Antwort wiederholt sich und ist nicht verwendbar")
+        # 5.5.7: the real model sometimes dropped the optional fields; an answer that is not a
+        # clarification must name the sections it used, so the window can show them.
+        if not answer.needs_clarification and not answer.source_ids:
+            raise ValueError("Die Antwort nennt keine verwendeten Abschnitte")
         return answer
     return validate
+
+
+# 5.5.7: a model caught in a loop repeats a short fragment ("3.0+ / 5.3+ / 3.0+ / …") up to its
+# limit. Such text is never shown; the chat reports an unusable answer instead.
+_LOOP = re.compile(r"(.{3,40}?)\1{5,}", re.DOTALL)
+
+
+def repetitive(text: str) -> bool:
+    """Whether a fragment of 3 to 40 characters follows itself at least six times in a row."""
+    return _LOOP.search(text) is not None
 
 
 class HelpUnavailable(Exception):

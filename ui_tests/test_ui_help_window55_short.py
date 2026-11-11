@@ -38,7 +38,10 @@ def test_window55_short_answer_with_the_full_answer_on_request(page, mailhelp):
     expect(full).to_be_hidden()
     summary = window.get_by_text("Ausführliche Antwort anzeigen", exact=True)
     summary.click()
-    expect(full).to_have_text(FULL)
+    # 5.5.7: steps the model sent on one line appear as a list.
+    expect(full.locator("p")).to_have_text("Das Abrufintervall steuert, wie oft Mailhelp neue Mails abruft.")
+    expect(full.locator("ol > li")).to_have_text(["Einstellungen öffnen.", "Bereich Mailabruf und Betrieb wählen.",
+                                                  "Abrufintervall (Sekunden) ändern, prüfen und speichern."])
     summary.click()
     expect(full).to_be_hidden()
     summary.focus()

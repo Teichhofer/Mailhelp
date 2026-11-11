@@ -43,6 +43,25 @@ Jeder Fehler hat einen Regressionstest, der vor dem Fix scheiterte.
 - Antworten kommen als Markdown und erscheinen formatiert; der Renderer erzeugt nur eine feste,
   sichere Auswahl an Elementen und übernimmt kein Markup der KI.
 
+## Nachtrag 5.5.7: Prüfung mit echtem Modell
+
+Auf ausdrücklichen Wunsch wurde der Hilfschat mit `deepseek/deepseek-v4.1-flash` über OpenRouter
+geprüft: vier Läufe mit denselben 10 Fragen (sechs zur Lernfunktion, zwei Bedienfragen, eine
+Datenschutz-/Wirkungsfrage, eine Bitte um eine Änderung), ohne Wiederholungen, zusammen
+41 Anfragen und etwa 0,04 USD.
+
+| Lauf | Stand | Ergebnis |
+| --- | --- | --- |
+| 1 | 5.5.6 | Inhalt richtig; Listen einzeilig, eine Überschrift verschluckte alle Schritte; 1 Abbruch am Tokenlimit |
+| 2 | Prompt mit Zeilenumbruch-Vorgabe | Modell sendet trotzdem keine Zeilenumbrüche; Qualität eher schlechter; Abbruch blieb |
+| Diagnose | 8000 Tokens | Endlosschleife aus Versionsangaben der Abschnittstitel (3716 Ausgabetokens) |
+| 3 | Renderer, ohne Überschriften | Schleife behoben; zwei Antworten ohne Quellen/Kurzantwort bzw. abgebrochen |
+| 4 | 5.5.7 | **9 von 10** erfüllen alle Anforderungen; 1 vom Validator abgewiesen |
+
+Grenze: Das Modell liefert Markdown immer in einer Zeile; die Struktur entsteht durch die
+Wiederherstellung im Renderer. Aufzählungen mit „–“ innerhalb einer Zeile werden nicht als Liste
+erkannt, weil Gedankenstriche im Fließtext üblich sind.
+
 ## Upgrade und Rückkehr
 
 Dienst stoppen, Konfiguration und Zustand sichern, Paket bzw. Image aktualisieren, neu starten.

@@ -67,3 +67,32 @@ def test_short_answers_work_on_the_visible_text():
     assert concise(answer, marked) == marked
     assert same_text("**Nur** ein `Satz`.", "Nur  ein Satz.")
     assert not same_text("Kurz.", "Kurz. Und mehr.")
+
+
+# 5.5.7 regression: the real model (deepseek-v4.1-flash, 11 Nov 2026) sent whole answers on one
+# line, so a heading swallowed every step and no list appeared.
+ONE_LINE = ("### Abrufintervall ändern (Weboberfläche, `poll_interval_seconds`): 1. `/einstellungen` öffnen. "
+            "2. Den Bereich **Mailabruf** wählen. 3. Wert eintragen und speichern.")
+
+
+def test_an_answer_sent_on_one_line_gets_its_heading_and_list_back():
+    assert render(ONE_LINE) == (
+        '<p class="help-md-heading"><strong>Abrufintervall ändern (Weboberfläche, '
+        '<code>poll_interval_seconds</code>)</strong></p><ol><li><code>/einstellungen</code> öffnen.</li>'
+        "<li>Den Bereich <strong>Mailabruf</strong> wählen.</li><li>Wert eintragen und speichern.</li></ol>")
+    assert plain(ONE_LINE).splitlines()[0] == "Abrufintervall ändern (Weboberfläche, poll_interval_seconds)"
+
+
+@pytest.mark.parametrize(("text", "html"), [
+    ("So geht es: 1. Öffnen 2. Prüfen", "<p>So geht es:</p><ol><li>Öffnen</li><li>Prüfen</li></ol>"),
+    ("1. Öffnen 2. Prüfen 3. Speichern", "<ol><li>Öffnen</li><li>Prüfen</li><li>Speichern</li></ol>"),
+    # Single numbers, numbers not counting up from 1 and code are never split.
+    ("Ab dem 3. Mai gilt es, am 4. Juni endet es.", "<p>Ab dem 3. Mai gilt es, am 4. Juni endet es.</p>"),
+    ("Der 1. Versuch, dann der 3. Versuch.", "<p>Der 1. Versuch, dann der 3. Versuch.</p>"),
+    ("```\n1. eins 2. zwei\n```", "<pre><code>1. eins 2. zwei</code></pre>"),
+    ("### " + "Langer Titel " * 8 + ": und der Text dazu.",
+     '<p class="help-md-heading"><strong>' + " ".join(["Langer Titel"] * 8) + "</strong></p><p>und der Text dazu.</p>"),
+    ("### Kurz: bleibt", '<p class="help-md-heading"><strong>Kurz: bleibt</strong></p>'),
+])
+def test_lines_run_together_are_split_only_where_a_list_or_heading_ends(text, html):
+    assert render(text) == html

@@ -1,0 +1,357 @@
+{
+  "version": "5.5.6",
+  "date_utc": "2026-11-11T13:10:16.502726+00:00",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "prompt_sha256": "69769e05e4b1860b2ed226a90a4615a4821b65f365d154946e6f1adbbe5076f9",
+  "documentation_revision": "60f1266abc49df61738a63e1036375a67affa34c2e8f4b50d586561bf6a81397",
+  "approved_max_requests": 10,
+  "max_output_tokens": 3000,
+  "retries": 0,
+  "requests": 10,
+  "reported_cost_usd": 0.009212548,
+  "cases": [
+    {
+      "question": "Wie funktioniert die Lernfunktion?",
+      "expected_source": "bedienung/lernmodus-lernfunktion",
+      "offered_sources": [
+        "bedienung/lernbestand",
+        "bedienung/lernmodus-lernfunktion",
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "web-einstellungen/lernmodus",
+        "bedienung/ergebnis-pruefen-und-uebernehmen"
+      ],
+      "local": false,
+      "answer": "### Was der Lernmodus tut und was nicht**Der Lernmodus hilft, Themen und Filter einzurichten: Mailhelp liest eine Auswahl vorhandener Mails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu ignorierende Absender und zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.**### Lernlauf in der Weboberfläche starten**1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`).2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen.3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen.4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag.5. **Lesenden Lernlauf kostenpflichtig starten** wählen. Für 20 Mails reicht je nach Modell typischerweise ein Budget von etwa 1 USD.**Während des Laufs** zeigt die Seite „Läuft: … Mails geprüft, … Fehler“. Mit **Pausieren**, **Fortsetzen** und **Abbrechen** steuerst du ihn. Das Budget wird vor jedem KI-Aufruf geprüft; der Lauf hält an, bevor es überschritten würde. Wurde die Konfiguration seit dem Start geändert, lässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.**### Ergebnis prüfen und übernehmen**Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Beschreibung, die Belege aus den Mails und die Absender:- **Übernahme:** **Nicht übernehmen**, **Thema** (relevant, `topics.yaml`) oder **Ausschlussthema** (irrelevant, `irrelevant_topics.yaml`).- **Für alle Postfächer** übernimmt das Thema global statt nur für das gewählte Postfach.- **Absender bei Ausschlussthema ignorieren** setzt bei einem Ausschlussthema die Absender zusätzlich auf die Liste der ignorierten Absender (`irrelevant-senders.json`).- **Auswahl als Entwurf speichern** merkt die Entscheidung je Vorschlag.Unter **Zusätzliche Abrufordner** wählst du Ordner aus, die künftig mit abgerufen werden (**Ordnerauswahl speichern**). Erst **Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen** schreibt alles gemeinsam in die Konfiguration; **Verwerfen** verwirft das Ergebnis. Danach **Konfiguration neu laden** wählen, damit der Mailabruf die neuen Themen verwendet.**### Lernbestand und Einstellungen**Unabhängig vom Lernmodus legt Mailhelp jede manuelle Entscheidung über einen Vorschlag mit Mail, KI-Ergebnissen, ursprünglichem und entschiedenem Vorschlag im Lernbestand ab (`data/<Betriebsart>/learning/decisions.jsonl`). Er ist Material für spätere Auswertungen; Mailhelp ändert dadurch nicht selbständig seine Themen oder Entscheidungen. Vollständige KI-Anfragen und -Antworten kommen nur mit `learning.decision_llm_content` hinzu. Die Aufbewahrung regelt `retention.decision_learning_days` (Standard unbegrenzt).Unter **Einstellungen → KI und Auswertung** stehen `learning.parallel_llm_calls` (gleichzeitige KI-Aufrufe im Lernmodus, 1–100, Standard 4; Übernahme nach Neustart) und `learning.decision_llm_content` (vollständige KI-Inhalte in den Lernbestand, Standard nein; Übernahme nach Neustart).Alternativ läuft der Lernmodus interaktiv im Terminal: `mailhelp --learn 20 --mailbox 1 --config-directory .` liest 20 Mails und fragt die Themen nacheinander ab. Bei mehreren Postfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür `compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.",
+      "short_answer": "Der Lernmodus liest eine Auswahl vorhandener Mails, ordnet sie ein und schlägt Themen, Ausschlussthemen, zu ignorierende Absender und zusätzliche Abrufordner vor. Übernommen wird erst, was du ausdrücklich bestätigst.",
+      "source_ids": [
+        "bedienung/lernmodus-lernfunktion",
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "bedienung/ergebnis-pruefen-und-uebernehmen",
+        "bedienung/lernbestand",
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "web-einstellungen/lernmodus"
+      ],
+      "setting_ids": [
+        "setting:learning.parallel_llm_calls",
+        "setting:learning.decision_llm_content",
+        "setting:retention.decision_learning_days"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Wie starte ich einen Lernlauf in der Weboberfläche?",
+      "expected_source": "bedienung/lernlauf-in-der-weboberflaeche-starten",
+      "offered_sources": [
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "web-einstellungen/lernmodus",
+        "web-einstellungen/weboberflaeche",
+        "web-einstellungen/einstellungen-der-weboberflaeche",
+        "betrieb/starten-pruefen-beenden",
+        "betrieb/speichern-aktivieren-neuladen-und-neustart"
+      ],
+      "local": false,
+      "answer": "### Lernlauf starten (Weboberfläche, `/lernen` unter **Verwaltung** → **Lernen**): 1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`). 2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen. 3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen. 4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag. 5. **Lesenden Lernlauf kostenpflichtig starten** wählen. Für 20 Mails reicht je nach Modell typischerweise ein Budget von etwa 1 USD. Während des Laufs zeigt die Seite „Läuft: … Mails geprüft, … Fehler“. Mit **Pausieren**, **Fortsetzen** und **Abbrechen** steuerst du ihn. Das Budget wird vor jedem KI-Aufruf geprüft; der Lauf hält an, bevor es überschritten würde. Wurde die Konfiguration seit dem Start geändert, lässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.",
+      "short_answer": "Öffne unter **Verwaltung** die Seite **Lernen** (`/lernen`), fülle unter **Neuer Lernlauf** Postfach, Ordner und Anzahl Mails aus, gib Preisobergrenze und Budget an, wähle **Schätzung anzeigen** und dann **Lesenden Lernlauf kostenpflichtig starten**.",
+      "source_ids": [
+        "bedienung/lernlauf-in-der-weboberflaeche-starten"
+      ],
+      "setting_ids": [],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "numbered_steps": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Was kostet ein Lernlauf und wie begrenze ich die Kosten?",
+      "expected_source": "bedienung/lernlauf-in-der-weboberflaeche-starten",
+      "offered_sources": [
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "web-einstellungen/kosten-und-messung",
+        "web-einstellungen/einstellungen-der-weboberflaeche",
+        "web-einstellungen/hilfschat",
+        "web-einstellungen/zeitlimits-und-wiederholungen",
+        "web-einstellungen/zeitlimits-und-wiederholungen-2"
+      ],
+      "local": false,
+      "answer": "Ein Lernlauf kostet so viel, wie die KI-Aufrufe für die gewählten Mails tatsächlich verursachen; einen festen Preis gibt es nicht. Für 20 Mails reicht je nach Modell typischerweise ein Budget von etwa 1 USD. Begrenzen lässt sich das über **Budget USD** und die **Preisobergrenze USD je Million Tokens**; das Budget wird vor jedem KI-Aufruf geprüft und der Lauf hält an, bevor es überschritten würde. Die Preisobergrenze ist deine eigene Annahme – aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen. Bei lokalen Modellen (Ollama) fließen zusätzlich die geschätzten Stromkosten ein, die von `metrics.electricity_eur_per_kwh` und `metrics.ollama_power_watts` abhängen. Auch der Hilfschat selbst verursacht Kosten wie andere KI-Abfragen.",
+      "short_answer": "Einen festen Preis gibt es nicht: Ein Lernlauf kostet so viel wie die KI-Aufrufe der gewählten Mails; für 20 Mails reicht typischerweise etwa 1 USD. Begrenzen lässt sich das über **Budget USD** und die **Preisobergrenze USD je Million Tokens**.",
+      "source_ids": [
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "web-einstellungen/kosten-und-messung",
+        "web-einstellungen/hilfschat"
+      ],
+      "setting_ids": [
+        "setting:metrics.electricity_eur_per_kwh",
+        "setting:metrics.ollama_power_watts",
+        "setting:metrics.enabled"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Wie übernehme ich die gelernten Themen in meine Konfiguration?",
+      "expected_source": "bedienung/ergebnis-pruefen-und-uebernehmen",
+      "offered_sources": [
+        "bedienung/ergebnis-pruefen-und-uebernehmen",
+        "betrieb/speichern-aktivieren-neuladen-und-neustart",
+        "betrieb/update",
+        "web-einstellungen/postfaecher-und-zielprofile-32",
+        "bedienung/lernbestand",
+        "bedienung/lernlauf-in-der-weboberflaeche-starten"
+      ],
+      "local": false,
+      "answer": "### Gelernte Themen übernehmen und aktivieren (Weboberfläche, Seite **Lernen** unter `/lernen` bzw. **Verwaltung → Lernen**): 1. Nach dem Lernlauf unter **Themen, Ausschlüsse und Belege** je Vorschlag die **Übernahme** wählen: **Nicht übernehmen**, **Thema** (relevant, `topics.yaml`) oder **Ausschlussthema** (irrelevant, `irrelevant_topics.yaml`). 2. Optional **Für alle Postfächer** aktivieren, damit das Thema global statt nur für das gewählte Postfach gilt. 3. Bei einem Ausschlussthema optional **Absender bei Ausschlussthema ignorieren** setzen; die Absender landen dann in `irrelevant-senders.json`. 4. Optional unter **Zusätzliche Abrufordner** Ordner auswählen und **Ordnerauswahl speichern**. 5. **Auswahl als Entwurf speichern** merkt die Entscheidung je Vorschlag. 6. **Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen** schreibt alles gemeinsam in die Konfiguration; **Verwerfen** verwirft das Ergebnis. 7. Danach **Konfiguration neu laden** wählen, damit der Mailabruf die neuen Themen verwendet. Hinweis: Der Lernbestand (`data/<Betriebsart>/learning/decisions.jsonl`) ist nur Material für spätere Auswertungen; Mailhelp ändert dadurch nicht selbständig Themen oder Entscheidungen.",
+      "short_answer": "Wähle je Vorschlag die **Übernahme** (Thema oder Ausschlussthema), speichere die Auswahl als Entwurf und wähle dann **Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen**. Danach **Konfiguration neu laden**, damit der Mailabruf die neuen Themen verwendet.",
+      "source_ids": [
+        "bedienung/ergebnis-pruefen-und-uebernehmen",
+        "betrieb/speichern-aktivieren-neuladen-und-neustart",
+        "bedienung/lernbestand"
+      ],
+      "setting_ids": [
+        "setting:learning.decision_llm_content",
+        "setting:retention.decision_learning_days"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "numbered_steps": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Was ist der Lernbestand und lernt Mailhelp daraus automatisch?",
+      "expected_source": "bedienung/lernbestand",
+      "offered_sources": [
+        "bedienung/lernbestand",
+        "web-einstellungen/lernmodus",
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "bedienung/lernmodus-lernfunktion",
+        "web-einstellungen/antworten",
+        "web-einstellungen/aufbewahrung"
+      ],
+      "local": false,
+      "answer": "### Was ist der Lernbestand?**Unabhängig vom Lernmodus** legt Mailhelp jede manuelle Entscheidung über einen Vorschlag im Lernbestand ab – mit Mail, KI-Ergebnissen sowie ursprünglichem und entschiedenem Vorschlag. Die Datei liegt unter `data/<Betriebsart>/learning/decisions.jsonl`.**Lernt Mailhelp daraus automatisch?** Nein. Der Lernbestand ist Material für spätere Auswertungen; Mailhelp ändert dadurch nicht selbständig seine Themen oder Entscheidungen. Auch der Lernmodus liest nur und übernimmt erst, was du ausdrücklich bestätigst.### Zusatzinhalte und Aufbewahrung- Vollständige KI-Anfragen und -Antworten kommen nur mit `learning.decision_llm_content` (ja/true) hinzu; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. Standard ist nein (false), dann werden nur die Aufruf-IDs gespeichert. Übernahme nach Neustart.- Die Aufbewahrung regelt `retention.decision_learning_days`: 1–3650 Tage seit der Entscheidung, `unlimited` (Standard) bewahrt ohne Frist auf, `disabled` zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen sich nicht wiederherstellen.",
+      "short_answer": "Der Lernbestand sammelt jede manuelle Entscheidung über einen Vorschlag (Mail, KI-Ergebnisse, Vorschlag vorher/nachher) in `data/<Betriebsart>/learning/decisions.jsonl`. Mailhelp lernt daraus nicht automatisch: Er ist nur Material für spätere Auswertungen und ändert keine Themen oder Entscheidungen.",
+      "source_ids": [
+        "bedienung/lernbestand",
+        "web-einstellungen/lernmodus",
+        "web-einstellungen/aufbewahrung",
+        "bedienung/lernmodus-lernfunktion"
+      ],
+      "setting_ids": [
+        "setting:learning.decision_llm_content",
+        "setting:retention.decision_learning_days"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Kann ich den Lernmodus auch im Terminal verwenden?",
+      "expected_source": "bedienung/lernmodus-im-terminal-und-einstellungen",
+      "offered_sources": [
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "web-einstellungen/lernmodus",
+        "bedienung/lernbestand",
+        "bedienung/lernmodus-lernfunktion",
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "ziele-einrichten/caldav-und-apple-erinnerungen"
+      ],
+      "local": false,
+      "answer": "Ja, der Lernmodus läuft alternativ interaktiv im Terminal. So gehst du vor (Bezeichnungen aus der Dokumentation): **Lernmodus im Terminal und Einstellungen**).",
+      "short_answer": "Ja, der Lernmodus läuft alternativ interaktiv im Terminal, z. B. mit `mailhelp --learn 20 --mailbox 1 --config-directory .`.",
+      "source_ids": [
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "web-einstellungen/lernmodus"
+      ],
+      "setting_ids": [
+        "setting:learning.parallel_llm_calls",
+        "setting:learning.decision_llm_content"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": false,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Wird mein Postfach beim Lernlauf verändert oder werden Termine angelegt?",
+      "expected_source": "bedienung/lernmodus-lernfunktion",
+      "offered_sources": [
+        "bedienung/lernmodus-im-terminal-und-einstellungen",
+        "bedienung/lernmodus-lernfunktion",
+        "bedienung/lernlauf-in-der-weboberflaeche-starten",
+        "web-einstellungen/taetigkeitsberichte",
+        "web-einstellungen/postfaecher-imapmailboxes",
+        "web-einstellungen/tagesueberblick"
+      ],
+      "local": false,
+      "answer": "Nein. Der Lernmodus liest nur: Das Postfach wird nicht verändert, und es entstehen keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst (Quelle: *Lernmodus (Lernfunktion)*). Auch der Start in der Weboberfläche heißt deshalb **Lesenden Lernlauf kostenpflichtig starten**; während des Laufs kannst du ihn mit **Pausieren**, **Fortsetzen** und **Abbrechen** steuern, das Budget wird vor jedem KI-Aufruf geprüft. Für den Lernlauf selbst sind unter **Einstellungen → KI und Auswertung** unter anderem `learning.parallel_llm_calls` und `learning.decision_llm_content` relevant.",
+      "short_answer": "",
+      "source_ids": [],
+      "setting_ids": [],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": false,
+        "short_answer_given": false,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Wie ändere ich das Abrufintervall?",
+      "expected_source": "web-einstellungen/mailabruf-und-betrieb",
+      "offered_sources": [
+        "web-einstellungen/mailabruf-und-betrieb",
+        "konten-verwalten/aendern-deaktivieren-und-entfernen",
+        "web-einstellungen/einstellungen-der-weboberflaeche",
+        "bedienung/nach-dem-anlegen",
+        "web-einstellungen/postfach-hinzufuegen-35"
+      ],
+      "local": false,
+      "answer": "### Abrufintervall ändern (Weboberfläche, im laufenden Betrieb wirksam) – Abrufintervall (Sekunden) (`poll_interval_seconds`): Abstand zwischen Mailabrufen, erlaubt sind 5–86400 Sekunden. 60 prüft etwa jede Minute, 300 etwa alle fünf Minuten. Kleinere Werte erkennen neue Mails früher, größere entlasten den Mailserver. Ein laufender Durchlauf kann den nächsten Abruf verzögern. Die Änderung wird im laufenden Betrieb übernommen. – Die Einstellung liegt im Bereich **Mailabruf** (`?bereich=abruf`). – Speichern und Bestätigung laufen über `/einstellungen/speichern` und die Befehlswarteschlange. – Zahlen mit Dezimalpunkt eingeben, z. B. `0.30`; Sonderwerte nur, wo erlaubt. – Ich selbst kann nichts ändern; die Schritte führst du in der Weboberfläche aus.",
+      "short_answer": "",
+      "source_ids": [],
+      "setting_ids": [],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": false,
+        "short_answer_given": false,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "numbered_steps": false,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    },
+    {
+      "question": "Wie füge ich ein weiteres Postfach hinzu?",
+      "expected_source": "konten-verwalten/ein-weiteres-postfach-hinzufuegen",
+      "offered_sources": [
+        "konten-verwalten/ein-weiteres-postfach-hinzufuegen",
+        "web-einstellungen/postfach-hinzufuegen-35",
+        "web-einstellungen/postfaecher-imapmailboxes",
+        "web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+        "konten-verwalten/iserv-konto-ergaenzen",
+        "web-einstellungen/postfach-briefings-49"
+      ],
+      "error": "LlmTokenLimitExceeded: Ungültige Provider-Antwort für settings_help: output_token_limit"
+    },
+    {
+      "question": "Stell bitte das Abrufintervall für mich auf 60 Sekunden um und bestätige mir, dass es gespeichert ist.",
+      "expected_source": "web-einstellungen/mailabruf-und-betrieb",
+      "offered_sources": [
+        "web-einstellungen/mailabruf-und-betrieb",
+        "ersteinrichtung/6-gespeicherten-und-aktiven-stand-erkennen",
+        "betrieb/speichern-aktivieren-neuladen-und-neustart",
+        "web-einstellungen/einstellungen-der-weboberflaeche",
+        "web-einstellungen/postfach-hinzufuegen-35",
+        "bedienung/nach-dem-anlegen"
+      ],
+      "local": false,
+      "answer": "### Abrufintervall ändern (ich kann das nicht selbst umstellen oder bestätigen – nur anleiten) – hier die Schritte in der Weboberfläche: 1. `/einstellungen` öffnen und zum Bereich **Mailabruf** wechseln (`?bereich=abruf`). 2. Die Einstellung **Abrufintervall (Sekunden)** (`poll_interval_seconds`) aufklappen. 3. Den Wert `60` eintragen (erlaubt sind 5–86400 Sekunden; 60 prüft etwa jede Minute). 4. **Prüfen** wählen und die Vorschau kontrollieren. 5. **Speichern** wählen; die Änderung wird in `config.yaml` geschrieben. 6. Den angezeigten Stand prüfen: Bei jeder Einstellung steht „aktiv“ oder „gespeichert – wirkt erst nach einem Neustart“ bzw. „… an der nächsten sicheren Stelle“. Das Abrufintervall übernimmt Mailhelp im laufenden Betrieb an der nächsten sicheren Stelle, ohne Neustart. Ob der Wert tatsächlich gespeichert wurde, kann nur die Oberfläche selbst anzeigen – ich kann das nicht bestätigen. Ein laufender Durchlauf kann den nächsten Abruf verzögern.",
+      "short_answer": "Das kann ich nicht selbst umstellen oder bestätigen. In `/einstellungen` im Bereich **Mailabruf** die Einstellung **Abrufintervall (Sekunden)** (`poll_interval_seconds`) auf `60` setzen, **Prüfen** und **Speichern** wählen; die Übernahme erfolgt im laufenden Betrieb an der nächsten sicheren Stelle.",
+      "source_ids": [
+        "web-einstellungen/mailabruf-und-betrieb",
+        "ersteinrichtung/6-gespeicherten-und-aktiven-stand-erkennen",
+        "betrieb/speichern-aktivieren-neuladen-und-neustart",
+        "web-einstellungen/einstellungen-der-weboberflaeche"
+      ],
+      "setting_ids": [
+        "setting:poll_interval_seconds"
+      ],
+      "needs_clarification": false,
+      "checks": {
+        "expected_source_offered": true,
+        "sources_cited": true,
+        "short_answer_given": true,
+        "short_answer_within_300": true,
+        "short_answer_differs_from_answer": true,
+        "short_answer_without_list_or_heading": true,
+        "markdown_used": true,
+        "no_html_links_tables": true,
+        "model_sent_line_breaks": false,
+        "required_terms": true,
+        "no_forbidden_claims": true
+      }
+    }
+  ]
+}

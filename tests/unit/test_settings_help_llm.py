@@ -26,7 +26,7 @@ def with_help(config: PromptConfig, **fields) -> PromptConfig:
 def test_the_route_reference_uses_the_referenced_model_with_own_parameters():
     model, parameters, prompt = REPOSITORY.resolved("settings_help")
     assert model == REPOSITORY.resolved("action_router")[0] and prompt.startswith("Du bist die Hilfe")
-    assert parameters["max_tokens"] == 1500 and parameters["reasoning"] == {"effort": "low"}
+    assert parameters["max_tokens"] == 3000 and parameters["reasoning"] == {"effort": "low"}
     routed = with_help(prompt_config().model_copy(update={"prompts": {
         **prompt_config().prompts, "action_router": PromptStep(system_prompt="r", routes=[
             LlmRoute(provider="openrouter", model="route-a", parameters={"max_tokens": 300})])}}))
@@ -121,3 +121,13 @@ def test_the_analyzer_asks_the_active_client_and_repairs_a_foreign_source_once()
     sent = client.payloads[0]
     assert sent["question"] == "Was bewirkt das Abrufintervall?" and sent["sources"][0]["id"] == sections[0].id
     assert client.systems[0] == "Hilfe" and client.parameters[0]["max_tokens"] == 900
+
+
+@pytest.mark.parametrize("path", ["prompts.yaml", "src/mailhelp/defaults/prompts.yaml"])
+def test_settings_help_leaves_room_for_both_answers_and_avoids_title_loops(path):
+    # 5.5.7 regression: with 1500 tokens the real model stopped at output_token_limit; starting
+    # with a heading it copied the version numbers of section titles in an endless loop.
+    config = PromptConfig.model_validate(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
+    _model, parameters, prompt = config.resolved("settings_help")
+    assert parameters["max_tokens"] >= 3000
+    assert "Keine Überschriften" in prompt and "keine Versionsangaben aus den Abschnittstiteln" in prompt

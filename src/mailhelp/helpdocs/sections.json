@@ -1091,7 +1091,7 @@
    "learning.parallel_llm_calls"
   ],
   "source": "docs/Bedienung.md",
-  "text": "Alternativ läuft der Lernmodus interaktiv im Terminal: `mailhelp --learn 20 --mailbox 1\n--config-directory .` liest 20 Mails und fragt die Themen nacheinander ab. Bei mehreren\nPostfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür\n`compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.\n\nUnter **Einstellungen → KI und Auswertung** stehen dazu `learning.parallel_llm_calls`\n(gleichzeitige KI-Aufrufe im Lernmodus, Standard 4) und `learning.decision_llm_content`.",
+  "text": "Alternativ läuft der Lernmodus interaktiv im Terminal. Dieser Befehl liest 20 Mails und fragt\ndie Themen nacheinander ab:\n\n```sh\nmailhelp --learn 20 --mailbox 1 --config-directory .\n```\n\nBei mehreren\nPostfächern ist `--mailbox NUMMER` oder `--mailbox alle` nötig. In Docker ist dafür\n`compose.learn.yaml` mit schreibbarer Konfiguration vorgesehen.\n\nUnter **Einstellungen → KI und Auswertung** stehen dazu `learning.parallel_llm_calls`\n(gleichzeitige KI-Aufrufe im Lernmodus, Standard 4) und `learning.decision_llm_content`.",
   "title": "Lernmodus im Terminal und Einstellungen"
  },
  {

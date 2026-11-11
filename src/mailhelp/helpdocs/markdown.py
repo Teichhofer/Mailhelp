@@ -21,6 +21,57 @@ _HEADING = re.compile(r"#{1,6}\s+(.*?)\s*#*")
 _RULE = re.compile(r"(?:-{3,}|\*{3,}|_{3,})")
 
 
+_INLINE_ITEM = re.compile(r"(?:^|(?<=\s))(\d{1,2})\.\s+(?=\S)")
+
+
+def _split_line(line: str) -> list[str]:
+    """One line as the lines a model meant (5.5.7).
+
+    Models often send a whole answer on one line: "### Titel: 1. Öffnen 2. Prüfen". A heading
+    ends where a numbered list or, in a long heading, the first ": " begins; a run of numbers
+    counting up from 1 ("1. … 2. … 3. …") becomes one list item per line. Single numbers such
+    as dates ("am 3. Mai") never split.
+    """
+    stripped = line.strip()
+    markers: list[int] = []
+    for match in _INLINE_ITEM.finditer(stripped):
+        if int(match.group(1)) == len(markers) + 1:
+            markers.append(match.start())
+    if len(markers) < 2:
+        markers = []
+    heading = _HEADING.fullmatch(stripped)
+    lines: list[str] = []
+    head_end = markers[0] if markers else len(stripped)
+    if heading:
+        title = stripped[:head_end].rstrip()
+        if not markers and len(title) > 80 and ": " in title:
+            head_end = title.index(": ") + 1
+        lines.append(stripped[:head_end].rstrip().rstrip(":"))
+        rest = stripped[head_end:].strip()
+        if not markers:
+            return lines + ([rest] if rest else [])
+    elif markers and stripped[:head_end].strip():
+        lines.append(stripped[:head_end].rstrip())
+    if not markers:
+        return [line]
+    for start, end in zip(markers, [*markers[1:], len(stripped)], strict=True):
+        lines.append(stripped[start:end].strip())
+    return lines
+
+
+def _lines(text: str) -> list[str]:
+    """The lines of the text, with lines run together by a model split; code stays untouched."""
+    lines: list[str] = []
+    fenced = False
+    for line in text.replace("\r\n", "\n").split("\n"):
+        if line.strip().startswith("```"):
+            fenced = not fenced
+            lines.append(line)
+        else:
+            lines.extend([line] if fenced else _split_line(line))
+    return lines
+
+
 def _inline(escaped: str) -> str:
     parts = _CODE.split(escaped)
     rendered = []
@@ -55,7 +106,7 @@ def render(text: str) -> str:
             items.clear()
         kind = ""
 
-    for line in html.escape(text.replace("\r\n", "\n")).split("\n"):
+    for line in (html.escape(part) for part in _lines(text)):
         stripped = line.strip()
         if code is not None:
             if stripped.startswith("```"):
@@ -104,7 +155,7 @@ def render(text: str) -> str:
 def plain(text: str) -> str:
     """The answer without Markdown marks, for deriving and comparing short answers."""
     lines = []
-    for line in text.replace("\r\n", "\n").split("\n"):
+    for line in _lines(text):
         stripped = line.strip()
         if stripped.startswith("```") or _RULE.fullmatch(stripped):
             continue
