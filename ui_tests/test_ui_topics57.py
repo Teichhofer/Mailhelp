@@ -40,6 +40,8 @@ def test_topics57_compact_list_filters_immediately_and_edits_on_its_own_page(pag
     expect(page.locator('[data-topic-row]:visible')).to_have_count(47)
     page.get_by_label("Status filtern", exact=True).select_option("alle")
     expect(page.locator('[data-topic-row]:visible')).to_have_count(48)
+    # 5.7.5 regression: the coverage of the filter was lost with the document on the link click.
+    page.collect()
     page.get_by_role("link", name="Schule bearbeiten", exact=True).click()
     expect(page.get_by_role("heading", name="Schule", exact=True)).to_be_visible()
     expect(page.locator('textarea[name="examples"]')).to_have_value("Rechnung; verbindlich")

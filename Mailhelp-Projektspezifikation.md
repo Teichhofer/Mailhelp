@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.4. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 

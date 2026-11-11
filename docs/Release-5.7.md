@@ -10,7 +10,7 @@ Die Arbeitspakete werden einzeln als 5.7.0–5.7.5 committet.
 | S3: Themenbearbeitung mit Vorschau | 5.7.2 | umgesetzt, gezielt abgenommen |
 | S4: Gemeinsame Gestaltung | 5.7.3 | umgesetzt, gezielt abgenommen |
 | S5: Dokumentation und Hilfe | 5.7.4 | umgesetzt, gezielt abgenommen |
-| S6: Gesamtabnahme | 5.7.5 | ausstehend |
+| S6: Gesamtabnahme | 5.7.5 | abgenommen |
 
 ## S1 – Lernen an einem Ort
 
@@ -114,3 +114,29 @@ kostenpflichtigen Modell. Sie erfordert eine ausdrückliche Freigabe für einen 
 und kann mit dem Prüfskript aus 5.5.7 nachgeholt werden.
 
 Abnahme S5: 1590 Unit- und Webprüfungen bestanden, darunter 11 neue Prüfungen für Hilfe und Suche.
+
+## S6 – Gesamtabnahme
+
+Version 5.7.5, 11. November 2026. Alle Prüfungen mit synthetischen Daten und simulierten
+Anbietern; es wurden keine echten Mails oder Entscheidungsprotokolle an ein Modell übertragen
+und keine externen Einträge angelegt.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Windows, Python 3.12.10, `devtools.check full --workers 8` | 4745 bestanden, 1 plattformbedingter Skip; 100 % Zeilen- und Branch-Abdeckung (30243 Anweisungen, 8776 Branch-Ziele); 2 Lasttests bestanden |
+| Browserprüfungen, seriell (`pytest ui_tests --no-cov`) | 489 bestanden, 2 übersprungen; Desktop/Mobil/schmal, mit Barrierefreiheitsprüfung (axe, WCAG 2.1 AA) |
+| Ruff (`src`, `devtools`, `tests`, `ui_tests`), Mypy | fehlerfrei; Mypy: 285 Quelldateien |
+| Prompt-Gate, Routeninventur, Hilfebestand | bestanden, aktuell |
+
+Gefunden in der Gesamtabnahme und behoben:
+
+- Der erste vollständige Lauf scheiterte erwartungsgemäß an der Prüfung der Versionshinweise,
+  solange `CHANGELOG.md` noch keinen Abschnitt für 5.7.5 hatte.
+- Die verbindliche Browser-Coverage meldete `topics.js` Zeilen 12–23 (Sofortfilter) als nicht
+  ausgeführt, obwohl die Prüfung den Filter bedient. Die Abdeckung ging mit dem Dokument beim
+  Klick auf „Bearbeiten“ verloren. Die Prüfung sammelt sie jetzt vor dem Seitenwechsel; der
+  Fehler war vorher reproduzierbar und ist danach behoben. Der Produktcode ist unverändert.
+
+Offen und bewusst nicht durchgeführt: die Prüfung des Hilfschats mit dem echten,
+kostenpflichtigen Modell (siehe S5). Der laufende Mailhelp-Dienst muss neu gestartet werden,
+damit er 5.7.5 verwendet.

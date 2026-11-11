@@ -1,5 +1,12 @@
 # Änderungen
 
+## 5.7.5 – Abnahme und Release 5.7 (S6)
+
+- Gesamtabnahme von Version 5.7 (S1–S5) mit vollständigem Python-, Last- und Browserprüfpfad.
+- Browser-Coverage: Die Prüfung der Themensuche sammelt die Skriptabdeckung vor dem Wechsel auf
+  die Bearbeitungsseite; zuvor ging die Abdeckung des Sofortfilters mit dem Dokument verloren.
+- Keine Verhaltensänderung gegenüber 5.7.4.
+
 ## 5.7.4 – Dokumentation, Hilfe und Suche (S5)
 
 - Bedienungsanleitung: „Aus Entscheidungen lernen“ steht jetzt im Kapitel zum Lernen, zusammen
