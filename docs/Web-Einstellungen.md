@@ -1,8 +1,11 @@
 # Einstellungen der Weboberfläche
 
-Stand: 11. November 2026, Anwendungsversion 5.6.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 11. November 2026, Anwendungsversion 5.7.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
-Ab 5.6 führt Themen → „Aus Entscheidungen lernen“ zur Seite `/themen/lernen`.
+Ab 5.7 bündelt Lernen (`/lernen`) die Funktionen „Aus dem Postfach lernen“
+(`/lernen/postfach`) und „Aus Entscheidungen lernen“ (`/lernen/entscheidungen`).
+Auch die Themenseite verlinkt das Regellernen. `/themen/lernen` wird dauerhaft
+weitergeleitet; alte offene POST-Formulare führen nichts aus und verlangen eine neue Bestätigung.
 Sie analysiert vorhandene protokollierte Entscheidungen nach ausdrücklicher Freigabe von
 Kosten und Datenübertragung. Alt und Neu stehen nebeneinander; ausgewählte Regeln lassen
 sich als Felder oder vollständiges Themen-YAML bearbeiten und gesondert bestätigt übernehmen.

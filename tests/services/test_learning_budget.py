@@ -95,7 +95,7 @@ def test_the_estimate_is_typical_and_the_maximum_is_shown_separately(learning):
 def test_a_start_the_budget_cannot_cover_is_explained_and_not_offered(learning):
     from urllib.parse import urlencode
     h = learning
-    page = h.browser.request("GET", "/lernen?" + urlencode(dict(mailbox=1, count=20, folders="INBOX", price=0.5,
+    page = h.browser.request("GET", "/lernen/postfach?" + urlencode(dict(mailbox=1, count=20, folders="INBOX", price=0.5,
                                                                  budget=0.01))).body.decode()
     assert "Bitte mindestens 0.200000 USD angeben" in page and "kostenpflichtig starten" not in page
 
@@ -107,11 +107,11 @@ def test_the_reason_of_a_refused_action_is_shown_and_logged(learning):
     form = {"csrf": h.auth.csrf_token(h.auth.sessions()[0].id), "version": "0", "key": "a" * 32, "action": "start",
             "selection": '{"mailbox": 1, "folders": ["INBOX"], "count": 20, "budget_usd": 0.01, '
                          '"usd_per_million_tokens": 0.5}'}
-    answer = h.browser.request("POST", "/lernen", form)
+    answer = h.browser.request("POST", "/lernen/postfach", form)
     assert answer.status == 409 and "Budget reicht für den geschätzten Lauf nicht aus." in answer.body.decode()
     assert events[-1] == ("action_rejected", {"error_class": "LearningConflict",
                                               "reason": "Budget reicht für den geschätzten Lauf nicht aus."})
-    broken = h.browser.request("POST", "/lernen", {**form, "key": "b" * 32, "version": "x"})
+    broken = h.browser.request("POST", "/lernen/postfach", {**form, "key": "b" * 32, "version": "x"})
     assert broken.status == 409 and "Auswahl ungültig oder inzwischen geändert." in broken.body.decode()
 
 
@@ -121,7 +121,7 @@ def test_a_paused_run_with_a_changed_configuration_is_replaced_by_a_new_one(lear
     h.change("pause")
     (h.directory / "topics.yaml").write_text((h.directory / "topics.yaml").read_text(encoding="utf-8") + "\n",
                                              encoding="utf-8")
-    page = h.browser.request("GET", "/lernen").body.decode()
+    page = h.browser.request("GET", "/lernen/postfach").body.decode()
     assert "kann nicht fortgesetzt werden" in page and "Fortsetzen" not in page and "Neuer Lernlauf" in page
     old = h.jobs.state().generation
     state = h.change("start", h.selection)
@@ -135,7 +135,7 @@ def test_a_paused_run_without_changes_still_blocks_a_second_start(learning):
     h = learning
     h.change("start", h.selection)
     h.change("pause")
-    assert "Fortsetzen" in h.browser.request("GET", "/lernen").body.decode()
+    assert "Fortsetzen" in h.browser.request("GET", "/lernen/postfach").body.decode()
     with pytest.raises(LearningConflict, match="offenen Lernlauf"):
         h.change("start", h.selection)
 

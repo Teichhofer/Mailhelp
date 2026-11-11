@@ -31,7 +31,7 @@ SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 }
 STATUS_TEXT = {
-    200: "OK", 202: "Accepted", 303: "See Other", 400: "Bad Request", 403: "Forbidden",
+    200: "OK", 202: "Accepted", 303: "See Other", 308: "Permanent Redirect", 400: "Bad Request", 403: "Forbidden",
     404: "Not Found", 405: "Method Not Allowed", 409: "Conflict", 411: "Length Required",
     413: "Content Too Large", 415: "Unsupported Media Type", 421: "Misdirected Request",
     422: "Unprocessable Content", 429: "Too Many Requests", 500: "Internal Server Error",

@@ -59,9 +59,9 @@ HELP_ICON = "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"
 
 def shows_help_button(path: str) -> bool:
     """The settings area: every page below /einstellungen and the topics page."""
-    return (path in {"/themen", "/einrichtung", "/diagnose", "/geraete", "/benachrichtigungen",
+    return (path in {"/themen", "/lernen", "/einrichtung", "/diagnose", "/geraete", "/benachrichtigungen",
                      "/hilfe/frage", "/hilfe/leeren", "/hilfe/fenster"}
-            or path.startswith(("/einstellungen/", "/themen/", "/dienst/", "/einrichtung/", "/aktion/"))
+            or path.startswith(("/einstellungen/", "/themen/", "/lernen/", "/dienst/", "/einrichtung/", "/aktion/"))
             or path == "/einstellungen")
 
 

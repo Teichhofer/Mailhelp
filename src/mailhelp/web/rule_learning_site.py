@@ -10,6 +10,8 @@ from ..rule_learning.service import DecisionRuleLearning
 from ..rule_learning.validation import RuleConflict, parse_yaml
 from .auth import WebSession
 from .http import Request, Response
+from .learning_overview import UPDATED
+from .learning_pages import heading
 from .pages import e, layout, notice
 from .site import MailhelpSite
 
@@ -35,8 +37,16 @@ class RuleLearningSite:
     def __init__(self, site: MailhelpSite):
         self.site = site
         self.service: DecisionRuleLearning | None = None
-        site.app.route("GET", "/themen/lernen", site.signed_in(self.home))
-        site.app.route("POST", "/themen/lernen", site.signed_in(self.act))
+        site.app.route("GET", "/lernen/entscheidungen", site.signed_in(self.home))
+        site.app.route("POST", "/lernen/entscheidungen", site.signed_in(self.act))
+        site.app.route("GET", "/themen/lernen", site.signed_in(self.legacy))
+        site.app.route("POST", "/themen/lernen", site.signed_in(self.legacy_post))
+
+    def legacy(self, request: Request, session: WebSession) -> Response:
+        return Response(308, headers={"Location": "/lernen/entscheidungen"})
+
+    def legacy_post(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self.render(session, 409, UPDATED)
 
     def home(self, request: Request, session: WebSession) -> Response:
         return self.render(session)
@@ -46,7 +56,9 @@ class RuleLearningSite:
         if self.service is None:
             return Response.html(503, layout("Regellernen", notice("Regellernen ist nicht verfügbar.")))
         state = self.service.state("web:" + session.id)
-        content = '<h1>Aus Entscheidungen lernen</h1><p><a href="/themen">Zur Themenverwaltung</a></p>'
+        content = heading("Aus Entscheidungen lernen", "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen: "
+                          "Verbessern Sie Regeln mit den bereits protokollierten Entscheidungen. "
+                          "Vorschläge werden vor jeder Übernahme einzeln geprüft.")
         content += notice(message, "error") if message else ""
         content += notice(state.message) if state.message else ""
         content += f'<p role="status">Analysestand: {e(STATUSES[state.status])} · Version {state.version}</p>'
@@ -68,11 +80,11 @@ class RuleLearningSite:
                 '<label><input type="checkbox" name="confirm" value="yes" required> '
                 'Bereits bestätigte Übernahme ausdrücklich abschließen</label>'
                 '<button class="button" type="submit">Übernahme abschließen</button>'))
-        return Response.html(status, layout("Regellernen", content, active="/themen",
+        return Response.html(status, layout("Regellernen", content, active="/lernen",
                                             refresh=2 if state.status in {"queued", "running"} else None))
 
     def form(self, session: WebSession, state: RuleState, action: str, body: str) -> str:
-        return ('<form method="post" action="/themen/lernen" class="stack">'
+        return ('<form method="post" action="/lernen/entscheidungen" class="stack">'
                 f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
                 f'<input type="hidden" name="version" value="{state.version}">'
                 f'<input type="hidden" name="key" value="{secrets.token_hex(16)}">'
@@ -167,4 +179,4 @@ class RuleLearningSite:
             return self.render(session, 422, f"Regeln nicht gespeichert: {error}", form)
         except OSError:
             return self.render(session, 503, "Schreiben unterbrochen; Übernahme nach Prüfung abschließen.", form)
-        return Response.redirect("/themen/lernen")
+        return Response.redirect("/lernen/entscheidungen")

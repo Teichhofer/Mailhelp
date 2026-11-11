@@ -13,10 +13,11 @@ from ..configuration import ConfigurationService, file_hash
 from ..review.learning_log import learning_path
 from ..storage import CorruptState, atomic_replace
 from .mining import DecisionRuleMiner
-from .models import RuleAnalysis, RuleState
+from .models import RuleAnalysis, RuleHistory, RuleState
 from .validation import FILES, RuleConflict, RuleValidationService
 
 STATE = "decision-rule-learning"
+HISTORY = "decision-rule-learning-history"
 
 
 def digest(value: str) -> str:
@@ -58,6 +59,22 @@ class DecisionRuleLearning:
 
     def save(self, state: RuleState) -> None:
         self.store.save(STATE, state.model_dump(mode="json"))
+
+    def history(self) -> RuleHistory:
+        try:
+            return self.store.load_model(HISTORY, RuleHistory, RuleHistory())
+        except CorruptState:
+            return RuleHistory()
+
+    def overview(self, actor: str) -> dict[str, Any]:
+        with self.store.locked():
+            state, visible, history = self.state(), self.state(actor), self.history()
+            evidence, _ = DecisionRuleMiner(learning_path(self.store.directory), self.redact).mine()
+            return {"status": state.status, "owned": state.owner == digest(actor),
+                    "proposals": len(visible.proposals),
+                    "new_decisions": sum(item["id"] not in history.decision_ids for item in evidence),
+                    "analyzed_at": history.analyzed_at,
+                    "available": "decision_rule_learning" in self.analyzer().prompts.prompts}
 
     def hashes(self) -> dict[str, str]:
         return {name: file_hash(self.directory / name) for name in (*FILES.values(), "config.yaml")}
@@ -181,6 +198,12 @@ class DecisionRuleLearning:
                 return True
             state.version += 1
             self.save(state)
+            if state.status == "review":
+                history = self.history()
+                history.analyzed_at = self.clock()
+                history.decision_ids = list(dict.fromkeys(
+                    [item["id"] for item in state.evidence] + history.decision_ids))[:200]
+                self.store.save(HISTORY, history.model_dump(mode="json"))
         return True
 
     def finish(self, actor: str, state: RuleState) -> None:

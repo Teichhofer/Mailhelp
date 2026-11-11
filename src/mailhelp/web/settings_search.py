@@ -85,6 +85,11 @@ def _synonyms(text: str) -> tuple[str, ...]:
 
 # Pages with their own way of changing settings; found like settings, opened as a page.
 PAGES: tuple[tuple[str, str, str, str, str], ...] = (
+    ("page:lernen", "Lernen", "Lernen", "/lernen", "Lernübersicht: Postfach und Entscheidungen"),
+    ("page:regellernen", "Aus Entscheidungen lernen", "Lernen", "/lernen/entscheidungen",
+     "Regeln lernen, Themen verbessern, Themenregeln aus protokollierten Entscheidungen"),
+    ("page:lernlauf", "Aus dem Postfach lernen", "Lernen", "/lernen/postfach",
+     "Lesenden Lernlauf aus vorhandenen Mails starten"),
     ("page:postfaecher", "Postfächer", "Konten und Verbindungen", "/einstellungen/postfaecher",
      "Postfach hinzufügen, Verbindung prüfen, Ordner, Startgrenze, Ziele, Filter, Themen, Antworten und "
      "Benachrichtigungen je Postfach"),

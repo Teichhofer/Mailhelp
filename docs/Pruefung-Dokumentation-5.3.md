@@ -165,6 +165,9 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
 | `/themen/lernen` | Themenregeln aus Entscheidungen, Vergleich und bestätigte Übernahme | Bedienung, Web-Einstellungen |
+| `/lernen` | Gemeinsame Lernübersicht, kein Analysestart | Bedienung, Web-Einstellungen |
+| `/lernen/postfach` | Lesender Lernlauf aus dem Postfach | Bedienung |
+| `/lernen/entscheidungen` | Regeln aus protokollierten Entscheidungen | Bedienung, Web-Einstellungen |
 | `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
 | `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |

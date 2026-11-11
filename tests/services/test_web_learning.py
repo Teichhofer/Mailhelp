@@ -317,18 +317,18 @@ def test_browser_authorization_csrf_estimate_review_and_stale_forms(learning):
     from tests.fakes.shared_web_auth import Browser
 
     h = learning
-    assert Browser(h.web, host="localhost:8765").request("GET", "/lernen").status == 303
-    assert h.browser.request("GET", "/lernen").status == 200
-    assert h.browser.request("POST", "/lernen", {"action": "start"}).status == 403
+    assert Browser(h.web, host="localhost:8765").request("GET", "/lernen/postfach").status == 303
+    assert h.browser.request("GET", "/lernen/postfach").status == 200
+    assert h.browser.request("POST", "/lernen/postfach", {"action": "start"}).status == 403
     query = urlencode(dict(mailbox=1, count=2, folders="INBOX", price=0.001, budget=1000))
-    page = h.browser.request("GET", "/lernen?" + query).body.decode()
+    page = h.browser.request("GET", "/lernen/postfach?" + query).body.decode()
     assert "Typische Schätzung" in page and "kostenpflichtig starten" in page
-    assert "Angaben für" in h.browser.request("GET", "/lernen?count=no").body.decode()
+    assert "Angaben für" in h.browser.request("GET", "/lernen/postfach?count=no").body.decode()
 
     def post(action, **extra):
         return h.browser.request(
             "POST",
-            "/lernen",
+            "/lernen/postfach",
             {
                 "csrf": h.auth.csrf_token(h.initial.session.id),
                 "action": action,
@@ -339,19 +339,19 @@ def test_browser_authorization_csrf_estimate_review_and_stale_forms(learning):
         )
 
     assert post("start", selection=json.dumps(h.selection)).status == 303
-    assert "Pausieren" in h.browser.request("GET", "/lernen").body.decode()
+    assert "Pausieren" in h.browser.request("GET", "/lernen/postfach").body.decode()
     assert h.browser.request("GET", "/api/lernen").status == 200
     while h.worker.tick():
         pass
-    page = h.browser.request("GET", "/lernen").body.decode()
+    page = h.browser.request("GET", "/lernen/postfach").body.decode()
     assert "&lt;untrusted&gt;" in page and "<untrusted>" not in page
     h.sequence += 1
     assert post("edit", **(choice() | {"index": "0", "global": "on", "block_senders": "on"})).status == 303
     h.sequence += 1
     assert post("folder", name="Archive", selected="on").status == 303
-    page = h.browser.request("GET", "/lernen").body.decode()
+    page = h.browser.request("GET", "/lernen/postfach").body.decode()
     assert " checked" in page
     h.sequence += 1
     assert post("apply").status == 303
-    assert "Konfiguration neu laden" in h.browser.request("GET", "/lernen").body.decode()
+    assert "Konfiguration neu laden" in h.browser.request("GET", "/lernen/postfach").body.decode()
     assert post("start", selection="broken").status == 409

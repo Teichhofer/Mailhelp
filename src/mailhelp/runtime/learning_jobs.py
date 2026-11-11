@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -41,6 +42,7 @@ class LearningJob(BaseModel):
     schema_version: Literal[1] = 1
     version: int = 0
     generation: int = Field(default=0, ge=0)
+    started_at: float = 0
     status: Literal["empty", "running", "paused", "cancelled", "review", "committing", "done"] = "empty"
     actor: str = ""
     selection: LearningSelection | None = None
@@ -149,7 +151,7 @@ class LearningJobs:
             if estimate * selection.usd_per_million_tokens / 1000000 > selection.budget_usd:
                 raise LearningConflict("Budget reicht für den geschätzten Lauf nicht aus.")
             fresh = LearningJob(status="running", actor=actor, selection=selection, revision=self.revision(),
-                                generation=state.generation + 1)
+                                generation=state.generation + 1, started_at=time.time())
             state.__dict__.update(fresh.model_dump(exclude={"version", "operations"}))
             state.selection = selection
         elif action in {"pause", "resume", "cancel"}:

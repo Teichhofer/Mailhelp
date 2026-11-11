@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.6.0. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3746,3 +3746,19 @@ Entscheidungstestmodi. Für normale Mailrelevanz gelten relevante Themen samt Au
 Bestehende Entwürfe, Kalender und Aufgabenlisten werden durch diesen Ablauf nicht geändert.
 Vor dem Speichern einer KI-Antwort müssen Eigentümer, laufender Status und Auftragsversion
 noch übereinstimmen. Eine späte Antwort ersetzt keinen neueren Auftrag derselben Sitzung.
+
+### Gemeinsamer Lernbereich (5.7.0, S1)
+
+`/lernen` ist eine authentifizierte, rein lesende Übersicht. Sie zeigt beide Funktionen,
+ihren Zustand, den letzten Laufstart und die Zahl neuer verwertbarer Entscheidungs-IDs
+im bestehenden begrenzten Protokollausschnitt (höchstens 100). `RuleHistory` hält dafür
+höchstens 200 bereits analysierte IDs und einen Zeitstempel ohne Mailinhalte vor; diese
+Metadaten überleben den Ablauf privater Prüfentwürfe. Nach einer erfolgreichen Analyse
+werden die tatsächlich verwendeten Beleg-IDs hinzugefügt. Fehlende Promptkonfiguration
+wird bereits in der Übersicht erklärt. Fremde Sitzungen sehen keine privaten Belege.
+
+Der bisherige Lernlauf liegt unter `/lernen/postfach`, das Regellernen unter
+`/lernen/entscheidungen`; beide behalten den aktiven Menüpunkt Lernen und erhalten den
+Hilfschat. GET `/themen/lernen` antwortet mit 308 auf die neue Adresse. POST an alte
+Adressen wird nach Sitzungs-/CSRF-Prüfung ohne Ausführung abgewiesen und fordert eine
+neue Bestätigung. `/api/lernen` und sämtliche bisherigen Ausführungsprüfungen bleiben erhalten.

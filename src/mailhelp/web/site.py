@@ -126,6 +126,8 @@ class MailhelpSite:
         self.reconciliation_page = ReconciliationSite(self)
         from .rule_learning_site import RuleLearningSite
         self.rule_learning = RuleLearningSite(self)
+        from .learning_overview import LearningOverviewSite
+        self.learning_overview = LearningOverviewSite(self)
         self.notification_runtime: NotificationRuntime | None = None
         # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
         self.reanalysis_page: ReanalysisSite | None = None
@@ -153,7 +155,7 @@ class MailhelpSite:
         if content_type != FORM_TYPE:
             return Response.text(415, "Nur Formulardaten werden angenommen.")
         try:
-            return request.form(max_num_fields=200 if request.path == "/themen/lernen" else
+            return request.form(max_num_fields=200 if request.path in {"/themen/lernen", "/lernen/entscheidungen"} else
                                 120 if request.path.startswith("/serie/") else 20)
         except (UnicodeDecodeError, ValueError):
             return Response.text(400, "Ungültige Formulardaten.")

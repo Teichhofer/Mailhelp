@@ -80,3 +80,10 @@ class RuleState(BaseModel):
     receipts: dict[str, str] = Field(default_factory=dict)
     commit: dict[str, str] = Field(default_factory=dict)
     message: str = ""
+
+
+class RuleHistory(BaseModel):
+    """Public analysis metadata survives removal of private review contents."""
+    model_config = ConfigDict(extra="forbid")
+    analyzed_at: float = 0
+    decision_ids: list[str] = Field(default_factory=list, max_length=200)

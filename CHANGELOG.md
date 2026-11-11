@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.7.0 – Gemeinsame Lernübersicht (S1)
+
+- `/lernen` bündelt beide Lernfunktionen mit Zweck, aktuellem Stand, Kennzahl und
+  eingeklapptem Kostenhinweis; das Öffnen startet keinen Modellaufruf.
+- Lernlauf unter `/lernen/postfach`, Regellernen unter `/lernen/entscheidungen`;
+  gemeinsamer Seitenkopf, Rückweg, aktives Menü und Hilfschat auf allen Lernseiten.
+- Alte GET-Adresse wird dauerhaft weitergeleitet. Alte POST-Formulare führen nichts
+  aus und verlangen eine erneute Bestätigung auf der aktualisierten Seite.
+- Suchkatalog und Anleitungen kennen die neuen Wege; die Themenverwaltung verlinkt sie.
+- Öffentliche Analysemetadaten und Startdatum bleiben für Statusanzeigen erhalten;
+  private Belege anderer Sitzungen erscheinen nicht in der Übersicht.
+
 ## 5.6.0 – Themenregeln aus Entscheidungen lernen
 
 - Begrenzte Auswertung des bestehenden Entscheidungsprotokolls mit getrennten Signalen

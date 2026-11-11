@@ -8,6 +8,7 @@ from checks import audit
 from mailhelp.web.server import WebServer
 from tests.fakes.initial_harness import InitialHarness
 from tests.fakes.learning_harness import LearningHarness
+from tests.fakes.rule_learning import RuleHarness, record
 
 
 @pytest.fixture
@@ -25,9 +26,34 @@ def learning_server(tmp_path):
     finally:server.stop();initial.close()
 
 
+@pytest.mark.parametrize("javascript", [True, False])
+def test_learning57_overview_opens_both_functions_without_a_paid_call(page, learning_server, javascript):
+    h = learning_server
+    rules = RuleHarness(h.directory, h.store, h.jobs.active)
+    h.site.rule_learning.service = rules.service
+    rules.log(record())
+    if not javascript:
+        page.cdp.send("Emulation.setScriptExecutionDisabled", {"value": True})
+    page.goto(h.url + "/lernen")
+    page.get_by_label('Code aus der Mailhelp-Konsole').fill(h.code)
+    page.get_by_role('button', name='Gerät koppeln', exact=True).click()
+    page.goto(h.url + "/lernen")
+    expect(page.get_by_role("heading", name="Lernen", exact=True)).to_be_visible()
+    if javascript:
+        assert audit(page, "learning57-overview-" + page.device, page.mobile) == []
+    else:
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.get_by_role("link", name="Aus dem Postfach lernen öffnen", exact=True).click()
+    expect(page.get_by_role("heading", name="Aus dem Postfach lernen", exact=True)).to_be_visible()
+    page.get_by_role("link", name="Zur Lernübersicht", exact=True).click()
+    page.get_by_role("link", name="Aus Entscheidungen lernen öffnen", exact=True).click()
+    expect(page.get_by_role("heading", name="Aus Entscheidungen lernen", exact=True)).to_be_visible()
+    assert h.client.calls == [] and rules.analyzer.calls == []
+
+
 def estimate(page,h,count='2',budget='1'):
     """Realistic values (Planung Lernen): 0.5 USD per million tokens and a budget of 1 USD."""
-    page.goto(h.url+'/lernen')
+    page.goto(h.url+'/lernen/postfach')
     page.get_by_label('Anzahl Mails',exact=True).fill(count)
     page.get_by_label('Preisobergrenze USD je Million Tokens',exact=True).fill('0.5')
     page.get_by_label('Budget USD',exact=True).fill(budget)
@@ -36,7 +62,7 @@ def estimate(page,h,count='2',budget='1'):
 
 
 def flow(page,h,audit_review=True):
-    page.goto(h.url+'/lernen')
+    page.goto(h.url+'/lernen/postfach')
     page.get_by_label('Code aus der Mailhelp-Konsole').fill(h.code)
     page.get_by_role('button',name='Gerät koppeln',exact=True).click()
     estimate(page,h)

@@ -198,7 +198,8 @@ vision:
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
-  # 5.6: /themen/lernen wertet vorhandene Entscheidungen aus, ohne Mails abzurufen.
+  # 5.7: /lernen bündelt Postfachlernen und /lernen/entscheidungen.
+  # Regellernen wertet vorhandene Entscheidungen aus, ohne Mails abzurufen.
   # Erst die ausdrückliche Webfreigabe startet die kostenpflichtige Analyse über
   # prompts.yaml/decision_rule_learning. Es gelten die bestehenden KI-Limits.
   # Regeländerungen benötigen eine zweite, gesonderte Bestätigung.

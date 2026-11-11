@@ -9,6 +9,7 @@ from urllib.parse import parse_qs
 
 from ..runtime.learning_jobs import LearningConflict, LearningSelection
 from .http import Response
+from .learning_pages import heading
 from .pages import e, layout, notice
 
 LABELS = {
@@ -26,13 +27,14 @@ class LearningSite:
     def __init__(self, site: Any, worker: Any) -> None:
         self.site, self.worker = site, worker
         self.jobs = worker.jobs
-        site.app.route("GET", "/lernen", site.signed_in(self.home))
+        site.learning_overview.worker = worker
+        site.app.route("GET", "/lernen/postfach", site.signed_in(self.home))
         site.app.route("GET", "/api/lernen", site.signed_in(self.status))
-        site.app.route("POST", "/lernen", site.signed_in(self.act))
+        site.app.route("POST", "/lernen/postfach", site.signed_in(self.act))
 
     def form(self, session: Any, state: Any, action: Any, content: Any) -> str:
         return (
-            '<form method="post" action="/lernen">'
+            '<form method="post" action="/lernen/postfach">'
             f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
             f'<input type="hidden" name="version" value="{state.version}">'
             f'<input type="hidden" name="key" value="{secrets.token_hex(16)}">'
@@ -42,8 +44,9 @@ class LearningSite:
     def home(self, request: Any, session: Any) -> Response:
         state = self.jobs.state()
         content = (
-            "<h1>Lernmodus</h1>"
-            f'<p role="status">{e(LABELS[state.status])}: {state.cursor} Mails geprüft, {state.failures} Fehler.</p>'
+            heading("Aus dem Postfach lernen", "Entdecken Sie neue Themen in vorhandenen Mails. "
+                    "Prüfen Sie erst die Auswahl und Kosten, dann geben Sie den lesenden Lauf ausdrücklich frei.")
+            + f'<p role="status">{e(LABELS[state.status])}: {state.cursor} Mails geprüft, {state.failures} Fehler.</p>'
         )
         content += notice(state.message) if state.message else ""
         stale = self.jobs.stale(state)
@@ -82,7 +85,7 @@ class LearningSite:
         boxes = self.worker.app.settings.imap.enabled_mailboxes()
         options = "".join(f'<option value="{box.id}">{e(box.label)}</option>' for box in boxes)
         content = (
-            '<h2>Neuer Lernlauf</h2><form method="get" action="/lernen">'
+            '<h2>Neuer Lernlauf</h2><form method="get" action="/lernen/postfach">'
             '<label for="learning-mailbox">Postfach</label>'
             f'<select id="learning-mailbox" name="mailbox">{options}</select>'
             '<label for="learning-folders">Ordner (ein Name je Zeile)</label>'
@@ -209,12 +212,13 @@ class LearningSite:
             return self._rejected(type(exc).__name__, str(exc))
         except (ValueError, KeyError, TypeError) as exc:
             return self._rejected(type(exc).__name__, "Auswahl ungültig oder inzwischen geändert.")
-        return Response.redirect("/lernen")
+        return Response.redirect("/lernen/postfach")
 
     def _rejected(self, error_class: str, reason: str) -> Response:
         self.site.logger.event("WARNING", "learning", "action_rejected", error_class=error_class, reason=reason)
         return Response.html(
             409,
             layout("Lernstand prüfen",
-                   notice(reason, "error") + '<p><a href="/lernen">Lernlauf neu laden</a></p>'),
+                   notice(reason, "error") + '<p><a href="/lernen/postfach">Lernlauf neu laden</a></p>',
+                   active="/lernen"),
         )

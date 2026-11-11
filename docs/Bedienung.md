@@ -56,7 +56,8 @@ keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestät
 
 ### Lernlauf in der Weboberfläche starten
 
-1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`).
+1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`) und
+   „Aus dem Postfach lernen öffnen“ wählen (`/lernen/postfach`). Die Übersicht startet nichts.
 2. Unter **Neuer Lernlauf** das **Postfach** wählen, die **Ordner** (ein Name je Zeile, vorbelegt
    `INBOX`) und die **Anzahl Mails** (1–1000, vorbelegt 20) eintragen.
 3. **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist
@@ -149,7 +150,8 @@ Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.
 
 ### Aus Entscheidungen lernen
 
-Unter Themen den Link „Aus Entscheidungen lernen“ öffnen. Diese Funktion verwendet die
+Unter Lernen „Aus Entscheidungen lernen öffnen“ wählen (`/lernen/entscheidungen`). Auch
+die Themenverwaltung verlinkt diese Seite. Diese Funktion verwendet die
 bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion benötigt den
 Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
 aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie üblich neu laden.

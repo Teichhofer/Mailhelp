@@ -68,6 +68,7 @@ class DecisionRuleMiner:
         proposal = record.get("proposal") or {}
         fields = ("title", "description", "due_date", "start", "end")
         return {"id": identity, "signal": reason,
+                "recorded_at": str(record.get("recorded_at") or "")[:40],
                 "subject": self.redact(str((mail.get("headers") or {}).get("subject", "")))[:200],
                 "text": self.redact(str((mail.get("content") or {}).get("text", "")))[:1000],
                 "topic_ids": [str(key)[:64] for key in relevance.get("topic_ids", [])][:20],
