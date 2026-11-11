@@ -93,7 +93,9 @@ class HelpWindow:
                 if state.receipts[key] != digest:
                     raise ValueError("Schlüssel bereits anders verwendet.")
                 return state
-            if (action not in {"open", "close", "save", "move"} or len(key) != 32
+            # 5.5: the arrow buttons and their "move" action are gone; dragging and the arrow
+            # keys on the title position the window in the browser only.
+            if (action not in {"open", "close", "save"} or len(key) != 32
                     or int(form.get("window_version", "0")) != state.version):
                 raise ValueError("Fensterstand veraltet. Bitte erneut versuchen.")
             draft = form.get("draft", form.get("frage", state.draft))
@@ -103,14 +105,6 @@ class HelpWindow:
                       "expires": min(session.expires_at.timestamp(), self.site.clock().timestamp() + 86400),
                       "setting": self.help.setting(form.get("einstellung", state.setting)),
                       "opened": action != "close", "receipts": dict([*state.receipts.items(), (key, digest)][-32:])}
-            if action == "move":
-                vertical, horizontal = state.corner.split("-")
-                direction = form.get("direction", "")
-                if direction not in {"up", "down", "left", "right"}:
-                    raise ValueError("Ungültige Position.")
-                vertical = {"up": "top", "down": "bottom"}.get(direction, vertical)
-                horizontal = direction if direction in {"left", "right"} else horizontal
-                values["corner"] = vertical + "-" + horizontal
             result = WindowState.model_validate(values)
             if not self.site.auth.active(session.id):
                 raise PermissionError("Sitzung abgelaufen.")
@@ -142,18 +136,12 @@ class HelpWindow:
                 '<path d="M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"/></svg></button></form>'
                 f'<section id="help-window" class="help-{state.corner}" '
                 f'role="region" aria-label="Hilfe zu Einstellungen"{hidden}>'
-                '<header class="help-window-head"><h2>Hilfe zu Einstellungen</h2>'
+                '<header class="help-window-head"><h2 tabindex="0" '
+                'title="Zum Verschieben ziehen oder Pfeiltasten verwenden" '
+                'aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown">Hilfe zu Einstellungen</h2>'
                 '<form method="post" action="/hilfe/fenster">' + fields
                 + '<button name="window_action" value="close" aria-label="Hilfschat schließen">×</button>'
-                '</form></header><form method="post" action="/hilfe/fenster" class="help-move" '
-                'aria-label="Chatfenster verschieben">' + fields
-                + '<input type="hidden" name="window_action" value="move">'
-                '<button name="direction" value="left" data-move="left" aria-label="Chatfenster nach links">←</button>'
-                '<button name="direction" value="right" data-move="right" '
-                'aria-label="Chatfenster nach rechts">→</button>'
-                '<button name="direction" value="up" data-move="up" aria-label="Chatfenster nach oben">↑</button>'
-                '<button name="direction" value="down" data-move="down" '
-                'aria-label="Chatfenster nach unten">↓</button></form>'
+                '</form></header>'
                 '<div id="help-window-content">' + self.help.conversation(session, setting, state.draft, target)
                 + '</div><p id="help-window-status" role="status" aria-live="polite"></p>'
                 '<div id="help-document" hidden><button type="button" data-help-back>Zurück zum Gespräch</button>'

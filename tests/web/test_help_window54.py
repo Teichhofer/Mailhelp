@@ -82,20 +82,31 @@ def test_window54_no_js_question_failure_keeps_the_window_open(web):
     assert 'aria-label="Hilfe zu Einstellungen" hidden' not in response.body.decode()
 
 
-def test_window54_post_targets_use_existing_get_routes_and_position_controls_work_without_js(web):
+def test_window54_post_targets_use_existing_get_routes(web):
     window = web.site.archive.help.window
     assert window.target("/einstellungen/speichern") == "/einstellungen"
     assert window.target("/themen/speichern") == "/themen"
     assert window.target("/dienst/unknown/path") == "/einstellungen"
     assert window.target("/einstellungen?suche=Mail") == "/einstellungen?suche=Mail"
-    for index, (direction, corner) in enumerate((("left", "bottom-left"), ("up", "top-left"),
-                                                ("right", "top-right"), ("down", "bottom-right"))):
+
+
+def test_window55_arrow_buttons_and_fallback_buttons_are_gone(web):
+    # 5.5: dragging and the arrow keys on the title replace the four arrow buttons;
+    # "Antwort prüfen" and "Entwurf behalten" are no longer offered.
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    for removed in ('class="help-move"', "data-move", "Chatfenster nach", "Antwort prüfen", "Entwurf behalten"):
+        assert removed not in page
+    assert '<h2 tabindex="0" title="Zum Verschieben ziehen oder Pfeiltasten verwenden"' in page
+    assert 'aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"' in page
+    for direction in ("left", "up", "invalid"):
         result = web.browser.request("POST", "/hilfe/fenster", fields(
-            web, key=str(index) * 32, window_action="move", direction=direction), accept="application/json")
-        assert result.status == 200 and json.loads(result.body)["ui"]["corner"] == corner
-    result = web.browser.request("POST", "/hilfe/fenster", fields(
-        web, key="e" * 32, window_action="move", direction="invalid"), accept="application/json")
-    assert result.status == 409
+            web, key="e" * 32, window_action="move", direction=direction), accept="application/json")
+        assert result.status == 409
+    # A state saved by 5.4 with a moved corner still loads.
+    session = web.auth.sessions()[0]
+    web.store.save(window_name(session.id), WindowState(opened=True, corner="top-left",
+                                                        expires=9999999999).model_dump())
+    assert 'class="help-top-left"' in web.browser.request("GET", "/einstellungen").body.decode()
 
 
 def test_window54_invalid_actions_and_authorization(web, monkeypatch):

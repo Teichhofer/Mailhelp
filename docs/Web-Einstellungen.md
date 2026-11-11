@@ -377,8 +377,8 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 - **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach
   24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten
   Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.
-- **Fenster bedienen:** Den Kopf ziehen oder die vier Richtungsschaltflächen im Fenster verwenden,
-  um es zu verschieben. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.
+- **Fenster bedienen:** Den Kopf ziehen, um das Fenster zu verschieben. Per Tastatur den Titel
+  „Hilfe zu Einstellungen“ fokussieren und die Pfeiltasten verwenden. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.
   **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape
   schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.
 - **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den
@@ -387,8 +387,10 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
   serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben
   Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.
 - **Ohne Browserspeicher/JavaScript:** Ein serverseitiger Zustand erhält das geöffnete Fenster.
-  Ohne JavaScript **Entwurf behalten** vor einem Seitenwechsel verwenden und **Antwort prüfen**
-  zum Lesen neuer Antworten. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch
+  Ohne JavaScript bleibt eine ungesendete Frage bei einem Seitenwechsel nicht erhalten; eine neue
+  Antwort erscheint beim nächsten Seitenaufruf oder Neuladen. Das Fenster lässt sich dann nicht
+  verschieben; verdeckt es eine Schaltfläche, das Suchfeld mit der Eingabetaste absenden oder das
+  Fenster schließen. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch
   neu geladen. Bei gesperrtem Browserspeicher sichert JavaScript den Entwurf vor Navigation;
   scheitert die Sicherung, bleibt die aktuelle Seite erhalten und zeigt den Fehler.
 - **Ablauf:** Pro Chat läuft eine Frage; mit JavaScript wird nur das Fenster aktualisiert.

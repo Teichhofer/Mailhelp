@@ -84,22 +84,21 @@ def test_window54_answer_preserves_the_background_form_and_sources_open_inside(p
     assert page.errors == []
 
 
-def test_window54_no_javascript_open_draft_search_and_close(page, mailhelp):
+def test_window54_no_javascript_open_search_and_close(page, mailhelp):
     page.cdp.send("Emulation.setScriptExecutionDisabled", {"value": True})
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/einstellungen")
     page.get_by_role("button", name="Hilfschat öffnen", exact=True).click()
     window = page.get_by_role("region", name="Hilfe zu Einstellungen", exact=True)
     expect(window).to_be_visible()
-    page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Entwurf ohne JavaScript")
-    page.get_by_role("button", name="Entwurf behalten", exact=True).click()
+    # 5.5: without JavaScript there is no "Entwurf behalten"; the window itself stays open.
+    expect(page.get_by_role("button", name="Entwurf behalten", exact=True)).to_have_count(0)
+    search = page.get_by_role("searchbox", name="Einstellung suchen")
+    search.fill("Zeitzone")
+    # On small screens the window may cover "Suchen"; the field itself submits with Enter.
+    search.press("Enter")
+    page.wait_for_url(mailhelp.url + "/einstellungen?suche=Zeitzone")
     expect(window).to_be_visible()
-    if page.mobile:
-        page.get_by_role("button", name="Chatfenster nach oben", exact=True).click()
-    page.get_by_role("searchbox", name="Einstellung suchen").fill("Zeitzone")
-    page.get_by_role("button", name="Suchen", exact=True).click()
-    expect(window).to_be_visible()
-    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf ohne JavaScript")
     page.get_by_role("button", name="Hilfschat schließen", exact=True).click()
     expect(window).to_be_hidden()
 
@@ -127,10 +126,20 @@ def test_window54_keyboard_position_and_drag_are_restored(page, mailhelp):
     page.goto(mailhelp.url + "/einstellungen")
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     panel = page.locator("#help-window")
-    page.get_by_role("button", name="Chatfenster nach links", exact=True).click()
-    page.get_by_role("button", name="Chatfenster nach oben", exact=True).click()
-    page.get_by_role("button", name="Chatfenster nach rechts", exact=True).click()
-    page.get_by_role("button", name="Chatfenster nach unten", exact=True).click()
+    # 5.5: the focusable title moves the window with the arrow keys; other keys do nothing.
+    title = page.locator(".help-window-head h2")
+    start = panel.bounding_box()
+    title.focus()
+    page.keyboard.press("ArrowUp")
+    assert panel.bounding_box()["y"] < start["y"] - 30
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("a")
+    assert abs(panel.bounding_box()["y"] - start["y"]) <= 2
+    page.keyboard.press("ArrowLeft")
+    left = panel.bounding_box()["x"]
+    assert left <= start["x"]  # never beyond the visible area on a narrow screen
+    page.keyboard.press("ArrowRight")
+    assert panel.bounding_box()["x"] >= left
     head = page.locator(".help-window-head h2").bounding_box()
     page.mouse.move(head["x"] + 10, head["y"] + 10)
     page.mouse.down()

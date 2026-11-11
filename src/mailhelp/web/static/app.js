@@ -1,6 +1,23 @@
 // Mailhelp web interface: comfort functions only. Every page also works without this file.
 "use strict";
 
+// 5.5: idempotency keys also over plain HTTP in the home network. crypto.randomUUID exists
+// only in secure contexts; getRandomValues also outside them.
+function randomHexKey() {
+  var cryptography = window.crypto;
+  if (cryptography && typeof cryptography.randomUUID === "function") {
+    return cryptography.randomUUID().replace(/-/g, "");
+  }
+  var hex = "";
+  if (cryptography && typeof cryptography.getRandomValues === "function") {
+    var bytes = cryptography.getRandomValues(new Uint8Array(16));
+    for (var index = 0; index < bytes.length; index++) hex += (bytes[index] < 16 ? "0" : "") + bytes[index].toString(16);
+    return hex;
+  }
+  while (hex.length < 32) hex += Math.floor(Math.random() * 0x10000).toString(16).padStart(4, "0");
+  return hex;
+}
+
 (function () {
   var HEALTH_INTERVAL = 30000;
   var REFRESH_INTERVAL = 15000;
@@ -607,7 +624,7 @@
       return enable ? subscribe(registration) : registration.pushManager.getSubscription();
     }).then(function (value) {
       subscription = value;
-      var body = new URLSearchParams({csrf: controls.dataset.csrf, key: crypto.randomUUID()});
+      var body = new URLSearchParams({csrf: controls.dataset.csrf, key: randomHexKey()});
       if (enable) body.set("subscription", JSON.stringify(subscription.toJSON()));
       return fetch("/api/push/" + (enable ? "subscribe" : "unsubscribe"),
                    {method: "POST", credentials: "same-origin", body: body});
@@ -809,7 +826,7 @@
         body.set("window_version", data.ui.version);
         body.set("window_action", state.opened ? "save" : "close");
         body.set("draft", state.draft); body.set("einstellung", state.setting);
-        body.set("key", crypto.randomUUID().replace(/-/g, ""));
+        body.set("key", randomHexKey());
         var draft = state.draft;
         return json("/hilfe/fenster", body).then(function () { if (state.draft === draft) unsaved = false; });
       });
@@ -916,14 +933,6 @@
   }
   root.addEventListener("click", function (event) {
     if (event.target.closest("[data-help-back]")) { docSequence++; doc.hidden = true; content.hidden = false; }
-    var move = event.target.closest("[data-move]");
-    if (move) {
-      event.preventDefault();
-      var box = panel.getBoundingClientRect(), direction = move.dataset.move;
-      place(box.x + (direction === "left" ? -40 : direction === "right" ? 40 : 0),
-        box.y + (direction === "up" ? -40 : direction === "down" ? 40 : 0));
-      store(true);
-    }
   });
   document.addEventListener("submit", function (event) {
     var form = event.target;
@@ -936,9 +945,6 @@
       return;
     }
     event.preventDefault();
-    if (event.submitter && event.submitter.value === "save") {
-      fallback().then(function () { message.textContent = "Entwurf behalten."; }).catch(failure); return;
-    }
     if (form.action.endsWith("/hilfe/fenster")) {
       var action = event.submitter.value;
       if (action === "open") { open(event.submitter); return; }
@@ -964,6 +970,15 @@
     if (drag) { place(event.clientX - drag.x, event.clientY - drag.y); store(true); }
   });
   head.addEventListener("pointerup", function () { drag = null; });
+  // 5.5: without the arrow buttons the focusable title moves the window with the arrow keys.
+  var STEPS = {ArrowLeft: [-40, 0], ArrowRight: [40, 0], ArrowUp: [0, -40], ArrowDown: [0, 40]};
+  head.querySelector("h2").addEventListener("keydown", function (event) {
+    var step = STEPS[event.key];
+    if (!step) return;
+    event.preventDefault();
+    var box = panel.getBoundingClientRect();
+    place(box.x + step[0], box.y + step[1]); store(true);
+  });
   function resize() { place(state.x, state.y); }
   window.addEventListener("resize", resize);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);

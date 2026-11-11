@@ -42,13 +42,15 @@ Inhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.
 
 ## Hilfschat im Einstellungsfenster
 
-Das Fenster bleibt bei Suche und Speichern geöffnet. Ist es im Weg, den Kopf ziehen oder die
-vier Richtungsschaltflächen verwenden. Nur **Hilfschat schließen** blendet es aus;
-**Chat leeren** entfernt den Verlauf. Erscheint eine Antwort nicht, **Antwort prüfen** wählen.
+Das Fenster bleibt bei Suche und Speichern geöffnet. Ist es im Weg, den Kopf ziehen oder den
+Titel fokussieren und die Pfeiltasten verwenden. Nur **Hilfschat schließen** blendet es aus;
+**Chat leeren** entfernt den Verlauf. Erscheint eine Antwort nicht, die Seite neu laden.
 Keine Frage wegen eines Seitenwechsels erneut senden: Mailhelp zeigt den vorhandenen Auftrag.
 
 Ist Browserspeicher gesperrt, sichert Mailhelp den Fensterstand vor Navigation auf dem lokalen
 Server. Bei einem Fehler bleibt die Seite mit dem Entwurf erhalten; Verbindung prüfen und
-erneut versuchen. Ohne JavaScript vor einem Seitenwechsel **Entwurf behalten** wählen.
+erneut versuchen. Ohne JavaScript bleibt eine ungesendete Frage beim Seitenwechsel nicht erhalten.
+Erscheint „crypto.randomUUID is not a function“ (Mailhelp über `http://` im Heimnetz vor 5.5),
+auf 5.5 aktualisieren; seither erzeugt Mailhelp die Schlüssel auch ohne sicheren Kontext.
 Nach Abmeldung oder Sitzungsablauf erneut anmelden; alte private Chatdaten werden nicht aus
 dem Browserzustand einer neuen Sitzung übernommen.

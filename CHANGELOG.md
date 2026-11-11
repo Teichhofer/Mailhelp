@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.5.0 – Hilfschat: Schlüssel über HTTP, aufgeräumte Bedienelemente (Planung 5.5, S1)
+
+- Behoben: Beim Aufruf über `http://` im Heimnetz (kein sicherer Kontext) zeigte das Chatfenster
+  „crypto.randomUUID is not a function“, und der Entwurf wurde nicht gesichert. Schlüssel entstehen
+  jetzt über `crypto.randomUUID`, sonst `crypto.getRandomValues`, sonst eine Zufallsfolge
+  (Regressionstests im Browser für beide Fälle).
+- Die vier Pfeilschaltflächen zum Verschieben entfallen. Das Fenster wird an der Kopfzeile
+  gezogen; per Tastatur verschiebt der fokussierte Titel es mit den Pfeiltasten.
+- „Antwort prüfen“ und „Entwurf behalten“ entfallen. Der Entwurf wird beim Tippen gesichert;
+  ohne JavaScript erscheinen neue Antworten beim nächsten Seitenaufruf.
+- Anleitungen, Fehlerhilfe, Spezifikation und ausgelieferter Hilfebestand angepasst.
+
 ## 5.4.1 – Abschluss der Hilfschat-Überarbeitung und Korrekturen aus der 5.3-Prüfung
 
 - Regressionen behoben: Leeren entfernt Fragen und Feldbezüge auch aus gespeicherten

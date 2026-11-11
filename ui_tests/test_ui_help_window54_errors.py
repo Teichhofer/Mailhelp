@@ -131,17 +131,15 @@ def test_window54_changed_session_scope_and_polling_errors_are_safe(page, mailhe
     assert page.evaluate("sessionStorage.getItem('mailhelp.help-window.v1')") is None
 
 
-def test_window54_legacy_link_explicit_draft_save_and_viewport_fallback(page, mailhelp):
+def test_window54_legacy_link_and_viewport_fallback(page, mailhelp):
     page.add_init_script("Object.defineProperty(window, 'visualViewport', {value: undefined});")
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/hilfe?einstellung=poll_interval_seconds")
     expect(window(page)).to_be_visible()
     expect(page.page).to_have_url(mailhelp.url + "/einstellungen")
     expect(page.get_by_text("Bezug: Abrufintervall (Sekunden)")).to_be_visible()
-    page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Explizit behalten")
-    page.get_by_role("button", name="Entwurf behalten", exact=True).click()
-    expect(page.locator("#help-window-status")).to_have_text("Entwurf behalten.")
-    page.get_by_role("button", name="Chatfenster nach links", exact=True).click()
+    page.locator(".help-window-head h2").focus()
+    page.keyboard.press("ArrowLeft")
     page.set_viewport_size({"width": 360, "height": 640})
     box = page.locator("#help-window").bounding_box()
     assert 0 <= box["x"] and box["x"] + box["width"] <= 360
@@ -220,16 +218,17 @@ def test_window54_failed_fallback_warns_before_unload_and_recovers_on_link_navig
     page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Entwurf bleibt hier")
     page.route("**/hilfe/fenster", lambda route: route.fulfill(status=503, content_type="application/json",
                                                              body='{"error":"Speicher gesperrt"}'))
-    page.get_by_role("button", name="Entwurf behalten", exact=True).click()
+    # 5.5: typing saves automatically; there is no "Entwurf behalten" any more.
+    page.get_by_label("Deine Frage zu Einstellungen und Bedienung").press_sequentially(" hier")
     expect(page.locator("#help-window-status")).to_contain_text("Speicher gesperrt")
     assert page.evaluate("""() => {
       const event = new Event('beforeunload', {cancelable: true});
       window.dispatchEvent(event); return event.defaultPrevented;
     }""")
-    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier")
+    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier hier")
     page.unroute("**/hilfe/fenster")
     nav = page.get_by_role("navigation", name="Einstellungsbereiche")
     navigate_collected(page, mailhelp, nav.get_by_role("link", name="Mailabruf", exact=True))
     expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=abruf")
     expect(window(page)).to_be_visible()
-    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier")
+    expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier hier")

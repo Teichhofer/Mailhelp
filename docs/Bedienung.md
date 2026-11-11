@@ -58,11 +58,13 @@ Während die Antwort entsteht, kannst du suchen, Werte bearbeiten und Änderunge
 und speichern. Der Chat bleibt geöffnet; Antworten laden die Einstellungsseite nicht neu.
 
 Quellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt zum Verlauf zurück. Den Kopf
-ziehen oder die Richtungsschaltflächen verwenden, um verdeckte Einstellungen freizugeben.
+ziehen (oder den Titel fokussieren und die Pfeiltasten verwenden), um verdeckte Einstellungen
+freizugeben.
 **Hilfschat schließen** blendet das Fenster aus. Beim Wiederöffnen sind Gespräch und Entwurf
 noch vorhanden, solange die Sitzung und Aufbewahrung gelten. **Chat leeren** verwirft die Inhalte
-und hält das Fenster offen. Ohne JavaScript vor Navigation **Entwurf behalten** und zum Lesen
-neuer Antworten **Antwort prüfen** wählen. Der Chat erklärt nur und verändert selbst keine Daten.
+und hält das Fenster offen. Die ungesendete Frage sichert Mailhelp beim Tippen automatisch;
+ohne JavaScript erscheinen neue Antworten beim nächsten Seitenaufruf. Der Chat erklärt nur und
+verändert selbst keine Daten.
 
 ### Seitenübersicht
 

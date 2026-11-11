@@ -123,9 +123,7 @@ class HelpSite:
                 '<p class="meta">Frage, kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an '
                 'den aktiven KI-Anbieter und können Kosten verursachen. Keine Passwörter oder Tokens eingeben. '
                 'Der Hilfschat erklärt nur; er ändert keine Einstellungen.</p>'
-                '<button class="button primary" type="submit">Frage senden</button>'
-                '<button type="submit" formaction="/hilfe/fenster" name="window_action" value="save" '
-                'formnovalidate>Entwurf behalten</button></form>')
+                '<button class="button primary" type="submit">Frage senden</button></form>')
 
     def page(self, request: Request, session: WebSession) -> Response:
         setting = self.setting(parse_qs(request.query).get("einstellung", [""])[0][:200])
@@ -164,9 +162,7 @@ class HelpSite:
                      '<button class="button" type="submit">Chat leeren</button></form>')
         return (f'<div class="help-chat" id="chat">{turns}{progress}</div>'
                 + self._form(csrf, state.version, setting, draft, target, self.window.state(session).version)
-                + clear + '<form method="post" action="/hilfe/fenster">'
-                + self.window.fields(session, self.window.state(session), target)
-                + '<button name="window_action" value="open">Antwort prüfen</button></form>')
+                + clear)
 
     def window_data(self, request: Request, session: WebSession) -> Response:
         import hashlib

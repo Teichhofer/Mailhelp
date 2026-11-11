@@ -828,8 +828,7 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 #help-window.help-top-left, #help-window.help-top-right { top: 8px; bottom: auto; }
 #help-window.help-top-left, #help-window.help-bottom-left { left: 8px; right: auto; }
 .help-window-head button { min-width: 44px; min-height: 44px; font-size: 1.3rem; }
-.help-move { display: flex; gap: 4px; padding: 2px 8px; }
-.help-move button { min-height: 44px; min-width: 44px; padding: 4px; }
+.help-window-head h2:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 #help-window-content, #help-document { padding: 8px 12px; overflow-y: auto; min-height: 0; }
 #help-window-content { flex: 1; }
 #help-window-content .help-chat { margin: 0; }

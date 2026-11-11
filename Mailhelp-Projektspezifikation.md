@@ -3612,8 +3612,8 @@ Sitzungstoken oder den kompletten Verlauf. Ein Sitzungswechsel verwirft die loka
 Schließen blendet das Fenster aus; Leeren verwirft Inhalt und Entwurf bei geöffnetem Fenster.
 Bestehende Aufträge werden nach Navigation wieder gelesen, nicht automatisch neu gesendet.
 Quellen werden innerhalb des Fensters gelesen. Ohne JavaScript erhalten geschützte Formulare
-den Öffnungszustand; ungesendeten Text erhält ausdrücklich „Entwurf behalten“, „Antwort prüfen“
-liest neue Antworten. Alte `/hilfe`-Links führen in die Einstellungsübersicht mit offenem Fenster.
+den Öffnungszustand; neue Antworten erscheinen beim nächsten Seitenaufruf (seit 5.5 ohne
+„Entwurf behalten“ und „Antwort prüfen“). Alte `/hilfe`-Links führen in die Einstellungsübersicht mit offenem Fenster.
 Der Chat verwendet die bestehende LLM-Anbindung und besitzt keine Schreibwerkzeuge.
 
 ### Korrekturen aus der 5.3-Abnahme (5.4.1)
@@ -3633,3 +3633,21 @@ Datei- und Sonderseiteneinstellungen werden aus der geprüften Einstellungsrefer
 Bedienweg und einem lokalen Dokumentationsziel erzeugt (`helpdocs/settings.json`); sie werden
 nicht als allgemeines Webformular angeboten. Fehlt diese zusätzliche Paketressource, bleibt
 die Suche in den allgemeinen Einstellungsbereichen benutzbar.
+
+## Hilfschat-Feinabstimmung (5.5)
+
+Planung: [Planung 5.5](docs/Planung-5.5.md).
+
+### Bedienelemente und Schlüssel (5.5.0)
+
+Das Fenster wird per Kopfzeile gezogen oder per Tastatur verschoben: Der fokussierbare Titel
+verschiebt es mit den Pfeiltasten um je 40 Pixel innerhalb des sichtbaren Bereichs. Die vier
+Richtungsschaltflächen und die serverseitige Aktion `move` entfallen; ein gespeicherter
+`corner`-Wert älterer Zustände wird weiter gelesen. „Entwurf behalten“ und „Antwort prüfen“
+entfallen. Im JavaScript-Betrieb wird der Entwurf beim Tippen gesichert; ohne JavaScript bleibt
+ein ungesendeter Entwurf beim Seitenwechsel nicht erhalten.
+
+Idempotenzschlüssel der Weboberfläche erzeugt `randomHexKey()` als 32 Hexadezimalzeichen:
+`crypto.randomUUID` im sicheren Kontext, sonst `crypto.getRandomValues`, sonst eine
+nicht kryptografische Zufallsfolge. Diese Schlüssel verhindern Doppelaktionen und sind keine
+Geheimnisse; Autorisierung leisten weiterhin Sitzung und CSRF.
