@@ -4,7 +4,8 @@
 **Stand:** 8. November 2026
 **Status:** Vollständig umgesetzt und abgenommen in 4.9.6; siehe [Release-Bericht](Release-4.9.md).
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
-**Vorgänger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)
+**Vorgänger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)  
+**Nachfolger:** [Planung 5.0](Planung-5.0.md) (Modernes UI-Facelift & Power-User-Erlebnis)
 
 ---
 
