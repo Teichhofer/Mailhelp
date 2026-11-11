@@ -54,7 +54,7 @@ Mails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu igno
 und zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen
 keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.
 
-Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Übersicht zeigt zwei Karten mit
+Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Lernübersicht zeigt zwei Karten mit
 Zweck, aktuellem Stand und einem Kostenhinweis: **Aus dem Postfach lernen** (der Lernlauf unten)
 und **Aus Entscheidungen lernen** (Regeln aus deinen bisherigen Entscheidungen verbessern, siehe
 [Aus Entscheidungen lernen](#aus-entscheidungen-lernen)). Das Öffnen der Übersicht oder einer
@@ -125,7 +125,8 @@ Aufbewahrung regelt `retention.decision_learning_days` (Standard unbegrenzt).
 
 ### Aus Entscheidungen lernen
 
-Unter Lernen „Aus Entscheidungen lernen öffnen“ wählen (`/lernen/entscheidungen`). Auch
+Das Regellernen findest du unter Lernen: „Aus Entscheidungen lernen öffnen“ wählen
+(`/lernen/entscheidungen`). Auch
 die Themenverwaltung (Einstellungen → Themen) verlinkt diese Seite. Diese Funktion verwendet die
 bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion benötigt den
 Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
@@ -137,7 +138,7 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
 2. Nach Abschluss oben die Zusammenfassung lesen; die Links springen zu den einzelnen
    Vorschlägen. In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
    neue und entfernte Beispiele sind mit „+ neu“ und „− entfernt“ markiert, unveränderte Felder
-   lassen sich aufklappen. „Entscheidungsbelege“ listet Betreff, Entscheidung und Datum; der
+   öffnet „Unveränderte Felder anzeigen“. „Entscheidungsbelege“ listet Betreff, Entscheidung und Datum; der
    Auszug öffnet sich mit „Auszug anzeigen“. Eine abgelehnte Aufgabe macht
    ihre Mail nicht automatisch irrelevant; „bereits erledigt“ bleibt ein positives Beispiel.
 3. Name, Beschreibung, Beispiele, Ausschlüsse und Aktivierung bei Bedarf ändern. Beispiele

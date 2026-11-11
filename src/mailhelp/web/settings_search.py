@@ -34,6 +34,8 @@ SYNONYMS: tuple[tuple[str, ...], ...] = (
     ("neustart", "neu starten", "restart"),
     # 5.5.6: "Lernfunktion", "lernt" or "Lernlauf" reach the learning mode and its settings.
     ("lernen", "lernt", "lernmodus", "lernlauf", "lernfunktion", "lernbestand", "learn"),
+    # 5.7.4: "Regellernen" and "Lernübersicht" reach the learning area.
+    ("regellernen", "lernuebersicht"),
 )
 
 
@@ -103,7 +105,7 @@ PAGES: tuple[tuple[str, str, str, str, str], ...] = (
      "Verbindungen Schritt für Schritt einrichten"),
     ("page:diagnose", "Diagnose", "Konten und Verbindungen", "/diagnose", "Zugriffe lesend prüfen"),
     ("page:themen", "Themen", "Inhalte und Benachrichtigungen", "/themen",
-     "Relevante und irrelevante Themen pflegen"),
+     "Relevante und irrelevante Themen pflegen; Thema bearbeiten, Themen suchen, neues Thema mit Vorschau"),
     ("page:ignorierte-absender", "Ignorierte Absender", "Inhalte und Benachrichtigungen",
      "/einstellungen/ignorierte-absender", "Absender und Domains ausblenden"),
     ("page:benachrichtigungsprofil", "Benachrichtigungsprofil", "Inhalte und Benachrichtigungen",

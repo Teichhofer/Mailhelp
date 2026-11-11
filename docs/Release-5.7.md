@@ -9,7 +9,7 @@ Die Arbeitspakete werden einzeln als 5.7.0–5.7.5 committet.
 | S2: Themenübersicht | 5.7.1 | umgesetzt, gezielt abgenommen |
 | S3: Themenbearbeitung mit Vorschau | 5.7.2 | umgesetzt, gezielt abgenommen |
 | S4: Gemeinsame Gestaltung | 5.7.3 | umgesetzt, gezielt abgenommen |
-| S5: Dokumentation und Hilfe | 5.7.4 | ausstehend |
+| S5: Dokumentation und Hilfe | 5.7.4 | umgesetzt, gezielt abgenommen |
 | S6: Gesamtabnahme | 5.7.5 | ausstehend |
 
 ## S1 – Lernen an einem Ort
@@ -94,3 +94,23 @@ Vergleich, Zusammenfassung, Belege und Auswahlzähler; die nicht mehr benötigte
 `value_text` wurde durch den gemeinsamen Vergleich ersetzt und ihr Test übertragen. 25 Browserprüfungen
 für Regellernen, Themenbearbeitung und Lernlauf auf Desktop/Mobil/schmal mit Barrierefreiheitsprüfung
 (axe, WCAG 2.1 AA), mit und ohne JavaScript. `learning.js` ist Teil der verbindlichen Browser-Coverage.
+
+## S5 – Dokumentation, Hilfe und Suche
+
+Bedienungsanleitung, Web-Einstellungen, Projektspezifikation, README und CHANGELOG
+beschreiben die neuen Wege. Der Abschnitt „Aus Entscheidungen lernen“ steht jetzt im
+Lernkapitel der Bedienungsanleitung statt unter „Weitere Seiten“; seine Kennung bleibt gleich.
+Der Hilfebestand wurde neu erzeugt. Neue deterministische Prüfungen stellen sicher, dass
+Fragen zum Regellernen, zur Lernübersicht, zur Themenbearbeitung und zur Themensuche die
+passenden Abschnitte erreichen und die Anleitung die tatsächlichen Bedienelemente nennt.
+
+Während der Umsetzung verdrängte das zunächst geplante Synonym „Themenregeln“ wegen seines
+Wortstamms („theme“) bei der bestehenden Frage „Wie übernehme ich die gelernten Themen?“ den
+richtigen Abschnitt vom ersten Platz. Die bestehende Regression aus 5.5.6 erkannte das; das
+Synonym wurde entfernt. „Themenregeln“ findet die Seite weiterhin über ihre Beschreibung.
+
+Nicht durchgeführt: die in der Planung genannte Prüfung des Hilfschats mit dem echten,
+kostenpflichtigen Modell. Sie erfordert eine ausdrückliche Freigabe für einen bezahlten Lauf
+und kann mit dem Prüfskript aus 5.5.7 nachgeholt werden.
+
+Abnahme S5: 1590 Unit- und Webprüfungen bestanden, darunter 11 neue Prüfungen für Hilfe und Suche.

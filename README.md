@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.7.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.7.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
 **Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand

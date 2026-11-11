@@ -1,5 +1,14 @@
 # Änderungen
 
+## 5.7.4 – Dokumentation, Hilfe und Suche (S5)
+
+- Bedienungsanleitung: „Aus Entscheidungen lernen“ steht jetzt im Kapitel zum Lernen, zusammen
+  mit Lernübersicht, Lernlauf und Lernbestand; Seitenübersicht um Lernen und Themen ergänzt.
+- Hilfebestand neu erzeugt. Fragen wie „Wo finde ich das Regellernen?“, „Was zeigt die
+  Lernübersicht?“ oder „Wie bearbeite ich ein Thema?“ erreichen die passenden Abschnitte.
+- Einstellungssuche: „Regellernen“ und „Lernübersicht“ als Synonyme; „Thema bearbeiten“ findet
+  die Themenseite.
+
 ## 5.7.3 – Einheitliche Gestaltung der Lernseiten (S4)
 
 - Gemeinsamer Vergleich „bisher/neu“ für Themenvorschau und Regellernen: nur geänderte

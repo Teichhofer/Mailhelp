@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.3. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3821,3 +3821,12 @@ Formularfelder, Validierung und Schreibpfad bleiben unverändert.
 
 Das Startformular des Lernlaufs gruppiert Postfach und Ordner, Umfang sowie Kosten und
 Budget in Feldgruppen; die Parameter und die Schätzung bleiben unverändert.
+
+### Dokumentation, Hilfe und Suche (5.7.4, S5)
+
+Die Bedienungsanleitung führt Lernübersicht, Lernlauf, Lernbestand und „Aus Entscheidungen
+lernen“ in einem Kapitel. Der Hilfebestand wird daraus erzeugt; die Abschnittskennungen
+bleiben stabil (`bedienung/aus-entscheidungen-lernen`, `web-einstellungen/thema-bearbeiten`,
+`web-einstellungen/themenuebersicht`). Die Einstellungssuche ergänzt die Synonymgruppe
+„Regellernen / Lernübersicht“; die Themenseite ist zusätzlich über „Thema bearbeiten“,
+„Themen suchen“ und „neues Thema“ auffindbar.

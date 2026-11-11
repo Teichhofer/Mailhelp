@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 11. November 2026, Anwendungsversion 5.7.3; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 11. November 2026, Anwendungsversion 5.7.4; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 ## Themenübersicht
 
@@ -21,7 +21,7 @@ Ausschlüssen steht ein Eintrag je Zeile; ein Semikolon bleibt Teil des Eintrags
    ersten Speichern geändert werden. Die ID eines bestehenden Themas bleibt fest.
 3. „Änderung prüfen“ wählen. Die Vorschau zeigt je geändertem Feld den bisherigen und den
    neuen Wert; neue und entfernte Beispiele sind mit „+ neu“ und „− entfernt“ markiert,
-   unveränderte Felder lassen sich aufklappen. Die Vorschau speichert noch nichts.
+   unveränderte Felder öffnet „Unveränderte Felder anzeigen“. Die Vorschau speichert noch nichts.
 4. „Änderung ausdrücklich speichern“ ankreuzen und „Änderung speichern“ wählen. Mit
    „Weiter bearbeiten“ geht es ohne Speichern zurück.
 
