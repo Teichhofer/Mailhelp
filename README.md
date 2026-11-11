@@ -13,13 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.7.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.7.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
 **Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand
 und öffnet die Funktionen ohne einen Modellaufruf. Alte Formulare benötigen nach dem
-Update eine neue Bestätigung. Die Themenverwaltung wird in den folgenden Arbeitspaketen
-überarbeitet. Stand und Nachweise: [Release 5.7](docs/Release-5.7.md).
+Update eine neue Bestätigung. Ab 5.7.1 zeigt die Themenverwaltung eine kompakte Übersicht
+mit Reitern, Suche, Statusfiltern und Einzelbearbeitung. Postfachbereiche und Semikolons
+in Beispielen bleiben beim Bearbeiten erhalten. Stand und Nachweise:
+[Release 5.7](docs/Release-5.7.md).
 
 Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des
 lokalen Entscheidungsprotokolls. Erst nach ausdrücklicher Freigabe werden begrenzte

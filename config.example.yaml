@@ -198,6 +198,8 @@ vision:
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
+  # Themenpflege: /themen mit Suche und Statusfilter; Bearbeitung auf einer eigenen Seite.
+  # Vorhandene Postfachbereiche werden dabei unverändert erhalten.
   # 5.7: /lernen bündelt Postfachlernen und /lernen/entscheidungen.
   # Regellernen wertet vorhandene Entscheidungen aus, ohne Mails abzurufen.
   # Erst die ausdrückliche Webfreigabe startet die kostenpflichtige Analyse über

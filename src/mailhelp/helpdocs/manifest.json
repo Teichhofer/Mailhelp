@@ -1,12 +1,12 @@
 {
- "app_version": "5.7.0",
- "revision": "0df7cde58585329f8cc3253ca5643400674cc6a5e47c3cd9d15e10a7ce63d5c7",
+ "app_version": "5.7.1",
+ "revision": "0db93ccd5ff61d52d36dd0ace6798df7f2323f37b66918c6e776bd5a37cbb77a",
  "schema_version": 1,
- "sections": 89,
+ "sections": 90,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
-   "sha256": "40b06877b65329ca85d6fd51e3bc76b9973e9d78c3bb339ab02d00420319fdd7"
+   "sha256": "bb84d71d1bc4d2dbed36e539abe836d7eacc65c3ade52e4d8d1a7a16003fda60"
   },
   {
    "path": "docs/Ersteinrichtung.md",

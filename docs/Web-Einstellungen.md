@@ -1,6 +1,21 @@
 # Einstellungen der Weboberfläche
 
-Stand: 11. November 2026, Anwendungsversion 5.7.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 11. November 2026, Anwendungsversion 5.7.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+
+## Themenübersicht
+
+`/themen` zeigt relevante Themen und Ausschlussthemen in getrennten Reitern mit Anzahlen.
+Suche durchsucht Name, ID, Beschreibung, Beispiele und Ausschlüsse; der Statusfilter zeigt
+alle, aktive oder deaktivierte Themen. Ohne JavaScript „Themen suchen“ wählen, mit JavaScript
+wird sofort gefiltert. Die Tabelle wird auf kleinen Bildschirmen zur Kartenliste.
+Deaktivierte Themen stehen am Ende. „Änderung ausstehend“ markiert wartende Themenbefehle.
+„Bearbeiten“ und „Neues Thema“ öffnen jeweils eine eigene Seite. Bestehende Postfachbereiche
+werden nur angezeigt und beim Speichern aus der aktuellen Datei erhalten. In Beispielen und
+Ausschlüssen steht ein Eintrag je Zeile; ein Semikolon bleibt Teil des Eintrags.
+
+Ausschlussthemen sind negative Kategorien für Lern- und Entscheidungstests. Im normalen
+Mailbetrieb wirken die relevanten Themen und ihre Ausschlüsse; die Datei ist kein weiterer
+globaler Vorfilter.
 
 Ab 5.7 bündelt Lernen (`/lernen`) die Funktionen „Aus dem Postfach lernen“
 (`/lernen/postfach`) und „Aus Entscheidungen lernen“ (`/lernen/entscheidungen`).

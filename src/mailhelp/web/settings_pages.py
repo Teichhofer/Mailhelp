@@ -384,28 +384,3 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str) -> str:
     hidden = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
     body += f'<p>{e(form["name"])} →</p><pre>{e(form["value"])}</pre>'
     return body + post_form(route, csrf, "", "Änderung ausdrücklich speichern", confirm="yes", **hidden)
-
-
-def _topic_value(value: object) -> object:
-    """Topic lists as "a; b", booleans as "true"/"false", everything else unchanged."""
-    if isinstance(value, list):
-        return "; ".join(value)
-    return str(value).lower() if isinstance(value, bool) else value
-
-
-def topics_page(files: list[tuple[str, str, dict[str, Any], str]], csrf: str) -> str:
-    """One form per topic and an empty one per file; *files* are (category, name, content, hash)."""
-    body = ('<h1>Themen</h1><section class="card"><p>Regeln aus Ihren Entscheidungen verbessern.</p>'
-            '<p><a class="button" href="/lernen/entscheidungen">Aus Entscheidungen lernen</a></p></section>'
-            '<p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue '
-            'Analysen; unabhängige Absender-Vorfilter bleiben erhalten.</p>')
-    empty = {"id": "", "name": "", "enabled": True, "description": "", "examples": [], "exclusions": []}
-    for category, filename, raw, revision in files:
-        body += f'<h2>{e(filename)}</h2>'
-        for topic in [*raw["topics"], empty]:
-            fields = "".join(field(key, key, _topic_value(value)) for key, value in topic.items())
-            fields += ('<label><input type="checkbox" name="confirm" value="yes" required> '
-                       'Änderung ausdrücklich speichern</label>')
-            body += post_form("/themen/speichern", csrf, fields, category=category, expected_hash=revision,
-                              original_id=topic["id"])
-    return body

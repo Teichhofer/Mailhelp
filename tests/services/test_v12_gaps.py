@@ -533,7 +533,7 @@ def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
     from mailhelp.llm.learning import save_topics
     from mailhelp.models import LearnedCategory
     configure(web, tmp_path)
-    form = web.form("/themen", action="/themen/speichern", original_id="")
+    form = web.form("/themen/relevant/neu", action="/themen/speichern", original_id="")
     # The learning mode adds a topic while the form is open in the browser.
     existing = [Topic.model_validate(item) for item in
                 yaml.safe_load((tmp_path / "topics.yaml").read_text(encoding="utf-8"))["topics"]]

@@ -164,6 +164,8 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
 | `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
+| `/themen/relevant/{identity}` | Relevantes Thema einzeln bearbeiten oder anlegen | Web-Einstellungen |
+| `/themen/ausschluss/{identity}` | Ausschlussthema einzeln bearbeiten oder anlegen | Web-Einstellungen |
 | `/themen/lernen` | Themenregeln aus Entscheidungen, Vergleich und bestätigte Übernahme | Bedienung, Web-Einstellungen |
 | `/lernen` | Gemeinsame Lernübersicht, kein Analysestart | Bedienung, Web-Einstellungen |
 | `/lernen/postfach` | Lesender Lernlauf aus dem Postfach | Bedienung |

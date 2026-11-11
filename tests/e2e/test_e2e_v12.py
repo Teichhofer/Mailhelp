@@ -133,7 +133,7 @@ def test_topics_saved_in_the_web_apply_only_to_new_mails(tmp_path):
         service, *_ = configure(web, tmp_path)
         service.activate_topics = orchestrator.change_topics
         old_proposal = store.load(f"proposal-{first.state['id']}-{first.state['proposals'][0]['id']}")
-        form = fields(web, "/themen", "/themen/speichern", original_id="")
+        form = fields(web, "/themen/relevant/neu", "/themen/speichern", original_id="")
         response = web.browser.request("POST", "/themen/speichern", {
             **form, "id": "verein", "name": "Verein", "description": "Vereinspost", "enabled": "true",
             "examples": "", "exclusions": "", "confirm": "yes"})

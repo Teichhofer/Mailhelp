@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.0. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3762,3 +3762,24 @@ Der bisherige Lernlauf liegt unter `/lernen/postfach`, das Regellernen unter
 Hilfschat. GET `/themen/lernen` antwortet mit 308 auf die neue Adresse. POST an alte
 Adressen wird nach Sitzungs-/CSRF-Prüfung ohne Ausführung abgewiesen und fordert eine
 neue Bestätigung. `/api/lernen` und sämtliche bisherigen Ausführungsprüfungen bleiben erhalten.
+
+### Themenübersicht (5.7.1, S2)
+
+`/themen` enthält eine kompakte Tabelle, mobil Karten, mit Reitern für relevante Themen und
+Ausschlussthemen. `art`, `status` und `suche` sind reine GET-Filter. Beide Themendokumente
+werden gegen ihre bestehenden Schemas gelesen; unbekannte Filter oder unlesbare Dateien
+führen ohne Schreibzugriff zu einer Fehlermeldung. Der Suchtext ist auf 80 Zeichen begrenzt.
+Alle Einträge sind im DOM vorhanden; serverseitig nicht passende Zeilen bleiben verborgen.
+`topics.js` filtert dieselben Felder und Status sofort vor Ort, ohne Netzwerkaufruf.
+
+Eine Zeile zeigt Namen, stabile ID, Aktivierung, Postfachnamen, Listenumfang, den ersten
+Beschreibungssatz und einen eigenen Bearbeitungslink. Deaktivierte Themen stehen am Ende.
+Neue Themen und bestehende Themen werden auf eigenen Seiten bearbeitet. Die ID `neu` bleibt
+auch als bestehende ID erreichbar (`?vorhanden=1`). Wartende AdminCommand-Themenbefehle
+erscheinen als ausstehende Änderung.
+
+Die bestehende Speichermethode erhält den Postfachbereich einer bestehenden ID aus der
+aktuellen Datei; ein fehlendes oder manipuliertes Formularfeld kann ihn nicht löschen.
+Neue Formulare markieren Listen als zeilengetrennt. Semikolons werden dann nicht aufgeteilt.
+Alte Semikolonformulare bleiben kompatibel. Hashprüfung, Sitzung, CSRF, Idempotenz und
+ausdrückliche Bestätigung verwenden weiterhin ausschließlich den AdminCommand-Schreibpfad.

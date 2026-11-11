@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.7.1 – Kompakte Themenübersicht (S2)
+
+- Themen als Tabelle bzw. mobile Karten statt vollständiger Formularstapel; Reiter,
+  Anzahlen, Status, Geltungsbereich, Beispiele/Ausschlüsse und kurze Beschreibung.
+- Serverbasierte Suche und Filter funktionieren ohne JavaScript; mit JavaScript wird
+  die vollständig geladene Liste sofort gefiltert. Neue und bestehende Themen haben eigene Seiten.
+- Ausstehende Themenbefehle werden angezeigt; deaktivierte Themen stehen am Ende.
+- Vorgezogene Grundlagen aus S3: Regressionen für verlorene Postfachbereiche und beim
+  Speichern zerlegte Semikolons behoben. Bestehende Bereiche werden aus der Datei erhalten;
+  neue Formulare verwenden einen Eintrag je Zeile. Der bestehende AdminCommand-Schreibpfad bleibt.
+
 ## 5.7.0 – Gemeinsame Lernübersicht (S1)
 
 - `/lernen` bündelt beide Lernfunktionen mit Zweck, aktuellem Stand, Kennzahl und

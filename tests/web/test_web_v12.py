@@ -178,16 +178,16 @@ def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
 
 def test_themes_create_disable_conflict_and_authorization(web, tmp_path):
     service, *_ = configure(web, tmp_path)
-    form = web.form('/themen', action='/themen/speichern', original_id='')
+    form = web.form('/themen/relevant/neu', action='/themen/speichern', original_id='')
     data = {**form, 'id': 'sport', 'name': 'Sport', 'description': 'Sport', 'enabled': 'true',
-            'examples': 'Training; Verein', 'exclusions': '', 'confirm': 'yes'}
+            'examples': 'Training\nVerein', 'exclusions': '', 'confirm': 'yes'}
     response = web.browser.request('POST', '/themen/speichern', data)
     assert response.status == 303
     web.run()
     topics = yaml.safe_load((tmp_path / 'topics.yaml').read_text())['topics']
     assert len(topics) == 2 and topics[-1]['examples'] == ['Training', 'Verein']
     assert web.browser.request('POST', '/themen/speichern', data).status == 409
-    form = web.form('/themen', action='/themen/speichern', original_id='sport')
+    form = web.form('/themen/relevant/sport', action='/themen/speichern', original_id='sport')
     data.update(form)
     data['enabled'] = 'false'
     assert web.browser.request('POST', '/themen/speichern', data).status == 303
@@ -366,7 +366,7 @@ def test_metrics_compaction_recovery_validation_and_logging(tmp_path, monkeypatc
 
 def test_queued_admin_recovery_and_irrelevant_topics(web, tmp_path):
     service, *_ = configure(web, tmp_path)
-    form = web.form('/themen', action='/themen/speichern', category='irrelevant')
+    form = web.form('/themen/ausschluss/neu', action='/themen/speichern', category='irrelevant')
     data = {**form, 'id': 'ads', 'name': 'Werbung', 'description': 'Werbung', 'enabled': 'true',
             'examples': '', 'exclusions': '', 'confirm': 'yes'}
     assert web.browser.request('POST', '/themen/speichern', data).status == 303

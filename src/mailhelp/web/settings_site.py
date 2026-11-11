@@ -15,7 +15,7 @@ from ..storage import CorruptState
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout, notice
-from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
+from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page
 from .settings_search import LIVE_LIMIT, bounded, search
 
 if TYPE_CHECKING:
@@ -42,9 +42,11 @@ class SettingsSite:
         for method, path, handler in (
                 ("GET", "/einstellungen", self.settings), ("POST", "/einstellungen/speichern", self.save_settings),
                 ("POST", "/einstellungen/zugangsdaten/speichern", self.save_credentials),
-                ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic),
+                ("POST", "/themen/speichern", self.save_topic),
                 ("GET", "/api/einstellungen/suche", self.live_search)):
             self.site.app.route(method, path, self.site.signed_in(handler))
+        from .topic_site import TopicSite
+        self.topic_site = TopicSite(self)
 
     def live_search(self, request: Request, session: WebSession) -> Response:
         """5.3: matches of the shared search while typing; only public metadata, never values."""
@@ -143,17 +145,6 @@ class SettingsSite:
             return Response.html(200, layout("Bestätigen", body))
         return self.archive.queue(request, command)
 
-    def topics(self, request: Request, session: WebSession) -> Response:
-        configuration = self.archive.configuration
-        if configuration is None:
-            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
-        files = []
-        for category, filename in TOPIC_FILES:
-            path = configuration.directory / filename
-            files.append((category, filename, yaml.safe_load(path.read_text(encoding="utf-8")), file_hash(path)))
-        body = topics_page(files, self.site.auth.csrf_token(session.id))
-        return Response.html(200, layout("Themen", body, active="/einstellungen"))
-
     def save_topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration
         if configuration is None:
@@ -163,8 +154,13 @@ class SettingsSite:
                 raise ValueError("IDs dürfen nicht geändert werden")
             topic: dict[str, Any] = {key: form[key] for key in ("id", "name", "description")}
             topic["enabled"] = {"true": True, "false": False}[form["enabled"].lower()]
-            topic.update({key: [v.strip() for v in form[key].split(";") if v.strip()]
+            topic.update({key: [v.strip() for v in (form[key].splitlines() if form.get("list_format") == "lines"
+                                                 else form[key].split(";")) if v.strip()]
                           for key in ("examples", "exclusions")})
+            filename = dict(TOPIC_FILES)[form["category"]]
+            saved_topics = yaml.safe_load((configuration.directory / filename).read_text(encoding="utf-8"))["topics"]
+            existing: dict[str, Any] = next((item for item in saved_topics if item["id"] == topic["id"]), {})
+            topic["mailboxes"] = existing.get("mailboxes")
             command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], category=form["category"], patch=topic,
                                    acknowledged=form.get("confirm") == "yes")
