@@ -61,6 +61,7 @@
 
   // A second tap must not send the same form twice while the first is on its way.
   function lockForm(event) {
+    if (event.defaultPrevented) return;
     if (event.submitter && event.submitter.name) {
       var choice = document.createElement("input");
       choice.type = "hidden"; choice.name = event.submitter.name; choice.value = event.submitter.value;
@@ -133,6 +134,7 @@
   var main = document.getElementById("inhalt");
   var desktop = window.matchMedia("(min-width: 1024px)");
   var items = null, pane = null, selected = null, requestNumber = 0;
+  var shown = location.pathname + location.search;
   var toast = document.createElement("div");
   toast.className = "undo-toast";
   toast.setAttribute("role", "status");
@@ -507,6 +509,7 @@
         var content = parse(html).querySelector("main");
         main.replaceChildren.apply(main, Array.from(content.childNodes));
         history.pushState(null, "", chip.href);
+        shown = location.pathname + location.search;
         enhance();
         main.querySelector('a[data-filter][aria-current="true"]').focus();
       })
@@ -545,7 +548,11 @@
     event.preventDefault();
     select(card);
   });
-  window.addEventListener("popstate", function () { location.reload(); });
+  // 5.4.1: only a history step to other content reloads; a jump to an anchor of this page
+  // (also a popstate) must keep unsaved form values and the open help window.
+  window.addEventListener("popstate", function () {
+    if (location.pathname + location.search !== shown) location.reload();
+  });
   enhance();
 
   document.addEventListener("click", function (event) {
@@ -739,19 +746,233 @@
   input.addEventListener("input", schedule);
 })();
 
-// 5.3: while the help chat prepares an answer, read its status instead of reloading blindly.
+// 5.4: the help window belongs to the settings shell, not to a separate page.
 (function () {
-  var marker = document.querySelector("[data-help-job]");
-  if (!marker || !window.fetch) return;
-  var refresh = document.querySelector('meta[http-equiv="refresh"]');
-  if (refresh) refresh.parentNode.removeChild(refresh);
-  function poll() {
-    fetch("/api/hilfe/auftrag/" + marker.getAttribute("data-help-job"), {
-      credentials: "same-origin", headers: {Accept: "application/json"}
-    }).then(function (response) { return response.json(); }).then(function (data) {
-      if (data.status === "queued" || data.status === "running") { setTimeout(poll, 1000); return; }
-      location.reload();
-    }).catch(function () { setTimeout(poll, 3000); });
+  var KEY = "mailhelp.help-window.v1", root = document.getElementById("help-widget");
+  function forget() { try { sessionStorage.removeItem(KEY); } catch (error) { /* Storage may be disabled. */ } }
+  if (document.body.classList.contains("guest-shell")) { forget(); return; }
+  if (!root || !window.fetch) return;
+  var panel = document.getElementById("help-window"), content = document.getElementById("help-window-content");
+  var message = document.getElementById("help-window-status"), doc = document.getElementById("help-document");
+  var scope = root.dataset.scope, expires = Number(root.dataset.sessionExpires) * 1000, stamp = "", sequence = 0, docSequence = 0;
+  var state = {scope: scope, opened: !panel.hidden, draft: "", setting: root.dataset.setting,
+    expires: Number(root.dataset.expires) * 1000};
+  var blocked = false, busy = false, stopped = false, saving = Promise.resolve(), trigger = null, timer, syncTimer;
+  var unsaved = false;
+  var firstInput = content.querySelector("#help-question");
+  if (firstInput) state.draft = firstInput.value;
+  try {
+    var saved = JSON.parse(sessionStorage.getItem(KEY) || "null");
+    if (saved && saved.scope === scope && saved.expires > Date.now() && typeof saved.opened === "boolean" &&
+        typeof saved.draft === "string" && saved.draft.length <= 8000 && typeof saved.setting === "string") {
+      state = saved;
+    } else { forget(); }
+  } catch (error) { blocked = true; }
+  var initial = new URL(location.href);
+  if (initial.searchParams.get("hilfe") === "offen") {
+    state.opened = true;
+    state.setting = root.dataset.setting;
+    initial.searchParams.delete("hilfe"); initial.searchParams.delete("einstellung");
+    history.replaceState(history.state, "", initial);
   }
-  setTimeout(poll, 1000);
+  function question() { return content.querySelector("#help-question"); }
+  function restoreDraft() {
+    var input = question();
+    if (input) input.value = state.draft;
+  }
+  function store(touch) {
+    if (touch) state.expires = Math.min(expires, Date.now() + 86400000);
+    try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (error) { blocked = true; }
+  }
+  function credentials(form) {
+    var body = new URLSearchParams(new FormData(form));
+    body.set("return_to", root.dataset.return);
+    return body;
+  }
+  function json(url, body) {
+    return fetch(url, {method: body ? "POST" : "GET", body: body, cache: "no-store", credentials: "same-origin",
+      headers: {Accept: "application/json"}}).then(function (response) {
+      if (response.status === 401 || response.status === 403) {
+        stopped = true; state.opened = false; panel.hidden = true; content.textContent = ""; forget();
+        throw new Error("Sitzung abgelaufen. Bitte erneut anmelden.");
+      }
+      return response.json().then(function (data) {
+        if (!response.ok) throw new Error(data.error || "Anfrage fehlgeschlagen. Bitte erneut versuchen.");
+        return data;
+      });
+    });
+  }
+  function fallback() {
+    saving = saving.catch(function () { /* A later explicit action may retry with fresh state. */ }).then(function () {
+      return json("/api/hilfe/fenster").then(function (data) {
+        var body = credentials(root.querySelector(".help-launch"));
+        body.set("window_version", data.ui.version);
+        body.set("window_action", state.opened ? "save" : "close");
+        body.set("draft", state.draft); body.set("einstellung", state.setting);
+        body.set("key", crypto.randomUUID().replace(/-/g, ""));
+        var draft = state.draft;
+        return json("/hilfe/fenster", body).then(function () { if (state.draft === draft) unsaved = false; });
+      });
+    });
+    return saving;
+  }
+  function remember() {
+    store(true);
+    if (blocked) return fallback();
+    return Promise.resolve();
+  }
+  function place(x, y) {
+    var viewport = window.visualViewport;
+    var bottom = document.querySelector("nav.tab-bar");
+    var available = (viewport ? viewport.height : innerHeight) - bottom.getBoundingClientRect().height - 24;
+    panel.style.maxHeight = Math.max(120, Math.min(520, available * 0.78)) + "px";
+    var box = panel.getBoundingClientRect();
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      state.x = Math.max(8, Math.min(x, innerWidth - box.width - 8));
+      state.y = Math.max(8, Math.min(y, (viewport ? viewport.height : innerHeight) - box.height - 8));
+      panel.style.left = state.x + "px"; panel.style.top = state.y + "px";
+      panel.style.right = "auto"; panel.style.bottom = "auto";
+    }
+  }
+  function show(focus) {
+    panel.hidden = !state.opened;
+    root.querySelector(".help-fab").setAttribute("aria-expanded", String(state.opened));
+    restoreDraft(); place(state.x, state.y);
+    if (focus && question()) question().focus();
+  }
+  function failure(error) { message.textContent = error.message; }
+  function refresh(force) {
+    if (stopped || busy || !state.opened || document.hidden) return Promise.resolve();
+    if (state.expires <= Date.now()) {
+      state.draft = ""; content.textContent = ""; stamp = ""; forget();
+      state.expires = Math.min(expires, Date.now() + 86400000);
+    }
+    var current = ++sequence;
+    return json("/api/hilfe/fenster?einstellung=" + encodeURIComponent(state.setting)).then(function (data) {
+      if (current !== sequence || !state.opened) return;
+      if (data.scope !== scope) {
+        stopped = true; state.opened = false; panel.hidden = true; content.textContent = ""; forget(); return;
+      }
+      state.setting = data.setting;
+      if (force || stamp !== data.stamp) {
+        var input = question(), focused = document.activeElement === input;
+        var start = input ? input.selectionStart : 0, end = input ? input.selectionEnd : 0;
+        var scroll = content.scrollTop;
+        content.innerHTML = data.html;
+        if (stamp) message.textContent = "Gespräch aktualisiert.";
+        stamp = data.stamp;
+        restoreDraft(); content.scrollTop = scroll;
+        if (focused && question()) { question().focus({preventScroll: true}); question().setSelectionRange(start, end); }
+      }
+      show(false); store();
+    }).catch(failure);
+  }
+  function open(link) {
+    trigger = link; state.opened = true;
+    content.textContent = ""; doc.hidden = true; content.hidden = false;
+    doc.querySelector(".help-document-text").textContent = "";
+    var url = new URL(link.href || location.href, location.href);
+    if (url.searchParams.has("einstellung")) state.setting = url.searchParams.get("einstellung");
+    show(true); remember().catch(failure);
+    refresh(true).then(function () {
+      if (state.opened && (document.activeElement === document.body || document.activeElement === link)) show(true);
+    });
+  }
+  content.addEventListener("input", function (event) {
+    state.draft = event.target.value; unsaved = true; store(true);
+    if (blocked) { clearTimeout(syncTimer); syncTimer = setTimeout(function () { fallback().catch(failure); }, 300); }
+  });
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest("a[href]");
+    if (!link) return;
+    var url = new URL(link.href, location.href);
+    if (url.origin === location.origin && url.pathname === "/hilfe") {
+      event.preventDefault(); open(link); return;
+    }
+    if (panel.contains(link) && url.origin === location.origin && url.pathname.startsWith("/hilfe/dokumentation")) {
+      event.preventDefault();
+      jsonDocument(url); return;
+    }
+    if (panel.contains(link) && url.origin === location.origin && url.pathname === "/einstellungen") {
+      state.setting = ""; remember().catch(failure);
+    }
+    if (blocked && !event.defaultPrevented && url.origin === location.origin) {
+      event.preventDefault();
+      fallback().then(function () { location.assign(url); }).catch(failure);
+    }
+  });
+  function jsonDocument(url) {
+    var current = ++docSequence;
+    fetch(url, {cache: "no-store", credentials: "same-origin"}).then(function (response) {
+      if (!response.ok || response.redirected) throw new Error("Dokumentation nicht verfügbar. Bitte Anmeldung prüfen.");
+      return response.text();
+    }).then(function (html) {
+      if (current !== docSequence) return;
+      var parsed = new DOMParser().parseFromString(html, "text/html");
+      var main = parsed.querySelector("main");
+      doc.querySelector(".help-document-text").textContent = main.textContent;
+      content.hidden = true; doc.hidden = false;
+    }).catch(failure);
+  }
+  root.addEventListener("click", function (event) {
+    if (event.target.closest("[data-help-back]")) { docSequence++; doc.hidden = true; content.hidden = false; }
+    var move = event.target.closest("[data-move]");
+    if (move) {
+      event.preventDefault();
+      var box = panel.getBoundingClientRect(), direction = move.dataset.move;
+      place(box.x + (direction === "left" ? -40 : direction === "right" ? 40 : 0),
+        box.y + (direction === "up" ? -40 : direction === "down" ? 40 : 0));
+      store(true);
+    }
+  });
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!root.contains(form)) {
+      if (form.hasAttribute("data-ends-session")) { forget(); return; }
+      if (blocked && !form.dataset.helpSaved) {
+        event.preventDefault(); var submitter = event.submitter;
+        fallback().then(function () { form.dataset.helpSaved = "yes"; form.requestSubmit(submitter); }).catch(failure);
+      }
+      return;
+    }
+    event.preventDefault();
+    if (event.submitter && event.submitter.value === "save") {
+      fallback().then(function () { message.textContent = "Entwurf behalten."; }).catch(failure); return;
+    }
+    if (form.action.endsWith("/hilfe/fenster")) {
+      var action = event.submitter.value;
+      if (action === "open") { open(event.submitter); return; }
+      else { state.opened = false; sequence++; panel.hidden = true; if (trigger && trigger.isConnected) trigger.focus(); }
+      remember().catch(failure); return;
+    }
+    if (busy) return;
+    busy = true; message.textContent = "Anfrage wird gesendet …";
+    var body = credentials(form), clear = form.action.endsWith("/hilfe/leeren");
+    json(form.action, body).then(function (data) {
+      state.draft = ""; content.innerHTML = data.html; stamp = "";
+      if (clear) { doc.hidden = true; content.hidden = false; }
+      restoreDraft(); message.textContent = ""; remember().catch(failure);
+    }).catch(failure).finally(function () { busy = false; });
+  }, true);
+  var drag = null, head = panel.querySelector(".help-window-head");
+  head.addEventListener("pointerdown", function (event) {
+    if (event.target.closest("button")) return;
+    var box = panel.getBoundingClientRect(); drag = {x: event.clientX - box.x, y: event.clientY - box.y};
+    head.setPointerCapture(event.pointerId);
+  });
+  head.addEventListener("pointermove", function (event) {
+    if (drag) { place(event.clientX - drag.x, event.clientY - drag.y); store(true); }
+  });
+  head.addEventListener("pointerup", function () { drag = null; });
+  function resize() { place(state.x, state.y); }
+  window.addEventListener("resize", resize);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
+  window.addEventListener("pagehide", function () { store(); panel.hidden = true; clearTimeout(timer); });
+  window.addEventListener("beforeunload", function (event) {
+    if (blocked && unsaved) { event.preventDefault(); event.returnValue = ""; }
+  });
+  window.addEventListener("pageshow", function (event) { if (event.persisted) { refresh(true); schedule(); } });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(false); });
+  function schedule() { clearTimeout(timer); timer = setTimeout(function () { refresh(false); schedule(); }, 2000); }
+  show(false); remember().catch(failure); refresh(false); schedule();
 })();

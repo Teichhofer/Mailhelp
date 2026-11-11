@@ -25,7 +25,8 @@ class Analyzer:
         self.prompts = SimpleNamespace(prompts={"settings_help": object()})
         self.calls, self.error, self.during = [], error, during
 
-    def settings_help(self, question, sources, history, settings):
+    def settings_help(self, question, sources, history, settings, *, before_call=lambda: None):
+        before_call()
         self.calls.append((question, [item.id for item in sources], history, settings))
         if self.during is not None:
             self.during()
@@ -67,7 +68,8 @@ def test_a_question_is_answered_with_sources_and_secrets_removed(chat):
     assert "geheim-12345" not in turn.answer and "[entfernt]" in turn.answer
     question, sources, history, offered = chat.analyzer.calls[0]
     assert "web-einstellungen/mailabruf-und-betrieb" in sources and history == []
-    assert {"id": "setting:poll_interval_seconds", "label": "Abrufintervall (Sekunden)"} in offered
+    assert {"id": "setting:poll_interval_seconds", "label": "Abrufintervall (Sekunden)",
+            "path": "Weboberfläche"} in offered
     assert chat.service.job("s2", job.id) is None  # another session never sees it
     assert chat.store.load(chat_name("s1")) is not None and "s1" not in str(chat.store.names("help-chat-"))
 
@@ -212,3 +214,66 @@ def test_known_secrets_are_collected_from_every_mailbox():
     assert {"imap-geheim", "router-geheim", "kurz"} <= set(values)
     redact = redactor(values)
     assert redact("imap-geheim und router-geheim und kurz") == "[entfernt] und [entfernt] und kurz"
+
+
+def test_disabling_a_queued_chat_prevents_the_model_call(chat):
+    job = ask(chat)
+    chat.settings.enabled = False
+    chat.service.run_once()
+    assert chat.analyzer.calls == []
+    assert chat.service.job("s1", job.id).error == "disabled"
+
+
+def test_clear_removes_questions_and_references_from_persisted_jobs_and_replays(chat):
+    job = chat.service.submit("s1", QUESTION, "private-key", 1, "poll_interval_seconds")
+    chat.service.run_once()
+    chat.service.clear("s1", 1)
+    saved = chat.store.load(chat_name("s1"))
+    assert QUESTION not in str(saved) and "poll_interval_seconds" not in str(saved)
+    assert saved["turns"] == [] and saved["jobs"][0]["question"] == ""
+    replay = chat.service.submit("s1", QUESTION, "private-key", 1, "poll_interval_seconds")
+    assert replay.id == job.id and replay.question == "" and len(chat.analyzer.calls) == 1
+
+
+def test_restart_scrubs_previously_cleared_legacy_jobs(chat):
+    job = ask(chat)
+    chat.service.run_once()
+    state = chat.service.state("s1")
+    chat.store.save(chat_name("s1"), state.model_copy(update={"version": 2, "turns": []}).model_dump(mode="json"))
+    assert chat.service.recover() == 1
+    assert chat.service.job("s1", job.id).question == ""
+    assert chat.service.recover() == 0
+
+
+@pytest.mark.parametrize("change,code", [
+    ("logout", "session_ended"), ("disable", "disabled"), ("clear", "cancelled"),
+])
+def test_changes_during_context_preparation_are_checked_before_the_call(chat, change, code):
+    job = ask(chat)
+
+    def changed_base():
+        if change == "logout":
+            chat.active.remove("s1")
+        elif change == "disable":
+            chat.settings.enabled = False
+        else:
+            chat.service.clear("s1", 1)
+        return load()
+
+    chat.service.base = changed_base
+    chat.service.run_once()
+    assert chat.analyzer.calls == [] and chat.service.job("s1", job.id).error == code
+    if change == "clear":
+        assert QUESTION not in str(chat.store.load(chat_name("s1")))
+
+
+def test_deactivation_after_context_selection_is_checked_before_the_actual_attempt(chat):
+    job = ask(chat)
+
+    def disabled_analyzer():
+        chat.settings.enabled = False
+        return chat.analyzer
+
+    chat.service.analyzer = disabled_analyzer
+    chat.service.run_once()
+    assert chat.analyzer.calls == [] and chat.service.job("s1", job.id).error == "disabled"

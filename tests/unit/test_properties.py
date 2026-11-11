@@ -248,6 +248,7 @@ def parsed_or_rejected(content: str):
 
 @FAST
 @given(model_content())
+@example("NaN")
 def test_the_client_returns_exactly_valid_json_and_rejects_everything_else(content):
     body = {"id": "synthetic", "choices": [{"message": {"content": content}}]}
     client = OpenRouterClient("synthetic-key", 1, 0, 10_000, httpx.MockTransport(
@@ -258,7 +259,10 @@ def test_the_client_returns_exactly_valid_json_and_rejects_everything_else(conte
             with pytest.raises(OpenRouterResponseError):
                 client.complete("synthetic/model", {}, "system", {"mail": "x"})
         else:
-            assert client.complete("synthetic/model", {}, "system", {"mail": "x"})[1] == expected
+            actual = client.complete("synthetic/model", {}, "system", {"mail": "x"})[1]
+            # Python's JSON decoder accepts NaN, which is not equal to itself. Compare
+            # its canonical JSON representation, also for nested decoder values.
+            assert json.dumps(actual, sort_keys=True) == json.dumps(expected, sort_keys=True)
     finally:
         client.close()
 

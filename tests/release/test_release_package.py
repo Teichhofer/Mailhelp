@@ -57,7 +57,7 @@ def test_built_artifacts_exclude_private_runtime_files():
     assert wheel.is_file() and source.is_file(), "Build artifacts for the current version must exist"
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
-        for module in ("helpdocs/sections.json", "helpdocs/manifest.json", "helpdocs/__init__.py",
+        for module in ("web/help_window.py", "helpdocs/sections.json", "helpdocs/manifest.json", "helpdocs/__init__.py",
                        "domain/event_series.py", "review/series.py", "review/series_offers.py", "web/series_site.py",
                        "telegram/series.py", "proposals/revision_protection.py", "defaults/prompts.yaml",
                        "proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",
@@ -115,6 +115,7 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"docs/Planung-5.2.md", "docs/Release-5.2.md"} <= names
         assert {"docs/Planung-5.3.md", "docs/Release-5.3.md", "docs/Pruefung-Dokumentation-5.3.md",
                 "docs/Ersteinrichtung.md", "docs/Betrieb.md"} <= names
+        assert {"docs/Planung-5.4.md", "docs/Release-5.4.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)
 
 
@@ -129,10 +130,15 @@ def test_the_wheel_serves_help_and_search_outside_the_checkout(tmp_path):
         archive.extractall(tmp_path / "wheel")
     script = ("import mailhelp, mailhelp.helpdocs as h, mailhelp.web.settings_search as s; "
               "b = h.load(); print(mailhelp.__file__); print(len(b.sections), b.select('Abrufintervall')[0].id, "
-              "len(s.search('Zeitzone')))")
+              "len(s.search('Zeitzone')), s.search('web.port')[0].key)")
+    # This separately installed package is an isolation check. Inheriting pytest-cov would
+    # record a second copy whose temporary source files are gone at reporting time.
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith(("COV_CORE_", "COVERAGE_"))}
     result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, capture_output=True, text=True, check=True,
-                            env={**os.environ, "PYTHONPATH": str(tmp_path / "wheel")})
+                            env={**environment, "PYTHONPATH": str(tmp_path / "wheel")})
     location, summary = result.stdout.strip().splitlines()
     assert Path(location).resolve().is_relative_to((tmp_path / "wheel").resolve())
-    count, first, found = summary.split()
+    count, first, found, file_key = summary.split()
     assert int(count) > 50 and first == "web-einstellungen/mailabruf-und-betrieb" and int(found) >= 1
+    assert file_key == "web.port"

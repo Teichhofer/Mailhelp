@@ -22,7 +22,9 @@ def test_the_catalog_covers_every_area_setting_and_the_special_pages():
     entries = catalog()
     assert len({entry.id for entry in entries}) == len(entries)
     shown = {name for _key, _title, _text, groups in AREAS for group in groups for name in _names(group)}
-    assert {entry.key for entry in entries if entry.key} == shown and shown <= SETTINGS_FIELDS
+    assert {entry.key for entry in entries if entry.path == "Weboberfläche"} == shown and shown <= SETTINGS_FIELDS
+    from devtools.inventory import settings_rows
+    assert {entry.key for entry in entries if entry.key} == {row.key for row in settings_rows("")}
     timezone = next(entry for entry in entries if entry.key == "timezone")
     assert timezone.href == "/einstellungen?bereich=abruf#einstellung-timezone" and timezone.path == "Weboberfläche"
     assert {"page:postfaecher", "page:iserv", "page:zielprofile", "page:themen", "page:zugangsdaten"} <= {
@@ -74,3 +76,25 @@ def test_the_form_search_lists_settings_with_anchors_and_pages(web, tmp_path):
 def test_the_result_page_without_configuration_service(web):
     page = web.browser.request("GET", "/einstellungen?suche=" + quote("Postfach")).body.decode()
     assert "Konfigurationsdienst nicht verfügbar" in page
+
+
+def test_file_and_setup_settings_are_searchable_with_their_actual_editing_path(web, tmp_path):
+    configure(web, tmp_path)
+    for name in ("web.port", "logging.llm.filename", "reanalysis.max_jobs_per_day", "imap.mailboxes[].host"):
+        found = search(name)
+        assert found and found[0].key == name
+        assert found[0].path != "Weboberfläche"
+        assert found[0].href.startswith("/hilfe/dokumentation/")
+        page = web.browser.request("GET", "/einstellungen?suche=" + quote(name)).body.decode()
+        assert found[0].href in page and found[0].path in page
+        assert 'name="value"' not in page
+
+
+def test_a_missing_or_broken_extra_catalog_keeps_the_general_settings_search(tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setattr(settings_search, "EXTRA_CATALOG", tmp_path / "settings.json")
+    assert settings_search.extra_catalog() == ()
+    for content in ("invalid", json.dumps([{}]), json.dumps([{"label": "x", "help": "y"}])):
+        settings_search.EXTRA_CATALOG.write_text(content, encoding="utf-8")
+        assert settings_search.extra_catalog() == ()

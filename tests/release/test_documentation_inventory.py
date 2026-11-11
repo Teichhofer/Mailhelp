@@ -14,6 +14,16 @@ def test_the_committed_inventory_is_current():
     assert inventory.main(["--check"]) == 0
 
 
+def test_path_defaults_have_the_same_documentation_on_windows_and_linux():
+    from pathlib import PurePosixPath, PureWindowsPath
+
+    from pydantic.fields import FieldInfo
+
+    windows = inventory._default(FieldInfo(default=PureWindowsPath("telegram/messages.jsonl")))
+    linux = inventory._default(FieldInfo(default=PurePosixPath("telegram/messages.jsonl")))
+    assert windows == linux == "'telegram/messages.jsonl'"
+
+
 def test_every_setting_has_a_way_to_change_it_and_every_option_is_listed():
     rows = inventory.settings_rows(inventory.REFERENCE.read_text(encoding="utf-8"))
     assert len(rows) > 200 and len({row.key for row in rows}) == len(rows)

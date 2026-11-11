@@ -127,7 +127,8 @@ class OpenRouterClient:
                  supports_json_schema: bool = True,
                  revision_route: str = "standard",
                  images: list[str] | None = None,
-                 usage: Callable[[dict[str, Any]], None] | None = None) -> tuple[str, Any]:
+                 usage: Callable[[dict[str, Any]], None] | None = None,
+                 before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
         """Run one validated JSON completion; ``images`` are data URLs for vision steps.
 
         ``usage`` receives the provider-reported token usage of the answer, if any
@@ -165,6 +166,7 @@ class OpenRouterClient:
                               error=exc, status=getattr(getattr(exc, "response", None), "status_code", None),
                               **metadata, **correlation)
         def invoke() -> httpx.Response:
+            before_call()
             response = self.client.post(self.endpoint, headers=self._headers(call_id), json=request)
             self._raise_for_status(response)
             return response

@@ -31,6 +31,8 @@ OPEN = {"queued", "running"}
 
 # Fixed, safe messages; never a provider text.
 MESSAGES = {
+    "disabled": "Der Hilfschat ist ausgeschaltet; es wird kein weiterer KI-Aufruf gestartet.",
+    "cancelled": "Die Frage gehört zu einem geleerten Chat und wird nicht erneut gesendet.",
     "not_found": "Dazu enthält die Mailhelp-Dokumentation keinen passenden Abschnitt. Bitte die Frage "
                  "genauer fassen oder in der Hilfe unter „Alle Abschnitte“ nachsehen.",
     "help_unavailable": "Die mitgelieferte Dokumentation ist nicht verfügbar; der Hilfschat antwortet nicht.",
@@ -102,9 +104,11 @@ class HelpChat:
     def __init__(self, store: JsonStore, settings: Callable[[], HelpChatSettings], base: Callable[[], HelpBase],
                  analyzer: Callable[[], Any], authorized: Callable[[str], bool],
                  redact: Callable[[str], str] = lambda text: text, now: Callable[[], datetime] | None = None,
-                 logger: EventLogger | None = None, sessions: Callable[[], list[str]] = lambda: []):
+                 logger: EventLogger | None = None, sessions: Callable[[], list[str]] = lambda: [],
+                 cleanup_extra: Callable[[], None] = lambda: None):
         self.store, self.settings, self.base, self.analyzer = store, settings, base, analyzer
         self.authorized, self.redact, self.active_sessions = authorized, redact, sessions
+        self.cleanup_extra = cleanup_extra
         self.now = now or (lambda: datetime.now(UTC))
         self.logger = logger or NullLogger()
         self.lock = threading.Lock()
@@ -173,7 +177,8 @@ class HelpChat:
             state = self.state(session_id)
             if version != state.version:
                 raise ChatRefused("stale", "Der Chat wurde bereits geleert.")
-            jobs = [job.model_copy(update={"status": "cancelled"}) if job.status == "queued" else job
+            jobs = [job.model_copy(update={"question": "", "setting_id": None,
+                                          "status": "cancelled" if job.status == "queued" else job.status})
                     for job in state.jobs]
             self._save(session_id, state.model_copy(update={"version": state.version + 1, "turns": [], "jobs": jobs}))
             return state.version + 1
@@ -226,6 +231,9 @@ class HelpChat:
             self._finish(session_id, job, "failed", "help_unavailable")
             return
         settings = self.settings()
+        if not settings.enabled:
+            self._finish(session_id, job, "failed", "disabled")
+            return
         sources = base.select(job.question, setting_id=job.setting_id, history=tuple(history),
                               budget=settings.max_context_bytes)
         if not sources:
@@ -239,12 +247,13 @@ class HelpChat:
             return
         from ..web.settings_search import catalog
         referenced = {key for section in sources for key in section.setting_ids}
-        offered = [{"id": f"setting:{entry.key}", "label": entry.label}
+        offered = [{"id": f"setting:{entry.key}", "label": entry.label, "path": entry.path}
                    for entry in catalog() if entry.key in referenced]
         recent = [{"question": turn.question, "answer": turn.answer} for turn in state.turns[-MAX_TURNS:]
                   if state.version == job.chat_version]
         try:
-            _call, answer = analyzer.settings_help(job.question, sources, recent, offered)
+            _call, answer = analyzer.settings_help(job.question, sources, recent, offered,
+                                                  before_call=lambda: self._before_call(session_id, job))
         except Exception as error:  # every failure ends in a fixed, safe message
             self._finish(session_id, job, "failed", classify(error))
             return
@@ -252,8 +261,18 @@ class HelpChat:
             question=job.question, answer=self.redact(answer.answer), source_ids=answer.source_ids,
             setting_ids=answer.setting_ids, needs_clarification=answer.needs_clarification, revision=base.revision))
 
+    def _before_call(self, session_id: str, job: Job) -> None:
+        """Recheck every paid attempt, including provider and structured-answer retries."""
+        if not self.authorized(session_id):
+            raise ChatRefused("session_ended")
+        if not self.settings().enabled:
+            raise ChatRefused("disabled")
+        if self.state(session_id).version != job.chat_version:
+            raise ChatRefused("cancelled")
+
     def cleanup(self) -> int:
         """Chats of ended sessions (logout, revocation) and chats idle for 24 hours are deleted."""
+        self.cleanup_extra()
         keep = {chat_name(session_id) for session_id in self.active_sessions()}
         removed = 0
         for name in self.store.names(PREFIX):
@@ -273,9 +292,11 @@ class HelpChat:
         for name in self.store.names(PREFIX):  # damaged chats were set aside by cleanup()
             state = self.store.load_model(name, ChatState)
             assert state is not None
-            if any(job.status in OPEN for job in state.jobs):
-                jobs = [job.model_copy(update={"status": "interrupted", "error": "interrupted"})
-                        if job.status in OPEN else job for job in state.jobs]
+            jobs = [job.model_copy(update={"status": "interrupted", "error": "interrupted"})
+                    if job.status in OPEN else job for job in state.jobs]
+            jobs = [job.model_copy(update={"question": "", "setting_id": None})
+                    if job.chat_version < state.version else job for job in jobs]
+            if jobs != state.jobs:
                 self.store.save(name, state.model_copy(update={"jobs": jobs}).model_dump(mode="json"))
                 changed += 1
         return changed
@@ -329,6 +350,8 @@ def classify(error: Exception) -> str:
     from ..llm.adapter import PermanentError, RetryableError
     from ..llm.openrouter import RateLimitExceeded
     from ..processing.analysis import TechnicalRevisionError
+    if isinstance(error, ChatRefused):
+        return error.code
     if isinstance(error, RateLimitExceeded):
         return "budget"
     if isinstance(error, PermanentError):

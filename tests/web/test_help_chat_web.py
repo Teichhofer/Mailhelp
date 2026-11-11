@@ -17,7 +17,8 @@ class Analyzer:
     def __init__(self):
         self.prompts = SimpleNamespace(prompts={"settings_help": object()})
 
-    def settings_help(self, question, sources, history, settings):
+    def settings_help(self, question, sources, history, settings, *, before_call=lambda: None):
+        before_call()
         return "call", HelpAnswer(answer="Erklärung <b>fett</b>\n1. Schritt", source_ids=[sources[0].id],
                                   setting_ids=["setting:poll_interval_seconds"])
 
@@ -36,6 +37,10 @@ def form(page, action):
 
 
 def get(web, path="/hilfe"):
+    if path.startswith("/hilfe"):
+        query = path.partition("?")[2]
+        response = web.browser.request("GET", "/api/hilfe/fenster?" + query)
+        return json.loads(response.body)["html"]
     return web.browser.request("GET", path).body.decode()
 
 
@@ -50,10 +55,10 @@ def test_a_question_is_sent_shown_as_pending_and_answered_with_server_links(chat
     fields = form(page, "/hilfe/frage")
     assert fields["einstellung"] == "poll_interval_seconds"
     response = chat.web.browser.request("POST", "/hilfe/frage", {**fields, "frage": "Was bewirkt das Abrufintervall?"})
-    assert response.status == 303 and response.headers["Location"] == "/hilfe#chat"
+    assert response.status == 303 and response.headers["Location"] == "/einstellungen"
     pending = get(chat.web)
     job = re.search(r'data-help-job="([a-f0-9]{32})"', pending).group(1)
-    assert "Antwort wird vorbereitet" in pending and 'http-equiv="refresh"' in pending and "/hilfe/frage" not in pending
+    assert "Antwort wird vorbereitet" in pending and 'http-equiv="refresh"' not in pending
     status = chat.web.browser.request("GET", f"/api/hilfe/auftrag/{job}")
     assert json.loads(status.body) == {"status": "queued", "error": None}
     chat.service.run_once()
@@ -122,6 +127,6 @@ def test_an_unknown_setting_reference_is_ignored(chat):
 def test_the_status_api_without_service(web):
     assert web.browser.request("GET", "/api/hilfe/auftrag/" + "a" * 32).status == 404
     assert web.browser.request("POST", "/hilfe/frage", {"csrf": web.auth.csrf_token(web.auth.sessions()[0].id),
-                                                        "frage": "x"}).status == 200
+                                                        "frage": "x"}).status == 503
     assert web.browser.request("POST", "/hilfe/leeren", {"csrf": web.auth.csrf_token(web.auth.sessions()[0].id)}
                                ).status == 303

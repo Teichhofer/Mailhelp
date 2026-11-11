@@ -13,14 +13,22 @@ def test_quality_commands_use_the_running_interpreter_and_enforce_full_coverage(
     commands = check.commands(task, "2")
     assert all(command[:2] == [check.sys.executable, "-m"] for command in commands)
     if task == "full":
-        assert "--cov-fail-under=100" in commands[-1] and "--cov-branch" in commands[-1]
-        assert "-n" in commands[-1] and "-n" not in check.commands("full", "auto")[-1]
+        assert "--cov-fail-under=100" in commands[1] and "--cov-branch" in commands[1]
+        assert "-n" in commands[1] and "-n" not in check.commands("full", "auto")[1]
     if task == "fast":
         assert commands[0][3:5] == ["-n", "2"] and check.FAST in commands[0]
     if task == "tdd":
         assert "tests/unit/test_core.py::test_example" in check.commands(task, "2", ["tests/unit/test_core.py::test_example"])[0]
     if task == "mutation":
         assert commands[0][-1] == "*"  # changed assertions must also recheck previous survivors
+
+
+def test_full_runs_latency_acceptance_separately_without_parallel_coverage_overhead():
+    commands = check.commands("full", "8")
+    for path in ("tests/services/test_v42_load.py", "tests/services/test_v441_load.py"):
+        assert "--ignore=" + path in commands[1]
+        assert path in commands[2]
+    assert "--no-cov" in commands[2] and "-n" not in commands[2]
 
 
 @pytest.mark.parametrize("task", ["full", "ui", "prompts", "mutation"])

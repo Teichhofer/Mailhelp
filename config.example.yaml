@@ -118,10 +118,11 @@ reanalysis:
   max_attempts: 2            # Versuche je Modellaufruf nach Fehler oder Neustart
   max_jobs_per_day: 20       # gestartete Nachanalysen je Tag (Kostenschutz)
 help_chat:
-  # 5.3: Der Hilfschat erklärt Einstellungen mit der mitgelieferten Dokumentation über die aktive
+  # 5.4: Das Chatfenster bleibt bei Suche und Speichern offen; Schließen blendet es aus.
+  # Der Hilfschat erklärt Einstellungen mit der mitgelieferten Dokumentation über die aktive
   # KI-Anbindung (Frage, kurzer Verlauf und passende Abschnitte gehen an den KI-Anbieter).
   # Er ändert nichts. Ohne den Schritt settings_help in prompts.yaml antwortet er nicht.
-  enabled: true
+  enabled: true                         # false stoppt auch wartende Fragen und weitere Aufrufversuche
   max_question_chars: 4000              # 100–8000 Zeichen je Frage
   max_context_bytes: 24000              # 2000–48000 Bytes Dokumentationsausschnitte je Frage
   requests_per_minute_per_session: 6    # 1–20 neue Fragen je Sitzung und Minute

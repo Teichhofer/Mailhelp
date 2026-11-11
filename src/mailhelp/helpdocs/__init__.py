@@ -137,6 +137,8 @@ class HelpBase:
             hits = {word for word in own if word in title or word in body}
             synonym = bool((asked - own) & (title | body))
             score = 3 * len(asked & title) + len(hits) + int(synonym) + len(earlier & title)
+            heading = set(stems(section.title))
+            score += 6 * len(asked & heading) // max(1, len(heading))
             named = bool(referenced & set(section.setting_ids)) or (
                 bool(remembered & set(section.setting_ids)) and (bool(hits) or not own))
             rare = any(frequency[word] <= RARE_SECTIONS for word in hits & specific)

@@ -14,7 +14,8 @@ from mailhelp.helpdocs.chat import HelpChat
 class Analyzer:
     prompts = SimpleNamespace(prompts={"settings_help": object()})
 
-    def settings_help(self, question, sources, history, settings):
+    def settings_help(self, question, sources, history, settings, *, before_call=lambda: None):
+        before_call()
         return "call", HelpAnswer(answer="Das Abrufintervall legt fest, wie oft Mailhelp nach Mails sucht.",
                                   source_ids=[sources[0].id])
 

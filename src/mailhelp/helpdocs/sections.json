@@ -6,7 +6,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Stand: 10. November 2026, Anwendungsversion 5.3.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).\n\n`/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.\nKontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln\nmarkieren gespeicherte, noch nicht aktive Änderungen. Verglichen wird mit den Werten, die der\nnächste Start anwenden würde: Eine in `config.yaml` fehlende Einstellung gilt mit ihrem\nStandardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`, höchstens 80 Zeichen)\nfindet Einstellungen und Seiten (Postfächer, IServ, Zielprofile, Zugangsdaten, Themen, Geräte,\nNeustart …), deren Bezeichnung, Schlüssel, Gruppe, Bereich, Hilfetext oder Synonyme alle\neingegebenen Wörter enthalten. Großschreibung, Leerraum und Umlaute (`ä`/`ae`, `ß`/`ss`) zählen\nnicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „Konto“, „Abruf“ und\n„Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige\nTreffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker\n(`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.\n\nLive-Suche (5.3): Auf der Übersicht und jeder Bereichsseite erscheinen beim Tippen ab dem ersten\nZeichen bis zu zehn Treffer direkt unter dem Suchfeld, ohne Klick auf „Suchen“ und ohne neue\nSeite. Gesucht wird 150 ms nach der letzten Eingabe; eine neue Eingabe bricht die vorige Anfrage\nab, verspätete Antworten werden verworfen. Eine Ansage nennt die Trefferzahl. Leeren entfernt die\nTreffer sofort; „Suchen“ oder Enter öffnet weiterhin die vollständige Ergebnisseite. Bei einem\nFehler bleibt die normale Suche nutzbar. Die Sofortsuche ruft nie die KI auf und liest nur\nBezeichnungen und Hilfetexte, keine gespeicherten Werte. Endpunkt:\n`GET /api/einstellungen/suche?suche=…` (nur angemeldet, nicht zwischengespeichert).\nEin unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.\n\n| Bereich | Adresse | Inhalt |\n| --- | --- | --- |\n| Mailabruf | `?bereich=abruf` | Abruf, Mailgrenzen, Zeitlimits, Wiederholungen |\n| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Push-Steuerung |\n| Antworten und Termine | `?bereich=antworten` | Antworten, Termindauern, Abgleich, Ziele |\n| KI und Auswertung | `?bereich=ki` | Modelltabelle (nur lesend), Bilder, Lernen, Berichte, Kosten |\n| Daten und Protokolle | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |\n| Weboberfläche und System | `?bereich=system` | Sitzungen, Netzwerk, Geräte, Neustart, Beenden |\n| Zugangsdaten | `?bereich=zugangsdaten` | Passwörter und API-Schlüssel |\n\nAuf großen Bildschirmen bleibt die Bereichsnavigation neben den Werten erreichbar;\nauf dem Handy steht sie oberhalb der Einstellungsgruppen. Speichern und Bestätigung\nlaufen weiterhin über `/einstellungen/speichern` und die Befehlswarteschlange.",
+  "text": "Stand: 10. November 2026, Anwendungsversion 5.4.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).\n\n`/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.\nKontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln\nmarkieren gespeicherte, noch nicht aktive Änderungen. Verglichen wird mit den Werten, die der\nnächste Start anwenden würde: Eine in `config.yaml` fehlende Einstellung gilt mit ihrem\nStandardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`, höchstens 80 Zeichen)\nfindet Einstellungen und Seiten (Postfächer, IServ, Zielprofile, Zugangsdaten, Themen, Geräte,\nNeustart …), deren Bezeichnung, Schlüssel, Gruppe, Bereich, Hilfetext oder Synonyme alle\neingegebenen Wörter enthalten. Großschreibung, Leerraum und Umlaute (`ä`/`ae`, `ß`/`ss`) zählen\nnicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „Konto“, „Abruf“ und\n„Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige\nTreffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker\n(`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.\n\nLive-Suche (5.3): Auf der Übersicht und jeder Bereichsseite erscheinen beim Tippen ab dem ersten\nZeichen bis zu zehn Treffer direkt unter dem Suchfeld, ohne Klick auf „Suchen“ und ohne neue\nSeite. Gesucht wird 150 ms nach der letzten Eingabe; eine neue Eingabe bricht die vorige Anfrage\nab, verspätete Antworten werden verworfen. Eine Ansage nennt die Trefferzahl. Leeren entfernt die\nTreffer sofort; „Suchen“ oder Enter öffnet weiterhin die vollständige Ergebnisseite. Bei einem\nFehler bleibt die normale Suche nutzbar. Die Sofortsuche ruft nie die KI auf und liest nur\nBezeichnungen und Hilfetexte, keine gespeicherten Werte. Endpunkt:\n`GET /api/einstellungen/suche?suche=…` (nur angemeldet, nicht zwischengespeichert).\nEin unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.\n\n| Bereich | Adresse | Inhalt |\n| --- | --- | --- |\n| Mailabruf | `?bereich=abruf` | Abruf, Mailgrenzen, Zeitlimits, Wiederholungen |\n| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Push-Steuerung |\n| Antworten und Termine | `?bereich=antworten` | Antworten, Termindauern, Abgleich, Ziele |\n| KI und Auswertung | `?bereich=ki` | Modelltabelle (nur lesend), Bilder, Lernen, Berichte, Kosten |\n| Daten und Protokolle | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |\n| Weboberfläche und System | `?bereich=system` | Sitzungen, Netzwerk, Geräte, Neustart, Beenden |\n| Zugangsdaten | `?bereich=zugangsdaten` | Passwörter und API-Schlüssel |\n\nAuf großen Bildschirmen bleibt die Bereichsnavigation neben den Werten erreichbar;\nauf dem Handy steht sie oberhalb der Einstellungsgruppen. Speichern und Bestätigung\nlaufen weiterhin über `/einstellungen/speichern` und die Befehlswarteschlange.",
   "title": "Einstellungen der Weboberfläche"
  },
  {
@@ -383,10 +383,12 @@
    "help_chat.enabled",
    "help_chat.max_context_bytes",
    "help_chat.max_question_chars",
-   "help_chat.requests_per_minute_per_session"
+   "help_chat.requests_per_minute_per_session",
+   "reanalysis.max_jobs_per_day",
+   "web.port"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "**Hilfe zu Einstellungen** (`/hilfe`) beantwortet Fragen zur Bedeutung von Einstellungen und zu\nBedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem\nHandy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer\nder Sofortsuche öffnet den Chat mit diesem Bezug. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,\nSuchen und Hilfetexte lösen nie einen KI-Aufruf aus.\n\n- **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten\n  Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)\n  über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).\n  Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende\n  Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.\n- **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.\n  Auch auf die Bitte „Stell das für mich um“ gibt er nur eine Anleitung.\n- **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den\n  KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte\n  Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.\n  Aktuelle Einstellungswerte werden nie mitgeschickt.\n- **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach\n  24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten\n  Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.\n- **Ablauf:** Pro Chat läuft eine Frage; „Antwort wird vorbereitet“ wird ohne JavaScript alle drei\n  Sekunden neu geladen. Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht\n  erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen\n  Einrichtungshinweis.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |\n| Hilfschat: längste Frage (Zeichen) (`help_chat.max_question_chars`) | Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt. | Im laufenden Betrieb |\n| Hilfschat: Dokumentation je Frage (Bytes) (`help_chat.max_context_bytes`) | Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten. | Im laufenden Betrieb |\n| Hilfschat: Fragen je Minute (`help_chat.requests_per_minute_per_session`) | Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht. | Im laufenden Betrieb |",
+  "text": "Ab 5.4.1 entfernt **Chat leeren** auch Fragetexte und Feldbezüge aus gespeicherten Aufträgen.\nNur inhaltsfreie Auftragskennungen, Status und Hashes bleiben gegen doppelte Übertragung erhalten.\nFrüher geleerte Altbestände werden beim nächsten Start bereinigt. Ein ausgeschalteter Hilfschat\nstartet auch für wartende Fragen und Wiederholungen keinen weiteren Modellaufruf.\n\nDie Suche findet auch Datei- und Einrichtungseinstellungen, etwa `web.port` und\n`reanalysis.max_jobs_per_day`. Solche Treffer nennen den Bedienweg und öffnen die passende\nmitgelieferte Dokumentation; sie bieten kein Webformular zum Ändern eines Dateiwerts.\n\n**Hilfe zu Einstellungen** beantwortet Fragen zur Bedeutung von Einstellungen und zu\nBedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem\nHandy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer\nder Sofortsuche öffnet dasselbe kleine Fenster mit diesem Bezug. Die Einstellungsseite bleibt\nbedienbar. Suche, Bereichswechsel, Bearbeiten, Bestätigen und Speichern schließen das Fenster\nnicht. Alte `/hilfe`-Links öffnen es auf der Einstellungsübersicht. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,\nSuchen und Hilfetexte lösen nie einen KI-Aufruf aus.\n\n- **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten\n  Dokumentation aus und schickt sie mit der Frage und dem kurzen Verlauf (höchstens zehn Fragen)\n  über die aktive KI-Anbindung (Schritt `settings_help`, gleiches Modell wie `action_router`).\n  Unter jeder Antwort stehen die verwendeten Abschnitte und Einstellungen als Links; ohne passende\n  Abschnitte antwortet Mailhelp selbst, ohne KI-Aufruf, und bittet um eine genauere Frage.\n- **Grenzen:** Der Chat ändert nichts – keine Einstellungen, Konten, Kalender oder Nachrichten.\n  Auch auf die Bitte „Stell das für mich um“ gibt er nur eine Anleitung.\n- **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den\n  KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte\n  Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.\n  Aktuelle Einstellungswerte werden nie mitgeschickt.\n- **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach\n  24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten\n  Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.\n- **Fenster bedienen:** Den Kopf ziehen oder die vier Richtungsschaltflächen im Fenster verwenden,\n  um es zu verschieben. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.\n  **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape\n  schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.\n- **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den\n  Zustand und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens\n  24 Stunden. Keine Tokens eingeben; dies ist keine Geheimnisablage. Der Gesprächsverlauf bleibt\n  serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben\n  Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.\n- **Ohne Browserspeicher/JavaScript:** Ein serverseitiger Zustand erhält das geöffnete Fenster.\n  Ohne JavaScript **Entwurf behalten** vor einem Seitenwechsel verwenden und **Antwort prüfen**\n  zum Lesen neuer Antworten. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch\n  neu geladen. Bei gesperrtem Browserspeicher sichert JavaScript den Entwurf vor Navigation;\n  scheitert die Sicherung, bleibt die aktuelle Seite erhalten und zeigt den Fehler.\n- **Ablauf:** Pro Chat läuft eine Frage; mit JavaScript wird nur das Fenster aktualisiert.\n  Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht\n  erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen\n  Einrichtungshinweis.\n\n| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Hilfschat anbieten (`help_chat.enabled`) | ja (true) bietet den Hilfschat an: Er erklärt Einstellungen und Bedienwege mit der mitgelieferten Dokumentation über die aktive KI-Anbindung; Frage, kurzer Verlauf und passende Abschnitte gehen dafür an den KI-Anbieter und verursachen Kosten. nein (false) nimmt keine neuen Fragen an; die Dokumentation bleibt lesbar. Standard ja. | Im laufenden Betrieb |\n| Hilfschat: längste Frage (Zeichen) (`help_chat.max_question_chars`) | Längste Frage an den Hilfschat: 100–8000 Zeichen; Standard 4000. Längere Fragen werden mit Hinweis abgewiesen, nicht gekürzt. | Im laufenden Betrieb |\n| Hilfschat: Dokumentation je Frage (Bytes) (`help_chat.max_context_bytes`) | Höchstens so viele Bytes Dokumentation gehen je Frage mit: 2000–48000; Standard 24000. Mehr Kontext kann Antworten vollständiger machen und erhöht Kosten. | Im laufenden Betrieb |\n| Hilfschat: Fragen je Minute (`help_chat.requests_per_minute_per_session`) | Neue Fragen je Sitzung und Minute: 1–20; Standard 6. Das globale KI-Aufruflimit gilt zusätzlich; eine wiederholte Abfrage derselben Frage zählt nicht. | Im laufenden Betrieb |",
   "title": "Hilfschat"
  },
  {
@@ -907,7 +909,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Ziele-einrichten.md",
-  "text": "Stand: Mailhelp 5.3. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste\nbestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`\naus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein\n**Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.\nListen-ID das konkrete Ziel innerhalb dieses Kontos.\n\nMailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten\nVorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.",
+  "text": "Stand: Mailhelp 5.4.1, Anbieterunterlagen am 11. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste\nbestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`\naus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein\n**Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.\nListen-ID das konkrete Ziel innerhalb dieses Kontos.\n\nMailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten\nVorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.",
   "title": "Kalender und Aufgaben verbinden"
  },
  {
@@ -929,7 +931,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Ziele-einrichten.md",
-  "text": "1. Unter **Einstellungen → Zugangsdaten** Client-ID und Client-Geheimnis des\n   Webanwendungs-Clients hinterlegen; die **Google-Rückleitungsadresse (Webanwendungs-Client)**\n   muss in der Google-Cloud-Konsole eingetragen sein.\n2. **Google verbinden** wählen, im Google-Fenster zustimmen und **Google-Anmeldung abschließen**.\n3. **Google-Kalender auswählen** und den gewünschten Kalender übernehmen.\n4. **Zugriffe prüfen**.\n\nAlternativ ohne Webanwendungs-Client: [Google: OAuth-Playground-Anleitung](Google-OAuth-Playground.md).",
+  "text": "1. Unter **Einstellungen → Zugangsdaten** Client-ID und Client-Geheimnis des\n   Webanwendungs-Clients hinterlegen; die **Google-Rückleitungsadresse (Webanwendungs-Client)**\n   muss in der Google-Cloud-Konsole eingetragen sein.\n2. **Google verbinden** wählen, im Google-Fenster zustimmen und **Google-Anmeldung abschließen**.\n3. **Google-Kalender auswählen** und den gewünschten Kalender übernehmen.\n4. **Zugriffe prüfen**.\n\nAlternativ ohne Webanwendungs-Client: [Google: OAuth-Playground-Anleitung](Google-OAuth-Playground.md).\n\nBei einem externen Google-Projekt im Veröffentlichungsstatus „Testing“ kann der Refresh-Token\nnach sieben Tagen ablaufen. Dann die Anmeldung erneuern und den Projektstatus prüfen.",
   "title": "Google Kalender"
  },
  {
@@ -977,6 +979,17 @@
   "title": "Ziel sicher wechseln"
  },
  {
+  "id": "ziele-einrichten/gepruefte-anbieterquellen",
+  "path": [
+   "Kalender und Aufgaben verbinden",
+   "Geprüfte Anbieterquellen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ziele-einrichten.md",
+  "text": "Prüfdatum: 11. November 2026. Dies ist ein Abgleich der Einrichtungshinweise mit offiziellen\nUnterlagen; es wurden keine echten Konten verbunden oder externen Einträge angelegt.\n\n- Google: [Kalenderberechtigungen](https://developers.google.com/workspace/calendar/api/auth)\n  und [OAuth einschließlich Refresh-Token-Ablauf](https://developers.google.com/identity/protocols/oauth2).\n- Todoist: [persönlicher API-Token und API](https://developer.todoist.com/).\n- Microsoft: [Gerätecode-Anmeldung](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code)\n  und [Graph-Berechtigungen](https://learn.microsoft.com/en-us/graph/permissions-reference).\n- CalDAV am Beispiel Nextcloud: [Sammlungsadresse und App-Passwort bei Zwei-Faktor-Schutz](https://docs.nextcloud.com/server/latest/user_manual/en/groupware/sync_windows10.html).\n- Apple: [App-Passwörter](https://support.apple.com/en-gb/102654) und\n  [Umstellung der iCloud-Erinnerungen](https://support.apple.com/en-us/102457).\n  Mailhelp verwendet den vorhandenen CalDAV-/VTODO-Adapter; daraus folgt keine Unterstützung\n  der neuen iCloud-Erinnerungslisten. Diese Grenze bleibt ausdrücklich bestehen.",
+  "title": "Geprüfte Anbieterquellen"
+ },
+ {
   "id": "bedienung/alltagsbedienung",
   "path": [
    "Alltagsbedienung"
@@ -1020,15 +1033,28 @@
   "title": "Mails nachlesen"
  },
  {
-  "id": "bedienung/weitere-seiten",
+  "id": "bedienung/hilfe-beim-einstellen",
   "path": [
    "Alltagsbedienung",
-   "Weitere Seiten"
+   "Weitere Seiten",
+   "Hilfe beim Einstellen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Das Chatsymbol unten rechts öffnet **Hilfe zu Einstellungen** als kleines Fenster über der\naktuellen Einstellungsseite. „Dazu fragen“ übernimmt den Bezug einer Einstellung, ohne einen\nvorhandenen Frageentwurf zu überschreiben. Frage eingeben und **Frage senden** wählen.\nWährend die Antwort entsteht, kannst du suchen, Werte bearbeiten und Änderungen bestätigen\nund speichern. Der Chat bleibt geöffnet; Antworten laden die Einstellungsseite nicht neu.\n\nQuellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt zum Verlauf zurück. Den Kopf\nziehen oder die Richtungsschaltflächen verwenden, um verdeckte Einstellungen freizugeben.\n**Hilfschat schließen** blendet das Fenster aus. Beim Wiederöffnen sind Gespräch und Entwurf\nnoch vorhanden, solange die Sitzung und Aufbewahrung gelten. **Chat leeren** verwirft die Inhalte\nund hält das Fenster offen. Ohne JavaScript vor Navigation **Entwurf behalten** und zum Lesen\nneuer Antworten **Antwort prüfen** wählen. Der Chat erklärt nur und verändert selbst keine Daten.",
+  "title": "Hilfe beim Einstellen"
+ },
+ {
+  "id": "bedienung/seitenuebersicht",
+  "path": [
+   "Alltagsbedienung",
+   "Weitere Seiten",
+   "Seitenübersicht"
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
   "text": "| Seite | Inhalt |\n| --- | --- |\n| **Verlauf** | jede Änderung und Entscheidung mit Version |\n| **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |\n| **Themen** | was als relevant gilt |\n| **Status** | letzter Kontakt je Dienst, laufender Schritt |\n\nAntwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.",
-  "title": "Weitere Seiten"
+  "title": "Seitenübersicht"
  },
  {
   "id": "fehlerbehebung/fehler-beheben",
@@ -1039,8 +1065,19 @@
    "limits.llm_calls_per_minute"
   ],
   "source": "docs/Fehlerbehebung.md",
-  "text": "Stand: Mailhelp 5.3. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt\nEinträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern\ngleicht sie zuerst mit dem Anbieter ab.\n\n| Lage | Ursache | Nächster Schritt |\n| --- | --- | --- |\n| Anmeldung am Postfach fehlgeschlagen | Benutzername, Passwort oder Verbindungsart falsch | **Einstellungen → Zugangsdaten** prüfen; bei Zwei-Faktor-Schutz App-Passwort; **Zugriffe prüfen** |\n| Ordner fehlt | Ordnername anders als auf dem Server | auf der Postfachseite die gefundene Ordnerliste übernehmen |\n| Google: Anmeldung abgelaufen (`token_refresh_denied` im Protokoll) | Refresh-Token widerrufen oder abgelaufen | **Google verbinden** erneut ausführen |\n| Microsoft: Anmeldung abgelehnt | Token abgelaufen | **Microsoft verbinden** oder `mailhelp --microsoft-login` |\n| Anbieter nicht erreichbar | Netzwerk oder Störung beim Anbieter | abwarten; Mailhelp versucht es erneut. **Status** zeigt den letzten Kontakt |\n| KI-Budget erschöpft | `limits.llm_calls_per_minute` erreicht | nichts tun: die Mail wird automatisch später ausgewertet |\n| „Die Nachricht überschreitet ein Sicherheitslimit“ | Mail zu groß oder zu verschachtelt | Grenzen unter `limits` nur für vertrauenswürdige Mails erhöhen |\n| Einstellung „gespeichert – wirkt erst nach einem Neustart“ | noch nicht aktiv | **Einstellungen → Mailhelp neu starten** |\n| Eintragung noch nicht bestätigt | Eintrag beim Anbieter nicht sichtbar oder Abruf verweigert | Eintrag beim Anbieter ansehen; danach **Erneut prüfen** |\n| Unklarer Schreiberfolg | Antwort des Anbieters ging verloren | nichts tun: Mailhelp gleicht ab und legt nicht erneut an |\n| Ziel geändert, Anlage gesperrt | Vorschlag für ein anderes Ziel bestätigt | ursprüngliches Ziel wiederherstellen oder den neuen Vorschlag bestätigen |\n| „Beenden nicht ausgeführt“ oder „Neustart nicht ausgeführt“ | Bestätigung von einem früheren Start oder unvollständig | auf derselben Seite erneut bestätigen; hilft das nicht, Mailhelp im Terminal mit Strg+C beenden |\n| „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |\n| Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |",
+  "text": "Stand: Mailhelp 5.4. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt\nEinträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern\ngleicht sie zuerst mit dem Anbieter ab.\n\n| Lage | Ursache | Nächster Schritt |\n| --- | --- | --- |\n| Anmeldung am Postfach fehlgeschlagen | Benutzername, Passwort oder Verbindungsart falsch | **Einstellungen → Zugangsdaten** prüfen; bei Zwei-Faktor-Schutz App-Passwort; **Zugriffe prüfen** |\n| Ordner fehlt | Ordnername anders als auf dem Server | auf der Postfachseite die gefundene Ordnerliste übernehmen |\n| Google: Anmeldung abgelaufen (`token_refresh_denied` im Protokoll) | Refresh-Token widerrufen oder abgelaufen | **Google verbinden** erneut ausführen |\n| Microsoft: Anmeldung abgelehnt | Token abgelaufen | **Microsoft verbinden** oder `mailhelp --microsoft-login` |\n| Anbieter nicht erreichbar | Netzwerk oder Störung beim Anbieter | abwarten; Mailhelp versucht es erneut. **Status** zeigt den letzten Kontakt |\n| KI-Budget erschöpft | `limits.llm_calls_per_minute` erreicht | nichts tun: die Mail wird automatisch später ausgewertet |\n| „Die Nachricht überschreitet ein Sicherheitslimit“ | Mail zu groß oder zu verschachtelt | Grenzen unter `limits` nur für vertrauenswürdige Mails erhöhen |\n| Einstellung „gespeichert – wirkt erst nach einem Neustart“ | noch nicht aktiv | **Einstellungen → Mailhelp neu starten** |\n| Eintragung noch nicht bestätigt | Eintrag beim Anbieter nicht sichtbar oder Abruf verweigert | Eintrag beim Anbieter ansehen; danach **Erneut prüfen** |\n| Unklarer Schreiberfolg | Antwort des Anbieters ging verloren | nichts tun: Mailhelp gleicht ab und legt nicht erneut an |\n| Ziel geändert, Anlage gesperrt | Vorschlag für ein anderes Ziel bestätigt | ursprüngliches Ziel wiederherstellen oder den neuen Vorschlag bestätigen |\n| „Beenden nicht ausgeführt“ oder „Neustart nicht ausgeführt“ | Bestätigung von einem früheren Start oder unvollständig | auf derselben Seite erneut bestätigen; hilft das nicht, Mailhelp im Terminal mit Strg+C beenden |\n| „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |\n| Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |",
   "title": "Fehler beheben"
+ },
+ {
+  "id": "fehlerbehebung/web-passwort-zuruecksetzen",
+  "path": [
+   "Fehler beheben",
+   "Web-Passwort zurücksetzen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Fehlerbehebung.md",
+  "text": "1. Den laufenden Dienst kontrolliert beenden; der Rücksetzbefehl benötigt alleinigen Zugriff\n   auf das Datenverzeichnis.\n2. Am Host im Konfigurationsverzeichnis `mailhelp --reset-web-password --config-directory .`\n   ausführen. Das löscht den bisherigen Passworthash und meldet alle Websitzungen ab;\n   es erzeugt kein neues Passwort.\n3. Bei beendetem Dienst `mailhelp --pair --config-directory .` ausführen und den einmaligen\n   Terminal-Code bereithalten. Den Dienst wieder starten und mit diesem Code anmelden.\n4. Nach gültiger Anmeldung kann unter `/einstellungen/web-passwort` ausdrücklich ein neues\n   Web-Passwort gesetzt werden. Den Code und das Passwort nicht in den Hilfschat eingeben.",
+  "title": "Web-Passwort zurücksetzen"
  },
  {
   "id": "fehlerbehebung/diagnose",
@@ -1056,13 +1093,24 @@
   "title": "Diagnose"
  },
  {
+  "id": "fehlerbehebung/hilfschat-im-einstellungsfenster",
+  "path": [
+   "Fehler beheben",
+   "Hilfschat im Einstellungsfenster"
+  ],
+  "setting_ids": [],
+  "source": "docs/Fehlerbehebung.md",
+  "text": "Das Fenster bleibt bei Suche und Speichern geöffnet. Ist es im Weg, den Kopf ziehen oder die\nvier Richtungsschaltflächen verwenden. Nur **Hilfschat schließen** blendet es aus;\n**Chat leeren** entfernt den Verlauf. Erscheint eine Antwort nicht, **Antwort prüfen** wählen.\nKeine Frage wegen eines Seitenwechsels erneut senden: Mailhelp zeigt den vorhandenen Auftrag.\n\nIst Browserspeicher gesperrt, sichert Mailhelp den Fensterstand vor Navigation auf dem lokalen\nServer. Bei einem Fehler bleibt die Seite mit dem Entwurf erhalten; Verbindung prüfen und\nerneut versuchen. Ohne JavaScript vor einem Seitenwechsel **Entwurf behalten** wählen.\nNach Abmeldung oder Sitzungsablauf erneut anmelden; alte private Chatdaten werden nicht aus\ndem Browserzustand einer neuen Sitzung übernommen.",
+  "title": "Hilfschat im Einstellungsfenster"
+ },
+ {
   "id": "betrieb/betrieb-und-update",
   "path": [
    "Betrieb und Update"
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "Stand: Mailhelp 5.3.",
+  "text": "Stand: Mailhelp 5.4.1.",
   "title": "Betrieb und Update"
  },
  {
@@ -1097,7 +1145,7 @@
    "data_directory"
   ],
   "source": "docs/Betrieb.md",
-  "text": "Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das Datenverzeichnis\n(`data_directory`, Zustände als lesbare JSON-Dateien) und bei Bedarf das Protokollverzeichnis.\n`.env` enthält Zugangsdaten und gehört nicht in fremde Hände.",
+  "text": "Für eine konsistente Sicherung zuerst den Dienst kontrolliert beenden. Erst nach dem\nvollständigen Ende die Dateien kopieren; anschließend Mailhelp wieder starten.\n\nZu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das Datenverzeichnis\n(`data_directory`, Zustände als lesbare JSON-Dateien) und bei Bedarf das Protokollverzeichnis.\n`.env` enthält Zugangsdaten und gehört nicht in fremde Hände.",
   "title": "Sicherung"
  },
  {
@@ -1108,7 +1156,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.\n2. Neuen Stand holen und in derselben virtuellen Umgebung installieren:\n   `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.\n3. `mailhelp --check --config-directory .` und danach starten.\n\nNeue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue\nPrompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige\nRelease-Bericht beschreibt die Übernahme.",
+  "text": "1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.\n2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).\n3. Neuen Stand holen und in derselben virtuellen Umgebung installieren:\n   `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.\n4. `mailhelp --check --config-directory .` und danach starten.\n\nNeue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue\nPrompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige\nRelease-Bericht beschreibt die Übernahme.",
   "title": "Update"
  },
  {

@@ -340,9 +340,10 @@ def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None
     areas = {title: key for key, title, *_ in AREAS}
     rows = "".join(f'<p class="meta">Bereich <a href="/einstellungen?bereich={areas[item.area]}">{e(item.area)}</a>'
                    f" · {e(item.group)}</p>" + _setting_row(item.key, raw, active, revision, csrf)
-                   for item in results if item.key is not None)
-    pages = "".join(f'<li><a href="{e(item.href)}">{e(item.label)}</a> <span class="meta">{e(item.summary)}</span></li>'
-                    for item in results if item.key is None)
+                   for item in results if item.key is not None and item.path == "Weboberfläche")
+    pages = "".join(f'<li><a href="{e(item.href)}">{e(item.label)}</a> '
+                    f'<span class="meta">{e(item.path)} · {e(item.summary)}</span></li>'
+                    for item in results if item.path != "Weboberfläche")
     count = len(results)
     body = f'<p class="meta" role="status">{count} Treffer für „{e(query)}“</p>'
     if rows:

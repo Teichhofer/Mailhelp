@@ -28,7 +28,8 @@ def test_the_query_is_bounded_and_an_empty_query_finds_nothing(web):
 
 def test_pages_are_found_and_nothing_but_metadata_is_returned(web):
     _response, data = live(web, "Elternbriefe")
-    assert [item["id"] for item in data["results"]] == ["page:iserv"]
+    assert data["results"][0]["id"] == "page:iserv"
+    assert "setting:iserv.accounts[].label" in {item["id"] for item in data["results"]}
     assert data["results"][0]["key"] is None and data["results"][0]["path"] == "Eigene Seite"
     body = json.dumps(data)
     assert "csrf" not in body and "password" not in body.casefold()

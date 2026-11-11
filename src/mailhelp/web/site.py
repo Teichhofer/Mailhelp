@@ -33,7 +33,7 @@ from .app import WebApp
 from .auth import WebAuth, WebSession
 from .http import Request, Response
 from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
-from .pages import HELP_BUTTON, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
+from .pages import HELP_BUTTON, HELP_WINDOW, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
 from .review_site import ReviewSite
 from .sender_site import LIST_PATH as SENDERS_PATH
 from .sender_site import SenderSite
@@ -195,10 +195,15 @@ class MailhelpSite:
         overview = self.overview()
         token = OPEN_DECISIONS.set(len(overview.open) + len(overview.relevance))
         button = HELP_BUTTON.set(shows_help_button(request.path))
+        session = values[0]
+        window = HELP_WINDOW.set((lambda: self.archive.help.window.frame(
+            session, request.path, request.query))
+            if shows_help_button(request.path) and isinstance(session, WebSession) else None)
         try:
             return handler(request, *values, **arguments)
         finally:
             HELP_BUTTON.reset(button)
+            HELP_WINDOW.reset(window)
             OPEN_DECISIONS.reset(token)
 
 

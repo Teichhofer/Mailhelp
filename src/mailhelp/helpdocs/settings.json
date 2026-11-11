@@ -1,0 +1,1182 @@
+[
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Täglicher Tagesüberblick per Telegram; Standard aus.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:daily_briefing.enabled",
+  "key": "daily_briefing.enabled",
+  "label": "daily_briefing.enabled",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Täglicher Tagesüberblick per Telegram; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:daily_briefing.time",
+  "key": "daily_briefing.time",
+  "label": "daily_briefing.time",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Verzeichnis der Zustandsdaten (Pflicht); darunter `production` bzw. `test` je nach Testmodus. Relativ zur Konfiguration.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:data_directory",
+  "key": "data_directory",
+  "label": "data_directory",
+  "path": "Datei",
+  "summary": "Datei: Verzeichnis der Zustandsdaten (Pflicht); darunter `production` bzw."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.connection_mode",
+  "key": "imap.connection_mode",
+  "label": "imap.connection_mode",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.drafts_folder",
+  "key": "imap.drafts_folder",
+  "label": "imap.drafts_folder",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.folders",
+  "key": "imap.folders",
+  "label": "imap.folders",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.historical_start",
+  "key": "imap.historical_start",
+  "label": "imap.historical_start",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Mailserver des ersten Postfachs im älteren Einzelformat, z. B. `imap.example.org`; 1–253 Zeichen. Ohne `imap.mailboxes` beschreibt dieser Block Postfach 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.host",
+  "key": "imap.host",
+  "label": "imap.host",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Mailserver des ersten Postfachs im älteren Einzelformat, z."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Vorausgewählter Ordner für Tätigkeitsberichte.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].activity_report_folder",
+  "key": "imap.mailboxes[].activity_report_folder",
+  "label": "imap.mailboxes[].activity_report_folder",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Vorausgewählter Ordner für Tätigkeitsberichte."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Entwürfe ohne Klick im Entwurfsordner ablegen; leer erbt global (Standard aus).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].auto_draft",
+  "key": "imap.mailboxes[].auto_draft",
+  "label": "imap.mailboxes[].auto_draft",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Entwürfe ohne Klick im Entwurfsordner ablegen; leer erbt global (Standard aus)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`ssl` (Standard), `starttls` oder `plain`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].connection_mode",
+  "key": "imap.mailboxes[].connection_mode",
+  "label": "imap.mailboxes[].connection_mode",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: `ssl` (Standard), `starttls` oder `plain`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Dieses Postfach im Tagesüberblick als eigenen Abschnitt zeigen; Standard an.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].daily_briefing",
+  "key": "imap.mailboxes[].daily_briefing",
+  "label": "imap.mailboxes[].daily_briefing",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Dieses Postfach im Tagesüberblick als eigenen Abschnitt zeigen; Standard an."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Entwurfsordner, 1–500 Zeichen; Standard `Drafts`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].drafts_folder",
+  "key": "imap.mailboxes[].drafts_folder",
+  "label": "imap.mailboxes[].drafts_folder",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Entwurfsordner, 1–500 Zeichen; Standard `Drafts`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ob das Postfach abgerufen wird; Standard an. Ein deaktiviertes Postfach bleibt eingetragen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].enabled",
+  "key": "imap.mailboxes[].enabled",
+  "label": "imap.mailboxes[].enabled",
+  "path": "Datei",
+  "summary": "Datei: Ob das Postfach abgerufen wird; Standard an."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Lokale Standarddauer für Präsenztermine, 1–1440 Minuten; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "key": "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "label": "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Lokale Standarddauer für Präsenztermine, 1–1440 Minuten; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Lokale Standarddauer für Videotermine, 1–1440 Minuten; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].event_defaults.video_duration_minutes",
+  "key": "imap.mailboxes[].event_defaults.video_duration_minutes",
+  "label": "imap.mailboxes[].event_defaults.video_duration_minutes",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Lokale Standarddauer für Videotermine, 1–1440 Minuten; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Gelesene Ordner, 1–100 (Pflicht); der erste ist der Posteingang.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].folders",
+  "key": "imap.mailboxes[].folders",
+  "label": "imap.mailboxes[].folders",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Gelesene Ordner, 1–100 (Pflicht); der erste ist der Posteingang."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Startgrenze dieses Postfachs; leer bedeutet alle Mails.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].historical_start",
+  "key": "imap.mailboxes[].historical_start",
+  "label": "imap.mailboxes[].historical_start",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Startgrenze dieses Postfachs; leer bedeutet alle Mails."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Mailserver, 1–253 Zeichen (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].host",
+  "key": "imap.mailboxes[].host",
+  "label": "imap.mailboxes[].host",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Mailserver, 1–253 Zeichen (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Nummer des Postfachs, 1–99; bestimmt die Namen der Zugangsdaten. Wird beim Anlegen vergeben und nicht geändert.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].id",
+  "key": "imap.mailboxes[].id",
+  "label": "imap.mailboxes[].id",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Nummer des Postfachs, 1–99; bestimmt die Namen der Zugangsdaten."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Anzeigename, 1–40 Zeichen; Standard „Postfach“.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].label",
+  "key": "imap.mailboxes[].label",
+  "label": "imap.mailboxes[].label",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Anzeigename, 1–40 Zeichen; Standard „Postfach“."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wohin „Original-Mail öffnen“ führt: `auto` (Standard), `apple_mail`, `gmail_web`, `outlook_web` oder `none`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].mail_client",
+  "key": "imap.mailboxes[].mail_client",
+  "label": "imap.mailboxes[].mail_client",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Wohin „Original-Mail öffnen“ führt: `auto` (Standard), `apple_mail`, `gmail_web`, `outlook_web` oder `none`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für Ergebnisse von Eintragungen; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.action_results",
+  "key": "imap.mailboxes[].notifications.categories.action_results",
+  "label": "imap.mailboxes[].notifications.categories.action_results",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Kanäle für Ergebnisse von Eintragungen; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für den Tagesüberblick; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.daily_briefing",
+  "key": "imap.mailboxes[].notifications.categories.daily_briefing",
+  "label": "imap.mailboxes[].notifications.categories.daily_briefing",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Kanäle für den Tagesüberblick; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle (`telegram`, `web_push`) für Entscheidungen dieses Postfachs; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.decisions",
+  "key": "imap.mailboxes[].notifications.categories.decisions",
+  "label": "imap.mailboxes[].notifications.categories.decisions",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Kanäle (`telegram`, `web_push`) für Entscheidungen dieses Postfachs; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für Betriebsfehler; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.system_errors",
+  "key": "imap.mailboxes[].notifications.categories.system_errors",
+  "label": "imap.mailboxes[].notifications.categories.system_errors",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Kanäle für Betriebsfehler; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Betriebsfehler trotz Ruhezeit melden; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "key": "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "label": "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Betriebsfehler trotz Ruhezeit melden; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Eigene Ruhezeiten für dieses Postfach; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.enabled",
+  "key": "imap.mailboxes[].notifications.quiet_hours.enabled",
+  "label": "imap.mailboxes[].notifications.quiet_hours.enabled",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Eigene Ruhezeiten für dieses Postfach; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ende der Ruhezeit, HH:MM; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.end",
+  "key": "imap.mailboxes[].notifications.quiet_hours.end",
+  "label": "imap.mailboxes[].notifications.quiet_hours.end",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Ende der Ruhezeit, HH:MM; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Beginn der Ruhezeit, HH:MM; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.start",
+  "key": "imap.mailboxes[].notifications.quiet_hours.start",
+  "label": "imap.mailboxes[].notifications.quiet_hours.start",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Beginn der Ruhezeit, HH:MM; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Weitere eigene Absenderadressen (Aliase), höchstens 20; der IMAP-Benutzername zählt bereits. Mails von diesen Adressen gelten als eigene Notiz oder Weiterleitung.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].own_addresses",
+  "key": "imap.mailboxes[].own_addresses",
+  "label": "imap.mailboxes[].own_addresses",
+  "path": "Datei",
+  "summary": "Datei: Weitere eigene Absenderadressen (Aliase), höchstens 20; der IMAP-Benutzername zählt bereits."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Eigene Rolle, Signatur und Angaben für Antwortentwürfe dieses Postfachs, bis 2000 Zeichen; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].personal_info",
+  "key": "imap.mailboxes[].personal_info",
+  "label": "imap.mailboxes[].personal_info",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Eigene Rolle, Signatur und Angaben für Antwortentwürfe dieses Postfachs, bis 2000 Zeichen; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Port 1–65535 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].port",
+  "key": "imap.mailboxes[].port",
+  "label": "imap.mailboxes[].port",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Port 1–65535 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Posteingang; Standard `INBOX`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].primary_folder",
+  "key": "imap.mailboxes[].primary_folder",
+  "label": "imap.mailboxes[].primary_folder",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Posteingang; Standard `INBOX`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Volltexte kürzer aufbewahren als global: Tage, `disabled` (sofort entfernen) oder `unlimited` (nur bei global unbegrenzter Aufbewahrung).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].retention.full_mail_days",
+  "key": "imap.mailboxes[].retention.full_mail_days",
+  "label": "imap.mailboxes[].retention.full_mail_days",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Volltexte kürzer aufbewahren als global: Tage, `disabled` (sofort entfernen) oder `unlimited` (nur bei global unbegrenzter Aufbewahrung)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Antwortentwürfe für dieses Postfach; leer erbt global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].smart_reply",
+  "key": "imap.mailboxes[].smart_reply",
+  "label": "imap.mailboxes[].smart_reply",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Antwortentwürfe für dieses Postfach; leer erbt global."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Zielprofil 1–99 für neue Vorschläge dieses Postfachs; Standard 1. Bestehende Vorschläge bleiben an ihr Ziel gebunden.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].target_profile",
+  "key": "imap.mailboxes[].target_profile",
+  "label": "imap.mailboxes[].target_profile",
+  "path": "Postfachseite",
+  "summary": "Postfachseite: Zielprofil 1–99 für neue Vorschläge dieses Postfachs; Standard 1."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.port",
+  "key": "imap.port",
+  "label": "imap.port",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.primary_folder",
+  "key": "imap.primary_folder",
+  "label": "imap.primary_folder",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Konto abrufen; Standard an.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].enabled",
+  "key": "iserv.accounts[].enabled",
+  "label": "iserv.accounts[].enabled",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: Konto abrufen; Standard an."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Startgrenze; leer übernimmt die des Postfachs.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].historical_start",
+  "key": "iserv.accounts[].historical_start",
+  "label": "iserv.accounts[].historical_start",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: Startgrenze; leer übernimmt die des Postfachs."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Nummer 1–10; bestimmt die Zugangsdaten `ISERV_<n>_USERNAME`/`_PASSWORD`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].id",
+  "key": "iserv.accounts[].id",
+  "label": "iserv.accounts[].id",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: Nummer 1–10; bestimmt die Zugangsdaten `ISERV_<n>_USERNAME`/`_PASSWORD`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Anzeigename, 1–40 Zeichen; Standard „Elternbriefe“.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].label",
+  "key": "iserv.accounts[].label",
+  "label": "iserv.accounts[].label",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: Anzeigename, 1–40 Zeichen; Standard „Elternbriefe“."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Postfach 1–99, dessen Zielprofil und Standards gelten; muss aktiv sein. Standard 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].mailbox",
+  "key": "iserv.accounts[].mailbox",
+  "label": "iserv.accounts[].mailbox",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: Postfach 1–99, dessen Zielprofil und Standards gelten; muss aktiv sein."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "HTTPS-Adresse der Schule (Pflicht, bis 253 Zeichen); ein kopierter IServ-Link wird auf die Schuladresse gekürzt.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].server",
+  "key": "iserv.accounts[].server",
+  "label": "iserv.accounts[].server",
+  "path": "IServ-Seite",
+  "summary": "IServ-Seite: HTTPS-Adresse der Schule (Pflicht, bis 253 Zeichen); ein kopierter IServ-Link wird auf die Schuladresse gekürzt."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Entschlüsselter Text aller Teile, 1–100000000 Bytes; Standard 1000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_decoded_text_bytes",
+  "key": "limits.max_decoded_text_bytes",
+  "label": "limits.max_decoded_text_bytes",
+  "path": "Datei",
+  "summary": "Datei: Entschlüsselter Text aller Teile, 1–100000000 Bytes; Standard 1000000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Längste angezeigte Kopfzeile (Absender, Betreff), 1–10000 Zeichen; Standard 500. Längere werden als „—“ angezeigt.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_display_header_characters",
+  "key": "limits.max_display_header_characters",
+  "label": "limits.max_display_header_characters",
+  "path": "Datei",
+  "summary": "Datei: Längste angezeigte Kopfzeile (Absender, Betreff), 1–10000 Zeichen; Standard 500."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Größe aller Kopfzeilen, 256–1000000 Bytes; Standard 64000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_header_bytes",
+  "key": "limits.max_header_bytes",
+  "label": "limits.max_header_bytes",
+  "path": "Datei",
+  "summary": "Datei: Größe aller Kopfzeilen, 256–1000000 Bytes; Standard 64000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Länge des HTML-Teils, 1–100000000 Zeichen; Standard 1000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_characters",
+  "key": "limits.max_html_characters",
+  "label": "limits.max_html_characters",
+  "path": "Datei",
+  "summary": "Datei: Länge des HTML-Teils, 1–100000000 Zeichen; Standard 1000000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Verschachtelungstiefe des HTML, 1–10000; Standard 100.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_depth",
+  "key": "limits.max_html_depth",
+  "label": "limits.max_html_depth",
+  "path": "Datei",
+  "summary": "Datei: Verschachtelungstiefe des HTML, 1–10000; Standard 100."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "HTML-Elemente, 1–1000000; Standard 20000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_tags",
+  "key": "limits.max_html_tags",
+  "label": "limits.max_html_tags",
+  "path": "Datei",
+  "summary": "Datei: HTML-Elemente, 1–1000000; Standard 20000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Teile einer Mail, 1–10000; Standard 100.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_mime_parts",
+  "key": "limits.max_mime_parts",
+  "label": "limits.max_mime_parts",
+  "path": "Datei",
+  "summary": "Datei: Teile einer Mail, 1–10000; Standard 100."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Adresse des Ollama-Servers bei `llm.provider: ollama`; Standard `localhost:11434`, auch `http://localhost:11434`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:llm.ollama_address",
+  "key": "llm.ollama_address",
+  "label": "llm.ollama_address",
+  "path": "Datei",
+  "summary": "Datei: Adresse des Ollama-Servers bei `llm.provider: ollama`; Standard `localhost:11434`, auch `http://localhost:11434`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`openrouter` (Standard) oder `ollama` (lokaler Server). `--ollama HOST:PORT` beim Start überschreibt die Wahl. Mit `openrouter` ist `OPENROUTER_API_KEY` in `.env` nötig.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:llm.provider",
+  "key": "llm.provider",
+  "label": "llm.provider",
+  "path": "Datei",
+  "summary": "Datei: `openrouter` (Standard) oder `ollama` (lokaler Server)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Bildschirmausgabe als `text` (Standard) oder `jsonl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.console.format",
+  "key": "logging.console.format",
+  "label": "logging.console.format",
+  "path": "Datei",
+  "summary": "Datei: Bildschirmausgabe als `text` (Standard) oder `jsonl`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Verzeichnis der Protokolle (Pflicht); `--log-directory` überschreibt es für einen Start.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.directory",
+  "key": "logging.directory",
+  "label": "logging.directory",
+  "path": "Datei",
+  "summary": "Datei: Verzeichnis der Protokolle (Pflicht); `--log-directory` überschreibt es für einen Start."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Aufbewahrte ältere Dateien, ab 0 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.backup_count",
+  "key": "logging.file.backup_count",
+  "label": "logging.file.backup_count",
+  "path": "Datei",
+  "summary": "Datei: Aufbewahrte ältere Dateien, ab 0 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Datei des Anwendungsprotokolls im Protokollverzeichnis (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.filename",
+  "key": "logging.file.filename",
+  "label": "logging.file.filename",
+  "path": "Datei",
+  "summary": "Datei: Datei des Anwendungsprotokolls im Protokollverzeichnis (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`jsonl` (Standard) oder `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.format",
+  "key": "logging.file.format",
+  "label": "logging.file.format",
+  "path": "Datei",
+  "summary": "Datei: `jsonl` (Standard) oder `text`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Größe, ab der die Datei gewechselt wird, größer 0 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.max_bytes",
+  "key": "logging.file.max_bytes",
+  "label": "logging.file.max_bytes",
+  "path": "Datei",
+  "summary": "Datei: Größe, ab der die Datei gewechselt wird, größer 0 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchstalter der Protokolldateien, 1–3650 Tage (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.retention_days",
+  "key": "logging.file.retention_days",
+  "label": "logging.file.retention_days",
+  "path": "Datei",
+  "summary": "Datei: Höchstalter der Protokolldateien, 1–3650 Tage (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Aufbewahrte ältere Dateien, ab 0 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.backup_count",
+  "key": "logging.llm.backup_count",
+  "label": "logging.llm.backup_count",
+  "path": "Datei",
+  "summary": "Datei: Aufbewahrte ältere Dateien, ab 0 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Datei des KI-Protokolls (Pflicht). Inhalte von Anfragen und Antworten stehen dort nur mit `logging.llm.include_requests`/`include_responses`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.filename",
+  "key": "logging.llm.filename",
+  "label": "logging.llm.filename",
+  "path": "Datei",
+  "summary": "Datei: Datei des KI-Protokolls (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`jsonl` (Standard) oder `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.format",
+  "key": "logging.llm.format",
+  "label": "logging.llm.format",
+  "path": "Datei",
+  "summary": "Datei: `jsonl` (Standard) oder `text`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wechselgröße, größer 0 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.max_bytes",
+  "key": "logging.llm.max_bytes",
+  "label": "logging.llm.max_bytes",
+  "path": "Datei",
+  "summary": "Datei: Wechselgröße, größer 0 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchstalter, 1–3650 Tage (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.retention_days",
+  "key": "logging.llm.retention_days",
+  "label": "logging.llm.retention_days",
+  "path": "Datei",
+  "summary": "Datei: Höchstalter, 1–3650 Tage (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Protokollstufe je Modul, z. B. `openrouter: INFO`; Standard leer.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.modules",
+  "key": "logging.modules",
+  "label": "logging.modules",
+  "path": "Datei",
+  "summary": "Datei: Protokollstufe je Modul, z."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Aufbewahrte ältere Dateien, ab 0; Standard 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.backup_count",
+  "key": "logging.telegram.backup_count",
+  "label": "logging.telegram.backup_count",
+  "path": "Datei",
+  "summary": "Datei: Aufbewahrte ältere Dateien, ab 0; Standard 5."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Datei des Telegram-Nachrichtenprotokolls; Standard `telegram/messages.jsonl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.filename",
+  "key": "logging.telegram.filename",
+  "label": "logging.telegram.filename",
+  "path": "Datei",
+  "summary": "Datei: Datei des Telegram-Nachrichtenprotokolls; Standard `telegram/messages.jsonl`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`jsonl` (Standard) oder `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.format",
+  "key": "logging.telegram.format",
+  "label": "logging.telegram.format",
+  "path": "Datei",
+  "summary": "Datei: `jsonl` (Standard) oder `text`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wechselgröße, größer 0; Standard 10000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.max_bytes",
+  "key": "logging.telegram.max_bytes",
+  "label": "logging.telegram.max_bytes",
+  "path": "Datei",
+  "summary": "Datei: Wechselgröße, größer 0; Standard 10000000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchstalter, 1–3650 Tage; Standard 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.retention_days",
+  "key": "logging.telegram.retention_days",
+  "label": "logging.telegram.retention_days",
+  "path": "Datei",
+  "summary": "Datei: Höchstalter, 1–3650 Tage; Standard 30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Meldungen in einem Zeitfenster bündeln; Standard aus.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.batching.enabled",
+  "key": "notifications.batching.enabled",
+  "label": "notifications.batching.enabled",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Meldungen in einem Zeitfenster bündeln; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Bündelungsfenster 1–86400 Sekunden; Standard 300.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.batching.window_seconds",
+  "key": "notifications.batching.window_seconds",
+  "label": "notifications.batching.window_seconds",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Bündelungsfenster 1–86400 Sekunden; Standard 300."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für Ergebnisse von Eintragungen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.action_results",
+  "key": "notifications.categories.action_results",
+  "label": "notifications.categories.action_results",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Kanäle für Ergebnisse von Eintragungen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für den Tagesüberblick.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.daily_briefing",
+  "key": "notifications.categories.daily_briefing",
+  "label": "notifications.categories.daily_briefing",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Kanäle für den Tagesüberblick."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle (`telegram`, `web_push`) für Entscheidungen; eine leere Liste meldet diese Kategorie nicht.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.decisions",
+  "key": "notifications.categories.decisions",
+  "label": "notifications.categories.decisions",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Kanäle (`telegram`, `web_push`) für Entscheidungen; eine leere Liste meldet diese Kategorie nicht."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kanäle für Betriebsfehler.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.system_errors",
+  "key": "notifications.categories.system_errors",
+  "label": "notifications.categories.system_errors",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Kanäle für Betriebsfehler."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Aufbewahrung des Zustellverlaufs, 1–3650 Tage; Standard 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.history_days",
+  "key": "notifications.delivery.history_days",
+  "label": "notifications.delivery.history_days",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Aufbewahrung des Zustellverlaufs, 1–3650 Tage; Standard 30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wartezeit vor dem zweiten Versuch, 1–86400 Sekunden; Standard 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.initial_backoff_seconds",
+  "key": "notifications.delivery.initial_backoff_seconds",
+  "label": "notifications.delivery.initial_backoff_seconds",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Wartezeit vor dem zweiten Versuch, 1–86400 Sekunden; Standard 30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Zustellversuche je Meldung, 1–10; Standard 3.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_attempts",
+  "key": "notifications.delivery.max_attempts",
+  "label": "notifications.delivery.max_attempts",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Zustellversuche je Meldung, 1–10; Standard 3."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Längste Wartezeit zwischen Versuchen, 1–86400 Sekunden; Standard 900.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_backoff_seconds",
+  "key": "notifications.delivery.max_backoff_seconds",
+  "label": "notifications.delivery.max_backoff_seconds",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Längste Wartezeit zwischen Versuchen, 1–86400 Sekunden; Standard 900."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchstens wartende Meldungen, 1–100000; Standard 1000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_pending",
+  "key": "notifications.delivery.max_pending",
+  "label": "notifications.delivery.max_pending",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Höchstens wartende Meldungen, 1–100000; Standard 1000."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Betriebsfehler auch in der Ruhezeit melden; Standard aus.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.allow_system_errors",
+  "key": "notifications.quiet_hours.allow_system_errors",
+  "label": "notifications.quiet_hours.allow_system_errors",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Betriebsfehler auch in der Ruhezeit melden; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ruhezeiten: in diesem Zeitraum werden Meldungen zurückgehalten; Standard aus.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.enabled",
+  "key": "notifications.quiet_hours.enabled",
+  "label": "notifications.quiet_hours.enabled",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Ruhezeiten: in diesem Zeitraum werden Meldungen zurückgehalten; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Ende, HH:MM; Standard 07:30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.end",
+  "key": "notifications.quiet_hours.end",
+  "label": "notifications.quiet_hours.end",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Ende, HH:MM; Standard 07:30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Beginn, HH:MM; Standard 22:00.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.start",
+  "key": "notifications.quiet_hours.start",
+  "label": "notifications.quiet_hours.start",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Beginn, HH:MM; Standard 22:00."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`neutral` (Standard): Telegram-Meldungen ohne Mailinhalte; `summary`: mit kurzer Übersicht der Entscheidungen bzw. dem Tagesüberblick.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.telegram_content",
+  "key": "notifications.telegram_content",
+  "label": "notifications.telegram_content",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: `neutral` (Standard): Telegram-Meldungen ohne Mailinhalte; `summary`: mit kurzer Übersicht der Entscheidungen bzw."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:push.enabled",
+  "key": "push.enabled",
+  "label": "push.enabled",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:push.subject",
+  "key": "push.subject",
+  "label": "push.subject",
+  "path": "Datei",
+  "summary": "Datei: Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "„Aufgabe oder Termin übersehen?“ anbieten; Standard an.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.enabled",
+  "key": "reanalysis.enabled",
+  "label": "reanalysis.enabled",
+  "path": "Datei",
+  "summary": "Datei: „Aufgabe oder Termin übersehen?“ anbieten; Standard an."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Versuche je Modellaufruf nach Fehler oder Neustart, 1–5; Standard 2.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_attempts",
+  "key": "reanalysis.max_attempts",
+  "label": "reanalysis.max_attempts",
+  "path": "Datei",
+  "summary": "Datei: Versuche je Modellaufruf nach Fehler oder Neustart, 1–5; Standard 2."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Gestartete Nachanalysen je Tag über alle Mails, 1–500; Standard 20 (Kostenschutz).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_jobs_per_day",
+  "key": "reanalysis.max_jobs_per_day",
+  "label": "reanalysis.max_jobs_per_day",
+  "path": "Datei",
+  "summary": "Datei: Gestartete Nachanalysen je Tag über alle Mails, 1–500; Standard 20 (Kostenschutz)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "KI-Aufrufe je Nachanalyse, 1–10; Standard 5 (drei Schritte und zwei Wiederholungen).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_llm_calls_per_job",
+  "key": "reanalysis.max_llm_calls_per_job",
+  "label": "reanalysis.max_llm_calls_per_job",
+  "path": "Datei",
+  "summary": "Datei: KI-Aufrufe je Nachanalyse, 1–10; Standard 5 (drei Schritte und zwei Wiederholungen)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Korrekturversuche, wenn die KI kein gültiges JSON liefert, 0–10 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.json_repair",
+  "key": "retries.json_repair",
+  "label": "retries.json_repair",
+  "path": "Datei",
+  "summary": "Datei: Korrekturversuche, wenn die KI kein gültiges JSON liefert, 0–10 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wiederholungen eines KI-Aufrufs nach vorübergehendem Anbieterfehler, 0–10 (Pflicht). Jede Wiederholung zählt gegen `limits.llm_calls_per_minute`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.provider_retry",
+  "key": "retries.provider_retry",
+  "label": "retries.provider_retry",
+  "path": "Datei",
+  "summary": "Datei: Wiederholungen eines KI-Aufrufs nach vorübergehendem Anbieterfehler, 0–10 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Korrekturversuche, wenn das JSON nicht dem erwarteten Aufbau entspricht, 0–10 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.schema_repair",
+  "key": "retries.schema_repair",
+  "label": "retries.schema_repair",
+  "path": "Datei",
+  "summary": "Datei: Korrekturversuche, wenn das JSON nicht dem erwarteten Aufbau entspricht, 0–10 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].caldav_calendar_url",
+  "key": "target_profiles[].caldav_calendar_url",
+  "label": "target_profiles[].caldav_calendar_url",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].caldav_task_url",
+  "key": "target_profiles[].caldav_task_url",
+  "label": "target_profiles[].caldav_task_url",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`google` (Standard), `caldav` oder `outlook`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_provider",
+  "key": "target_profiles[].calendar_provider",
+  "label": "target_profiles[].calendar_provider",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: `google` (Standard), `caldav` oder `outlook`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kalender-ID bei Google, bis 500 Zeichen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].google_calendar",
+  "key": "target_profiles[].google_calendar",
+  "label": "target_profiles[].google_calendar",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Kalender-ID bei Google, bis 500 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Nummer 2–99 (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].id",
+  "key": "target_profiles[].id",
+  "label": "target_profiles[].id",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Nummer 2–99 (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Anzeigename, 1–40 Zeichen (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].label",
+  "key": "target_profiles[].label",
+  "label": "target_profiles[].label",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Anzeigename, 1–40 Zeichen (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Microsoft-Mandant für die Anmeldung, Standard `common`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_tenant",
+  "key": "target_profiles[].microsoft_tenant",
+  "label": "target_profiles[].microsoft_tenant",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Microsoft-Mandant für die Anmeldung, Standard `common`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_todo_list",
+  "key": "target_profiles[].microsoft_todo_list",
+  "label": "target_profiles[].microsoft_todo_list",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Outlook-Kalender, Standard `default`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].outlook_calendar",
+  "key": "target_profiles[].outlook_calendar",
+  "label": "target_profiles[].outlook_calendar",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Outlook-Kalender, Standard `default`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "`todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].task_provider",
+  "key": "target_profiles[].task_provider",
+  "label": "target_profiles[].task_provider",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: `todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Todoist-Projekt-ID, bis 500 Zeichen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].todoist_project",
+  "key": "target_profiles[].todoist_project",
+  "label": "target_profiles[].todoist_project",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Todoist-Projekt-ID, bis 500 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:telegram.enabled",
+  "key": "telegram.enabled",
+  "label": "telegram.enabled",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wartezeit einer Telegram-Abfrage auf neue Nachrichten, 1–50 Sekunden (Pflicht).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:timeouts.telegram_poll_seconds",
+  "key": "timeouts.telegram_poll_seconds",
+  "label": "timeouts.telegram_poll_seconds",
+  "path": "Datei",
+  "summary": "Datei: Wartezeit einer Telegram-Abfrage auf neue Nachrichten, 1–50 Sekunden (Pflicht)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Erlaubte Host-Angaben im Browseraufruf (Schutz vor DNS-Rebinding), 1–20 Einträge; Standard `127.0.0.1:8765`, `localhost:8765`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.allowed_hosts",
+  "key": "web.allowed_hosts",
+  "label": "web.allowed_hosts",
+  "path": "Datei",
+  "summary": "Datei: Erlaubte Host-Angaben im Browseraufruf (Schutz vor DNS-Rebinding), 1–20 Einträge; Standard `127.0.0.1:8765`, `localhost:8765`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Weboberfläche starten; Standard aus.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.enabled",
+  "key": "web.enabled",
+  "label": "web.enabled",
+  "path": "Datei",
+  "summary": "Datei: Weboberfläche starten; Standard aus."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Rücksprungadresse der Google-Anmeldung; muss in der Google-Cloud-Konsole eingetragen sein. Standard `http://localhost:8765/auth/google/callback`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.google_redirect_uri",
+  "key": "web.google_redirect_uri",
+  "label": "web.google_redirect_uri",
+  "path": "Datei",
+  "summary": "Datei: Rücksprungadresse der Google-Anmeldung; muss in der Google-Cloud-Konsole eingetragen sein."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Netzwerkadresse des Webservers; Standard `127.0.0.1` (nur dieser PC). `0.0.0.0` ist für `web.lan_access` nötig.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.host",
+  "key": "web.host",
+  "label": "web.host",
+  "path": "Datei",
+  "summary": "Datei: Netzwerkadresse des Webservers; Standard `127.0.0.1` (nur dieser PC)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Port 1–65535; Standard 8765.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.port",
+  "key": "web.port",
+  "label": "web.port",
+  "path": "Datei",
+  "summary": "Datei: Port 1–65535; Standard 8765."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Kontrollabrufe nach einer Eintragung, 1–10; Standard 5. Der erste Abruf ist Versuch 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.max_attempts",
+  "key": "write_verification.max_attempts",
+  "label": "write_verification.max_attempts",
+  "path": "Datei",
+  "summary": "Datei: Kontrollabrufe nach einer Eintragung, 1–10; Standard 5."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchstdauer der Prüfung, 10–86400 Sekunden, mindestens die Summe der Wartezeiten; Standard 300. Danach bleibt der Eintrag ausdrücklich ungeprüft.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.max_elapsed_seconds",
+  "key": "write_verification.max_elapsed_seconds",
+  "label": "write_verification.max_elapsed_seconds",
+  "path": "Datei",
+  "summary": "Datei: Höchstdauer der Prüfung, 10–86400 Sekunden, mindestens die Summe der Wartezeiten; Standard 300."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wartezeit vor jedem weiteren Abruf, genau `max_attempts − 1` Werte zu 1–3600 Sekunden; Standard `[1, 5, 15, 60]`. Ein `Retry-After` des Anbieters kann länger sein.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.retry_delays_seconds",
+  "key": "write_verification.retry_delays_seconds",
+  "label": "write_verification.retry_delays_seconds",
+  "path": "Datei",
+  "summary": "Datei: Wartezeit vor jedem weiteren Abruf, genau `max_attempts − 1` Werte zu 1–3600 Sekunden; Standard `[1, 5, 15, 60]`."
+ }
+]

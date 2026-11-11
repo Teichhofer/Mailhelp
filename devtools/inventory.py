@@ -12,7 +12,7 @@ import sys
 import types
 import typing
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 from pydantic import BaseModel
@@ -77,7 +77,7 @@ def _default(field: FieldInfo) -> str:
         return "Pflicht"
     else:
         value = field.default
-    text = "–" if value is None else repr(value)
+    text = "–" if value is None else repr(value.as_posix() if isinstance(value, PurePath) else value)
     return text if len(text) <= 40 else text[:39] + "…"
 
 

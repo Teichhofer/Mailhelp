@@ -49,6 +49,23 @@ Vorschläge; **Nachanalyse abbrechen** beendet eine laufende.
 
 ## Weitere Seiten
 
+### Hilfe beim Einstellen
+
+Das Chatsymbol unten rechts öffnet **Hilfe zu Einstellungen** als kleines Fenster über der
+aktuellen Einstellungsseite. „Dazu fragen“ übernimmt den Bezug einer Einstellung, ohne einen
+vorhandenen Frageentwurf zu überschreiben. Frage eingeben und **Frage senden** wählen.
+Während die Antwort entsteht, kannst du suchen, Werte bearbeiten und Änderungen bestätigen
+und speichern. Der Chat bleibt geöffnet; Antworten laden die Einstellungsseite nicht neu.
+
+Quellen öffnen sich im Fenster; **Zurück zum Gespräch** kehrt zum Verlauf zurück. Den Kopf
+ziehen oder die Richtungsschaltflächen verwenden, um verdeckte Einstellungen freizugeben.
+**Hilfschat schließen** blendet das Fenster aus. Beim Wiederöffnen sind Gespräch und Entwurf
+noch vorhanden, solange die Sitzung und Aufbewahrung gelten. **Chat leeren** verwirft die Inhalte
+und hält das Fenster offen. Ohne JavaScript vor Navigation **Entwurf behalten** und zum Lesen
+neuer Antworten **Antwort prüfen** wählen. Der Chat erklärt nur und verändert selbst keine Daten.
+
+### Seitenübersicht
+
 | Seite | Inhalt |
 | --- | --- |
 | **Verlauf** | jede Änderung und Entscheidung mit Version |

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.3.13. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.4.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3592,3 +3592,44 @@ ab: … – Feld: erwartet …, gefunden …“ und „⚠️ Eintragung noch ni
 gespeichert, aber <Grund>.“ Ein ausstehender Abruf erzeugt keine Meldung. Die Texte stehen in
 `review.verification_texts`. Protokolliert wird nur `write_checked` mit Kennungen, Versuch,
 Zustand, Fehlercode und Feldnamen.
+
+## Hilfschatfenster (5.4)
+
+Der Hilfschat öffnet nicht modal vor der Einstellungsseite und bleibt bis zum ausdrücklichen
+Schließen geöffnet, auch bei Suche, Bereichswechsel, Vorschau, Bestätigung und Speicherung.
+Die gemeinsame Seitenschale umfasst Einstellungsunterseiten, Themenaktionen, Einrichtung,
+Diagnose und zugehörige Befehlergebnisse. Antworten aktualisieren nur das Fenster und dürfen
+keine Vollseiten-Neuladung auslösen, die bearbeitete Formulare oder deren Fokus verliert.
+
+`GET /api/hilfe/fenster` liefert ausschließlich den authentifizierten Gesprächsstand, sichere
+HTML-Fragmente und eine nicht authentifizierende Oberflächenkennung. `POST /hilfe/fenster`
+prüft Sitzung, CSRF, Fensterversion und Idempotenzschlüssel; vor Speicherung wird die Sitzung
+erneut geprüft. Der serverseitige Fallback verwendet lesbare `help-window-<Hash>.json` mit
+begrenztem Entwurf und Ablaufzeit. Abmeldung, Widerruf und Sitzungsablauf entfernen ihn.
+`sessionStorage` hält tabbezogen nur Fensterzustand, Position, Feldbezug und Entwurf; niemals
+Sitzungstoken oder den kompletten Verlauf. Ein Sitzungswechsel verwirft die lokale Kopie.
+
+Schließen blendet das Fenster aus; Leeren verwirft Inhalt und Entwurf bei geöffnetem Fenster.
+Bestehende Aufträge werden nach Navigation wieder gelesen, nicht automatisch neu gesendet.
+Quellen werden innerhalb des Fensters gelesen. Ohne JavaScript erhalten geschützte Formulare
+den Öffnungszustand; ungesendeten Text erhält ausdrücklich „Entwurf behalten“, „Antwort prüfen“
+liest neue Antworten. Alte `/hilfe`-Links führen in die Einstellungsübersicht mit offenem Fenster.
+Der Chat verwendet die bestehende LLM-Anbindung und besitzt keine Schreibwerkzeuge.
+
+### Korrekturen aus der 5.3-Abnahme (5.4.1)
+
+„Chat leeren“ entfernt Frage und Feldbezug auch aus allen gespeicherten Aufträgen;
+inhaltsfreie Hashes, Kennungen und Status bleiben als Idempotenznachweise erhalten.
+Beim Start werden Fragetexte älterer, bereits geleerter Chatversionen nachträglich entfernt.
+Späte Antworten werden nicht in eine neue Chatversion übernommen.
+
+Vor jedem tatsächlichen Modellversuch, auch vor HTTP-Wiederholungen und Antwortkorrekturen,
+werden aktive Sitzung, `help_chat.enabled` und Chatversion erneut geprüft. Deaktivierte
+oder geleerte Fragen erzeugen keinen weiteren Aufruf. Ein bereits gesendeter Aufruf kann
+dadurch nicht rückgängig gemacht werden.
+
+Der gemeinsame Suchkatalog enthält jede öffentliche Konfigurationseinstellung. Einrichtungs-,
+Datei- und Sonderseiteneinstellungen werden aus der geprüften Einstellungsreferenz mit ihrem
+Bedienweg und einem lokalen Dokumentationsziel erzeugt (`helpdocs/settings.json`); sie werden
+nicht als allgemeines Webformular angeboten. Fehlt diese zusätzliche Paketressource, bleibt
+die Suche in den allgemeinen Einstellungsbereichen benutzbar.

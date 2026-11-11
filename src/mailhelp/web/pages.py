@@ -8,6 +8,7 @@ adds the connection indicator and the automatic refresh.
 from __future__ import annotations
 
 import html
+from collections.abc import Callable
 from contextvars import ContextVar
 from datetime import datetime
 
@@ -52,12 +53,16 @@ MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
 # 5.3.12: whether the current request shows the floating help chat button (settings pages).
 HELP_BUTTON: ContextVar[bool] = ContextVar("help_button", default=False)
+HELP_WINDOW: ContextVar[Callable[[], str] | None] = ContextVar("help_window", default=None)
 HELP_ICON = "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"
 
 
 def shows_help_button(path: str) -> bool:
     """The settings area: every page below /einstellungen and the topics page."""
-    return path == "/themen" or path == "/einstellungen" or path.startswith("/einstellungen/")
+    return (path in {"/themen", "/einrichtung", "/diagnose", "/geraete", "/benachrichtigungen",
+                     "/hilfe/frage", "/hilfe/leeren", "/hilfe/fenster"}
+            or path.startswith(("/einstellungen/", "/themen/", "/dienst/", "/einrichtung/", "/aktion/"))
+            or path == "/einstellungen")
 
 
 def _help_button() -> str:
@@ -115,6 +120,8 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
     if state_url:
         # Pages with their own refresh signal (e.g. the status page).
         data += f' data-state-url="{e(state_url)}"'
+    window = HELP_WINDOW.get()
+    widget = window() if signed_in and window is not None else ""
     return f"""<!doctype html>
 <html lang="de">
 <head>
@@ -142,7 +149,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <main id="inhalt">{before}
 {content}
 {after}</main>
-{_help_button() if signed_in and HELP_BUTTON.get() else ""}
+{widget or (_help_button() if signed_in and HELP_BUTTON.get() else "")}
 </body>
 </html>
 """
@@ -217,12 +224,15 @@ def devices_page(sessions: list[WebSession], current: WebSession, csrf: str,
                  configured_timezone: str, message: str | None = None) -> str:
     rows = []
     for session in sessions:
-        label = " <span class=\"badge\">dieses Gerät</span>" if session.id == current.id else ""
+        own = session.id == current.id
+        label = " <span class=\"badge\">dieses Gerät</span>" if own else ""
+        # 5.4.1: forms that end this browser's session also erase its local help draft.
+        ends = " data-ends-session" if own else ""
         rows.append(f"""<li class="device">
 <div><strong>{e(session.device)}</strong>{label}<br>
 <span class="meta">Zuletzt aktiv: {e(_local(session.last_used_at, configured_timezone))} ·
 gültig bis {e(_local(session.expires_at, configured_timezone))}</span></div>
-<form method="post" action="/geraete/{e(session.id)}/abmelden">
+<form method="post" action="/geraete/{e(session.id)}/abmelden"{ends}>
 <input type="hidden" name="csrf" value="{e(csrf)}">
 <button class="button danger small" type="submit">Abmelden</button>
 </form>
@@ -230,7 +240,7 @@ gültig bis {e(_local(session.expires_at, configured_timezone))}</span></div>
     content = f"""<h1>Gekoppelte Geräte</h1>
 {notice(message) if message else ""}
 <ul class="devices">{"".join(rows)}</ul>
-<form method="post" action="/geraete/alle-abmelden" class="stack">
+<form method="post" action="/geraete/alle-abmelden" class="stack" data-ends-session>
 <input type="hidden" name="csrf" value="{e(csrf)}">
 <button class="button danger" type="submit">Alle Geräte abmelden</button>
 </form>

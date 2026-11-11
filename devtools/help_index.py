@@ -94,7 +94,31 @@ def build(root: Path = ROOT) -> tuple[list[dict[str, object]], dict[str, object]
 def render(root: Path = ROOT) -> dict[str, str]:
     entries, manifest = build(root)
     return {"sections.json": json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
-            "manifest.json": json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1) + "\n"}
+            "manifest.json": json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+            "settings.json": json.dumps(search_entries(root, entries), ensure_ascii=False, sort_keys=True, indent=1)
+            + "\n"}
+
+
+def search_entries(root: Path, entries: list[dict[str, object]]) -> list[dict[str, str]]:
+    """Public metadata from the reviewed reference, also usable without the help reader."""
+    from devtools.inventory import settings_rows
+    from mailhelp.configuration import SETTINGS_FIELDS
+    from mailhelp.web.settings_search import _summary
+
+    reference = (root / SOURCES[0]).read_text(encoding="utf-8")
+    found = []
+    for row in settings_rows(reference):
+        if row.key in SETTINGS_FIELDS:
+            continue
+        section, line = next((item, line) for item in entries if item["source"] == SOURCES[0]
+                             for line in str(item["text"]).splitlines()
+                             if line.startswith("|") and f"`{row.key}`" in line)
+        description = line.strip("| ").split(" | ")[1]
+        found.append({"id": f"setting:{row.key}", "key": row.key, "label": row.key,
+                      "area": "Weitere Einstellungen", "path": row.path,
+                      "summary": _summary(f"{row.path}: {description}"), "help": description,
+                      "href": f"/hilfe/dokumentation/{section['id']}"})
+    return found
 
 
 def main(argv: list[str] | None = None, target: Path = TARGET) -> int:

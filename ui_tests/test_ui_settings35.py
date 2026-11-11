@@ -27,7 +27,7 @@ def test_overview_search_and_area_navigation(page, mailhelp):
     assert audit(page, "settings35-search-" + page.device, page.mobile) == []
     page.get_by_role("searchbox", name="Einstellung suchen").fill("ohnetreffer")
     page.get_by_role("button", name="Suchen", exact=True).click()
-    expect(page.locator('.notice[role="status"]')).to_contain_text("Keine Einstellung")
+    expect(page.locator('#inhalt .notice[role="status"]')).to_contain_text("Keine Einstellung")
     page.emulate_media(color_scheme="dark")
     assert audit(page, "settings35-search-dark-" + page.device, page.mobile) == []
     assert mailhelp.writer.created == [] and page.errors == []

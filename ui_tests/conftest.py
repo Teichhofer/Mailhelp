@@ -331,6 +331,38 @@ def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
     page.wait_for_url(f"{mailhelp.url}/")
 
 
+def navigate_collected(page: Page, mailhelp: Mailhelp, control, path: str = "/einstellungen") -> None:
+    """Click ``control`` and take the script coverage before the next document replaces it.
+
+    Handlers that run right before a navigation (form fallbacks, link handlers) are lost
+    with their document. The server holds the following GET ``path`` until the coverage
+    is taken; intercepting the navigation in the browser instead (``page.route``) stalls
+    this harness, whose coverage hook calls the browser while a request is parked.
+    """
+    routes = mailhelp.site.app._routes
+    index, (method, pattern, handler) = next(
+        (index, route) for index, route in enumerate(routes) if route[0] == "GET" and route[1].fullmatch(path))
+    entered, release = threading.Event(), threading.Event()
+
+    def held(*args, **kwargs):
+        entered.set()
+        release.wait(10)
+        return handler(*args, **kwargs)
+
+    routes[index] = (method, pattern, held)
+    try:
+        control.click(no_wait_after=True)
+        for _ in range(200):
+            if entered.is_set():
+                break
+            page.wait_for_timeout(50)
+        assert entered.is_set(), "the navigation was never requested"
+        page.collect()
+    finally:
+        routes[index] = (method, pattern, handler)
+        release.set()
+
+
 def item(page: Page, selector: str):
     """An open item with its actions (see ``pages.Overview.item``)."""
     return Overview(page).item(selector)
@@ -369,4 +401,4 @@ def pytest_sessionfinish(session, exitstatus):
         print("\nJavaScript-Abdeckung: 100 % der Blöcke in " + ", ".join(COVERED_SCRIPTS))
 
 
-__all__ = ["DEVICES", "Mailhelp", "Page", "act", "hold", "item", "sign_in"]
+__all__ = ["DEVICES", "Mailhelp", "Page", "act", "hold", "item", "navigate_collected", "sign_in"]

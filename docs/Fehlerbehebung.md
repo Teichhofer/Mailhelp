@@ -1,6 +1,6 @@
 # Fehler beheben
 
-Stand: Mailhelp 5.3. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
+Stand: Mailhelp 5.4. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
 Einträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern
 gleicht sie zuerst mit dem Anbieter ab.
 
@@ -21,9 +21,34 @@ gleicht sie zuerst mit dem Anbieter ab.
 | „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |
 | Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |
 
+## Web-Passwort zurücksetzen
+
+1. Den laufenden Dienst kontrolliert beenden; der Rücksetzbefehl benötigt alleinigen Zugriff
+   auf das Datenverzeichnis.
+2. Am Host im Konfigurationsverzeichnis `mailhelp --reset-web-password --config-directory .`
+   ausführen. Das löscht den bisherigen Passworthash und meldet alle Websitzungen ab;
+   es erzeugt kein neues Passwort.
+3. Bei beendetem Dienst `mailhelp --pair --config-directory .` ausführen und den einmaligen
+   Terminal-Code bereithalten. Den Dienst wieder starten und mit diesem Code anmelden.
+4. Nach gültiger Anmeldung kann unter `/einstellungen/web-passwort` ausdrücklich ein neues
+   Web-Passwort gesetzt werden. Den Code und das Passwort nicht in den Hilfschat eingeben.
+
 ## Diagnose
 
 **Einstellungen → Diagnose** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und
 Handlungsempfehlung; die Kachel **Lesender Selbsttest** unter Einstellungen prüft alle Komponenten. Der Diagnosebericht
 enthält keine Zugangsdaten. Protokolle stehen im Protokollverzeichnis (`logging.directory`);
 Inhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.
+
+## Hilfschat im Einstellungsfenster
+
+Das Fenster bleibt bei Suche und Speichern geöffnet. Ist es im Weg, den Kopf ziehen oder die
+vier Richtungsschaltflächen verwenden. Nur **Hilfschat schließen** blendet es aus;
+**Chat leeren** entfernt den Verlauf. Erscheint eine Antwort nicht, **Antwort prüfen** wählen.
+Keine Frage wegen eines Seitenwechsels erneut senden: Mailhelp zeigt den vorhandenen Auftrag.
+
+Ist Browserspeicher gesperrt, sichert Mailhelp den Fensterstand vor Navigation auf dem lokalen
+Server. Bei einem Fehler bleibt die Seite mit dem Entwurf erhalten; Verbindung prüfen und
+erneut versuchen. Ohne JavaScript vor einem Seitenwechsel **Entwurf behalten** wählen.
+Nach Abmeldung oder Sitzungsablauf erneut anmelden; alte private Chatdaten werden nicht aus
+dem Browserzustand einer neuen Sitzung übernommen.

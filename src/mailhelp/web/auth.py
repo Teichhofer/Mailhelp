@@ -277,6 +277,9 @@ class WebAuth:
         state = self.store.load_model(SESSIONS, SessionState, SessionState())
         assert isinstance(state, SessionState)
         now = self.clock()
+        for item in state.sessions:
+            if item.expires_at <= now:
+                self.store.delete("help-window-" + _sha256(item.id)[:32])
         state.sessions = [item for item in state.sessions if item.expires_at > now]
         return state
 
@@ -313,11 +316,15 @@ class WebAuth:
             found = len(remaining) != len(state.sessions)
             state.sessions = remaining
             self.store.save(SESSIONS, state.model_dump(mode="json"))
+            self.store.delete("help-window-" + _sha256(session_id)[:32])
             return found
 
     def revoke_all(self) -> int:
         with measured_lock(self._lock, "store"):
-            count = len(self._sessions().sessions)
+            sessions = self._sessions().sessions
+            count = len(sessions)
+            for session in sessions:
+                self.store.delete("help-window-" + _sha256(session.id)[:32])
             self.store.save(SESSIONS, SessionState().model_dump(mode="json"))
             return count
 

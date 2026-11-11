@@ -20,7 +20,8 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.lock -r requirements-lint.lock -r requirements-mutation.lock
       - run: python -m pip install --no-deps -e .
-      - run: python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100 --durations=20
+      - run: python -m pip install hatchling==1.27.0
+      - run: python -m devtools.check full --workers 8
 
   static-analysis:
     # Planung 2.1, A1: ruff and mypy are clean since 2.2.4; every finding fails the build.

@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 10. November 2026, Anwendungsversion 5.3.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 10. November 2026, Anwendungsversion 5.4.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
@@ -346,10 +346,21 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 
 ## Hilfschat
 
-**Hilfe zu Einstellungen** (`/hilfe`) beantwortet Fragen zur Bedeutung von Einstellungen und zu
+Ab 5.4.1 entfernt **Chat leeren** auch Fragetexte und Feldbezüge aus gespeicherten Aufträgen.
+Nur inhaltsfreie Auftragskennungen, Status und Hashes bleiben gegen doppelte Übertragung erhalten.
+Früher geleerte Altbestände werden beim nächsten Start bereinigt. Ein ausgeschalteter Hilfschat
+startet auch für wartende Fragen und Wiederholungen keinen weiteren Modellaufruf.
+
+Die Suche findet auch Datei- und Einrichtungseinstellungen, etwa `web.port` und
+`reanalysis.max_jobs_per_day`. Solche Treffer nennen den Bedienweg und öffnen die passende
+mitgelieferte Dokumentation; sie bieten kein Webformular zum Ändern eines Dateiwerts.
+
+**Hilfe zu Einstellungen** beantwortet Fragen zur Bedeutung von Einstellungen und zu
 Bedienabläufen. Auf allen Einstellungsseiten öffnet das runde Chatsymbol unten rechts (auf dem
 Handy über der unteren Leiste) den Chat. „Dazu fragen“ an einer Einstellung oder einem Treffer
-der Sofortsuche öffnet den Chat mit diesem Bezug. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,
+der Sofortsuche öffnet dasselbe kleine Fenster mit diesem Bezug. Die Einstellungsseite bleibt
+bedienbar. Suche, Bereichswechsel, Bearbeiten, Bestätigen und Speichern schließen das Fenster
+nicht. Alte `/hilfe`-Links öffnen es auf der Einstellungsübersicht. Jede Frage wird ausdrücklich mit **Frage senden** abgeschickt; Tippen,
 Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 
 - **Quellen:** Mailhelp wählt höchstens sechs passende Abschnitte der mitgelieferten
@@ -366,8 +377,22 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 - **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach
   24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten
   Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.
-- **Ablauf:** Pro Chat läuft eine Frage; „Antwort wird vorbereitet“ wird ohne JavaScript alle drei
-  Sekunden neu geladen. Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht
+- **Fenster bedienen:** Den Kopf ziehen oder die vier Richtungsschaltflächen im Fenster verwenden,
+  um es zu verschieben. **Hilfschat schließen** blendet es aus, ohne Verlauf oder Entwurf zu löschen.
+  **Chat leeren** verwirft beides und hält das Fenster offen. Klicken außerhalb und Escape
+  schließen es nicht. Quellen lassen sich im Fenster lesen; **Zurück zum Gespräch** kehrt zurück.
+- **Entwurf und Position:** Im JavaScript-Betrieb merkt sich der aktuelle Browser-Tab den
+  Zustand und die ungesendete Frage in `sessionStorage`, begrenzt auf Sitzung und höchstens
+  24 Stunden. Keine Tokens eingeben; dies ist keine Geheimnisablage. Der Gesprächsverlauf bleibt
+  serverseitig an die Sitzung gebunden. Zwei Tabs haben eigene Fenster und Entwürfe, aber denselben
+  Verlauf. Beim Abmelden oder bei ungültiger Sitzung wird die lokale Kopie entfernt.
+- **Ohne Browserspeicher/JavaScript:** Ein serverseitiger Zustand erhält das geöffnete Fenster.
+  Ohne JavaScript **Entwurf behalten** vor einem Seitenwechsel verwenden und **Antwort prüfen**
+  zum Lesen neuer Antworten. Die Einstellungsseite wird wegen einer Chatantwort nicht automatisch
+  neu geladen. Bei gesperrtem Browserspeicher sichert JavaScript den Entwurf vor Navigation;
+  scheitert die Sicherung, bleibt die aktuelle Seite erhalten und zeigt den Fehler.
+- **Ablauf:** Pro Chat läuft eine Frage; mit JavaScript wird nur das Fenster aktualisiert.
+  Nach einem Neustart sind offene Fragen „unterbrochen“ und werden nicht
   erneut gesendet. Ohne den Schritt `settings_help` in `prompts.yaml` nennt der Chat einen
   Einrichtungshinweis.
 

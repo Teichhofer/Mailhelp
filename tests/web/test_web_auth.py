@@ -276,6 +276,11 @@ def test_devices_page_escapes_names_and_revokes(site):
     assert "dieses Gerät" in page and "Laptop" in page
     csrf = browser.csrf("/geraete")
     laptop = next(item for item in site.auth.sessions() if item.device == "Laptop")
+    mine = next(item for item in site.auth.sessions() if item.device != "Laptop")
+    # 5.4.1 regression: only forms ending this browser's session erase its local help draft.
+    assert f'action="/geraete/{mine.id}/abmelden" data-ends-session>' in page
+    assert f'action="/geraete/{laptop.id}/abmelden">' in page
+    assert 'action="/geraete/alle-abmelden" class="stack" data-ends-session>' in page
     response = browser.request("POST", f"/geraete/{laptop.id}/abmelden", {"csrf": csrf})
     assert response.headers["Location"] == "/geraete"
     assert other.request("GET", "/").headers["Location"] == "/anmelden"

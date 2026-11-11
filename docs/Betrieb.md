@@ -1,6 +1,6 @@
 # Betrieb und Update
 
-Stand: Mailhelp 5.3.
+Stand: Mailhelp 5.4.1.
 
 ## Starten, prüfen, beenden
 
@@ -30,6 +30,9 @@ Bestätigung eines Vorschlags nötig.
 
 ## Sicherung
 
+Für eine konsistente Sicherung zuerst den Dienst kontrolliert beenden. Erst nach dem
+vollständigen Ende die Dateien kopieren; anschließend Mailhelp wieder starten.
+
 Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das Datenverzeichnis
 (`data_directory`, Zustände als lesbare JSON-Dateien) und bei Bedarf das Protokollverzeichnis.
 `.env` enthält Zugangsdaten und gehört nicht in fremde Hände.
@@ -37,9 +40,10 @@ Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das D
 ## Update
 
 1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.
-2. Neuen Stand holen und in derselben virtuellen Umgebung installieren:
+2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).
+3. Neuen Stand holen und in derselben virtuellen Umgebung installieren:
    `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.
-3. `mailhelp --check --config-directory .` und danach starten.
+4. `mailhelp --check --config-directory .` und danach starten.
 
 Neue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue
 Prompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige

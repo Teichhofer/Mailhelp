@@ -13,7 +13,22 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.3.13 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 5.4 öffnet den Hilfschat als kleines verschiebbares Fenster über den Einstellungen.
+Er bleibt beim Suchen, Bearbeiten, Bestätigen und Speichern geöffnet. Gespräch und Frageentwurf
+bleiben erhalten; **Hilfschat schließen** blendet das Fenster aus, **Chat leeren** verwirft den
+Inhalt. Antworten aktualisieren nur das Fenster. Ohne JavaScript funktionieren Öffnen,
+Fragen, **Antwort prüfen** und **Entwurf behalten** über Formulare. Details:
+[Release 5.4](docs/Release-5.4.md).
+
+5.4.1 schließt die bei der 5.3-Prüfung gefundenen Lücken: „Chat leeren“ entfernt auch
+Fragetexte aus gespeicherten Aufträgen. Deaktivierung, Sitzung und Chatversion werden vor
+jedem Modellversuch erneut geprüft. Die Suche findet auch Datei- und Einrichtungseinstellungen
+mit ihrem tatsächlichen Bedienweg. Harte Prozessabbrüche und wiederholte Neustarts sind
+mit simulierten Diensten geprüft. Behoben: Die Abmeldung unter **Geräte** löscht jetzt
+auch den lokalen Chatentwurf, und ein Sprung zu einer Einstellung derselben Seite (Live-Suche,
+Verweis im Chat) lädt die Seite nicht mehr neu, sodass ungespeicherte Eingaben erhalten bleiben.
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -656,6 +671,7 @@ Die Release-Berichte unten sind historische Nachweise ihrer Version.
 | Qualitätsoffensive und Testinfrastruktur | [Planung 4.1](docs/Planung-4.1.md) |
 | Reaktionsschnelle Web-Aktionen | [Planung 4.2](docs/Planung-4.2.md) |
 | Geplant für 5.3: Live-Suche, Hilfschat und Dokumentationsprüfung | [Detaillierter Plan 5.3](docs/Planung-5.3.md) |
+| Hilfschat als dauerhaft geöffnetes Fenster in den Einstellungen (5.4) | [Planung 5.4](docs/Planung-5.4.md), [Release 5.4](docs/Release-5.4.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.

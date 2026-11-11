@@ -89,7 +89,8 @@ class Completer(Protocol):
                  response_schema: type[BaseModel] | None = ...,
                  supports_json_schema: bool = ...,
                  revision_route: str = ...,
-                 images: list[str] | None = ...) -> tuple[str, Any]:
+                 images: list[str] | None = ...,
+                 before_call: Callable[[], None] = ...) -> tuple[str, Any]:
         """Return the call id and the parsed JSON answer."""
 
 
@@ -157,8 +158,10 @@ class ClassifiedRun:
 
     def __init__(self, analyzer: Analyzer, step: str, payload: dict[str, Any],
                  validator: Callable[[Any], Any], schema: type[BaseModel] | None,
-                 token_retry_payload: dict[str, Any] | None, images: list[str] | None):
+                 token_retry_payload: dict[str, Any] | None, images: list[str] | None,
+                 before_call: Callable[[], None] = lambda: None):
         self.client, self.prompts = analyzer.client, analyzer.prompts
+        self.before_call = before_call
         self.step, self.payload, self.validator, self.schema = step, payload, validator, schema
         self.token_retry_payload, self.images = token_retry_payload, images
         self.routes, self.prompt, configured_provider_retries = self.prompts.resolved_routes(step)
@@ -210,6 +213,7 @@ class ClassifiedRun:
                 return call_id, result
 
     def _complete(self, route: LlmRoute, retry_type: str, retry_number: int) -> tuple[str, Any]:
+        self.before_call()
         request_payload = dict(self.payload)
         request_prompt = self.prompt
         if self.repair == "json_repair":
@@ -224,6 +228,7 @@ class ClassifiedRun:
             # authoritative in the system message instead of relying on a data
             # field next to untrusted mail or Telegram content.
             request_prompt = f"{self.prompt}\n\n{SCHEMA_REPAIR_INSTRUCTION}"
+        guard_arguments: dict[str, Any] = {"before_call": self.before_call} if self.step == "settings_help" else {}
         return self.client.complete(
             route.model, route.parameters, request_prompt, request_payload, stage=self.step,
             retry_type=retry_type, retry_number=retry_number,
@@ -233,6 +238,7 @@ class ClassifiedRun:
             supports_json_schema=route.supports_json_schema,
             revision_route=("token_limit_retry" if self.token_retry_used else "initial_revision")
             if self.step == "proposal_revision" else "standard",
+            **guard_arguments,
             **self._image_arguments(),
         )
 
@@ -316,9 +322,10 @@ class Analyzer:
     def _classified_run(self, step: str, payload: dict[str, Any],
                         validator: Callable[[Any], T], *, schema: type[BaseModel] | None = None,
                         token_retry_payload: dict[str, Any] | None = None,
-                        images: list[str] | None = None) -> tuple[str, T]:
+                        images: list[str] | None = None,
+                        before_call: Callable[[], None] = lambda: None) -> tuple[str, T]:
         """Run one flat, classified retry state machine."""
-        return ClassifiedRun(self, step, payload, validator, schema, token_retry_payload, images).run()
+        return ClassifiedRun(self, step, payload, validator, schema, token_retry_payload, images, before_call).run()
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any],
              extra: dict[str, Any] | None = None) -> tuple[str, T]:
@@ -378,13 +385,14 @@ class Analyzer:
         )
 
     def settings_help(self, question: str, sources: list[Any], history: list[dict[str, str]],
-                      settings: list[dict[str, str]]) -> tuple[str, Any]:
+                      settings: list[dict[str, str]], *,
+                      before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
         """5.3: an answer from the given help sections only, over the active model path."""
         from ..helpdocs import HelpAnswer, answer_validator
         payload = {"question": question, "history": history, "settings": settings,
                    "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}
         validate = answer_validator([item.id for item in sources], [item["id"] for item in settings])
-        return self._classified_run("settings_help", payload, validate, schema=HelpAnswer)
+        return self._classified_run("settings_help", payload, validate, schema=HelpAnswer, before_call=before_call)
 
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
                     reason: str | None = None):

@@ -363,7 +363,8 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     help_site.chat = application.services.help_chat = HelpChat(
         store, lambda: application.settings.help_chat, help_site.base, lambda: application.analyzer,
         components.site.auth.active, redactor(secret_values(secrets)), logger=logger,
-        sessions=lambda: [session.id for session in components.site.auth.sessions()])
+        sessions=lambda: [session.id for session in components.site.auth.sessions()],
+        cleanup_extra=help_site.window.cleanup)
     help_site.chat.recover()
     from .browser_accounts import attach_accounts
     attach_accounts(application, components.site, base_directory)

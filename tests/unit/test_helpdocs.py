@@ -92,7 +92,7 @@ def test_a_checkout_with_crlf_line_endings_still_matches(tmp_path):
     # folds it, so the revision still matches.
     copy = tmp_path / "hilfe"
     copy.mkdir()
-    for name in ("sections.json", "manifest.json"):
+    for name in help_index.render():
         text = (DIRECTORY / name).read_text(encoding="utf-8")
         (copy / name).write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
     assert load(copy).revision == load().revision
@@ -107,3 +107,20 @@ def test_a_section_larger_than_the_remaining_budget_is_left_out():
     assert base.select(question, budget=1) == []
     kept = base.select(question, budget=smallest)
     assert [section.size for section in kept] == [smallest] and len(kept) < len(full)
+
+
+def test_search_metadata_uses_reference_rows_even_when_prose_mentions_the_key_first():
+    entries = json.loads(help_index.render()["settings.json"])
+    port = next(entry for entry in entries if entry["key"] == "web.port")
+    assert port["path"] == "Datei" and port["help"]
+    assert port["href"].startswith("/hilfe/dokumentation/web-einstellungen/")
+
+
+def test_a_specific_heading_outranks_the_same_word_in_ancestor_headings():
+    from mailhelp.helpdocs import HelpBase, Section
+
+    titles = ["Aufbewahrung", "Sicherung", "Starten", "Neustart", "Rueckkehr", "Betrieb", "Update"]
+    base = HelpBase("synthetic", tuple(Section(
+        id="betrieb/" + title.lower(), title=title, path=("Betrieb und Update", title),
+        source="docs/Betrieb.md", text="Synthetische Bedienanleitung.", setting_ids=()) for title in titles))
+    assert base.select("Wie mache ich ein Update?")[0].id == "betrieb/update"

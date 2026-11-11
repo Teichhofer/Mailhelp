@@ -13,6 +13,7 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 FAST = "not (slow or process or e2e)"
+LATENCY_TESTS = ("tests/services/test_v42_load.py", "tests/services/test_v441_load.py")
 
 
 def commands(task: str, workers: str, tests: list[str] | None = None) -> list[list[str]]:
@@ -22,7 +23,8 @@ def commands(task: str, workers: str, tests: list[str] | None = None) -> list[li
         "full": [["hatchling", "build"], ["pytest",
                                            *([] if workers == "auto" else ["-n", workers, "--dist", "loadgroup"]),
                                            "--cov=mailhelp", "--cov=devtools", "--cov-branch",
-                                           "--cov-fail-under=100"]],
+                                           "--cov-fail-under=100", *("--ignore=" + path for path in LATENCY_TESTS)],
+                 ["pytest", *LATENCY_TESTS, "--no-cov", "-q", "-s"]],
         "ui": [["pytest", "ui_tests", "-m", "smoke", "--no-cov", "-q"]],
         "prompts": [["pytest", "tests/evaluation/test_prompt_gate.py", "--no-cov", "-q"]],
         "mutation": [["mutmut", "run", "*"], ["mutmut", "export-cicd-stats"]],

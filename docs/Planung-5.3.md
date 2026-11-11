@@ -3,6 +3,8 @@
 **Zielversion:** 5.3.0, Umsetzung in Patchversionen 5.3.x  
 **Stand:** 9. November 2026  
 **Status:** Abgeschlossen (5.3.0 bis 5.3.11). Abnahme, Nachweise und Grenzen: [Release 5.3](Release-5.3.md), [Prüfbericht](Pruefung-Dokumentation-5.3.md)  
+**Nachfolger:** [Planung 5.4](Planung-5.4.md) – Hilfschat als dauerhaft geöffnetes Fenster in den Einstellungen
+
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Qualitätsregeln 4.1](Qualitaet-4.1.md)  
 **Vorgänger:** [Planung 5.2](Planung-5.2.md) – Aufgaben und Termine nach dem Eintragen überprüfen  
 **Technischer Ausgangsstand:** Lokaler Arbeitsstand 5.0.7 laut `pyproject.toml` und README.

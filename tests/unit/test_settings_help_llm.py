@@ -57,6 +57,49 @@ def test_the_new_step_changes_no_fingerprint_of_the_mail_analysis():
     assert prompt_guard._evaluated("topics.yaml", "x") == "x"
 
 
+def test_help_checks_authorization_again_before_a_schema_repair():
+    calls = []
+
+    def authorize():
+        calls.append(True)
+        if len(calls) > 1:
+            raise PermissionError("Sitzung widerrufen")
+
+    client = RetrySequence([{"answer": "x", "source_ids": ["fremd"]}, {"answer": "x"}])
+    analyzer = Analyzer(client, with_help(prompt_config()), validation_retries=1)
+    with pytest.raises(PermissionError, match="widerrufen"):
+        analyzer.settings_help("Frage", [], [], [], before_call=authorize)
+    assert len(client.payloads) == 1 and len(calls) == 2
+
+
+def test_help_stops_a_transport_retry_after_deactivation():
+    import httpx
+
+    from mailhelp.helpdocs.chat import ChatRefused
+    from mailhelp.llm.openrouter import OpenRouterClient
+
+    calls = []
+
+    def transport(request):
+        calls.append(request)
+        if len(calls) == 1:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"id": "second", "choices": [{"message": {"content": '{"answer":"x"}'}}]})
+
+    def authorize():
+        if calls:
+            raise ChatRefused("disabled")
+
+    client = OpenRouterClient("synthetic-key", 1, 2, 10, transport=httpx.MockTransport(transport), sleep=lambda _: None)
+    analyzer = Analyzer(client, with_help(prompt_config()), validation_retries=0)
+    try:
+        with pytest.raises(ChatRefused, match="disabled"):
+            analyzer.settings_help("Frage", [], [], [], before_call=authorize)
+        assert len(calls) == 1
+    finally:
+        client.client.close()
+
+
 def test_an_answer_is_bound_to_the_given_sources_and_known_settings():
     validate = answer_validator(["betrieb/sicherung"], ["setting:timezone"])
     answer = validate({"answer": "So geht es.", "source_ids": ["betrieb/sicherung"],

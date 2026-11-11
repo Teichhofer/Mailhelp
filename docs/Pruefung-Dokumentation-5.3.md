@@ -302,7 +302,7 @@ Erzeugt mit `python -m devtools.inventory`: **234 Einstellungen**, davon **234**
 | `logging.modules` | dict[str, str] | {} |  | Datei | ja |
 | `logging.telegram.backup_count` | int | 5 | ≥ 0 | Datei | ja |
 | `logging.telegram.enabled` | bool | True |  | Weboberfläche | ja |
-| `logging.telegram.filename` | Path | WindowsPath('telegram/messages.jsonl') |  | Datei | ja |
+| `logging.telegram.filename` | Path | 'telegram/messages.jsonl' |  | Datei | ja |
 | `logging.telegram.format` | Auswahl: text, jsonl | 'jsonl' |  | Datei | ja |
 | `logging.telegram.level` | str | 'INFO' |  | Weboberfläche | ja |
 | `logging.telegram.max_bytes` | int | 10000000 | > 0 | Datei | ja |

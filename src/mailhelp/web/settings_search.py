@@ -5,12 +5,15 @@ Current values, passwords, mail content and private account names are never part
 """
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from functools import cache
+from pathlib import Path
 
 MAX_QUERY = 80
 LIVE_LIMIT = 10
+EXTRA_CATALOG = Path(__file__).resolve().parents[1] / "helpdocs" / "settings.json"
 
 # Words that mean the same thing to a person looking for a setting; every word finds the others.
 SYNONYMS: tuple[tuple[str, ...], ...] = (
@@ -129,7 +132,17 @@ def catalog() -> tuple[Entry, ...]:
     for identity, label, area, href, text in PAGES:
         entries.append(Entry(id=identity, label=label, area=area, summary=text, href=href,
                              path="Eigene Seite", synonyms=_synonyms(f"{label} {text}")))
+    entries.extend(extra_catalog())
     return tuple(entries)
+
+
+def extra_catalog() -> tuple[Entry, ...]:
+    """Generated public file/setup metadata; a broken resource never disables normal settings."""
+    try:
+        rows = json.loads(EXTRA_CATALOG.read_text(encoding="utf-8"))
+        return tuple(Entry(**row, synonyms=_synonyms(row["label"] + " " + row["help"])) for row in rows)
+    except (OSError, ValueError, TypeError, KeyError):
+        return ()
 
 
 def bounded(query: str) -> str:

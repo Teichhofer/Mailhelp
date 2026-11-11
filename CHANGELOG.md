@@ -1,5 +1,44 @@
 # Änderungen
 
+## 5.4.1 – Abschluss der Hilfschat-Überarbeitung und Korrekturen aus der 5.3-Prüfung
+
+- Regressionen behoben: Leeren entfernt Fragen und Feldbezüge auch aus gespeicherten
+  Aufträgen; zuvor geleerte Altbestände werden beim Start bereinigt. Inhaltsfreie
+  Idempotenznachweise bleiben erhalten, damit alte Anfragen nicht erneut gesendet werden.
+- Deaktivierung, gültige Sitzung und Chatversion werden unmittelbar vor jedem Modellversuch
+  einschließlich Antwortkorrekturen erneut geprüft. Wartende Fragen starten nach dem
+  Ausschalten keinen Aufruf mehr.
+- Die gemeinsame Live-/Formularsuche umfasst auch Datei-, Einrichtungs-, Postfach-, IServ-
+  und Zielprofileinstellungen. Texte und sichere Dokumentationsziele werden aus der
+  geprüften Referenz erzeugt und mit dem Paket ausgeliefert.
+- Echte Prozessabbrüche vor, während und nach einer Chatantwort mit zwei frischen
+  Neustarts geprüft; keine automatischen Wiederholungen kostenpflichtiger Aufrufe.
+- Der vollständige Qualitätslauf prüft Last-/Zeitgrenzen separat ohne Messaufwand durch
+  parallele Coverage-Erfassung; die harte 100-%-Zeilen-/Branch-Prüfung bleibt bestehen.
+- Behoben: Die Abmeldung unter **Geräte** („dieses Gerät“ oder „Alle Geräte abmelden“) ließ den
+  privaten Chatentwurf im Browserspeicher zurück. Formulare, die die eigene Sitzung beenden,
+  löschen ihn jetzt schon beim Absenden; das Abmelden eines anderen Geräts nicht (Regressionstests).
+- Behoben: Ein Sprung zu einer Einstellung derselben Seite (Live-Suchtreffer, Einstellungsverweis
+  im Chat) löste `popstate` aus und lud die ganze Seite neu; ungespeicherte Eingaben gingen
+  verloren. Neu geladen wird nur noch bei einem History-Schritt zu anderem Inhalt (Regressionstest).
+- Browsertests: Navigationen werden nicht mehr im Browser abgefangen (das blockierte die
+  Testumgebung); die Abdeckung vor einer Navigation erfasst `navigate_collected` serverseitig.
+
+## 5.4.0 – Hilfschat im Fenster über den Einstellungen
+
+- Chatsymbol und „Dazu fragen“ öffnen ein kleines, verschiebbares Fenster auf der aktuellen
+  Einstellungsseite. Öffnungszustand, Position und Frageentwurf bleiben beim Suchen,
+  Bereichswechsel, Bestätigen, Speichern und Neuladen erhalten. Nur ausdrückliches Schließen
+  blendet es aus; Chat leeren verwirft Inhalte und hält es geöffnet.
+- Antworten, Fehler und Dokumentationsquellen erscheinen im Fenster. Der bisherige
+  Vollseiten-Reload nach einer Antwort entfällt; bearbeitete Einstellungswerte und Fokus
+  bleiben erhalten. Aufträge werden nach Seitenwechseln gelesen, nicht erneut gesendet.
+- Authentifizierte, versionsgeprüfte und idempotente Zustandsaktionen bieten einen Fallback
+  ohne Browserspeicher und ohne JavaScript; Entwürfe lassen sich ausdrücklich behalten.
+  Alte `/hilfe`-Links führen zu den Einstellungen mit geöffnetem Fenster.
+- Regressionstests für bisherigen Seitenwechsel, Fensterverlust und Antwort-Reload;
+  Anleitungen und ausgelieferte Hilfedokumentation aktualisiert. [Release 5.4](docs/Release-5.4.md).
+
 ## 5.3.13 – Beenden und Neustart nach Ablehnung wieder möglich
 
 - Behoben: Nach einem Neustart über die Weboberfläche führten **Mailhelp beenden** und
