@@ -120,9 +120,11 @@ class HelpSite:
                 f'<input type="hidden" name="window_version" value="{window_version}">'
                 '<label for="help-question">Deine Frage zu Einstellungen und Bedienung</label>'
                 f'<textarea id="help-question" name="frage" rows="3" maxlength="8000" required>{e(draft)}</textarea>'
+                # 5.5.1: one quiet line until opened; the full notice stays one click away.
+                '<details class="help-cost-hint"><summary>Kostenpflichtig</summary>'
                 '<p class="meta">Frage, kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an '
                 'den aktiven KI-Anbieter und können Kosten verursachen. Keine Passwörter oder Tokens eingeben. '
-                'Der Hilfschat erklärt nur; er ändert keine Einstellungen.</p>'
+                'Der Hilfschat erklärt nur; er ändert keine Einstellungen.</p></details>'
                 '<button class="button primary" type="submit">Frage senden</button></form>')
 
     def page(self, request: Request, session: WebSession) -> Response:

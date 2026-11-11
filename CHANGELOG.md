@@ -1,5 +1,11 @@
 # Änderungen
 
+## 5.5.1 – Kostenhinweis eingeklappt (Planung 5.5, S2)
+
+- Der Kosten- und Datenschutzhinweis unter dem Fragefeld belegt nur noch eine Zeile
+  **Kostenpflichtig**; Klick oder Eingabetaste klappt den vollständigen Hinweis auf. Er bleibt
+  ohne JavaScript bedienbar und ist im Ruhezustand nie geöffnet (Tests im Browser und Python).
+
 ## 5.5.0 – Hilfschat: Schlüssel über HTTP, aufgeräumte Bedienelemente (Planung 5.5, S1)
 
 - Behoben: Beim Aufruf über `http://` im Heimnetz (kein sicherer Kontext) zeigte das Chatfenster

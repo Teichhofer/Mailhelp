@@ -3651,3 +3651,8 @@ Idempotenzschlüssel der Weboberfläche erzeugt `randomHexKey()` als 32 Hexadezi
 `crypto.randomUUID` im sicheren Kontext, sonst `crypto.getRandomValues`, sonst eine
 nicht kryptografische Zufallsfolge. Diese Schlüssel verhindern Doppelaktionen und sind keine
 Geheimnisse; Autorisierung leisten weiterhin Sitzung und CSRF.
+
+### Kostenhinweis (5.5.1)
+
+Der Kosten- und Datenschutzhinweis des Frageformulars ist ein natives `<details>` mit der
+Zusammenfassung „Kostenpflichtig“, im Ruhezustand geschlossen. Der Wortlaut bleibt unverändert.

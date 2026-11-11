@@ -13,12 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.5.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.5.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/Planung-5.5.md)). 5.5.0 behebt
 die Meldung „crypto.randomUUID is not a function“ beim Aufruf über `http://` im Heimnetz und
 räumt das Fenster auf: Verschieben per Kopfzeile oder Pfeiltasten auf dem Titel, ohne
-Pfeilschaltflächen, **Antwort prüfen** und **Entwurf behalten**.
+Pfeilschaltflächen, **Antwort prüfen** und **Entwurf behalten**. Ab 5.5.1 steht der Kosten- und
+Datenschutzhinweis eingeklappt unter **Kostenpflichtig**.
 
 Version 5.4 öffnet den Hilfschat als kleines verschiebbares Fenster über den Einstellungen.
 Er bleibt beim Suchen, Bearbeiten, Bestätigen und Speichern geöffnet. Gespräch und Frageentwurf

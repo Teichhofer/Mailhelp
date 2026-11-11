@@ -373,7 +373,8 @@ Suchen und Hilfetexte lösen nie einen KI-Aufruf aus.
 - **Datenschutz und Kosten:** Frage, Verlauf und Dokumentationsausschnitte gehen an den
   KI-Anbieter und verursachen Kosten wie andere Abfragen, auch im Testmodus. Bekannte
   Zugangsdaten aus `.env` werden vorher entfernt; Passwörter oder Tokens nicht eintippen.
-  Aktuelle Einstellungswerte werden nie mitgeschickt.
+  Aktuelle Einstellungswerte werden nie mitgeschickt. Im Fenster steht dieser Hinweis
+  eingeklappt unter **Kostenpflichtig**; ein Klick oder die Eingabetaste klappt ihn auf.
 - **Aufbewahrung:** Der Verlauf gehört zur Sitzung und wird beim Abmelden, Widerrufen oder nach
   24 Stunden ohne Aktivität gelöscht; **Chat leeren** löscht ihn sofort. Protokolle enthalten
   Fragen und Antworten nur bei eingeschalteter Inhaltsprotokollierung.
