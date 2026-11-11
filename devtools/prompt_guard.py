@@ -11,7 +11,7 @@ INPUTS = ("prompts.yaml", "topics.yaml", "decisions_prompts.yaml",
 
 
 # Prompt steps that never see a mail and are not part of the evaluated analysis (5.3: help chat).
-NOT_EVALUATED = ("settings_help",)
+NOT_EVALUATED = ("settings_help", "decision_rule_learning")
 
 
 def _evaluated(name: str, text: str) -> str:

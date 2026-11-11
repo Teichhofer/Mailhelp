@@ -395,7 +395,8 @@ def _topic_value(value: object) -> object:
 
 def topics_page(files: list[tuple[str, str, dict[str, Any], str]], csrf: str) -> str:
     """One form per topic and an empty one per file; *files* are (category, name, content, hash)."""
-    body = ('<h1>Themen</h1><p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue '
+    body = ('<h1>Themen</h1><p><a href="/themen/lernen">Aus Entscheidungen lernen</a></p>'
+            '<p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue '
             'Analysen; unabhängige Absender-Vorfilter bleiben erhalten.</p>')
     empty = {"id": "", "name": "", "enabled": True, "description": "", "examples": [], "exclusions": []}
     for category, filename, raw, revision in files:

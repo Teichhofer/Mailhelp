@@ -874,3 +874,11 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
   #help-window { bottom: calc(140px + env(safe-area-inset-bottom)); right: 12px; }
 }
 @media print { #help-widget { display: none; } }
+/* 5.6: the old rule and its editable successor remain directly comparable. */
+.rule-diff { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; }
+.rule-diff section { min-width: 0; overflow-wrap: anywhere; }
+.rule-diff section > label { display: block; margin-top: .65rem; }
+.rule-diff textarea, .rule-diff input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; }
+.rule-diff dt { font-weight: 600; }
+.rule-diff dd { margin: 0 0 0.75rem; white-space: pre-wrap; }
+@media (max-width: 720px) { .rule-diff { grid-template-columns: 1fr; } }

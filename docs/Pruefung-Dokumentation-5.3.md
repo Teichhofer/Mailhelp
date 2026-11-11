@@ -164,6 +164,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
 | `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
+| `/themen/lernen` | Themenregeln aus Entscheidungen, Vergleich und bestätigte Übernahme | Bedienung, Web-Einstellungen |
 | `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
 | `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |

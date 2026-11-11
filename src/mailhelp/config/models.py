@@ -1028,7 +1028,7 @@ class OllamaPromptSettings(ConfigModel):
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
 OPTIONAL_PROMPT_STEPS = frozenset({
     "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match",
-    "settings_help"})
+    "settings_help", "decision_rule_learning"})
 
 
 class PromptConfig(BaseModel):

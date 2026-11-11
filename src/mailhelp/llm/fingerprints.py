@@ -60,7 +60,7 @@ SOURCES = frozenset({"iserv"})
 PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
     "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match",
-    "settings_help"})
+    "settings_help", "decision_rule_learning"})
 
 
 def _hash(value: Any) -> str:

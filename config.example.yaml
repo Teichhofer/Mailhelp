@@ -198,6 +198,10 @@ vision:
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
+  # 5.6: /themen/lernen wertet vorhandene Entscheidungen aus, ohne Mails abzurufen.
+  # Erst die ausdrückliche Webfreigabe startet die kostenpflichtige Analyse über
+  # prompts.yaml/decision_rule_learning. Es gelten die bestehenden KI-Limits.
+  # Regeländerungen benötigen eine zweite, gesonderte Bestätigung.
   # 4.2: „Schon erledigt“ bleibt ein positives Relevanzbeispiel. Diese Mails
   # werden im CLI- und Web-Lernen nicht negativ neu kategorisiert oder als
   # Begründung für Absenderausschlüsse verwendet; es gibt dafür keinen KI-Aufruf.

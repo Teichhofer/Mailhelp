@@ -58,6 +58,8 @@ def test_built_artifacts_exclude_private_runtime_files():
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
         for module in ("web/help_window.py", "helpdocs/sections.json", "helpdocs/manifest.json", "helpdocs/__init__.py",
+                       "rule_learning/models.py", "rule_learning/mining.py", "rule_learning/service.py",
+                       "rule_learning/validation.py", "web/rule_learning_site.py",
                        "domain/event_series.py", "review/series.py", "review/series_offers.py", "web/series_site.py",
                        "telegram/series.py", "proposals/revision_protection.py", "defaults/prompts.yaml",
                        "proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",

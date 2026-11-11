@@ -228,7 +228,8 @@ class ClassifiedRun:
             # authoritative in the system message instead of relying on a data
             # field next to untrusted mail or Telegram content.
             request_prompt = f"{self.prompt}\n\n{SCHEMA_REPAIR_INSTRUCTION}"
-        guard_arguments: dict[str, Any] = {"before_call": self.before_call} if self.step == "settings_help" else {}
+        guard_arguments: dict[str, Any] = ({"before_call": self.before_call}
+                                           if self.step in {"settings_help", "decision_rule_learning"} else {})
         return self.client.complete(
             route.model, route.parameters, request_prompt, request_payload, stage=self.step,
             retry_type=retry_type, retry_number=retry_number,
@@ -393,6 +394,21 @@ class Analyzer:
                    "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}
         validate = answer_validator([item.id for item in sources], [item["id"] for item in settings])
         return self._classified_run("settings_help", payload, validate, schema=HelpAnswer, before_call=before_call)
+
+    def decision_rule_learning(self, payload: dict[str, Any], *,
+                               before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
+        from ..rule_learning.models import RuleAnalysis
+
+        known = {item["id"] for item in payload["decisions"]}
+
+        def validate(raw: Any) -> RuleAnalysis:
+            result = RuleAnalysis.model_validate(raw)
+            if any(set(item.evidence) - known for item in result.proposals):
+                raise ValueError("Unbekannte Entscheidungsbelege")
+            return result
+
+        return self._classified_run("decision_rule_learning", payload, validate, schema=RuleAnalysis,
+                                    before_call=before_call)
 
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
                     reason: str | None = None):

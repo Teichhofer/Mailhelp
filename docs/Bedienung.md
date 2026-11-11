@@ -146,3 +146,34 @@ verändert selbst keine Daten.
 | **Status** | letzter Kontakt je Dienst, laufender Schritt |
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.
+
+### Aus Entscheidungen lernen
+
+Unter Themen den Link „Aus Entscheidungen lernen“ öffnen. Diese Funktion verwendet die
+bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion benötigt den
+Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
+aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie üblich neu laden.
+
+1. Den Hinweis zur Datenübertragung und möglichen Kosten lesen. Nur nach Ankreuzen der
+   ausdrücklichen Freigabe „Entscheidungen analysieren“ wählen. Begrenzte Auszüge und
+   Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
+2. Nach Abschluss jede bisherige Regel links mit der vorgeschlagenen Regel rechts vergleichen.
+   „Entscheidungsbelege“ zeigt die zugrunde liegenden Auszüge. Eine abgelehnte Aufgabe macht
+   ihre Mail nicht automatisch irrelevant; „bereits erledigt“ bleibt ein positives Beispiel.
+3. Name, Beschreibung, Beispiele, Ausschlüsse und Aktivierung bei Bedarf ändern. Beispiele
+   und Ausschlüsse stehen einzeln je Zeile. Vorhandene Themen-IDs und Postfachbereiche bleiben
+   stabil. Optional unter „Vollständiges Themen-YAML bearbeiten (optional)“ ein vollständiges
+   Thema eintragen; dieses ersetzt dann die Feldwerte.
+4. Gewünschte Vorschläge einzeln auswählen, die Regeländerungen gesondert bestätigen und
+   „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
+   YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
+   geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
+5. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
+   Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
+   Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
+
+Neue Analysen übernehmen relevante Regeln am nächsten sicheren Verarbeitungspunkt. Die
+Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmodus; für
+normale Mailanalysen wirken die relevanten Themen und deren Ausschlüsse. Bestehende
+Kalendereinträge und Aufgaben werden durch Regellernen nicht geändert. Eine neue Analyse
+ersetzt einen noch offenen Prüfentwurf; ein Neustart wiederholt keine laufende KI-Analyse.

@@ -84,7 +84,8 @@ class Writer:
 
 class Logger:
     def event(self, *args, **fields):
-        pass
+        if "request_failed" in args:
+            print("Browser-Testserverfehler:", fields)
 
 
 @dataclass

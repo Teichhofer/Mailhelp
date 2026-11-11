@@ -58,11 +58,12 @@ def test_profile_switch_card_stays_unconfirmed_and_visible_on_small_phones(page,
     sign_in(page, setup_server)
     page.goto(setup_server.url + f"/vorschlag/{item.source_mail_id}/{item.id}")
     page.get_by_role("button", name="Auf Zielprofil Arbeit umstellen", exact=True).click()
-    expect(page.locator(".notice[role=status]")).to_contain_text("neue Version separat bestätigen", timeout=10000)
+    card = page.get_by_label("Ausgewählter Vorgang", exact=True) if page.device == "desktop" else page
+    expect(card.get_by_role("status").filter(has_text="neue Version separat bestätigen")).to_be_visible(timeout=10000)
     current = setup_server.dialog.repository.load_current(item.source_mail_id, item.id)
     assert current.target_profile == 2 and current.version == 2 and current.status == "pending_confirmation"
     assert setup_server.writer.created == []
-    expect(page.locator(".badge").filter(has_text="Outlook-Kalender · Arbeit")).to_be_visible()
+    expect(card.locator(".badge").filter(has_text="Outlook-Kalender · Arbeit")).to_be_visible()
     assert audit(page, "profile-switch-" + page.device, page.mobile) == []
 
 

@@ -13,7 +13,16 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.5.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.6.0 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des
+lokalen Entscheidungsprotokolls. Erst nach ausdrücklicher Freigabe werden begrenzte
+Belege an den aktiven KI-Anbieter übertragen. Vorschläge stehen neben den bisherigen
+Regeln, lassen sich bearbeiten und werden erst nach gesonderter Auswahl, Bestätigung
+und vollständiger YAML-, Schema- und Revisionsprüfung übernommen. Unterbrochene lokale
+Übernahmen lassen sich ohne erneuten KI-Aufruf abschließen. Kalender und Aufgabenlisten
+werden dabei nicht beschrieben. Details: [Planung 5.6](docs/Planung-5.6.md),
+[Release 5.6](docs/Release-5.6.md), [Anleitung](docs/Bedienung.md#aus-entscheidungen-lernen).
 
 Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/Planung-5.5.md),
 [Release 5.5](docs/Release-5.5.md)). 5.5.0 behebt

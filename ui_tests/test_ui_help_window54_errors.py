@@ -141,6 +141,10 @@ def test_window54_legacy_link_and_viewport_fallback(page, mailhelp):
     page.locator(".help-window-head h2").focus()
     page.keyboard.press("ArrowLeft")
     page.set_viewport_size({"width": 360, "height": 640})
+    page.wait_for_function("""() => {
+      const box = document.querySelector('#help-window').getBoundingClientRect();
+      return box.x >= 0 && box.right <= 360;
+    }""")
     box = page.locator("#help-window").bounding_box()
     assert 0 <= box["x"] and box["x"] + box["width"] <= 360
 

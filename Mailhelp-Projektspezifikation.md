@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.4.1. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.6.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3695,3 +3695,54 @@ Antwort. Der Verlauf an das Modell enthält weiterhin die vollständigen Antwort
 Tabellen und HTML bleiben Text. Nur `*` und `**` formatieren, Unterstriche nicht.
 `plain()` entfernt die Zeichen für Kurzantwort-Ableitung, Längenprüfung und Vergleich.
 Die Dokumentationsansicht im Fenster bleibt Klartext.
+
+### Regellernen aus Entscheidungen (5.6)
+
+`DecisionRuleMiner` liest aus dem bestehenden `DecisionLearningLog` höchstens das letzte
+Megabyte und die letzten 200 vollständigen Datensätze. Maximal 100 eindeutige Belege werden
+neueste zuerst ausgewählt. Es gelten das reale Schema `analysis.relevance`,
+`proposal.changes`, `mail.headers` und `mail.content`; beschädigte Zeilen werden verworfen.
+Signale: Ablehnung eines Vorschlags (keine automatische negative Mailrelevanz), manuelle
+Korrektur, abweichende Relevanzentscheidung, Bestätigung ohne Themenzuordnung sowie positives
+`already_done`. Die Zusammenfassung zählt diese Signale getrennt.
+
+Der optionale Prompt `decision_rule_learning` nutzt denselben Analyzer, die aktive Modellroute
+und die bestehenden KI-Budgets und HTTP-/Schema-Wiederholungsregeln. Ein fehlender Prompt
+verhindert diesen Aufruf, nicht den übrigen Betrieb. Bekannte Geheimnisse werden rekursiv
+aus der begrenzten Nutzlast entfernt. Die Nutzlast wird gegebenenfalls um ältere Belege
+gekürzt. Passt selbst ein Beleg nicht hinein, findet kein Aufruf statt. Eine aktive Sitzung
+und unveränderte Regeln/Postfachkonfiguration werden vor jedem Modellversuch geprüft.
+`RuleAnalysis` enthält maximal 20 eindeutige `RuleProposal` mit Kategorie, stabiler Themen-ID,
+Aktion, Begründung, vorhandenen Beleg-IDs und einem vollständigen `RuleTopic`.
+
+Die authentifizierte Seite `/themen/lernen` trennt kostenpflichtigen Analysestart und lokale
+Regelübernahme durch eigene ausdrückliche Bestätigungen. Alt und Neu stehen nebeneinander,
+Änderungen sind markiert, Belege und Begründung werden HTML-maskiert angezeigt. Felder und
+optional vollständiges Themen-YAML sind bearbeitbar. Nur ausgewählte Vorschläge werden in
+beide vollständigen Dokumente eingesetzt und erneut validiert: sichere YAML-Typen, keine
+doppelten Schlüssel oder unbekannten Felder, dokumentübergreifend eindeutige IDs, mindestens
+ein aktives relevantes Thema, konfigurierte Postfächer und unveränderter bestehender
+Postfachbereich. `RuleTopic` begrenzt IDs auf 64, Namen auf 200, Beschreibungen auf 1000 und
+je höchstens 30 Beispiele/Ausschlüsse auf jeweils 500 Zeichen; leere Texte und unzulässige
+Steuerzeichen werden abgewiesen. Die bisherigen allgemeinen Themeneditoren bleiben bestehen.
+
+Sitzung, CSRF, Version und Idempotenzschlüssel schützen jede Webaktion. Vor und nach der
+Gesamtvalidierung werden die Hashes beider Themendateien und der `config.yaml` verglichen.
+Parser-, Schema- und Revisionsfehler schreiben keine Themendatei und erhalten die Eingaben.
+Danach wird ein dauerhaftes Journal der freigegebenen Inhalte gespeichert. Je Datei erfolgt
+ein atomarer Austausch; nach einem Abbruch zwischen Dateien ist eine erneute authentifizierte
+Bestätigung zum Abschließen erforderlich. Nur Originalhashes und bereits geschriebene eigene
+Inhalte werden akzeptiert. Fremde Änderungen blockieren das Fortsetzen. Es gibt keine
+gleichzeitige Dateisystemtransaktion über beide Dateien und keine Modellwiederholung beim
+Fortsetzen. Wartende/laufende Analysen werden nach Neustart als unterbrochen markiert.
+
+Private Auftragsinhalte verfallen nach 24 Stunden unter der Zustandsperre. Die leere Revision
+bleibt dauerhaft erhalten und weist alte Startbestätigungen auch nach Neustart ab.
+Aufträge gehören einer Sitzung; ausgenommen vom Ablauf ist das minimale
+Übernahmejournal einer bereits bestätigten Änderung. Fremde Sitzungen erhalten keine Belege.
+Relevante Themen werden über den vorhandenen sicheren Aktivierungspunkt übernommen und
+gelten für neue Analysen. `irrelevant_topics.yaml` behält seine Rolle in Lern- und
+Entscheidungstestmodi. Für normale Mailrelevanz gelten relevante Themen samt Ausschlüssen.
+Bestehende Entwürfe, Kalender und Aufgabenlisten werden durch diesen Ablauf nicht geändert.
+Vor dem Speichern einer KI-Antwort müssen Eigentümer, laufender Status und Auftragsversion
+noch übereinstimmen. Eine späte Antwort ersetzt keinen neueren Auftrag derselben Sitzung.

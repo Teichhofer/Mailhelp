@@ -1,5 +1,26 @@
 # Änderungen
 
+## 5.6.0 – Themenregeln aus Entscheidungen lernen
+
+- Begrenzte Auswertung des bestehenden Entscheidungsprotokolls mit getrennten Signalen
+  für Ablehnung, Korrektur, Relevanzabweichung und positive „bereits erledigt“-Beispiele.
+- Optionaler Prompt `decision_rule_learning`, aktive Modellroute und bestehende Budgets;
+  Modellaufrufe erst nach authentifizierter, ausdrücklicher Kosten- und Datenfreigabe.
+- Neue Seite `/themen/lernen`: Alt-Neu-Vergleich, Belege, Begründung, bearbeitbare Felder
+  und optionales vollständiges Themen-YAML; Übernahme nur ausgewählter Vorschläge.
+- Strikte Gesamtvalidierung beider Themendateien, unveränderte bestehende IDs und
+  Postfachbereiche, Versions-/Hashprüfung, CSRF und idempotente Bestätigung.
+- Dauerhaftes Übernahmejournal und atomarer Austausch je Datei; Wiederaufnahme nach
+  Schreibabbruch ohne Modellwiederholung und ohne Überschreiben fremder Änderungen.
+- Nach Ablauf eines Analyseauftrags werden private Belege entfernt; seine Revision bleibt
+  erhalten, damit alte kostenpflichtige Startbestätigungen nicht erneut gültig werden.
+- Verspätete KI-Antworten ersetzen keinen neueren Auftrag derselben Sitzung; vor dem
+  Speichern werden Eigentümer, Status und Auftragsversion verglichen.
+- Regressionstests für wiederholte Webbestätigung, beschädigte UTF-8-Protokollzeilen,
+  Geheimnisentfernung beim Kürzen der Nutzlast und getrennte Formularbeschriftungen;
+  Browserabläufe auf Desktop und schmalen Ansichten, auch ohne JavaScript.
+
+
 ## 5.5.7 – Hilfschat mit echtem Modell geprüft und abgesichert
 
 Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 Anfragen, etwa

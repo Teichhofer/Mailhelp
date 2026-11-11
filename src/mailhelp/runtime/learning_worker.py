@@ -88,6 +88,7 @@ class LearningWorker:
         self.app, self.secrets = app, secrets
         self.open_reader = open_reader or _reader
         self.stopped, self.thread = Event(), None
+        self.rules: Any = None
         self.jobs = LearningJobs(
             app.configuration,
             lambda actor: actor.startswith("web:") and site.auth.active(actor.removeprefix("web:")),
@@ -125,6 +126,8 @@ class LearningWorker:
 
     def start(self) -> None:
         self.jobs.recover()
+        if self.rules is not None:
+            self.rules.recover()
         self.stopped.clear()
         self.thread = Thread(target=self.run, name="mailhelp-learning", daemon=True)
         self.thread.start()
@@ -151,6 +154,8 @@ class LearningWorker:
                 self.stopped.wait(1)
 
     def tick(self):
+        if self.rules is not None and self.rules.tick():
+            return True
         state = self.jobs.state()
         if state.status != "running":
             return False

@@ -1,6 +1,19 @@
 # Einstellungen der Weboberfläche
 
-Stand: 10. November 2026, Anwendungsversion 5.4.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 11. November 2026, Anwendungsversion 5.6.0; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+
+Ab 5.6 führt Themen → „Aus Entscheidungen lernen“ zur Seite `/themen/lernen`.
+Sie analysiert vorhandene protokollierte Entscheidungen nach ausdrücklicher Freigabe von
+Kosten und Datenübertragung. Alt und Neu stehen nebeneinander; ausgewählte Regeln lassen
+sich als Felder oder vollständiges Themen-YAML bearbeiten und gesondert bestätigt übernehmen.
+Parser-, Schema-, Sitzungs- und Revisionsprüfungen schützen beide Themendateien. Bei einem
+Schreibabbruch lässt sich die freigegebene Übernahme ohne erneute KI-Analyse abschließen.
+Anleitung: [Aus Entscheidungen lernen](Bedienung.md#aus-entscheidungen-lernen).
+
+Es gibt dafür keine neuen `config.yaml`-Schalter. Der optionale Prompt
+`decision_rule_learning` liegt in `prompts.yaml`, nutzt die aktive Modellroute und die
+bestehenden KI-Limits. Ältere Promptdateien bleiben gültig; fehlt der Block, wird die
+Analyse mit Hinweis beendet. Externe Kalender und Aufgabenlisten werden nicht beschrieben.
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
