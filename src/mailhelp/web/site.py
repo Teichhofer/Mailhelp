@@ -295,7 +295,8 @@ class MailhelpSite:
                 proposal_id=form.get("proposal_id") or None,
                 version=int(form.get("version", "")), idempotency_key=form.get("key", ""),
                 text=form.get("text") or None, decision=form.get("decision") or None,
-                candidate=int(form["candidate"]) if form.get("candidate") else None)
+                candidate=int(form["candidate"]) if form.get("candidate") else None,
+                conflict_id=form.get("conflict_id") or None, variant=form.get("variant") or None)
         except (ValueError, ValidationError):
             return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
         stale = self._stale(command)

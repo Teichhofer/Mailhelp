@@ -16,7 +16,7 @@ from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash
 from ..review.results import ResultStatus
-from ..review.views import ProposalView, RelevanceView
+from ..review.views import ConflictChoice, ProposalView, RelevanceView
 from .pages import e, layout, notice
 from .reconciliation_pages import focus_link
 
@@ -50,9 +50,39 @@ def _button_form(csrf: str, view: ProposalView, kind: CommandKind, label: str, s
             f'<button class="button {style}" type="submit">{e(label)}</button></form>')
 
 
+def conflict_boxes(view: ProposalView, csrf: str | None = None) -> str:
+    """5.9.3: both values side by side; with *csrf* and the action, one form per value.
+
+    No value is preselected or highlighted: the user decides. Choosing revises the proposal only.
+    """
+    forms = csrf is not None and CommandKind.CHOOSE_VARIANT in view.actions
+    return "".join(_conflict_box(view, item, csrf if forms else None) for item in view.conflicts)
+
+
+def _conflict_box(view: ProposalView, item: ConflictChoice, csrf: str | None) -> str:
+    sides = []
+    for option in item.options:
+        button = ""
+        if csrf is not None:
+            label = f"{option.button} {'behalten' if option.keep else 'übernehmen'}"
+            button = _button_form(csrf, view, CommandKind.CHOOSE_VARIANT, label, "",
+                                  conflict_id=item.id, variant=option.id)
+        sides.append(f'<div class="compare-side conflict-side"><p class="compare-tag">{e(option.origin)}</p>'
+                     f'<p class="conflict-value"><strong>{e(option.value)}</strong></p>{button}</div>')
+    hint = ('<p class="meta">Die Auswahl ändert nur den Vorschlag; angelegt wird erst nach deiner '
+            'Bestätigung. Für einen anderen Wert den Vorschlag ändern.</p>' if csrf is not None else "")
+    ident = f"konflikt-{view.mail_id}-{view.proposal_id}-{item.id}"
+    return (f'<section class="conflict" aria-labelledby="{e(ident)}"><h4 id="{e(ident)}">⚠️ Widerspruch: '
+            f'{e(item.label)} – welcher Wert soll gelten?</h4><p class="visually-hidden">{e(item.question)}</p>'
+            f'<div class="compare">{"".join(sides)}</div>{hint}</section>')
+
+
 def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
     """Renderer for the action area of a proposal card."""
     def render(view: ProposalView) -> str:
+        return conflict_boxes(view, csrf) + _actions(view)
+
+    def _actions(view: ProposalView) -> str:
         if view.verification is not None:
             return verification_block(csrf, view)
         if view.answer_saved:

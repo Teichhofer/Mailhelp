@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.9.3 – Widersprüche im Web mit einem Klick auflösen
+
+- Web: Widersprüche erscheinen auf der Vorschlagskarte als Gegenüberstellung beider Werte mit
+  Herkunft. „… behalten“ bzw. „… übernehmen“ übernimmt den Wert mit einem Klick als neue Version;
+  das Feld gilt danach als von dir festgelegt.
+- Die Auswahl ist keine Freigabe: Die neue Version wird erneut vorgelegt und erst nach deiner
+  Bestätigung angelegt. Formulare tragen CSRF-Token, Version und Idempotenzschlüssel; Sitzung,
+  Version und Widerspruch werden bei Ausführung erneut geprüft.
+- Veraltete Formulare melden „inzwischen geändert“ und ändern nichts; ein wiederholter Klick hat
+  keine zweite Wirkung. Funktioniert ohne JavaScript.
+
 ## 5.9.2 – Widersprüche mit beiden Werten
 
 - Widersprüche zusammengeführter Quellen nennen beide Werte und ihre Herkunft, etwa

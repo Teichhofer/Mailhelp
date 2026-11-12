@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from ..models import ProposalKind, ProposalStatus
 from ..review.calendar_display import change_parts
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
+from .actions import conflict_boxes
 from .pages import e, layout, notice
 
 # Renders the action forms of a card (phase 6); None shows the card read-only.
@@ -118,6 +119,12 @@ def _card_warning(view: ProposalView) -> str:
     return ""
 
 
+def _plain_questions(view: ProposalView) -> tuple[str, ...]:
+    """5.9.3: a field conflict is shown as a comparison, not again in the question list."""
+    shown = {item.stored_question for item in view.conflicts}
+    return tuple(question for question in view.card.questions if question not in shown)
+
+
 def _card_questions(questions: Any) -> str:
     if not questions:
         return ""
@@ -198,8 +205,8 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
 <p class="labels">{" ".join(_card_labels(view, metadata=not detail_link))}</p>
 <ul class="facts">{"".join(_card_facts(card))}</ul>
-{_card_warning(view)}{_diff_box(view)}{_card_questions(card.questions)}{context}{created_link}{details}
-{actions(view) if actions else ""}
+{_card_warning(view)}{_diff_box(view)}{_card_questions(_plain_questions(view))}{context}{created_link}{details}
+{actions(view) if actions else conflict_boxes(view)}
 </article>"""
 
 

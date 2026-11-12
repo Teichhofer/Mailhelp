@@ -74,6 +74,26 @@ Model = TypeVar("Model", bound=BaseModel)
 
 
 @dataclass(frozen=True)
+class ConflictOption:
+    """One value of a field conflict as shown: origin, value and a short button text (5.9.3)."""
+    id: str
+    origin: str
+    value: str
+    button: str
+    keep: bool
+
+
+@dataclass(frozen=True)
+class ConflictChoice:
+    id: str
+    label: str
+    # The question in the configured zone, and the stored question it stands for.
+    question: str
+    stored_question: str
+    options: tuple[ConflictOption, ...]
+
+
+@dataclass(frozen=True)
 class ProposalView:
     mail_id: str
     proposal_id: str
@@ -109,6 +129,8 @@ class ProposalView:
     mail_link: str | None = None
     # 5.2: the check of a written entry, if there is one.
     verification: VerificationSummary | None = None
+    # 5.9.3: contradicting source values, each with its options.
+    conflicts: tuple[ConflictChoice, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -564,6 +586,7 @@ class ReviewViews:
                                       for item in proposal.calendar_candidates),
             mail_link=proposal.mail_link,
             verification=verification,
+            conflicts=conflict_choices(proposal, self.configured_timezone),
         )
 
 
@@ -580,7 +603,24 @@ def _open_actions(proposal: Proposal, editing: bool, blocked: bool) -> set[Comma
         actions.add(CommandKind.RECHECK)
     if proposal.calendar_candidates:
         actions.add(CommandKind.CHOOSE_EVENT)
+    if proposal.field_conflicts:
+        actions.add(CommandKind.CHOOSE_VARIANT)
     return actions
+
+
+def conflict_choices(proposal: Proposal, configured_timezone: str) -> tuple[ConflictChoice, ...]:
+    """Field conflicts with their values in the configured zone (5.9.3)."""
+    from ..proposals import conflicts
+    zone = ZoneInfo(configured_timezone)
+    return tuple(ConflictChoice(
+        id=item.id, label=conflicts.label(item), question=conflicts.question(item, proposal.sources, zone),
+        stored_question=item.question,
+        options=tuple(ConflictOption(id=variant.id, origin=conflicts.origin_text(variant, proposal.sources),
+                                     value=conflicts.value_text(item, variant, zone),
+                                     button=conflicts.button_text(item, variant, zone),
+                                     keep=variant.origin != "source")
+                      for variant in item.variants))
+        for item in proposal.field_conflicts)
 
 
 def _mail_position(mail: _MailSummary | None, proposal: Proposal) -> tuple[int, int]:

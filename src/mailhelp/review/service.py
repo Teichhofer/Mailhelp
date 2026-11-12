@@ -269,8 +269,21 @@ class ReviewService:
             return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
         handlers = {CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
                     CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
-                    CommandKind.CHOOSE_EVENT: self._choose_event}
+                    CommandKind.CHOOSE_EVENT: self._choose_event, CommandKind.CHOOSE_VARIANT: self._choose_variant}
         return handlers.get(command.kind, self._decide)(command)
+
+    def _choose_variant(self, command: ReviewCommand) -> ReviewResult:
+        """5.9.3: one value of a field conflict becomes a new version; it is not a confirmation."""
+        from ..proposals.conflicts import ConflictChoiceError, choose
+        previous = self._target(command)
+        assert command.conflict_id is not None and command.variant is not None  # required by ReviewCommand
+        try:
+            chosen = choose(previous, command.conflict_id, command.variant)
+        except ConflictChoiceError as exc:
+            raise StaleCommand(str(exc)) from exc
+        self._commit(previous, chosen)
+        self.controller.send_proposal(chosen)
+        return ReviewResult(status=ResultStatus.DONE, message="Wert übernommen; neue Version bitte separat bestätigen.")
 
     def _choose_event(self, command: ReviewCommand) -> ReviewResult:
         """Bind a change or cancellation to the calendar entry the user picked (4.6, 17.4)."""

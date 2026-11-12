@@ -179,7 +179,8 @@
         "series_answer",
         "series_confirm",
         "choose_calendar_event",
-        "verify_entry"
+        "verify_entry",
+        "choose_conflict_variant"
       ],
       "title": "CommandKind",
       "type": "string"
@@ -408,6 +409,19 @@
           "default": null,
           "title": "Candidate"
         },
+        "conflict_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z_]{1,20}-[0-9]{1,6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conflict Id"
+        },
         "decision": {
           "anyOf": [
             {
@@ -559,6 +573,23 @@
           ],
           "default": null,
           "title": "Text"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "enum": [
+                "a",
+                "b",
+                "c"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant"
         },
         "version": {
           "minimum": 1,

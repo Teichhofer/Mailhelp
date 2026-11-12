@@ -45,6 +45,8 @@ class CommandKind(StrEnum):
     CHOOSE_EVENT = "choose_calendar_event"
     # 5.2: read a written entry again; never writes.
     VERIFY_ENTRY = "verify_entry"
+    # 5.9.3: take one value of a field conflict; a new version, never a write.
+    CHOOSE_VARIANT = "choose_conflict_variant"
 
 
 # Commands on a whole mail instead of one proposal.
@@ -81,11 +83,17 @@ class ReviewCommand(BaseModel):
     endpoint: Literal["start", "end"] = "start"
     # Position in the displayed version's calendar_candidates; the version binds it.
     candidate: int | None = Field(default=None, ge=0, le=9)
+    # 5.9.3: Proposal.field_conflicts[].id and one of its variants, bound by the version.
+    conflict_id: str | None = Field(default=None, pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")
+    variant: Literal["a", "b", "c"] | None = None
 
     @model_validator(mode="after")
     def candidate_only_for_a_choice(self) -> ReviewCommand:
         if (self.kind == CommandKind.CHOOSE_EVENT) != (self.candidate is not None):
             raise ValueError("Nur die Terminauswahl enthält einen Kandidaten")
+        choice = self.kind == CommandKind.CHOOSE_VARIANT
+        if choice != (self.conflict_id is not None) or choice != (self.variant is not None):
+            raise ValueError("Nur die Auswahl eines Werts nennt Widerspruch und Variante")
         return self
 
     @model_validator(mode="after")

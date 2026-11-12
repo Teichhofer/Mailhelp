@@ -990,3 +990,14 @@ main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
   .card .decision-help { font-size: .85rem; }
   .topic-tabs .button { padding: 6px 8px; font-size: .9rem; }
 }
+/* 5.9.3: a field conflict shows both values side by side; no side is preselected or highlighted. */
+.conflict { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--radius);
+  padding: 12px 14px; margin: 12px 0; }
+.conflict h4 { margin: 0; font-size: 1rem; }
+.conflict .compare { margin: 10px 0 6px; }
+.conflict-side { display: flex; flex-direction: column; gap: 8px; }
+.conflict-side .compare-tag { align-self: flex-start; margin: 0; overflow-wrap: anywhere; }
+.conflict-value { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.conflict-side form { margin-top: auto; }
+.conflict-side .button { width: 100%; white-space: normal; }
+.conflict .meta { margin: 6px 0 0; }

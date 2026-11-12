@@ -2201,6 +2201,17 @@ einer Variante erzeugt eine neue Version mit dem gewählten, nun geschützten We
 Sonderfreigaben auf; sie autorisiert keine externe Anlage. Gespeicherte Vorschläge mit alten
 Fragetexten bleiben unverändert.
 
+Seit 5.9.3 zeigt die Vorschlagskarte im Web jeden Widerspruch als Gegenüberstellung („⚠️ Widerspruch:
+Endzeit – welcher Wert soll gelten?“) mit Herkunft und Wert je Variante in der konfigurierten
+Zeitzone und darunter je ein Formular „… behalten“ bzw. „… übernehmen“. Keine Seite ist vorgewählt
+oder hervorgehoben; die Frage erscheint nicht zusätzlich in der Liste offener Fragen. Das Formular
+sendet `kind=choose_conflict_variant` mit `conflict_id`, `variant`, Version, CSRF-Token und
+Idempotenzschlüssel an `/aktion`; die Befehlswarteschlange prüft bei Ausführung erneut Sitzung,
+Version und Konflikt. Ein entfallener Konflikt oder eine veraltete Version ergibt „inzwischen
+geändert“ ohne Änderung, eine Wiederholung desselben Formulars keine zweite Version. Danach wird
+die neue Version wie jede Änderung erneut vorgelegt und muss separat bestätigt werden. Ohne
+Aktionsbereich (etwa ohne gültige Sitzung) erscheint die Gegenüberstellung ohne Formulare.
+
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
 einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
 Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und

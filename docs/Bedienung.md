@@ -27,8 +27,9 @@ Sache, entscheidest du im **Vorschlagsabgleich**.
 Bringt eine weitere Mail andere Angaben zum selben Termin oder zur selben Aufgabe, nennt die
 Rückfrage ab 5.9.2 beide Werte und ihre Herkunft, zum Beispiel „Widerspruch bei der Endzeit:
 bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“.
-Eine Antwort oder eine Bearbeitung des Felds klärt den Widerspruch; angelegt wird erst nach
-deiner Bestätigung.
+Ab 5.9.3 stehen beide Werte auf der Karte nebeneinander. Eine Schaltfläche wie „18:30 Uhr behalten“
+oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine neue Version; angelegt wird erst, wenn du diese
+Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
 
 ## Nach dem Anlegen
 
