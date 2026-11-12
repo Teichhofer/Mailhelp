@@ -2185,6 +2185,22 @@ wird vor der Wahl der Einheit (59,96 s ergibt „1 Min.“). Negative oder nicht
 werden abgelehnt. Die Faktentabelle zeigt die summierte Aufrufdauer ab einer Minute zusätzlich
 mit den gerundeten Sekunden in Klammern.
 
+**Widersprüche zusammengeführter Quellen (seit 5.9.2).** Widerspricht eine weitere Quelle einem
+Vorschlag beim Zeitraum (Beginn und Ende gemeinsam), bei der Fälligkeit, beim Ort oder beim
+Videolink, speichert `Proposal.field_conflicts` die typisierten Werte als Varianten `a` (bisher
+bzw. „von dir festgelegt“, wenn das Feld geschützt ist), `b` und höchstens `c` mit der Quellmail.
+Die zugehörige offene Frage nennt alle Werte mit Herkunft, etwa „Widerspruch bei der Endzeit:
+bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“.
+Unterscheidet sich nur das Ende oder nur der Beginn, heißt der Zeitraum „Endzeit“ bzw. „Beginn“.
+Ein abweichender Beginn ohne Ende übernimmt die bisherige Dauer („Dauer wie bisher“). Ein vierter
+Wert ersetzt den Konflikt durch die Bitte, den Vorschlag zu bearbeiten. Ganztägig gegen
+zeitgebunden, ein Widerspruch zum festgelegten Datum und widersprüchliche bekannte Zeitangaben
+nennen ihre Werte, bleiben aber Bearbeitungsfälle. Ein Konflikt besteht nur, solange seine Frage
+offen ist; eine direkte Änderung des Felds (Bearbeiten oder Antwort) erledigt ihn. Die Auswahl
+einer Variante erzeugt eine neue Version mit dem gewählten, nun geschützten Wert und hebt alle
+Sonderfreigaben auf; sie autorisiert keine externe Anlage. Gespeicherte Vorschläge mit alten
+Fragetexten bleiben unverändert.
+
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
 einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
 Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und

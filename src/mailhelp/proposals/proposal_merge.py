@@ -11,6 +11,7 @@ from ..domain.proposal import (
     required_revision_questions,
 )
 from ..domain.proposal_sources import ProposalReference
+from . import conflicts
 from .proposal_matching import day
 
 _TIME_QUESTIONS = ("Wann beginnt der Termin?", "Wann endet der Termin?",
@@ -37,6 +38,9 @@ class _Merge:
             if source not in self.changes["sources"]:
                 self.changes["sources"].append(source)
         self.questions = list(previous.open_questions)
+        # 5.9.2: contradicting values, collected per field and turned into conflicts after the loop.
+        self.contested: dict[str, Any] = {}
+        self.field_conflicts = list(previous.field_conflicts)
         self.latest_old = max((s.sent_at for s in previous.sources if s.sent_at is not None), default=None)
         self.latest_new = max((s.sent_at for s in incoming.sources if s.sent_at is not None), default=None)
         self.newer = self.latest_new is not None and (self.latest_old is None or self.latest_new > self.latest_old)
@@ -54,6 +58,7 @@ class _Merge:
         self._upgrade_classification()
         for field in _MERGED_FIELDS:
             self._merge_field(field)
+        self._record_conflicts()
         self._follow_up_fields()
         self._merge_description()
         self._check_interval()
@@ -78,23 +83,77 @@ class _Merge:
             return
         previous, incoming = self.previous, self.incoming
         if field in previous.protected_fields:
-            self.questions.append(f"Widerspruch bei {field}: Angaben aus den Quellen vergleichen.")
+            self.contested[field] = new
         elif field == "start" and old is not None and incoming.end is None:
-            self.questions.append("Abweichender Beginn ohne belegtes Ende: Quellen vergleichen.")
+            self.contested[field] = new
         elif old is None or self._replaces(field):
             self.changes[field] = new
         elif self.newer or self.latest_new is None or self.latest_new == self.latest_old:
-            self.questions.append(f"Widerspruch bei {field}: Angaben aus den Quellen vergleichen.")
+            self.contested[field] = new
+
+    def _source(self) -> ProposalReference | None:
+        """The first source this merge adds; its mail names the incoming values."""
+        known = {(item.mail_id, item.proposal_id) for item in self.previous.sources}
+        added = next((item for item in self.incoming.sources if (item.mail_id, item.proposal_id) not in known),
+                     None)
+        return None if added is None else ProposalReference(mail_id=added.mail_id, proposal_id=added.proposal_id)
+
+    def _record_conflicts(self) -> None:
+        """Contradicting values become conflicts with buttons, or readable questions without."""
+        previous, contested = self.previous, self.contested
+        if "known_temporal_facts" in contested:
+            self.questions.append(conflicts.temporal_facts_question(
+                previous.known_temporal_facts, contested.pop("known_temporal_facts")))
+        groups: dict[str, tuple[dict[str, Any], dict[str, Any], bool]] = {}
+        if {"start", "end"} & contested.keys():
+            groups["interval"] = self._interval_values()
+        for field in ("due", "location", "video_link"):
+            if field in contested:
+                groups[field] = ({field: getattr(previous, field)}, {field: contested[field]}, False)
+        source = self._source()
+        for field, (old, new, derived) in groups.items():
+            fields = {"start", "end"} if field == "interval" else {field}
+            origin = "manual" if fields & set(previous.protected_fields) else "current"
+            current = conflicts.build_variant(field, old, origin, None, "a")
+            incoming = conflicts.build_variant(field, new, "source", source, "b", derived)
+            existing = next((item for item in self.field_conflicts if item.field == field), None)
+            conflict, text = conflicts.extend(existing, field, current, incoming,
+                                              f"{field}-{previous.version + 1}",
+                                              [*previous.sources, *self.incoming.sources])
+            replacement = conflict.question if conflict is not None else text
+            if existing is None:
+                self.questions.append(replacement)
+            else:
+                # In place, so a repeated source leaves the proposal (and its version) unchanged.
+                self.questions = [replacement if item == existing.question else item for item in self.questions]
+                self.field_conflicts.remove(existing)
+            if conflict is not None:
+                position = len(self.field_conflicts) if existing is None else previous.field_conflicts.index(existing)
+                self.field_conflicts.insert(position, conflict)
+
+    def _interval_values(self) -> tuple[dict[str, Any], dict[str, Any], bool]:
+        """The current and the incoming interval; a missing end keeps the old duration."""
+        previous, incoming, contested = self.previous, self.incoming, self.contested
+        old_start = self.changes.get("start", previous.start)
+        old_end = self.changes.get("end", previous.end)
+        start = contested.get("start", old_start)
+        end = contested.get("end", incoming.end if "start" in contested else old_end)
+        derived = False
+        # A contested start comes with the incoming end, which validation keeps after that start.
+        if "start" in contested and end is None:
+            duration = old_end - old_start if old_start is not None and old_end is not None else None
+            end, derived = (start + duration, True) if duration is not None else (None, False)
+        return {"start": old_start, "end": old_end}, {"start": start, "end": end}, derived
 
     def _settled_temporally(self, field: str, old: Any, new: Any) -> bool:
         """Temporal rules that decide a field on their own; ``True`` once the field is handled."""
         previous, incoming = self.previous, self.incoming
         if field in _TEMPORAL_FIELDS and previous.all_day != incoming.all_day:
-            self.questions.append("Ganztägige und zeitgebundene Angaben aus den Quellen vergleichen.")
+            self.questions.append(conflicts.timing_question("all_day", previous, incoming))
             return True
         if field in {"start", "end"} and "known_temporal_facts" in previous.protected_fields and (
                 day(previous) is not None and day(incoming) != day(previous) or self._protected_clock_changed()):
-            self.questions.append("Widerspruch zum manuell festgelegten Datum oder Beginn: Quellen vergleichen.")
+            self.questions.append(conflicts.timing_question("manual_day", previous, incoming))
             return True
         if field != "known_temporal_facts":
             return False
@@ -172,6 +231,7 @@ def merge_facts(previous: Proposal, incoming: Proposal, *, uncertain: bool = Fal
         merge.add_facts()
     changes = merge.changes
     changes["open_questions"] = list(dict.fromkeys(merge.questions))
+    changes["field_conflicts"] = merge.field_conflicts
     changes["status"] = (ProposalStatus.NEEDS_CLARIFICATION if changes["open_questions"]
                          else ProposalStatus.PENDING_CONFIRMATION)
     if all(getattr(previous, name) == value for name, value in changes.items()):

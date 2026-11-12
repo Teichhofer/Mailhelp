@@ -1,5 +1,19 @@
 # Änderungen
 
+## 5.9.2 – Widersprüche mit beiden Werten
+
+- Widersprüche zusammengeführter Quellen nennen beide Werte und ihre Herkunft, etwa
+  „Widerspruch bei der Endzeit: bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr.
+  Welche Endzeit soll gelten?“ statt „Widerspruch bei end: Angaben aus den Quellen vergleichen.“.
+- Beginn und Ende bilden einen gemeinsamen Zeitraum; ein neuer Beginn ohne Ende übernimmt die
+  bisherige Dauer. Vom Nutzer festgelegte Werte heißen „von dir festgelegt“.
+- Die Werte werden typisiert als `Proposal.field_conflicts` gespeichert (bis zu drei Varianten),
+  als Grundlage für die Auswahl per Klick ab 5.9.3. Ein vierter Wert führt zur Bitte, den
+  Vorschlag zu bearbeiten.
+- Ganztägig gegen zeitgebunden und Widersprüche zum festgelegten Datum nennen ebenfalls die Werte.
+- Eine Bearbeitung oder Antwort, die das Feld ändert, erledigt den Widerspruch. Gespeicherte
+  Vorschläge laden unverändert; das gespeicherte Format ist abwärtskompatibel erweitert.
+
 ## 5.9.1 – Lesbare Dauern in der Auswertung
 
 - Auswertung: Dauern erscheinen in der passenden Einheit (`42,3 s`, `4 Min. 12 s`,

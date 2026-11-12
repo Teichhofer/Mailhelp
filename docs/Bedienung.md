@@ -24,6 +24,12 @@ Termin aktualisieren** bzw. **Termin absagen**. Passt eine Änderung zu mehreren
 du mit „Diesen Termin meinen: …“ den richtigen. Hält Mailhelp zwei Vorschläge für dieselbe
 Sache, entscheidest du im **Vorschlagsabgleich**.
 
+Bringt eine weitere Mail andere Angaben zum selben Termin oder zur selben Aufgabe, nennt die
+Rückfrage ab 5.9.2 beide Werte und ihre Herkunft, zum Beispiel „Widerspruch bei der Endzeit:
+bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“.
+Eine Antwort oder eine Bearbeitung des Felds klärt den Widerspruch; angelegt wird erst nach
+deiner Bestätigung.
+
 ## Nach dem Anlegen
 
 Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:

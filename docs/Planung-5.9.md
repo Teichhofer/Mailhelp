@@ -99,27 +99,29 @@ nach der Zusammenführung verloren. Weitere textuelle Rückfragen derselben Fami
 (höchstens 10 Einträge). Vorschläge ohne dieses Feld laden unverändert.
 
 ```python
-ConflictField = Literal["interval", "start", "end", "due", "location", "video_link"]
-
 class ConflictVariant(StrictModel):
     id: Literal["a", "b", "c"]
     # Typisierte Werte, keine Anzeigetexte; formatiert wird erst bei der Darstellung (Zeitzone, ganztägig).
-    start: AwareDatetime | None = None      # für "interval" und "start"
-    end: AwareDatetime | None = None        # für "interval" und "end"
-    due: AwareDatetime | date | None = None
-    text: str | None = Field(default=None, max_length=500)   # location, video_link
-    origin: Literal["current", "manual", "source"]          # bisheriger Wert, vom Nutzer festgelegt, neue Quelle
-    source: ProposalReference | None = None                  # Mail, aus der die Variante stammt
-    source_subject: str | None = Field(default=None, max_length=200)
-    source_sent_at: AwareDatetime | None = None
+    start: date | datetime | None = None   # Zeitraum
+    end: date | datetime | None = None     # Zeitraum
+    due: date | datetime | None = None     # Fälligkeit
+    text: str | None = Field(default=None, max_length=2000)   # Ort, Videolink
+    origin: Literal["current", "manual", "source"]            # bisher, von dir festgelegt, neue Quelle
+    source: ProposalReference | None = None                    # Betreff und Datum kommen aus Proposal.sources
     derived_end: bool = False   # Ende aus bisheriger Dauer abgeleitet (siehe unten)
 
 class FieldConflict(StrictModel):
-    id: str = Field(pattern=r"^[a-z_]{1,20}-[0-9]{1,3}$")   # z. B. "interval-1", stabil je Vorschlag
-    field: ConflictField
+    id: str = Field(pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")   # Feld und neue Version, z. B. "interval-2"
+    field: Literal["interval", "due", "location", "video_link"]
     variants: list[ConflictVariant] = Field(min_length=2, max_length=3)
     question: str   # genau dieser Eintrag steht in open_questions
 ```
+
+Umgesetzt in 5.9.2: Modelle in `domain/proposal.py`, Texte und Auswahl in
+`proposals/conflicts.py`. Beginn und Ende sind immer **ein** Konflikt `interval`. Unterscheidet
+sich nur das Ende (oder nur der Beginn), heißt er in allen Texten „Endzeit“ (bzw. „Beginn“) und
+zeigt nur diese Uhrzeit. Ein Validator entfernt jeden Konflikt, dessen Frage nicht mehr offen ist,
+gleich auf welchem Weg sie beantwortet wurde.
 
 **Regeln:**
 
@@ -131,8 +133,8 @@ class FieldConflict(StrictModel):
   Die neue Variante übernimmt die bisherige Dauer (`derived_end = True`). Die Anzeige sagt das
   ausdrücklich: *„18:00–18:30 Uhr (Dauer wie bisher)“*.
 - **Ein Konflikt je Feld.** Bringt eine weitere Quelle einen dritten, abweichenden Wert, wird er als
-  Variante `c` ergänzt. Bei mehr als drei Werten bleibt der Konflikt ohne Schaltflächen und verweist
-  auf „Selbst ändern“.
+  Variante `c` ergänzt. Bei mehr als drei Werten entfällt der Konflikt. Die Frage lautet dann
+  *„Mehrere widersprüchliche Angaben bei der Fälligkeit: bitte den Vorschlag bearbeiten.“*
 - **Fragetext und Konflikt gehören zusammen.** Wird ein Konflikt aufgelöst, verschwinden
   Konflikteintrag und Fragetext gemeinsam, und zwar über `FieldConflict.id`, nicht über einen
   Textvergleich. Ändert der Nutzer das Feld manuell oder kommt eine Quelle mit einem passenden Wert,
@@ -143,23 +145,25 @@ class FieldConflict(StrictModel):
 - **Altbestand.** Gespeicherte Vorschläge mit dem alten Text behalten ihn. Sie zeigen keine
   Schaltflächen, da der eingehende Wert nie gespeichert wurde, und werden nicht migriert.
 - **Ohne Schaltflächen, aber mit Werten im Text:** ganztägig gegen zeitgebunden, Widerspruch zum
-  manuell festgelegten Datum, ungültiges Intervall und zusätzliche Beschreibung. Diese Fälle
-  brauchen weiterhin eine Bearbeitung.
+  von dir festgelegten Datum und widersprüchliche bekannte Zeitangaben. Diese Fälle brauchen
+  weiterhin eine Bearbeitung. Unverändert bleiben „Widersprüchliches Zeitintervall aus den Quellen
+  prüfen.“ (es gibt dann keinen gültigen Wert zum Nennen) und die Rückfrage zur zusätzlichen
+  Beschreibung.
 
 #### 2.1.3 Texte
 
 Die Feldnamen sind deutsch: Zeitraum, Beginn, Endzeit, Fälligkeit, Ort, Videolink. Die
 Formatierung hängt vom Kontext ab:
 
-- Gleiches Datum: nur die Uhrzeiten, also `16:30 Uhr`.
-- Anderes Datum: `Sa 15.11., 16:30 Uhr`.
-- Zeitraum: `Sa 15.11., 16:00–16:30 Uhr`.
+- Gleiches Datum aller Varianten: nur die Uhrzeiten, also `16:30 Uhr`.
+- Anderes Datum: `15.11.2026, 16:30 Uhr` (wie die Zeitangaben der Karten).
+- Zeitraum: `15.11.2026, 16:00–16:30 Uhr`.
 
 | Fall | Fragetext |
 | :--- | :--- |
-| Neue Quelle widerspricht | *„Widerspruch beim Zeitraum: bisher Sa 15.11., 16:00–16:30 Uhr, laut Mail „Elternabend – Änderung“ vom 08.11. 16:00–19:30 Uhr. Welcher Zeitraum soll gelten?“* |
+| Neue Quelle widerspricht | *„Widerspruch bei der Endzeit: bisher 16:30 Uhr, laut Mail „Elternabend – Änderung“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“* |
 | Vom Nutzer festgelegter Wert | *„Widerspruch beim Ort: von dir festgelegt „Aula“, laut Mail vom 08.11. „Turnhalle“. Welcher Ort soll gelten?“* |
-| Text ohne Varianten | *„Ganztägige und zeitgebundene Angaben widersprechen sich: bisher ganztägig am 15.11., laut Mail vom 08.11. 16:00–19:30 Uhr. Bitte den Termin bearbeiten.“* |
+| Text ohne Varianten | *„Ganztägige und zeitgebundene Angaben widersprechen sich: bisher 15.11.2026, ganztägig, laut neuer Mail 15.11.2026, 16:00–19:30 Uhr. Bitte den Termin bearbeiten.“* |
 
 Alle Werte stammen aus Mails beziehungsweise aus LLM-Ausgaben und gelten als **nicht
 vertrauenswürdig**. Im Web werden sie escaped, in Telegram ohne HTML-Parse-Modus oder escaped

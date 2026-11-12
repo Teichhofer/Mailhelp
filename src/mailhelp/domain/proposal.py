@@ -113,6 +113,30 @@ class KnownTemporalFacts(StrictModel):
         return self
 
 
+class ConflictVariant(StrictModel):
+    """One competing value of a field conflict (5.9.2); typed, so choosing it can apply it."""
+
+    id: Literal["a", "b", "c"]
+    start: date | datetime | None = None
+    end: date | datetime | None = None
+    due: date | datetime | None = None
+    text: str | None = Field(default=None, max_length=2000)
+    # The value the proposal had, a value the user had set, or the value of an additional source.
+    origin: Literal["current", "manual", "source"]
+    source: ProposalReference | None = None
+    # The end follows from the previous duration because the source named no end.
+    derived_end: bool = False
+
+
+class FieldConflict(StrictModel):
+    """Contradicting values of merged sources; its question is the identity in open_questions."""
+
+    id: str = Field(pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")
+    field: Literal["interval", "due", "location", "video_link"]
+    variants: list[ConflictVariant] = Field(min_length=2, max_length=3)
+    question: str = Field(min_length=1, max_length=4000)
+
+
 class ActionLedgerEntry(StrictModel):
     """Human-readable record of an action successfully created externally."""
 
@@ -157,6 +181,17 @@ class Proposal(StrictModel):
                 base = value.get("title")
             if isinstance(base, str) and isinstance(value.get("source_mail_id"), str):
                 return {**value, "base_title": base, "series_key": series_key(value["source_mail_id"], base)}
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_answered_conflicts(cls, value: object) -> object:
+        """A conflict lives only as long as its question is open, whichever path answered it (5.9.2)."""
+        if isinstance(value, dict) and value.get("field_conflicts"):
+            questions = set(value.get("open_questions") or ())
+            kept = [item for item in value["field_conflicts"]
+                    if (item.get("question") if isinstance(item, dict) else item.question) in questions]
+            return {**value, "field_conflicts": kept}
         return value
 
     @model_validator(mode="before")
@@ -236,6 +271,8 @@ class Proposal(StrictModel):
     merge_review_required: bool = False
     duplicate_check_failed: bool = False
     separated_from: list[ProposalReference] = Field(default_factory=list, max_length=50)
+    # 5.9.2: competing values of merged sources, each tied to one open question.
+    field_conflicts: list[FieldConflict] = Field(default_factory=list, max_length=10)
 
     @property
     def is_creatable(self) -> bool:
@@ -439,6 +476,15 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
     return questions
 
 
+_CONFLICT_FIELDS = {"interval": {"start", "end"}, "due": {"due"}, "location": {"location"},
+                    "video_link": {"video_link"}}
+
+
+def settled_conflict_questions(proposal: Proposal, fields: set[str]) -> set[str]:
+    """Questions of conflicts that a direct change of *fields* has decided (5.9.2)."""
+    return {conflict.question for conflict in proposal.field_conflicts if _CONFLICT_FIELDS[conflict.field] & fields}
+
+
 def invalidate_creation_permissions(proposal: Proposal) -> Proposal:
     """A material local revision needs fresh consent for every special creation."""
     candidate = proposal.model_copy(update={"explicit_create_fallback_confirmed": False,
@@ -539,8 +585,10 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
     _check_revision_permissions(previous, changes, allow_create_fallback)
     known = _revision_day(previous, changes)
     _revision_interval(previous, changes, known)
-    remaining = list(previous.open_questions)
-    remaining.remove(delta.answered_question)
+    settled = settled_conflict_questions(previous, set(changes))
+    remaining = [question for question in previous.open_questions if question not in settled]
+    if delta.answered_question in remaining:
+        remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)
     for question in required_revision_questions(provisional):
         if question not in remaining:

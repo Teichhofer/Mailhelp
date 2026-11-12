@@ -63,8 +63,10 @@ def test_protected_and_conflicting_fields_remain_reviewable():
                     location="Raum 3", description="Neue Angaben")
     merged = merge_facts(old, new)
     assert merged.start == old.start and merged.location is None and merged.description == old.description
-    assert any("start" in q for q in merged.open_questions)
-    assert any("location" in q for q in merged.open_questions)
+    assert any(q.startswith("Widerspruch beim Zeitraum: bisher") for q in merged.open_questions)
+    assert any(q.startswith("Widerspruch beim Ort: von dir festgelegt keine Angabe") for q in merged.open_questions)
+    assert not any("start" in q or "location" in q for q in merged.open_questions)
+    assert [conflict.field for conflict in merged.field_conflicts] == ["interval", "location"]
     assert any("Beschreibung" in q for q in merged.open_questions)
     changed = merge_facts(old, new.model_copy(update={"classification": "change"}))
     assert changed.start == new.start
@@ -353,7 +355,7 @@ def test_manual_partial_date_is_not_overridden_and_invalid_interval_becomes_conf
     second = candidate(2, start=NOW + timedelta(days=1), end=NOW + timedelta(days=1, hours=1))
     result = merge_facts(first, second)
     assert result.start is None and result.known_temporal_facts == first.known_temporal_facts
-    assert any("manuell" in q for q in result.open_questions)
+    assert any("von dir festgelegten Datum" in q for q in result.open_questions)
     original = candidate(1)
     change = candidate(2, start=NOW + timedelta(hours=2), end=NOW + timedelta(hours=3), classification="change",
                        status="needs_clarification", open_questions=["Welcher bestehende Eintrag soll geändert werden?"])
@@ -520,7 +522,7 @@ def test_manual_partial_clock_and_date_are_not_overwritten_by_a_complete_interva
     current = merge_facts(old, candidate(2))
     assert current.start is None and current.end is None
     assert current.known_temporal_facts.start_time == old.known_temporal_facts.start_time
-    assert any("manuell" in q for q in current.open_questions)
+    assert any("von dir festgelegten Datum" in q for q in current.open_questions)
 
 
 def test_all_day_and_timed_facts_need_explicit_review_instead_of_a_type_error():

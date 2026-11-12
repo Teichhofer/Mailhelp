@@ -113,6 +113,116 @@
       "title": "CalendarCandidate",
       "type": "object"
     },
+    "ConflictVariant": {
+      "additionalProperties": false,
+      "description": "One competing value of a field conflict (5.9.2); typed, so choosing it can apply it.",
+      "properties": {
+        "derived_end": {
+          "default": false,
+          "title": "Derived End",
+          "type": "boolean"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "id": {
+          "enum": [
+            "a",
+            "b",
+            "c"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "current",
+            "manual",
+            "source"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "id",
+        "origin"
+      ],
+      "title": "ConflictVariant",
+      "type": "object"
+    },
     "DuplicateMatchInfo": {
       "additionalProperties": false,
       "properties": {
@@ -503,6 +613,50 @@
       "title": "ExtractedTask",
       "type": "object"
     },
+    "FieldConflict": {
+      "additionalProperties": false,
+      "description": "Contradicting values of merged sources; its question is the identity in open_questions.",
+      "properties": {
+        "field": {
+          "enum": [
+            "interval",
+            "due",
+            "location",
+            "video_link"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z_]{1,20}-[0-9]{1,6}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "variants": {
+          "items": {
+            "$ref": "#/$defs/ConflictVariant"
+          },
+          "maxItems": 3,
+          "minItems": 2,
+          "title": "Variants",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "field",
+        "variants",
+        "question"
+      ],
+      "title": "FieldConflict",
+      "type": "object"
+    },
     "KnownTemporalFacts": {
       "additionalProperties": false,
       "description": "Valid temporal facts retained while an event interval is incomplete.",
@@ -800,6 +954,14 @@
           ],
           "default": null,
           "title": "External Link"
+        },
+        "field_conflicts": {
+          "items": {
+            "$ref": "#/$defs/FieldConflict"
+          },
+          "maxItems": 10,
+          "title": "Field Conflicts",
+          "type": "array"
         },
         "id": {
           "pattern": "^[a-zA-Z0-9_-]{1,64}$",
