@@ -17,10 +17,13 @@ def rules(mailhelp, tmp_path):
     return harness
 
 
-def start_review(page, mailhelp, rules):
+def start_review(page, mailhelp, rules, scope=None):
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/themen")
     page.get_by_role("link", name="Aus Entscheidungen lernen", exact=True).click()
+    expect(page.get_by_role("radio", name=re.compile("^Nur neue Entscheidungen"))).to_be_checked()
+    if scope is not None:
+        page.get_by_role("radio", name=re.compile("^" + scope)).check()
     page.get_by_label("Datenübertragung und kostenpflichtige Analyse ausdrücklich starten").check()
     page.get_by_role("button", name="Entscheidungen analysieren", exact=True).click()
     expect(page.get_by_text(re.compile("^Analysestand:"))).to_contain_text("Wartet")
@@ -87,7 +90,9 @@ def test_rule56_yaml_error_and_external_conflict_keep_files_and_inputs(page, mai
 
 def test_rule56_review_and_apply_work_without_javascript(page, mailhelp, rules):
     page.cdp.send("Emulation.setScriptExecutionDisabled", {"value": True})
-    start_review(page, mailhelp, rules)
+    # 5.7.6: the scope is an ordinary radio choice and works without scripts.
+    start_review(page, mailhelp, rules, scope="Alle bisherigen verwertbaren Entscheidungen")
+    expect(page.get_by_text(re.compile(r"aus 1 Entscheidungen \(alle bisherigen\)"))).to_be_visible()
     choose(page)
     page.get_by_label(re.compile("^Beschreibung")).fill("Ohne JavaScript von Hand bearbeitet")
     page.get_by_role("button", name="Ausgewählte Änderungen prüfen und übernehmen", exact=True).click()

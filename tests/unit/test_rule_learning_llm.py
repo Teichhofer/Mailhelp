@@ -23,8 +23,10 @@ def test_the_optional_step_uses_the_active_route_without_invalidating_mail_analy
     data = prompts.model_dump()
     del data["prompts"]["decision_rule_learning"]
     assert analysis_prompts(prompts) == analysis_prompts(PromptConfig.model_validate(data))
-    real = PromptConfig.model_validate(yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8")))
-    assert real.resolved("decision_rule_learning")[1]["max_tokens"] == 4000
+    # 5.7.6 regression: with 4000 the real model stopped at output_token_limit before any content.
+    for path in ("prompts.yaml", "src/mailhelp/defaults/prompts.yaml"):
+        shipped = PromptConfig.model_validate(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
+        assert shipped.resolved("decision_rule_learning")[1]["max_tokens"] >= 16000
 
 
 def test_foreign_evidence_is_rejected_and_existing_repair_limits_and_guards_apply():

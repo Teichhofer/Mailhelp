@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.7.6 – Regellernen: Ausgabelimit, Fehlerursachen und Auswahl der Entscheidungen
+
+- Behoben: Die Analyse „Aus Entscheidungen lernen“ scheiterte mit dem echten Modell, weil
+  `max_tokens: 4000` schon vor der ersten Antwortzeile aufgebraucht war. Der Schritt
+  `decision_rule_learning` erhält 16000 Tokens (`prompts.yaml` und mitgelieferte Vorlage).
+- Behoben: Ein Fehlschlag zeigte nur „Analyse nicht abgeschlossen …“. Seite und
+  Anwendungsprotokoll (`rule_learning`/`analysis_failed`) nennen jetzt die Ursache, z. B.
+  das Ausgabelimit, eine unbrauchbare Anbieterantwort oder eine abgelaufene Sitzung –
+  ohne Mailinhalte, Belege oder Zugangsdaten.
+- Behoben: Es wurde nur das letzte Megabyte des Entscheidungsprotokolls gelesen; bei realen
+  Einträgen von rund 20 KB waren das nur etwa 50 Entscheidungen. Jetzt wird das ganze
+  Protokoll gelesen (Schutzgrenze 50 MB bzw. 10 000 Zeilen).
+- Neu: Beim Start wählbar „Nur neue Entscheidungen seit der letzten Analyse“ (höchstens 100,
+  Standard) oder „Alle bisherigen verwertbaren Entscheidungen“ (höchstens 500). Beide zeigen
+  ihre Anzahl; die Zusammenfassung nennt die Auswahl und wie viele ältere Belege die
+  Nutzlastgrenze ausgelassen hat. Bereits analysierte Entscheidungen werden bis zu 10 000 IDs
+  gemerkt.
+
 ## 5.7.5 – Abnahme und Release 5.7 (S6)
 
 - Gesamtabnahme von Version 5.7 (S1–S5) mit vollständigem Python-, Last- und Browserprüfpfad.

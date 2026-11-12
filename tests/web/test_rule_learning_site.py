@@ -36,10 +36,11 @@ def form(page, action="analyze", **changes):
             "version": str(state.version), "action": action, "confirm": "yes", **changes}
 
 
-def analyze(page):
+def analyze(page, scope="all"):
+    # 5.7.6: "all" re-uses decisions of an earlier analysis; "new" would find none left.
     web, harness, _session = page
     harness.log(record())
-    fields = form(page)
+    fields = form(page, scope=scope)
     assert web.browser.request("POST", "/lernen/entscheidungen", fields).status == 303
     assert harness.service.tick()
 

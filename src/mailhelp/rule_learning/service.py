@@ -12,12 +12,40 @@ from ..config import Settings, Topic, read_yaml
 from ..configuration import ConfigurationService, file_hash
 from ..review.learning_log import learning_path
 from ..storage import CorruptState, atomic_replace
-from .mining import DecisionRuleMiner
+from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
 from .models import RuleAnalysis, RuleHistory, RuleState
 from .validation import FILES, RuleConflict, RuleValidationService
 
 STATE = "decision-rule-learning"
 HISTORY = "decision-rule-learning-history"
+SCOPES = {"new": MAX_EVIDENCE, "all": MAX_EVIDENCE_ALL}
+GENERIC_FAILURE = "Analyse nicht abgeschlossen. Sitzung, Prompt, Budget und KI prüfen."
+
+
+def failure_message(error: Exception) -> str:
+    """5.7.6: a specific, credential-free reason instead of one generic sentence."""
+    from ..processing.analysis import (
+        LlmInvalidJson,
+        LlmProviderResponseInvalid,
+        LlmSchemaValidationExceeded,
+        LlmTokenLimitExceeded,
+    )
+    if isinstance(error, LlmTokenLimitExceeded):
+        return ("Analyse nicht abgeschlossen: Die KI-Antwort wurde am Ausgabelimit abgeschnitten. "
+                "max_tokens von decision_rule_learning in prompts.yaml erhöhen oder weniger Entscheidungen wählen.")
+    if isinstance(error, LlmProviderResponseInvalid):
+        return ("Analyse nicht abgeschlossen: Der KI-Anbieter lieferte keine verwertbare Antwort. "
+                "Später erneut versuchen.")
+    if isinstance(error, (LlmInvalidJson, LlmSchemaValidationExceeded)):
+        return "Analyse nicht abgeschlossen: Die KI-Antwort entsprach nicht dem erwarteten Format."
+    if isinstance(error, PermissionError):
+        return "Analyse nicht abgeschlossen: Sitzung abgelaufen; erneut anmelden."
+    if isinstance(error, RuleConflict):
+        return "Analyse nicht abgeschlossen: Regeln oder Konfiguration wurden währenddessen geändert."
+    if type(error) is ValueError and str(error):
+        # Mailhelp's own checks (missing prompt, payload limit, unknown evidence) are safe to show.
+        return f"Analyse nicht abgeschlossen: {error}."
+    return GENERIC_FAILURE
 
 
 def digest(value: str) -> str:
@@ -38,9 +66,10 @@ class DecisionRuleLearning:
     def __init__(self, configuration: ConfigurationService, analyzer: Callable[[], Any],
                  active: Callable[[str], bool], redact: Callable[[str], str] = lambda text: text,
                  payload_limit: Callable[[], int] = lambda: 100_000,
-                 clock: Callable[[], float] = time.time):
+                 clock: Callable[[], float] = time.time, logger: Any = None):
         self.configuration, self.analyzer, self.active = configuration, analyzer, active
         self.redact, self.payload_limit, self.clock = redact, payload_limit, clock
+        self.logger = logger
         self.store, self.directory = configuration.store, configuration.directory
         self.actor = ""
 
@@ -69,10 +98,13 @@ class DecisionRuleLearning:
     def overview(self, actor: str) -> dict[str, Any]:
         with self.store.locked():
             state, visible, history = self.state(), self.state(actor), self.history()
-            evidence, _ = DecisionRuleMiner(learning_path(self.store.directory), self.redact).mine()
+            miner = DecisionRuleMiner(learning_path(self.store.directory), self.redact)
+            evidence, _ = miner.mine(limit=MAX_EVIDENCE_ALL)
+            known = set(history.decision_ids)
             return {"status": state.status, "owned": state.owner == digest(actor),
                     "proposals": len(visible.proposals),
-                    "new_decisions": sum(item["id"] not in history.decision_ids for item in evidence),
+                    "new_decisions": min(MAX_EVIDENCE, sum(item["id"] not in known for item in evidence)),
+                    "all_decisions": len(evidence),
                     "analyzed_at": history.analyzed_at,
                     "available": "decision_rule_learning" in self.analyzer().prompts.prompts}
 
@@ -114,7 +146,7 @@ class DecisionRuleLearning:
             if payload.get("confirm") is not True:
                 raise ValueError("Die Aktion muss ausdrücklich bestätigt werden")
             if action == "analyze":
-                state = self.begin(actor, state)
+                state = self.begin(actor, state, payload.get("scope", "new"))
             elif action == "apply" and state.status == "review":
                 self.prepare(state, payload["choices"])
             elif action == "resume" and state.status == "committing":
@@ -141,17 +173,25 @@ class DecisionRuleLearning:
         state.commit, state.status = commit, "committing"
         state.evidence, state.proposals = [], []
 
-    def begin(self, actor: str, previous: RuleState) -> RuleState:
+    def begin(self, actor: str, previous: RuleState, scope: str = "new") -> RuleState:
         if previous.status in {"queued", "running", "committing"}:
             raise RuleConflict("Es gibt bereits einen laufenden oder unvollständigen Auftrag")
         documents = {category: RuleValidationService.parse((self.directory / filename).read_text(encoding="utf-8"),
                                                           category) for category, filename in FILES.items()}
-        evidence, skipped = DecisionRuleMiner(learning_path(self.store.directory), self.redact).mine()
+        if scope not in SCOPES:
+            raise ValueError("Unbekannte Auswahl der Entscheidungen")
+        exclude = set(self.history().decision_ids) if scope == "new" else set()
+        evidence, skipped = DecisionRuleMiner(learning_path(self.store.directory), self.redact).mine(
+            exclude, SCOPES[scope])
+        if not evidence and scope == "new" and exclude:
+            raise ValueError("Keine neuen verwertbaren Entscheidungen seit der letzten Analyse; "
+                             "„Alle bisherigen verwertbaren Entscheidungen“ wählen")
         if not evidence:
             raise ValueError("Keine verwertbaren Entscheidungen im Lernprotokoll vorhanden")
         self.actor = actor
         return RuleState(version=previous.version, owner=digest(actor), status="queued", documents=documents,
-                         hashes=self.hashes(), evidence=evidence, skipped=skipped, receipts=previous.receipts,
+                         hashes=self.hashes(), evidence=evidence, skipped=skipped, scope=scope,
+                         receipts=previous.receipts,
                          created_at=self.clock())
 
     def before_call(self, actor: str) -> None:
@@ -178,6 +218,7 @@ class DecisionRuleLearning:
                                    "summary": DecisionRuleMiner.counts(evidence)}, self.redact)
             while len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > self.payload_limit() and evidence:
                 evidence.pop()
+                state.trimmed += 1
                 payload["decisions"] = evidence
                 payload["summary"] = DecisionRuleMiner.counts(evidence)
             if not evidence:
@@ -189,9 +230,13 @@ class DecisionRuleLearning:
             state.proposals = RuleAnalysis.model_validate(analysis.model_dump()).proposals
             state.evidence = evidence
             state.status, state.message = "review", "Vorschläge einzeln prüfen und bearbeiten; noch nichts gespeichert."
-        except Exception:
+        except Exception as error:
             state.status = "failed"
-            state.message = "Analyse nicht abgeschlossen. Sitzung, Prompt, Budget und KI prüfen."
+            state.message = failure_message(error)
+            if self.logger is not None:
+                # Only the error type and the shown reason; never decisions, mail text or credentials.
+                self.logger.event("WARNING", "rule_learning", "analysis_failed", error=type(error).__name__,
+                                  scope=state.scope, decisions=len(state.evidence), message=state.message)
         with self.store.locked():
             current = self.state()
             if current.owner != state.owner or current.status != "running" or current.version != state.version:
@@ -202,7 +247,7 @@ class DecisionRuleLearning:
                 history = self.history()
                 history.analyzed_at = self.clock()
                 history.decision_ids = list(dict.fromkeys(
-                    [item["id"] for item in state.evidence] + history.decision_ids))[:200]
+                    [item["id"] for item in state.evidence] + history.decision_ids))[:10_000]
                 self.store.save(HISTORY, history.model_dump(mode="json"))
         return True
 

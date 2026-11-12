@@ -353,7 +353,8 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     rules = DecisionRuleLearning(configuration, lambda: application.analyzer,
                                  lambda actor: not application.stop_event.is_set() and components.authorize(actor),
                                  redactor(secret_values(secrets)),
-                                 payload_limit=lambda: application.settings.limits.max_llm_payload_bytes)
+                                 payload_limit=lambda: application.settings.limits.max_llm_payload_bytes,
+                                 logger=logger)
     application.services.learning.rules = components.site.rule_learning.service = rules
     # 5.1.5: "Aufgabe oder Termin übersehen?" – bounded re-analysis in its own thread.
     from ..web.reanalysis_site import ReanalysisSite

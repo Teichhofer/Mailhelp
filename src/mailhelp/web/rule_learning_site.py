@@ -5,6 +5,7 @@ import json
 import secrets
 from typing import Any
 
+from ..rule_learning.mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL
 from ..rule_learning.models import RuleState, RuleTopic
 from ..rule_learning.service import DecisionRuleLearning
 from ..rule_learning.validation import RuleConflict, parse_yaml
@@ -22,6 +23,7 @@ LABELS = {"id": "Themen-ID", "name": "Name", "description": "Beschreibung",
 SIGNALS = {"positive_already_done": "Bereits erledigt (relevant)", "rejected_proposal": "Vorschlag abgelehnt",
            "manual_correction": "Von Hand korrigiert", "relevance_disagreement": "Relevanz korrigiert",
            "unclassified_confirmation": "Bestätigt ohne Thema"}
+SCOPE_LABELS = {"new": "nur neue seit der letzten Analyse", "all": "alle bisherigen"}
 STATUSES = {"empty": "Bereit", "queued": "Wartet", "running": "Analyse läuft", "review": "Vorschläge prüfen",
             "committing": "Übernahme unvollständig", "done": "Übernommen", "failed": "Analyse fehlgeschlagen",
             "interrupted": "Analyse unterbrochen"}
@@ -58,9 +60,10 @@ class RuleLearningSite:
         content += f'<p role="status">Analysestand: {e(STATUSES[state.status])} · Version {state.version}</p>'
         if state.status in {"empty", "done", "failed", "interrupted", "review"}:
             content += self.form(session, state, "analyze", (
-                '<p>Die letzten bis zu 100 verwertbaren Entscheidungen werden mit den aktuellen Themenregeln '
-                'analysiert. Betreff, begrenzte Textauszüge und Korrekturen gehen an den aktiven KI-Anbieter. '
-                'Das kann Kosten verursachen. Es werden keine Mails abgerufen oder externen Einträge angelegt.</p>'
+                self.scopes(session, (values or {}).get("scope", "new"))
+                + '<p>Die gewählten Entscheidungen werden mit den aktuellen Themenregeln analysiert. Betreff, '
+                'begrenzte Textauszüge und Korrekturen gehen an den aktiven KI-Anbieter. Das kann Kosten '
+                'verursachen. Es werden keine Mails abgerufen oder externen Einträge angelegt.</p>'
                 '<label><input type="checkbox" name="confirm" value="yes" required> '
                 'Datenübertragung und kostenpflichtige Analyse ausdrücklich starten</label>'
                 '<p>Eine neue Analyse ersetzt einen noch offenen Prüfentwurf.</p>'
@@ -76,6 +79,22 @@ class RuleLearningSite:
                 '<button class="button" type="submit">Übernahme abschließen</button>'))
         return Response.html(status, layout("Regellernen", content, active="/lernen",
                                             refresh=2 if state.status in {"queued", "running"} else None))
+
+    def scopes(self, session: WebSession, chosen: str) -> str:
+        """5.7.6: only the decisions since the last analysis, or every usable one in the log."""
+        assert self.service is not None
+        summary = self.service.overview("web:" + session.id)
+        options = (("new", f'Nur neue Entscheidungen seit der letzten Analyse ({summary["new_decisions"]})',
+                    f"Höchstens {MAX_EVIDENCE}, neueste zuerst; bereits analysierte werden übersprungen."),
+                   ("all", f'Alle bisherigen verwertbaren Entscheidungen ({summary["all_decisions"]})',
+                    f"Höchstens {MAX_EVIDENCE_ALL}, neueste zuerst. Mehr Belege, höhere Kosten; die "
+                    "Nutzlastgrenze kann ältere Belege auslassen."))
+        body = '<fieldset class="rule-scope"><legend>Welche Entscheidungen?</legend>'
+        for value, label, hint in options:
+            checked = " checked" if value == chosen else ""
+            body += (f'<label><input type="radio" name="scope" value="{value}"{checked}> {e(label)}</label>'
+                     f'<p class="meta">{e(hint)}</p>')
+        return body + "</fieldset>"
 
     def form(self, session: WebSession, state: RuleState, action: str, body: str) -> str:
         return ('<form method="post" action="/lernen/entscheidungen" class="stack">'
@@ -115,7 +134,10 @@ class RuleLearningSite:
             ("Änderung", "Änderungen"), ("Neues Thema", "neue Themen"), ("Deaktivierung", "Deaktivierungen"))
             if kinds.count(kind))
         body = (f'<section class="card rule-summary"><h2>Vorschläge prüfen</h2><p>{len(state.proposals)} Vorschläge'
-                + (f": {counts}" if counts else "") + f' · aus {len(state.evidence)} Entscheidungen; '
+                + (f": {counts}" if counts else "") + f' · aus {len(state.evidence)} Entscheidungen '
+                f'({SCOPE_LABELS[state.scope]}'
+                + (f"; {state.trimmed} ältere wegen der Nutzlastgrenze nicht übertragen" if state.trimmed else "")
+                + '); '
                 f'{state.skipped} beschädigte, doppelte oder ungeeignete Zeilen übersprungen.</p><ol>'
                 + "".join(f'<li><a href="#vorschlag-{index + 1}">{e(proposal.proposed.name)}</a> · {kind}</li>'
                           for index, (proposal, kind) in enumerate(zip(state.proposals, kinds, strict=True)))
@@ -189,6 +211,8 @@ class RuleLearningSite:
         try:
             actor = "web:" + session.id
             payload: dict[str, Any] = {"confirm": form.get("confirm") == "yes"}
+            if form["action"] == "analyze":
+                payload["scope"] = form.get("scope", "new")
             if form["action"] == "apply":
                 payload["choices"] = self.choices(form)
             self.service.change(actor, int(form["version"]), form["key"], form["action"], payload)

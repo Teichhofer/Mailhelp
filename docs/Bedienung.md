@@ -132,7 +132,10 @@ bereits protokollierten Entscheidungen; sie ruft keine Mails ab. Die Funktion be
 Promptblock `decision_rule_learning` in `prompts.yaml`. Bei älteren Installationen den Block
 aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie üblich neu laden.
 
-1. Den Hinweis zur Datenübertragung und möglichen Kosten lesen. Nur nach Ankreuzen der
+1. Unter „Welche Entscheidungen?“ wählen: **Nur neue Entscheidungen seit der letzten Analyse**
+   (Standard, höchstens 100) oder **Alle bisherigen verwertbaren Entscheidungen** (höchstens 500,
+   mehr Belege und höhere Kosten). Hinter jeder Option steht die aktuelle Anzahl. Gibt es keine
+   neuen, „Alle bisherigen“ wählen. Den Hinweis zur Datenübertragung und möglichen Kosten lesen. Nur nach Ankreuzen der
    ausdrücklichen Freigabe „Entscheidungen analysieren“ wählen. Begrenzte Auszüge und
    Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
 2. Nach Abschluss oben die Zusammenfassung lesen; die Links springen zu den einzelnen
@@ -150,7 +153,10 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
    YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
    geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
-5. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
+5. Bei „Analyse fehlgeschlagen“ steht die Ursache darunter. „am Ausgabelimit abgeschnitten“
+   bedeutet: `max_tokens` von `decision_rule_learning` in `prompts.yaml` erhöhen (mitgeliefert
+   16000) oder „Nur neue“ wählen, dann die Promptkonfiguration neu laden.
+6. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
    Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
    Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
 

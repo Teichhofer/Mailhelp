@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.7.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.7.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
 **Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand
@@ -23,7 +23,8 @@ mit Reitern, Suche, Statusfiltern und Einzelbearbeitung. Postfachbereiche und Se
 in Beispielen bleiben beim Bearbeiten erhalten. Ab 5.7.2 zeigt „Änderung prüfen“ vor dem
 ausdrücklichen Speichern die bisherige und die neue Regel nebeneinander. Ab 5.7.3 verwenden
 Themenvorschau und Regellernen denselben übersichtlichen Vergleich. Version 5.7 ist mit 5.7.5
-abgenommen. Stand und Nachweise:
+abgenommen. 5.7.6 lässt beim Regellernen wählen, ob nur neue oder alle bisherigen verwertbaren
+Entscheidungen ausgewertet werden, und nennt bei einem Fehlschlag die Ursache. Stand und Nachweise:
 [Release 5.7](docs/Release-5.7.md).
 
 Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des

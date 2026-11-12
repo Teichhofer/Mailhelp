@@ -54,8 +54,8 @@ class LearningOverviewSite:
             if summary["status"] == "review":
                 status = (f'Prüfentwurf mit {summary["proposals"]} Vorschlägen wartet.' if summary["owned"]
                           else "Prüfentwurf in einer anderen Sitzung.")
-            metric = (f'{summary["new_decisions"]} neue verwertbare Entscheidungen seit der letzten Analyse '
-                      '(im begrenzten Protokollausschnitt, höchstens 100).')
+            metric = (f'{summary["new_decisions"]} neue verwertbare Entscheidungen seit der letzten Analyse, '
+                      f'{summary["all_decisions"]} verwertbare insgesamt.')
             if not summary["available"]:
                 status = ("In prompts.yaml fehlt decision_rule_learning. Den Block aus dem mitgelieferten "
                           "Beispiel übernehmen und die Konfiguration neu laden.")

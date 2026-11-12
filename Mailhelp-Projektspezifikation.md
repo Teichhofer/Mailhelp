@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.5. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3698,9 +3698,10 @@ Die Dokumentationsansicht im Fenster bleibt Klartext.
 
 ### Regellernen aus Entscheidungen (5.6)
 
-`DecisionRuleMiner` liest aus dem bestehenden `DecisionLearningLog` höchstens das letzte
-Megabyte und die letzten 200 vollständigen Datensätze. Maximal 100 eindeutige Belege werden
-neueste zuerst ausgewählt. Es gelten das reale Schema `analysis.relevance`,
+`DecisionRuleMiner` liest das bestehende `DecisionLearningLog` vollständig, begrenzt auf die
+letzten 50 MB und 10 000 vollständigen Datensätze (bis 5.7.5: 1 MB und 200 Datensätze).
+Eindeutige Belege werden neueste zuerst ausgewählt: bei „Nur neue“ höchstens 100 ohne bereits
+analysierte IDs, bei „Alle bisherigen“ höchstens 500 (siehe 5.7.6). Es gelten das reale Schema `analysis.relevance`,
 `proposal.changes`, `mail.headers` und `mail.content`; beschädigte Zeilen werden verworfen.
 Signale: Ablehnung eines Vorschlags (keine automatische negative Mailrelevanz), manuelle
 Korrektur, abweichende Relevanzentscheidung, Bestätigung ohne Themenzuordnung sowie positives
@@ -3751,8 +3752,8 @@ noch übereinstimmen. Eine späte Antwort ersetzt keinen neueren Auftrag derselb
 
 `/lernen` ist eine authentifizierte, rein lesende Übersicht. Sie zeigt beide Funktionen,
 ihren Zustand, den letzten Laufstart und die Zahl neuer verwertbarer Entscheidungs-IDs
-im bestehenden begrenzten Protokollausschnitt (höchstens 100). `RuleHistory` hält dafür
-höchstens 200 bereits analysierte IDs und einen Zeitstempel ohne Mailinhalte vor; diese
+(höchstens 100) sowie die Zahl aller verwertbaren Entscheidungen. `RuleHistory` hält dafür
+höchstens 10 000 bereits analysierte IDs (bis 5.7.5: 200) und einen Zeitstempel ohne Mailinhalte vor; diese
 Metadaten überleben den Ablauf privater Prüfentwürfe. Nach einer erfolgreichen Analyse
 werden die tatsächlich verwendeten Beleg-IDs hinzugefügt. Fehlende Promptkonfiguration
 wird bereits in der Übersicht erklärt. Fremde Sitzungen sehen keine privaten Belege.
@@ -3830,3 +3831,20 @@ bleiben stabil (`bedienung/aus-entscheidungen-lernen`, `web-einstellungen/thema-
 `web-einstellungen/themenuebersicht`). Die Einstellungssuche ergänzt die Synonymgruppe
 „Regellernen / Lernübersicht“; die Themenseite ist zusätzlich über „Thema bearbeiten“,
 „Themen suchen“ und „neues Thema“ auffindbar.
+
+### Regellernen: Auswahl, Ausgabelimit und Fehlerursachen (5.7.6)
+
+Das Startformular von `/lernen/entscheidungen` enthält die Auswahl `scope`: `new` (Standard,
+„Nur neue Entscheidungen seit der letzten Analyse“, höchstens 100, ohne IDs aus `RuleHistory`)
+oder `all` („Alle bisherigen verwertbaren Entscheidungen“, höchstens 500). Beide Optionen
+zeigen ihre aktuelle Anzahl. Unbekannte Werte werden abgewiesen. Gibt es bei `new` keine
+neuen Belege, nennt die Meldung die Option „Alle bisherigen“. `RuleState` speichert `scope`
+und `trimmed`, die Zahl älterer Belege, die die bestehende Nutzlastgrenze
+(`limits.max_llm_payload_bytes`) ausgelassen hat; die Prüfansicht nennt beides.
+
+`decision_rule_learning` verwendet `max_tokens: 16000`. Ein Fehlschlag speichert eine
+konkrete, inhaltsfreie Ursache: Ausgabelimit (mit Hinweis auf `max_tokens`), unbrauchbare
+Anbieterantwort, ungültiges Antwortformat, abgelaufene Sitzung, zwischenzeitlich geänderte
+Dateien oder eine der eigenen Prüfmeldungen. Andere Ausnahmen behalten die allgemeine
+Meldung. Das Anwendungsprotokoll erhält `rule_learning`/`analysis_failed` mit Fehlertyp,
+Auswahl, Belegzahl und angezeigter Meldung, nie mit Mailinhalten oder Zugangsdaten.

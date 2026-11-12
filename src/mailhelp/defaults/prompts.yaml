@@ -930,7 +930,8 @@ prompts:
       auf dem die Antwort beruht. Schreibe "answer" vollständig zu Ende.
   decision_rule_learning:
     model_route: action_router
-    parameters: {temperature: 0.1, max_tokens: 4000, reasoning: {effort: low}}
+    # 5.7.6: 4000 reichten nicht; das Modell verbrauchte sie vor der ersten Antwortzeile.
+    parameters: {temperature: 0.1, max_tokens: 16000, reasoning: {effort: low}}
     system_prompt: |
       Analysiere aufgezeichnete Nutzerentscheidungen für Mailhelp-Themenregeln.
       "topics" enthält die bisherigen relevanten und irrelevanten Regeln, "decisions"

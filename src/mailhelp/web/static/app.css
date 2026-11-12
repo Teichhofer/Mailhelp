@@ -947,3 +947,7 @@ html:has(.confirm-bar) { scroll-padding-bottom: 12rem; }
 .learning-steps label { display: block; margin-top: .5rem; }
 .learning-folders { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
 
+.rule-scope { border: 1px solid var(--border); border-radius: 12px; padding: .75rem 1rem; margin: 0 0 1rem; }
+.rule-scope legend { font-weight: 700; padding: 0 .35rem; }
+.rule-scope label { display: flex; gap: .5rem; align-items: flex-start; margin-top: .5rem; font-weight: 600; }
+.rule-scope .meta { margin: .15rem 0 0 1.6rem; }

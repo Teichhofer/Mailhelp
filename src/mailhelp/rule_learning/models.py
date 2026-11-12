@@ -76,6 +76,9 @@ class RuleState(BaseModel):
     documents: dict[str, Any] = Field(default_factory=dict)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     skipped: int = 0
+    # 5.7.6: which decisions were chosen and how many the payload limit left out.
+    scope: Literal["new", "all"] = "new"
+    trimmed: int = 0
     proposals: list[RuleProposal] = Field(default_factory=list)
     receipts: dict[str, str] = Field(default_factory=dict)
     commit: dict[str, str] = Field(default_factory=dict)
@@ -86,4 +89,5 @@ class RuleHistory(BaseModel):
     """Public analysis metadata survives removal of private review contents."""
     model_config = ConfigDict(extra="forbid")
     analyzed_at: float = 0
-    decision_ids: list[str] = Field(default_factory=list, max_length=200)
+    # 5.7.6: every analysed decision is remembered, so "only new" works across the whole log.
+    decision_ids: list[str] = Field(default_factory=list, max_length=10_000)

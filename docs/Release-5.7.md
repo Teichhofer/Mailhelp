@@ -140,3 +140,27 @@ Gefunden in der Gesamtabnahme und behoben:
 Offen und bewusst nicht durchgeführt: die Prüfung des Hilfschats mit dem echten,
 kostenpflichtigen Modell (siehe S5). Der laufende Mailhelp-Dienst muss neu gestartet werden,
 damit er 5.7.5 verwendet.
+
+## Nachtrag 5.7.6 – Regellernen mit echtem Modell
+
+Im Betrieb endete „Aus Entscheidungen lernen“ mit „Analyse fehlgeschlagen“. Ursache laut
+KI-Protokoll: Beide Versuche des Modells `deepseek/deepseek-v4.1-flash` endeten mit
+`finish_reason: length` (`output_token_limit`) ohne Inhalt; `max_tokens: 4000` war vor der
+ersten Antwortzeile verbraucht. Die Seite zeigte nur die allgemeine Meldung, das
+Anwendungsprotokoll enthielt nichts. Zudem las der Miner nur das letzte Megabyte des
+Protokolls: Von 182 verwertbaren Entscheidungen wurden 34 verwendet.
+
+Korrekturen: `max_tokens: 16000`; konkrete Fehlerursachen auf der Seite und im Protokoll;
+vollständiges Lesen des Protokolls; neue Auswahl „Nur neue“ / „Alle bisherigen verwertbaren
+Entscheidungen“. Regressionstests: Der bisherige Miner fand von 60 synthetischen Einträgen
+à rund 24 KB nur 41, die mitgelieferten Promptdateien hatten 4000 Tokens, und ein
+Ausgabelimit führte zur allgemeinen Meldung; alle drei Prüfungen schlugen vor der Korrektur fehl.
+Ein anschließender Betriebslauf mit 184 Entscheidungen („Alle bisherigen“) scheiterte auch mit
+16000 Tokens am Ausgabelimit; die neue Fehlermeldung nannte die Ursache korrekt. Ein größeres
+Limit allein genügt nicht. Die Umstellung des Ablaufs ist in [Planung 5.7.7](Planung-5.7.7.md)
+beschrieben.
+
+Abnahme 5.7.6: 4765 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 2 Lasttests,
+Ruff, Mypy, Prompt-Gate, Inventur und Hilfebestand ohne Befund; die 19 Browserprüfungen für
+Lernen und Regellernen bestehen. 5.7.6 ändert kein JavaScript; der vollständige Browserlauf
+mit JS-Abdeckungsgrenze folgt mit 5.7.7.

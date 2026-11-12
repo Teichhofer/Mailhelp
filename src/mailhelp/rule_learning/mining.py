@@ -7,7 +7,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-MAX_BYTES, MAX_RECORDS, MAX_EVIDENCE = 1_000_000, 200, 100
+# 5.7.6: the whole log is read (bounded for safety); real records are ~20 KB each, so the former
+# 1 MB tail held only about 50 of them. "Neue" uses at most 100, "Alle" at most 500 decisions.
+MAX_BYTES, MAX_RECORDS, MAX_EVIDENCE, MAX_EVIDENCE_ALL = 50_000_000, 10_000, 100, 500
 
 
 def signal(record: dict[str, Any]) -> str | None:
@@ -31,7 +33,10 @@ class DecisionRuleMiner:
     def __init__(self, path: Path, redact: Callable[[str], str] = lambda text: text):
         self.path, self.redact = path, redact
 
-    def mine(self) -> tuple[list[dict[str, Any]], int]:
+    def mine(self, exclude: frozenset[str] | set[str] = frozenset(),
+             limit: int | None = None) -> tuple[list[dict[str, Any]], int]:
+        """Usable decisions, newest first; ids in *exclude* (already analysed) are left out."""
+        limit = MAX_EVIDENCE if limit is None else limit
         if not self.path.exists():
             return [], 0
         with self.path.open("rb") as stream:
@@ -51,8 +56,10 @@ class DecisionRuleMiner:
                 skipped += 1
                 continue
             seen.add(item["id"])
+            if item["id"] in exclude:
+                continue
             evidence.append(item)
-            if len(evidence) == MAX_EVIDENCE:
+            if len(evidence) == limit:
                 break
         return evidence, skipped
 
