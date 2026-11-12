@@ -115,7 +115,16 @@ def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
     assert proposal.count(wrapper) == 1 and proposal.count("</section></details>") == 1
     # The fixture comes from the committed renderer before the facelift, not from the new output.
     # User data, links, ids and form targets survive; decorative navigation and copy may change.
-    assert {name: content_contract(html) for name, html in pages.items()} == expected
+    from collections import Counter
+    # 5.8 adds a status summary and moves secondary metadata into disclosures.
+    # Keep the committed baseline: every old word and interaction target must survive,
+    # including its multiplicity; additional explanatory copy/links are intentional.
+    for name, html in pages.items():
+        actual = content_contract(html)
+        assert Counter(actual["text"].split()) >= Counter(expected[name]["text"].split())
+        actual_targets = Counter(json.dumps(item, sort_keys=True) for item in actual["targets"])
+        expected_targets = Counter(json.dumps(item, sort_keys=True) for item in expected[name]["targets"])
+        assert actual_targets >= expected_targets
 
 
 def test_successor_builder_rejects_changed_identity_without_persisting(tmp_path):

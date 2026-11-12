@@ -371,16 +371,29 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
         content = _search("") + _area(area, raw, active, revision, csrf, models, push)
     else:
         content = _search("") + _overview(raw, active)
-    return (body + '<div class="settings-layout">' + _nav("" if query else area)
+    return (body + '<div class="settings-layout">' + (_nav("" if query else area) if area or query else "")
             + '<div class="settings-values">' + content + "</div></div>")
 
 
-def settings_confirmation(form: dict[str, str], route: str, csrf: str) -> str:
+def settings_confirmation(form: dict[str, str], route: str, csrf: str,
+                          raw: dict[str, Any], value: object) -> str:
     """The explicit second step before a setting is written."""
-    body = '<h1>Änderung bestätigen</h1>' + notice(
-        'Aufbewahrung kann Inhalte unwiderruflich entfernen; Inhaltslogging speichert Maildaten. '
-        'Echter Betrieb kann bestätigte Aktionen extern anlegen. Übrige Einstellungen benötigen '
-        'teilweise einen Neustart.', "warn")
+    name = form["name"]
+    timing = ("Wird an der nächsten sicheren Stelle übernommen." if name.split(".")[0] in LIVE_FIELDS
+              else "Wird nach einem Neustart verwendet.")
+    body = f'<h1>Änderung bestätigen</h1><h2>{e(setting_label(name))}</h2><p>{timing}</p>'
+    if name.startswith("retention."):
+        body += notice("Aufbewahrung kann Inhalte unwiderruflich entfernen.", "warn")
+    if name in {"logging.llm.include_requests", "logging.llm.include_responses",
+                "learning.decision_llm_content"} and value is True:
+        body += notice("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten.", "warn")
+    if name == "test_mode" and value is False:
+        body += notice("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden.", "warn")
     hidden = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
-    body += f'<p>{e(form["name"])} →</p><pre>{e(form["value"])}</pre>'
+    old_value = _lookup(raw, name)
+    old_text = str(old_value) if name in TEXT_SETTINGS and old_value else _shown(name, old_value)
+    new_text = str(value) if name in TEXT_SETTINGS and value else _shown(name, value)
+    body += ('<dl class="facts-table"><dt>Bisher gespeichert</dt>'
+             f'<dd class="compare-text">{e(old_text)}</dd><dt>Neu</dt>'
+             f'<dd class="compare-text">{e(new_text)}</dd></dl>')
     return body + post_form(route, csrf, "", "Änderung ausdrücklich speichern", confirm="yes", **hidden)

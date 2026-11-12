@@ -92,6 +92,10 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
                                         "Bearbeitung beenden", ""))
         # 5.0.8: the decision row stays at the bottom edge of the detail pane while scrolling.
         parts.append(f'<div class="actions decision-bar">{"".join(buttons)}</div>')
+        parts.append('<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>'
+                     '<p>Verwerfen lehnt diesen Vorschlag ab. Schon erledigt bedeutet: relevant, '
+                     'aber bereits erledigt; es wird kein neuer Eintrag angelegt. Diese Entscheidungen '
+                     'können später ausdrücklich zur Verbesserung Ihrer Themenregeln ausgewertet werden.</p></details>')
         if CommandKind.ANSWER in view.actions and not view.question:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)
@@ -157,7 +161,9 @@ def relevance_actions(csrf: str) -> Callable[[RelevanceView], str]:
                              decision=decision)
             forms.append(f'<form method="post" action="/aktion">{hidden}'
                          f'<button class="button {style}" type="submit">{label}</button></form>')
-        return f'<div class="actions">{"".join(forms)}</div>'
+        return (f'<div class="actions">{"".join(forms)}</div>'
+                '<p class="meta">Relevant: Mail weiter auswerten. Irrelevant: nicht weiter auswerten. '
+                'Die Entscheidung kann später zum Regellernen verwendet werden.</p>')
     return render
 
 

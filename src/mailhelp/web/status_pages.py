@@ -132,6 +132,16 @@ def _stats(items: list[tuple[int, str]]) -> str:
             + "</div>")
 
 
+def _status_links(overview: Overview, system: SystemStatus, info: ServiceInfo) -> str:
+    items = ((len(overview.open), "Offene Vorschläge", "/status/vorschlaege"),
+             (len(overview.relevance), "Relevanzfragen", "/status/relevanzfragen"),
+             (system.mails_failed, "Mails mit Fehler", "/mails?state=failed"),
+             (info.commands.get(CommandStatus.QUEUED, 0), "Wartende Web-Aktionen", "/status/web-aktionen"))
+    return ('<nav class="stats" aria-label="Statusübersichten">'
+            + ''.join(f'<a class="stat status-link" href="{href}"><strong>{value}</strong>'
+                      f'<span>{label}</span></a>' for value, label, href in items) + '</nav>')
+
+
 def _run_section(run: RunStatus, system: SystemStatus, zone: ZoneInfo) -> list[str]:
     """Progress and counters of the last mailbox run."""
     parts: list[str] = []
@@ -177,13 +187,22 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                 system: SystemStatus, info: ServiceInfo) -> str:
     zone = ZoneInfo(configured_timezone)
     parts = ["<h1>Status</h1>"]
+    # An unreadable source must remain visible before any technical disclosure.
+    parts.append(_imap_error_section(info, zone))
+    issues = overview.damaged + system.mails_failed + len((info.runtime or {}).get("imap_errors", []))
+    title = "Handlungsbedarf" if issues else "Keine gespeicherten Mailfehler oder beschädigten Datensätze"
+    parts.append(f'<section class="card status-summary"><h2>{title}</h2>'
+                 f'<p>{len(overview.open)} offene Vorschläge · {len(overview.relevance)} Relevanzfragen.</p>'
+                 f'<p>Letzte verarbeitete Mail: {e(_when(system.last_processed, zone))}.</p>'
+                 '<p>„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
+                 'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p>'
+                 '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
+                 '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p></section>')
     if overview.damaged:
         parts.append(notice(f"{overview.damaged} beschädigte Datensätze – bitte Protokolle prüfen.", "error"))
-    parts.append(_stats([
-        (len(overview.open), "Offene Vorschläge"), (len(overview.relevance), "Relevanzfragen"),
-        (system.mails_failed, "Mails mit Fehler"),
-        (info.commands.get(CommandStatus.QUEUED, 0), "Wartende Web-Aktionen")]))
+    parts.append(_status_links(overview, system, info))
 
+    parts.append('<details class="status-details"><summary>Betriebsdetails und Zähler anzeigen</summary>')
     parts.append("<h2>Mailhelp</h2>")
     parts.append(_facts([
         ("Version", info.version),
@@ -205,8 +224,6 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
         parts.append('<p class="meta">Beobachteter Stand seit Dienststart; diese Seite führt keine '
                      'Verbindungsprüfung aus. Geänderte Verbindungen werden über „Konfiguration neu laden“ aktiviert; '
                      'nicht übernommene Einrichtungsentwürfe sind nicht enthalten.</p>')
-    parts.append(_imap_error_section(info, zone))
-
     parts.extend(_run_section(run, system, zone))
 
     parts.append("<h2>Mails</h2>")
@@ -253,6 +270,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     parts.append('<p class="meta">Die Seite zeigt den gespeicherten Stand dieses PCs und aktualisiert '
                  "sich, sobald sich offene Entscheidungen ändern. Schläft der PC oder läuft Mailhelp "
                  "nicht, ist die Weboberfläche nicht erreichbar.</p>")
+    parts.append('</details>')
     return layout("Status", "\n".join(parts), active="/status",
                   fingerprint=info.fingerprint or overview.fingerprint,
                   state_url="/api/stand?seite=status")

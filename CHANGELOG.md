@@ -1,5 +1,33 @@
 # Änderungen
 
+## 5.8.1 – Anklickbare Statuskennzahlen
+
+- Die vollständigen Statuskacheln „Offene Vorschläge“, „Relevanzfragen“, „Mails mit Fehler“
+  und „Wartende Web-Aktionen“ sind per Klick, Touch und Tastatur erreichbar.
+- Eigene Übersichten trennen Vorschläge, Relevanzfragen und die wartenden Web-Aktionen;
+  Mailfehler öffnen die vorhandene Mailübersicht mit aktivem Fehlerfilter.
+- Verknüpfungen führen zu den einzelnen Vorgängen. Leerzustände und manuelles Aktualisieren
+  sind vorhanden. Fremde wartende Verwaltungsaktionen zeigen keine privaten Inhalte.
+- Das Öffnen einer Statusübersicht führt keine Aktion aus; Bestätigungen bleiben erforderlich.
+
+## 5.8.0 – Verlässliche Vorschauen und kompakte Bedienung
+
+- Regellernen: gesonderter beständiger Prüfstand aus bearbeiteten Feldern oder YAML;
+  die ausdrückliche Übernahme verwendet ausschließlich diesen Stand. Ersetzte oder
+  veraltete Vorschauen werden abgelehnt; Wiederholungen bleiben idempotent.
+  „Weiter bearbeiten“ erhält Auswahl, Feldwerte und YAML.
+- Kostenschätzung: Eingaben und Auswahl bleiben erhalten, auch bei Fehlern. Ordner
+  des gewählten Postfachs sind auswählbar; „Ordner laden“ funktioniert ohne JavaScript
+  und startet keinen Abruf. Modelle und manuelle Preisannahmen werden benannt.
+- Themeneditor: deutsche Fehler, Feld-/Hilfsverknüpfung und fokussierte Zusammenfassung;
+  kompakte Feldgruppen. Themenkatalog und Vorschlagskarten benötigen mobil weniger Platz.
+- Offene Regelvorschläge stehen vor einer neuen Analyse. Lernübersicht mit korrektem
+  Erstzustand und lesender Aktualisierung; Einstellungen mit Alt-Neu-Vergleich und
+  konkreter Wirkung; leere Werte heißen „nicht gesetzt“. Statuszusammenfassung trennt
+  Browserverbindung von Dienstprüfungen; aktuelle Abruffehler bleiben unmittelbar sichtbar.
+- Zuordnungs- und Ablehnungsentscheidungen erläutern ihre Folgen. Keine Änderung an
+  erforderlichen Bestätigungen für externe Schreibaktionen.
+
 ## 5.7.7 – Regellernen mit kleiner, verlässlicher KI-Antwort
 
 - Behoben: „Aus Entscheidungen lernen“ scheiterte im Betrieb auch mit `max_tokens: 16000`

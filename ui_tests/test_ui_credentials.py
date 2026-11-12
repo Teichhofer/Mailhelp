@@ -16,7 +16,7 @@ def test_separate_credentials_area_is_accessible_and_saves_without_echoing_value
     (directory / ".env").write_text(original)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/einstellungen")
-    page.get_by_role("navigation", name="Einstellungsbereiche").get_by_role("link", name="Zugangsdaten").click()
+    page.locator('a.settings-tile[href="/einstellungen?bereich=zugangsdaten"]').click()
     section = page.get_by_role("region", name="Zugangsdaten", exact=True)
     expect(section).to_be_visible()
     assert "synthetic-before" not in page.content()

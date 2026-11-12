@@ -200,7 +200,8 @@ def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_p
     text = "Max Mustermann\r\nElternbeirat Klasse 4b\r\nBitte duzen <ok>"
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": text})
     body = response.body.decode()
-    assert response.status == 200 and "<pre>Max Mustermann" in body and "&lt;ok&gt;" in body
+    assert response.status == 200 and "Bisher gespeichert" in body and "Neu" in body
+    assert "Max Mustermann\nElternbeirat Klasse 4b\nBitte duzen &lt;ok&gt;" in body
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": text, "confirm": "yes"})
     assert response.status == 303
     web.run()

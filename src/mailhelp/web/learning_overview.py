@@ -1,9 +1,11 @@
 """One authenticated entry point; overview links never start a paid operation."""
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
+from ..rule_learning.service import digest
 from .http import Response
 from .learning_pages import cost_hint, heading
 from .pages import e, layout
@@ -22,6 +24,16 @@ class LearningOverviewSite:
         self.worker: Any = None
         site.app.route("GET", "/lernen", site.signed_in(self.home))
         site.app.route("POST", "/lernen", site.signed_in(self.legacy_post))
+        site.app.route("GET", "/api/lernen/uebersicht", site.signed_in(self.status))
+
+    def fingerprint(self, session: Any) -> str:
+        mailbox = self.worker.jobs.state().model_dump(mode="json") if self.worker is not None else None
+        service = self.site.rule_learning.service
+        rules = service.overview("web:" + session.id) if service is not None else None
+        return digest(json.dumps([mailbox, rules], sort_keys=True))
+
+    def status(self, request: Any, session: Any) -> Response:
+        return Response.json(200, {"fingerprint": self.fingerprint(session)})
 
     def legacy_post(self, request: Any, session: Any, form: Any) -> Response:
         return Response.html(409, layout("Lernseite aktualisiert",
@@ -41,7 +53,9 @@ class LearningOverviewSite:
                 mailbox_status += f" von {state.selection.count} ausgewählten Mails"
             last_run = ("Letzter Lauf: " + run_date(state.started_at, self.site.configured_timezone)
                         if state.started_at else "Datum früherer Läufe nicht verfügbar.")
-        body += self.card("Aus dem Postfach lernen", "/lernen/postfach",
+            if state.status == "empty":
+                mailbox_status, last_run = "Noch kein Lernlauf gestartet.", "Noch kein Lernlauf."
+        body += '<div class="learning-options">' + self.card("Aus dem Postfach lernen", "/lernen/postfach",
                           "Sinnvoll, wenn Sie neue Themen in vorhandenen Mails entdecken möchten. "
                           "Der lesende Lauf schlägt Themen, Filter und Ordner vor.", mailbox_status, last_run)
         service = self.site.rule_learning.service
@@ -62,7 +76,10 @@ class LearningOverviewSite:
         body += self.card("Aus Entscheidungen lernen", "/lernen/entscheidungen",
                           "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen. Analysiert vorhandene "
                           "Entscheidungen und schlägt gezielte Änderungen Ihrer Themenregeln vor.", status, metric)
-        return Response.html(200, layout("Lernen", body, active="/lernen"))
+        body += '</div><p class="meta">Status wird automatisch lesend aktualisiert. '
+        body += 'Das Öffnen dieser Seite startet keine Analyse.</p>'
+        return Response.html(200, layout("Lernen", body, active="/lernen",
+                                        fingerprint=self.fingerprint(session), state_url="/api/lernen/uebersicht"))
 
     @staticmethod
     def card(title: str, href: str, introduction: str, status: str, metric: str) -> str:

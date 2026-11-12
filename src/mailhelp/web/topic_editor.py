@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 from pydantic import ValidationError
+from pydantic_core import ErrorDetails
 
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..review.inbox import CommandConflict
@@ -15,7 +16,7 @@ from ..rule_learning.models import RuleTopic
 from ..storage import CorruptState, JsonStore
 from .forms import field, post_form
 from .http import Request, Response
-from .pages import e, layout, notice
+from .pages import e, layout
 from .rule_compare import compare
 from .topic_drafts import TopicDraft, TopicFieldError, draft_id, owner, proposed_id
 from .topic_site import KINDS, topic_link
@@ -33,6 +34,19 @@ HELP = {"name": "Höchstens 200 Zeichen.", "description": "Woran erkennt man das
 def entries(text: str) -> list[str]:
     """One entry per line; blank lines and surrounding spaces are not entries (a ";" stays inside)."""
     return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def validation_message(error: ErrorDetails) -> str:
+    kind, context = error["type"], error.get("ctx", {})
+    if kind == "string_too_short":
+        return f'Bitte mindestens {context["min_length"]} Zeichen eingeben.'
+    if kind == "string_too_long":
+        return f'Höchstens {context["max_length"]} Zeichen sind erlaubt.'
+    if kind == "too_long":
+        return f'Höchstens {context["max_length"]} Einträge sind erlaubt.'
+    if kind == "value_error":
+        return str(error["msg"]).removeprefix("Value error, ")
+    return "Ungültige Angabe. Bitte Format und Feldhilfe beachten."
 
 
 class TopicEditor:
@@ -102,16 +116,25 @@ class TopicEditor:
                 + ("Thema bearbeiten" if original else KINDS[kind][2]) + f'</p><h1>{title}</h1></div>'
                 f'<p><a href="/themen?art={kind}">Zur Themenübersicht</a></p>'
                 f'<p>Geltungsbereich: {e(self.catalog.scope(before) if before else "alle Postfächer")}</p>')
-        body += notice(errors["__all__"], "error") if "__all__" in errors else ""
+        if errors:
+            body += ('<section id="form-errors" class="notice notice-error" tabindex="-1" autofocus '
+                     'aria-labelledby="form-errors-title"><h2 id="form-errors-title">Eingaben prüfen</h2><ul>')
+            for key, message in errors.items():
+                body += (f'<li>{e(message)}</li>' if key == "__all__" else
+                         f'<li><a href="#topic-{key}">{e(LABELS[key])}: {e(message)}</a></li>')
+            body += '</ul></section>'
         if status == 409:
             href = topic_link(kind, original) if original else f"/themen/{kind}/neu"
             body += f'<p><a href="{href}">Neu laden</a></p>'
         fields = ""
         for key in ("name", "id", "description", "examples", "exclusions"):
+            fields += '<div class="topic-field">'
             if key == "id" and original:
                 fields += f'<p>Themen-ID: <code>{e(original)}</code></p>' + field("id", "", original, hidden=True)
             else:
                 invalid = ' aria-invalid="true"' if key in errors else ""
+                invalid += (f' aria-describedby="topic-{key}-help'
+                            + (f' topic-{key}-error' if key in errors else "") + '"')
                 fields += f'<label for="topic-{key}">{LABELS[key]}</label>'
                 value = values.get(key, "")
                 fields += (f'<textarea id="topic-{key}" name="{key}" rows="4"{invalid}>{e(value)}</textarea>'
@@ -119,13 +142,18 @@ class TopicEditor:
                            f'<input id="topic-{key}" name="{key}" value="{e(value)}"{invalid} '
                            f'{"maxlength=64" if key == "id" else "maxlength=200"}>')
                 help_text = HELP.get(key, "Aus dem Namen vorgeschlagen; vor dem Speichern änderbar.")
-                fields += f'<p class="meta">{e(help_text)}</p>'
+                fields += f'<p class="meta" id="topic-{key}-help">{e(help_text)}</p>'
             if key in errors:
-                fields += f'<p class="notice notice-error" role="alert">{e(LABELS[key])}: {e(errors[key])}</p>'
-        fields += (f'<label><input type="checkbox" name="enabled" value="yes"'
+                fields += (f'<p id="topic-{key}-error" class="notice notice-error" role="alert">'
+                           f'{e(LABELS[key])}: {e(errors[key])}</p>')
+            fields += '</div>'
+        invalid = ' aria-invalid="true" aria-describedby="topic-enabled-error"' if "enabled" in errors else ""
+        fields += (f'<label for="topic-enabled"><input id="topic-enabled" type="checkbox" name="enabled" value="yes"'
+                   f'{invalid}'
                    f'{" checked" if values.get("enabled") == "yes" else ""}> Aktiv</label>')
         if "enabled" in errors:
-            fields += f'<p class="notice notice-error" role="alert">Aktiv: {e(errors["enabled"])}</p>'
+            fields += (f'<p id="topic-enabled-error" class="notice notice-error" role="alert">'
+                       f'Aktiv: {e(errors["enabled"])}</p>')
         body += post_form("/themen/pruefen", self.site.auth.csrf_token(session.id), fields, "Änderung prüfen",
                           kind=kind, original_id=original, expected_hash=revision, draft_version=version)
         representation: dict[str, Any] = {key: values.get(key, "") for key in ("id", "name", "description")}
@@ -192,7 +220,7 @@ class TopicEditor:
         except PermissionError:
             return self.site._reply(request, 403, "Sitzung nicht mehr gültig.")
         except ValidationError as error:
-            errors = {str(item["loc"][0]): item["msg"].removeprefix("Value error, ") for item in error.errors()}
+            errors = {str(item["loc"][0]): validation_message(item) for item in error.errors()}
             status = 422
         except TopicFieldError as error:
             errors, status = {error.field: str(error)}, error.status

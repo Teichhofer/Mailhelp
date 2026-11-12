@@ -320,6 +320,9 @@ textarea { min-height: 88px; resize: vertical; }
 .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
 .stat strong { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .stat span { color: var(--muted); font-size: .9rem; }
+.status-link { color: var(--text); text-decoration: none; min-height: 88px; }
+.status-link:hover { border-color: var(--accent); background: var(--accent-soft); }
+.status-link span { text-decoration: underline; text-underline-offset: .2em; }
 
 code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
 
@@ -946,8 +949,44 @@ html:has(.confirm-bar) { scroll-padding-bottom: 12rem; }
 .learning-steps legend { font-weight: 700; padding: 0 .35rem; }
 .learning-steps label { display: block; margin-top: .5rem; }
 .learning-folders { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
-
+/* 5.7.6: which decisions a rule analysis uses. */
 .rule-scope { border: 1px solid var(--border); border-radius: 12px; padding: .75rem 1rem; margin: 0 0 1rem; }
 .rule-scope legend { font-weight: 700; padding: 0 .35rem; }
 .rule-scope label { display: flex; gap: .5rem; align-items: flex-start; margin-top: .5rem; font-weight: 600; }
 .rule-scope .meta { margin: .15rem 0 0 1.6rem; }
+
+/* 5.8: compact tasks; evidence, explanations and technical facts remain accessible. */
+.topic-heading { margin: 0; }
+#topic-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, .45fr); gap: .3rem .6rem; }
+#topic-filter label { margin: 0; }
+#topic-filter label[for="topic-status"] { grid-column: 2; grid-row: 1; }
+#topic-filter input { grid-column: 1; grid-row: 2; }
+#topic-filter select { grid-column: 2; grid-row: 2; }
+#topic-filter button { justify-self: start; }
+.topic-tabs { gap: .4rem; margin: .5rem 0; }
+.topic-guidance { margin: 1rem 0; }
+main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
+.topic-field > label { display: block; font-weight: 600; margin: 0 0 .25rem; }
+.topic-field > input, .topic-field > textarea { width: 100%; }
+.topic-field > .meta { margin: .25rem 0 0; }
+.topic-field > .notice { margin: .4rem 0 0; }
+.learning-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; }
+.learning-options .card { margin: 0; gap: .4rem; }
+.learning-options .card > :is(h2, p) { margin: 0; }
+.learning-options .help-cost-hint { margin: .35rem 0; }
+.settings-layout:not(:has(.settings-index)) { grid-template-columns: minmax(0, 1fr); }
+.rule-reanalyze { margin: 1.5rem 0; }
+.rule-final > .card { margin: .8rem 0; }
+.status-summary p { margin: .5rem 0; }
+.status-details > summary, .decision-help > summary { min-height: 44px; padding: .6rem 0; }
+.master-pane .decision-help { display: none; } /* Available on the linked detail page. */
+@media (max-width: 719px) {
+  .card { padding: 14px; margin-bottom: 12px; }
+  .card .kind, .card .labels, .card .facts { margin-top: 6px; margin-bottom: 6px; }
+  .card .facts { gap: 2px; }
+  .card .questions { padding: 8px 10px; margin: 8px 0; }
+  .card .notice { padding: 8px 10px; margin: 8px 0; }
+  .card .card-links, .card .card-context { margin-top: 8px; }
+  .card .decision-help { font-size: .85rem; }
+  .topic-tabs .button { padding: 6px 8px; font-size: .9rem; }
+}

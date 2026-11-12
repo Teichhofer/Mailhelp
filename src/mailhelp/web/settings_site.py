@@ -134,6 +134,7 @@ class SettingsSite:
             command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], patch={form["name"]: value},
                                    acknowledged=True)
+            raw = yaml.safe_load((configuration.directory / "config.yaml").read_text(encoding="utf-8"))
             configuration.candidate(command)
         except ConfigurationConflict:
             return self.site._reply(request, 409, "Einstellungsdatei geändert; bitte neu laden.")
@@ -141,7 +142,7 @@ class SettingsSite:
             return self.site._reply(request, 422,
                                     "Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
         if form.get("confirm") != "yes":
-            body = settings_confirmation(form, request.path, self.site.auth.csrf_token(session.id))
+            body = settings_confirmation(form, request.path, self.site.auth.csrf_token(session.id), raw, value)
             return Response.html(200, layout("Bestätigen", body))
         return self.archive.queue(request, command)
 

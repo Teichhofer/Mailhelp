@@ -59,10 +59,11 @@ def test_page_context_precedes_the_decision_filters(page, mailhelp):
 def test_settings_categories_can_be_reached_directly_in_both_themes(page, mailhelp):
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/einstellungen")
-    categories = page.get_by_role("navigation", name="Einstellungsbereiche")
     from mailhelp.web.settings_pages import AREA_KEYS
-    expect(categories.get_by_role("link")).to_have_count(len(AREA_KEYS) + 1)
-    categories.get_by_role("link", name="Daten und Protokolle", exact=True).click()
+    # 5.8: overview tiles replace the duplicated category navigation.
+    for key in AREA_KEYS:
+        expect(page.locator(f'a.settings-tile[href="/einstellungen?bereich={key}"]')).to_have_count(1)
+    page.locator('a.settings-tile[href="/einstellungen?bereich=daten"]').click()
     expect(page.get_by_role("heading", name="Aufbewahrung", exact=True)).to_be_visible()
     assert audit(page, "facelift-settings-" + page.device, page.mobile) == []
     page.emulate_media(color_scheme="dark")

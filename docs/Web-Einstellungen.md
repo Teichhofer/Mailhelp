@@ -25,7 +25,9 @@ Ausschlüssen steht ein Eintrag je Zeile; ein Semikolon bleibt Teil des Eintrags
 4. „Änderung ausdrücklich speichern“ ankreuzen und „Änderung speichern“ wählen. Mit
    „Weiter bearbeiten“ geht es ohne Speichern zurück.
 
-Fehler stehen direkt am betroffenen Feld; die Eingaben bleiben erhalten. Wurde die
+Fehler stehen auf Deutsch direkt am betroffenen Feld und in einer fokussierten
+Zusammenfassung mit Links zu den Eingaben. Feldhilfen und Fehler sind für Hilfstechnologien
+mit den Eingaben verknüpft. Die Eingaben bleiben erhalten. Wurde die
 Themendatei inzwischen geändert, „Neu laden“ wählen und die Änderung erneut prüfen. Eine
 offene Vorschau erscheint in der Übersicht unter „Ausstehende Themenänderungen“ und verfällt
 nach 24 Stunden. Das letzte aktive relevante Thema kann nicht deaktiviert werden.
@@ -40,10 +42,17 @@ Auch die Themenseite verlinkt das Regellernen. `/themen/lernen` wird dauerhaft
 weitergeleitet; alte offene POST-Formulare führen nichts aus und verlangen eine neue Bestätigung.
 Sie analysiert vorhandene protokollierte Entscheidungen nach ausdrücklicher Freigabe von
 Kosten und Datenübertragung. Alt und Neu stehen nebeneinander; ausgewählte Regeln lassen
-sich als Felder oder vollständiges Themen-YAML bearbeiten und gesondert bestätigt übernehmen.
+sich als Felder oder vollständiges Themen-YAML bearbeiten. Ab 5.8 erzeugt
+„Ausgewählte Änderungen prüfen“ einen eigenen beständigen Prüfstand der bearbeiteten Werte;
+erst „Geprüfte Änderungen übernehmen“ mit ausdrücklicher Bestätigung übernimmt genau diesen Stand.
 Parser-, Schema-, Sitzungs- und Revisionsprüfungen schützen beide Themendateien. Bei einem
 Schreibabbruch lässt sich die freigegebene Übernahme ohne erneute KI-Analyse abschließen.
 Anleitung: [Aus Entscheidungen lernen](Bedienung.md#aus-entscheidungen-lernen).
+
+Ab 5.8 zeigt die Bestätigung einer Einstellung den lesbaren Namen, „Bisher gespeichert“,
+„Neu“ und die konkrete Wirksamkeit. Warnungen beziehen sich auf die jeweilige Einstellung.
+Die Statusseite trennt Browserverbindung von Integrationszustand und bietet zuerst
+Handlungsbedarf und den lesenden Selbsttest; Betriebsdetails und Zähler sind aufklappbar.
 
 Es gibt dafür keine neuen `config.yaml`-Schalter. Der optionale Prompt
 `decision_rule_learning` liegt in `prompts.yaml`, nutzt die aktive Modellroute und die

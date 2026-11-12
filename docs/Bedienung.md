@@ -66,12 +66,16 @@ verwaltet.
 1. In der Navigation unter **Verwaltung** die Seite **Lernen** öffnen (`/lernen`) und
    „Aus dem Postfach lernen öffnen“ wählen (`/lernen/postfach`). Die Übersicht startet nichts.
 2. Unter **Neuer Lernlauf** im Schritt „1. Postfach und Ordner“ das **Postfach** wählen und die
-   **Ordner** eintragen (ein Name je Zeile, vorbelegt `INBOX`); darunter stehen die verfügbaren
-   Ordner je Postfach. Im Schritt „2. Umfang“ die **Anzahl Mails** (1–1000, vorbelegt 20) angeben.
+   **Ordner laden** wählen. Die gespeicherten Ordner dieses Postfachs ankreuzen; weitere
+   Ordner sind unter **Weitere Ordner (ein Name je Zeile)** möglich. Das Laden startet
+   keinen Mailabruf und funktioniert ohne JavaScript. Im Schritt „2. Umfang“ die
+   **Anzahl Mails** (1–1000, vorbelegt 20) angeben.
 3. Im Schritt „3. Kosten und Budget“ **Preisobergrenze USD je Million Tokens** und **Budget USD** angeben. Die Preisobergrenze ist
    deine Annahme; aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen.
 4. **Schätzung anzeigen** wählen. Mailhelp nennt die typische Schätzung und den ungünstigsten
    Fall in Tokens und USD. Reicht das Budget nicht, steht dort der nötige Mindestbetrag.
+   Postfach, Ordner, Anzahl, Preis und Budget bleiben im Formular erhalten. Die aufgeführten
+   Modelle stammen aus der Konfiguration; die Preisobergrenze bleibt deine manuelle Annahme.
 5. **Lesenden Lernlauf kostenpflichtig starten** wählen. Für 20 Mails reicht je nach Modell
    typischerweise ein Budget von etwa 1 USD.
 
@@ -150,9 +154,12 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    stabil. Optional unter „Vollständiges Themen-YAML bearbeiten (optional)“ ein vollständiges
    Thema eintragen; dieses ersetzt dann die Feldwerte.
 4. Gewünschte Vorschläge oben in der jeweiligen Karte auswählen; die Leiste am unteren Rand
-   zeigt, wie viele ausgewählt sind. Die Regeländerungen gesondert bestätigen und
-   „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
-   YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
+   zeigt, wie viele ausgewählt sind. **Ausgewählte Änderungen prüfen** wählen. Der gesonderte
+   Vergleich **Bearbeitete Änderungen prüfen** zeigt genau deine Feld- oder YAML-Änderungen.
+   Erst dort **Ausgewählte Regeländerungen ausdrücklich bestätigen** ankreuzen und
+   **Geprüfte Änderungen übernehmen** wählen. „Weiter bearbeiten“ öffnet die Bearbeitung;
+   anschließend erneut prüfen. Ein neuer Prüfstand ersetzt den vorherigen. Ohne Auswahl oder
+   bei ungültigem YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
    geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
 5. Bei „Analyse fehlgeschlagen“ steht die Ursache darunter. Nach „am Ausgabelimit
    abgeschnitten“ hat Mailhelp bereits einen zweiten, verkleinerten Versuch gemacht. Später
@@ -199,6 +206,14 @@ verändert selbst keine Daten.
 | **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |
 | **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |
 | **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |
-| **Status** | letzter Kontakt je Dienst, laufender Schritt |
+| **Status** | letzter Kontakt je Dienst, laufender Schritt; anklickbare Kennzahlen öffnen passende Übersichten |
+
+Auf **Status** öffnet ein Klick auf eine der vier Kennzahlen die zugehörigen Einträge:
+**Offene Vorschläge** und **Relevanzfragen** führen zu getrennten Übersichten mit
+Details je Vorschlag beziehungsweise Mail. **Mails mit Fehler** öffnet die Mailablage
+mit dem Filter „mit Fehler“. **Wartende Web-Aktionen** zeigt die Warteschlange mit
+Links zu deinen einzelnen Aktionen. Andere Sitzungen werden ohne private Inhalte
+aufgeführt. Auch bei null Einträgen ist die Übersicht erreichbar. „Übersicht aktualisieren“
+lädt den aktuellen Stand; das Öffnen und Aktualisieren führt keine Aktion aus.
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.

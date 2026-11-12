@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 import secrets
 from typing import Any
-from urllib.parse import parse_qs
 
 from ..runtime.learning_jobs import LearningConflict, LearningSelection
 from .http import Response
 from .learning_pages import heading
+from .learning_setup import setup_form
 from .pages import e, layout, notice
 
 LABELS = {
@@ -82,44 +82,19 @@ class LearningSite:
         )
 
     def start_form(self, request: Any, session: Any, state: Any) -> str:
-        boxes = self.worker.app.settings.imap.enabled_mailboxes()
-        options = "".join(f'<option value="{box.id}">{e(box.label)}</option>' for box in boxes)
-        catalog = self.jobs.store.load("mailbox-folders", {}).get("mailboxes", {})
-        available = ""
-        for box in boxes:
-            names = [entry["name"] for entry in catalog.get(str(box.id), {}).get("folders", [])]
-            available += f"<li>{e(box.label)} – verfügbare Ordner: {e(', '.join(names or box.folders))}</li>"
-        # 5.7.3: the form is grouped in the order of the decision; the estimate is the fourth step.
-        content = (
-            '<h2>Neuer Lernlauf</h2><form method="get" action="/lernen/postfach" class="learning-steps">'
-            '<fieldset><legend>1. Postfach und Ordner</legend>'
-            '<label for="learning-mailbox">Postfach</label>'
-            f'<select id="learning-mailbox" name="mailbox">{options}</select>'
-            '<label for="learning-folders">Ordner (ein Name je Zeile)</label>'
-            '<textarea id="learning-folders" name="folders" required>INBOX</textarea>'
-            f'<ul class="learning-folders">{available}</ul></fieldset>'
-            '<fieldset><legend>2. Umfang</legend>'
-            '<label>Anzahl Mails<input name="count" type="number" min="1" max="1000" value="20" required></label>'
-            '</fieldset><fieldset><legend>3. Kosten und Budget</legend>'
-            '<label>Preisobergrenze USD je Million Tokens<input name="price" type="number" min="0.000001" '
-            'step="any" required></label><label>Budget USD<input name="budget" type="number" min="0.000001" '
-            'step="any" required></label>'
-            "<p>Aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen. "
-            "Die Preisobergrenze ist Ihre Annahme; Anbieterabrechnungen können abweichen. "
-            "Gelesen wird ohne Änderung am Postfach. Es entstehen keine Termine oder Aufgaben.</p></fieldset>"
-            '<p>4. Die Schätzung zeigt Tokens und Kosten, bevor Sie den Lauf ausdrücklich starten.</p>'
-            '<button class="button">Schätzung anzeigen</button></form>'
-        )
-        if request.query:
+        content, query = setup_form(self.worker, request.query)
+        if request.query and "prepare" not in query:
             try:
-                query = parse_qs(request.query, max_num_fields=10)
                 selection = LearningSelection(
                     mailbox=int(query["mailbox"][0]),
                     count=int(query["count"][0]),
-                    folders=query["folders"][0].splitlines(),
+                    folders=list(dict.fromkeys(query.get("folder", [])
+                                               + query.get("folders", [""])[0].splitlines())),
                     budget_usd=float(query["budget"][0]),
                     usd_per_million_tokens=float(query["price"][0]),
                 )
+                if selection.mailbox not in {box.id for box in self.worker.app.settings.imap.enabled_mailboxes()}:
+                    raise ValueError("Postfach nicht verfügbar")
                 tokens, ceiling = self.worker.estimate(selection), self.worker.maximum(selection)
                 price = selection.usd_per_million_tokens / 1000000
                 content += (

@@ -128,6 +128,8 @@ class MailhelpSite:
         self.rule_learning = RuleLearningSite(self)
         from .learning_overview import LearningOverviewSite
         self.learning_overview = LearningOverviewSite(self)
+        from .status_details import StatusDetails
+        self.status_details = StatusDetails(self)
         self.notification_runtime: NotificationRuntime | None = None
         # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
         self.reanalysis_page: ReanalysisSite | None = None

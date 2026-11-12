@@ -83,7 +83,7 @@ def test_a_rejected_form_keeps_the_selection_count(review):
     web, harness, session = review
     state = harness.service.state("web:" + session.id)
     form = {"csrf": web.auth.csrf_token(session.id), "key": "k" * 32, "version": str(state.version),
-            "action": "apply", "confirm": "yes", "selected-0": "yes", "selected-2": "yes",
+            "action": "preview", "confirm": "yes", "selected-0": "yes", "selected-2": "yes",
             "id-0": "school", "name-0": "", "description-0": "x", "examples-0": "", "exclusions-0": "",
             "enabled-0": "true"}
     response = web.browser.request("POST", "/lernen/entscheidungen", form)

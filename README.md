@@ -13,7 +13,20 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.7.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.8.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und
+Relevanzfragen öffnen getrennte Übersichten, Mailfehler die gefilterte Mailablage
+und wartende Web-Aktionen ihre Warteschlange. Jede Übersicht führt zu den passenden
+Details; auch bei null Einträgen ist der Status erreichbar.
+
+Version 5.8 zeigt vor der Übernahme von Regeländerungen einen gesonderten Vergleich
+der tatsächlich bearbeiteten Feld- oder YAML-Werte. Erst der geprüfte Stand wird
+ausdrücklich bestätigt. Die Kostenschätzung erhält Eingaben; Postfachordner lassen
+sich ohne JavaScript auswählen. Themenkatalog, Formulare und Lernübersicht sind
+kompakter; Formularfehler sind verknüpft und auf Deutsch. Einstellungen zeigen Alt/Neu
+und ihre Wirkung, die Statusseite zuerst Handlungsbedarf und nächste Schritte.
+Plan und Abnahme: [Planung 5.8](docs/Planung-5.8.md), [Release 5.8](docs/Release-5.8.md).
 
 Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
 **Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand

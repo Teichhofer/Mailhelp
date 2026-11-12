@@ -68,10 +68,7 @@ class TopicSite:
             documents = self.documents()
         except (ValueError, KeyError, OSError, yaml.YAMLError):
             return self.site._reply(request, 400, "Themen oder Filter nicht lesbar; Angaben und Dateien prüfen.")
-        body = ('<div class="page-heading"><p class="eyebrow">Einstellungen</p><h1>Themen</h1>'
-                '<p>Themen auf einen Blick. Deaktivieren statt löschen; Änderungen gelten für neue Analysen.</p></div>'
-                '<section class="card"><p>Regeln aus Ihren Entscheidungen verbessern.</p>'
-                '<p><a class="button" href="/lernen/entscheidungen">Aus Entscheidungen lernen</a></p></section>'
+        body = ('<div class="page-heading topic-heading"><h1>Themen</h1></div>'
                 '<nav class="topic-tabs" aria-label="Themenarten">')
         for category, (_internal, _filename, title) in KINDS.items():
             href = "/themen?" + urlencode({"art": category, "suche": query, "status": status})
@@ -80,7 +77,7 @@ class TopicSite:
         description = ("Mails zu diesen Themen werden ausgewertet." if kind == "relevant" else
                        "Negative Themen für Lern- und Entscheidungstests. Im Mailbetrieb wirken die Ausschlüsse "
                        "der relevanten Themen; ein Ausschlussthema ist kein zusätzlicher globaler Vorfilter.")
-        body += ('</nav>' + f'<p>{e(description)}</p><form method="get" action="/themen" id="topic-filter">'
+        body += ('</nav><form method="get" action="/themen" id="topic-filter">'
                  f'<input type="hidden" name="art" value="{kind}">'
                  '<label for="topic-query">Themen durchsuchen</label>'
                  f'<input id="topic-query" name="suche" value="{e(query)}" maxlength="80" type="search">'
@@ -108,7 +105,11 @@ class TopicSite:
         pending.update((category, identity) for _draft, category, identity, _name in drafts)
         for topic in selected:
             body += self.row(kind, topic, (KINDS[kind][0], topic.id) in pending, not matches(topic, query, status))
-        body += '</tbody></table><script src="/static/topics.js" defer></script>'
+        body += ('</tbody></table><details class="topic-guidance"><summary>Hinweise und Lernen</summary>'
+                 '<p>Themen auf einen Blick. Deaktivieren statt löschen; Änderungen gelten für neue Analysen.</p>'
+                 f'<p>{e(description)}</p></details>'
+                 '<p><a href="/lernen/entscheidungen">Aus Entscheidungen lernen</a></p>'
+                 '<script src="/static/topics.js" defer></script>')
         return Response.html(200, layout("Themen", body, active="/einstellungen"))
 
     def row(self, kind: str, topic: Topic, pending: bool, hidden: bool) -> str:

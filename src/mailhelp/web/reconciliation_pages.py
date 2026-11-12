@@ -109,8 +109,11 @@ def comparison(item: Proposal, target: Proposal, zone: str, csrf: str,
     body = ('<div class="compare">' + compare_side(True, item, origin(item), zone)
             + compare_side(False, target, origin(target), zone) + '</div>')
     if target.status in OPEN:
-        body += post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen', kind="merge_proposals", **fields)
+        body += (f'<p>Zuordnen verbindet „{e(item.title)}“ mit „{e(target.title)}“ und dessen Quellen. '
+                 'Die entstehende Version muss anschließend separat bestätigt werden.</p>'
+                 + post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen', kind="merge_proposals", **fields))
     if item.merge_review_required or item.matching_candidates:
+        body += '<p>Als eigenen Vorschlag behalten: Die beiden Vorgänge bleiben getrennt.</p>'
         body += post_form("/abgleich", csrf, '', 'Als eigenen Vorschlag behalten', kind="separate_proposals", **fields)
     return body
 

@@ -15,7 +15,7 @@ def test_overview_search_and_area_navigation(page, mailhelp):
     expect(page.get_by_role("heading", name="Konten und Verbindungen", exact=True)).to_be_visible()
     assert audit(page, "settings35-overview-" + page.device, page.mobile) == []
     nav = page.get_by_role("navigation", name="Einstellungsbereiche")
-    nav.get_by_role("link", name="Mailabruf", exact=True).click()
+    page.locator('a.settings-tile[href="/einstellungen?bereich=abruf"]').click()
     expect(page.locator('a[aria-current="page"][href="/einstellungen?bereich=abruf"]')).to_be_visible()
     expect(page.get_by_role("heading", name="Mailabruf und Betrieb", exact=True)).to_be_visible()
     assert audit(page, "settings35-area-" + page.device, page.mobile) == []

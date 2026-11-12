@@ -34,7 +34,12 @@ def start_review(page, mailhelp, rules, scope=None):
 
 def choose(page):
     page.get_by_label("Diesen Vorschlag übernehmen", exact=True).check()
+
+
+def confirm_preview(page):
+    expect(page.get_by_role("heading", name="Bearbeitete Änderungen prüfen", exact=True)).to_be_visible()
     page.get_by_label("Ausgewählte Regeländerungen ausdrücklich bestätigen", exact=True).check()
+    page.get_by_role("button", name="Geprüfte Änderungen übernehmen", exact=True).click()
 
 
 def test_rule56_old_new_hand_edit_and_confirmation_are_usable(page, mailhelp, rules):
@@ -57,7 +62,14 @@ def test_rule56_old_new_hand_edit_and_confirmation_are_usable(page, mailhelp, ru
     page.get_by_label(re.compile("^Name")).fill("Manuell: Schultermine")
     page.get_by_label(re.compile("^Beispiele")).fill("Verbindlicher Elternabend\nAusflug")
     page.get_by_label(re.compile("^Ausschlüsse")).fill("Unverbindlicher Newsletter")
-    page.get_by_role("button", name="Ausgewählte Änderungen prüfen und übernehmen", exact=True).click()
+    page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()
+    expect(page.locator(".rule-final")).to_contain_text("Unverbindlicher Newsletter")
+    assert rules.activated == []
+    assert audit(page, "rule-learning58-final-" + page.device, page.mobile) == []
+    page.get_by_role("link", name="Weiter bearbeiten (anschließend erneut prüfen)", exact=True).click()
+    expect(page.get_by_label(re.compile("^Name"))).to_have_value("Manuell: Schultermine")
+    page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()
+    confirm_preview(page)
     expect(page.get_by_text(re.compile("^Analysestand:"))).to_contain_text("Übernommen")
     assert rules.activated[0][0].name == "Manuell: Schultermine"
     assert rules.activated[0][0].examples == ["Verbindlicher Elternabend", "Ausflug"]
@@ -72,7 +84,7 @@ def test_rule56_yaml_error_and_external_conflict_keep_files_and_inputs(page, mai
     page.get_by_text("Vollständiges Themen-YAML bearbeiten (optional)", exact=True).click()
     page.get_by_label("YAML ersetzt die Feldwerte vollständig", exact=True).fill("id: [")
     original = rules.service.hashes()
-    page.get_by_role("button", name="Ausgewählte Änderungen prüfen und übernehmen", exact=True).click()
+    page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()
     expect(page.get_by_text(re.compile("YAML-Syntaxfehler"))).to_be_visible()
     expect(page.get_by_label(re.compile("^Name"))).to_have_value("Nicht verlieren")
     expect(page.get_by_label("YAML ersetzt die Feldwerte vollständig", exact=True)).to_have_value("id: [")
@@ -83,7 +95,7 @@ def test_rule56_yaml_error_and_external_conflict_keep_files_and_inputs(page, mai
         stream.write("# externally changed\n")
     changed = rules.service.hashes()
     choose(page)
-    page.get_by_role("button", name="Ausgewählte Änderungen prüfen und übernehmen", exact=True).click()
+    page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()
     expect(page.get_by_text(re.compile("inzwischen geändert"))).to_be_visible()
     assert rules.service.hashes() == changed and rules.activated == []
 
@@ -95,7 +107,8 @@ def test_rule56_review_and_apply_work_without_javascript(page, mailhelp, rules):
     expect(page.get_by_text(re.compile(r"aus 1 Entscheidungen \(alle bisherigen\)"))).to_be_visible()
     choose(page)
     page.get_by_label(re.compile("^Beschreibung")).fill("Ohne JavaScript von Hand bearbeitet")
-    page.get_by_role("button", name="Ausgewählte Änderungen prüfen und übernehmen", exact=True).click()
+    page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()
+    confirm_preview(page)
     expect(page.get_by_text(re.compile("^Analysestand:"))).to_contain_text("Übernommen")
     assert rules.activated[0][0].description == "Ohne JavaScript von Hand bearbeitet"
     assert mailhelp.writer.created == []

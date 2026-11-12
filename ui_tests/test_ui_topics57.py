@@ -1,25 +1,11 @@
 """Compact topic browsing works with local filtering and without application scripts."""
-import pytest
-import yaml
 from playwright.sync_api import expect
 
 from checks import audit
 from conftest import sign_in
-from mailhelp.config import Topic
+from tests.fakes import ui_topics
 
-
-@pytest.fixture
-def topic_catalog(mailhelp):
-    topics = [Topic(id="school", name="Schule", description="Verbindliche Schulpost. Zweiter Satz.",
-                    enabled=True, examples=["Rechnung; verbindlich"], mailboxes=[1]),
-              Topic(id="inactive", name="Sport", description="Nicht mehr benötigt", enabled=False)]
-    topics += [Topic(id=f"topic-{index}", name=f"Thema {index:02}", description="Synthetisches Thema", enabled=True)
-               for index in range(46)]
-    directory = mailhelp.site.archive.configuration.directory
-    (directory / "topics.yaml").write_text(yaml.safe_dump({"topics": [topic.model_dump() for topic in topics]}),
-                                           encoding="utf-8")
-    return directory
-
+topic_catalog = ui_topics.topic_catalog
 
 def test_topics57_compact_list_filters_immediately_and_edits_on_its_own_page(page, mailhelp, topic_catalog):
     sign_in(page, mailhelp)

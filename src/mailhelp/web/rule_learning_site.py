@@ -9,6 +9,8 @@ from ..rule_learning.mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL
 from ..rule_learning.models import RuleState, RuleTopic
 from ..rule_learning.service import DecisionRuleLearning
 from ..rule_learning.validation import RuleConflict, parse_yaml
+from ..storage import CorruptState
+from . import rule_preview
 from .auth import WebSession
 from .http import Request, Response
 from .learning_overview import UPDATED
@@ -52,13 +54,23 @@ class RuleLearningSite:
         if self.service is None:
             return Response.html(503, layout("Regellernen", notice("Regellernen ist nicht verfügbar.")))
         state = self.service.state("web:" + session.id)
+        if state.status == "review" and values is None:
+            try:
+                values = rule_preview.editing(self.service, "web:" + session.id, state.version)
+            except (OSError, CorruptState):
+                status, message = 503, "Prüfstand nicht lesbar. Bitte Eingaben erneut prüfen."
         content = heading("Aus Entscheidungen lernen", "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen: "
                           "Verbessern Sie Regeln mit den bereits protokollierten Entscheidungen. "
                           "Vorschläge werden vor jeder Übernahme einzeln geprüft.")
         content += notice(message, "error") if message else ""
         content += notice(state.message) if state.message else ""
         content += f'<p role="status">Analysestand: {e(STATUSES[state.status])} · Version {state.version}</p>'
+        if state.status == "review":
+            content += self.review(session, state, values or {})
         if state.status in {"empty", "done", "failed", "interrupted", "review"}:
+            if state.status == "review":
+                content += ('<details class="rule-reanalyze">'
+                            '<summary>Neue kostenpflichtige Analyse vorbereiten</summary>')
             content += self.form(session, state, "analyze", (
                 self.scopes(session, (values or {}).get("scope", "new"))
                 + '<p>Die gewählten Entscheidungen werden mit den aktuellen Themenregeln analysiert. Betreff, '
@@ -68,9 +80,9 @@ class RuleLearningSite:
                 'Datenübertragung und kostenpflichtige Analyse ausdrücklich starten</label>'
                 '<p>Eine neue Analyse ersetzt einen noch offenen Prüfentwurf.</p>'
                 '<button class="button" type="submit">Entscheidungen analysieren</button>'))
-        if state.status == "review":
-            content += self.review(session, state, values or {})
-        elif state.status == "committing":
+            if state.status == "review":
+                content += '</details>'
+        if state.status == "committing":
             content += self.form(session, state, "resume", (
                 '<p>Eine bereits bestätigte lokale Übernahme ist unvollständig. Fortsetzen prüft alle '
                 'Dateirevisionen erneut und startet keinen KI-Aufruf.</p>'
@@ -96,11 +108,11 @@ class RuleLearningSite:
                      f'<p class="meta">{e(hint)}</p>')
         return body + "</fieldset>"
 
-    def form(self, session: WebSession, state: RuleState, action: str, body: str) -> str:
+    def form(self, session: WebSession, state: RuleState, action: str, body: str, key: str = "") -> str:
         return ('<form method="post" action="/lernen/entscheidungen" class="stack">'
                 f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
                 f'<input type="hidden" name="version" value="{state.version}">'
-                f'<input type="hidden" name="key" value="{secrets.token_hex(16)}">'
+                f'<input type="hidden" name="key" value="{e(key or secrets.token_hex(16))}">'
                 f'<input type="hidden" name="action" value="{action}">{body}</form>')
 
     @staticmethod
@@ -182,11 +194,23 @@ class RuleLearningSite:
         selected = sum(values.get(f"selected-{index}") == "yes" for index in range(len(state.proposals)))
         body += ('<div class="confirm-bar"><p role="status" data-rule-count>'
                  f'{selected} von {len(state.proposals)} Vorschlägen ausgewählt.</p>'
-                 '<label><input type="checkbox" name="confirm" value="yes" required> '
-                 'Ausgewählte Regeländerungen ausdrücklich bestätigen</label>'
-                 '<button class="button" type="submit">Ausgewählte Änderungen prüfen und übernehmen</button></div>'
+                 '<p>Im nächsten Schritt sehen Sie Ihre bearbeiteten Änderungen vor der Bestätigung.</p>'
+                 '<button class="button" type="submit">Ausgewählte Änderungen prüfen</button></div>'
                  '<script src="/static/learning.js" defer></script>')
-        return self.form(session, state, "apply", body)
+        return self.form(session, state, "preview", body)
+
+    def preview(self, session: WebSession, form: dict[str, str]) -> Response:
+        assert self.service is not None
+        actor = "web:" + session.id
+        draft, state = rule_preview.prepare(self.service, actor, int(form["version"]), self.choices(form), form)
+        body = rule_preview.comparison(state, draft)
+        body += self.form(session, state, "apply", (
+            f'<input type="hidden" name="preview_key" value="{draft["key"]}">'
+            '<label><input type="checkbox" name="confirm" value="yes" required> '
+            'Ausgewählte Regeländerungen ausdrücklich bestätigen</label>'
+            '<button class="button">Geprüfte Änderungen übernehmen</button>'), key=draft["key"])
+        body += '<p><a href="/lernen/entscheidungen">Weiter bearbeiten (anschließend erneut prüfen)</a></p>'
+        return Response.html(200, layout("Änderungen prüfen", body, active="/lernen"))
 
     @staticmethod
     def choices(form: dict[str, str]) -> list[dict[str, Any]]:
@@ -212,11 +236,13 @@ class RuleLearningSite:
             return self.render(session, 503)
         try:
             actor = "web:" + session.id
+            if form["action"] == "preview":
+                return self.preview(session, form)
             payload: dict[str, Any] = {"confirm": form.get("confirm") == "yes"}
             if form["action"] == "analyze":
                 payload["scope"] = form.get("scope", "new")
             if form["action"] == "apply":
-                payload["choices"] = self.choices(form)
+                payload["choices"] = rule_preview.confirmed(self.service, actor, form)
             self.service.change(actor, int(form["version"]), form["key"], form["action"], payload)
         except PermissionError:
             return self.render(session, 403, "Sitzung nicht mehr gültig.", form)
@@ -224,6 +250,6 @@ class RuleLearningSite:
             return self.render(session, 409, str(error), form)
         except (ValueError, KeyError, TypeError) as error:
             return self.render(session, 422, f"Regeln nicht gespeichert: {error}", form)
-        except OSError:
+        except (OSError, CorruptState):
             return self.render(session, 503, "Schreiben unterbrochen; Übernahme nach Prüfung abschließen.", form)
         return Response.redirect("/lernen/entscheidungen")

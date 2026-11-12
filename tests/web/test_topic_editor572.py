@@ -8,18 +8,8 @@ from mailhelp.web.topic_drafts import TopicDraft, draft_id, owner, proposed_id
 from tests.fakes.shared_web_actions import web as web  # noqa: F401
 from tests.fakes.shared_web_auth import Browser
 from tests.fakes.shared_web_v12 import configure
+from tests.fakes.topic_editor_web import topics as topics
 from tests.fakes.topic_forms import confirmation, hidden, preview, save
-
-
-@pytest.fixture
-def topics(web, tmp_path):
-    configure(web, tmp_path)
-    entries = [Topic(id="school", name="Schule", description="Schulpost", enabled=True,
-                     examples=["Elternabend; Klasse 3"], mailboxes=[1]),
-               Topic(id="club", name="Verein", description="Vereinspost", enabled=True)]
-    (tmp_path / "topics.yaml").write_text(yaml.safe_dump({"topics": [item.model_dump() for item in entries]}),
-                                          encoding="utf-8")
-    return web, tmp_path
 
 
 def editor(web):

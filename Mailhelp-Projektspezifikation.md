@@ -1,8 +1,43 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.7. Die folgenden Verträge beschreiben
+Stand: 12. November 2026, Anwendungsversion 5.8.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+## Statuskennzahlen und Detailübersichten (5.8.1)
+
+Die vier primären Statuskennzahlen sind vollständig anklickbare Links. Vorschläge und
+Relevanzfragen öffnen `/status/vorschlaege` beziehungsweise `/status/relevanzfragen`;
+die Listen beruhen auf denselben offenen Datensätzen wie die Kennzahlen und enthalten
+Links zu den einzelnen Vorschlags- oder Maildetails. „Mails mit Fehler“ verwendet
+`/mails?state=failed`, einschließlich bestehender Suche und Seitennavigation.
+`/status/web-aktionen` zeigt ausschließlich aktuell wartende Einträge aus derselben
+Warteschlange wie der Statuszähler. Eigene Aktionen verlinken ihre Fortschrittsseite;
+andere Sitzungen werden ohne private Inhalte und ohne unberechtigten Detail-Link gezählt.
+Alle Ziele erfordern eine gültige Sitzung. Lesen und Aktualisieren legen nichts extern
+an und wiederholen keine Aktion. Die Übersichten besitzen einen ausdrücklichen Leerzustand.
+Es entstehen keine neuen Konfigurationseinstellungen.
+
+## Verlässliche Web-Vorschauen (5.8)
+
+Regellernen trennt Bearbeiten, Prüfen und ausdrückliche Übernahme. Der serverseitig
+validierte Feld-/YAML-Stand liegt sitzungsbezogen in `rule-preview-<SHA256>.json`.
+Die Bestätigung referenziert dessen Schlüssel und Analyseversion; nachträglich
+übermittelte Bearbeitungsfelder werden ignoriert. Ein neuer Prüfstand ersetzt den
+vorherigen. Vor der tatsächlichen Übernahme gelten erneut Sitzungs-, Analyseversions-,
+Dateirevisions- und Idempotenzprüfung des Lernkerns. Neustarts autorisieren nichts neu.
+
+Die Lernvorbereitung erhält Postfach, Ordner, Umfang und Preis-/Budgetannahmen nach
+Schätzung oder Eingabefehlern. Gespeicherte Ordner des gewählten Postfachs werden als
+Auswahl angeboten; weitere Ordner sind zeilenweise möglich. „Ordner laden“ ist ein
+lesender GET-Schritt und startet weder Mailabruf noch Modell. Preise sind ausdrücklich
+manuelle Annahmen. `/api/lernen/uebersicht` liefert nur einen authentifizierten
+Änderungsfingerabdruck; die Übersicht startet keine Analyse.
+
+Feldfehler sind deutsch, mit Eingaben und Hilfen verknüpft und über eine fokussierte
+Zusammenfassung erreichbar. Einstellungen zeigen bisherigen und neuen Wert sowie
+konkrete Wirksamkeit. Technische Statusdetails bleiben aufklappbar verfügbar. Es
+entstehen keine neuen Konfigurationsschalter; YAML-Beispiele bleiben gültig.
 
 ## Web-Lernmodus und Neuladen (3.8)
 

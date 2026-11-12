@@ -76,7 +76,13 @@ def _card_facts(card: Any) -> list[str]:
     return facts
 
 
-def _card_labels(view: ProposalView) -> list[str]:
+def _metadata(card: Any) -> list[str]:
+    return [f'<span class="badge warn">{prefix}: {e(value)}</span>'
+            for value, prefix in ((card.responsibility, "Zuständig"), (card.certainty, "Sicherheit"),
+                                  (card.classification, "Einordnung")) if value]
+
+
+def _card_labels(view: ProposalView, *, metadata: bool = True) -> list[str]:
     card = view.card
     labels = [f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span>']
     if card.profile_label:
@@ -85,10 +91,8 @@ def _card_labels(view: ProposalView) -> list[str]:
         labels.append('<span class="badge accent">Aktuell in Telegram</span>')
     if view.queued:
         labels.append('<span class="badge">Folgt in Telegram</span>')
-    for value, prefix in ((card.responsibility, "Zuständig"), (card.certainty, "Sicherheit"),
-                          (card.classification, "Einordnung")):
-        if value:
-            labels.append(f'<span class="badge warn">{prefix}: {e(value)}</span>')
+    if metadata:
+        labels.extend(_metadata(card))
     if view.duplicate_match is not None:
         labels.append(_duplicate_label(view.duplicate_match))
     return labels
@@ -118,7 +122,8 @@ def _card_questions(questions: Any) -> str:
     if not questions:
         return ""
     items = "".join(f"<li>{e(question)}</li>" for question in questions)
-    return f'<div class="questions"><p>Offene Fragen</p><ul>{items}</ul></div>'
+    return (f'<details class="questions"><summary>Offene Fragen ({len(questions)})</summary>'
+            f'<ul>{items}</ul></details>')
 
 
 def _change_line(change: str) -> str:
@@ -167,8 +172,10 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                                "Beschreibung", False) if card.description else "")
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
     kind = card_kind(view)
+    metadata = " ".join(_metadata(card))
     context = (f'<details class="card-context"><summary class="context-label">Beschreibung und Beleg</summary>'
-               f'{description}{evidence}</details>' if detail_link else description + evidence)
+               f'<p class="labels">{metadata}</p>{description}{evidence}</details>'
+               if detail_link else description + evidence)
     created = https_link(view.external_link)
     created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
                     f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
@@ -189,7 +196,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 <p class="kind"><span class="kind-label">{KINDS[kind]}</span>{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
-<p class="labels">{" ".join(_card_labels(view))}</p>
+<p class="labels">{" ".join(_card_labels(view, metadata=not detail_link))}</p>
 <ul class="facts">{"".join(_card_facts(card))}</ul>
 {_card_warning(view)}{_diff_box(view)}{_card_questions(card.questions)}{context}{created_link}{details}
 {actions(view) if actions else ""}

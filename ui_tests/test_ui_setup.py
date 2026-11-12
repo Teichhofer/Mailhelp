@@ -144,6 +144,7 @@ def test_status_lists_iserv_and_other_configured_accounts(page, setup_server):
         yaml.safe_dump(configuration.active.model_dump(mode="json")), encoding="utf-8")
     sign_in(page, setup_server)
     page.goto(setup_server.url + "/status")
+    page.get_by_text("Betriebsdetails und Zähler anzeigen", exact=True).click()
     expect(page.get_by_role("heading", name="Konfigurierte Konten", exact=True)).to_be_visible()
     expect(page.get_by_text("IServ 1 · Grundschule", exact=True)).to_be_visible()
     expect(page.get_by_text("IServ 2 · Pausiert", exact=True)).to_be_visible()
@@ -151,6 +152,7 @@ def test_status_lists_iserv_and_other_configured_accounts(page, setup_server):
     metrics = setup_server.site.archive.metrics
     metrics.observe("poll_failed", {"service": "iserv", "account": 1, "error": "private"})
     page.reload()
+    page.get_by_text("Betriebsdetails und Zähler anzeigen", exact=True).click()
     expect(page.get_by_text("Fehler beim letzten Verbindungsversuch", exact=True)).to_be_visible()
     metrics.observe("letters_listed", {"service": "iserv", "account": 1})
     page.reload()

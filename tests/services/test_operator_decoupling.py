@@ -60,8 +60,17 @@ def finished(web, service, entry_id) -> bool:
     return False
 
 
-def test_a_web_confirmation_runs_while_a_mail_is_being_analysed(web, tmp_path):
+def test_a_web_confirmation_runs_while_a_mail_is_being_analysed(web, tmp_path, monkeypatch):
     logger = JsonlLogger(tmp_path / "logs")
+    acceptance_logged = Event()
+    event = logger.event
+
+    def observe(level, module, name, **context):
+        event(level, module, name, **context)
+        if name == "command_submitted":
+            acceptance_logged.set()
+
+    monkeypatch.setattr(logger, "event", observe)
     web.dialog.logger = web.site.logger = logger
     service, orch = operated(web, tmp_path)
     main = Thread(target=service.mailbox.poll, name="mail-loop")
@@ -71,6 +80,10 @@ def test_a_web_confirmation_runs_while_a_mail_is_being_analysed(web, tmp_path):
         response = web.submit(web.form("/", kind="confirm", proposal_id="elternabend"), accept="application/json")
         entry_id = json.loads(response.body)["id"]
         assert finished(web, service, entry_id)
+        # Acceptance logging and execution use separate queues. An entry arriving
+        # after take_acceptances() can execute in this pass and be logged in the next.
+        # Wait for the observed event before stopping the operator and reading the log.
+        assert acceptance_logged.wait(LIMIT)
         # The confirmation was executed while the analysis still holds the main thread.
         assert main.is_alive() and not orch.release.is_set()
         assert web.commands.get(entry_id).status == CommandStatus.DONE and web.writer.created == 1

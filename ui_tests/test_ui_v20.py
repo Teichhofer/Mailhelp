@@ -498,7 +498,9 @@ def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
     setting = settings.expand("Persönliche Angaben für Antworten")
     assert audit(page, f"v20-persoenlich-{page.device}", page.mobile) == []
     settings.propose(setting, "Max Mustermann\nElternbeirat Klasse 4b")
-    expect(page.locator("main pre")).to_have_text("Max Mustermann\nElternbeirat Klasse 4b")
+    preview = page.locator("main dd.compare-text").last
+    expect(preview).to_have_text("Max Mustermann\nElternbeirat Klasse 4b")
+    expect(preview).to_have_css("white-space", "pre-wrap")
     settings.confirm()
     expect(page.locator("main")).to_contain_text("persönliche Angaben übernommen", timeout=10000)
     assert mailhelp.site.archive.configuration.active.personal_info == "Max Mustermann\nElternbeirat Klasse 4b"

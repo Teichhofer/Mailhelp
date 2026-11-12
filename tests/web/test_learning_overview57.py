@@ -33,7 +33,7 @@ def test_overview_reports_progress_dates_counts_and_missing_prompt_without_calls
     rules = attach(h)
     rules.log(record())
     html = h.browser.request("GET", "/lernen").body.decode()
-    assert "1 neue verwertbare Entscheidungen" in html and "Datum früherer Läufe" in html
+    assert "1 neue verwertbare Entscheidungen" in html and "Noch kein Lernlauf gestartet" in html
     h.change("start", h.selection)
     assert h.jobs.state().started_at > 0
     html = h.browser.request("GET", "/lernen").body.decode()
