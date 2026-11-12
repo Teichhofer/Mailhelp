@@ -97,7 +97,8 @@ def test_a_token_limit_failure_names_its_cause_and_is_logged_without_content(rul
     assert rules.service.tick()
     state = rules.service.state("web:a")
     assert state.status == "failed" and "am Ausgabelimit abgeschnitten" in state.message
-    assert "max_tokens von decision_rule_learning" in state.message
+    # 5.7.7: no longer "fewer decisions" (that shrinks the input, not the cut-off output).
+    assert "verkleinerten zweiten Versuch" in state.message and "weniger Entscheidungen" not in state.message
     [(level, module, event, context)] = rules.service.logger.events
     assert (level, module, event) == ("WARNING", "rule_learning", "analysis_failed")
     assert context["error"] == "LlmTokenLimitExceeded" and context["scope"] == "new" and context["decisions"] == 1
@@ -131,7 +132,8 @@ def test_a_failure_without_logger_still_records_the_reason(tmp_path):
 
 
 def test_decisions_left_out_by_the_payload_limit_are_counted(rules):
-    rules.log(*large(3, 3000))
+    # 5.7.7: corrections are sent in full; repeated rejections would be condensed and fit.
+    rules.log(*[{**item, "kind": "edit", "proposal": {"changes": {"title": "Neu"}}} for item in large(3, 3000)])
     rules.analyzer.result = RuleAnalysis(proposals=[proposal(evidence=["decision-2"])])
     rules.limit = 2000  # one decision fits (about 1.4 KB), two do not
     state = rules.service.state("web:a")

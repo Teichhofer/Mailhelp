@@ -1,12 +1,12 @@
 {
- "app_version": "5.7.6",
- "revision": "1c2a49e0ee9b151dcbcfbf2144a5daa02310e5fdf5b2a621d48497747d8f0a2c",
+ "app_version": "5.7.7",
+ "revision": "01e9e3433aade40d9666eb6dbca8ff9238a17b0281ebdb9b70c7aabd30f89f7a",
  "schema_version": 1,
  "sections": 91,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
-   "sha256": "2274f2fca9ab099c3b80f0489b36310c7a7751475f07ad7a8f1d3281d0a6eba3"
+   "sha256": "421195717501e8a602928f3b5ebbcf711346d3d18279f2697e3a794b1380eaf2"
   },
   {
    "path": "docs/Ersteinrichtung.md",
@@ -22,7 +22,7 @@
   },
   {
    "path": "docs/Bedienung.md",
-   "sha256": "12cca2e53e86da31b75d27227290d92ee053c9d5cd323db5f2a0f747e3a534b8"
+   "sha256": "5520c7e9d9c0da40a23f9f01dd078fec532d43183804eee1ddcb0fad1d19692e"
   },
   {
    "path": "docs/Fehlerbehebung.md",

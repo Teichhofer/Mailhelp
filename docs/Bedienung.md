@@ -139,7 +139,8 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    ausdrücklichen Freigabe „Entscheidungen analysieren“ wählen. Begrenzte Auszüge und
    Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
 2. Nach Abschluss oben die Zusammenfassung lesen; die Links springen zu den einzelnen
-   Vorschlägen. In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
+   Vorschlägen. Sie nennt auch, wie viele gleichartige Ablehnungen nur als Anzahl an die KI
+   gingen (ab 5.7.7). In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
    neue und entfernte Beispiele sind mit „+ neu“ und „− entfernt“ markiert, unveränderte Felder
    öffnet „Unveränderte Felder anzeigen“. „Entscheidungsbelege“ listet Betreff, Entscheidung und Datum; der
    Auszug öffnet sich mit „Auszug anzeigen“. Eine abgelehnte Aufgabe macht
@@ -153,9 +154,10 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    „Ausgewählte Änderungen prüfen und übernehmen“ wählen. Ohne Auswahl oder bei ungültigem
    YAML/Schema wird nichts übernommen. Die Eingaben bleiben zur Korrektur stehen. Bei extern
    geänderten Dateien den Konflikt klären und eine neue Analyse des aktuellen Standes starten.
-5. Bei „Analyse fehlgeschlagen“ steht die Ursache darunter. „am Ausgabelimit abgeschnitten“
-   bedeutet: `max_tokens` von `decision_rule_learning` in `prompts.yaml` erhöhen (mitgeliefert
-   16000) oder „Nur neue“ wählen, dann die Promptkonfiguration neu laden.
+5. Bei „Analyse fehlgeschlagen“ steht die Ursache darunter. Nach „am Ausgabelimit
+   abgeschnitten“ hat Mailhelp bereits einen zweiten, verkleinerten Versuch gemacht. Später
+   erneut versuchen oder „Nur neue Entscheidungen“ wählen. Im KI-Protokoll stehen dazu
+   Tokenverbrauch und Länge der abgeschnittenen Antwort.
 6. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
    Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
    Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.

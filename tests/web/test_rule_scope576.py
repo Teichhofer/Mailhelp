@@ -53,8 +53,8 @@ def test_all_reuses_analysed_decisions_and_new_explains_when_none_are_left(page)
 
 def test_the_summary_names_decisions_left_out_by_the_payload_limit(page):
     web, harness, _session = page
-    harness.log(*[record(f"decision-{index}", mail={"headers": {"subject": "S"}, "content": {"text": "x" * 3000}})
-                  for index in range(3)])
+    harness.log(*[record(f"decision-{index}", "edit", proposal={"changes": {"title": "Neu"}},
+                         mail={"headers": {"subject": "S"}, "content": {"text": "x" * 3000}}) for index in range(3)])
     harness.analyzer.result = RuleAnalysis(proposals=[proposal(evidence=["decision-2"])])
     harness.limit = 2000
     assert start(page, "scope-key-5", scope="all").status == 303

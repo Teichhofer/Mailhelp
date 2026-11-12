@@ -396,19 +396,29 @@ class Analyzer:
         return self._classified_run("settings_help", payload, validate, schema=HelpAnswer, before_call=before_call)
 
     def decision_rule_learning(self, payload: dict[str, Any], *,
-                               before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
-        from ..rule_learning.models import RuleAnalysis
+                               before_call: Callable[[], None] = lambda: None,
+                               assemble: Callable[[Any], Any] | None = None,
+                               retry_payload: dict[str, Any] | None = None) -> tuple[str, Any]:
+        """5.7.7: the model answers with changes only; ``assemble`` builds the complete topics.
+
+        An answer that cannot be assembled (unknown topic, entry to remove missing) is a schema
+        error and gets the existing bounded repair. After truncated output, ``retry_payload`` is
+        sent once with the step's shorter ``output_token_retry`` prompt instead of the same request.
+        """
+        from ..rule_learning.changes import RuleSuggestions
 
         known = {item["id"] for item in payload["decisions"]}
 
-        def validate(raw: Any) -> RuleAnalysis:
-            result = RuleAnalysis.model_validate(raw)
+        def validate(raw: Any) -> Any:
+            result = RuleSuggestions.model_validate(raw)
             if any(set(item.evidence) - known for item in result.proposals):
                 raise ValueError("Unbekannte Entscheidungsbelege")
-            return result
+            return result if assemble is None else assemble(result)
 
-        return self._classified_run("decision_rule_learning", payload, validate, schema=RuleAnalysis,
-                                    before_call=before_call)
+        retry = self.prompts.prompts["decision_rule_learning"].output_token_retry
+        return self._classified_run("decision_rule_learning", payload, validate, schema=RuleSuggestions,
+                                    before_call=before_call,
+                                    token_retry_payload=retry_payload if retry is not None else None)
 
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
                     reason: str | None = None):

@@ -164,3 +164,24 @@ Abnahme 5.7.6: 4765 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 2 Lastt
 Ruff, Mypy, Prompt-Gate, Inventur und Hilfebestand ohne Befund; die 19 Browserprüfungen für
 Lernen und Regellernen bestehen. 5.7.6 ändert kein JavaScript; der vollständige Browserlauf
 mit JS-Abdeckungsgrenze folgt mit 5.7.7.
+
+## Nachtrag 5.7.7 – Regellernen mit kleiner KI-Antwort
+
+Umsetzung von [Planung 5.7.7](Planung-5.7.7.md):
+- Das Modell liefert nur noch Änderungen; Mailhelp setzt die Themen selbst zusammen.
+- Wiederholte Ablehnungen gehen nur verdichtet hinein.
+- Nach einem Abbruch folgt genau ein verkleinerter Versuch.
+- Abgeschnittene Antworten werden mit Tokenverbrauch protokolliert.
+
+Die Regressionstests schlugen vor der Korrektur fehl:
+- Das Protokoll enthielt keinen Tokenverbrauch.
+- Die zweite Anfrage glich der ersten.
+- Die Prompts verlangten vollständige Themen.
+
+Abnahme 5.7.7:
+- 4792 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung und 2 Lasttests.
+- 489 Browserprüfungen mit 100 % JS-Blockabdeckung; damit ist auch 5.7.6 abgedeckt.
+- Ruff, Mypy, Prompt-Gate, Inventur und Hilfebestand ohne Befund.
+
+Eine Abnahme mit echtem Modell ist noch offen; sie braucht eine ausdrückliche Freigabe.
+

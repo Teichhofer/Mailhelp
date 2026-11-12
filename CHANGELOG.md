@@ -1,5 +1,28 @@
 # Änderungen
 
+## 5.7.7 – Regellernen mit kleiner, verlässlicher KI-Antwort
+
+- Behoben: „Aus Entscheidungen lernen“ scheiterte im Betrieb auch mit `max_tokens: 16000`
+  am Ausgabelimit. Das Modell musste je Vorschlag das vollständige Thema mit allen Beispielen
+  zurückschreiben. Jetzt liefert es nur die Änderungen (`add_examples`, `remove_examples`,
+  `add_exclusions`, `remove_exclusions`, `name`, `description`, `enabled`; höchstens
+  10 Vorschläge). Mailhelp setzt das vollständige Thema aus der aktuellen Datei zusammen
+  und prüft es wie bisher. Nicht zusammensetzbare Antworten erhalten die vorhandene
+  begrenzte Schemareparatur.
+- Behoben: Nach einem Abbruch am Ausgabelimit wurde dieselbe Anfrage wiederholt. Jetzt folgt
+  genau ein verkleinerter Versuch (`output_token_retry`: knapper Prompt, höchstens
+  5 Vorschläge, halbe Belegmenge).
+- Behoben: Abgeschnittene Antworten wurden ohne Tokenverbrauch protokolliert. Das KI-Protokoll
+  nennt jetzt für jeden KI-Schritt `token_usage`, `completion_tokens`, `reasoning_tokens`,
+  Kosten sowie Länge und Hash der Teilantwort, nie deren Text. Die Kostenstatistik erfasst
+  damit auch abgeschnittene Aufrufe.
+- Geändert: Die Eingabe wird verdichtet. Korrekturen, Relevanzabweichungen und „bereits
+  erledigt“ gehen vollständig hinein. Wiederholte Ablehnungen gehen als Anzahl je
+  Themenkombination hinein, mit höchstens 5 gekürzten Beispielen. Themen ohne Belege gehen
+  nur mit Kennung, Name und Beschreibung hinein. Die Prüfansicht nennt die nur gezählten
+  Ablehnungen.
+- Geändert: Die Fehlermeldung zum Ausgabelimit empfiehlt nicht mehr „weniger Entscheidungen“.
+
 ## 5.7.6 – Regellernen: Ausgabelimit, Fehlerursachen und Auswahl der Entscheidungen
 
 - Behoben: Die Analyse „Aus Entscheidungen lernen“ scheiterte mit dem echten Modell, weil

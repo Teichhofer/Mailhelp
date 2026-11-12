@@ -247,8 +247,9 @@ class OpenRouterClient:
             if isinstance(choice, dict):
                 finish = choice.get("finish_reason")
                 metadata["finish_reason"] = finish if isinstance(finish, str) else None
+            details = _truncation(raw, choice) if reason == "output_token_limit" else {}
             self._log_attempt("provider_response_invalid", metadata,
-                              reason=reason, retryable=True, **correlation)
+                              reason=reason, retryable=True, **details, **correlation)
             raise ProviderResponseInvalid(reason)
         try: data = OpenRouterResponse.model_validate(raw)
         except (ValueError, ValidationError) as exc:
@@ -310,6 +311,21 @@ def _path(exc: Exception) -> str:
         return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>"
                          for item in exc.errors(include_input=False))
     return "<json>"
+
+
+def _truncation(raw: dict[str, Any], choice: Any) -> dict[str, Any]:
+    """5.7.7: what used the output budget of a truncated (and billed) answer, never its text."""
+    usage = raw.get("usage") if isinstance(raw.get("usage"), dict) else None
+    details = (usage or {}).get("completion_tokens_details")
+    message = choice.get("message") if isinstance(choice, dict) else None
+    message = message if isinstance(message, dict) else {}
+    content, reasoning = (value if isinstance(value, str) else ""
+                          for value in (message.get("content"), message.get("reasoning")))
+    return {"token_usage": usage, "reported_cost": raw.get("cost", (usage or {}).get("cost")),
+            "completion_tokens": (usage or {}).get("completion_tokens"),
+            "reasoning_tokens": details.get("reasoning_tokens") if isinstance(details, dict) else None,
+            "partial_content_length": len(content), "partial_reasoning_length": len(reasoning),
+            "partial_content_sha256": hashlib.sha256(content.encode()).hexdigest() if content else None}
 
 
 def _provider_error_reason(raw: Any) -> str | None:

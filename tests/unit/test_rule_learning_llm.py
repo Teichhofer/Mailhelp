@@ -6,7 +6,6 @@ import yaml
 from mailhelp.config import PromptConfig
 from mailhelp.llm.fingerprints import analysis_prompts
 from mailhelp.processing.analysis import Analyzer
-from tests.fakes.rule_learning import proposal
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_services import RetrySequence
 
@@ -30,8 +29,10 @@ def test_the_optional_step_uses_the_active_route_without_invalidating_mail_analy
 
 
 def test_foreign_evidence_is_rejected_and_existing_repair_limits_and_guards_apply():
-    bad = proposal(evidence=["foreign"]).model_dump()
-    good = proposal().model_dump()
+    # 5.7.7: the model answers with changes only (see test_rule_changes577).
+    good = {"topic_id": "school", "category": "relevant", "action": "modify", "rationale": "Korrektur",
+            "evidence": ["decision-1"], "changes": {"add_exclusions": ["Werbung"]}}
+    bad = {**good, "evidence": ["foreign"]}
     client = RetrySequence([{"proposals": [bad]}, {"proposals": [good]}])
     guard = []
     analyzer = Analyzer(client, configuration(), validation_retries=1)

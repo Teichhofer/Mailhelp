@@ -137,6 +137,8 @@ class RuleLearningSite:
                 + (f": {counts}" if counts else "") + f' · aus {len(state.evidence)} Entscheidungen '
                 f'({SCOPE_LABELS[state.scope]}'
                 + (f"; {state.trimmed} ältere wegen der Nutzlastgrenze nicht übertragen" if state.trimmed else "")
+                + (f"; {state.condensed} gleichartige Ablehnungen nur als Anzahl übertragen"
+                   if state.condensed else "")
                 + '); '
                 f'{state.skipped} beschädigte, doppelte oder ungeeignete Zeilen übersprungen.</p><ol>'
                 + "".join(f'<li><a href="#vorschlag-{index + 1}">{e(proposal.proposed.name)}</a> · {kind}</li>'

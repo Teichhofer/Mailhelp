@@ -12,6 +12,7 @@ from ..config import Settings, Topic, read_yaml
 from ..configuration import ConfigurationService, file_hash
 from ..review.learning_log import learning_path
 from ..storage import CorruptState, atomic_replace
+from .changes import assemble, compact_topics, condense
 from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
 from .models import RuleAnalysis, RuleHistory, RuleState
 from .validation import FILES, RuleConflict, RuleValidationService
@@ -31,8 +32,9 @@ def failure_message(error: Exception) -> str:
         LlmTokenLimitExceeded,
     )
     if isinstance(error, LlmTokenLimitExceeded):
-        return ("Analyse nicht abgeschlossen: Die KI-Antwort wurde am Ausgabelimit abgeschnitten. "
-                "max_tokens von decision_rule_learning in prompts.yaml erhöhen oder weniger Entscheidungen wählen.")
+        # 5.7.7: fewer decisions shrink the input, not the cut-off output; that hint misled.
+        return ("Analyse nicht abgeschlossen: Die KI-Antwort wurde am Ausgabelimit abgeschnitten, auch beim "
+                "verkleinerten zweiten Versuch. Später erneut versuchen oder „Nur neue Entscheidungen“ wählen.")
     if isinstance(error, LlmProviderResponseInvalid):
         return ("Analyse nicht abgeschlossen: Der KI-Anbieter lieferte keine verwertbare Antwort. "
                 "Später erneut versuchen.")
@@ -194,6 +196,16 @@ class DecisionRuleLearning:
                          receipts=previous.receipts,
                          created_at=self.clock())
 
+    def payload(self, documents: dict[str, Any], evidence: list[dict[str, Any]],
+                retry: bool = False) -> dict[str, Any]:
+        """5.7.7: strong signals in full, repeated rejections counted, unused topics in brief."""
+        sent, groups = condense(evidence)
+        if retry:
+            # The single fallback after truncated output: half the examples, strong signals first.
+            sent = sent[:max(1, len(sent) // 2)]
+        return redact_data({"topics": compact_topics(documents, evidence), "decisions": sent, "groups": groups,
+                            "summary": DecisionRuleMiner.counts(evidence)}, self.redact)
+
     def before_call(self, actor: str) -> None:
         self.check(actor)
         state = self.state(actor)
@@ -214,17 +226,20 @@ class DecisionRuleLearning:
             if "decision_rule_learning" not in analyzer.prompts.prompts:
                 raise ValueError("In prompts.yaml fehlt decision_rule_learning")
             evidence = redact_data(list(state.evidence), self.redact)
-            payload = redact_data({"topics": state.documents, "decisions": evidence,
-                                   "summary": DecisionRuleMiner.counts(evidence)}, self.redact)
+            payload = self.payload(state.documents, evidence)
             while len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > self.payload_limit() and evidence:
                 evidence.pop()
                 state.trimmed += 1
-                payload["decisions"] = evidence
-                payload["summary"] = DecisionRuleMiner.counts(evidence)
+                payload = self.payload(state.documents, evidence)
             if not evidence:
                 raise ValueError("Regeln und Belege überschreiten die KI-Nutzlastgrenze")
-            _, analysis = analyzer.decision_rule_learning(payload, before_call=lambda: self.before_call(self.actor))
-            known = {item["id"] for item in evidence}
+            state.condensed = sum(group["count"] - group["shown"] for group in payload["groups"])
+            documents = state.documents
+            _, analysis = analyzer.decision_rule_learning(
+                payload, before_call=lambda: self.before_call(self.actor),
+                assemble=lambda suggestions: assemble(documents, suggestions),
+                retry_payload=self.payload(documents, evidence, retry=True))
+            known = {item["id"] for item in payload["decisions"]}
             if any(set(proposal.evidence) - known for proposal in analysis.proposals):
                 raise ValueError("Unbekannter Entscheidungsbeleg")
             state.proposals = RuleAnalysis.model_validate(analysis.model_dump()).proposals

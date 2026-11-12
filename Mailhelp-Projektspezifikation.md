@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 11. November 2026, Anwendungsversion 5.7.6. Die folgenden Verträge beschreiben
+Stand: 11. November 2026, Anwendungsversion 5.7.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3848,3 +3848,38 @@ Anbieterantwort, ungültiges Antwortformat, abgelaufene Sitzung, zwischenzeitlic
 Dateien oder eine der eigenen Prüfmeldungen. Andere Ausnahmen behalten die allgemeine
 Meldung. Das Anwendungsprotokoll erhält `rule_learning`/`analysis_failed` mit Fehlertyp,
 Auswahl, Belegzahl und angezeigter Meldung, nie mit Mailinhalten oder Zugangsdaten.
+
+### Regellernen: Änderungen statt vollständiger Themen (5.7.7)
+
+`decision_rule_learning` antwortet mit `RuleSuggestions` (`rule_learning/changes.py`):
+höchstens 10 Einträge mit `topic_id`, `category`, `action`, `rationale` (höchstens
+500 Zeichen), `evidence` (1–10 übertragene IDs) und `changes`. Erlaubte Felder von
+`changes`: `add_examples`, `add_exclusions` (je höchstens 10), `remove_examples`,
+`remove_exclusions`, `name`, `description` und `enabled`. Mailhelp setzt daraus mit
+`assemble` das vollständige `RuleTopic` aus dem beim Start eingelesenen Dokument zusammen.
+`id` und `mailboxes` bleiben dabei unverändert. Bei `create` ist `mailboxes` leer und die
+Kennung muss in beiden Dateien neu sein. `create` braucht `name`, `description` und
+`add_examples`. `disable` enthält keine weiteren Änderungen. Zu entfernende Einträge müssen
+wörtlich vorhanden sein. Doppelte Ergänzungen werden zusammengefasst. Ein Vorschlag ohne
+Wirkung ist ungültig. Ein Zusammensetzungsfehler zählt als Schemafehler und erhält die
+bestehende begrenzte Reparatur. Danach gelten unverändert die Prüfungen aus 5.6
+(`RuleProposal`, beide Dokumente, IDs, Postfachbereiche).
+
+Die Nutzlast enthält `topics` (Themen ohne Belege nur mit `id`, `name`, `description` und
+`enabled`), `decisions`, `groups` und `summary`. `decisions` enthält alle starken Signale
+vollständig, Ablehnungen (`rejected_proposal`) je Themenkombination nur bis zu 5
+Beispiele mit 300 Zeichen Text. `groups` nennt je Kombination `count` und `shown`.
+`RuleState.condensed` zählt die nur gezählten Ablehnungen; die Prüfansicht nennt sie. Die
+Nutzlastgrenze kürzt weiterhin zuerst die ältesten Belege (`trimmed`).
+
+Nach `output_token_limit` folgt genau ein Versuch mit `output_token_retry` (knapper
+Prompt, höchstens 5 Vorschläge) und der ersten Hälfte der übertragenen Belege. Dabei gehen
+starke Signale zuerst. `max_tokens` wird dabei nie kleiner. Eine identische Wiederholung
+entfällt. Scheitert auch dieser Versuch, nennt die Meldung beide Versuche und empfiehlt einen
+späteren Versuch oder „Nur neue Entscheidungen“.
+
+Für alle KI-Schritte protokolliert `provider_response_invalid` mit `reason:
+output_token_limit` zusätzlich `token_usage`, `reported_cost`, `completion_tokens`,
+`reasoning_tokens`, `partial_content_length`, `partial_reasoning_length` und
+`partial_content_sha256`, nie den Text. `max_tokens: 16000` bleibt Obergrenze, bis ein
+freigegebener Lauf mit echtem Modell den Bedarf belegt.

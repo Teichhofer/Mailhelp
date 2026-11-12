@@ -79,6 +79,8 @@ class RuleState(BaseModel):
     # 5.7.6: which decisions were chosen and how many the payload limit left out.
     scope: Literal["new", "all"] = "new"
     trimmed: int = 0
+    # 5.7.7: repeated rejections sent only as a count (not as individual examples).
+    condensed: int = 0
     proposals: list[RuleProposal] = Field(default_factory=list)
     receipts: dict[str, str] = Field(default_factory=dict)
     commit: dict[str, str] = Field(default_factory=dict)

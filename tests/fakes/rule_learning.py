@@ -6,6 +6,7 @@ import yaml
 
 from mailhelp.configuration import ConfigurationService
 from mailhelp.review.learning_log import learning_path
+from mailhelp.rule_learning.changes import RuleSuggestions
 from mailhelp.rule_learning.models import RuleAnalysis, RuleProposal, RuleTopic
 from mailhelp.rule_learning.service import DecisionRuleLearning
 from mailhelp.storage import JsonStore
@@ -36,18 +37,20 @@ def record(identity="decision-1", kind="reject", **changes):
 class FakeRuleAnalyzer:
     def __init__(self):
         self.prompts = SimpleNamespace(prompts={"decision_rule_learning": object()})
-        self.calls = []
+        self.calls, self.retries = [], []
         self.before = lambda: None
         self.error = None
         self.result = RuleAnalysis(proposals=[proposal()])
 
-    def decision_rule_learning(self, payload, *, before_call):
+    def decision_rule_learning(self, payload, *, before_call, assemble=None, retry_payload=None):
         self.before()
         before_call()
         self.calls.append(payload)
+        self.retries.append(retry_payload)
         if self.error is not None:
             raise self.error
-        return "synthetic", self.result
+        # 5.7.7: a change-based answer is assembled like the real analyzer does.
+        return "synthetic", assemble(self.result) if isinstance(self.result, RuleSuggestions) else self.result
 
 
 class RuleHarness:
