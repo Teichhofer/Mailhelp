@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.8.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und
 Relevanzfragen öffnen getrennte Übersichten, Mailfehler die gefilterte Mailablage
@@ -39,7 +39,8 @@ Themenvorschau und Regellernen denselben übersichtlichen Vergleich. Version 5.7
 abgenommen. 5.7.6 lässt beim Regellernen wählen, ob nur neue oder alle bisherigen verwertbaren
 Entscheidungen ausgewertet werden, und nennt bei einem Fehlschlag die Ursache. In 5.7.7 liefert
 die KI nur noch die Änderungen je Thema. Mailhelp setzt das Thema selbst zusammen und
-verdichtet die Belege vorab. Stand und Nachweise:
+verdichtet die Belege vorab. 5.8.2 dokumentiert die Abnahme mit dem echten Modell.
+Stand und Nachweise:
 [Release 5.7](docs/Release-5.7.md).
 
 Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des

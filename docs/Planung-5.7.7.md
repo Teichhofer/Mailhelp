@@ -4,7 +4,7 @@
 
 **Stand:** 11. November 2026
 
-**Status:** Umgesetzt (12. November 2026), Abnahme mit echtem Modell offen
+**Status:** Umgesetzt und mit echtem Modell abgenommen (5.8.2, 12. November 2026)
 
 **Ausgangsstand:** 5.7.6 (Auswahl „Nur neue“ / „Alle bisherigen“, `max_tokens: 16000`, konkrete Fehlerursachen)
 
@@ -168,5 +168,5 @@ Limit füllt, wird das Modell gewechselt.
   dem echten Modell wäre beides geraten. Die Obergrenze kostet nur, was tatsächlich verbraucht
   wird. Ab 5.7.7 zeigt das KI-Protokoll die nötigen Werte (`completion_tokens`,
   `reasoning_tokens`).
-- Noch offen ist die Abnahme mit echtem Modell über die realen Entscheidungen. Sie braucht
-  eine ausdrückliche Freigabe und den Neustart des Dienstes.
+- Die Abnahme mit echtem Modell ist erfolgt, siehe [Release 5.7, Nachtrag 5.8.2](Release-5.7.md).
+  Sie belegt, dass `max_tokens` nicht unter 16000 gesenkt werden sollte.

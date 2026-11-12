@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.8.2 – Abnahme des Regellernens mit echtem Modell
+
+- Vier Analysen „Alle bisherigen“ über die realen 187 Entscheidungen auf Kopien der Daten,
+  mit dem Code von 5.7.7 und `deepseek/deepseek-v4.1-flash`. Kein Lauf erreichte das
+  Ausgabelimit; drei lieferten beim ersten Versuch 2–3 gültige Änderungsvorschläge.
+- Ein Lauf scheiterte zweimal an der Schemaprüfung. Der Grund ist nicht protokolliert, weil
+  Antwortinhalte standardmäßig nicht geloggt werden.
+- Messwerte: 25 875 Eingabetokens (119 Ablehnungen nur gezählt), 7 251–10 927 Ausgabetokens,
+  davon 6 453–10 508 Reasoning, 0,9–2,1 Cent und 22–38 s je erfasstem Aufruf.
+  `max_tokens: 16000` bleibt; 8000 hätte bei zwei der vier erfassten Aufrufe nicht gereicht.
+
 ## 5.8.1 – Anklickbare Statuskennzahlen
 
 - Die vollständigen Statuskacheln „Offene Vorschläge“, „Relevanzfragen“, „Mails mit Fehler“

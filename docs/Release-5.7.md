@@ -183,5 +183,33 @@ Abnahme 5.7.7:
 - 489 Browserprüfungen mit 100 % JS-Blockabdeckung; damit ist auch 5.7.6 abgedeckt.
 - Ruff, Mypy, Prompt-Gate, Inventur und Hilfebestand ohne Befund.
 
-Eine Abnahme mit echtem Modell ist noch offen; sie braucht eine ausdrückliche Freigabe.
+## Nachtrag 5.8.2 – Abnahme des Regellernens mit echtem Modell
+
+Nach ausdrücklicher Freigabe liefen am 12. November 2026 vier Analysen „Alle bisherigen“.
+Sie verwendeten den Code von 5.7.7, Kopien von Konfiguration, Themen und Lernprotokoll sowie
+das Modell `deepseek/deepseek-v4.1-flash`. Der laufende Dienst, die Themendateien und der
+Zustand blieben unberührt.
+
+| Lauf | Ergebnis | Ausgabetokens (Reasoning) | Kosten |
+| --- | --- | --- | --- |
+| 1 | 2 × Schemaprüfung fehlgeschlagen | 10 927 (10 508), 7 843 (6 824) | 3,8 Cent |
+| 2 | 3 Vorschläge | nicht erfasst | nicht erfasst |
+| 3 | 3 Vorschläge | 7 251 (6 453) | 0,9 Cent |
+| 4 | 2 Vorschläge | 10 175 (9 574) | 1,2 Cent |
+
+Allen Läufen gemeinsam:
+- 187 Entscheidungen und 25 875 Eingabetokens.
+- 119 Ablehnungen wurden nur gezählt.
+- Keine Kürzung durch die Nutzlastgrenze.
+- Alle Antworten endeten regulär (`stop`) mit 1,4 bis 3 KB.
+
+Damit ist die Ursache des Fehlers belegt: Das Reasoning allein braucht bis zu 10 500 Tokens.
+Die frühere Antwort mit vollständigen Themen passte zusätzlich nicht mehr in 16 000 Tokens.
+Die Vorschläge betrafen bestehende relevante Themen. Sie ergänzten vor allem Ausschlüsse und
+wurden nicht übernommen.
+
+Offen: Lauf 1 ist zweimal an der Schemaprüfung gescheitert. Warum, ist nicht bekannt, weil
+Antwortinhalte nur bei zugeschaltetem Inhaltslogging protokolliert werden. Empfehlung für
+eine Folgeversion: den Prüffehler (Feld und Fehlerart) ohne Inhalt in
+`schema_validation_failed` protokollieren.
 

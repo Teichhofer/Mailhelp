@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 12. November 2026, Anwendungsversion 5.8.1. Die folgenden Verträge beschreiben
+Stand: 12. November 2026, Anwendungsversion 5.8.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3916,5 +3916,5 @@ späteren Versuch oder „Nur neue Entscheidungen“.
 Für alle KI-Schritte protokolliert `provider_response_invalid` mit `reason:
 output_token_limit` zusätzlich `token_usage`, `reported_cost`, `completion_tokens`,
 `reasoning_tokens`, `partial_content_length`, `partial_reasoning_length` und
-`partial_content_sha256`, nie den Text. `max_tokens: 16000` bleibt Obergrenze, bis ein
-freigegebener Lauf mit echtem Modell den Bedarf belegt.
+`partial_content_sha256`, nie den Text. `max_tokens: 16000` bleibt Obergrenze. Die Abnahme
+(5.8.2) hat bis zu 10 927 Ausgabetokens gemessen, davon bis zu 10 508 für das Reasoning.
