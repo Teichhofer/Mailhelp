@@ -2177,6 +2177,14 @@ Maus erreichbar. Alle Inhalte werden escaped bzw. über textContent eingesetzt; 
 Inline-Skripte noch Inline-Styles, externe Anfragen oder Schreibaktionen werden benötigt.
 Ohne JavaScript bleiben SVG-Titel und Tabellen verfügbar, die Vergrößerungsschaltflächen verborgen.
 
+**Lesbare Dauern (seit 5.9.1).** `formatting.duration_text` gibt Dauern in der größten
+passenden Einheit aus: unter 60 s in Sekunden mit einer (Mittel/Median/95 %: zwei)
+Nachkommastellen, darunter einer Stunde als Minuten und ganze Sekunden, darunter einem Tag
+als Stunden und Minuten, sonst als Tage und Stunden; Nullanteile entfallen („5 Min.“). Gerundet
+wird vor der Wahl der Einheit (59,96 s ergibt „1 Min.“). Negative oder nicht endliche Werte
+werden abgelehnt. Die Faktentabelle zeigt die summierte Aufrufdauer ab einer Minute zusätzlich
+mit den gerundeten Sekunden in Klammern.
+
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
 einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
 Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und

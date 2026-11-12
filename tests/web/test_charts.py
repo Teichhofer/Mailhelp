@@ -96,3 +96,16 @@ def test_interactive_chart_metadata_escapes_labels_and_preserves_no_script_value
     horizontal = bar_list("model", "Modellkosten", "Beschreibung", [('Modell "A" <img>', 1)], count)
     assert 'data-chart-detail="Modell &quot;A&quot; &lt;img&gt;: 1"' in horizontal
     assert "Werte als Tabelle" in horizontal and "style=" not in horizontal
+
+
+def test_regression_long_call_durations_read_in_hours_with_the_exact_seconds():
+    """Regression 5.9.1: the summed duration of a month read as an unwieldy "75.240,0 s"."""
+    report = {"count": 1, "failed": 0, "usd": "0", "unknown_cost": 0, "cloud_eur": None,
+              "exchange_rate_date": None, "electricity_eur": "0", "seconds": 75_240.0, "mean": 2.5, "median": 61.0,
+              "p95": None, "damaged": 1, "capture_failures": 0, "records": [], "groups": []}
+    page = statistics_page({"days": 30, "mode": "production"}, report, [], "UTC", NOW)
+    assert '<dt>Summierte Aufrufdauer</dt><dd>20 Std. 54 Min. <span class="meta">(75.240 s)</span></dd>' in page
+    assert "<dd>2,50 s / 1 Min. 1 s / —</dd>" in page and "75.240,0 s" not in page
+    assert page.index("Summierte Aufrufdauer") < page.index("Unvollständige Erfassung")
+    report["seconds"] = 59.9
+    assert "<dd>59,9 s</dd>" in statistics_page({"days": 30, "mode": "production"}, report, [], "UTC", NOW)

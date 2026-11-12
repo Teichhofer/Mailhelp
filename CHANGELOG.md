@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.9.1 – Lesbare Dauern in der Auswertung
+
+- Auswertung: Dauern erscheinen in der passenden Einheit (`42,3 s`, `4 Min. 12 s`,
+  `20 Std. 54 Min.`, `3 Tage 4 Std.`) statt als große Sekundenzahl. Die summierte
+  Aufrufdauer nennt ab einer Minute die genauen Sekunden in Klammern.
+- Gerundet wird vor der Wahl der Einheit; 59,96 s ergibt „1 Min.“.
+- Planung 5.9 überarbeitet und Entscheidungen vom 12.11.2026 aufgenommen.
+
 ## 5.8.2 – Abnahme des Regellernens mit echtem Modell
 
 - Vier Analysen „Alle bisherigen“ über die realen 187 Entscheidungen auf Kopien der Daten,

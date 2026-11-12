@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any, SupportsFloat
 from urllib.parse import urlencode
 
-from ..formatting import format_datetime_local
+from ..formatting import duration_text, format_datetime_local
 from ..models import MailState, Proposal
 from ..review.consistency import Hint
 from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
@@ -40,6 +40,16 @@ def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
+class _Html(str):
+    """Markup that is already escaped."""
+
+
+def _total_duration(seconds: float) -> str:
+    """The readable sum; the exact seconds stay visible next to a larger unit (5.9.1)."""
+    text = e(duration_text(seconds))
+    return text if round(seconds, 1) < 60 else f'{text} <span class="meta">({_number(seconds, 0)} s)</span>'
+
+
 def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: list[dict[str, Any]], zone: str = "UTC",
                     now: datetime | None = None) -> str:
     """Costs and durations with readable labels and charts; unknown values are never shown as zero."""
@@ -67,16 +77,17 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
         ("Cloudkosten in Euro", _money(report["cloud_eur"], "EUR") + (f" (Wechselkurs vom {rate})" if rate else "")
          if report["cloud_eur"] is not None else "kein Wechselkurs hinterlegt"),
         ("Geschätzte Stromkosten Ollama", _money(report["electricity_eur"], "EUR")),
-        ("Summierte Aufrufdauer", f'{_number(report["seconds"], 1)} s'),
+        ("Summierte Aufrufdauer", _Html(_total_duration(report["seconds"]))),
         ("Dauer je Aufruf (Mittel / Median / 95 %)",
-         " / ".join(f"{_number(report[key], 2)} s" if report[key] is not None else "—"
+         " / ".join(duration_text(report[key], precise=True) if report[key] is not None else "—"
                     for key in ("mean", "median", "p95"))),
     ]
     if report["damaged"] or report["capture_failures"]:
         rows.append(("Unvollständige Erfassung",
                      f'{report["damaged"]} beschädigte Zeilen, {report["capture_failures"]} Erfassungsfehler'))
     body = ("<h1>Kosten und Zeiten</h1>" + form
-            + '<dl class="facts-table">' + "".join(f"<dt>{e(k)}</dt><dd>{e(v)}</dd>" for k, v in rows) + "</dl>"
+            + '<dl class="facts-table">'
+            + "".join(f"<dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd>" for k, v in rows) + "</dl>"
             + '<p class="meta">Kosten in USD stammen aus den Angaben des Anbieters; fehlt eine Angabe, ist sie '
               "unbekannt, nicht null. Stromkosten sind eine Schätzung aus der eingestellten Leistung und dem "
               "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "

@@ -1177,8 +1177,20 @@
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
-  "text": "| Seite | Inhalt |\n| --- | --- |\n| **Verlauf** | jede Änderung und Entscheidung mit Version |\n| **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |\n| **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |\n| **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |\n| **Status** | letzter Kontakt je Dienst, laufender Schritt; anklickbare Kennzahlen öffnen passende Übersichten |\n\nAuf **Status** öffnet ein Klick auf eine der vier Kennzahlen die zugehörigen Einträge:\n**Offene Vorschläge** und **Relevanzfragen** führen zu getrennten Übersichten mit\nDetails je Vorschlag beziehungsweise Mail. **Mails mit Fehler** öffnet die Mailablage\nmit dem Filter „mit Fehler“. **Wartende Web-Aktionen** zeigt die Warteschlange mit\nLinks zu deinen einzelnen Aktionen. Andere Sitzungen werden ohne private Inhalte\naufgeführt. Auch bei null Einträgen ist die Übersicht erreichbar. „Übersicht aktualisieren“\nlädt den aktuellen Stand; das Öffnen und Aktualisieren führt keine Aktion aus.\n\nAntwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.",
+  "text": "| Seite | Inhalt |\n| --- | --- |\n| **Verlauf** | jede Änderung und Entscheidung mit Version |\n| **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |\n| **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |\n| **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |\n| **Auswertung** | Kosten, Dauern und Diagramme der KI-Aufrufe |\n| **Status** | letzter Kontakt je Dienst, laufender Schritt; anklickbare Kennzahlen öffnen passende Übersichten |\n\nAuf **Status** öffnet ein Klick auf eine der vier Kennzahlen die zugehörigen Einträge:\n**Offene Vorschläge** und **Relevanzfragen** führen zu getrennten Übersichten mit\nDetails je Vorschlag beziehungsweise Mail. **Mails mit Fehler** öffnet die Mailablage\nmit dem Filter „mit Fehler“. **Wartende Web-Aktionen** zeigt die Warteschlange mit\nLinks zu deinen einzelnen Aktionen. Andere Sitzungen werden ohne private Inhalte\naufgeführt. Auch bei null Einträgen ist die Übersicht erreichbar. „Übersicht aktualisieren“\nlädt den aktuellen Stand; das Öffnen und Aktualisieren führt keine Aktion aus.",
   "title": "Seitenübersicht"
+ },
+ {
+  "id": "bedienung/auswertung",
+  "path": [
+   "Alltagsbedienung",
+   "Weitere Seiten",
+   "Auswertung"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "**Auswertung** zeigt Kosten und Zeiten der KI-Aufrufe für den gewählten Zeitraum. Dauern\nerscheinen ab 5.9.1 in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Min.` oder\n`3 Tage 4 Std.`; bei der summierten Aufrufdauer stehen die genauen Sekunden in Klammern\ndahinter. Die summierte Aufrufdauer addiert alle Versuche, auch parallele, und ist keine\nDurchlaufzeit.\n\nAntwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.",
+  "title": "Auswertung"
  },
  {
   "id": "fehlerbehebung/fehler-beheben",

@@ -1,641 +1,735 @@
-# Mailhelp 5.9 – Ergonomie, Widescreen, Status-Zähler, Auswertungsmetriken und adaptive Skalierung
+# Mailhelp 5.9 – Widersprüche auflösen, Quellbeleg, Themenlayout, Statuszähler und Auswertung
 
-**Zielversion:** 5.9.0, Umsetzung in Patchversionen 5.9.x
+**Zielversion:** 5.9.0, Umsetzung in Patchversionen 5.9.1 bis 5.9.12
 
-**Stand:** 12. November 2026
+**Stand:** 12. November 2026 (überarbeitet nach Abgleich mit dem Quellstand)
 
 **Status:** Geplant als Weiterentwicklung nach Version 5.8
 
-**Ausgangsstand:** 5.8.1 laut `pyproject.toml`
+**Ausgangsstand:** 5.8.2 laut `pyproject.toml`
 
-**Vorgänger:** [Planung 5.8](Planung-5.8.md), [Release 5.8](Release-5.8.md)
+**Vorgänger:** [Planung 5.8](Planung-5.8.md), [Release 5.8](Release-5.8.md), [Release 5.8.1](Release-5.8.1.md)
 
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md)
 
 ---
 
+## 0. Ergebnis der Überprüfung dieser Planung
+
+Die Planung wurde gegen den Code von 5.8.2 geprüft. Die Ziele bleiben, einige Annahmen und
+Designentscheidungen waren aber nicht tragfähig und wurden korrigiert:
+
+| Thema | Ursprüngliche Annahme / Entscheidung | Befund im Code | Korrektur in dieser Fassung |
+| :--- | :--- | :--- | :--- |
+| Konflikte | `FieldConflict` speichert nur formatierte Texte; Felder `start`, `end`, `location`, `title` | Zusammengeführt werden `start`, `end`, `due`, `location`, `video_link`, `known_temporal_facts`, **nicht** `title`. Mit reinen Anzeigetexten kann ein Klick den Wert gar nicht übernehmen. | Typisierte Werte und Quellbezug werden gespeichert, formatiert wird erst bei der Anzeige. Beginn und Ende werden gemeinsam als **Zeitraum** angeboten. |
+| Konflikte | Klick setzt den Vorschlag auf `pending_confirmation` | Weitere offene Fragen können bestehen bleiben; Bestätigung und externe Anlage sind getrennte Schritte (AGENTS.md). | Ein Klick erzeugt nur eine neue Version. Den Status bestimmt weiter `merge_facts`/`Proposal`. Die Anlage braucht wie bisher eine eigene, versionsbezogene Bestätigung. |
+| Quellmail bei Aufgaben | Bei Terminen ist die Quellmail in der Übersicht schon aufgeklappt, bei Aufgaben nicht | `detail_page` klappt „Quellbeleg aus E-Mail / Anhang“ **unabhängig von der Art** nur dann auf, wenn Bildvorschauen existieren. Die Kartenliste zeigt die Mail nie. | Ab 1024 px Breite (Split-View und Detailansicht) ist der Quellbeleg **immer** aufgeklappt, für Termine und Aufgaben. Auf schmalen Bildschirmen ist er **immer zunächst eingeklappt**, auch bei Bildvorschauen. Die Kartenliste bleibt kompakt (entschieden am 12.11.2026, siehe 2.2). |
+| `/themen` | `max-width: min(96vw, 1500px)`, `nowrap` auch für Geltungsbereich und die Kopfzeile „Beispiele / Ausschlüsse“ | Der Geltungsbereich kann mehrere Postfachnamen enthalten. Mit `nowrap` würde die Tabelle überlaufen. `main:has(.topic-heading)` trifft auch die Editorseiten. | Umbruch nur an Wortgrenzen statt `nowrap`. Breite 1320 px nur für die Themenliste. Die Kopfzeile darf an „ / “ umbrechen. |
+| Statuszähler | Zähler steht in der Zusammenfassung an erster Stelle | Die Zusammenfassung und die Kacheln aus 5.8.1 zeigen zu erledigende Arbeit. Eine reine Informationszahl an erster Stelle verdrängt das. | Der Zähler kommt in die Faktenliste „Mails“ und in den Satz zur letzten Mail. Er wird keine Kachel. |
+| Dauer-Punktwolke | Jeder Punkt ist per Tab fokussierbar | Bei 30 Tagen fallen leicht Tausende Aufrufe an (Vergleichsläufe mit 16 Threads). Das ergibt Tausende Tab-Stopps und große SVGs. | Punkte sind nicht fokussierbar. Die Tastatur nutzt die Wertetabelle. Höchstens 3000 Punkte werden deterministisch ausgedünnt. Fehler erhalten eine eigene Form statt nur einer anderen Farbe. |
+| Kostendiagramm | „Geschwungene“ Trendlinie, Ø-Text an der Linie | Kurven schwingen über und können unter 0 fallen. Der Text kollidiert mit der Legende oben rechts. | Gerade Polylinie, Name „7-Tage-Mittel“. Werte stehen in der Legende und in der Tabelle. Der Durchschnitt zählt erst ab dem ersten erfassten Tag. |
+| Pipeline-Ablaufplan | Flussdiagramm mit 10 Schritten von `preparation` bis `auto_draft`, umschaltbar gegen die Rangliste | Das Metrik-Journal kennt nur **KI-Aufrufe** (`relevance`, `summary`, `action_router`, `event_extraction`, `task_extraction` u. a.). Für `preparation`, `normalization`, `proposal_building` und `duplicate_precheck` gibt es keine Dauern. Ein SVG mit 10+ Kästen ist bei 640 px Breite mobil nicht lesbar. Ein Umschalter bräuchte JavaScript. | Das Flussdiagramm kommt (entschieden am 12.11.2026) in der Reihenfolge von `ProcessingStage`. Lokale Schritte erscheinen **ohne Laufzeit** als „lokal · nicht gemessen“, weil sie keine relevanten Wartezeiten erzeugen. Es ist eine HTML-Liste statt SVG und bricht auf Mobilgeräten senkrecht um. Rangliste und Ablauf stehen **beide** auf der Seite, einen Umschalter gibt es nicht. |
+| Adaptive Einheiten | Gemeinsame Achseneinheit s/Min./Std. für das Schrittdiagramm | `bar_list` hat keine Achse, nur Beschriftungen je Balken. Die Längen sind ohnehin proportional. | Jede Beschriftung wird einzeln adaptiv formatiert. Eine Achsenumrechnung entfällt. Die Einheit heißt „Tag/Tage“ statt „T“. |
+| Detailseiten | 9 Kennzahlen mit je eigener Detailseite, inklusive Fehlerursachen | `AttemptRecord` speichert keine Fehlerursache, nur `success`/`failed`. Einzelaufrufe gibt es nur innerhalb von `metrics.retention_days`. | Eine einzige Aufrufliste `/auswertung/aufrufe` mit Voreinstellung je Kennzahl. Das inhaltsfreie Feld `error_kind` kommt in 5.9 ins Journal (entschieden am 12.11.2026). Ältere Einträge zeigen „Ursache nicht erfasst“. |
+| Patchfolge | Formatierer erst in K10, aber schon in K7 und K9 benötigt | – | Der Formatierer kommt zuerst. Die Konflikte folgen als wichtigstes Paket direkt danach. |
+
+Die in Abschnitt 7 festgehaltenen **Entscheidungen** vom 12.11.2026 sind in diese Fassung
+eingearbeitet.
+
+---
+
 ## 1. Übersicht und Ziel
 
-Version 5.9 widmet sich neun wesentlichen Verbesserungen der Ergonomie, Entscheidungssicherheit,
-visuellen Darstellung, Betriebstransparenz und Leistungsanalyse:
+Version 5.9 verbessert Entscheidungssicherheit, Darstellung und Nachvollziehbarkeit:
 
-1. **Strukturierte Konflikt-Auflösung bei Terminen mit Anzeige beider Varianten:**  
-   Wenn bei der Zusammenführung (Reconciliation Merge) oder durch Folge-E-Mails widersprüchliche
-   Angaben aufeinandertreffen (z. B. unterschiedliche Endzeiten wie 16:30 Uhr vs. 19:30 Uhr),
-   erscheint bisher lediglich die abstrakte Frage `Widerspruch bei end: Angaben aus den Quellen vergleichen.`.
-   Der Nutzer erfährt weder, welche Werte kollidieren, noch kann er den Konflikt direkt lösen.  
-   **Neu in 5.9:** Bei jedem Feldkonflikt werden **beide Varianten explizit und verständlich gegenübergestellt**
-   (z. B. *„Endzeit: 16:30 Uhr (bisher) vs. 19:30 Uhr (neu)“*). Im Web und in Telegram wird eine
-   direkte **1-Klick-Auswahl** angeboten (`[ 16:30 Uhr übernehmen ]` / `[ 19:30 Uhr übernehmen ]`),
-   sodass die Entscheidung ohne mühsames Nachschlagen sofort getroffen werden kann.
+1. **Widersprüche verständlich machen und mit einem Klick auflösen.** Statt
+   `Widerspruch bei end: Angaben aus den Quellen vergleichen.` nennt Mailhelp beide Werte mit
+   Herkunft, zum Beispiel *„Endzeit: bisher 16:30 Uhr, laut Mail vom 08.11. 19:30 Uhr“*. Web und
+   Telegram bieten dafür je eine Schaltfläche pro Variante an. Die Auswahl ändert nur den Vorschlag
+   und legt **nichts** extern an.
+2. **Quellbeleg einheitlich für Termine und Aufgaben.** Auf breiten Bildschirmen (Split-View,
+   Detailansicht ab 1024 px) ist er standardmäßig aufgeklappt. Auf schmalen Bildschirmen ist er
+   immer zunächst eingeklappt.
+3. **Themenliste `/themen` für breite Bildschirme.** Die Liste nutzt mehr Breite, Wörter werden
+   nicht mehr mitten im Wort getrennt, „Bearbeiten“ steht einzeilig und Filter und „Neues Thema“
+   stehen in einer Werkzeugzeile.
+4. **Statuszähler „verarbeitet“.** `/status` und Telegram `/status` nennen die Zahl der
+   vollständig verarbeiteten Mails.
+5. **Aufrufdauer als logarithmische Punktwolke mit Median je Zeitabschnitt** statt starrer
+   Dauerklassen.
+6. **Durchschnitt und 7-Tage-Mittel im Cloudkosten-Diagramm.**
+7. **Rechenzeit je Schritt und Pipeline-Ablaufplan.** Die Rangliste zeigt deutsche Schrittnamen,
+   prozentualen Anteil und Dauer. Der Ablaufplan zeigt alle Verarbeitungsschritte in ihrer
+   Reihenfolge. Lokale Schritte erscheinen darin ohne Laufzeit.
+8. **Lesbare Zeiteinheiten.** Statt `75.240,0 s` steht `20 Std. 54 Min.`.
+9. **Kennzahlen zum Anklicken.** Jede Kennzahl auf `/auswertung` führt zur Aufrufliste mit
+   passender Voreinstellung und Erklärung.
 
-2. **Quellmail bei Aufgaben in der Vorschlagsübersicht standardmäßig komplett anzeigen:**  
-   Bei Terminvorschlägen wird in der Übersicht bereits standardmäßig die zugehörige Quell-E-Mail
-   vollständig unter dem Vorschlag angezeigt, damit der zeitliche Kontext und Details sofort
-   geprüft werden können. Für Aufgabenvorschläge (`kind: "task"`) soll dies **exakt genauso**
-   funktionieren: Die Quell-E-Mail wird auch unter jeder Aufgabe standardmäßig vollständig
-   eingeblendet, ohne dass erst separate Unterseiten oder Detailansichten geöffnet werden müssen.
-
-3. **Responsive Widescreen- und Tabellen-Optimierung für `/themen`:**  
-   Auf hochauflösenden Breitbildmonitoren wirkt die Seite `/themen` visuell unausgewogen: Der Inhalt
-   ist links eingepfercht, während der rechte Bildschirmbereich leer bleibt. Gleichzeitig bricht
-   die Tabelle durch zu aggressive Silbentrennung Wörter mitten im Wort um (*„Geltun/gsbere/ich“*,
-   *„Ausschlü/sse“*, *„alle/Postfä/cher“*) und quetscht den Bearbeiten-Button auf drei Zeilen (*„Bear/beit/en“*).  
-   **Neu in 5.9:** Breitere Container-Nutzung auf Desktop-Displays (`max-width: min(96vw, 1500px)`),
-   bruchsichere Spaltendefinitionen (`white-space: nowrap` für Metadaten und Aktionsbuttons) und
-   eine aufgeräumte Filterleiste sorgen für eine professionelle, flüssige Darstellung.
-
-4. **Transparenter Gesamtzähler für verarbeitete E-Mails in der Statusanzeige:**  
-   Bisher zeigt die Statusanzeige (`/status`) unter *„Mails“* lediglich den Zähler *„Gespeichert“*
-   (die Anzahl der aktuell im Dateisystem vorgehaltenen JSON-Zustandsdateien) sowie den Fortschritt
-   des aktuellen Durchlaufs (*„X von Y Mails analysiert“*). Es fehlte eine einfache, klare Kennzahl,
-   wie viele E-Mails Mailhelp insgesamt im Betrieb abgearbeitet hat.  
-   **Neu in 5.9:** Einführung eines transparenten Gesamtzählers **„Mails insgesamt verarbeitet“**
-   (`mails_processed`), der in der Status-Zusammenfassung (`.status-summary`), in den Betriebsdetails
-   (`<h2>Mails</h2>`) sowie im Telegram-Statusbericht (`/status`) gut sichtbar ausgewiesen wird.
-
-5. **Logarithmischer Scatter-Plot mit Trendlinie für Aufrufdauern auf `/auswertung`:**  
-   Bisher teilt das Diagramm *„Verteilung der Aufrufdauer“* auf `/auswertung` alle Aufrufe in ein
-   grobes Säulendiagramm mit starren Klassen (`< 1 s`, `1–2 s`, ..., `> 60 s`). Schnelle Subsekunden-Aufrufe
-   (0,1–0,8 s) werden nicht differenziert, langsame Ausreißer (> 60 s) sind zeitlich nicht einzuordnen,
-   und es fehlt der Bezug zum zeitlichen Verlauf.  
-   **Neu in 5.9:** Ersetzung des starren Säulendiagramms durch eine **Punktwolke (Scatter-Plot)**
-   über den gewählten Zeitraum mit **logarithmischer Y-Achse (0,1 s bis 100 s)** und einer
-   **gleitenden Median-Trendlinie**. Jeder Aufruf wird als farbiger Punkt (Erfolg/Fehler) im Zeitverlauf
-   dargestellt, Tooltips und Tastaturfokus bleiben barrierefrei erhalten.
-
-6. **Durchschnitts- und Trendlinie im Cloudkosten-Diagramm auf `/auswertung`:**  
-   Das Säulendiagramm *„Gemeldete Cloudkosten je Tag“* visualisiert bisher nur die absoluten Werte
-   je Tag, ohne das Normalniveau oder die Entwicklungsrichtung direkt im Diagramm kenntlich zu machen.  
-   **Neu in 5.9:** Einblendung einer horizontalen **Durchschnitts-Benchmark-Linie** (z. B. *„Ø 0,0340 $ / Tag“*)
-   über den gesamten Zeitraum sowie bei 30-Tage-Auswertungen einer **gleitenden 7-Tage-Trendlinie** zur
-   Glättung von Wochentagsschwankungen und klaren Erkennung von Kostentrends.
-
-7. **Prozentuale Schrittdauer und Pipeline-Ablaufplan auf `/auswertung`:**  
-   Das Diagramm *„Summierte Dauer je Verarbeitungsschritt“* listet Schritte bisher nur als einfache
-   Sekunden-Rangliste („größter zuerst“) auf.  
-   **Neu in 5.9:**
-   - **Prozentualer Anteil an der Gesamtrechenzeit:** Anzeige und Umschaltmöglichkeit auf den relativen Zeitanteil jedes Schritts ($p_i = T_i / T_{\text{gesamt}} \times 100\,\%$), mit dualer Beschriftung (z. B. *„48,9 % (145,2 s)“*).
-   - **Pipeline-Ablaufplan:** Alternative Darstellung der Schritte in ihrer tatsächlichen Durchlauf-Reihenfolge (`Vorbereitung → Relevanzprüfung → Zusammenfassung → Aktionserkennung → Termin-/Aufgabenerkennung → Normalisierung → Vorschlagserstellung`), wodurch der zeitliche Haupt-Flaschenhals im Workflow auf einen Blick sichtbar wird.
-
-8. **Adaptive Zeiteinheiten und dynamische Skalierung für Aufrufdauern:**  
-   Bisher wird die summierte Aufrufdauer auf `/auswertung` in der Faktentabelle und im Diagramm starr in Sekunden ausgegeben (z. B. `75 240,0 s`).  
-   **Neu in 5.9:** Automatische Anpassung der Einheit an die Größenordnung:
-   - `< 60 s`: Sekunden (`s`)
-   - `60 s bis < 3600 s`: Minuten (`Min.`), z. B. `4 Min. 12 s`
-   - `1 Std. bis < 24 Std.`: Stunden (`Std.`), z. B. `2 Std. 15 Min.`
-   - `≥ 24 Std.`: Tage (`T`), z. B. `3 T 4 Std.`
-   - In Diagrammen passt sich die Skalierung der Achse dynamisch an das Maximum an (Sekunden → Minuten → Stunden).
-
-9. **Anklickbare Kennzahlen mit interaktiven Detailseiten auf `/auswertung` (`/auswertung/details`):**  
-   In der Faktentabelle (`.facts-table`) auf `/auswertung` sind Kennzahlen wie *„Aufrufe (einzelne Versuche)“*,
-   *„davon fehlgeschlagen“*, *„Gemeldete Cloudkosten“*, *„Cloudaufrufe ohne Kostenangabe“*, *„Cloudkosten in Euro“*,
-   *„Geschätzte Stromkosten Ollama“*, *„Summierte Aufrufdauer“*, *„Dauer je Aufruf“* und *„Unvollständige Erfassung“*
-   bisher reine Textzeilen.  
-   **Neu in 5.9:** Jeder dieser Einträge wird **anklickbar** und führt zu einer dedizierten **Detailseite
-   (`/auswertung/details?metric=...`)**, die den aktuellen Filterkontext (Zeitraum, Modus, Modell etc.) übernimmt.
-   Die Detailseite schlüsselt die zugrundeliegenden Einzelaufrufe, Zeitstempel, Berechnungsformeln, Tokens, Kosten,
-   Verarbeitungsstufen und verknüpften E-Mails transparent und nachvollziehbar auf.
+**Nicht Teil von 5.9:** neue Einstellungen in `config.yaml`, Änderungen an Prompts oder Modellen,
+JavaScript-Pflicht für neue Funktionen und das Speichern von Mail- oder LLM-Inhalten im
+Metrik-Journal.
 
 ---
 
-## 2. Detaillierte Spezifikation der Anforderungen
+## 2. Detaillierte Spezifikation
 
-### 2.1 Anforderung 1: Strukturierte Konflikt-Auflösung mit Varianten-Gegenüberstellung
+### 2.1 Widersprüche mit Gegenüberstellung und 1-Klick-Auswahl
 
-#### 2.1.1 Problem und Ursache im Bestand
-In [src/mailhelp/proposals/proposal_merge.py](../src/mailhelp/proposals/proposal_merge.py)
-vergleicht `_merge_field` Werte zwischen dem bestehenden Vorschlag (`previous`) und dem
-eingehenden Stand (`incoming`):
+#### 2.1.1 Bestand
+
+[proposal_merge.py](../src/mailhelp/proposals/proposal_merge.py) vergleicht in `_merge_field` die
+Felder aus `_MERGED_FIELDS = ("start", "end", "due", "location", "video_link", "known_temporal_facts")`.
+Ein Widerspruch entsteht in zwei Fällen:
+
+- Das Feld steht in `previous.protected_fields`, wurde also vom Nutzer festgelegt.
+- Die Quelle ist neuer oder ihr Datum ist unbekannt, und `_replaces` greift nicht.
+
+In beiden Fällen wird nur der Text `Widerspruch bei {field}: Angaben aus den Quellen vergleichen.`
+an `open_questions` (`list[str]`) angehängt. Der eingehende Wert wird **nicht gespeichert**. Er geht
+nach der Zusammenführung verloren. Weitere textuelle Rückfragen derselben Familie:
+
+- `Abweichender Beginn ohne belegtes Ende: Quellen vergleichen.`
+- `Ganztägige und zeitgebundene Angaben aus den Quellen vergleichen.`
+- `Widerspruch zum manuell festgelegten Datum oder Beginn: Quellen vergleichen.`
+- `Widersprüchliches Zeitintervall aus den Quellen prüfen.`
+
+#### 2.1.2 Datenmodell
+
+`Proposal` erhält ein neues, abwärtskompatibles Feld `field_conflicts: list[FieldConflict] = []`
+(höchstens 10 Einträge). Vorschläge ohne dieses Feld laden unverändert.
+
 ```python
-if field in previous.protected_fields:
-    self.questions.append(f"Widerspruch bei {field}: Angaben aus den Quellen vergleichen.")
-...
-elif self.newer or self.latest_new is None or self.latest_new == self.latest_old:
-    self.questions.append(f"Widerspruch bei {field}: Angaben aus den Quellen vergleichen.")
+ConflictField = Literal["interval", "start", "end", "due", "location", "video_link"]
+
+class ConflictVariant(StrictModel):
+    id: Literal["a", "b", "c"]
+    # Typisierte Werte, keine Anzeigetexte; formatiert wird erst bei der Darstellung (Zeitzone, ganztägig).
+    start: AwareDatetime | None = None      # für "interval" und "start"
+    end: AwareDatetime | None = None        # für "interval" und "end"
+    due: AwareDatetime | date | None = None
+    text: str | None = Field(default=None, max_length=500)   # location, video_link
+    origin: Literal["current", "manual", "source"]          # bisheriger Wert, vom Nutzer festgelegt, neue Quelle
+    source: ProposalReference | None = None                  # Mail, aus der die Variante stammt
+    source_subject: str | None = Field(default=None, max_length=200)
+    source_sent_at: AwareDatetime | None = None
+    derived_end: bool = False   # Ende aus bisheriger Dauer abgeleitet (siehe unten)
+
+class FieldConflict(StrictModel):
+    id: str = Field(pattern=r"^[a-z_]{1,20}-[0-9]{1,3}$")   # z. B. "interval-1", stabil je Vorschlag
+    field: ConflictField
+    variants: list[ConflictVariant] = Field(min_length=2, max_length=3)
+    question: str   # genau dieser Eintrag steht in open_questions
 ```
-Dies führt zu folgenden Defiziten:
-- **Kryptischer Feldname:** `end` statt verständlichem deutschen Begriff wie *„Endzeit“*.
-- **Fehlende Werte:** Die Frage nennt weder den bisherigen Wert (`16:30 Uhr`) noch den neuen
-  Wert (`19:30 Uhr`). Der Anwender hat keine Ahnung, worin der Widerspruch besteht.
-- **Keine Entscheidungshilfe:** Es gibt keine direkte Aktionsmöglichkeit. Der Nutzer muss den
-  Vorschlag manuell editieren oder die Antwort als Freitext tippen.
 
-#### 2.1.2 Lösungsdesign in 5.9
-1. **Strukturiertes Datenmodell für Feldkonflikte (`FieldConflict`):**
-   ```python
-   class FieldConflict(StrictModel):
-       field: str  # z. B. "end", "start", "location", "title"
-       field_label: str  # z. B. "Endzeit", "Beginn", "Ort"
-       old_value: str  # Formatierter bisheriger Wert, z. B. "16:30 Uhr"
-       new_value: str  # Formatierter eingehender Wert, z. B. "19:30 Uhr"
-       old_source_label: str  # z. B. "Bisheriger Vorschlag"
-       new_source_label: str  # z. B. "Quelle vom 08.11.2026"
-   ```
-2. **Verständliche Fragetexte:**
-   - Statt `Widerspruch bei end: Angaben aus den Quellen vergleichen.` wird formuliert:
-     > *„Widerspruch bei der Endzeit: 16:30 Uhr (bisher) vs. 19:30 Uhr (hinzugefügt). Welche Endzeit soll gelten?“*
-3. **Direkte 1-Klick-Entscheidung (Web & Telegram):**
-   - **Weboberfläche (Review-Karte):**
-     - Direkt unter der Frage erscheinen zwei Auswahlschaltflächen:
-       - `[ 16:30 Uhr behalten ]`
-       - `[ 19:30 Uhr übernehmen ]`
-     - Ein Klick sendet die Entscheidung, übernimmt den gewählten Wert, entfernt die Frage
-       und setzt den Vorschlag auf `pending_confirmation`.
-     - Ein optionales Freitextfeld bleibt für manuelle Sonderfälle erhalten.
-   - **Telegram:**
-     - Die Nachricht enthält die Gegenüberstellung beider Werte und bietet zwei Inline-Buttons:
-       - `[ 16:30 Uhr ]` | `[ 19:30 Uhr ]`
+**Regeln:**
 
----
+- **Zeitraum statt Einzelfelder.** Unterscheiden sich `start` und `end` in derselben
+  Zusammenführung, entsteht genau ein Konflikt `interval`. Einzeln wählbare Beginn- und Endzeiten
+  würden sonst unsinnige Kombinationen erlauben, etwa einen neuen Beginn mit einem alten Ende vor
+  diesem Beginn.
+- **Abweichender Beginn ohne belegtes Ende.** Dieser Fall wird ebenfalls ein Konflikt `interval`.
+  Die neue Variante übernimmt die bisherige Dauer (`derived_end = True`). Die Anzeige sagt das
+  ausdrücklich: *„18:00–18:30 Uhr (Dauer wie bisher)“*.
+- **Ein Konflikt je Feld.** Bringt eine weitere Quelle einen dritten, abweichenden Wert, wird er als
+  Variante `c` ergänzt. Bei mehr als drei Werten bleibt der Konflikt ohne Schaltflächen und verweist
+  auf „Selbst ändern“.
+- **Fragetext und Konflikt gehören zusammen.** Wird ein Konflikt aufgelöst, verschwinden
+  Konflikteintrag und Fragetext gemeinsam, und zwar über `FieldConflict.id`, nicht über einen
+  Textvergleich. Ändert der Nutzer das Feld manuell oder kommt eine Quelle mit einem passenden Wert,
+  entfällt der Konflikt ebenso.
+- **Bestehende Präfix-Logik bleibt intakt.** `_answered_questions` entfernt Fragen über
+  Textpräfixe (`_TIME_QUESTIONS`). Die neuen Texte dürfen mit keinem dieser Präfixe und mit keinem
+  Eintrag aus `RECONCILIATION_QUESTIONS` beginnen. Ein Test stellt das sicher.
+- **Altbestand.** Gespeicherte Vorschläge mit dem alten Text behalten ihn. Sie zeigen keine
+  Schaltflächen, da der eingehende Wert nie gespeichert wurde, und werden nicht migriert.
+- **Ohne Schaltflächen, aber mit Werten im Text:** ganztägig gegen zeitgebunden, Widerspruch zum
+  manuell festgelegten Datum, ungültiges Intervall und zusätzliche Beschreibung. Diese Fälle
+  brauchen weiterhin eine Bearbeitung.
 
-### 2.2 Anforderung 2: Vollständige Quellmail-Anzeige für Aufgaben in der Vorschlagsübersicht
+#### 2.1.3 Texte
 
-#### 2.2.1 Problem im Bestand
-In der Vorschlagsübersicht ([src/mailhelp/web/review_pages.py](../src/mailhelp/web/review_pages.py))
-wird der Quelltext bei Terminen und Aufgaben ungleich behandelt:
-- Während bei Terminen die Quell-E-Mail vollständig dargestellt wird, ist sie bei Aufgaben
-  oft verkürzt oder erfordert zusätzliche Klicks auf die Detailseite (`/vorschlag/...`).
-- Für Nutzer, die Aufgaben schnell freigeben oder ablehnen möchten, ist das zeitraubend,
-  weil sie den vollständigen Wortlaut der E-Mail (z. B. Handlungsanweisung, Fristkontext,
-  Absenderdetails) direkt im Blick haben müssen.
+Die Feldnamen sind deutsch: Zeitraum, Beginn, Endzeit, Fälligkeit, Ort, Videolink. Die
+Formatierung hängt vom Kontext ab:
 
-#### 2.2.2 Lösungsdesign in 5.9
-1. **Gleichbehandlung von Terminen und Aufgaben:**
-   - In der Vorschlagsübersicht (`overview_page` und `proposal_card`) wird für Aufgabenvorschläge
-     (`ProposalKind.TASK`) standardmäßig derselbe vollständige Quellmail-Bereich (`mail_section(mail)`)
-     gerendert wie bei Terminvorschlägen.
-2. **Datenbereitstellung im `Overview`:**
-   - Der Review-Dienst stellt sicher, dass `MailView` (mit dem vollständigen E-Mail-Text und
-     etwaigen Bildanhang-Vorschauen) auch für alle offenen Aufgaben in der Übersicht geladen ist.
-3. **Kompaktes, lesefreundliches Layout:**
-   - Der Quelltext wird sauber formatiert unter der Aufgabenkarte platziert:
-     - Absender, Betreff, Empfangsdatum
-     - Vollständiger Mailtext mit Textumbruch
-     - Bildanhänge/Scans direkt sichtbar (falls vorhanden)
-   - Schutz bei abgelaufener Aufbewahrungsfrist (`retention.full_mail_days`): Wurde der Volltext
-     bereits bereinigt, wird der bewährte Status-Hinweis angezeigt.
+- Gleiches Datum: nur die Uhrzeiten, also `16:30 Uhr`.
+- Anderes Datum: `Sa 15.11., 16:30 Uhr`.
+- Zeitraum: `Sa 15.11., 16:00–16:30 Uhr`.
 
----
+| Fall | Fragetext |
+| :--- | :--- |
+| Neue Quelle widerspricht | *„Widerspruch beim Zeitraum: bisher Sa 15.11., 16:00–16:30 Uhr, laut Mail „Elternabend – Änderung“ vom 08.11. 16:00–19:30 Uhr. Welcher Zeitraum soll gelten?“* |
+| Vom Nutzer festgelegter Wert | *„Widerspruch beim Ort: von dir festgelegt „Aula“, laut Mail vom 08.11. „Turnhalle“. Welcher Ort soll gelten?“* |
+| Text ohne Varianten | *„Ganztägige und zeitgebundene Angaben widersprechen sich: bisher ganztägig am 15.11., laut Mail vom 08.11. 16:00–19:30 Uhr. Bitte den Termin bearbeiten.“* |
 
-### 2.3 Anforderung 3: Responsive Widescreen-Optimierung und Spalten-Layout für `/themen`
+Alle Werte stammen aus Mails beziehungsweise aus LLM-Ausgaben und gelten als **nicht
+vertrauenswürdig**. Im Web werden sie escaped, in Telegram ohne HTML-Parse-Modus oder escaped
+gesendet. Orte werden in Schaltflächen nach 40 Zeichen mit „…“ gekürzt. Von Videolinks zeigt die
+Schaltfläche nur die Domain, die volle Adresse steht als Text in der Gegenüberstellung.
 
-#### 2.3.1 Problem und Ursachen im Bestand
-Auf Desktop- und Widescreen-Monitoren (z. B. 1920×1080 oder 2560×1440) zeigt `/themen`
-zwei deutliche visuelle Mängel:
+#### 2.1.4 Weboberfläche
 
-1. **Unzureichende Ausnutzung der Bildschirmbreite:**
-   - Standardmäßig begrenzt `main { max-width: 1080px; }` in [src/mailhelp/web/static/app.css](../src/mailhelp/web/static/app.css#L151)
-     den Inhaltsbereich. Bei tabellarischen Datenansichten mit vielen Spalten führt dies dazu,
-     dass die Spalten extrem eng zusammengequetscht werden, während mehr als die Hälfte des Bildschirms rechts weiß bleibt.
-2. **Aggressiver Zeichenumbruch (`overflow-wrap: anywhere`):**
-   - In `.topic-table th, .topic-table td` ([src/mailhelp/web/static/app.css](../src/mailhelp/web/static/app.css#L892))
-     ist `overflow-wrap: anywhere;` global gesetzt. Da der Browser-Tabellenlayout-Algorithmus
-     damit jedes einzelne Zeichen als potenziellen Umbruchpunkt bewertet, werden kurze Wörter
-     und Buttons brutal zerteilt:
-     - *„Geltungsbereich“* bricht um in *„Geltun“*, *„gsbere“*, *„ich“*.
-     - *„alle Postfächer“* bricht um in *„alle“*, *„Postfä“*, *„cher“*.
-     - *„Ausschlüsse“* bricht um in *„Ausschlü“*, *„sse“*.
-     - Der Button *„Bearbeiten“* wird zu einem dreizeiligen Block *„Bear“ / „beit“ / „en“*.
-3. **Such- und Filterleiste `#topic-filter`:**
-   - Das zweispaltige Raster (`grid-template-columns: minmax(0, 1fr) minmax(90px, .45fr)`)
-     wirkt auf großen Bildschirmen auseinandergezogen, während der Button „Neues Thema“ isoliert darunter steht.
+Auf der Vorschlagskarte ersetzt eine Gegenüberstellung die Textfrage. Sie nutzt die vorhandenen
+Klassen `.compare` und `.compare-side`: zwei Spalten ab 720 px, darunter gestapelt.
 
-#### 2.3.2 Lösungsdesign in 5.9
-1. **Container-Erweiterung für Themen-Seiten:**
-   - Analog zu `.split-view` (1500px) erhält der Hauptcontainer auf Themen-Seiten mehr Raum:
-     ```css
-     main:has(.topic-table), main:has(.topic-heading) {
-       max-width: min(96vw, 1500px);
-     }
-     ```
-2. **Robuste Spaltenbreiten und Umbruchschutz (`white-space: nowrap`):**
-   - Für Metadaten- und Aktionsspalten wird Umbruchschutz definiert:
-     - **Status:** `white-space: nowrap; width: 90px;`
-     - **Geltungsbereich:** `white-space: nowrap; width: 140px;`
-     - **Beispiele / Ausschlüsse:** `white-space: nowrap; width: 120px; text-align: center;`
-     - **Bearbeiten:** `white-space: nowrap; width: 110px; text-align: right;` (Button bleibt stets einzeilig)
-     - **Thema:** `min-width: 180px; width: 22%;`
-     - **Beschreibung:** Nimmt den verbleibenden Platz flexibel ein (`min-width: 250px;`).
-3. **Behebung des aggressiven Zeichenumbruchs:**
-   - Ersetzen von `overflow-wrap: anywhere` durch `overflow-wrap: break-word` (mit CSS-Silbentrennung `hyphens: auto;` nur dort, wo langer Freitext fließt).
-   - In Kopfzellen (`th`) und Metadaten-Zellen (`td`) wird kein willkürlicher Wortzerfall mehr zugelassen.
-4. **Aufgeräumte Toolbar:**
-   - Auf Desktop-Bildschirmen wird `#topic-filter` mit den Aktionen („Themen suchen“, „Neues Thema“)
-     harmonisch in einer flexiblen Toolbar-Zeile ausgerichtet.
-5. **Erhalt der mobilen Responsivität:**
-   - Die bestehende Kartenansicht für Mobilgeräte (`@media (max-width: 800px)`) bleibt vollständig
-     intakt und funktional.
+```
+┌ ⚠️ Widerspruch beim Zeitraum ─────────────────────────────────────────┐
+│ Bisher                          │ Neu                                  │
+│ Sa 15.11., 16:00–16:30 Uhr      │ Sa 15.11., 16:00–19:30 Uhr           │
+│ aus „Einladung Elternabend“,    │ aus „Elternabend – Änderung“,        │
+│ 05.11.                          │ 08.11.                               │
+│ [ 16:00–16:30 Uhr behalten ]    │ [ 16:00–19:30 Uhr übernehmen ]       │
+└──────────────────────────────── Selbst ändern ›  ────────────────────┘
+```
+
+- Jede Schaltfläche ist ein eigenes `POST`-Formular an `/vorschlag/{mail}/{id}/konflikt`. Es trägt
+  ein CSRF-Token, `version`, `conflict_id`, `variant_id` und einen Idempotenzschlüssel. Die Seite
+  funktioniert vollständig ohne JavaScript.
+- Die neue Variante wird nicht vorausgewählt und nicht farblich bevorzugt. Die Entscheidung liegt
+  beim Nutzer.
+- Bei der Ausführung prüft der Server erneut Sitzung, Version, Konflikt-ID und Variante. Er übernimmt
+  den Wert, nimmt das Feld in `protected_fields` auf (der Nutzer hat entschieden), entfernt Konflikt
+  und Frage und speichert eine neue Version. Den Status bestimmt die bestehende Logik:
+  `needs_clarification` bleibt, solange andere Fragen offen sind.
+- **Keine externe Anlage.** Danach erscheint die Karte der neuen Version mit dem gewohnten
+  „Bestätigen“. Die Auswahl ist keine Freigabe.
+- **Wiederholung und Konkurrenz.** Derselbe Klick mit demselben Idempotenzschlüssel hat dieselbe
+  Wirkung und erzeugt keine zweite Version. Eine veraltete Version, ein entfallener Konflikt oder eine
+  fremde Variante führen zu *„Der Vorschlag wurde inzwischen geändert. Bitte die aktuelle Fassung
+  prüfen.“* und lassen den Vorschlag unverändert.
+- Das Freitextfeld für Rückfragen bleibt für Sonderfälle erhalten.
+
+#### 2.1.5 Telegram
+
+```
+⚠️ Widerspruch beim Zeitraum – Elternabend
+• bisher: Sa 15.11., 16:00–16:30 Uhr (Mail vom 05.11.)
+• neu: Sa 15.11., 16:00–19:30 Uhr (Mail vom 08.11.)
+Welcher Zeitraum soll gelten?
+
+[ 16:00–16:30 behalten ] [ 16:00–19:30 übernehmen ]
+[ ✏️ Selbst ändern ]
+```
+
+- Eine neue Aktion `DecisionAction.CHOOSE_VARIANT` arbeitet wie die bestehenden Aktionen mit
+  Token-Callbacks und bleibt damit unter der Grenze von 64 Byte. Gebunden ist sie an Mail, Vorschlag,
+  Version, `conflict_id` und `variant_id`.
+- Nach dem Klick wird die Nachricht quittiert („Zeitraum 16:00–19:30 Uhr übernommen“). Anschließend
+  wird die neue Version über die bestehende Outbox vorgelegt. Bei mehreren offenen Fragen folgt die
+  nächste, sonst erscheinen die Bestätigungsschaltflächen.
+- Doppelte Klicks, Klicks nach einem Neustart und Klicks auf veraltete Nachrichten verhalten sich wie
+  im Web: idempotent beziehungsweise mit einem Hinweis und ohne Änderung.
 
 ---
 
-### 2.4 Anforderung 4: Zähler für insgesamt verarbeitete Mails in der Statusanzeige
+### 2.2 Quellbeleg bei Terminen und Aufgaben standardmäßig aufgeklappt
 
-#### 2.4.1 Problem und Bestand
-In der aktuellen Statusanzeige auf `/status` ([src/mailhelp/web/status_pages.py](../src/mailhelp/web/status_pages.py))
-und im Datenmodell `SystemStatus` ([src/mailhelp/review/views.py](../src/mailhelp/review/views.py)):
-- Unter `<h2>Mails</h2>` existiert lediglich:
-  - `("Gespeichert", str(system.mails_total))` – dies ist die reine Anzahl der im Dateisystem liegenden Datensätze.
-  - `("Zuletzt verarbeitet", _when(system.last_processed, zone))`
-  - `("Warten auf Relevanzentscheidung", str(system.mails_waiting_relevance))`
-  - `("Zurückgestellt (neuer Versuch später)", str(system.mails_deferred))`
-- In der Kopf-Zusammenfassung (`.status-summary`) wird zwar der Zeitpunkt der letzten Mail genannt, aber keine Gesamtzahl:
-  > *„X offene Vorschläge · Y Relevanzfragen. Letzte verarbeitete Mail: 12.11.2026, 07:45.“*
-- Dem Anwender fehlt damit eine zentrale Kennzahl über das Gesamtvolumen der von Mailhelp bereits
-  vollständig bewältigten Korrespondenz.
+#### 2.2.1 Bestand
 
-#### 2.4.2 Lösungsdesign in 5.9
-1. **Definition und Berechnung von `mails_processed`:**
-   - Als *verarbeitet* gilt jede E-Mail, deren Verarbeitungszyklus vollständig abgeschlossen ist:
-     `state.steps.completion == "completed"`.
-     Dies umfasst alle relevanten ausgewerteten Mails, als irrelevant eingestuften Mails und als Duplikate erkannten Mails (alle erhalten bei regulärem Abschluss `completion = "completed"`).
-   - In `SystemStatus` wird das Feld `mails_processed: int` ergänzt:
-     ```python
-     @dataclass(frozen=True)
-     class SystemStatus:
-         mails_total: int
-         mails_processed: int  # NEU in 5.9: Anzahl aller fertig verarbeiteten Mails
-         mails_failed: int
-         mails_deferred: int
-         mails_waiting_relevance: int
-         last_processed: datetime | None
-         ...
-     ```
-   - In `ReviewViews.status()` wird der Zähler ermittelt:
-     ```python
-     mails_processed = sum(state.steps.completion == "completed" for state in mails)
-     ```
-2. **Darstellung in der Weboberfläche (`/status`):**
-   - **In der Zusammenfassungskarte (`.status-summary`):**
-     > *„{mails_processed} Mails insgesamt verarbeitet · {open} offene Vorschläge · {relevance} Relevanzfragen.“*
-   - **In den Betriebsdetails unter `<h2>Mails</h2>`:**
-     ```html
-     <dl class="facts-table">
-       <dt>Insgesamt verarbeitet</dt><dd>{system.mails_processed}</dd>
-       <dt>Aktuell gespeichert</dt><dd>{system.mails_total}</dd>
-       <dt>Zuletzt verarbeitet</dt><dd>{last_processed}</dd>
-       <dt>Warten auf Relevanzentscheidung</dt><dd>{system.mails_waiting_relevance}</dd>
-       <dt>Zurückgestellt (neuer Versuch später)</dt><dd>{system.mails_deferred}</dd>
-     </dl>
-     ```
-     *(Aus dem bisherigen Eintrag „Gespeichert“ wird zur klaren Unterscheidung „Aktuell gespeichert“, platziert direkt unter „Insgesamt verarbeitet“).*
-3. **Telegram-Statusbericht (`/status`):**
-   - Im Telegram-Kommando `/status` ([src/mailhelp/telegram/commands.py](../src/mailhelp/telegram/commands.py))
-     wird die Gesamtzahl der verarbeiteten Mails ebenfalls kurz und prägnant aufgeführt:
-     > *„📊 Status: {mails_processed} Mails insgesamt verarbeitet · {open} offene Entscheidungen...“*
+In [review_pages.py](../src/mailhelp/web/review_pages.py) baut `detail_page` den Abschnitt
+`disclosure("Quellbeleg aus E-Mail / Anhang", mail_section(mail), opened=previews)`.
+`previews` ist nur dann wahr, wenn ein Anhang eine Bildvorschau hat. Die Art des Vorschlags spielt
+keine Rolle. Ein Termin aus einem eingescannten Elternbrief zeigt die Mail daher sofort, eine
+Aufgabe aus einer reinen Textmail nicht. Im Split-View ab 1024 px lädt `app.js` genau diese
+Detailseite in den rechten Bereich. Die Kartenliste selbst zeigt nie eine Mail.
+
+#### 2.2.2 Lösung
+
+Die Regel hängt nur von der Bildschirmbreite ab, nicht von der Art (Termin, Aufgabe, Änderung,
+Absage) und nicht von Bildvorschauen:
+
+| Breite | Anfangszustand des Quellbelegs |
+| :--- | :--- |
+| ab 1024 px (Split-View und eigenständige Detailseite) | aufgeklappt, vollständiger Mailtext mit Bildvorschauen |
+| unter 1024 px | **immer eingeklappt**, auch bei Bildvorschauen (bisher dort aufgeklappt) |
+| ohne JavaScript, jede Breite | eingeklappt (sichere Voreinstellung) |
+
+**Umsetzung:**
+
+- Der Server rendert den Abschnitt immer **ohne** `open` und markiert ihn mit
+  `<details class="disclosure" data-source-mail>`. Das bisherige `opened=previews` entfällt.
+- `app.js` setzt `open` beim Laden der Detailseite und beim Füllen des Split-View-Bereichs, wenn
+  `matchMedia("(min-width: 1024px)")` zutrifft. Die Grenze ist dieselbe wie beim Split-View in
+  `app.css`.
+- Ein späteres Ändern der Fenstergröße schaltet den Zustand nicht um. Was der Nutzer gerade liest,
+  klappt nicht von selbst zu.
+- Der Server kann die Breite nicht kennen und CSS kann `<details>` nicht öffnen. Deshalb ist diese
+  kleine JavaScript-Erweiterung nötig. Ohne JavaScript bleibt alles bedienbar, nur eingeklappt.
+- Der Abschnitt lässt sich jederzeit auf- und zuklappen. Der Zustand wird nicht gespeichert.
+- Die Zusammenfassung des eingeklappten Abschnitts nennt den Inhalt, etwa
+  *„Quellbeleg aus E-Mail / Anhang (Mail von Schule, 2 Bilder)“*. So sieht man auch eingeklappt,
+  dass Bildbelege vorhanden sind.
+- Ist der Volltext nach `retention.full_mail_days` bereinigt, erscheint wie bisher der Hinweis von
+  `mail_section`.
+- **Die Kartenliste bleibt kompakt.** Volle Mails unter jeder Karte würden die Liste auf Mobilgeräten
+  stark verlängern. Bei Serien und mehreren Vorschlägen aus einer Mail stünde dieselbe Mail
+  mehrfach da. Der Beleg (`evidence`) unter „Beschreibung und Beleg“ bleibt die Kurzfassung in der
+  Liste.
 
 ---
 
-### 2.5 Anforderung 5: Logarithmischer Scatter-Plot mit Trendlinie für Aufrufdauern auf `/auswertung`
+### 2.3 Themenliste `/themen` für breite Bildschirme
 
-#### 2.5.1 Problem und Ursachen im Bestand
-In [src/mailhelp/web/charts.py](../src/mailhelp/web/charts.py) teilt `statistics_charts`
-die Aufrufdauern über feste Klassen `DURATION_CLASSES` in ein Säulendiagramm ein:
-`((1, "< 1 s"), (2, "1–2 s"), (5, "2–5 s"), (10, "5–10 s"), (30, "10–30 s"), (60, "30–60 s"), (None, "> 60 s"))`.
+#### 2.3.1 Bestand
 
-Dies führt zu gravierenden Defiziten bei der Leistungsbeurteilung:
-1. **Verlust im Subsekunden-Bereich:** Schnelle Anfragen (lokale Ollama-Modelle oder einfache Relevanzchecks mit 0,1 bis 0,8 s) landen alle in derselben Kategorie `< 1 s`. Es gibt keine Differenzierung zwischen blitzschnellen 150 ms und trägen 950 ms.
-2. **Keine zeitliche Zuordnung:** Man sieht nicht, *wann* langsame Aufrufe auftraten (z. B. nächtliche Stapelverarbeitung, Provider-Latenzspitzen oder einzelne Ausreißer).
-3. **Kein echter Trend erkennbar:** Ob eine Anpassung von Modellparametern oder Prompts die Antwortzeiten verbessert hat, ist im statischen Säulendiagramm nicht ablesbar.
+- `main { max-width: 1080px; }` gilt auch für die sechsspaltige Themenliste. Die Spalten
+  „Beschreibung“ und „Geltungsbereich“ werden schmal, an den Seiten bleibt viel Fläche frei.
+- `.topic-table th, .topic-table td { overflow-wrap: anywhere; }` erlaubt dem Tabellenalgorithmus
+  Umbrüche an jedem Zeichen. Das führt zu *„Geltun/gsbere/ich“*, *„Postfä/cher“*,
+  *„Ausschlü/sse“* und einem dreizeiligen *„Bear/beit/en“*.
+- `#topic-filter` ist ein zweispaltiges Raster. „Neues Thema“ steht getrennt darunter.
 
-#### 2.5.2 Lösungsdesign in 5.9: Logarithmische Punktwolke mit Median-Trendlinie
-1. **Geometrie und Achsenskalierung (Logarithmisch 0,1 s bis 100 s):**
-   - **Y-Achse:** Logarithmische Skalierung über 3 Zehnerpotenzen von $0,1\text{ s} = 10^{-1}$ über $1\text{ s} = 10^0$ und $10\text{ s} = 10^1$ bis $100\text{ s} = 10^2$ (oder dynamisch bis zum Maximum bei extremen Timeouts).
-     $$\text{log\_val} = \log_{10}(\max(d, 0,1))$$
-     $$y = \text{TOP} + \text{height} \times \left(1 - \frac{\text{log\_val} - (-1,0)}{\log_{10}(\max(100, \text{max\_dauer})) - (-1,0)}\right)$$
-   - **Gitterlinien:** Hauptlinien und Beschriftungen bei $0,1\text{ s}$, $1\text{ s}$, $10\text{ s}$, $100\text{ s}$ sowie feine Hilfslinien bei $0,2\text{ s}$, $0,5\text{ s}$, $2\text{ s}$, $5\text{ s}$, $20\text{ s}$, $50\text{ s}$.
-   - **X-Achse:** Zeitachse analog zu den Anruf- und Kostendiagrammen (Stunden bei 1 Tag, Tage bei 7/30 Tagen).
-2. **Punktwolke (Scatter Plot):**
-   - Jeder erfasste Aufruf wird als SVG-Punkt (`<circle>`) gezeichnet:
-     ```html
-     <circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" class="chart-point {css}" data-chart-detail="{detail}">
-       <title>{detail}</title>
-     </circle>
-     ```
-   - Farbcodierung: Grün (`.chart-ok`) für erfolgreiche Aufrufe, Rot (`.chart-failed`) für Fehler oder Abbrüche.
-   - Detailinformationen via Tooltip und ARIA-Label: *„12.11. 14:23 · Relevanz · 1,4 s · gemini-2.5-flash“*.
-3. **Zusätzliche Trendlinie (Gleitender Median):**
-   - Eine durchgehende Trendlinie (`<path class="chart-trend-line">`) verbindet den gleitenden Median der Aufrufdauern über die Zeitabschnitte.
-   - Der Median filtert Ausreißer zuverlässig heraus und visualisiert die tatsächliche Grundlast und Antwortgeschwindigkeit des KI-Dienstes.
-4. **Barrierefreiheit und CSP-Konformität:**
-   - 100 % Server-Side SVG ohne Fremdbibliotheken und ohne Inline-Skripte/Inline-Styles.
-   - Die Wertetabelle unter `<details><summary>Werte als Tabelle</summary>` bietet eine vollständige, screenreader-optimierte tabellarische Übersicht nach Zeitfenstern.
+#### 2.3.2 Lösung
 
----
+Die Breite gilt nur für die Liste, nicht für die Editorseiten. Diese bleiben mit
+`main:has(.topic-field) > form { max-width: 760px }` bewusst schmal.
 
-### 2.6 Anforderung 6: Durchschnitts- und Trendlinie im Cloudkosten-Diagramm auf `/auswertung`
+```css
+@media (min-width: 1024px) {
+  main:has(.topic-table) { max-width: 1320px; }
+}
+.topic-table th, .topic-table td { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.topic-table td small { overflow-wrap: anywhere; }            /* technische Themen-ID ohne Leerzeichen */
+.topic-table td[data-label="Beschreibung"] { overflow-wrap: break-word; }
+```
 
-#### 2.6.1 Problem und Bestand
-In [src/mailhelp/web/charts.py](../src/mailhelp/web/charts.py) stellt `column_chart("chart-costs", ...)`
-die Kosten je Tag (oder Stunde) als einfache Säulen dar:
-- **Fehlender visueller Maßstab:** Ob die Kosten eines Tages hoch oder niedrig waren, lässt sich nur
-  durch gedanklichen Abgleich mit den Textwerten oberhalb des Diagramms beurteilen.
-- **Wochentagsrauschen:** Regelmäßige Schwankungen (z. B. geringes Mailaufkommen am Wochenende,
-  hohes Aufkommen zur Wochenmitte) überlagern den eigentlichen Monatstrend.
+| Spalte | Regel | Begründung |
+| :--- | :--- | :--- |
+| Thema | `min-width: 12rem` | Name lesbar, ID darf umbrechen |
+| Status | `white-space: nowrap` | Kurze, feste Werte („aktiv“, „deaktiviert“) |
+| Geltungsbereich | `min-width: 9rem`, Umbruch nur an Leerzeichen | Mehrere Postfachnamen müssen umbrechen dürfen. `nowrap` würde überlaufen. |
+| Beispiele / Ausschlüsse | Zelle `nowrap`, `text-align: center`, `font-variant-numeric: tabular-nums`; Kopfzeile bricht an „ / “ um | Ziffern bleiben untereinander, die Kopfzeile erzwingt keine Überbreite |
+| Beschreibung | übrige Breite, `min-width: 16rem` | Der Text ist auf 160 Zeichen gekürzt und braucht bei 1320 px höchstens zwei Zeilen |
+| Aktion | `white-space: nowrap; text-align: right`; Kopfzeile „Bearbeiten“ nur für Screenreader sichtbar | Schaltfläche einzeilig, keine doppelte Beschriftung |
 
-#### 2.6.2 Lösungsdesign in 5.9: Horizontale Benchmark und gleitender 7-Tage-Trend
-1. **Horizontale Durchschnitts-Benchmark-Linie (Ø-Linie):**
-   - Auf Höhe des mathematischen Durchschnitts der dargestellten Periode wird eine gestrichelte
-     Referenzlinie über die gesamte Breite gezeichnet:
-     ```html
-     <line class="chart-average-line" stroke="var(--warn)" stroke-dasharray="5 3" stroke-width="1.5"
-           x1="{LEFT}" x2="{WIDTH - 8}" y1="{y:.1f}" y2="{y:.1f}" />
-     <text class="chart-average-text" x="{WIDTH - 10}" y="{y - 4:.1f}" text-anchor="end">
-       Ø {dollars(average)} / {period}
-     </text>
-     ```
-   - Alle Säulen, die über diese Benchmark ragen, kennzeichnen sofort erkennbar überdurchschnittlich
-     kostenintensive Tage (z. B. viele OCR-/Vision-Scans oder komplexe Anhänge).
-2. **Gleitender 7-Tage-Durchschnitt (bei 30-Tage-Auswertung):**
-   - Bei Auswertungszeiträumen von 30 Tagen wird zusätzlich eine geschwungene Trendlinie
-     (`<path class="chart-cost-trend">`) berechnet, die die Balkenmitten verbindet.
-   - Sie glättet das Wochenend-Rauschen und zeigt auf einen Blick, ob der laufende Monat
-     einen steigenden oder fallenden Kostentrend aufweist.
-3. **Legende und Barrierefreiheit:**
-   - Die Legende wird erweitert um: `┄ Ø Durchschnitt` sowie `— 7-Tage-Trend`.
-   - Die barrierefreie Wertetabelle (`<details><summary>Werte als Tabelle</summary>`) enthält
-     eine Summen- und Durchschnittszeile.
+**Werkzeugzeile:** Ab 720 px stehen in einer Flex-Zeile:
+
+- das Suchfeld (`flex: 1 1 18rem`, `max-width: 28rem`),
+- die Statusauswahl,
+- die Filterschaltfläche für Nutzung ohne JavaScript,
+- rechtsbündig „Neues Thema“ als primäre Schaltfläche.
+
+Darunter umbrechen die Elemente. Die Beschriftungen bleiben als sichtbare `<label>` erhalten.
+
+Die **mobile Kartenansicht** (`@media (max-width: 800px)`) bleibt unverändert und wird in der
+Abnahme erneut geprüft.
 
 ---
 
-### 2.7 Anforderung 7: Prozentuale Schrittdauer und Pipeline-Ablaufplan auf `/auswertung`
+### 2.4 Statuszähler „Mails verarbeitet“
 
-#### 2.7.1 Problem und Bestand
-In [src/mailhelp/web/charts.py](../src/mailhelp/web/charts.py) aggregiert `statistics_charts`
-die Schrittdauern in `by_stage: dict[str, float]` und stellt sie mittels `bar_list("chart-stages", ...)` dar:
-- **Nur absolute Sekundenwerte:** Es ist nicht auf einen Blick erkennbar, wie viel Prozent der gesamten Rechenzeit
-  einzelne Verarbeitungsschritte einnehmen (z. B. welcher Anteil auf die Relevanzprüfung im Vergleich zur Terminextraktion entfällt).
-- **Verlorener Prozesszusammenhang:** Die Balken sind stur absteigend nach Sekunden sortiert („größter zuerst“).
-  Der logische Durchlauf der Mailverarbeitung – welche Stufen chronologisch nacheinander durchlaufen werden
-  und wo in der Kette der Engpass liegt – bleibt verborgen.
+#### 2.4.1 Bestand
 
-#### 2.7.2 Lösungsdesign in 5.9
-1. **Duale Beschriftung und Prozent-Umschaltung (% der Gesamtrechenzeit):**
-   - Die Gesamtrechenzeit über alle Stufen wird berechnet:
-     $$T_{\text{gesamt}} = \sum_{s \in \text{Stufen}} T_s$$
-   - Der relative Anteil jeder Stufe ergibt sich zu:
-     $$p_s = \frac{T_s}{T_{\text{gesamt}}} \times 100\,\%$$
-   - **Duale Beschriftung:** Am Balken bzw. in der Detailansicht wird sowohl der Prozentwert als auch die absolute Dauer angezeigt (z. B. `48,9 % (145,2 s)`).
-   - **Umschaltoption:** Im Diagrammkopf kann zwischen *„Dauer (Sekunden)“* und *„Anteil (Prozent)“* gewechselt werden (die Achse skaliert im Prozentmodus passend bis 100 % bzw. zum nächsthöheren Rundenwert).
-2. **Pipeline-Ablaufplan (Kaskaden- und Flaschenhals-Ansicht):**
-   - Chronologische Modell-Reihenfolge der Mailhelp-Pipeline:
-     1. `preparation` (Aufbereitung & Mailparsing)
-     2. `relevance` (Relevanzprüfung gegen Themen/Regeln)
-     3. `summary` (Zusammenfassung der Mail)
-     4. `action_detection` (Aktionserkennung: Aufgaben/Termine)
-     5. `action_router` (Aktionszuordnung)
-     6. `event_extraction` / `task_extraction` (Termin- & Aufgabenerkennung)
-     7. `normalization` (Normalisierung)
-     8. `proposal_building` (Vorschlagserstellung & Policies)
-     9. `duplicate_precheck` (Duplikatprüfung)
-     10. `auto_draft` (Antwortentwurf)
-   - **Darstellung als Prozess-Flow (Server-Side SVG):**
-     - Die Schritte werden in ihrer natürlichen Reihenfolge mit Verbindungspfeilen (`→`) dargestellt.
-     - Jeder Schritt zeigt seine Dauer und seinen relativen Prozentanteil an.
-     - Stufen mit überdurchschnittlich hohem Zeitbedarf (die Flaschenhälse) werden optisch hervorgehoben (z. B. farblich akzentuierter Fortschrittsbalken).
-   - **Umschaltung am Diagramm:**
-     - `[ Rangliste (nach Dauer) ]`
-     - `[ Ablaufplan (Pipeline) ]`
-3. **Barrierefreie Wertetabelle:**
-   - Die Tabelle unter `<details><summary>Werte als Tabelle</summary>` weist neben Schrittname und Dauer in Sekunden auch den prozentualen Anteil und die Pipeline-Position aus.
+`SystemStatus.mails_total` zählt alle gespeicherten Mailzustände und erscheint als „Gespeichert“.
+Der Zähler eignet sich als Grundlage, weil die Aufbewahrung (`runtime/retention.py`) Zustände nur
+**bereinigt** und nicht löscht. Identität und Ergebnis bleiben erhalten.
+
+#### 2.4.2 Lösung
+
+- **Definition:** `mails_processed = Anzahl der Zustände mit steps.completion == "completed"`. Das
+  schließt irrelevante Mails und Duplikate ein. Der Wert wird bei jedem Aufruf aus dem Zustand
+  berechnet. Es gibt keine eigene Zählerdatei, damit nichts doppelt gezählt wird und kein
+  Neustartproblem entsteht.
+- Zustände mit `completion == "skipped"` zählen nicht. In K7 wird geprüft, wann `skipped` gesetzt
+  wird, und das Ergebnis in der Spezifikation festgehalten.
+- Wird eine Mail neu analysiert, zählt sie bis zum erneuten Abschluss nicht mit. Die Zahl kann dabei
+  kurz sinken. Das ist gewollt und wird in der Hilfe beschrieben.
+- **`/status`, Zusammenfassung:** Der Satz zur letzten Mail wird erweitert. Die zu erledigenden
+  Zahlen bleiben vorne:
+  > *„3 offene Vorschläge · 1 Relevanzfrage.“*
+  > *„Bisher 1.234 Mails verarbeitet, zuletzt am 12.11.2026, 07:45.“*
+- **`/status`, Abschnitt „Mails“:**
+
+  | Bezeichnung | Wert |
+  | :--- | :--- |
+  | Verarbeitet (abgeschlossen) | `mails_processed` |
+  | Gespeichert (alle Zustände) | `mails_total` |
+  | Zuletzt verarbeitet | wie bisher |
+  | Warten auf Relevanzentscheidung | wie bisher |
+  | Zurückgestellt (neuer Versuch später) | wie bisher |
+
+- **Keine neue Kachel.** Die Kacheln aus 5.8.1 sind Wege zu offener Arbeit. Eine reine Gesamtzahl
+  gehört nicht dazu.
+- **Telegram `/status`:** Als erste Zeile erscheint *„📊 Bisher 1.234 Mails verarbeitet.“*, danach
+  die bestehende Übersicht. `/offen` bleibt unverändert. `TelegramCommands` erhält dafür lesenden
+  Zugriff auf `ReviewViews.system()` über den Presenter, ohne Schreibzugriff.
+- Zahlen ab 1000 erhalten einen Tausenderpunkt (deutsche Schreibweise, wie `_number` in `charts.py`).
 
 ---
 
-### 2.8 Anforderung 8: Adaptive Zeiteinheiten und dynamische Skalierung für Aufrufdauern
+### 2.5 Aufrufdauer als logarithmische Punktwolke
 
-#### 2.8.1 Problem und Bestand
-Auf der Seite `/auswertung` werden Zeiten und Dauern bislang starr in Sekunden angegeben:
-- In [src/mailhelp/web/archive_pages.py](../src/mailhelp/web/archive_pages.py) formatiert die Kennzahlen-Tabelle die Gesamtdauer mit `_number(report.get("seconds", 0.0), 1) + " s"`.
-  Bei Zeiträumen von 7, 14 oder 30 Tagen entstehen dadurch unhandliche Werte wie `75 240,0 s` oder `184 320,5 s`. Für den Menschen ist nicht intuitiv erfassbar, wie viele Minuten, Stunden oder Tage das tatsächlich sind.
-- Im Diagramm *„Summierte Dauer je Verarbeitungsschritt“* ([src/mailhelp/web/charts.py](../src/mailhelp/web/charts.py)) sowie im Pipeline-Ablaufplan werden alle Schrittdauern ausschließlich in Sekunden angegeben. Bei lang laufenden Systemen skaliert die Achse linear in Tausenden Sekunden, was die Übersichtlichkeit mindert.
+#### 2.5.1 Bestand
 
-#### 2.8.2 Lösungsdesign in 5.9
-1. **Adaptive Zeitformatierung (`format_adaptive_duration`):**
-   Eine zentrale Formatierungsfunktion wandelt beliebige Sekundendauern in die ergonomisch passendste Einheit um:
-   - **$t < 60\,\text{s}$:** Sekunden mit einer Nachkommastelle, z. B. `42,3 s` (oder bei sehr kurzen Dauern `0,8 s`).
-   - **$60\,\text{s} \le t < 3600\,\text{s}$:** Minuten und Sekunden, z. B. `4 Min. 12 s`.
-   - **$3600\,\text{s} \le t < 86400\,\text{s}$ (1 h bis < 24 h):** Stunden und Minuten, z. B. `2 Std. 15 Min.` bzw. `20 Std. 54 Min.`.
-   - **$t \ge 86400\,\text{s}$ ($\ge 24\text{ h}$):** Tage und Stunden, z. B. `3 T 4 Std.`.
-   - **Präzisions-Erhalt:** In Kennzahlen- und Faktentabellen wird der adaptive Hauptwert prominent angezeigt, während der exakte Sekundenwert dezent in Klammern oder per Tooltip zugänglich bleibt (z. B. `20 Std. 54 Min. (75.240 s)`).
+`statistics_charts` sortiert die Dauern in `DURATION_CLASSES` (`< 1 s` bis `> 60 s`) und zeichnet
+ein Säulendiagramm. Es zeigt weder den zeitlichen Verlauf noch Unterschiede unter einer Sekunde.
 
-2. **Dynamische Achsenskalierung im Diagramm (`charts.py`):**
-   Für Stufendauern und Gesamtlaufzeiten im Balken- bzw. Pipeline-Diagramm:
-   - Ermittlung des Maximalwerts $t_{\max}$ im aktuellen Datensatz:
-     - $t_{\max} < 90\,\text{s}$: Achse und Balkenbeschriftungen verbleiben in Sekunden (`s`).
-     - $90\,\text{s} \le t_{\max} < 3600\,\text{s}$: Automatische Umrechnung aller Werte in Minuten (`t / 60`), Achsenbeschriftung *„Dauer in Minuten“*.
-     - $t_{\max} \ge 3600\,\text{s}$: Automatische Umrechnung aller Werte in Stunden (`t / 3600`), Achsenbeschriftung *„Dauer in Stunden“*.
-   - **Einheitlichkeit:** Innerhalb eines Diagramms teilen sich stets alle Daten dieselbe Einheit, damit die optischen Proportionen der Balken korrekt vergleichbar bleiben.
-   - **Barrierefreiheit:** Die zugehörige Screenreader-Tabelle (`<details><summary>Werte als Tabelle</summary>`) listet sowohl die skalierte Einheit als auch die exakten Rohsekunden auf.
+#### 2.5.2 Lösung: `scatter_chart` in `charts.py`
 
----
+- **Achsen:**
+  - Die x-Achse ist die Zeit mit denselben Abschnitten wie die anderen Diagramme (Stunden bei
+    1 Tag, sonst Kalendertage). Punkte sitzen am genauen Zeitpunkt.
+  - Die y-Achse ist logarithmisch von 0,1 s bis `max(100 s, nächste Zehnerpotenz über dem Maximum)`.
+    Kürzere Dauern werden auf 0,1 s gesetzt, und die Tabelle weist sie als „< 0,1 s“ aus.
 
-### 2.9 Anforderung 9: Anklickbare Auswertungs-Kennzahlen mit interaktiven Detailseiten (`/auswertung/details`)
+  ```
+  y = TOP + h · (1 − (log10(max(d, 0,1)) + 1) / (log10(y_max) + 1))
+  ```
 
-#### 2.9.1 Problem und Bestand
-Auf der Seite `/auswertung` werden in der Faktentabelle (`.facts-table`) die aggregierten Gesamtkennzahlen ausgegeben:
-- `Aufrufe (einzelne Versuche)`
-- `davon fehlgeschlagen`
-- `Gemeldete Cloudkosten`
-- `Cloudaufrufe ohne Kostenangabe`
-- `Cloudkosten in Euro`
-- `Geschätzte Stromkosten Ollama`
-- `Summierte Aufrufdauer`
-- `Dauer je Aufruf (Mittel / Median / 95 %)`
-- `Unvollständige Erfassung`
-
-Derzeit sind diese Zeilen reine Text-Tags (`<dt>...</dt><dd>...</dd>`). Wenn ein Anwender nachvollziehen möchte:
-- Welche konkreten Aufrufe sind fehlgeschlagen (und warum)?
-- Welche Modelle/Anfragen haben die gemeldeten Cloudkosten verursacht?
-- Wie viele Tokens wurden verbraucht und welche E-Mails gehörten dazu?
-- Warum sind manche Kosten „unbekannt“?
-- Wie genau errechnen sich die EUR-Cloudkosten bzw. die geschätzten Stromkosten?
-- Welche einzelnen Aufrufe waren die langsamsten (Ausreißer)?
-gibt es im Web-Interface keine Möglichkeit, tiefer einzutauchen. Die Daten liegen zwar im Metrik-Journal (`metrics.records()`) vollständig vor, sind aber für den Nutzer nicht direkt erreichbar.
-
-#### 2.9.2 Lösungsdesign in 5.9
-1. **Verlinkung in der Faktentabelle:**
-   Jeder Eintrag in der Liste erhält einen Link zur neuen Route `/auswertung/details`, wobei der aktive Filterkontext (`days`, `mode`, `model`, `provider`, `stage`, `since`, `until`) als Query-Parameter mitgegeben wird:
-   - `<a class="metric-link" href="/auswertung/details?metric=calls&days=30&mode=production...">Aufrufe (einzelne Versuche)</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=failed&days=30&mode=production...">davon fehlgeschlagen</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=cloud_costs&days=30&mode=production...">Gemeldete Cloudkosten</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=unknown_cost&days=30&mode=production...">Cloudaufrufe ohne Kostenangabe</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=cloud_eur&days=30&mode=production...">Cloudkosten in Euro</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=electricity&days=30&mode=production...">Geschätzte Stromkosten Ollama</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=duration&days=30&mode=production...">Summierte Aufrufdauer</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=distribution&days=30&mode=production...">Dauer je Aufruf (Mittel / Median / 95 %)</a>`
-   - `<a class="metric-link" href="/auswertung/details?metric=incomplete&days=30&mode=production...">Unvollständige Erfassung</a>`
-
-2. **Detailseite `/auswertung/details`:**
-   - **Zurück-Navigation:** Erhalt der Filtereinstellungen (`← Zurück zur Auswertung mit aktuellen Filtern`).
-   - **Erklärungs- und Formel-Banner:**
-     - Bei `cloud_eur`: Transparente Darlegung der Umrechnung ($$\text{USD} / \text{Wechselkurs} = \text{EUR}$$), Datum des Wechselkurses, Tabelle je Anbieter/Modell.
-     - Bei `electricity`: Darlegung der Berechnungsformel ($$\text{Watt} \times \text{Zeit} \times \text{Strompreis}$$), Berücksichtigung überlappender Server-Aufrufe.
-     - Bei `duration` & `distribution`: Verteilungskennzahlen, Quantile und Rangliste der Top-Dauern.
-     - Bei `failed`: Erklärung der Fehlerursachen (Timeout, ungültiges JSON, Provider-Fehler).
-     - Bei `unknown_cost`: Erklärung, warum der Provider keine Nutzungsdaten zurückgemeldet hat.
-   - **Detaillierte Datentabelle der Einzelaufrufe:**
-     - Für jede Zeile werden übersichtlich ausgewiesen:
-       - **Zeitstempel:** Datum & Uhrzeit in lokaler Zeitzone (`format_datetime_local`).
-       - **Schritt:** Verarbeitungsstufe (`stage`, z. B. `relevance`, `event_extraction`).
-       - **Modell & Anbieter:** Modellname und Provider (`provider`, `model`).
-       - **Status:** Badge (z. B. `Erfolg` grün, `Fehler` rot).
-       - **Dauer:** Formatierte Laufzeit (z. B. `1,42 s` bzw. adaptive Anzeige).
-       - **Tokens & Kosten:** Prompt- / Completion-Tokens und berechnete Kosten in USD/Cent.
-       - **Mail-Bezug:** Wenn `mail_id` vorhanden ist, direkter anklickbarer Link zur E-Mail (`/mail/{mail_id}`) oder zur Suche im Archiv (`/archiv?search=...`).
-   - **Filterung & Sortierung:**
-     - Möglichkeit, innerhalb der Detailansicht nach Status, Modell oder Schritt zu filtern oder nach Zeitstempel / Dauer / Kosten absteigend zu sortieren.
-   - **Barrierefreiheit & Performance:**
-     - Reines serverseitiges HTML mit semantischen `<table>`-Elementen. Bei sehr vielen Datensätzen transparente Limitierung mit Anzeige von z. B. den neuesten 200 Aufrufen und Paginierung / Zusammenfassung.
+  Beschriftete Gitterlinien liegen bei 0,1 s, 1 s, 10 s und 100 s, feine Hilfslinien ohne
+  Beschriftung bei 0,2/0,5/2/5/20/50 s.
+- **Punkte:**
+  - Erfolge sind Kreise (`r = 2.5`, halbtransparent, damit dichte Bereiche dunkler wirken).
+  - Fehler sind rote Kreuze (×). Die Form unterscheidet sie, nicht nur die Farbe (Grundsatz aus 5.0.7).
+  - Jeder Punkt hat `<title>` und `data-chart-detail` für Maus und Touch, zum Beispiel
+    *„12.11. 14:23 · Relevanzprüfung · 1,4 s · gemini-2.5-flash · Fehler“*.
+  - Punkte sind **nicht** per Tab fokussierbar (kein `tabindex`, kein `role="img"`). Die Tastatur
+    erreicht alle Werte über die Wertetabelle.
+  - Der Hinweis im Diagramm lautet „Punkte für Details berühren oder mit der Maus zeigen; alle Werte
+    in der Tabelle.“
+- **Ausdünnung:** Ab 3000 Aufrufen bleiben alle Fehler und alle Aufrufe über dem 95-%-Wert erhalten.
+  Vom Rest wird in fester Schrittweite gezogen (kein Zufall, damit Tests stabil bleiben). Der
+  Untertitel nennt *„1.200 von 8.400 Aufrufen dargestellt“*.
+- **Median je Zeitabschnitt:** Eine Linie `<path class="chart-trend-line">` verbindet den Median
+  jedes Abschnitts mit mindestens 3 Aufrufen. Abschnitte mit weniger Aufrufen unterbrechen die Linie,
+  statt sie zu interpolieren. Die Legende lautet `● erfolgreich  × fehlgeschlagen  — Median je Tag`
+  (bei 1 Tag: „je Stunde“).
+- **Wertetabelle je Abschnitt:** Aufrufe, Fehler, Median, 95 %, Maximum.
+- Die Ausgabe bleibt reines Server-SVG ohne Inline-Skripte und Inline-Styles. Die Farben kommen wie
+  bisher als Präsentationsattribut mit Hex-Fallback, die Klassenregeln in `app.css` gelten für Hell
+  und Dunkel. `DURATION_CLASSES` entfällt.
 
 ---
 
-## 3. Architektur und Komponenten
+### 2.6 Durchschnitt und 7-Tage-Mittel im Cloudkosten-Diagramm
+
+- **Durchschnittslinie:** Sie berechnet sich als Summe der gemeldeten Kosten geteilt durch die
+  Zahl der Abschnitte vom **ersten Abschnitt mit einem erfassten Aufruf** bis heute. Tage vor
+  Beginn der Erfassung drücken den Schnitt sonst künstlich. Aufrufe ohne Kostenangabe zählen nicht
+  mit, wie im Diagramm selbst. Gezeichnet wird eine gestrichelte Linie
+  (`class="chart-average-line"`, `stroke-dasharray="5 3"`) in einer eigenen Farbe, die sich von den
+  Säulen unterscheidet.
+- **7-Tage-Mittel:** Es erscheint ab einem Zeitraum von 14 Tagen als gleitender Mittelwert über die
+  letzten 7 Tage, beginnend am 7. erfassten Tag. Gezeichnet wird eine gerade Polylinie durch die
+  Säulenmitten (`class="chart-cost-trend"`). Es gibt keine Kurvenglättung, die überschwingt oder
+  unter null fällt.
+- **Beschriftung:** Die Werte stehen in der Legende, nicht an der Linie:
+  `■ Kosten  ┄ Ø 0,0340 $ je Tag  — 7-Tage-Mittel`.
+- Die **Wertetabelle** erhält eine Spalte „7-Tage-Mittel“ sowie die Zeilen „Summe“ und
+  „Durchschnitt (ab erstem erfassten Tag)“.
+- `column_chart` erhält dafür optionale Parameter `average: float | None` und
+  `trend: list[float | None] | None`. Das Aufrufdiagramm bleibt unverändert.
+
+---
+
+### 2.7 Rechenzeit je Verarbeitungsschritt und Pipeline-Ablaufplan
+
+#### 2.7.1 Bestand
+
+`bar_list("chart-stages", …)` zeigt die rohen Schlüssel (`event_extraction`) absteigend nach
+Sekunden. Erfasst sind nur KI-Aufrufe. Parallele Aufrufe werden addiert. Die Seite weist bereits
+darauf hin, dass dies keine Durchlaufzeit ist.
+
+#### 2.7.2 Rangliste „Rechenzeit je Verarbeitungsschritt“
+
+- **Titel:** „Rechenzeit je Verarbeitungsschritt“. Beschreibung: „Summierte Dauer der KI-Aufrufe,
+  größter Anteil zuerst; parallele Aufrufe werden addiert.“
+- **Deutsche Namen** aus `STAGE_LABELS` (`review/views.py`). Unbekannte Schlüssel erscheinen
+  unverändert.
+- **Sortierung** wie bisher nach Größe, größter zuerst, und ab 8 Einträgen mit „Weitere“. Die
+  Reihenfolge des Ablaufs zeigt der Ablaufplan (2.7.3). So beantwortet jede Darstellung genau eine
+  Frage und ein Umschalter ist nicht nötig.
+- **Doppelte Beschriftung an jedem Balken:** `48,9 % · 2 Std. 25 Min.`, mit dem Anteil
+  `p = T_Schritt / T_gesamt · 100 %` (auf eine Nachkommastelle gerundet). Die Rundung kann die
+  Summe von 100 % leicht verfehlen; die Tabelle nennt das.
+- **Wertetabelle:** Schritt, Anteil, Summe, Aufrufe, **Median je Mail**. Dafür wird die Dauer je
+  `mail_id` und Schritt summiert und davon der Median gebildet. Aufrufe ohne `mail_id`, etwa aus
+  Vergleichsläufen, zählen nur in Summe und Anteil.
+
+#### 2.7.3 Pipeline-Ablaufplan
+
+Der Ablaufplan zeigt, wo in der Kette der Verarbeitung die Wartezeit entsteht. Er steht als eigene
+Abbildung direkt unter der Rangliste. Titel: „Ablauf der Mailverarbeitung“.
+
+**Schritte und Reihenfolge.** Die Reihenfolge folgt `ProcessingStage`
+(`domain/processing.py`), damit sie mit der tatsächlichen Pipeline übereinstimmt:
+
+| Nr. | Schritt | Art | Anzeige |
+| :--- | :--- | :--- | :--- |
+| 1 | Aufbereitung (`preparation`) | lokal | ohne Laufzeit |
+| 2 | Relevanzprüfung (`relevance`) | KI | Laufzeit und Anteil |
+| 3 | Zusammenfassung (`summary`) | KI | Laufzeit und Anteil |
+| 4 | Telegram-Zusammenfassung (`summary_notification`) | Versand | ohne Laufzeit |
+| 5 | Aktionserkennung (`action_detection`) | lokal | ohne Laufzeit |
+| 6 | Aktionszuordnung (`action_router`) | KI | Laufzeit und Anteil |
+| 7 | Terminerkennung (`event_extraction`) und Aufgabenerkennung (`task_extraction`) | KI, Verzweigung | nebeneinander, je Laufzeit und Anteil |
+| 8 | Normalisierung (`normalization`) | lokal | ohne Laufzeit |
+| 9 | Vorschlagserstellung (`proposal_building`) | lokal | ohne Laufzeit |
+| 10 | Duplikatprüfung (`duplicate_precheck`) | lokal | ohne Laufzeit |
+| 11 | Telegram-Vorschlag (`proposal_notification`) | Versand | ohne Laufzeit |
+| 12 | Abschluss (`completion`) | lokal | ohne Laufzeit |
+
+- **Gemessen oder nicht.** Die Spalte „Art“ ist nicht fest verdrahtet. Ein Schritt zeigt Laufzeit
+  und Anteil genau dann, wenn im gewählten Zeitraum Metrikzeilen mit seinem `stage`-Schlüssel
+  vorliegen. Alle anderen Schritte erscheinen als **„lokal · nicht gemessen“**. Begründung: Lokale
+  Schritte laufen sehr schnell und erzeugen keine relevante Wartezeit. Eine eigene Zeitmessung
+  dafür ist in 5.9 nicht vorgesehen. Wird ein Schritt später gemessen, zeigt der Plan ihn ohne
+  Codeänderung mit Laufzeit an.
+- **Weitere KI-Aufrufe.** Metrikschlüssel, die keinem `ProcessingStage` entsprechen (etwa
+  Bilderkennung, Antwortentwurf, `diagnostic_test`), erscheinen am Ende als Knoten „Weitere
+  KI-Aufrufe“ mit eigener Liste in der Tabelle. Ein Schritt wird nie stillschweigend weggelassen.
+- **Darstellung als HTML, nicht als SVG.** Der Plan ist eine geordnete Liste
+  `<ol class="pipeline">` mit Knoten `<li class="pipeline-step">`. Begründungen:
+  - Text bleibt bei jeder Breite lesbar, weil er nicht mit dem SVG skaliert.
+  - Die Reihenfolge ist für Screenreader semantisch richtig.
+  - Es braucht weder Inline-Styles noch JavaScript.
+- **Aufbau eines Knotens:**
+  - **Gemessener Schritt:** Nummer, Name, `48,9 % · 2 Std. 25 Min.`, Median je Mail und ein
+    schmaler Anteilsbalken. Die Breite wird über Klassen in 5-%-Stufen gesetzt
+    (`.share-0` … `.share-100`), weil die CSP keine Inline-Styles erlaubt.
+  - **Nicht gemessener Schritt:** Nummer, Name und der Text „lokal · nicht gemessen“, gedämpft
+    dargestellt und ohne Balken. Er bleibt kompakt, damit der Blick auf die gemessenen Schritte
+    fällt.
+  - **Verzweigung (Schritt 7):** Termin- und Aufgabenerkennung stehen in einem gemeinsamen Knoten
+    nebeneinander. Die Beschriftung „je nach Aktion“ zeigt, dass eine Mail einen oder beide Zweige
+    durchläuft.
+- **Flaschenhals.** Der gemessene Schritt mit dem größten Anteil erhält
+  `class="pipeline-step is-bottleneck"`, einen kräftigeren Rand und den sichtbaren Text
+  „⏱ größte Wartezeit“. Die Markierung ist damit nicht nur farblich.
+- **Layout:**
+  - Ab 900 px fließen die Knoten in Zeilen von links nach rechts und sind durch Pfeile `→`
+    verbunden. Die Pfeile sind CSS-Pseudoelemente mit `aria-hidden`-Wirkung.
+  - Darunter steht der Plan senkrecht mit Pfeilen `↓`.
+  - Hell- und Dunkeldarstellung kommen über die vorhandenen Farbtokens.
+- **Wertetabelle** unter `<details><summary>Werte als Tabelle</summary>` mit den Spalten Nr.,
+  Schritt, Art (gemessen / lokal, nicht gemessen), Anteil, Summe, Median je Mail.
+- **Leerer Zeitraum.** Ohne Metrikzeilen erscheint der Plan nicht. Es bleibt beim bestehenden
+  Leerhinweis der Auswertung.
+
+---
+
+### 2.8 Lesbare Zeiteinheiten
+
+`formatting.py` erhält `duration_text(seconds: float, *, precise: bool = False) -> str`:
+
+| Bereich (nach Rundung) | Ausgabe | Beispiel |
+| :--- | :--- | :--- |
+| < 60 s | Sekunden mit 1 Nachkommastelle (`precise`: 2) | `42,3 s`, `0,85 s` |
+| 60 s bis < 1 Std. | Minuten und ganze Sekunden; „0 s“ entfällt | `4 Min. 12 s`, `5 Min.` |
+| 1 Std. bis < 1 Tag | Stunden und Minuten | `2 Std. 15 Min.` |
+| ab 1 Tag | Tage und Stunden | `1 Tag 4 Std.`, `3 Tage` |
+
+- **Rundung vor der Bereichswahl:** 59,96 s ergibt `1 Min.`, nicht `60,0 s`. 3599,6 s ergibt
+  `1 Std.`.
+- Negative oder nicht endliche Werte werden abgelehnt (`ValueError`). Die Metriken liefern sie nie,
+  der Test sichert den Vertrag ab.
+- **Faktentabelle `/auswertung`:**
+  - „Summierte Aufrufdauer“ zeigt `20 Std. 54 Min.` und dezent dahinter
+    `<span class="meta">(75.240 s)</span>`.
+  - „Dauer je Aufruf (Mittel / Median / 95 %)“ nutzt `precise=True`.
+  - Der vorhandene Hinweis „Die summierte Aufrufdauer ist keine Durchlaufzeit“ bleibt. Er ist bei
+    Werten wie „3 Tage“ besonders wichtig.
+- **Diagramme:** Die Balkenbeschriftungen der Rechenzeit und die Knoten des Ablaufplans (2.7)
+  nutzen `duration_text`. Die
+  Punktwolke (2.5) bleibt bei Sekunden, weil ihre logarithmische Achse von 0,1 s bis 100 s reicht.
+  Eine Achsenumrechnung ist nicht nötig.
+
+---
+
+### 2.9 Kennzahlen zum Anklicken: Aufrufliste `/auswertung/aufrufe`
+
+#### 2.9.1 Bestand
+
+Die Faktentabelle auf `/auswertung` besteht aus reinen `<dt>/<dd>`-Paaren. `AttemptRecord` enthält
+je Versuch Zeit, Schritt, Modell, Anbieter, Server, Status (`success`/`failed`), Tokens, Kosten
+(oder `None`) und, wenn vorhanden, `mail_id`. Eine **Fehlerursache wird nicht gespeichert**.
+Einzelaufrufe bleiben `metrics.retention_days` erhalten (Standard 90 Tage).
+
+#### 2.9.2 Navigation
+
+Wie die Statuskacheln in 5.8.1 wird jeder **Wert** in der Faktentabelle ein nativer Link mit
+sichtbarer Unterstreichung und `›`. Er hat eine sprechende Beschriftung, etwa
+`aria-label="3 fehlgeschlagene Aufrufe anzeigen"`, und funktioniert ohne JavaScript. Der aktive
+Filter (`days`, `mode`, `model`, `provider`, `stage`, `since`, `until`) wird übernommen. Bei einem
+Wert von 0 führt der Link zu einer verständlichen leeren Liste.
+
+Es gibt **eine** Seite mit Voreinstellung statt neun eigener Detailseiten:
+
+| Kennzahl | `metric` | Voreinstellung der Liste | Erklärung oben |
+| :--- | :--- | :--- | :--- |
+| Aufrufe (einzelne Versuche) | `calls` | alle, neueste zuerst | „Jeder Versuch zählt einzeln, auch Wiederholungen.“ |
+| davon fehlgeschlagen | `failed` | `status=failed` | Ursachen nach `error_kind` gezählt (siehe unten) |
+| Gemeldete Cloudkosten | `cloud_costs` | mit Kostenangabe, teuerste zuerst | Summe je Modell |
+| Cloudaufrufe ohne Kostenangabe | `unknown_cost` | Cloud, `cost_usd = None` | „Der Anbieter hat keine Nutzungsdaten gemeldet; die Kosten sind unbekannt, nicht null.“ |
+| Cloudkosten in Euro | `cloud_eur` | wie `cloud_costs` | `EUR = USD ÷ usd_per_eur` mit eingestelltem Kurs und Bezugsdatum |
+| Geschätzte Stromkosten Ollama | `electricity` | `provider=ollama` | `belegte Serverzeit × Leistung × Strompreis`, Serverzeit je Server mit zusammengeführten Überlappungen, eingestellte Werte genannt |
+| Summierte Aufrufdauer | `duration` | längste zuerst | „Summe aller Versuche; keine Durchlaufzeit.“ |
+| Dauer je Aufruf | `distribution` | längste zuerst | Mittel, Median, 90/95/99 %, Maximum |
+| Unvollständige Erfassung | `incomplete` | keine Liste | Bedeutung von beschädigten Zeilen und Erfassungsfehlern, Verweis auf die Protokolle |
+
+#### 2.9.3 Seite `/auswertung/aufrufe`
+
+- Die Seite ist **lesend**: `GET`, Anmeldung erforderlich, keine Seiteneffekte. Unbekannte
+  `metric`-, `sort`- oder Filterwerte führen wie auf `/auswertung` zu 422.
+- **Kopf:** Link „← Zurück zur Auswertung“ mit denselben Filtern, Titel der Kennzahl,
+  Erklärungsbox und der aktive Filter als lesbarer Text.
+- **Tabelle** (`.table-scroll`, semantisches `<table>`):
+
+  | Spalte | Inhalt |
+  | :--- | :--- |
+  | Zeit | lokale Zeitzone |
+  | Schritt | deutscher Name |
+  | Modell / Anbieter | wie gespeichert |
+  | Status | Abzeichen „Erfolg“ / „Fehler“ mit Text, nicht nur Farbe, bei Fehlern mit Ursache |
+  | Dauer | `duration_text(precise=True)` |
+  | Tokens | Eingabe / Ausgabe |
+  | Kosten | USD mit 4 Nachkommastellen oder „unbekannt“ |
+  | Mail | Link `/mail/{mail_id}` mit Betreff, wenn der Zustand vorhanden ist; „Mail nicht mehr gespeichert“; bei Vergleichsläufen „Vergleichslauf“ ohne Link |
+
+- **Sortierung und Filter** erfolgen über Links und ein GET-Formular: `status`, `sort` ∈
+  {`time`, `duration`, `cost`}, absteigend.
+- **Seitenweise Anzeige** mit 100 Zeilen je Seite (`page`). Gesamtzahl und Seitennavigation stehen
+  oben und unten.
+- Hinweis bei Zeiträumen über `retention_days`: *„Einzelaufrufe liegen nur für die letzten 90 Tage
+  vor; die Summen oben enthalten ältere Tage.“*
+- **Datenschutz:** Die Liste zeigt nur Metadaten aus dem inhaltsfreien Journal. Der Betreff kommt
+  aus dem Mailzustand und wird wie überall escaped.
+
+#### 2.9.4 Erweiterung des Journals: `error_kind`
+
+Entschieden am 12.11.2026: Das Feld kommt in 5.9. `AttemptRecord` erhält das optionale Feld
+`error_kind`:
+
+```python
+error_kind: Literal["timeout", "rate_limited", "provider_error", "invalid_json",
+                    "schema_invalid", "cancelled", "other"] | None = None
+```
+
+- Gesetzt wird es nur bei `status == "failed"`. Abgeleitet wird es aus dem vorhandenen
+  Fehlerereignis, ohne Fehlermeldung und ohne Inhalte.
+- Ältere Zeilen ohne das Feld bleiben gültig (`extra="forbid"` bleibt, das Feld hat einen
+  Standardwert). Sie erscheinen als „Ursache nicht erfasst (vor 5.9)“.
+- Die Verdichtung (`daily.json`) zählt `error_kind` nicht. Es gibt keine Formatänderung der
+  Aggregate.
+
+---
+
+## 3. Architektur und betroffene Module
 
 ```mermaid
 flowchart TD
-    subgraph Merge ["Zusammenführung & Konflikterkennung"]
-        PM["ProposalMerge (proposal_merge.py)"]
-        PM -->|Erkennt Differenz bei start/end/location| FC["FieldConflict<br/>(old_value vs new_value)"]
-        FC -->|Formatiert Frage mit Werten| OQ["open_questions:<br/>'Widerspruch bei Endzeit: 16:30 Uhr vs. 19:30 Uhr...'"]
+    subgraph Merge ["Zusammenführung"]
+        PM["_Merge (proposal_merge.py)"] -->|"typisierte Varianten"| FC["Proposal.field_conflicts"]
+        PM -->|"Fragetext mit Werten"| OQ["Proposal.open_questions"]
     end
+    FC --> WebCard["Vorschlagskarte: Gegenüberstellung + POST je Variante"]
+    FC --> TG["Telegram: CHOOSE_VARIANT-Buttons"]
+    WebCard --> Choose["review/editing: Variante übernehmen → neue Version"]
+    TG --> Choose
+    Choose -->|"keine externe Anlage"| Confirm["bestehende versionsbezogene Bestätigung"]
 
-    subgraph UI ["Präsentationsschicht"]
-        OQ --> WebCard["Vorschlagskarte (Web)"]
-        OQ --> TGCard["Telegram-Nachricht"]
-        
-        WebCard --> Buttons["1-Klick Buttons:<br/>[ 16:30 Uhr ] [ 19:30 Uhr ]"]
-        TGCard --> InlineButtons["Inline-Buttons:<br/>[ 16:30 ] [ 19:30 ]"]
-    end
+    Detail["detail_page (eingeklappt gerendert)"] --> MailSec["Quellbeleg (mail_section)"]
+    JS["app.js: ab 1024 px aufklappen"] --> MailSec
 
-    subgraph SourceMail ["Quellmail-Darstellung"]
-        MailData["MailView (Mailtext & Anhänge)"]
-        MailData --> EventCard["📅 Terminkarte: Quellmail komplett"]
-        MailData --> TaskCard["✅ Aufgabenkarte: Quellmail komplett (NEU)"]
-    end
+    States["Mailzustände"] --> Sys["ReviewViews.system(): mails_processed"]
+    Sys --> StatusWeb["/status"]
+    Sys --> StatusTG["Telegram /status"]
 
-    subgraph TopicUI ["Themenverwaltung Widescreen & Tabelle"]
-        CSS["app.css: main:has(.topic-table)"]
-        CSS --> WideContainer["Desktop: max-width 1500px"]
-        CSS --> ColWidths["nowrap für Status, Geltungsbereich, Bearbeiten"]
-        CSS --> NoHyphenBug["Entfernung von overflow-wrap: anywhere"]
-    end
-
-    subgraph StatusMetrics ["Statusanzeige & Metriken"]
-        Store["Store: mail-* States"] --> Views["ReviewViews.status()"]
-        Views -->|steps.completion == completed| ProcessedCount["system.mails_processed"]
-        ProcessedCount --> StatusWeb["/status: Summary & Faktenliste"]
-        ProcessedCount --> StatusTG["Telegram: /status Bericht"]
-    end
-
-    subgraph EvaluationCharts ["Auswertungsdiagramme (charts.py)"]
-        Records["Metric Records (runtime/metrics.py)"]
-        Records --> Durations["Dauer-Punktwolke: log10(0.1s..100s) + Median-Linie"]
-        Records --> Costs["Kosten-Balken: Ø-Benchmark-Linie + 7-Tage-Trend"]
-        Records --> Stages["Schrittdauer: %-Anteil + Pipeline-Ablaufplan"]
-    end
-
-    subgraph AdaptiveScaling ["Adaptive Zeiteinheiten (formatting & charts)"]
-        RawSecs["Sekundenwerte (metrics / report)"]
-        RawSecs --> Formatter["format_adaptive_duration()<br/>(< 60s: s, < 1h: Min., < 24h: Std., >= 24h: T)"]
-        Formatter --> FactTable["Faktentabelle /auswertung:<br/>'20 Std. 54 Min. (75.240 s)'"]
-        Formatter --> ChartAxis["Diagrammachse:<br/>Autom. Skalierung (s / Min. / Std.)"]
-    end
-
-    subgraph EvaluationDrilldown ["Auswertungs-Drilldown & Detailseiten"]
-        FactsTable["Faktentabelle /auswertung"]
-        FactsTable -->|Klick auf Kennzahl| MetricLink["/auswertung/details?metric=..."]
-        MetricLink --> DetailView["Detailseite (evaluation_details.py)"]
-        DetailView --> FormulaBanner["Formel- & Erklärungs-Banner"]
-        DetailView --> RecordTable["Aufrufe-Tabelle (Zeit, Modell, Schritt, Dauer, Tokens, Kosten, Mail)"]
-        RecordTable --> MailLink["Link zur E-Mail: /mail/{mail_id}"]
-    end
+    Journal["Metrik-Journal (AttemptRecord + error_kind)"] --> Charts["charts.py: Punktwolke, Kosten Ø/7-Tage, Rechenzeit"]
+    Journal --> Pipeline["charts.py: Ablaufplan (ProcessingStage-Reihenfolge)"]
+    Stages["ProcessingStage"] --> Pipeline
+    Journal --> Calls["/auswertung/aufrufe"]
+    Fmt["formatting.duration_text"] --> Charts
+    Fmt --> Facts["Faktentabelle /auswertung"]
+    Fmt --> Calls
 ```
 
-### 3.1 Betroffene Module und Dateien
-1. **`src/mailhelp/proposals/proposal_merge.py`:**
-   - Erzeugung verständlicher Fragetexte inklusive beider Werte (`old` und `new`) bei Konflikten.
-   - Speicherung der Konfliktvarianten zur einfachen Maschinenlesbarkeit.
-2. **`src/mailhelp/web/review_pages.py`:**
-   - Einbettung von `mail_section(mail)` unter Aufgabenvorschlägen in `proposal_card` und `overview_page`.
-   - Anzeige von 1-Klick-Auswahlschaltflächen bei Variantenkonflikten auf der Karte.
-3. **`src/mailhelp/web/actions.py` & `src/mailhelp/review/editing.py`:**
-   - Verarbeitung der 1-Klick-Auswahl (Übernahme des gewählten Wertes und Beantwortung der Frage).
-4. **`src/mailhelp/telegram/formatting.py` & `src/mailhelp/telegram/presenter.py` & `src/mailhelp/telegram/commands.py`:**
-   - Formatierung der Varianten im Fragetext für Telegram.
-   - Bereitstellung von Inline-Buttons für die Varianten-Auswahl.
-   - Ausgabe der verarbeiteten Mails im `/status`-Kommando.
-5. **`src/mailhelp/web/static/app.css` & `src/mailhelp/web/topic_site.py`:**
-   - Widescreen-Containererweiterung für `.topic-table`.
-   - Umbruchschutz und feste Breiten für Status-, Geltungsbereich- und Bearbeiten-Spalten.
-   - Bereinigung von `#topic-filter` und Beseitigung der Silbenzerreißung.
-   - CSS-Klassen für Punktwolke (`.chart-point`), Median-Linie (`.chart-trend-line`), Durchschnittslinie (`.chart-average-line`, `.chart-average-text`), Kostentrend (`.chart-cost-trend`) und Pipeline-Flow (`.chart-pipeline`).
-6. **`src/mailhelp/review/views.py` & `src/mailhelp/web/status_pages.py`:**
-   - Erweiterung von `SystemStatus` um `mails_processed`.
-   - Berechnung und Anzeige des Gesamtzählers auf `/status` (Zusammenfassungs-Karte und Faktenliste).
-7. **`src/mailhelp/web/charts.py` & `tests/web/test_charts.py`:**
-   - Neue Diagrammfunktion für logarithmische Punktwolke mit Trendlinie (`scatter_chart`).
-   - Erweiterung von `column_chart` um optionale Durchschnitts-Benchmark und gleitenden Trend.
-   - Erweiterung von `bar_list` um Prozentberechnung, duale Beschriftung und Pipeline-Ablaufplan-Modus.
-   - Dynamische Achsen- und Werteskalierung (Sekunden, Minuten, Stunden) für Schrittdauern.
-8. **`src/mailhelp/formatting.py` & `src/mailhelp/web/archive_pages.py`:**
-   - Implementierung von `format_adaptive_duration` für adaptive Einheiten (`s`, `Min.`, `Std.`, `T`).
-   - Einbindung der adaptiven Zeitformate in die Kennzahlen-Tabelle auf `/auswertung`.
-9. **`src/mailhelp/web/evaluation_details.py` (neu) & `src/mailhelp/web/history_site.py`:**
-   - Neue Web-Route `GET /auswertung/details` zur Anzeige detaillierter Aufschlüsselungen für jede Kennzahl.
-   - Tabellarische Aufbereitung der Einzelaufrufe (`records`) mit Sortierung, Filterung und Verknüpfung zur E-Mail (`/mail/{mail_id}`).
-   - Formel- und Rechengrundlagen-Banner für Währungsumrechnung, Stromverbrauch und Latenzverteilung.
+| Modul | Änderung |
+| :--- | :--- |
+| `domain/proposal.py` | `ConflictVariant`, `FieldConflict`, `Proposal.field_conflicts`; Invarianten Frage ↔ Konflikt |
+| `proposals/proposal_merge.py` | Konflikte mit typisierten Varianten erzeugen; Zeitraum-Gruppierung; Fragetexte mit Werten |
+| `review/editing.py`, `review/service.py`, `review/commands.py` | Befehl „Variante übernehmen“ mit Versions- und Idempotenzprüfung |
+| `web/review_pages.py`, `web/actions.py`, `web/review_site.py` | Gegenüberstellung, Formulare, Route `POST …/konflikt`; Quellbeleg immer eingeklappt gerendert mit `data-source-mail` und Inhaltsangabe in der Zusammenfassung |
+| `web/static/app.js` | Quellbeleg ab 1024 px beim Laden der Detailseite und im Split-View aufklappen |
+| `telegram/callbacks.py`, `telegram/decisions.py`, `telegram/formatting.py`, `telegram/presenter.py` | `CHOOSE_VARIANT`, Nachrichtentext, Quittung, Outbox-Folge |
+| `telegram/commands.py` | Zeile „Bisher … Mails verarbeitet“ in `/status` |
+| `review/views.py`, `web/status_pages.py` | `SystemStatus.mails_processed`, Anzeige |
+| `web/topic_site.py`, `web/static/app.css` | Werkzeugzeile, versteckte Aktionskopfzeile, Tabellen- und Diagrammklassen (Hell/Dunkel) |
+| `formatting.py` | `duration_text` |
+| `web/charts.py` | `scatter_chart`; `column_chart(average, trend)`; `bar_list` mit deutschen Namen und Anteil; neu `pipeline_plan` (HTML-Liste); `DURATION_CLASSES` entfällt |
+| `web/archive_pages.py`, `web/history_site.py`, `web/site.py` | verlinkte Faktentabelle, Seite und Route `GET /auswertung/aufrufe` |
+| `runtime/metrics.py` | `AttemptRecord.error_kind`, Abfrage mit Status, Sortierung und Seiten |
 
 ---
 
-## 4. Geplante Umsetzungsschritte
+## 4. Umsetzungsschritte
 
-| Schritt | Patch | Arbeitspaket | Kerninhalt |
+Jeder Schritt ist ein Patch nach AGENTS.md: Versionsnummer in `pyproject.toml` und
+`src/mailhelp/__init__.py`, `CHANGELOG.md` und `README.md`. Er enthält Tests mit 100 % Zeilen- und
+Branch-Abdeckung. Jeder Bugfix (etwa der Silbenumbruch auf `/themen` oder der zufällig geschlossene
+Quellbeleg) enthält einen Regressionstest, der vor dem Fix scheitert.
+
+| Schritt | Patch | Arbeitspaket | Kerninhalt und Tests |
 | :--- | :--- | :--- | :--- |
-| **K1** | 5.9.1 | **Konflikt-Formatierung im Merge-Kernel** | `ProposalMerge` formatiert Fragetexte mit beiden Werten (z. B. *„16:30 Uhr (bisher) vs. 19:30 Uhr (neu)“*); Unit-Tests für `start`, `end`, `location`, `title`. |
-| **K2** | 5.9.2 | **1-Klick Konflikt-Auswahl im Web** | Schnellauswahl-Buttons auf der Vorschlagskarte im Web; direkte Übernahme des gewählten Wertes; Regressionstests für CSRF und Idempotenz. |
-| **K3** | 5.9.3 | **1-Klick Konflikt-Auswahl in Telegram** | Inline-Keyboard mit Varianten-Buttons in Telegram; Quittierung und Auflösung der offenen Frage. |
-| **K4** | 5.9.4 | **Quellmail bei Aufgaben in der Übersicht** | Vollständige Anzeige der Quellmail (`mail_section`) unter Aufgabenvorschlägen in der Übersicht; Anpassung von CSS und Barrierefreiheit. |
-| **K5** | 5.9.5 | **Widescreen- und Tabellen-Optimierung für `/themen`** | CSS- und Layoutanpassungen für `/themen`: Containerverbreiterung bis 1500px, Umbruchschutz (`white-space: nowrap`), Einzeiligkeit der Bearbeiten-Buttons, harmonische Filter-Toolbar. |
-| **K6** | 5.9.6 | **Zähler für insgesamt verarbeitete Mails in Status** | `SystemStatus.mails_processed` implementieren; Anzeige in `/status` (Summary und Detailtabelle) sowie Telegram `/status`; Tests für Zählgenauigkeit und Neustart-Resilienz. |
-| **K7** | 5.9.7 | **Logarithmischer Scatter-Plot mit Trendlinie für `/auswertung`** | SVG-Visualisierung für Aufrufdauern als Punktwolke (0,1–100 s) mit gleitender Median-Linie in `charts.py`; CSS-Styling; Wertetabelle; Tests. |
-| **K8** | 5.9.8 | **Durchschnitts- und Trendlinie im Cloudkosten-Diagramm** | Horizontale Ø-Benchmark-Linie und gleitender 7-Tage-Trend im Balkendiagramm *„Gemeldete Cloudkosten“*; Legende; Wertetabelle; Tests. |
-| **K9** | 5.9.9 | **Prozentuale Schrittdauer und Pipeline-Ablaufplan** | Duale Beschriftung (% und s) für Schrittdauern; Pipeline-Flow-Modus in Prozessreihenfolge mit Flaschenhals-Kennzeichnung; Tests. |
-| **K10** | 5.9.10 | **Adaptive Zeiteinheiten und dynamische Skalierung für Aufrufdauern** | `format_adaptive_duration` implementieren; Faktentabelle auf `/auswertung` anpassen (Hauptwert adaptiv, Rohsekunden in Klammern); dynamische Achsenskalierung (s / Min. / Std.) im Diagramm `by_stage` und im Pipeline-Plan; Unit- und Web-Tests. |
-| **K11** | 5.9.11 | **Anklickbare Kennzahlen & Detailseiten auf `/auswertung`** | Route `/auswertung/details` implementieren; anklickbare Links in der Faktentabelle; Aufschlüsselung der Einzelaufrufe, Fehlerursachen, Tokens, Kosten, Strom und Latenzen mit Mail-Verlinkung; Tests. |
-| **K12** | 5.9.12 | **Gesamtabnahme & Dokumentation** | End-to-End- und Browsertests; Sicherstellung von 100 % Zeilen- und Branch-Coverage; Aktualisierung von `README.md`, `CHANGELOG.md` und `Bedienung.md`. |
+| K1 | 5.9.1 | Zeitformat | `duration_text` mit Tabellentests aller Grenzen (59,96 s; 3599,6 s; 86 400 s; 1 Tag/Tage); Faktentabelle `/auswertung` |
+| K2 | 5.9.2 | Konfliktmodell und Texte | `FieldConflict`; Merge für alle Felder, Zeitraum-Gruppierung, dritte Variante, geschützte Felder, Altbestand ohne Migration; Präfix-Kollisionstest; Laden alter Vorschläge |
+| K3 | 5.9.3 | Auswahl im Web | Gegenüberstellung, `POST …/konflikt`; Tests für Erfolg, Doppelklick, veraltete Version, fremde Sitzung, fehlendes oder falsches CSRF-Token, abgelaufene Sitzung bei Ausführung, ohne JavaScript; Nachweis, dass kein Kalender- oder Todoist-Schreibzugriff erfolgt |
+| K4 | 5.9.4 | Auswahl in Telegram | `CHOOSE_VARIANT`, Quittung, Outbox-Folge; Tests für Wiederholung, Neustart, veraltete Nachricht, fremden Chat |
+| K5 | 5.9.5 | Quellbeleg nach Breite | Eingeklappt gerendert, `app.js` öffnet ab 1024 px; Regressionstest „Aufgabe aus Textmail zeigt Mail im Split-View sofort“; Browsertests bei 1366 px (offen), 390 px (zu, auch mit Bildern), ohne JavaScript (zu); Größenänderung klappt nicht um; bereinigter Volltext |
+| K6 | 5.9.6 | Themenliste | CSS, Werkzeugzeile, Aktionskopfzeile; Browserprüfung bei 1920, 1366, 1024, 800 und 390 px, hell und dunkel |
+| K7 | 5.9.7 | Statuszähler | `mails_processed`; Web und Telegram; Tests für Duplikat, irrelevante Mail, Neuanalyse, bereinigten Zustand, Neustart |
+| K8 | 5.9.8 | Kostendiagramm | Durchschnitt ab erstem Tag, 7-Tage-Mittel ab 14 Tagen, Legende, Tabelle; Tests für leeren Zeitraum, einen Tag, Lücken |
+| K9 | 5.9.9 | Dauer-Punktwolke | `scatter_chart`, Ausdünnung, Median je Abschnitt, Tabelle; Tests für < 0,1 s, > 100 s, 0/1/3 Aufrufe je Abschnitt, 3001 Aufrufe |
+| K10 | 5.9.10 | Rechenzeit und Ablaufplan | Rangliste mit Namen, Anteil, Median je Mail; `pipeline_plan` in `ProcessingStage`-Reihenfolge mit „lokal · nicht gemessen“, Verzweigung, Flaschenhals, „Weitere KI-Aufrufe“; Tests für unbekannte Schritte, gleich große Anteile, Rundung, leeren Zeitraum; Browsertests bei 1366 und 390 px |
+| K11 | 5.9.11 | Aufrufliste | `error_kind`, Route, Voreinstellungen, Sortierung, Seiten, Mail-Links; Tests für Anmeldung, 422, Altzeilen, Vergleichslauf, bereinigte Mail, Aufbewahrungsgrenze |
+| K12 | 5.9.12 | Abnahme und Release | Gesamtprüfung Windows und Linux/Docker, Browserprüfungen (Desktop, mobil, ohne JavaScript, hell/dunkel, axe), `docs/Release-5.9.md` |
 
 ---
 
-## 5. Verbindliche Abnahmekriterien
+## 5. Abnahmekriterien
 
 | Kriterium | Prüfablauf | Erwartetes Ergebnis |
 | :--- | :--- | :--- |
-| **Werte im Konflikttext** | Vorschläge mit abweichender Endzeit zusammenführen | Fragetext lautet z. B. *„Widerspruch bei der Endzeit: 16:30 Uhr (bisher) vs. 19:30 Uhr (aus zweiter Quelle). Welche Zeit soll gelten?“* (kein nacktes `end`). |
-| **1-Klick-Auswahl Web** | Vorschlagskarte im Browser öffnen, auf `[ 19:30 Uhr übernehmen ]` klicken | Die Endzeit wechselt sofort auf 19:30 Uhr; die offene Frage verschwindet; der Vorschlag ist bereit zur Freigabe. |
-| **1-Klick-Auswahl Telegram** | Telegram-Nachricht mit Terminkonflikt betrachten, Inline-Button drücken | Die ausgewählte Variante wird sofort gesetzt; Rückfrage gilt als beantwortet. |
-| **Quellmail bei Aufgaben** | Übersicht `/` mit offenen Aufgabenvorschlägen öffnen | Unter jeder Aufgabe ist der vollständige Quelltext der E-Mail direkt sichtbar, exakt wie bei Terminvorschlägen. |
-| **Bilder & Anhänge bei Aufgaben** | Aufgabe aus E-Mail mit Scan/Bild betrachten | Die Voransicht des Bildes wird zusammen mit dem Mailtext unter der Aufgabe dargestellt. |
-| **Widescreen-Layout `/themen`** | `/themen` auf einem Monitor ≥ 1400px Breite öffnen | Die Tabelle nutzt die verfügbare Breite bis 1500px harmonisch aus; kein ungenutzter Leerraum auf der rechten Seite. |
-| **Keine Silbenzerreißung `/themen`** | Tabellenspalten auf `/themen` betrachten | Wörter wie *„Geltungsbereich“*, *„Ausschlüsse“* und *„alle Postfächer“* werden intakt dargestellt; der Button *„Bearbeiten“* ist einzeilig. |
-| **Mobile Responsivität `/themen`** | `/themen` im Viewport ≤ 800px öffnen | Die bewährte mobile Kachel-/Kartenansicht greift sauber ohne horizontale Überläufe. |
-| **Verarbeitungszähler Weboberfläche** | Statusseite `/status` aufrufen | In der Zusammenfassungs-Karte steht *„X Mails insgesamt verarbeitet“* und unter *„Mails“* wird *„Insgesamt verarbeitet: X“* exakt ausgewiesen. |
-| **Verarbeitungszähler Telegram** | `/status` an den Telegram-Bot senden | Die Statusnachricht enthält die Gesamtzahl der verarbeiteten Mails. |
-| **Logarithmische Skala `/auswertung`** | Seite `/auswertung` aufrufen | Das Diagramm zur Aufrufdauer zeigt eine logarithmische Skala von 0,1 s bis 100 s mit Hilfslinien bei den Zehnerpotenzen. |
-| **Punktwolke & Trendlinie** | Einzelaufrufe im Diagramm betrachten | Aufrufe erscheinen als unterscheidbare Punkte (grün/rot) mit Tooltip-Details; eine Median-Linie visualisiert die zeitliche Baseline. |
-| **Kosten-Benchmark-Linie** | Diagramm *„Gemeldete Cloudkosten“* betrachten | Eine gestrichelte Durchschnittslinie markiert das Normalniveau; Tage über dem Schnitt ragen klar sichtbar heraus. |
-| **Kosten-Trendlinie (30 Tage)** | Zeitraum 30 Tage auswählen | Ein gleitender 7-Tage-Trend visualisiert den wahren Verlauf ohne Wochenendrauschen. |
-| **Prozentuale Schrittdauer** | Diagramm *„Dauer je Verarbeitungsschritt“* betrachten | Die Schritte zeigen ihren prozentualen Anteil an der Gesamtdauer (z. B. `48,9 % (145,2 s)`). |
-| **Pipeline-Ablaufplan** | Auf Pipeline-Ansicht umschalten | Die Schritte erscheinen in ihrer tatsächlichen Durchlauf-Reihenfolge mit Verbindungen; Flaschenhälse sind sofort erkennbar. |
-| **Adaptive Zeiteinheiten Faktentabelle** | Seite `/auswertung` bei > 60 s bzw. > 3600 s Gesamtlaufzeit aufrufen | Kennzahl zeigt verständliche Zeiteinheiten (z. B. `4 Min. 12 s` oder `20 Std. 54 Min.`) mit Rohsekunden als Ergänzung statt nackter Riesenzahl. |
-| **Dynamische Diagrammskalierung** | Stufendauern-Diagramm mit Gesamtdauern > 90 s oder > 3600 s betrachten | Achse und Balkenbeschriftungen wechseln automatisch auf Minuten (`Min.`) bzw. Stunden (`Std.`); Balkenverhältnisse bleiben exakt gewahrt. |
-| **Anklickbare Kennzahlen auf `/auswertung`** | Eine Kennzahl in der Faktentabelle (z. B. *„Gemeldete Cloudkosten“* oder *„davon fehlgeschlagen“*) anklicken | Der Browser navigiert zur Detailseite `/auswertung/details?metric=...`; alle aktiven Filter bleiben vollständig erhalten. |
-| **Detailansicht Aufrufe und Fehler** | Detailseite für *„davon fehlgeschlagen“* oder *„Aufrufe“* betrachten | Alle relevanten Einzelaufrufe erscheinen mit Zeitstempel, Schritt, Modell, Status, Tokens, Kosten und ggf. anklickbarem Link zur E-Mail. |
-| **Detailansicht Berechnungen** | Detailseite für *„Cloudkosten in Euro“* oder *„Geschätzte Stromkosten“* aufrufen | Die Berechnungsformel (Wechselkurs, Watt, Strompreis, deduplizierte Serverlaufzeit) ist transparent aufgeführt. |
-| **Codeabdeckung** | `pytest --cov=mailhelp --cov-branch` ausführen | Exakt 100 % Zeilen- und Branch-Coverage für jeden neuen oder geänderten Python-Code. |
+| Werte im Konflikttext | Zwei Quellen mit abweichendem Ende zusammenführen | Frage nennt „Zeitraum“, beide Zeiträume und die Quellmails; kein `end` |
+| Zeitraum statt Einzelfelder | Quellen mit abweichendem Beginn und Ende | Genau ein Konflikt mit zwei vollständigen Zeiträumen |
+| Auswahl Web | „16:00–19:30 Uhr übernehmen“ klicken | Neue Version mit 19:30 Uhr; Frage verschwindet; Feld geschützt; **kein** externer Eintrag; „Bestätigen“ weiterhin nötig |
+| Auswahl wiederholt/veraltet | Doppelklick; Klick nach Bearbeitung in anderem Tab | Eine Version; bzw. Hinweis „inzwischen geändert“ ohne Änderung |
+| Auswahl Telegram | Inline-Button drücken, auch nach Neustart | Variante übernommen, Quittung, danach nächste Frage oder Bestätigung |
+| Altbestand | Vorschlag mit altem Fragetext öffnen | Text sichtbar, keine Schaltflächen, kein Fehler |
+| Quellbeleg breit | Aufgabe aus reiner Textmail im Split-View öffnen | Mailtext sofort sichtbar, wie bei Terminen |
+| Quellbeleg schmal | Termin mit Bildanhang bei 390 px öffnen | Quellbeleg eingeklappt; Zusammenfassung nennt die Bilder; Aufklappen per Tippen |
+| Themenliste breit | `/themen` bei 1920 px | Tabelle bis 1320 px; keine Trennung innerhalb von Wörtern; „Bearbeiten“ einzeilig |
+| Themenliste mobil | `/themen` bei 390 px | Kartenansicht ohne horizontalen Überlauf |
+| Statuszähler | `/status` und Telegram `/status` | „Bisher N Mails verarbeitet“; N = Zustände mit `completion == "completed"` |
+| Punktwolke | `/auswertung`, 30 Tage | Log-Achse 0,1–100 s, Fehler als ×, Median-Linie mit Lücken, Tabelle je Tag; keine Tab-Stopps je Punkt |
+| Kostenlinien | `/auswertung`, 30 Tage | Ø-Linie ab erstem erfassten Tag, 7-Tage-Mittel, Werte in Legende und Tabelle |
+| Rechenzeit | `/auswertung` | Deutsche Namen, größter zuerst, `48,9 % · 2 Std. 25 Min.` |
+| Ablaufplan | `/auswertung` | Alle Schritte in Pipeline-Reihenfolge; lokale als „lokal · nicht gemessen“; Termin-/Aufgabenerkennung als Verzweigung; „⏱ größte Wartezeit“ am größten gemessenen Schritt; mobil senkrecht ohne Überlauf |
+| Zeiteinheiten | Summierte Dauer 75 240 s | `20 Std. 54 Min. (75.240 s)` |
+| Aufrufliste | Wert „davon fehlgeschlagen“ anklicken | Gefilterte Liste mit Ursache; Filter erhalten; Zurück-Link mit Filtern |
+| Aufrufliste ohne Anmeldung | URL direkt aufrufen | Weiterleitung zur Anmeldung |
+| Barrierefreiheit | axe, Tastatur, Screenreader-Stichprobe | Keine neuen Verstöße; alle Diagrammwerte über Tabellen erreichbar |
+| Abdeckung | `pytest --cov=mailhelp --cov-branch` | 100 % Zeilen und Branches für den gesamten Anwendungscode; Prüfung scheitert sonst |
 
 ---
 
-## 6. Dokumentation und Release-Abschluss
+## 6. Dokumentation und Release
 
-- Bei Veröffentlichung von Version 5.9 werden `README.md`, `CHANGELOG.md` und `docs/Bedienung.md` aktualisiert.
-- Nachweis der Abnahme aller Abnahmekriterien in `docs/Release-5.9.md`.
+- `Mailhelp-Projektspezifikation.md`: Konfliktmodell und Auswahl ohne Anlage-Autorisierung,
+  Definition von `mails_processed`, `error_kind`, neue Route.
+- `docs/Bedienung.md` und der eingebaute Hilfebestand (`helpdocs`): Widersprüche auflösen,
+  Auswertung lesen, Aufrufliste.
+- `README.md` und `CHANGELOG.md` bei jedem Patch, `docs/Release-5.9.md` mit Nachweisen.
+- Keine neuen Einstellungen. Die Konfigurationsbeispiele bleiben unverändert, das wird im Release
+  ausdrücklich festgehalten.
+
+---
+
+## 7. Entscheidungen vom 12.11.2026
+
+1. **Quellmail auf schmalen Bildschirmen:** Sie steht nicht unter jeder Karte. Unter 1024 px ist der
+   Quellbeleg immer zunächst eingeklappt, auch bei Bildanhängen. Ab 1024 px ist er aufgeklappt
+   (2.2).
+2. **Pipeline-Flussdiagramm:** Es kommt in 5.9. Lokale Schritte werden vorerst ohne Laufzeit als
+   „lokal · nicht gemessen“ eingebaut, weil sie sehr schnell sind und keine relevanten Wartezeiten
+   erzeugen. Eine Zeitmessung für lokale Schritte ist nicht Teil von 5.9 (2.7.3).
+3. **`error_kind`:** Das Feld kommt in 5.9 ins Metrik-Journal (2.9.4).

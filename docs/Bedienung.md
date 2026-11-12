@@ -206,6 +206,7 @@ verändert selbst keine Daten.
 | **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |
 | **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |
 | **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |
+| **Auswertung** | Kosten, Dauern und Diagramme der KI-Aufrufe |
 | **Status** | letzter Kontakt je Dienst, laufender Schritt; anklickbare Kennzahlen öffnen passende Übersichten |
 
 Auf **Status** öffnet ein Klick auf eine der vier Kennzahlen die zugehörigen Einträge:
@@ -215,5 +216,13 @@ mit dem Filter „mit Fehler“. **Wartende Web-Aktionen** zeigt die Warteschlan
 Links zu deinen einzelnen Aktionen. Andere Sitzungen werden ohne private Inhalte
 aufgeführt. Auch bei null Einträgen ist die Übersicht erreichbar. „Übersicht aktualisieren“
 lädt den aktuellen Stand; das Öffnen und Aktualisieren führt keine Aktion aus.
+
+### Auswertung
+
+**Auswertung** zeigt Kosten und Zeiten der KI-Aufrufe für den gewählten Zeitraum. Dauern
+erscheinen ab 5.9.1 in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Min.` oder
+`3 Tage 4 Std.`; bei der summierten Aufrufdauer stehen die genauen Sekunden in Klammern
+dahinter. Die summierte Aufrufdauer addiert alle Versuche, auch parallele, und ist keine
+Durchlaufzeit.
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.
