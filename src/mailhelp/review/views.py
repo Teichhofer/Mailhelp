@@ -230,7 +230,8 @@ STAGE_LABELS = {
     "summary_notification": "Telegram-Zusammenfassung", "action_detection": "Aktionserkennung",
     "action_router": "Aktionszuordnung", "task_extraction": "Aufgabenerkennung",
     "event_extraction": "Terminerkennung", "normalization": "Normalisierung",
-    "proposal_building": "Vorschlagserstellung", "proposal_notification": "Telegram-Vorschlag",
+    "proposal_building": "Vorschlagserstellung", "duplicate_precheck": "Duplikatprüfung",
+    "proposal_notification": "Telegram-Vorschlag",
     "completion": "Abschluss",
 }
 ERROR_LABELS = {

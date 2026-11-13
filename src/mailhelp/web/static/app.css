@@ -788,6 +788,61 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .settings-live-results li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
   background: var(--surface); overflow-wrap: anywhere; }
 .settings-live-results a { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
+/* 5.9.8: average and 7-day mean of the cost chart. */
+.chart-average-line { stroke: var(--kind-event); }
+.chart-average-text { fill: var(--kind-event); }
+.chart-cost-trend { stroke: var(--text); }
+.chart-trend-text { fill: var(--text); }
+/* 5.9.9: duration scatter plot; failures are crosses, not only another colour. */
+.chart-grid-fine { stroke: var(--border); stroke-width: .5; stroke-dasharray: 2 3; }
+.chart-dot { fill: var(--accent); }
+.chart-cross { stroke: var(--danger); }
+.chart-trend-line { stroke: var(--text); }
+.chart-subtitle { margin: 0 0 4px; }
+/* 5.9.10: pipeline plan as an ordered list; arrows are decoration (CSS content, not read out). */
+.pipeline-figure { grid-column: 1 / -1; }
+.pipeline { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 22px; }
+.pipeline-step { position: relative; display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.pipeline-step:not(:last-child)::after { content: "↓" / ""; position: absolute; left: 50%; bottom: -20px;
+  color: var(--muted); }
+.pipeline-step.is-local { color: var(--muted); padding: 4px 10px; }
+.pipeline-step.is-bottleneck { border: 2px solid var(--warn); }
+.pipeline-part { display: flex; flex-direction: column; gap: 2px; flex: 1 1 10rem; min-width: 0; }
+.pipeline-name { font-weight: 600; }
+.pipeline-step.is-local .pipeline-name { font-weight: 400; }
+.pipeline-branch { flex-basis: 100%; margin: 0; }
+.pipeline-mark { font-weight: 700; color: var(--warn); }
+.pipeline-others { margin: 0; padding-left: 1.1rem; }
+.pipeline-bar { display: block; height: 6px; border-radius: 3px; background: var(--accent); min-width: 2px; }
+.pipeline-bar.share-0 { width: 0%; }
+.pipeline-bar.share-5 { width: 5%; }
+.pipeline-bar.share-10 { width: 10%; }
+.pipeline-bar.share-15 { width: 15%; }
+.pipeline-bar.share-20 { width: 20%; }
+.pipeline-bar.share-25 { width: 25%; }
+.pipeline-bar.share-30 { width: 30%; }
+.pipeline-bar.share-35 { width: 35%; }
+.pipeline-bar.share-40 { width: 40%; }
+.pipeline-bar.share-45 { width: 45%; }
+.pipeline-bar.share-50 { width: 50%; }
+.pipeline-bar.share-55 { width: 55%; }
+.pipeline-bar.share-60 { width: 60%; }
+.pipeline-bar.share-65 { width: 65%; }
+.pipeline-bar.share-70 { width: 70%; }
+.pipeline-bar.share-75 { width: 75%; }
+.pipeline-bar.share-80 { width: 80%; }
+.pipeline-bar.share-85 { width: 85%; }
+.pipeline-bar.share-90 { width: 90%; }
+.pipeline-bar.share-95 { width: 95%; }
+.pipeline-bar.share-100 { width: 100%; }
+@media (min-width: 900px) {
+  .pipeline { flex-direction: row; flex-wrap: wrap; align-items: stretch; column-gap: 28px; }
+  .pipeline-step { flex: 0 1 11rem; }
+  .pipeline-step:has(.pipeline-branch) { flex-basis: 18rem; }
+  .pipeline-step:not(:last-child)::after { content: "→" / ""; left: auto; right: -21px; bottom: auto;
+    top: 50%; transform: translateY(-50%); }
+}
 .settings-live-results .meta { display: block; }
 .settings-search.searching .settings-live-results { opacity: .6; }
 /* 5.3: packaged help sections, readable without JavaScript. */

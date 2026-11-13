@@ -2191,6 +2191,31 @@ Maus erreichbar. Alle Inhalte werden escaped bzw. über textContent eingesetzt; 
 Inline-Skripte noch Inline-Styles, externe Anfragen oder Schreibaktionen werden benötigt.
 Ohne JavaScript bleiben SVG-Titel und Tabellen verfügbar, die Vergrößerungsschaltflächen verborgen.
 
+**Diagramme seit 5.9.8.** Das Kostendiagramm zeichnet eine gestrichelte Durchschnittslinie
+(`chart-average-line`): Summe der gemeldeten Kosten geteilt durch die Abschnitte vom ersten Abschnitt
+mit einem erfassten Aufruf bis heute; Aufrufe ohne Kostenangabe zählen wie in den Säulen als null.
+Ab 14 Tagen kommt ein 7-Tage-Mittel als gerade Polylinie (`chart-cost-trend`) hinzu, das am 7.
+erfassten Tag beginnt. Die Werte stehen in der Legende, die Tabelle ergänzt die Spalte
+„7-Tage-Mittel“ und die Zeilen „Summe“ und „Durchschnitt (ab erstem erfassten Tag)“.
+Die Dauerklassen entfallen. „Aufrufdauer“ ist eine Punktwolke mit logarithmischer y-Achse von
+0,1 s bis `max(100 s, nächste Zehnerpotenz über dem Maximum)`; kürzere Dauern liegen auf 0,1 s und
+heißen „< 0,1 s“. Erfolge sind halbtransparente Kreise, Fehler Kreuze. Punkte tragen `<title>` und
+`data-chart-detail`, sind aber nicht fokussierbar; der Tastaturweg ist die Wertetabelle je
+Abschnitt (Aufrufe, Fehler, Median, 95 %, Maximum). Eine Linie verbindet den Median jedes
+Abschnitts mit mindestens drei Aufrufen und wird sonst unterbrochen. Über 3000 Aufrufe bleiben alle
+Fehler und alle Aufrufe über dem 95-%-Wert erhalten; der Rest wird in fester Schrittweite gezogen,
+der Untertitel nennt „N von M Aufrufen dargestellt“.
+„Rechenzeit je Verarbeitungsschritt“ beschriftet jeden Balken mit Anteil und Dauer
+(`duration_text`) und nennt deutsche Namen aus `STAGE_LABELS`; unbekannte Schlüssel bleiben
+unverändert. Die Tabelle nennt Anteil, Summe, Aufrufe und den Median je Mail (Dauer je `mail_id`
+und Schritt summiert); Aufrufe ohne `mail_id` zählen nur in Summe und Anteil. „Ablauf der
+Mailverarbeitung“ ist eine geordnete HTML-Liste in der Reihenfolge von `ProcessingStage`. Ein Schritt
+zeigt Anteil, Dauer, Median je Mail und einen Anteilsbalken (Klassen `share-0` … `share-100` in
+5-%-Stufen) genau dann, wenn Metrikzeilen mit seinem Schlüssel vorliegen, sonst „lokal · nicht
+gemessen“. Termin- und Aufgabenerkennung teilen sich einen Knoten („je nach Aktion“). Der größte
+gemessene Anteil heißt sichtbar „⏱ größte Wartezeit“. Schlüssel außerhalb der Pipeline erscheinen
+am Ende unter „Weitere KI-Aufrufe“. Ohne Metrikzeilen entfällt der Plan.
+
 **Lesbare Dauern (seit 5.9.1).** `formatting.duration_text` gibt Dauern in der größten
 passenden Einheit aus: unter 60 s in Sekunden mit einer (Mittel/Median/95 %: zwei)
 Nachkommastellen, darunter einer Stunde als Minuten und ganze Sekunden, darunter einem Tag

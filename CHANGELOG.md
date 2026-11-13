@@ -1,5 +1,24 @@
 # Änderungen
 
+## 5.9.8 – Auswertung: Kostenmittel, Dauer-Punktwolke, Rechenzeit und Ablaufplan
+
+Umsetzung der Planschritte K8 bis K10 in einer Version, weil sie dieselben Diagrammbausteine ändern.
+
+- **Cloudkosten:** gestrichelte Durchschnittslinie ab dem ersten erfassten Tag (Tage vor Beginn der
+  Erfassung drücken den Schnitt nicht) und ab 14 Tagen ein 7-Tage-Mittel als gerade Linie, das am
+  7. erfassten Tag beginnt. Die Werte stehen in der Legende; die Tabelle hat die Spalte
+  „7-Tage-Mittel“ und die Zeilen „Summe“ und „Durchschnitt“.
+- **Aufrufdauer:** Statt starrer Dauerklassen zeigt eine Punktwolke jeden Aufruf zu seinem
+  Zeitpunkt auf einer logarithmischen Achse (0,1 s bis mindestens 100 s) mit dem Median je Tag
+  bzw. Stunde (ab drei Aufrufen). Fehler sind Kreuze, nicht nur andersfarbig. Punkte sind keine
+  Tab-Stopps; die Wertetabelle (Aufrufe, Fehler, Median, 95 %, Maximum) ist der Tastaturweg. Über
+  3000 Aufrufe werden deterministisch ausgedünnt; Fehler und langsame Aufrufe bleiben erhalten.
+- **Rechenzeit je Verarbeitungsschritt:** deutsche Schrittnamen, je Balken Anteil und Dauer
+  („48,9 % · 2 Std. 25 Min.“), Tabelle mit Aufrufen und Median je Mail.
+- **Ablauf der Mailverarbeitung:** alle Schritte in der Reihenfolge der Pipeline als Liste;
+  lokale Schritte als „lokal · nicht gemessen“, Termin- und Aufgabenerkennung als Verzweigung,
+  der größte Anteil als „⏱ größte Wartezeit“, unbekannte Schlüssel unter „Weitere KI-Aufrufe“.
+
 ## 5.9.7 – Statuszähler „Mails verarbeitet“
 
 - Web: Die Zusammenfassung auf `/status` nennt nach den offenen Vorgängen „Bisher 1.234 Mails

@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from mailhelp.web.archive_pages import statistics_page
-from mailhelp.web.charts import _scale, bar_list, column_chart, count, statistics_charts
+from mailhelp.web.charts import _number, _scale, bar_list, column_chart, count, statistics_charts
 
 NOW = datetime(2026, 10, 15, 12, 30, tzinfo=UTC)
 
@@ -58,10 +58,13 @@ def test_period_is_shown_per_day_with_costs_durations_steps_and_models():
     records = [record(1, seconds=0.4), record(26, seconds=70, stage="relevance", model="ollama/local", cost=None),
                record(27, cost="0.01", seconds=12)]
     html = statistics_charts(records, 7, "UTC", NOW)
-    assert html.count('<figure class="chart"') == 5
+    assert html.count('<figure class="chart"') == 5 and html.count('<figure class="chart pipeline-figure"') == 1
     assert "<td>15.10.</td><td>1</td><td>0</td>" in html and "<td>14.10.</td><td>2</td><td>0</td>" in html
-    assert "<td>&lt; 1 s</td><td>1</td>" in html and "<td>&gt; 60 s</td><td>1</td>" in html
-    assert "<td>relevance</td><td>70,0 s</td>" in html and "<td>gpt-synthetic</td><td>0,0112 $</td>" in html
+    # 5.9.9: durations per day with median, 95 % and maximum instead of fixed classes.
+    assert "<tr><td>15.10.</td><td>1</td><td>0</td><td>0,4 s</td><td>0,4 s</td><td>0,4 s</td></tr>" in html
+    assert "<tr><td>14.10.</td><td>2</td><td>0</td><td>41,0 s</td><td>1 Min. 10 s</td><td>1 Min. 10 s</td></tr>" in html
+    assert "<tr><td>Relevanzprüfung</td><td>85,0 %</td><td>1 Min. 10 s</td><td>1</td><td>—</td></tr>" in html
+    assert "<td>gpt-synthetic</td><td>0,0112 $</td>" in html
     without_costs = statistics_charts([record(1, cost=None)], 7, "UTC", NOW)
     assert without_costs.count('<figure class="chart"') == 4 and statistics_charts([], 7, "UTC", NOW) == ""
 
@@ -74,7 +77,7 @@ def test_evaluation_page_places_the_charts_before_the_groups():
                           "failed": 0, "seconds": 2.5, "median": 2.5, "p95": 2.5, "usd": "0.0012"}]}
     page = statistics_page({"days": 30, "mode": "production"}, report, report["records"], "UTC", NOW)
     assert page.index("Verlauf und Verteilung") < page.index("Nach Modell und Schritt")
-    assert statistics_page({"days": 30, "mode": "production"}, report, report["records"]).count("<figure") == 5
+    assert statistics_page({"days": 30, "mode": "production"}, report, report["records"]).count("<figure") == 6
 
 
 def test_regression_bars_keep_distinct_colours_without_the_stylesheet():
