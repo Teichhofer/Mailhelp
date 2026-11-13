@@ -38,6 +38,7 @@ from .analysis import (
     LlmSchemaValidationExceeded,
 )
 from .perspective import Perspective, read_perspective
+from .stage_timing import StageClock, part
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
@@ -100,6 +101,13 @@ class ProcessingRun:
     state: MailState
     stage: ProcessingStage
     started: float
+    # 6.1.6: measures each step; every assignment to ``stage`` starts the next one.
+    timer: StageClock | None = None
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "stage" and self.__dict__.get("timer") is not None:
+            self.__dict__["timer"].enter(value.value)
+        object.__setattr__(self, name, value)
 
 
 class MailPipeline:
@@ -125,7 +133,8 @@ class MailPipeline:
                               previous_mail_id=duplicate.previous_mail_id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
         if self.o.vision is not None and state.steps.relevance == "pending":
-            self.o.read_images(run.name, state, fetched.raw)
+            with part(run.timer, "bilderkennung"):
+                self.o.read_images(run.name, state, fetched.raw)
         self._relevance(run)
         assert state.relevance is not None
         if state.relevance.decision == "irrelevant":
@@ -184,7 +193,8 @@ class MailPipeline:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
                 self.o.save(name, state)
-            state.mail = prepare(fetched.raw, self.o.max_bytes, fetched.received_at, self.o.user_timezone)
+            with part(run.timer, "zerlegen"):
+                state.mail = prepare(fetched.raw, self.o.max_bytes, fetched.received_at, self.o.user_timezone)
             if is_own_briefing(self.o.store, state.imap.account_id, fetched.raw):
                 cast(dict[str, Any], state.mail["metadata"])["mailhelp_briefing"] = True
             cast(list[dict[str, Any]], state.mail["extracted_attachments"]).extend(
@@ -195,7 +205,8 @@ class MailPipeline:
             perspective = read_perspective(state.mail, self.o.own_addresses(state.imap.account_id))
             state.self_mail, state.user_note = perspective.self_mail, perspective.user_note
             state.is_forwarding, state.forwarded_headers = perspective.is_forwarding, perspective.forwarded_headers
-            self.o.cache_previews(state, fetched.raw)
+            with part(run.timer, "anhaenge"):
+                self.o.cache_previews(state, fetched.raw)
             state.steps.preparation = "completed"
             self.o.save(name, state)
             self.o.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,

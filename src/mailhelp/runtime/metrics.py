@@ -7,6 +7,7 @@ import os
 import secrets
 import statistics
 import time
+from collections import deque
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -202,6 +203,10 @@ class MetricsRecorder:
         self.test_mail_hash: str | None = None
         self.comparison: MetricsRecorder | None = None
         self.changed: Callable[[], None] = lambda: None
+        # 6.1.6: wall time of every processing step; recent calls give each step its AI share.
+        from .stage_metrics import StageJournal, journal_path
+        self.stages = StageJournal(journal_path(path), lambda: self.settings.retention_days)
+        self._recent_calls: deque[tuple[str | None, float, float, float]] = deque(maxlen=5000)
 
     def runtime(self) -> dict:
         with self._lock:
@@ -228,6 +233,16 @@ class MetricsRecorder:
         self._track_processing(event, context)
         if self.settings.enabled and isinstance(context.get("call_id"), str):
             self._track_call(event, context)
+        if self.settings.enabled and event == "stage_finished":
+            self._track_stage(context)
+
+    def _track_stage(self, context: dict) -> None:
+        """6.1.6: one journal line per step; AI calls of the same mail within the step count as its AI share."""
+        start = float(context["started_wall"])
+        end = start + float(context["duration_ms"]) / 1000
+        llm = sum(duration for mail, begin, finish, duration in self._recent_calls
+                  if mail == context.get("mail_id") and begin >= start - 0.05 and finish <= end + 0.05)
+        self.stages.finish(context, self.run_id, self.mode, llm)
 
     def _track_state(self, event: str, context: dict) -> None:
         """The stage shown on the status page: from persisted mail states and the idle wait."""
@@ -378,6 +393,7 @@ class MetricsRecorder:
             item["cost_usd"] = None
         item["power_watts"] = self.settings.ollama_power_watts
         item["electricity_price"] = self.settings.electricity_eur_per_kwh
+        self._recent_calls.append((item["mail_id"], item["start"], item["end"], item["duration_ms"]))
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(item, ensure_ascii=False) + "\n")

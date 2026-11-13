@@ -71,8 +71,8 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     expect(badge).to_have_text("PC nicht erreichbar")
     page.unroute("**/api/stand")
     page.unroute("**/health")
-    # Chrome reports each aborted request, sometimes late or only once.
-    for _ in range(20):
+    # Chrome reports each aborted request, sometimes late (under parallel load up to seconds) or only once.
+    for _ in range(50):
         if len(page.errors) >= 2:
             break
         page.wait_for_timeout(100)

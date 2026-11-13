@@ -3,8 +3,7 @@ import pytest
 
 from mailhelp.runtime.initial_checks import LIMIT, WINDOW, InitialChecks
 from mailhelp.runtime.setup_messages import SetupProblem
-from tests.fakes.initial_harness import initial  # noqa: F401  (fixture)
-from tests.notifications.test_initial_setup import request
+from tests.fakes.initial_harness import initial, request  # noqa: F401  (fixture)
 
 SECRET = "frisch-eingegeben-123"
 

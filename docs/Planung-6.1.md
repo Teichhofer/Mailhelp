@@ -221,8 +221,8 @@ Schritt der Pipeline dort, wo heute `run.stage` gesetzt wird. Er misst mit `time
 `MetricsRecorder` schreibt daraus eine Zeile. So bleibt die Verarbeitung frei von Dateizugriffen,
 und Prozesse ohne aktivierte Metriken (`metrics.enabled: false`) messen nichts.
 
-**Eintrag** (eigenes JSONL `logs/stage-metrics.jsonl`, getrennt vom KI-Journal, wie in AGENTS.md
-für Logs verlangt):
+**Eintrag** (eigenes JSONL neben dem KI-Journal, umgesetzt als `<Metrikdatei>-stages.jsonl`, wie in
+AGENTS.md für Logs verlangt):
 
 ```python
 class StageRecord(BaseModel):
@@ -235,7 +235,7 @@ class StageRecord(BaseModel):
     started_at: AwareDatetime
     duration_ms: FiniteFloat     # Wanduhrzeit des Schritts
     llm_ms: FiniteFloat          # Summe der KI-Aufrufe innerhalb des Schritts (aus call_id-Zuordnung)
-    outcome: Literal["completed", "skipped", "failed", "deferred", "interrupted"]
+    outcome: Literal["completed", "failed", "deferred"]   # ein abgebrochener Schritt hat keine Zeile
     analysis_round: int          # erneute Analyse derselben Mail
     resumed: bool                # nach Neustart fortgesetzt
 ```
@@ -244,9 +244,10 @@ class StageRecord(BaseModel):
   `stage="total"` mit der Zeit vom Beginn der Aufbereitung bis zum Abschluss. Wartezeit auf eine
   Relevanzentscheidung des Nutzers wird **herausgerechnet** und getrennt als `waiting_ms` geführt,
   damit eine Nachtpause nicht als Verarbeitungszeit erscheint (Entscheidung E5).
-- **Aufbereitung genauer:** Der Schritt `preparation` erhält Unterzeiten für Abruf vom Server,
-  Zerlegen der Mail, Textauszug aus Anhängen und Bilderkennung (`parts: dict[str, float]`), weil hier
-  bei großen Anhängen die meiste lokale Zeit vermutet wird.
+- **Aufbereitung genauer:** Der Schritt `preparation` erhält Unterzeiten für Zerlegen der Mail,
+  Anhänge (Vorschauen) und Bilderkennung (`parts: dict[str, float]`), weil hier bei großen Anhängen
+  die meiste lokale Zeit vermutet wird. Umsetzung 6.1.6: Der Abruf vom Server läuft gebündelt vor der
+  Verarbeitung je Postfach und gehört deshalb nicht zum Schritt einer einzelnen Mail.
 - **Neustart:** Ein durch Neustart abgebrochener Schritt hat keine Endzeit; der fortgesetzte Schritt
   trägt `resumed: true`, die verlorene Teilzeit wird nicht geschätzt.
 - **Inhaltsfrei:** keine Betreffzeilen, Absender, Texte oder Fehlermeldungen; Fehler nur über

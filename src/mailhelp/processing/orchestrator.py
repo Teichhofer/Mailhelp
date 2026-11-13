@@ -44,6 +44,7 @@ from .analysis import Analyzer
 from .mail_duplicates import DuplicateMailCheck
 from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
 from .mail_questions import MailQuestions
+from .stage_timing import StageClock
 from .vision import VisionExtractor
 
 
@@ -372,9 +373,11 @@ class Orchestrator:
         run = self._begin(fetched)
         if isinstance(run, ProcessingResult):
             return run
+        self._time(run)
         try:
             early = self.pipeline.advance(run, fetched)
             if early is not None:
+                self._stop(run, early.outcome)
                 return early
             run.stage = ProcessingStage.COMPLETION
             run.state.steps.completion = "completed"
@@ -386,7 +389,23 @@ class Orchestrator:
             outcome = self.pipeline.handle_failure(run, exc)
         else:
             outcome = ProcessingOutcome.COMPLETED
+        self._stop(run, outcome)
         return ProcessingResult(outcome, run.state.model_dump(mode="json"))
+
+    def _time(self, run: ProcessingRun) -> None:
+        """6.1.6: one clock per pass; a mail whose preparation is already done is resumed."""
+        state = run.state
+        run.timer = StageClock(lambda record: self.logger.event("INFO", "orchestrator", "stage_finished", **record),
+                               state.id, state.analysis_round, state.steps.preparation == "completed")
+        run.timer.enter(run.stage.value)
+
+    @staticmethod
+    def _stop(run: ProcessingRun, outcome: ProcessingOutcome) -> None:
+        assert run.timer is not None  # set by _time() before the pipeline runs
+        if outcome == ProcessingOutcome.COMPLETED:
+            run.timer.finish("completed", final=True)
+        else:
+            run.timer.finish("deferred" if outcome == ProcessingOutcome.WAITING else "failed")
 
     def remember_topics(self, state: MailState) -> None:
         """Keep the topics of the state's configuration, so a resumed mail uses the same ones."""

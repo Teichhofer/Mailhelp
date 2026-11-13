@@ -2265,6 +2265,21 @@ frühere Route `/einrichtung/test/{imap|llm|ziele}`, die bei Erfolg speicherte, 
 Fokus auf das Ergebnis. `IncomingCommands.read` wiederholt ein durch Windows kurz gesperrtes
 Lesen einer Quittung (`PermissionError`) bis zu dreimal, wie `replace_file` beim Ersetzen.
 
+**Dauer der Verarbeitungsschritte (seit 6.1.6).** Jede Zuweisung `run.stage = …` startet in
+`ProcessingRun` die Uhr des nächsten Schritts (`processing/stage_timing.StageClock`, monoton); der
+vorherige gilt als abgeschlossen. Am Ende einer Mail wird der laufende Schritt mit `completed`,
+bei Warten auf eine Entscheidung oder Ratenlimit mit `deferred`, bei einem Fehler mit `failed`
+beendet. Das Ereignis `stage_finished` enthält nur Mail-ID, Schritt, Ergebnis, Beginn, Dauer,
+Teilzeiten der Aufbereitung (`zerlegen`, `anhaenge`, `bilderkennung`), Analyserunde und ob der
+Durchlauf fortgesetzt wurde. Bei aktivierten Metriken schreibt `MetricsRecorder` daraus eine Zeile
+`StageRecord` in `<Metrikdatei>-stages.jsonl`; die Dauer abgeschlossener KI-Aufrufe derselben Mail im
+Zeitfenster des Schritts ist `llm_ms`. Nach einem vollständig abgeschlossenen Durchlauf folgt eine
+Zeile `stage="total"`: Summe der Schritte der Analyserunde als Durchlaufzeit, die übrige Zeit seit dem
+ersten Schritt als `waiting_ms` (etwa Warten auf die Relevanzentscheidung). Schreibfehler werden
+gezählt und unterbrechen die Verarbeitung nie; Lesen prüft jede Zeile, zählt beschädigte und
+entfernt doppelte IDs; es gilt `metrics.retention_days`. Betreff, Absender und Inhalte werden nicht
+geschrieben.
+
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
 Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis

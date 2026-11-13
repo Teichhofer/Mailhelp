@@ -1,5 +1,18 @@
 # Änderungen
 
+## 6.1.6 – Dauer jedes Verarbeitungsschritts erfassen
+
+- Verarbeitung: Jeder Schritt von der Aufbereitung bis zum Abschluss wird gemessen – nicht mehr nur
+  die KI-Aufrufe. Je Mail und Schritt entsteht eine inhaltsfreie Zeile mit Dauer, Ergebnis
+  (abgeschlossen, zurückgestellt, fehlgeschlagen) und dem Anteil der KI-Aufrufe; die Aufbereitung
+  nennt Zerlegen, Anhänge und Bilderkennung getrennt. Am Ende steht die Durchlaufzeit der Mail; die
+  Wartezeit auf deine Relevanzentscheidung wird herausgerechnet und getrennt geführt.
+- Eigenes Journal neben dem KI-Protokoll, gleiche Aufbewahrung; Schreibfehler unterbrechen nichts;
+  bei ausgeschalteten Metriken wird nichts gemessen. Die Anzeige in der Auswertung folgt mit 6.1.8.
+- Tests: zwei sporadisch scheiternde Browsertests stabilisiert (mehrdeutiger Selektor im
+  Vorschlagsabgleich, zu knappe Wartezeit auf Chrome-Fehlermeldungen unter Last); eine
+  Testhilfe aus 6.1.2 in die gemeinsamen Testhilfen verschoben (Architekturregel).
+
 ## 6.1.5 – Prüfergebnis in der Ersteinrichtung bedienbar
 
 - Einrichtung: Das Prüfergebnis erhält beim Laden den Fokus und wird angesagt; jede Meldung führt mit

@@ -63,6 +63,16 @@ class InitialHarness:
             "TODOIST_TOKEN": "synthetic-todoist-token"}))
 
 
+def request(h, method, path, form=None, *, token=True, content="application/x-www-form-urlencoded"):
+    """A request to the first-run app as the paired browser (or without its cookie)."""
+    from urllib.parse import urlencode
+
+    from mailhelp.web.http import Request
+    path, _, query = path.partition("?")
+    return h.app(Request(method, path, {"host": "127.0.0.1:8765", "content-type": content,
+        "cookie": "mh_session=" + h.token if token else ""}, query, urlencode(form or {}).encode()))
+
+
 @pytest.fixture
 def initial(tmp_path, monkeypatch):
     for name in list(os.environ):

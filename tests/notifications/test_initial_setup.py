@@ -18,13 +18,7 @@ from mailhelp.runtime.initial_setup import InitialSetup
 from mailhelp.runtime.web_password import WebPassword
 from mailhelp.web.auth import PairingLimited, PairingRefused
 from mailhelp.web.http import Request
-from tests.fakes.initial_harness import InitialHarness, initial
-
-
-def request(h, method, path, form=None, *, token=True, content="application/x-www-form-urlencoded"):
-    path, _, query = path.partition("?")
-    return h.app(Request(method, path, {"host": "127.0.0.1:8765", "content-type": content,
-        "cookie": "mh_session=" + h.token if token else ""}, query, urlencode(form or {}).encode()))
+from tests.fakes.initial_harness import InitialHarness, initial, request
 
 
 def test_todoist_personal_token_does_not_require_an_unrelated_oauth_client():
