@@ -190,6 +190,14 @@ function randomHexKey() {
     });
     pane.replaceChildren.apply(pane, Array.from(content.childNodes));
     pane.dataset.dirty = "no";
+    openSource(pane);
+  }
+
+  // 5.9.5: from 1024 px the source mail of a proposal is open at first, for events and tasks
+  // alike; a later resize never closes what the user is reading.
+  function openSource(root) {
+    if (!desktop.matches) return;
+    root.querySelectorAll("details[data-source-mail]").forEach(function (node) { node.open = true; });
   }
 
   function select(card) {
@@ -571,6 +579,7 @@ function randomHexKey() {
     if (location.pathname + location.search !== shown) location.reload();
   });
   enhance();
+  openSource(document);
 
   document.addEventListener("click", function (event) {
     var button = event.target.closest("[data-copy-draft]");

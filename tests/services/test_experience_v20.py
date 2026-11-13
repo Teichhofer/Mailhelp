@@ -877,7 +877,8 @@ def test_inbox_zero_summarizes_today_in_the_configured_zone(web, monkeypatch):
 
 def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch):
     page = web.browser.request("GET", f"/vorschlag/{MAIL1}/elternabend").body.decode()
-    assert '<details class="disclosure"><summary>Quellbeleg aus E-Mail / Anhang</summary>' in page
+    assert ('<details class="disclosure" data-source-mail><summary>Quellbeleg aus E-Mail / Anhang '
+            '(Mail von Klassenleitung 4b)</summary>') in page
     assert "<summary>Revisionshistorie &amp; Differenzen</summary>" in page
     assert "<summary>Technische LLM-Analyse &amp; Metriken</summary>" in page
     assert "Noch keine Revisionen erfasst." in page
@@ -889,14 +890,16 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
     page = web.browser.request("GET", f"/vorschlag/{MAIL1}/elternabend").body.decode()
     assert page.index(f"/vorschlag/{MAIL1}/elternabend/version/2") < page.index(f"/vorschlag/{MAIL1}/elternabend/version/1")
     assert "/formular/version" not in page
-    # Image previews are the evidence to compare with: the section opens itself.
+    # 5.9.5: image previews no longer open the section on the server (app.js opens it from 1024 px);
+    # the collapsed summary still says that images are there.
     raw = mail(("scan.png", "image", "png", image_bytes(Image.new("RGB", (300, 200)))))
     entries = [{"filename": "scan.png"}]
     AttachmentCache(web.store).prepare(MAIL1, raw, entries)
     assert entries[0]["preview"]["width"] == 300 and entries[0]["preview"]["height"] == 200
     with_mail(web.store, 1, extracted_attachments=entries)
     page = web.browser.request("GET", f"/vorschlag/{MAIL1}/elternabend").body.decode()
-    assert '<details class="disclosure" open><summary>Quellbeleg' in page
+    assert ('<details class="disclosure" data-source-mail><summary>Quellbeleg aus E-Mail / Anhang '
+            '(Mail von Klassenleitung 4b, 1 Bild)</summary>') in page
     assert "scan.png · 300 × 200 px · " in page and "Kein erkannter Text gespeichert." in page
     # Previews cached before 2.0 metadata existed still render.
     with_mail(web.store, 1, extracted_attachments=[{"filename": "alt.png", "text": "Text",

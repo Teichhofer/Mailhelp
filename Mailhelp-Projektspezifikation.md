@@ -2321,8 +2321,11 @@ externe Anlage und keine Ablage im Postfach aus.
 **Weboberfläche.** Ab 1024 px Breite zeigt `/` bzw. `/offen` die offenen Vorgänge
 als Liste und den ausgewählten Vorgang daneben (geladen aus derselben Detailseite,
 eindeutige IDs mit Präfix `detail-`). Die Vorschlagsseite zeigt Quellbeleg,
-Revisionshistorie und technische Analyse als einklappbare Abschnitte; mit
-Bildvorschauen ist der Quellbeleg geöffnet. Schnellfilter (`filter` = `events`,
+Revisionshistorie und technische Analyse als einklappbare Abschnitte. Seit 5.9.5
+rendert der Server den Quellbeleg immer eingeklappt (`<details data-source-mail>`); `app.js`
+öffnet ihn beim Laden der Detailseite und beim Füllen der geteilten Ansicht, wenn
+`(min-width: 1024px)` zutrifft, unabhängig von Art und Bildvorschauen. Eine spätere
+Größenänderung schaltet ihn nicht um. Die Zusammenfassung nennt Absender und Zahl der Bilder. Schnellfilter (`filter` = `events`,
 `tasks`, `clarification`, `attachments`, `duplicates`) werden serverseitig
 ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden im
 Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet. Bis

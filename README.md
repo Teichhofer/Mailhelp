@@ -13,13 +13,14 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.9.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.9.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.9 wird in Patches umgesetzt. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
 Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche
 zwischen zwei Mails beide Werte und ihre Herkunft („bisher 16:30 Uhr, laut Mail … 19:30 Uhr“);
 ab 5.9.3 wählst du im Web, ab 5.9.4 auch in Telegram den gültigen Wert mit einem Klick. Angelegt
-wird weiterhin erst nach deiner Bestätigung.
+wird weiterhin erst nach deiner Bestätigung. Ab 5.9.5 ist der Quellbeleg auf breiten Bildschirmen
+(ab 1024 px) sofort aufgeklappt, auf schmalen zunächst eingeklappt.
 Plan: [Planung 5.9](docs/Planung-5.9.md).
 
 Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und

@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from ..models import ProposalKind, ProposalStatus
 from ..review.calendar_display import change_parts
+from ..review.cards import sender_name
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
 from .actions import conflict_boxes
 from .pages import e, layout, notice
@@ -367,22 +368,34 @@ def _size(size: int) -> str:
     return f"{size / 1_048_576:.1f} MB".replace(".", ",")
 
 
-def disclosure(summary: str, body: str, *, opened: bool = False) -> str:
+def disclosure(summary: str, body: str, *, opened: bool = False, marker: str = "") -> str:
     """A secondary section, collapsed unless it is needed for the decision."""
     if not body:
         return ""
-    return (f'<details class="disclosure"{" open" if opened else ""}><summary>{summary}</summary>'
+    return (f'<details class="disclosure"{marker}{" open" if opened else ""}><summary>{summary}</summary>'
             f'{body}</details>')
+
+
+def source_summary(mail: MailView | None) -> str:
+    """5.9.5: the collapsed source names its content, e.g. "(Mail von Schule, 2 Bilder)"."""
+    title = "Quellbeleg aus E-Mail / Anhang"
+    if mail is None:
+        return title
+    parts = [f"Mail von {sender_name(mail.sender)}"] if mail.sender.strip("— ") else []
+    images = sum(1 for item in mail.extracted_attachments if item.preview is not None)
+    if images:
+        parts.append("1 Bild" if images == 1 else f"{images} Bilder")
+    return f"{title} ({e(', '.join(parts))})" if parts else title
 
 
 def detail_page(view: ProposalView, *, actions: Actions | None = None,
                 mail: MailView | None = None, after: str = "") -> str:
-    # Image previews are the evidence to compare with; they are shown at once.
-    previews = mail is not None and any(item.preview is not None for item in mail.extracted_attachments)
+    # 5.9.5: always collapsed from the server; app.js opens it from 1024 px (split view and
+    # detail page). Without JavaScript and on small screens it stays collapsed.
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
 {proposal_card(view, actions=actions, detail_link=False)}
-{disclosure("Quellbeleg aus E-Mail / Anhang", mail_section(mail), opened=previews)}"""
+{disclosure(source_summary(mail), mail_section(mail), marker=" data-source-mail")}"""
     return layout(view.card.title, content, active="/", after=after)
 
 

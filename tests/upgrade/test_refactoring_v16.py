@@ -111,7 +111,7 @@ def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
         pages = renderer_contract_pages(store, review_pages)
     overview, proposal = pages["overview"], pages["proposal"]
     assert overview.count('<div class="open-items">') == 1
-    wrapper = '<details class="disclosure"><summary>Quellbeleg aus E-Mail / Anhang</summary>'
+    wrapper = '<details class="disclosure" data-source-mail><summary>Quellbeleg aus E-Mail / Anhang'
     assert proposal.count(wrapper) == 1 and proposal.count("</section></details>") == 1
     # The fixture comes from the committed renderer before the facelift, not from the new output.
     # User data, links, ids and form targets survive; decorative navigation and copy may change.

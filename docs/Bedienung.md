@@ -8,6 +8,8 @@ nachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.
 **Offen** zeigt alle Vorschläge, die eine Entscheidung brauchen. Jede Karte nennt Art (Aufgabe
 oder Termin), Titel, Zeiten, Ziel und den Beleg aus der Mail. Auf großen Bildschirmen steht die
 Liste links und der gewählte Vorschlag rechts; die Taste `A` legt den gewählten Vorschlag an.
+Der **Quellbeleg** (die Mail mit Anhängen) ist ab 1024 px Breite sofort aufgeklappt, auf
+schmaleren Bildschirmen zunächst eingeklappt; seine Überschrift nennt Absender und Zahl der Bilder.
 
 | Schaltfläche | Wirkung |
 | --- | --- |

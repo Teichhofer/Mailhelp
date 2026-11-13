@@ -18,8 +18,10 @@ def test_details_show_the_complete_mail(page, mailhelp):
     else:
         page.locator(f"#v-{mail_id(1)}-elternabend").get_by_role("link", name="Details").click()
         scope, prefix = page, "#"
-    # The source is a secondary section of the decision (progressive disclosure).
-    scope.get_by_text("Quellbeleg aus E-Mail / Anhang").click()
+    # The source is a secondary section of the decision (progressive disclosure);
+    # from 1024 px it is open at first (5.9.5), on phones it is opened by a tap.
+    if not desktop:
+        scope.get_by_text("Quellbeleg aus E-Mail / Anhang").click()
     mail = scope.locator(prefix + "mail")
     expect(mail.get_by_role("heading", name="Mail")).to_be_visible()
     expect(mail).to_contain_text("Klassenleitung 4b <klasse4b@schule.test>")

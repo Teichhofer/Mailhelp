@@ -1,5 +1,14 @@
 # Änderungen
 
+## 5.9.5 – Quellbeleg je nach Bildschirmbreite
+
+- Web: Ab 1024 px Breite (geteilte Ansicht und Detailseite) ist der Quellbeleg eines Vorschlags
+  sofort aufgeklappt, für Termine und Aufgaben gleichermaßen. Eine Aufgabe aus einer reinen
+  Textmail zeigt ihre Mail jetzt ebenfalls sofort.
+- Auf schmalen Bildschirmen und ohne JavaScript ist er immer zunächst eingeklappt, auch bei
+  Bildanhängen. Die Zusammenfassung nennt den Inhalt, etwa „(Mail von Schule, 2 Bilder)“.
+- Ein späteres Verkleinern des Fensters klappt den gerade gelesenen Beleg nicht zu.
+
 ## 5.9.4 – Widersprüche in Telegram mit einem Klick auflösen
 
 - Telegram: Widersprüche stehen als eigener Block mit allen Werten und ihrer Herkunft in der
