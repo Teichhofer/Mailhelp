@@ -87,9 +87,40 @@ class RuleState(BaseModel):
     message: str = ""
 
 
+class RuleChangeSet(BaseModel):
+    """6.0.3: what a proposal changes against the current rule, normalized for comparison.
+
+    Lists hold casefolded entries with collapsed whitespace, sorted and unique; the single
+    fields are set only when they change. No rationale and no evidence: the history is durable.
+    """
+    model_config = ConfigDict(extra="forbid")
+    add_examples: list[str] = Field(default_factory=list, max_length=60)
+    remove_examples: list[str] = Field(default_factory=list, max_length=60)
+    add_exclusions: list[str] = Field(default_factory=list, max_length=60)
+    remove_exclusions: list[str] = Field(default_factory=list, max_length=60)
+    name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    enabled: bool | None = None
+
+
+class RejectedRuleProposal(BaseModel):
+    """6.0.3: a rule proposal the user rejected; it must not be proposed again."""
+    model_config = ConfigDict(extra="forbid")
+    fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+    category: Literal["relevant", "irrelevant"]
+    topic_id: str = Field(pattern=r"^[a-z0-9_-]+$", max_length=64)
+    topic_name: str = Field(max_length=200)
+    action: Literal["modify", "create", "disable"]
+    changes: RuleChangeSet
+    rejected_at: float
+
+
 class RuleHistory(BaseModel):
     """Public analysis metadata survives removal of private review contents."""
     model_config = ConfigDict(extra="forbid")
     analyzed_at: float = 0
     # 5.7.6: every analysed decision is remembered, so "only new" works across the whole log.
     decision_ids: list[str] = Field(default_factory=list, max_length=10_000)
+    # 6.0.3: rejected proposals (newest last, at most 500) and a version for "Wieder zulassen".
+    rejected: list[RejectedRuleProposal] = Field(default_factory=list, max_length=500)
+    rejected_version: int = Field(default=0, ge=0)

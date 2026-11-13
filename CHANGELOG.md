@@ -1,5 +1,13 @@
 # Änderungen
 
+## 6.0.3 – Datenmodell für abgelehnte Regelvorschläge
+
+- Regellernen: `RuleHistory` kann abgelehnte Vorschläge dauerhaft speichern (höchstens 500) –
+  mit Thema, Art und der normalisierten Änderung, ohne KI-Begründung und ohne Belege.
+- Ein Fingerabdruck erkennt dieselbe Änderung wieder; ein Vorschlag, der nur bereits abgelehnte
+  Einträge enthält, gilt ebenfalls als abgelehnt. Bedienung und Filter folgen in 6.0.4 und 6.0.5.
+- Bestehende Lernhistorien bleiben ohne Umwandlung lesbar.
+
 ## 6.0.2 – Breitbild-Prüfung aller Kernseiten
 
 - Tests: `ui_tests/test_ui_widescreen60.py` prüft alle Kernseiten bei 2560 × 1440 und 1920 × 1080,

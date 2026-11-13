@@ -4040,3 +4040,18 @@ output_token_limit` zusätzlich `token_usage`, `reported_cost`, `completion_toke
 `reasoning_tokens`, `partial_content_length`, `partial_reasoning_length` und
 `partial_content_sha256`, nie den Text. `max_tokens: 16000` bleibt Obergrenze. Die Abnahme
 (5.8.2) hat bis zu 10 927 Ausgabetokens gemessen, davon bis zu 10 508 für das Reasoning.
+
+### Regellernen: abgelehnte Vorschläge (6.0)
+
+`RuleHistory` speichert seit 6.0.3 abgelehnte Regelvorschläge in `rejected` (höchstens 500, neueste
+zuletzt, älteste fallen heraus) und zählt Änderungen daran in `rejected_version`. Ein Eintrag
+(`RejectedRuleProposal`) enthält Kategorie, Themen-ID und -name, Art (`modify`, `create`,
+`disable`), die normalisierte Änderung (`RuleChangeSet`), den Fingerabdruck und den Zeitpunkt,
+aber keine KI-Begründung und keine Entscheidungsbelege. `RuleChangeSet` nennt hinzugefügte und
+entfernte Beispiele und Ausschlüsse sowie geänderten Namen, Beschreibung und Aktivierung gegenüber
+der bisherigen Regel; Einträge sind kleingeschrieben, Leerraum ist zusammengefasst, Listen sind
+sortiert und eindeutig. Der Fingerabdruck ist SHA-256 über Kategorie, Themen-ID, Art und
+Änderungsmenge. Ein Vorschlag gilt als bereits abgelehnt, wenn sein Fingerabdruck gleich ist oder
+alle seine Änderungen für dasselbe Thema und dieselbe Art schon abgelehnt wurden; eine anders
+formulierte, sinngemäß gleiche Änderung erkennt dieser Vergleich nicht. Gespeicherte Historien
+ohne die neuen Felder laden unverändert.

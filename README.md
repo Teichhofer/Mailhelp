@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.0.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.0.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
