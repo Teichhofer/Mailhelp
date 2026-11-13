@@ -1,5 +1,17 @@
 # Änderungen
 
+## 6.0.1 – Lernseite für breite Bildschirme
+
+- Web: Die Vergleichstabelle auf `/lernen/entscheidungen` trennt Wörter nur noch an Wortgrenzen.
+  „Bisher“ stand zuvor als „Bi/sh/er“, „Keine“ als „K/ei/n/e“ untereinander; die Spalte „Bisher“
+  ist jetzt mindestens 6,5 rem breit, Kopfzeilen und Abzeichen bleiben einzeilig.
+- Die Lernseite nutzt ab 1024 px bis zu 1600 px Breite. Vergleich und Formular stehen nebeneinander,
+  sobald die Karte mindestens 1000 px breit ist, sonst untereinander (Container-Abfrage statt
+  Fensterbreite, denn neben der Seitenleiste ist die Karte schmaler als das Fenster).
+- Gilt ebenso für den Vergleich im Themeneditor, der selbst schmal bleibt.
+- Planung 6.0 überarbeitet und um Werkzeugleiste der Offen-Ansicht und parallele Browsertests
+  ergänzt.
+
 ## 5.9.11 – Abnahme der Version 5.9
 
 - Gesamtprüfung von 5.9.1 bis 5.9.10: Python-Suite mit 100 % Zeilen- und Branch-Abdeckung,

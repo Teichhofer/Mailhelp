@@ -944,12 +944,16 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
 @media print { #help-widget { display: none; } }
 /* 5.6: the old rule and its editable successor remain directly comparable. */
 .rule-diff { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; }
-.rule-diff section { min-width: 0; overflow-wrap: anywhere; }
+/* 6.0.1: words break only at word boundaries (anywhere split "Bisher" into "Bi/sh/er"). */
+.rule-diff section { min-width: 0; overflow-wrap: break-word; word-break: normal; }
 .rule-diff section > label { display: block; margin-top: .65rem; }
 .rule-diff textarea, .rule-diff input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; }
 .rule-diff dt { font-weight: 600; }
 .rule-diff dd { margin: 0 0 0.75rem; white-space: pre-wrap; }
-@media (max-width: 720px) { .rule-diff { grid-template-columns: 1fr; } }
+/* 6.0.1: the two columns follow the width of the card, not of the window (sidebar). */
+.rule-review { container-type: inline-size; }
+@container (max-width: 999px) { .rule-diff { grid-template-columns: 1fr; } }
+@media (min-width: 1024px) { main:has(.rule-review) { max-width: 1600px; } }
 .topic-tabs { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 0; }
 .topic-tabs [aria-current="page"] { border-color: var(--accent); font-weight: 700; }
 .topic-table { width: 100%; border-collapse: collapse; }
@@ -988,9 +992,11 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
 .compare-table { width: 100%; border-collapse: collapse; margin: .5rem 0 1rem; }
 .compare-table caption { text-align: left; font-weight: 700; padding: .5rem 0; }
 .compare-table th, .compare-table td { text-align: left; vertical-align: top; padding: .6rem; border-top: 1px solid var(--border);
-  overflow-wrap: anywhere; }
-.compare-table thead th { font-size: .9rem; color: var(--muted); border-top: 0; }
-.compare-table th[scope="row"] { width: 9rem; font-weight: 600; }
+  overflow-wrap: break-word; word-break: normal; }
+.compare-table thead th { font-size: .9rem; color: var(--muted); border-top: 0; white-space: nowrap; }
+.compare-table th[scope="row"] { min-width: 6.5rem; max-width: 9.5rem; font-weight: 600; }
+.compare-table td[data-label="Bisher"] { min-width: 6.5rem; }
+.compare-table .badge, .compare-table .diff-mark { white-space: nowrap; }
 .compare-table th[scope="row"] .badge { display: inline-block; margin-top: .25rem; }
 .compare-text { white-space: pre-wrap; }
 .line-diff { margin: 0; padding-left: 1.1rem; }

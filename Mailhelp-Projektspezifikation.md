@@ -2220,6 +2220,12 @@ gemessen“. Termin- und Aufgabenerkennung teilen sich einen Knoten („je nach 
 gemessene Anteil heißt sichtbar „⏱ größte Wartezeit“. Schlüssel außerhalb der Pipeline erscheinen
 am Ende unter „Weitere KI-Aufrufe“. Ohne Metrikzeilen entfällt der Plan.
 
+**Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
+(`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
+Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis
+1600 px breit. `.rule-review` ist ein Größencontainer; unter 1000 px Kartenbreite stehen
+Vergleich und Formular untereinander.
+
 **Aufrufliste (seit 5.9.10).** Jeder Wert der Faktentabelle ist ein nativer Link mit sprechendem
 `aria-label` auf `GET /auswertung/aufrufe?metric=…` und übernimmt `days`, `mode`, `model`,
 `provider`, `stage`, `since` und `until`. `metric` ∈ {`calls`, `failed`, `cloud_costs`,

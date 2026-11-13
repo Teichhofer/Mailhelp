@@ -13,9 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.9.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.0.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
-Version 5.9 wird in Patches umgesetzt. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
+Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
+Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
+Bildschirme.
+
+Version 5.9 ist abgeschlossen. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
 Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche
 zwischen zwei Mails beide Werte und ihre Herkunft („bisher 16:30 Uhr, laut Mail … 19:30 Uhr“);
 ab 5.9.3 wählst du im Web, ab 5.9.4 auch in Telegram den gültigen Wert mit einem Klick. Angelegt
