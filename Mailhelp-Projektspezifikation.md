@@ -2032,7 +2032,11 @@ in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected
 Wirkung, ein anderer Befehl mit demselben Schlüssel wird abgewiesen, höchstens 50
 Befehle warten. Der Bedien-Thread (3.6.4; ohne Empfangs-Thread der Hauptthread)
 verarbeitet sie nach den Telegram-Eingaben in Eingangsreihenfolge, ohne auf die
-Mailanalyse zu warten; nach einem Neustart werden `running`-Einträge gegen
+Mailanalyse zu warten (seit 5.9.9 ist `received_at` innerhalb des Prozesses streng monoton:
+die Wanduhr wird zwischen ihren Schritten von etwa 15,6 ms unter Windows mit einem
+hochauflösenden Zähler fortgeschrieben, bei mehr als 0,5 s Abweichung neu ausgerichtet und
+nie zurückgestellt; die zufällige Kennung entscheidet die Reihenfolge damit nicht mehr); nach
+einem Neustart werden `running`-Einträge gegen
 den aktuellen Zustand abgeglichen statt wiederholt. `JsonStore` serialisiert Lesen
 und Schreiben zusätzlich mit einer prozessinternen, wiedereintrittsfähigen Sperre.
 Komponenten, die selbst Zustand in dieser Ablage halten und von Code unter dieser Sperre

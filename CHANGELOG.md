@@ -1,5 +1,15 @@
 # Änderungen
 
+## 5.9.9 – Webbefehle in Eingangsreihenfolge (Fehlerbehebung)
+
+- Behoben: Unter Windows mit Python 3.12 rückt die Systemuhr nur etwa alle 15,6 ms vor. Zwei kurz
+  nacheinander eingereichte Webbefehle erhielten denselben Eingangszeitpunkt und wurden dann nach
+  ihrer zufälligen Kennung sortiert. So konnte „Bestätigen“ vor einem zuvor gesendeten „Verwerfen“
+  ausgeführt werden und den Eintrag anlegen. Der Eingangszeitpunkt steigt jetzt innerhalb des
+  Prozesses streng an und wird zwischen den Uhrschritten mit einem hochauflösenden Zähler geordnet.
+- Regressionstest mit grob auflösender Uhr; der zuvor gelegentlich scheiternde Sicherheitstest
+  P4 (Verwerfen, dann Bestätigen) läuft wieder stabil.
+
 ## 5.9.8 – Auswertung: Kostenmittel, Dauer-Punktwolke, Rechenzeit und Ablaufplan
 
 Umsetzung der Planschritte K8 bis K10 in einer Version, weil sie dieselben Diagrammbausteine ändern.

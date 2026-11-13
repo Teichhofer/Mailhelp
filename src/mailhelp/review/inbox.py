@@ -18,6 +18,8 @@ offsets and acknowledgements that web commands do not have.
 from __future__ import annotations
 
 import secrets
+import threading
+import time
 from collections import deque
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -93,19 +95,46 @@ class CommandInboxFull(RuntimeError):
     """Too many commands are waiting; the main thread is busy or stopped."""
 
 
-def _now() -> datetime:
-    return datetime.now(UTC)
+class ArrivalClock:
+    """Wall-clock time that strictly increases within the process (5.9.9).
+
+    With Python 3.12 on Windows datetime.now() advances only every ~15.6 ms. Commands submitted
+    within one step got the same ``received_at`` and were then ordered by their random id, so a
+    confirmation could run before an earlier rejection. A high-resolution counter orders calls
+    between the steps of the wall clock; a deviation of more than half a second (clock adjusted,
+    long uptime) re-bases on the wall clock, but the time never goes backwards.
+    """
+
+    DRIFT = timedelta(milliseconds=500)
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._base, self._counter = datetime.now(UTC), time.perf_counter_ns()
+        self._last = self._base - timedelta(microseconds=1)
+
+    def __call__(self) -> datetime:
+        with self._lock:
+            wall, counter = datetime.now(UTC), time.perf_counter_ns()
+            now = self._base + timedelta(microseconds=(counter - self._counter) // 1000)
+            if abs(now - wall) > self.DRIFT:
+                self._base, self._counter, now = wall, counter, wall
+            now = max(now, self._last + timedelta(microseconds=1))
+            self._last = now
+            return now
+
+
+_now = ArrivalClock()
 
 
 class CommandInbox:
     """Thread-safe, durable and ordered queue of review commands."""
 
     def __init__(self, store: JsonStore, wake: Callable[[], None] | None = None,
-                 clock: Callable[[], datetime] = _now):
+                 clock: Callable[[], datetime] | None = None):
         # Serialized with the store's own re-entrant lock, never a second one: the
         # notification thread reads the inbox while holding the store lock, and a web
         # page holding a separate inbox lock and waiting for the store deadlocked with it.
-        self.store, self.wake, self.clock = store, wake, clock
+        self.store, self.wake, self.clock = store, wake, clock or _now
         from .incoming import IncomingCommands
         self.changed: Callable[[], None] | None = None
         self._snapshot: tuple[CommandEntry, ...] = ()
@@ -115,7 +144,7 @@ class CommandInbox:
             store.observe(COMMAND_INBOX, self._publish)
             self._load()  # Validate persisted state before publishing the original patch fields.
             self._publish(store.load(COMMAND_INBOX, {}))
-            self.incoming = IncomingCommands(store.directory, lambda: MAX_QUEUED, clock)
+            self.incoming = IncomingCommands(store.directory, lambda: MAX_QUEUED, self.clock)
             self.incoming.initialize(list(self._snapshot))
 
     def _publish(self, value: Any) -> None:
