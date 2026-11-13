@@ -22,7 +22,8 @@ def test_imap_probe_uses_special_use_roles_and_closes_on_failure(initial,monkeyp
     monkeypatch.setattr(module,'ImapReader',Reader)
     cfg=Settings.model_validate(h.setup.state().config)
     checks=SetupChecks(h.directory)
-    assert checks.imap(cfg,h.setup.environment())=={'folders':['INBOX','Entwürfe'],'inbox':'INBOX','drafts':'Entwürfe'}
+    result=checks.imap(cfg,h.setup.environment())
+    assert {key:result[key] for key in ('folders','inbox','drafts')}=={'folders':['INBOX','Entwürfe'],'inbox':'INBOX','drafts':'Entwürfe'}
     assert calls[-1]=='closed' and calls[0][0][2]=='user@example.test'
     monkeypatch.setattr(Reader,'list_folders',lambda self:[])
     assert checks.imap(cfg,h.setup.environment())['drafts']==''
@@ -57,7 +58,7 @@ def test_openrouter_reports_key_budget_and_model_availability_without_charging(i
         result=checks.llm(cfg,h.setup.environment(),prompts)
         assert result['balance']==(8 if mode=='ready' else None)
         assert set(result['models'])==names
-    with pytest.raises(ValueError,match='Schlüssel'):checks.llm(cfg,{},prompts)
+    with pytest.raises(ValueError,match='llm.key_missing'):checks.llm(cfg,{},prompts)
 
 
 @pytest.mark.parametrize('models',[[],[{'name':123}],[{'name':''}],[{'name':'synthetic:latest'}]])
@@ -78,13 +79,13 @@ def test_targets_only_check_access_and_close_all_resources(initial,monkeypatch):
     cfg=Settings.model_validate(h.setup.state().config)
     env=h.setup.environment()
     assert setup_secrets(cfg,env).google_oauth_refresh_token.get_secret_value()=='synthetic-refresh'
-    with pytest.raises(ValueError,match='fehlen'):setup_secrets(cfg,{})
+    with pytest.raises(ValueError,match='target.secret_missing'):setup_secrets(cfg,{})
     calls=[]
     def check():calls.append('check')
     writers=SimpleNamespace(calendar=SimpleNamespace(check_access=check),tasks=SimpleNamespace(check_access=check),
                             close=lambda:calls.append('close'))
     monkeypatch.setattr(module,'build_writers',lambda *a,**kw:writers)
-    assert SetupChecks(h.directory).targets(cfg,env)=={'ready':True}
+    assert SetupChecks(h.directory).targets(cfg,env)['ready'] is True
     assert calls==['check','check','close']
     writers.tasks.check_access=lambda:(_ for _ in ()).throw(RuntimeError('private-provider-body'))
     with pytest.raises(RuntimeError):SetupChecks(h.directory).targets(cfg,env)

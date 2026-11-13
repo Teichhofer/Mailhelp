@@ -2234,6 +2234,18 @@ Suche oder Filter „angezeigt von gesamt“. Schnellfilter behalten Suche, Sort
 das Formular behält den Schnellfilter. Ohne Treffer bleiben Leiste und „Zurücksetzen“ sichtbar.
 Die Leiste liest nur und funktioniert ohne JavaScript.
 
+**Prüfmeldungen der Ersteinrichtung (seit 6.1.1).** `SetupChecks` meldet jeden Fehler als
+`SetupProblem` (eine `ValueError`) mit einem Code aus `runtime/setup_messages.CATALOGUE`; jeder Code
+hat eine Ursache, Lösungsschritte und gegebenenfalls das betroffene Formularfeld. Die Einordnung
+geschieht ausschließlich über Ausnahmetypen und strukturierte Merkmale: `ImapLoginRejected`,
+`StartTlsFailed`, `ssl.SSLCertVerificationError`, `ssl.SSLError`, `socket.gaierror`, Zeitlimit und
+Verbindungsfehler (bei den Paaren 993/SSL und 143/STARTTLS als vertauschte Verschlüsselung),
+`FolderNotReadable`, HTTP-Status (OpenRouter 401/403 Schlüssel, 402 Guthaben, sonst Dienst),
+`OAuthTokenError` (bei Google „Freigabe abgelaufen“), `AuthenticationError`,
+`CalendarAccessError`, `ExternalUnavailable`, `ExternalRefused`. Texte aus Anbieterantworten
+oder Ausnahmen erreichen weder Meldung noch Detail; Details enthalten nur Feldnamen, Ordner- und
+Modellnamen sowie das betroffene Ziel.
+
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
 Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis

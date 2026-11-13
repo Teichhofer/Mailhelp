@@ -69,6 +69,14 @@ class UIDValidityChanged(RuntimeError):
         self.current = current
 
 
+class ImapLoginRejected(RuntimeError):
+    """6.1: the server refused the login (wrong user, password or IMAP not enabled)."""
+
+
+class StartTlsFailed(RuntimeError):
+    """6.1: the server did not switch the connection to TLS."""
+
+
 class FolderNotReadable(RuntimeError):
     """Identify a configured mailbox that the server cannot select read-only."""
 
@@ -264,11 +272,11 @@ class ImapReader:
         if self._starttls:
             status, _ = self.connection.starttls()
             if status != "OK":
-                raise RuntimeError("IMAP STARTTLS fehlgeschlagen")
+                raise StartTlsFailed("IMAP STARTTLS fehlgeschlagen")
         try:
             self.connection.login(self._username, self._password)
         except imaplib.IMAP4.error:
-            raise RuntimeError(
+            raise ImapLoginRejected(
                 "IMAP-Anmeldung vom Server abgelehnt. Die erfolgreiche "
                 "Webmail-Anmeldung bestätigt den IMAP-Zugang nicht. Für genau "
                 "dieses Postfach die verlangte Anmeldekennung (oft die primäre "

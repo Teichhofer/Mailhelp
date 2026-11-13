@@ -1,5 +1,16 @@
 # Änderungen
 
+## 6.1.1 – Aussagekräftige Prüfmeldungen der Ersteinrichtung (Grundlage)
+
+- Einrichtung: Die Verbindungsprüfungen für Postfach, KI-Anbieter sowie Kalender und Aufgaben
+  ordnen jeden Fehler einem festen Meldungskatalog zu – etwa „Servername unbekannt“, „Port und
+  Verschlüsselung passen nicht zusammen“, „Anmeldung abgelehnt“ mit Hinweis auf App-Passwörter,
+  „Posteingang nicht gefunden“ mit den vorhandenen Ordnern, „Schlüssel ungültig“, „kein Guthaben“,
+  „Google-Freigabe abgelaufen“. Jede Meldung nennt Ursache, Lösungsschritte und das betroffene Feld.
+- Eingeordnet wird nur über Fehlerart und Status, nie über Antworttexte der Dienste; Zugangsdaten
+  können so nicht in Meldungen gelangen (Regressionstests mit Passwort im Fehlertext).
+- Die Anzeige im Browser folgt mit 6.1.2 und 6.1.5. Planung 6.1 aufgenommen.
+
 ## 6.0.7 – Browsertests parallel
 
 - Tests: Die Browser-Suite läuft mit `pytest-xdist` parallel (`-n 4 --dist worksteal`), auch in der
