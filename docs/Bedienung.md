@@ -163,8 +163,9 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    und Ausschlüsse stehen einzeln je Zeile. Vorhandene Themen-IDs und Postfachbereiche bleiben
    stabil. Optional unter „Vollständiges Themen-YAML bearbeiten (optional)“ ein vollständiges
    Thema eintragen; dieses ersetzt dann die Feldwerte.
-4. Gewünschte Vorschläge oben in der jeweiligen Karte auswählen; die Leiste am unteren Rand
-   zeigt, wie viele ausgewählt sind. **Ausgewählte Änderungen prüfen** wählen. Der gesonderte
+4. In jeder Karte unter „Entscheidung zu diesem Vorschlag“ **Übernehmen**, **Verwerfen – nicht
+   wieder vorschlagen** oder **Offen lassen** (Standard) wählen. Die Leiste am unteren Rand zählt,
+   wie viele übernommen und wie viele verworfen werden. **Ausgewählte Änderungen prüfen** wählen. Der gesonderte
    Vergleich **Bearbeitete Änderungen prüfen** zeigt genau deine Feld- oder YAML-Änderungen.
    Erst dort **Ausgewählte Regeländerungen ausdrücklich bestätigen** ankreuzen und
    **Geprüfte Änderungen übernehmen** wählen. „Weiter bearbeiten“ öffnet die Bearbeitung;
@@ -178,6 +179,11 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
 6. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
    Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
    Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
+7. Verworfene Vorschläge (ab 6.0.4) nennt die Prüfansicht unter „Wird verworfen und nicht wieder
+   vorgeschlagen“. Werden nur Vorschläge verworfen, heißt die Schaltfläche **Vorschläge verwerfen**;
+   keine Regeldatei wird geändert. „Offen lassen“ speichert nichts – ein späterer Lauf darf den
+   Vorschlag wieder bringen. Am Seitenende listet „Zuvor verworfene Vorschläge anzeigen“ alle
+   gesperrten Vorschläge mit Datum und Änderung; **Wieder zulassen** hebt die Sperre auf.
 
 Neue Analysen übernehmen relevante Regeln am nächsten sicheren Verarbeitungspunkt. Die
 Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmodus; für

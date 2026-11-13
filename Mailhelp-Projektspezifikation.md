@@ -4055,3 +4055,16 @@ sortiert und eindeutig. Der Fingerabdruck ist SHA-256 über Kategorie, Themen-ID
 alle seine Änderungen für dasselbe Thema und dieselbe Art schon abgelehnt wurden; eine anders
 formulierte, sinngemäß gleiche Änderung erkennt dieser Vergleich nicht. Gespeicherte Historien
 ohne die neuen Felder laden unverändert.
+
+Seit 6.0.4 trägt jede Vorschlagskarte die Optionsgruppe `decision-N` ∈ {`accept`, `reject`,
+`open`} (Standard `open`; ältere Formulare mit `selected-N=yes` gelten als `accept`). Die Vorschau
+speichert übernommene und verworfene Indizes im sitzungsgebundenen Prüfstand; die Bestätigung liest
+beide ausschließlich von dort. Dieselbe versionsgeprüfte, idempotente Aktion `apply` speichert die
+Ablehnungen in `RuleHistory` und schreibt Regeldateien nur, wenn mindestens ein Vorschlag
+übernommen wird; sonst endet der Prüfstand als `done` ohne Dateizugriff. Ein Index darf nicht
+zugleich übernommen und verworfen werden; ohne beides antwortet die Seite mit 422.
+`POST /lernen/entscheidungen` mit `action=readmit`, `rejected_version`, `fingerprint`, CSRF und
+Idempotenzschlüssel hebt eine Sperre auf. Die Sitzung wird vor und unmittelbar vor dem Schreiben
+geprüft; eine veraltete Version oder ein bereits aufgehobener Eintrag ergibt 409 ohne Änderung,
+eine Wiederholung mit demselben Schlüssel hat keine zweite Wirkung (Belege in
+`RuleHistory.receipts`, höchstens 100).

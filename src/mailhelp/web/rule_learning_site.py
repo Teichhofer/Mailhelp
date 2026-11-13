@@ -31,6 +31,14 @@ STATUSES = {"empty": "Bereit", "queued": "Wartet", "running": "Analyse läuft", 
             "interrupted": "Analyse unterbrochen"}
 
 
+DECISIONS = {"accept": "Übernehmen", "reject": "Verwerfen – nicht wieder vorschlagen", "open": "Offen lassen"}
+
+
+def count_text(accepted: int, rejected: int) -> str:
+    """6.0.4: e.g. "2 zur Übernahme ausgewählt · 1 zum Verwerfen markiert." (learning.js uses the same)."""
+    return f"{accepted} zur Übernahme ausgewählt · {rejected} zum Verwerfen markiert."
+
+
 class RuleLearningSite:
     def __init__(self, site: MailhelpSite):
         self.site = site
@@ -89,8 +97,44 @@ class RuleLearningSite:
                 '<label><input type="checkbox" name="confirm" value="yes" required> '
                 'Bereits bestätigte Übernahme ausdrücklich abschließen</label>'
                 '<button class="button" type="submit">Übernahme abschließen</button>'))
+        content += self.rejected_list(session)
         return Response.html(status, layout("Regellernen", content, active="/lernen",
                                             refresh=2 if state.status in {"queued", "running"} else None))
+
+    def rejected_list(self, session: WebSession) -> str:
+        """6.0.4: earlier rejections with date and change; each can be admitted again."""
+        assert self.service is not None
+        history = self.service.history()
+        if not history.rejected:
+            return ""
+        from datetime import UTC, datetime
+
+        from .rule_preview import ACTIONS
+        names = {"add_examples": "+ Beispiel", "remove_examples": "− Beispiel", "add_exclusions": "+ Ausschluss",
+                 "remove_exclusions": "− Ausschluss", "name": "Name", "description": "Beschreibung",
+                 "enabled": "Aktiv"}
+        body = (f'<details class="rule-rejected" id="verworfen"><summary>Zuvor verworfene Vorschläge anzeigen '
+                f'({len(history.rejected)})</summary><ul>')
+        for item in reversed(history.rejected):
+            changes = [f"{names[key]}: {'Ja' if value is True else 'Nein' if value is False else value}"
+                       for key, value in item.changes.model_dump().items() if key in ("name", "description",
+                                                                                    "enabled") and value is not None]
+            changes += [f"{names[key]}: {entry}" for key, entries in item.changes.model_dump().items()
+                        if isinstance(entries, list) for entry in entries]
+            day = datetime.fromtimestamp(item.rejected_at, UTC).strftime("%d.%m.%Y")
+            body += (f'<li><p><strong>{e(item.topic_name)}</strong> · {e(ACTIONS[item.action])} · '
+                     f'{"relevant" if item.category == "relevant" else "Ausschlussthema"} · verworfen am {day}</p>'
+                     + (f'<ul class="rule-rejected-changes">{"".join(f"<li>{e(text)}</li>" for text in changes)}'
+                        '</ul>' if changes else "")
+                     + '<form method="post" action="/lernen/entscheidungen">'
+                     f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
+                     f'<input type="hidden" name="key" value="{secrets.token_hex(16)}">'
+                     '<input type="hidden" name="action" value="readmit">'
+                     f'<input type="hidden" name="rejected_version" value="{history.rejected_version}">'
+                     f'<input type="hidden" name="fingerprint" value="{item.fingerprint}">'
+                     f'<button class="button small" type="submit" aria-label="{e(item.topic_name)} wieder zulassen">'
+                     'Wieder zulassen</button></form></li>')
+        return body + "</ul></details>"
 
     def scopes(self, session: WebSession, chosen: str) -> str:
         """5.7.6: only the decisions since the last analysis, or every usable one in the log."""
@@ -160,9 +204,7 @@ class RuleLearningSite:
             old = olds[index]
             body += (f'<section class="card rule-review" id="vorschlag-{index + 1}"><div class="card-head">'
                      f'<h3>{e(proposal.proposed.name)}</h3><span class="badge accent">{kinds[index]}</span></div>'
-                     f'<label class="rule-select"><input type="checkbox" name="selected-{index}" value="yes"'
-                     f' data-rule-select{" checked" if values.get(f"selected-{index}") == "yes" else ""}>'
-                     ' Diesen Vorschlag übernehmen</label>'
+                     + self.decision(index, values) +
                      f'<p>{e(proposal.rationale)}</p>'
                      + self.evidence([known[key] for key in proposal.evidence])
                      + '<div class="rule-diff"><section><h4>Bisherige Regel und Vorschlag</h4>'
@@ -191,9 +233,9 @@ class RuleLearningSite:
                      f'<label for="rule-{index}-yaml">YAML ersetzt die Feldwerte vollständig</label>'
                      f'<textarea id="rule-{index}-yaml" name="yaml-{index}" rows="8">'
                      f'{e(values.get(f"yaml-{index}", ""))}</textarea></details></section></div></section>')
-        selected = sum(values.get(f"selected-{index}") == "yes" for index in range(len(state.proposals)))
+        chosen = [self.chosen(index, values) for index in range(len(state.proposals))]
         body += ('<div class="confirm-bar"><p role="status" data-rule-count>'
-                 f'{selected} von {len(state.proposals)} Vorschlägen ausgewählt.</p>'
+                 f'{count_text(chosen.count("accept"), chosen.count("reject"))}</p>'
                  '<p>Im nächsten Schritt sehen Sie Ihre bearbeiteten Änderungen vor der Bestätigung.</p>'
                  '<button class="button" type="submit">Ausgewählte Änderungen prüfen</button></div>'
                  '<script src="/static/learning.js" defer></script>')
@@ -202,21 +244,46 @@ class RuleLearningSite:
     def preview(self, session: WebSession, form: dict[str, str]) -> Response:
         assert self.service is not None
         actor = "web:" + session.id
-        draft, state = rule_preview.prepare(self.service, actor, int(form["version"]), self.choices(form), form)
+        draft, state = rule_preview.prepare(self.service, actor, int(form["version"]), self.choices(form), form,
+                                            self.rejected(form))
         body = rule_preview.comparison(state, draft)
         body += self.form(session, state, "apply", (
             f'<input type="hidden" name="preview_key" value="{draft["key"]}">'
             '<label><input type="checkbox" name="confirm" value="yes" required> '
-            'Ausgewählte Regeländerungen ausdrücklich bestätigen</label>'
-            '<button class="button">Geprüfte Änderungen übernehmen</button>'), key=draft["key"])
+            + ('Ausgewählte Regeländerungen ausdrücklich bestätigen</label>'
+               '<button class="button">Geprüfte Änderungen übernehmen</button>' if draft["choices"] else
+               # 6.0.4: only rejections – no rule changes; the wording says what happens.
+               'Verwerfen ausdrücklich bestätigen</label>'
+               '<button class="button">Vorschläge verwerfen</button>')), key=draft["key"])
         body += '<p><a href="/lernen/entscheidungen">Weiter bearbeiten (anschließend erneut prüfen)</a></p>'
         return Response.html(200, layout("Änderungen prüfen", body, active="/lernen"))
 
     @staticmethod
+    def chosen(index: int, values: dict[str, str]) -> str:
+        """6.0.4: accept, reject or open (default); "selected-N=yes" of older forms means accept."""
+        value = values.get(f"decision-{index}", "accept" if values.get(f"selected-{index}") == "yes" else "open")
+        return value if value in DECISIONS else "open"
+
+    def decision(self, index: int, values: dict[str, str]) -> str:
+        current = self.chosen(index, values)
+        body = ('<fieldset class="rule-decision"><legend>Entscheidung zu diesem Vorschlag</legend>')
+        for value, label in DECISIONS.items():
+            checked = " checked" if value == current else ""
+            body += (f'<label><input type="radio" name="decision-{index}" value="{value}" data-rule-decision'
+                     f'{checked}> {label}</label>')
+        return body + "</fieldset>"
+
+    @staticmethod
+    def rejected(form: dict[str, str]) -> list[int]:
+        return sorted(int(key.removeprefix("decision-")) for key, value in form.items()
+                      if key.startswith("decision-") and value == "reject")
+
+    @staticmethod
     def choices(form: dict[str, str]) -> list[dict[str, Any]]:
         selected = []
-        indexes = sorted(int(key.removeprefix("selected-")) for key, value in form.items()
-                         if key.startswith("selected-") and value == "yes")
+        indexes = sorted({int(key.split("-", 1)[1]) for key, value in form.items()
+                          if (key.startswith("selected-") and value == "yes")
+                          or (key.startswith("decision-") and value == "accept")})
         for index in indexes:
             if form.get(f"yaml-{index}", "").strip():
                 topic = RuleTopic.model_validate(parse_yaml(form[f"yaml-{index}"]))
@@ -242,7 +309,10 @@ class RuleLearningSite:
             if form["action"] == "analyze":
                 payload["scope"] = form.get("scope", "new")
             if form["action"] == "apply":
-                payload["choices"] = rule_preview.confirmed(self.service, actor, form)
+                payload["choices"], payload["rejected"] = rule_preview.confirmed(self.service, actor, form)
+            if form["action"] == "readmit":
+                self.service.readmit(actor, int(form["rejected_version"]), form["key"], form["fingerprint"])
+                return Response.redirect("/lernen/entscheidungen#verworfen")
             self.service.change(actor, int(form["version"]), form["key"], form["action"], payload)
         except PermissionError:
             return self.render(session, 403, "Sitzung nicht mehr gültig.", form)

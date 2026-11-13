@@ -1,5 +1,17 @@
 # Änderungen
 
+## 6.0.4 – Regelvorschläge verwerfen und wieder zulassen
+
+- Web: Jede Vorschlagskarte auf `/lernen/entscheidungen` bietet **Übernehmen**, **Verwerfen – nicht
+  wieder vorschlagen** und **Offen lassen** (Standard). Die Leiste zählt „2 zur Übernahme
+  ausgewählt · 1 zum Verwerfen markiert“.
+- Die Prüfansicht nennt die zu verwerfenden Vorschläge; gespeichert wird erst mit der ausdrücklichen
+  Bestätigung (Sitzung, CSRF, Version und Idempotenzschlüssel wie bei der Übernahme). Werden nur
+  Vorschläge verworfen, bleibt jede Regeldatei unverändert.
+- „Zuvor verworfene Vorschläge anzeigen“ listet alle Sperren mit Datum und abgelehnter Änderung;
+  **Wieder zulassen** hebt eine Sperre auf (versionsgeprüft, wiederholungssicher).
+- Alles funktioniert auch ohne JavaScript.
+
 ## 6.0.3 – Datenmodell für abgelehnte Regelvorschläge
 
 - Regellernen: `RuleHistory` kann abgelehnte Vorschläge dauerhaft speichern (höchstens 500) –

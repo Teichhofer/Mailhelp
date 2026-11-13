@@ -17,6 +17,9 @@ def rules(mailhelp, tmp_path):
     return harness
 
 
+NONE = "0 zur Übernahme ausgewählt · 0 zum Verwerfen markiert."
+
+
 def start_review(page, mailhelp, rules, scope=None):
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/themen")
@@ -33,7 +36,7 @@ def start_review(page, mailhelp, rules, scope=None):
 
 
 def choose(page):
-    page.get_by_label("Diesen Vorschlag übernehmen", exact=True).check()
+    page.get_by_label("Übernehmen", exact=True).check()
 
 
 def confirm_preview(page):
@@ -48,17 +51,20 @@ def test_rule56_old_new_hand_edit_and_confirmation_are_usable(page, mailhelp, ru
     assert rules.service.hashes() == original
     # 5.7.3: the left column is the shared comparison; the action bar counts the selection.
     expect(page.get_by_role("heading", name="Bisherige Regel und Vorschlag", exact=True)).to_be_visible()
-    expect(page.get_by_text("0 von 1 Vorschlägen ausgewählt.", exact=True)).to_be_visible()
+    expect(page.get_by_text(NONE, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Vorgeschlagene Regel · bearbeiten", exact=True)).to_be_visible()
-    selection = page.locator('label').filter(has=page.locator('input[name="selected-0"]')).bounding_box()
+    selection = page.locator("fieldset.rule-decision").first.bounding_box()
     next_label = page.locator('label[for="rule-0-id"]').bounding_box()
     assert next_label["y"] >= selection["y"] + selection["height"]
     assert audit(page, "rule-learning56-review-" + page.device, page.mobile) == []
     choose(page)
-    expect(page.get_by_text("1 von 1 Vorschlägen ausgewählt.", exact=True)).to_be_visible()
-    page.get_by_label("Diesen Vorschlag übernehmen", exact=True).uncheck()
-    expect(page.get_by_text("0 von 1 Vorschlägen ausgewählt.", exact=True)).to_be_visible()
-    page.get_by_label("Diesen Vorschlag übernehmen", exact=True).check()
+    expect(page.get_by_text("1 zur Übernahme ausgewählt · 0 zum Verwerfen markiert.", exact=True)).to_be_visible()
+    # 6.0.4: reject or leave open instead; the bar counts both.
+    page.get_by_label("Verwerfen – nicht wieder vorschlagen", exact=True).check()
+    expect(page.get_by_text("0 zur Übernahme ausgewählt · 1 zum Verwerfen markiert.", exact=True)).to_be_visible()
+    page.get_by_label("Offen lassen", exact=True).check()
+    expect(page.get_by_text(NONE, exact=True)).to_be_visible()
+    page.get_by_label("Übernehmen", exact=True).check()
     page.get_by_label(re.compile("^Name")).fill("Manuell: Schultermine")
     page.get_by_label(re.compile("^Beispiele")).fill("Verbindlicher Elternabend\nAusflug")
     page.get_by_label(re.compile("^Ausschlüsse")).fill("Unverbindlicher Newsletter")

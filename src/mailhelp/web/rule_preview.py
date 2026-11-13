@@ -9,23 +9,30 @@ from ..rule_learning.validation import RuleConflict
 from .pages import e
 from .rule_compare import compare
 
+ACTIONS = {"modify": "Änderung", "create": "Neues Thema", "disable": "Deaktivierung"}
+
 
 def preview_name(actor: str) -> str:
     return "rule-preview-" + digest(actor)
 
 
-def prepare(service: DecisionRuleLearning, actor: str, version: int,
-            choices: list[dict[str, Any]], values: dict[str, str]) -> tuple[dict[str, Any], Any]:
+def prepare(service: DecisionRuleLearning, actor: str, version: int, choices: list[dict[str, Any]],
+            values: dict[str, str], rejected: list[int] | None = None) -> tuple[dict[str, Any], Any]:
+    rejected = rejected or []
     with service.store.locked():
         service.check(actor)
         state = service.state(actor)
         if state.status != "review" or state.version != version:
             raise RuleConflict("Analysestand veraltet; neu laden.")
         # Validate the complete candidate using the same rules as the eventual write.
-        service.prepare(state.model_copy(deep=True), choices)
+        service.rejections(state, rejected, choices)
+        if choices:
+            service.prepare(state.model_copy(deep=True), choices)
         edits = {key: value for key, value in values.items() if key.startswith((
-            "selected-", "id-", "name-", "description-", "examples-", "exclusions-", "enabled-", "yaml-"))}
-        draft = {"version": version, "key": secrets.token_hex(16), "choices": choices, "values": edits}
+            "selected-", "decision-", "id-", "name-", "description-", "examples-", "exclusions-", "enabled-",
+            "yaml-"))}
+        draft = {"version": version, "key": secrets.token_hex(16), "choices": choices, "rejected": rejected,
+                 "values": edits}
         service.check(actor)
         service.store.save(preview_name(actor), draft)
         return draft, state
@@ -39,14 +46,17 @@ def editing(service: DecisionRuleLearning, actor: str, version: int) -> dict[str
     return {}
 
 
-def confirmed(service: DecisionRuleLearning, actor: str, form: dict[str, str]) -> list[dict[str, Any]]:
+def confirmed(service: DecisionRuleLearning, actor: str,
+              form: dict[str, str]) -> tuple[list[dict[str, Any]], list[int]]:
+    """The checked choices and rejections of the persisted preview; nothing from the form is trusted."""
     service.check(actor)
     draft = service.store.load(preview_name(actor), {})
     if (not draft or form.get("preview_key") != draft["key"] or form["key"] != draft["key"]
             or int(form["version"]) != draft["version"]):
         raise RuleConflict("Prüfstand fehlt oder wurde ersetzt. Änderungen erneut prüfen.")
     choices: list[dict[str, Any]] = draft["choices"]
-    return choices  # No editable client payload is trusted at confirmation time.
+    rejected: list[int] = draft.get("rejected", [])  # previews saved before 6.0 have none
+    return choices, rejected
 
 
 def comparison(state: Any, draft: dict[str, Any]) -> str:
@@ -59,4 +69,9 @@ def comparison(state: Any, draft: dict[str, Any]) -> str:
                        if topic["id"] == proposal.topic_id), None)
         body += f'<section class="card"><h3>{e(choice["topic"]["name"])}</h3>'
         body += compare(before, choice["topic"]) + '</section>'
+    if draft.get("rejected"):
+        body += ('<section class="card rule-rejecting"><h2>Wird verworfen und nicht wieder vorgeschlagen</h2>'
+                 '<ul>' + "".join(f'<li><strong>{e(state.proposals[index].proposed.name)}</strong> · '
+                                  f'{e(ACTIONS[state.proposals[index].action])}</li>' for index in draft["rejected"])
+                 + '</ul></section>')
     return body + '</section>'

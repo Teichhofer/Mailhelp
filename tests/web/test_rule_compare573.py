@@ -62,7 +62,8 @@ def test_the_review_starts_with_a_summary_and_jump_links(review):
         assert f'href="#vorschlag-{index}"' in html and f'id="vorschlag-{index}"' in html
     assert '<span class="badge accent">Neues Thema</span>' in html and "Deaktivierung</span>" in html
     # The selection is in the head of every card; the action bar counts it (also without script).
-    assert html.count("data-rule-select") == 3 and "0 von 3 Vorschlägen ausgewählt." in html
+    # 6.0.4: accept, reject or open per proposal (three choices each).
+    assert html.count("data-rule-decision") == 9 and "0 zur Übernahme ausgewählt · 0 zum Verwerfen markiert." in html
     assert '<div class="confirm-bar">' in html and "/static/learning.js" in html
     assert "Bisherige Regel und Vorschlag" in html and "Unveränderte Felder anzeigen" in html
 
@@ -87,4 +88,4 @@ def test_a_rejected_form_keeps_the_selection_count(review):
             "id-0": "school", "name-0": "", "description-0": "x", "examples-0": "", "exclusions-0": "",
             "enabled-0": "true"}
     response = web.browser.request("POST", "/lernen/entscheidungen", form)
-    assert response.status == 422 and "2 von 3 Vorschlägen ausgewählt." in response.body.decode()
+    assert response.status == 422 and "2 zur Übernahme ausgewählt · 0 zum Verwerfen markiert." in response.body.decode()

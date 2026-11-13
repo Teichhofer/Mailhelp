@@ -124,3 +124,5 @@ class RuleHistory(BaseModel):
     # 6.0.3: rejected proposals (newest last, at most 500) and a version for "Wieder zulassen".
     rejected: list[RejectedRuleProposal] = Field(default_factory=list, max_length=500)
     rejected_version: int = Field(default=0, ge=0)
+    # 6.0.4: idempotency receipts of "Wieder zulassen" (digest of actor and key -> fingerprint digest).
+    receipts: dict[str, str] = Field(default_factory=dict)

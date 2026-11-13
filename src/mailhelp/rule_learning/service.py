@@ -14,7 +14,8 @@ from ..review.learning_log import learning_path
 from ..storage import CorruptState, atomic_replace
 from .changes import assemble, compact_topics, condense
 from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
-from .models import RuleAnalysis, RuleHistory, RuleState
+from .models import RejectedRuleProposal, RuleAnalysis, RuleHistory, RuleState
+from .rejections import readmit, rejection, remember
 from .validation import FILES, RuleConflict, RuleValidationService
 
 STATE = "decision-rule-learning"
@@ -131,6 +132,7 @@ class DecisionRuleLearning:
             raise ValueError("Ungültiger Idempotenzschlüssel")
         receipt = digest(actor + "\0" + key)
         content = digest(json.dumps([version, action, payload], sort_keys=True))
+        rejected: list[RejectedRuleProposal] = []
         with self.store.locked():
             state = self.state()
             if action not in {"analyze", "resume"} and state.owner != digest(actor):
@@ -150,12 +152,22 @@ class DecisionRuleLearning:
             if action == "analyze":
                 state = self.begin(actor, state, payload.get("scope", "new"))
             elif action == "apply" and state.status == "review":
-                self.prepare(state, payload["choices"])
+                # 6.0.4: rejected proposals are stored with the same confirmed, versioned action.
+                rejected = self.rejections(state, payload.get("rejected", []), payload["choices"])
+                if payload["choices"]:
+                    self.prepare(state, payload["choices"])
+                else:
+                    state.status, state.evidence, state.proposals = "done", [], []
+                    state.message = ("1 Vorschlag verworfen; er wird nicht wieder vorgeschlagen."
+                                     if len(rejected) == 1 else f"{len(rejected)} Vorschläge verworfen; sie "
+                                     "werden nicht wieder vorgeschlagen.") + " Keine Regel geändert."
             elif action == "resume" and state.status == "committing":
                 state.owner = digest(actor)
             else:
                 raise RuleConflict("Aktion passt nicht zum Analysestand")
             self.check(actor)
+            if action == "apply" and rejected:
+                self.store.save(HISTORY, remember(self.history(), rejected).model_dump(mode="json"))
             state.version += 1
             state.receipts[receipt] = content
             state.receipts = dict(list(state.receipts.items())[-100:])
@@ -163,6 +175,45 @@ class DecisionRuleLearning:
             if state.status == "committing":
                 self.finish(actor, state)
             return state
+
+    def rejections(self, state: RuleState, indexes: list[Any],
+                   choices: list[dict[str, Any]]) -> list[RejectedRuleProposal]:
+        """6.0.4: the proposals to reject, each against its current rule; never also chosen."""
+        chosen = {choice.get("index") for choice in choices}
+        if (any(type(index) is not int or not 0 <= index < len(state.proposals) for index in indexes)
+                or len(set(indexes)) != len(indexes) or chosen & set(indexes)):
+            raise ValueError("Ungültige oder doppelte Auswahl zum Verwerfen")
+        if not indexes and not choices:
+            raise ValueError("Mindestens einen Vorschlag übernehmen oder verwerfen")
+        result = []
+        for index in indexes:
+            proposal = state.proposals[index]
+            old = next((topic for topic in state.documents[proposal.category]["topics"]
+                        if topic["id"] == proposal.topic_id), None)
+            result.append(rejection(proposal, old, self.clock()))
+        return result
+
+    def readmit(self, actor: str, version: int, key: str, value: str) -> RuleHistory:
+        """6.0.4: lift one rejection; session, version and idempotency key are checked."""
+        self.check(actor)
+        if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key) or not re.fullmatch(r"[a-f0-9]{64}", value):
+            raise ValueError("Ungültige Anfrage")
+        receipt, content = digest(actor + "\0" + key), digest(value)
+        with self.store.locked():
+            history = self.history()
+            if receipt in history.receipts:
+                if history.receipts[receipt] != content:
+                    raise RuleConflict("Idempotenzschlüssel bereits anders verwendet")
+                return history
+            if version != history.rejected_version:
+                raise RuleConflict("Liste der verworfenen Vorschläge inzwischen geändert; neu laden.")
+            changed = readmit(history, value)
+            if changed is history:
+                raise RuleConflict("Dieser Vorschlag ist nicht mehr gesperrt.")
+            self.check(actor)
+            changed.receipts = dict(list({**history.receipts, receipt: content}.items())[-100:])
+            self.store.save(HISTORY, changed.model_dump(mode="json"))
+            return changed
 
     def prepare(self, state: RuleState, choices: list[dict[str, Any]]) -> None:
         if state.hashes != self.hashes():

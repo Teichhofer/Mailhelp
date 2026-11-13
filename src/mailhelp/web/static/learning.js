@@ -1,13 +1,15 @@
 (function () {
   "use strict";
-  // 5.7.3: the action bar of the rule review counts the selected proposals as they are ticked.
-  // The script is only included together with that bar.
+  // 5.7.3 / 6.0.4: the action bar of the rule review counts the proposals to accept and to reject
+  // as they are chosen. The script is only included together with that bar.
   var count = document.querySelector("[data-rule-count]");
-  var boxes = Array.from(document.querySelectorAll("[data-rule-select]"));
+  var choices = Array.from(document.querySelectorAll("[data-rule-decision]"));
   function update() {
-    var selected = boxes.filter(function (box) { return box.checked; }).length;
-    count.textContent = selected + " von " + boxes.length + " Vorschlägen ausgewählt.";
+    var picked = choices.filter(function (choice) { return choice.checked; });
+    var accepted = picked.filter(function (choice) { return choice.value === "accept"; }).length;
+    var rejected = picked.filter(function (choice) { return choice.value === "reject"; }).length;
+    count.textContent = accepted + " zur Übernahme ausgewählt · " + rejected + " zum Verwerfen markiert.";
   }
-  boxes.forEach(function (box) { box.addEventListener("change", update); });
+  choices.forEach(function (choice) { choice.addEventListener("change", update); });
   update();
 }());

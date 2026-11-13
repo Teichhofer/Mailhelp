@@ -76,7 +76,7 @@ def test_continue_editing_retains_manual_fields_and_yaml(page):
     snapshot(page, **{"name-0": "Manuelle Eingabe behalten", "yaml-0": yaml.safe_dump(edited)})
     html = web.browser.request("GET", "/lernen/entscheidungen").body.decode()
     assert 'name="name-0" value="Manuelle Eingabe behalten"' in html
-    assert "YAML bleibt erhalten" in html and 'data-rule-select checked' in html
+    assert "YAML bleibt erhalten" in html and 'value="accept" data-rule-decision checked' in html
 
 
 def test_a_new_topic_is_previewed_and_confirmed_alongside_an_existing_one(page):
