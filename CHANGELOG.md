@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.9.11 – Abnahme der Version 5.9
+
+- Gesamtprüfung von 5.9.1 bis 5.9.10: Python-Suite mit 100 % Zeilen- und Branch-Abdeckung,
+  Browser-Suite auf Desktop, Mobil und schmalem Gerät; Ergebnis in `docs/Release-5.9.md`.
+- Planung 5.9 auf den umgesetzten Stand gebracht (Zuordnung der Planschritte zu den Versionen).
+- Behoben: Der Ablaufplan der Auswertung löste in `app.js` einen Skriptfehler aus, weil jede
+  Diagrammabbildung eine Vergrößern-Schaltfläche erwartete. Kennzahl-Links sind auf Mobilgeräten
+  mindestens 44 px hohe Tippflächen; die Tabelle „Nach Modell und Schritt“ ist per Tastatur
+  erreichbar. Neue Browsertests für Auswertung und Aufrufliste.
+- Die Prüfung unter Linux/Docker steht noch aus (Docker auf dem Abnahmerechner nicht vorhanden).
+
 ## 5.9.10 – Kennzahlen zum Anklicken: Aufrufliste
 
 - Web: Jeder Wert in der Faktentabelle von `/auswertung` ist ein Link (unterstrichen, mit „›“)

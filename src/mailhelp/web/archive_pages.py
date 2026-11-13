@@ -113,7 +113,9 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
 def _statistics_groups(groups: list[dict[str, Any]]) -> str:
     if not groups:
         return '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'
-    body = ('<h2>Nach Modell und Schritt</h2><div class="table-scroll"><table><thead><tr>'
+    # Scrollable on phones, so it must be reachable by keyboard (axe scrollable-region-focusable).
+    body = ('<h2>Nach Modell und Schritt</h2><div class="table-scroll" tabindex="0" role="region" '
+            'aria-label="Nach Modell und Schritt"><table><thead><tr>'
             "<th>Modell</th><th>Schritt</th><th>Anbieter</th><th>Aufrufe</th><th>Fehler</th>"
             "<th>Summe</th><th>Median</th><th>95 %</th><th>$Cent</th></tr></thead><tbody>")
     for group in groups:

@@ -99,7 +99,7 @@ def test_charts_and_tables_remain_available_without_javascript(browser, mailhelp
         page = context.new_page()
         sign_in(page, mailhelp)
         page.goto(mailhelp.url + "/auswertung")
-        expect(page.locator("figure.chart")).to_have_count(5)
+        expect(page.locator("figure.chart")).to_have_count(6)  # 5.9.8: plus the pipeline plan
         expect(page.locator(".chart-zoom").first).to_be_hidden()
         chart = page.locator("figure.chart").first
         chart.get_by_text("Werte als Tabelle", exact=True).click()

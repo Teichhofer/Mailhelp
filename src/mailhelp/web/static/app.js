@@ -457,7 +457,8 @@ function randomHexKey() {
     dialog.addEventListener("close", function () { opener.focus(); });
   }
 
-  document.querySelectorAll("figure.chart").forEach(function (figure) {
+  // 5.9.11: the pipeline plan is a figure without SVG; it has nothing to zoom or explain.
+  document.querySelectorAll("figure.chart:not(.pipeline-figure)").forEach(function (figure) {
     figure.querySelector(".chart-zoom").hidden = false;
     chartDetails(figure);
   });

@@ -4,7 +4,8 @@
 
 **Stand:** 12. November 2026 (überarbeitet nach Abgleich mit dem Quellstand)
 
-**Status:** Geplant als Weiterentwicklung nach Version 5.8
+**Status:** Umgesetzt in 5.9.1 bis 5.9.10, abgenommen mit 5.9.11 (13.11.2026). Die Zuordnung der
+Planschritte zu den tatsächlichen Versionen steht in [Release 5.9](Release-5.9.md).
 
 **Ausgangsstand:** 5.8.2 laut `pyproject.toml`
 

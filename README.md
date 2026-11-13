@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.9.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.9.11 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.9 wird in Patches umgesetzt. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
 Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche
@@ -26,7 +26,8 @@ nennen `/status` und Telegram `/status` die Zahl der bisher verarbeiteten Mails.
 **Auswertung** Kostenmittel, eine Punktwolke der Aufrufdauer, die Rechenzeit je Schritt mit Anteilen
 und einen Ablaufplan der Mailverarbeitung. 5.9.9 sorgt dafür, dass schnell nacheinander gesendete
 Webaktionen auch unter Windows in ihrer Reihenfolge ausgeführt werden. Ab 5.9.10 führt jede Kennzahl
-der Auswertung per Klick zur Liste der zugehörigen Aufrufe, Fehler mit ihrer Ursache.
+der Auswertung per Klick zur Liste der zugehörigen Aufrufe, Fehler mit ihrer Ursache. Abnahme:
+[Release 5.9](docs/Release-5.9.md).
 Plan: [Planung 5.9](docs/Planung-5.9.md).
 
 Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und

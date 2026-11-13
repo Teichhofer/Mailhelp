@@ -370,6 +370,10 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-r
 /* 5.9.11: figures open the call list; underlined and with › so they read as links. */
 .fact-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .fact-link:hover { color: var(--accent); }
+/* Touch: the figure links are full-height tap targets. */
+@media (max-width: 899px), (pointer: coarse) {
+  .fact-link { display: inline-flex; align-items: center; min-height: 44px; }
+}
 .calls-explanation ul { margin: .25rem 0 0; padding-left: 1.2rem; }
 .calls-pages { margin: .75rem 0; }
 .calls-table td { vertical-align: top; }
