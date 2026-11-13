@@ -6,6 +6,8 @@ decision). No subjects, senders, texts or error messages are written.
 """
 from __future__ import annotations
 
+import json
+import math
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -44,6 +46,9 @@ class StageJournal:
         self._signature: tuple[int, int] | None = None
         self.damaged = 0
         self.failures = 0
+
+    def sibling(self, kind: str) -> Path:
+        return self.path.with_name(f"{self.path.stem}-{kind}.json")
 
     def write(self, record: StageRecord) -> None:
         """Append one line; a failure is counted and never interrupts the processing."""
@@ -101,9 +106,101 @@ class StageJournal:
                            analysis_round=last.analysis_round, waiting_ms=max(0.0, elapsed - busy))
 
 
+def quantile(values: list[float], share: float) -> float:
+    """Nearest-rank quantile of a non-empty list (0,5 is the lower median for an even count)."""
+    ordered = sorted(values)
+    return ordered[min(len(ordered) - 1, max(0, math.ceil(share * len(ordered)) - 1))]
+
+
+def median(values: list[float]) -> float:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+
+
+def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count, sum, median, 95 %, maximum, failures and AI share of a group of step lines."""
+    durations = [row["duration_ms"] for row in rows]
+    by_mail: dict[str, float] = {}
+    for row in rows:
+        if row.get("mail_id"):
+            by_mail[row["mail_id"]] = by_mail.get(row["mail_id"], 0.0) + row["duration_ms"]
+    return {"count": len(rows), "sum_ms": sum(durations), "median_ms": median(durations) if durations else None,
+            "p95_ms": quantile(durations, .95) if durations else None, "max_ms": max(durations, default=None),
+            "failed": sum(row["outcome"] == "failed" for row in rows),
+            "llm_ms": sum(row["llm_ms"] for row in rows),
+            "per_mail_median_ms": median(list(by_mail.values())) if by_mail else None}
+
+
+def report(journal: StageJournal, *, days: int = 30, mode: str = "", stage: str = "", since: str = "",
+           until: str = "") -> dict[str, Any]:
+    """6.1.7: step times of the selected period; run times separately; nothing about mail content."""
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    modes = {"standard", "local"} if mode == "production" else {mode}
+    rows = [row for row in journal.records() if datetime.fromisoformat(row["started_at"]) >= cutoff
+            and (not mode or row["mode"] in modes) and (not since or row["started_at"][:10] >= since)
+            and (not until or row["started_at"][:10] <= until)]
+    totals = [row for row in rows if row["stage"] == TOTAL]
+    steps = [row for row in rows if row["stage"] != TOTAL and (not stage or row["stage"] == stage)]
+    stages: dict[str, list[dict[str, Any]]] = {}
+    for row in steps:
+        stages.setdefault(row["stage"], []).append(row)
+    parts: dict[str, float] = {}
+    for row in steps:
+        for name, value in row.get("parts", {}).items():
+            parts[name] = parts.get(name, 0.0) + value
+    waiting = [row["waiting_ms"] for row in totals]
+    return {"stages": {name: summary(group) for name, group in stages.items()}, "total": summary(totals),
+            "waiting_median_ms": median(waiting) if waiting else None, "parts": parts, "records": steps,
+            "totals": totals, "damaged": journal.damaged, "failures": journal.failures}
+
+
+def compact(journal: StageJournal) -> None:
+    """Fold lines beyond the retention period into daily figures, replayably (as the AI journal does).
+
+    The journal of the operation is written first; after a crash it is applied again instead of
+    adding the same lines twice.
+    """
+    from ..storage import atomic_replace
+    pending, daily = journal.sibling("compaction"), journal.sibling("daily")
+    with journal._lock:
+        if pending.exists():
+            operation = json.loads(pending.read_text(encoding="utf-8"))
+            atomic_replace(daily, json.dumps(operation["daily"], ensure_ascii=False, indent=2))
+            atomic_replace(journal.path, operation["retained"])
+            pending.unlink()
+            journal._cache = None
+        kept = journal.records()
+        assert journal._cache is not None  # records() filled the validated cache
+        expired = [item for item in journal._cache if item not in kept]
+        if not expired:
+            return
+        aggregate = json.loads(daily.read_text(encoding="utf-8")) if daily.exists() else {}
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for item in expired:
+            groups.setdefault(json.dumps([item["started_at"][:10], item["mode"], item["stage"]]), []).append(item)
+        for key, rows in groups.items():
+            figures = summary(rows)
+            previous = aggregate.get(key)
+            if previous is not None:
+                # A later fold of the same day adds counts and sums; medians stay those of the first fold.
+                figures = {**previous, "count": previous["count"] + figures["count"],
+                           "sum_ms": previous["sum_ms"] + figures["sum_ms"],
+                           "failed": previous["failed"] + figures["failed"],
+                           "llm_ms": previous["llm_ms"] + figures["llm_ms"],
+                           "max_ms": max(previous["max_ms"], figures["max_ms"])}
+            aggregate[key] = figures
+        operation = {"daily": aggregate, "retained": "".join(json.dumps(item) + "\n" for item in kept)}
+        atomic_replace(pending, json.dumps(operation, ensure_ascii=False, indent=2))
+        atomic_replace(daily, json.dumps(aggregate, ensure_ascii=False, indent=2))
+        atomic_replace(journal.path, operation["retained"])
+        pending.unlink()
+        journal._cache = None
+
+
 def journal_path(metrics_path: Path) -> Path:
     """The step journal belongs to exactly one AI call journal (comparison runs keep their own)."""
     return metrics_path.with_name(f"{metrics_path.stem}-stages.jsonl")
 
 
-__all__ = ["TOTAL", "StageJournal", "StageRecord", "journal_path"]
+__all__ = ["TOTAL", "StageJournal", "StageRecord", "compact", "journal_path", "median", "quantile", "report", "summary"]

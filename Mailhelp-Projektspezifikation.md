@@ -2278,7 +2278,12 @@ Zeile `stage="total"`: Summe der Schritte der Analyserunde als Durchlaufzeit, di
 ersten Schritt als `waiting_ms` (etwa Warten auf die Relevanzentscheidung). Schreibfehler werden
 gezählt und unterbrechen die Verarbeitung nie; Lesen prüft jede Zeile, zählt beschädigte und
 entfernt doppelte IDs; es gilt `metrics.retention_days`. Betreff, Absender und Inhalte werden nicht
-geschrieben.
+geschrieben. Seit 6.1.7 verdichtet die Metrikwartung ältere Zeilen wie beim KI-Journal wiederanlauffest zu
+Tageswerten je Erfassung und Schritt (Anzahl, Summe, Median, 95 %, Maximum, Fehler, KI-Anteil) in
+`<Metrikdatei>-stages-daily.json`; ein späteres Verdichten desselben Tages addiert Anzahl und Summen.
+`stage_metrics.report` liefert für Zeitraum, Erfassung, Schritt und Von/Bis je Schritt Anzahl, Summe,
+Median, 95 %, Maximum, Fehler, KI-Anteil und Median je Mail, dazu die Durchlaufzeiten, den Median der
+Wartezeit und die Teilzeiten der Aufbereitung.
 
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die

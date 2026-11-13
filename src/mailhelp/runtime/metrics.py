@@ -488,6 +488,8 @@ class MetricsRecorder:
         recovery replaces both outputs instead of incrementing a sum twice.
         """
         from ..storage import atomic_replace
+        from .stage_metrics import compact
+        compact(self.stages)  # 6.1.7: the step journal is folded the same way
         with self._lock:
             pending = sibling(self.path, "compaction")
             daily = sibling(self.path, "daily")

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 6.1.7 – Schrittzeiten verdichten und abfragen
+
+- Metriken: Zeilen des Schritt-Journals jenseits der Aufbewahrungsdauer werden bei der Wartung zu
+  Tageswerten verdichtet – wiederanlauffest wie beim KI-Journal; nach einem Abbruch mitten in der
+  Verdichtung wird nichts doppelt gezählt.
+- Abfragen für die Auswertung: je Schritt Anzahl, Summe, Median, 95 %, Maximum, Fehler, KI-Anteil und
+  Median je Mail; Durchlaufzeiten und Wartezeit; Teilzeiten der Aufbereitung; mit den Filtern
+  Zeitraum, Erfassung, Schritt und Von/Bis.
+
 ## 6.1.6 – Dauer jedes Verarbeitungsschritts erfassen
 
 - Verarbeitung: Jeder Schritt von der Aufbereitung bis zum Abschluss wird gemessen – nicht mehr nur
