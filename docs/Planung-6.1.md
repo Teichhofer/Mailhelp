@@ -4,7 +4,7 @@
 
 **Stand:** 13. November 2026
 
-**Status:** In Umsetzung
+**Status:** Umgesetzt und abgenommen (siehe Release-Bericht)
 
 **Ausgangsstand:** 6.0.x (Ersteinrichtung `/einrichtung/…` aus `web/initial_site.py`, `web/initial_pages.py`,
 `runtime/initial_setup.py`, `runtime/setup_checks.py`)

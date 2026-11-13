@@ -4,7 +4,7 @@
 
 **Stand:** 13. November 2026 (überarbeitet nach Abgleich mit dem Quellstand 5.9.10)
 
-**Status:** In Umsetzung
+**Status:** Umgesetzt und abgenommen (siehe Release-Bericht)
 
 **Ausgangsstand:** 5.9.11 (Abnahme der Planung 5.9)
 

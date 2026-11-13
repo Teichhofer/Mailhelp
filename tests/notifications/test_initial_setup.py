@@ -224,3 +224,21 @@ def test_authenticated_step_save_advances_the_wizard(initial):
     response=request(h,'POST','/einrichtung/speichern',h.form(1,password='synthetic-password',timezone='UTC'))
     assert response.status==303 and response.headers['Location']=='/einrichtung/start'
     assert h.setup.state().step==2
+
+
+def test_a_change_while_the_password_is_checked_is_a_conflict_and_saves_nothing(initial, monkeypatch):
+    """The password check runs outside the store lock; a change in that window must abort the save."""
+    h = initial
+    real_hash, real_candidate, changed = module.file_hash, InitialSetup._candidate, []
+
+    def candidate(self, *args):
+        result = real_candidate(self, *args)
+        changed.append(True)  # every later hash belongs to the second locked section
+        return result
+
+    monkeypatch.setattr(InitialSetup, "_candidate", candidate)
+    monkeypatch.setattr(module, "file_hash", lambda path: "changed-meanwhile" if changed else real_hash(path))
+    before, password = h.setup.state(), WebPassword(h.store).state()
+    with pytest.raises(ValueError, match="conflict"):
+        h.setup.save(h.actor, h.form(1, password="synthetic-password"))
+    assert changed and h.setup.state() == before and WebPassword(h.store).state() == password

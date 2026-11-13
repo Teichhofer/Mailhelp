@@ -859,8 +859,20 @@
   ],
   "setting_ids": [],
   "source": "docs/Ersteinrichtung.md",
-  "text": "| Meldung oder Lage | Nächster Schritt |\n| --- | --- |\n| „Mailhelp läuft bereits …“ | Laufende Instanz über **Einstellungen → Mailhelp beenden** oder Strg+C beenden |\n| Code abgelaufen oder vergessen | `mailhelp --pair --config-directory .` |\n| Postfachprüfung scheitert | Server, Port und Verschlüsselung prüfen; Fehlermeldungen nennen die Ursache ohne Zugangsdaten |\n| Web-Passwort vergessen | Am Rechner `mailhelp --reset-web-password --config-directory .` |\n| Docker: Dateirechte unter Linux | `mkdir -p data logs` und `sudo chown 65532:65532 data logs` |\n\nWeiter: [Konten verwalten](Konten-verwalten.md), [Einstellungen](Web-Einstellungen.md).",
+  "text": "| Meldung oder Lage | Nächster Schritt |\n| --- | --- |\n| „Mailhelp läuft bereits …“ | Laufende Instanz über **Einstellungen → Mailhelp beenden** oder Strg+C beenden |\n| Code abgelaufen oder vergessen | `mailhelp --pair --config-directory .` |\n| Postfachprüfung scheitert | Die Meldung über dem Formular nennt Ursache und Feld; siehe die Tabelle unten |\n| Web-Passwort vergessen | Am Rechner `mailhelp --reset-web-password --config-directory .` |\n| Docker: Dateirechte unter Linux | `mkdir -p data logs` und `sudo chown 65532:65532 data logs` |",
   "title": "Wenn etwas nicht klappt"
+ },
+ {
+  "id": "ersteinrichtung/haeufige-meldungen-beim-pruefen-ab-61",
+  "path": [
+   "Ersteinrichtung",
+   "Wenn etwas nicht klappt",
+   "Häufige Meldungen beim Prüfen (ab 6.1)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Ersteinrichtung.md",
+  "text": "**Prüfen** nennt bei einem Problem die Ursache, das betroffene Feld und konkrete Schritte. Die\nhäufigsten Fälle:\n\n| Meldung | Was meist hilft |\n| --- | --- |\n| Der IMAP-Server ist unter diesem Namen nicht bekannt. | Schreibweise prüfen, nur den Servernamen ohne `https://` eintragen |\n| Der IMAP-Server antwortet auf diesem Port nicht. | Port 993 mit `ssl` oder 143 mit `starttls`; Firewall prüfen |\n| Port und Verschlüsselung passen nicht zusammen. | 993 gehört zu `ssl`, 143 zu `starttls` |\n| Der Server hat die Anmeldung abgelehnt. | Vollständige E-Mail-Adresse als Benutzername; bei Zwei-Faktor-Anmeldung ein App-Passwort; IMAP im Webmail freischalten |\n| Der angegebene Posteingang wurde nicht gefunden. | Einen der genannten Ordner wählen, meist `INBOX` |\n| OpenRouter hat den Schlüssel nicht angenommen. | Schlüssel vollständig kopieren (beginnt mit `sk-or-`) |\n| Für diesen Schlüssel ist kein Guthaben oder Limit mehr übrig. | Guthaben aufladen oder Limit erhöhen |\n| Ollama antwortet unter dieser Adresse nicht. | `ollama serve` starten; aus Docker `http://host.docker.internal:11434` |\n| Die Google-Freigabe ist abgelaufen oder wurde widerrufen. | **Google verbinden** erneut ausführen (im Testmodus der Google-App nach 7 Tagen nötig) |\n| Die Google Calendar API ist für das Google-Projekt deaktiviert. | In der Google Cloud Console die Calendar API aktivieren |\n| Kalender, Liste oder Projekt wurde nicht gefunden. | Kalender auswählen bzw. Todoist-Projekt-ID prüfen |\n| Zu viele Prüfungen in kurzer Zeit. | Eine Minute warten (Schutz vor Kontosperren beim Mailanbieter) |\n\nWeiter: [Konten verwalten](Konten-verwalten.md), [Einstellungen](Web-Einstellungen.md).",
+  "title": "Häufige Meldungen beim Prüfen (ab 6.1)"
  },
  {
   "id": "konten-verwalten/konten-verwalten",

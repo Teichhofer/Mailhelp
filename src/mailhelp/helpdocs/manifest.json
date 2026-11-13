@@ -1,8 +1,8 @@
 {
- "app_version": "6.1.8",
- "revision": "4aa11fca3985cc16ff960ade588abe5bd64e9607c538720b31258a6ae742804b",
+ "app_version": "6.1.9",
+ "revision": "346036b4f29188c6af3fb1ecdf237fbdb393e363cbac440faf982ddd45adbc3a",
  "schema_version": 1,
- "sections": 93,
+ "sections": 94,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
@@ -10,7 +10,7 @@
   },
   {
    "path": "docs/Ersteinrichtung.md",
-   "sha256": "9d60565628953a01f850d52a5d2a9c312bf86f7bd37568d6479895caae0c0d45"
+   "sha256": "3dca62ca44bb2dbfc697d54fc7bdd6d712321a41ba48b8dc67c42498b46396b8"
   },
   {
    "path": "docs/Konten-verwalten.md",

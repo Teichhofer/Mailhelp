@@ -1,5 +1,14 @@
 # Änderungen
 
+## 6.1.9 – Abnahme 6.0 und 6.1
+
+- Abnahme von Version 6.0 (Planschritt 6.0.8) und 6.1: `docs/Release-6.0.md` mit der Messreihe der
+  Browsertests (Median seriell 1313 s, mit 4 Workern 416 s, Faktor 3,16) und `docs/Release-6.1.md`.
+- Ersteinrichtung: Tabelle der häufigsten Meldungen beim Prüfen mit dem jeweils nächsten Schritt.
+- Tests: Die Konfliktprüfung beim Speichern der Ersteinrichtung (Änderung während der Passwortprüfung)
+  hat einen gezielten Test; ihre Abdeckung hing seit 6.1.2 vom Zufall ab.
+- Planungen 6.0 und 6.1 als umgesetzt markiert. Keine Änderung am Programmverhalten.
+
 ## 6.1.8 – Schrittzeiten in der Auswertung
 
 - Auswertung: neue Kennzahlen „Durchlaufzeit je Mail (Median / 95 % / Maximum)“ und „Wartezeit auf

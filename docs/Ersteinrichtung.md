@@ -115,8 +115,28 @@ nur simuliert.
 | --- | --- |
 | „Mailhelp läuft bereits …“ | Laufende Instanz über **Einstellungen → Mailhelp beenden** oder Strg+C beenden |
 | Code abgelaufen oder vergessen | `mailhelp --pair --config-directory .` |
-| Postfachprüfung scheitert | Server, Port und Verschlüsselung prüfen; Fehlermeldungen nennen die Ursache ohne Zugangsdaten |
+| Postfachprüfung scheitert | Die Meldung über dem Formular nennt Ursache und Feld; siehe die Tabelle unten |
 | Web-Passwort vergessen | Am Rechner `mailhelp --reset-web-password --config-directory .` |
 | Docker: Dateirechte unter Linux | `mkdir -p data logs` und `sudo chown 65532:65532 data logs` |
+
+### Häufige Meldungen beim Prüfen (ab 6.1)
+
+**Prüfen** nennt bei einem Problem die Ursache, das betroffene Feld und konkrete Schritte. Die
+häufigsten Fälle:
+
+| Meldung | Was meist hilft |
+| --- | --- |
+| Der IMAP-Server ist unter diesem Namen nicht bekannt. | Schreibweise prüfen, nur den Servernamen ohne `https://` eintragen |
+| Der IMAP-Server antwortet auf diesem Port nicht. | Port 993 mit `ssl` oder 143 mit `starttls`; Firewall prüfen |
+| Port und Verschlüsselung passen nicht zusammen. | 993 gehört zu `ssl`, 143 zu `starttls` |
+| Der Server hat die Anmeldung abgelehnt. | Vollständige E-Mail-Adresse als Benutzername; bei Zwei-Faktor-Anmeldung ein App-Passwort; IMAP im Webmail freischalten |
+| Der angegebene Posteingang wurde nicht gefunden. | Einen der genannten Ordner wählen, meist `INBOX` |
+| OpenRouter hat den Schlüssel nicht angenommen. | Schlüssel vollständig kopieren (beginnt mit `sk-or-`) |
+| Für diesen Schlüssel ist kein Guthaben oder Limit mehr übrig. | Guthaben aufladen oder Limit erhöhen |
+| Ollama antwortet unter dieser Adresse nicht. | `ollama serve` starten; aus Docker `http://host.docker.internal:11434` |
+| Die Google-Freigabe ist abgelaufen oder wurde widerrufen. | **Google verbinden** erneut ausführen (im Testmodus der Google-App nach 7 Tagen nötig) |
+| Die Google Calendar API ist für das Google-Projekt deaktiviert. | In der Google Cloud Console die Calendar API aktivieren |
+| Kalender, Liste oder Projekt wurde nicht gefunden. | Kalender auswählen bzw. Todoist-Projekt-ID prüfen |
+| Zu viele Prüfungen in kurzer Zeit. | Eine Minute warten (Schutz vor Kontosperren beim Mailanbieter) |
 
 Weiter: [Konten verwalten](Konten-verwalten.md), [Einstellungen](Web-Einstellungen.md).
