@@ -162,6 +162,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/berichte` | Tätigkeitsberichte, Export | Web-Einstellungen (activity_report) |
 | `/berichte/neu` | Neuen Tätigkeitsbericht starten | Web-Einstellungen (activity_report) |
 | `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
+| `/auswertung/aufrufe` | Aufrufliste hinter jeder Kennzahl (5.9.10) | [Bedienung](Bedienung.md) |
 | `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
 | `/themen/relevant/{identity}` | Relevantes Thema einzeln bearbeiten oder anlegen | Web-Einstellungen |

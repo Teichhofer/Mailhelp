@@ -107,8 +107,93 @@ def test_regression_long_call_durations_read_in_hours_with_the_exact_seconds():
               "exchange_rate_date": None, "electricity_eur": "0", "seconds": 75_240.0, "mean": 2.5, "median": 61.0,
               "p95": None, "damaged": 1, "capture_failures": 0, "records": [], "groups": []}
     page = statistics_page({"days": 30, "mode": "production"}, report, [], "UTC", NOW)
-    assert '<dt>Summierte Aufrufdauer</dt><dd>20 Std. 54 Min. <span class="meta">(75.240 s)</span></dd>' in page
-    assert "<dd>2,50 s / 1 Min. 1 s / —</dd>" in page and "75.240,0 s" not in page
+    assert ('<dt>Summierte Aufrufdauer</dt><dd><a class="fact-link" href="/auswertung/aufrufe?metric=duration&amp;'
+            'days=30&amp;mode=production" aria-label="Längste Aufrufe anzeigen">20 Std. 54 Min. '
+            '<span class="meta">(75.240 s)</span> ›</a></dd>') in page
+    assert ">2,50 s / 1 Min. 1 s / — ›</a></dd>" in page and "75.240,0 s" not in page
     assert page.index("Summierte Aufrufdauer") < page.index("Unvollständige Erfassung")
     report["seconds"] = 59.9
-    assert "<dd>59,9 s</dd>" in statistics_page({"days": 30, "mode": "production"}, report, [], "UTC", NOW)
+    assert ">59,9 s ›</a></dd>" in statistics_page({"days": 30, "mode": "production"}, report, [], "UTC", NOW)
+
+
+def test_v598_average_counts_from_the_first_recorded_day_and_gaps_count_as_zero():
+    """Regression 5.9.8: without a reference line, rising costs were hard to judge."""
+    # 30 days; first call 10 days ago, then a gap (days without calls cost nothing).
+    records = [record(24 * 10, cost="0.07"), record(24 * 2, cost="0.04"), record(1, cost=None)]
+    html = statistics_charts(records, 30, "UTC", NOW)
+    average = 0.11 / 11  # days 10 … 0 ago, today included
+    assert f"Ø {_number(average, 4)} $ je Tag" in html and 'stroke-dasharray="5 3"' in html
+    assert '<line class="chart-average-line"' in html
+    assert f"<tr><td>Durchschnitt (ab erstem erfassten Tag)</td><td>{_number(average, 4)} $</td><td></td></tr>" in html
+    assert "<tr><td>Summe</td><td>0,1100 $</td><td></td></tr>" in html
+    # The 7-day mean starts on the 7th recorded day: one value four days ago, none before.
+    assert "<th>7-Tage-Mittel</th>" in html and '<path class="chart-cost-trend"' in html
+    assert f"<tr><td>{(NOW - timedelta(days=4)):%d.%m.}</td><td>0,0000 $</td><td>{_number(0.07 / 7, 4)} $</td></tr>" in html
+    assert f"<tr><td>{(NOW - timedelta(days=5)):%d.%m.}</td><td>0,0000 $</td><td>—</td></tr>" in html
+    assert "— 7-Tage-Mittel" in html and "style=" not in html
+
+
+def test_v598_short_periods_have_an_average_but_no_seven_day_mean():
+    html = statistics_charts([record(0.2, cost="0.02")], 1, "UTC", NOW)
+    assert "Ø 0,0200 $ je Stunde" in html and "7-Tage-Mittel" not in html
+    assert "<tr><td>Durchschnitt (ab erster erfasster Stunde)</td><td>0,0200 $</td></tr>" in html
+    week = statistics_charts([record(30, cost="0.02")], 7, "UTC", NOW)
+    assert "chart-average-line" in week and "chart-cost-trend" not in week
+    # Records outside the period leave no reference line at all.
+    outside = statistics_charts([record(24 * 40)], 30, "UTC", NOW)
+    assert "chart-average-line" not in outside and "<tr><td>Summe</td><td>0,0000 $</td></tr>" in outside
+
+
+def test_v598_the_trend_line_is_interrupted_where_a_value_is_missing():
+    html = column_chart("t", "Kosten", "Beschreibung", ["1", "2", "3", "4"], [("Kosten", "chart-cost", [1, 2, 3, 4])],
+                        count, trend=("7-Tage-Mittel", [None, 2.0, None, 4.0]))
+    path = re.search(r'<path class="chart-cost-trend"[^>]* d="([^"]+)"', html).group(1)
+    assert path.count("M") == 2 and "L" not in path
+    nothing = column_chart("n", "Kosten", "Beschreibung", ["1"], [("Kosten", "chart-cost", [1])], count,
+                           trend=("7-Tage-Mittel", [None]))
+    assert "<path" not in nothing and "<td>—</td>" in nothing
+
+
+def test_v599_durations_are_points_on_a_log_axis_with_the_median_per_day():
+    """Regression 5.9.9: fixed duration classes hid the time course and everything below one second."""
+    records = [record(24 * 2 + index, seconds=value) for index, value in enumerate((0.05, 1.0, 3.0))]
+    records += [record(24, seconds=2.0), record(1, seconds=250, status="failed", stage="relevance")]
+    html = statistics_charts(records, 7, "UTC", NOW)
+    chart = html[html.index('id="chart-durations-title"'):]
+    chart = chart[:chart.index("</figure>")]
+    # Labelled lines at 0.1 s … 1.000 s: the axis grows past 100 s to the next power of ten.
+    assert [label for label in ("0,1 s", "1 s", "10 s", "100 s", "1.000 s") if f">{label}</text>" in chart] == [
+        "0,1 s", "1 s", "10 s", "100 s", "1.000 s"]
+    assert chart.count('<circle class="chart-dot"') == 4 and chart.count('<path class="chart-cross"') == 1
+    assert "Relevanzprüfung · 4 Min. 10 s · gpt-synthetic · Fehler" in chart
+    assert "· &lt; 0,1 s ·" in chart  # shorter calls sit on the 0,1 s line
+    # Points are not tab stops; the table is the keyboard path.
+    assert "<circle" in chart and not any("tabindex" in mark.split("</circle>")[0] for mark in chart.split("<circle")[1:])
+    assert "Punkte für Details berühren oder mit der Maus zeigen; alle Werte in der Tabelle." in chart
+    # The median line needs three calls: one day with 3 calls is a single point (one move, no line).
+    trend = re.search(r'<path class="chart-trend-line"[^>]* d="([^"]+)"', chart).group(1)
+    assert trend.count("M") == 1 and "L" not in trend
+    assert "<tr><td>13.10.</td><td>3</td><td>0</td><td>1,0 s</td><td>3,0 s</td><td>3,0 s</td></tr>" in chart
+    assert "<tr><td>12.10.</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>" in chart
+    assert "— Median je Tag" in chart and "Aufrufen dargestellt" not in chart
+    assert "style=" not in chart
+
+
+def test_v599_the_last_day_has_hours_and_a_short_slow_day_keeps_the_axis_at_100_s():
+    hourly = statistics_charts([record(0.2, seconds=0.5)] * 3, 1, "UTC", NOW)
+    assert "— Median je Stunde" in hourly and '<path class="chart-trend-line"' in hourly
+    assert ">100 s</text>" in hourly and ">1.000 s</text>" not in hourly
+
+
+def test_v599_more_than_3000_calls_are_thinned_deterministically_keeping_failures_and_slow_calls():
+    from mailhelp.web.charts import thin
+    records = [record(1 + index / 1000, seconds=1.0) for index in range(3001)]
+    records[10] = record(1.01, seconds=1.0, status="failed")
+    records[20] = record(1.02, seconds=500.0)
+    shown = thin(records)
+    assert len(shown) == 3000 and records[10] in shown and records[20] in shown
+    assert thin(records) == shown and thin(records[:5]) == records[:5]
+    html = statistics_charts(records, 7, "UTC", NOW)
+    assert "3.000 von 3.001 Aufrufen dargestellt" in html
+    many_failures = [record(1, seconds=1.0, status="failed")] * 4
+    assert len(thin(many_failures, limit=3)) == 4  # every failure stays even above the limit

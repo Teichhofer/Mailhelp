@@ -26,6 +26,7 @@ class HistorySite:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/verlauf", self.history), ("GET", "/auswertung", self.statistics),
+                ("GET", "/auswertung/aufrufe", self.calls),
                 ("GET", PROPOSAL_PATH + r"/version/(?P<version>[1-9][0-9]{0,5})", self.version)):
             self.site.app.route(method, path, self.site.signed_in(handler))
 
@@ -69,6 +70,47 @@ class HistorySite:
         assert current is not None  # the view above was read from this very version
         return Response.html(200, detail_page(view, after=version_diff(previous, current)))
 
+    def _report(self, params: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+        """The selected journal and its report; raises ValueError or TypeError for invalid filters."""
+        params["days"] = int(params.get("days", 30))
+        params.setdefault("mode", "production")
+        if params["mode"] not in MODE_LABELS:
+            raise ValueError("Unbekannter Modus")
+        metrics = self.archive.metrics
+        assert metrics is not None  # both callers answer without metrics before reading a report
+        comparison = metrics.comparison
+        selected = comparison if params["mode"] == "decision_test" and comparison is not None else metrics
+        return selected, selected.report(**params)
+
+    def calls(self, request: Request, session: WebSession) -> Response:
+        """5.9.11: read only; unknown figures, sort orders or filters are rejected with 422."""
+        from .calls_page import METRICS, SORTS, STATUSES, calls_page
+        metrics = self.archive.metrics
+        if metrics is None:
+            return Response.html(200, layout("Auswertung",
+                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+        try:
+            params: dict[str, Any] = dict(self.archive.parameters(request))
+            metric = params.pop("metric", "calls")
+            sort = params.pop("sort", "")
+            status = params.pop("status", None)
+            page = int(params.pop("page", "1"))
+            if metric not in METRICS or (sort and sort not in SORTS) or (status is not None and status not in STATUSES):
+                raise ValueError("Unbekannte Auswahl")
+            if not 1 <= page <= 10_000:
+                raise ValueError("Ungültige Seite")
+            selected, report = self._report(params)
+        except (ValueError, TypeError):
+            return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
+        views = self.site.views
+
+        def subject(mail_id: str) -> str | None:
+            mail = views.mail(mail_id)
+            return mail.subject if mail is not None else None
+        html = calls_page(metric, params, sort, status, page, report, selected.settings,
+                          self.site.configured_timezone, subject, MODE_LABELS)
+        return Response.html(200, layout(METRICS[metric].title, html, active="/auswertung"))
+
     def statistics(self, request: Request, session: WebSession) -> Response:
         metrics = self.archive.metrics
         if metrics is None:
@@ -76,13 +118,7 @@ class HistorySite:
                                              '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
         try:
             params: dict[str, Any] = dict(self.archive.parameters(request))
-            params["days"] = int(params.get("days", 30))
-            params.setdefault("mode", "production")
-            if params["mode"] not in MODE_LABELS:
-                raise ValueError("Unbekannter Modus")
-            comparison = metrics.comparison
-            selected = comparison if params["mode"] == "decision_test" and comparison is not None else metrics
-            report = selected.report(**params)
+            selected, report = self._report(params)
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]

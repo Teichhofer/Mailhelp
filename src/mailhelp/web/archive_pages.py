@@ -40,6 +40,11 @@ def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
+def _calls(count: int, one: str, many: str) -> str:
+    """Spoken link label, e.g. "1 fehlgeschlagenen Aufruf anzeigen" / "3 fehlgeschlagene Aufrufe anzeigen"."""
+    return f"{count} {one if count == 1 else many} anzeigen"
+
+
 class _Html(str):
     """Markup that is already escaped."""
 
@@ -68,23 +73,32 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
             + f'<label>Von<input type="date" name="since" value="{e(params.get("since", ""))}"></label>'
             + f'<label>Bis<input type="date" name="until" value="{e(params.get("until", ""))}"></label>'
             + '<button class="button primary">Auswerten</button></form>')
+    from .calls_page import metric_link
     rate = report["exchange_rate_date"]
-    rows = [
-        ("Aufrufe (einzelne Versuche)", str(report["count"])),
-        ("davon fehlgeschlagen", str(report["failed"])),
-        ("Gemeldete Cloudkosten", _money(report["usd"], "USD")),
-        ("Cloudaufrufe ohne Kostenangabe", str(report["unknown_cost"])),
-        ("Cloudkosten in Euro", _money(report["cloud_eur"], "EUR") + (f" (Wechselkurs vom {rate})" if rate else "")
-         if report["cloud_eur"] is not None else "kein Wechselkurs hinterlegt"),
-        ("Geschätzte Stromkosten Ollama", _money(report["electricity_eur"], "EUR")),
-        ("Summierte Aufrufdauer", _Html(_total_duration(report["seconds"]))),
-        ("Dauer je Aufruf (Mittel / Median / 95 %)",
-         " / ".join(duration_text(report[key], precise=True) if report[key] is not None else "—"
-                    for key in ("mean", "median", "p95"))),
+    # 5.9.11: every figure opens the call list with a matching preset (a native link, no JavaScript).
+    figures: list[tuple[str, str, str, str]] = [
+        ("Aufrufe (einzelne Versuche)", "calls", e(report["count"]),
+         _calls(report["count"], "Aufruf", "Aufrufe")),
+        ("davon fehlgeschlagen", "failed", e(report["failed"]),
+         _calls(report["failed"], "fehlgeschlagenen Aufruf", "fehlgeschlagene Aufrufe")),
+        ("Gemeldete Cloudkosten", "cloud_costs", e(_money(report["usd"], "USD")), "Aufrufe mit Kostenangabe anzeigen"),
+        ("Cloudaufrufe ohne Kostenangabe", "unknown_cost", e(report["unknown_cost"]),
+         _calls(report["unknown_cost"], "Cloudaufruf ohne Kostenangabe", "Cloudaufrufe ohne Kostenangabe")),
+        ("Cloudkosten in Euro", "cloud_eur",
+         e(_money(report["cloud_eur"], "EUR") + (f" (Wechselkurs vom {rate})" if rate else "")
+           if report["cloud_eur"] is not None else "kein Wechselkurs hinterlegt"), "Umrechnung und Aufrufe anzeigen"),
+        ("Geschätzte Stromkosten Ollama", "electricity", e(_money(report["electricity_eur"], "EUR")),
+         "Ollama-Aufrufe und Berechnung anzeigen"),
+        ("Summierte Aufrufdauer", "duration", _total_duration(report["seconds"]), "Längste Aufrufe anzeigen"),
+        ("Dauer je Aufruf (Mittel / Median / 95 %)", "distribution",
+         e(" / ".join(duration_text(report[key], precise=True) if report[key] is not None else "—"
+                      for key in ("mean", "median", "p95"))), "Verteilung der Aufrufdauer anzeigen"),
     ]
     if report["damaged"] or report["capture_failures"]:
-        rows.append(("Unvollständige Erfassung",
-                     f'{report["damaged"]} beschädigte Zeilen, {report["capture_failures"]} Erfassungsfehler'))
+        figures.append(("Unvollständige Erfassung", "incomplete",
+                        e(f'{report["damaged"]} beschädigte Zeilen, {report["capture_failures"]} Erfassungsfehler'),
+                        "Bedeutung der unvollständigen Erfassung anzeigen"))
+    rows = [(name, _Html(metric_link(metric, value, label, params))) for name, metric, value, label in figures]
     body = ("<h1>Kosten und Zeiten</h1>" + form
             + '<dl class="facts-table">'
             + "".join(f"<dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd>" for k, v in rows) + "</dl>"

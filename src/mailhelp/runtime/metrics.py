@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
@@ -31,6 +31,38 @@ class MetricsSettings(BaseModel):
         if self.exchange_rate_date is not None and self.usd_per_eur is None:
             raise ValueError("Ein Bezugsdatum erfordert einen konfigurierten Wechselkurs")
         return self
+
+
+ErrorKind = Literal["timeout", "rate_limited", "provider_error", "invalid_json", "schema_invalid", "cancelled",
+                    "other"]
+
+
+def error_kind(event: str, context: dict) -> ErrorKind:
+    """5.9.11: the cause of a failed attempt, from the event alone; no message, no content is stored.
+
+    The error text is only classified here; it never leaves this function.
+    """
+    if event == "invalid_json":
+        return "invalid_json"
+    if event == "provider_response_invalid":
+        return "provider_error"
+    status = context.get("http_status") or context.get("status")
+    if status == 429:
+        return "rate_limited"
+    if isinstance(status, int) and not isinstance(status, bool) and status >= 400:
+        return "provider_error"
+    error = context.get("error")
+    name = str(context.get("error_type") or (type(error).__name__ if isinstance(error, BaseException) else error or ""))
+    lowered = name.casefold()
+    if "timeout" in lowered or "timed out" in lowered:
+        return "timeout"
+    if "cancel" in lowered or "interrupt" in lowered:
+        return "cancelled"
+    if "schema" in lowered or "validation" in lowered:
+        return "schema_invalid"
+    if "json" in lowered:
+        return "invalid_json"
+    return "other"
 
 
 class AttemptRecord(BaseModel):
@@ -53,6 +85,8 @@ class AttemptRecord(BaseModel):
     end: FiniteFloat
     duration_ms: FiniteFloat = Field(ge=0)
     status: str = Field(pattern=r"^(success|failed)$")
+    # 5.9.11: only for failed attempts; rows written before 5.9 have none.
+    error_kind: ErrorKind | None = None
     tokens: dict[str, int | None]
     cost_usd: Decimal | None = Field(ge=0, allow_inf_nan=False)
     power_watts: FiniteFloat = Field(ge=0)
@@ -296,12 +330,13 @@ class MetricsRecorder:
                 self._pending[call]["token_usage"] = context.get("token_usage")
             elif event in {"response_received", "request_failed", "invalid_json", "provider_response_invalid",
                            "retry_failed"}:
-                self._finish(call, "success" if event == "response_received" else "failed", context)
+                self._finish(call, "success" if event == "response_received" else "failed", context, event)
 
     def _start_call(self, call: str, context: dict) -> None:
         local = self.mode == "local" or context.get("backend", "").startswith(("Ollama", "Laya"))
         if call in self._pending:
-            self._finish(call, "failed", {})
+            # A new start of the same call replaces an attempt that never reported back.
+            self._finish(call, "failed", {}, "cancelled")
         self._pending[call] = {
             "id": secrets.token_hex(16), "call_id": call,
             "attempt": context.get("attempt", 1), "mode": self.mode,
@@ -316,13 +351,15 @@ class MetricsRecorder:
             "start": time.time(), "monotonic": time.monotonic(),
         }
 
-    def _finish(self, call: str, status: str, context: dict) -> None:
+    def _finish(self, call: str, status: str, context: dict, event: str = "") -> None:
         item = self._pending.pop(call, None)
         if item is None:
             return
         item["duration_ms"] = max(0, (time.monotonic() - item.pop("monotonic")) * 1000)
         item["end"] = item["start"] + item["duration_ms"] / 1000
         item["status"] = status
+        if status == "failed":
+            item["error_kind"] = "cancelled" if event == "cancelled" else error_kind(event, context)
         provider = context.get("provider")
         if isinstance(provider, str) and len(provider) <= 200:
             item["provider"] = provider

@@ -238,4 +238,15 @@ erscheinen ab 5.9.1 in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Mi
 dahinter. Die summierte Aufrufdauer addiert alle Versuche, auch parallele, und ist keine
 Durchlaufzeit.
 
+Ab 5.9.8 zeigt das Kostendiagramm eine gestrichelte Durchschnittslinie und ab 14 Tagen ein
+7-Tage-Mittel. Die **Aufrufdauer** ist eine Punktwolke: jeder Punkt ein Aufruf, Kreuze sind Fehler,
+die Linie ist der Median je Tag. **Rechenzeit je Verarbeitungsschritt** nennt Anteil und Dauer
+jedes Schritts, der **Ablauf der Mailverarbeitung** zeigt alle Schritte in ihrer Reihenfolge und
+markiert die größte Wartezeit; lokale Schritte heißen „lokal · nicht gemessen“.
+
+Ab 5.9.10 ist jeder Wert der Faktentabelle ein Link. Er öffnet die Aufrufliste mit passender
+Voreinstellung, etwa nur die fehlgeschlagenen Aufrufe mit ihrer Ursache, die teuersten oder die
+längsten. Status und Sortierung lassen sich dort ändern; „← Zurück zur Auswertung“ behält den
+Filter. Einzelaufrufe gibt es nur für die Aufbewahrungsdauer der Metriken (Standard 90 Tage).
+
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.

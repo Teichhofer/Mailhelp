@@ -308,7 +308,8 @@ def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: Zo
     svg += (f'<text class="chart-legend" {AXIS} x="{WIDTH - 8}" y="{TOP + 2}" text-anchor="end">'
             f'<tspan class="chart-ok-text" fill="{FILLS["chart-ok"]}">● erfolgreich</tspan>'
             f'<tspan class="chart-failed-text" fill="{FILLS["chart-failed"]}" dx="12">× fehlgeschlagen</tspan>'
-            f'<tspan class="chart-trend-text" fill="{FILLS["chart-trend"]}" dx="12">— Median je {period}</tspan></text>')
+            f'<tspan class="chart-trend-text" fill="{FILLS["chart-trend"]}" dx="12">— Median je {period}</tspan>'
+            '</text>')
     rows = []
     for label, group in zip(labels, groups, strict=True):
         values = [record["duration_ms"] / 1000 for record in group]
@@ -352,10 +353,6 @@ def count(value: float) -> str:
 
 def dollars(value: float) -> str:
     return _number(value, 4) + " $"
-
-
-def seconds(value: float) -> str:
-    return _number(value, 1) + " s"
 
 
 def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: datetime) -> str:

@@ -308,11 +308,11 @@ def test_production_and_decision_tests_are_reported_separately(web, tmp_path):
     for call in ("t1", "t2"):
         attempt(metrics.comparison, call)
     production = web.browser.request("GET", "/auswertung").body.decode()
-    assert "<dt>Aufrufe (einzelne Versuche)</dt><dd>1</dd>" in production
-    assert "<dt>Gemeldete Cloudkosten</dt><dd>0,5000 USD</dd>" in production
+    assert 'aria-label="1 Aufruf anzeigen">1 ›</a></dd>' in production
+    assert ">0,5000 USD ›</a></dd>" in production
     tests = web.browser.request("GET", "/auswertung?mode=decision_test").body.decode()
-    assert "<dt>Aufrufe (einzelne Versuche)</dt><dd>2</dd>" in tests
-    assert "<dt>Cloudaufrufe ohne Kostenangabe</dt><dd>2</dd>" in tests
+    assert 'aria-label="2 Aufrufe anzeigen">2 ›</a></dd>' in tests
+    assert 'aria-label="2 Cloudaufrufe ohne Kostenangabe anzeigen">2 ›</a></dd>' in tests
     assert '<option value="decision_test" selected>' in tests
 
 
@@ -320,7 +320,8 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
     _, metrics, *_ = configure(web, tmp_path)
     page = web.browser.request("GET", "/auswertung").body.decode()
     assert "Für diese Auswahl gibt es keine erfassten Aufrufe." in page
-    assert "<dd>0,0000 EUR</dd>" in page and "<dd>— / — / —</dd>" in page
+    # 5.9.11: the figures are links to the call list.
+    assert ">0,0000 EUR ›</a></dd>" in page and ">— / — / — ›</a></dd>" in page
     assert web.browser.request("GET", "/auswertung?mode=unbekannt").status == 422
     metrics.settings = MetricsSettings(usd_per_eur=1.25, exchange_rate_date="2026-10-01")
     attempt(metrics, "c1", model="openrouter/deepseek", reported_cost=2.5)
@@ -328,13 +329,14 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
     with metrics.path.open("a", encoding="utf-8") as stream:
         stream.write("kaputt\n")
     page = web.browser.request("GET", "/auswertung?model=openrouter/deepseek").body.decode()
-    assert "<dd>2,0000 EUR (Wechselkurs vom 2026-10-01)</dd>" in page
-    assert "<dd>1 beschädigte Zeilen, 1 Erfassungsfehler</dd>" in page
+    assert ">2,0000 EUR (Wechselkurs vom 2026-10-01) ›</a></dd>" in page
+    assert ">1 beschädigte Zeilen, 1 Erfassungsfehler ›</a></dd>" in page
     assert "<th>$Cent</th>" in page
     assert '<td title="openrouter/deepseek">deepseek</td>' in page
     assert '<td title="2,5000 USD">250,00</td>' in page
     assert '<option value="openrouter/deepseek" selected>' in page and "<th>Modell</th>" in page
-    assert "<dt>Geschätzte Stromkosten Ollama</dt><dd>0,0000 EUR</dd>" in page
+    assert ("<dt>Geschätzte Stromkosten Ollama</dt><dd><a class=\"fact-link\" href=\"/auswertung/aufrufe?"
+            "metric=electricity&amp;days=30&amp;mode=production&amp;model=openrouter%2Fdeepseek\"") in page
     metrics.settings = MetricsSettings(usd_per_eur=None)
     page_no_rate = web.browser.request("GET", "/auswertung").body.decode()
     assert "kein Wechselkurs hinterlegt" in page_no_rate

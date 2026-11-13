@@ -367,6 +367,12 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-r
 .facts-table dt:first-of-type, .facts-table dt:first-of-type + dd { border-top: none; }
 .facts-table dt { color: var(--muted); }
 .facts-table dd { font-weight: 600; overflow-wrap: anywhere; }
+/* 5.9.11: figures open the call list; underlined and with › so they read as links. */
+.fact-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.fact-link:hover { color: var(--accent); }
+.calls-explanation ul { margin: .25rem 0 0; padding-left: 1.2rem; }
+.calls-pages { margin: .75rem 0; }
+.calls-table td { vertical-align: top; }
 /* 5.0.6: the proposal of the card next to each comparison candidate. */
 .compare { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 12px 0; }
 .compare-side { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -782,12 +788,6 @@ body:has(.chart-modal[open]) { overflow: hidden; }
 .chart-failed-text { fill: var(--danger); }
 .chart-cost-text { fill: var(--warn); }
 .chart-bar-text { fill: var(--accent); }
-/* 5.3: live search results directly below the settings search field. */
-.settings-live-status:empty { display: none; }
-.settings-live-results { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
-.settings-live-results li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
-  background: var(--surface); overflow-wrap: anywhere; }
-.settings-live-results a { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
 /* 5.9.8: average and 7-day mean of the cost chart. */
 .chart-average-line { stroke: var(--kind-event); }
 .chart-average-text { fill: var(--kind-event); }
@@ -843,6 +843,12 @@ body:has(.chart-modal[open]) { overflow: hidden; }
   .pipeline-step:not(:last-child)::after { content: "→" / ""; left: auto; right: -21px; bottom: auto;
     top: 50%; transform: translateY(-50%); }
 }
+/* 5.3: live search results directly below the settings search field. */
+.settings-live-status:empty { display: none; }
+.settings-live-results { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.settings-live-results li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); overflow-wrap: anywhere; }
+.settings-live-results a { display: inline-block; min-height: 44px; line-height: 44px; font-weight: 600; }
 .settings-live-results .meta { display: block; }
 .settings-search.searching .settings-live-results { opacity: .6; }
 /* 5.3: packaged help sections, readable without JavaScript. */

@@ -1,5 +1,23 @@
 # Änderungen
 
+## 5.9.10 – Kennzahlen zum Anklicken: Aufrufliste
+
+- Web: Jeder Wert in der Faktentabelle von `/auswertung` ist ein Link (unterstrichen, mit „›“)
+  auf die neue, rein lesende Aufrufliste `/auswertung/aufrufe` mit passender Voreinstellung,
+  zum Beispiel nur fehlgeschlagene Aufrufe, teuerste zuerst oder längste zuerst. Der aktive Filter
+  wird in beide Richtungen übernommen.
+- Die Liste zeigt Zeit, Schritt, Modell und Anbieter, Status mit Ursache, Dauer, Tokens, Kosten und
+  die Mail (Link mit Betreff, „Mail nicht mehr gespeichert“ oder „Vergleichslauf“), 100 Zeilen je
+  Seite, sortierbar nach Zeit, Dauer oder Kosten. Oben erklärt ein Kasten die Kennzahl, etwa die
+  Ursachen der Fehler, die Kosten je Modell oder die Formel der Stromkosten.
+- Das Metrik-Journal speichert bei fehlgeschlagenen Versuchen das inhaltsfreie Feld `error_kind`
+  (Zeitüberschreitung, Anfragelimit, Anbieterfehler, kein JSON, Schema, abgebrochen, sonstige).
+  Ältere Zeilen bleiben gültig und erscheinen als „Ursache nicht erfasst (vor 5.9)“.
+- Unbekannte Kennzahlen, Sortierungen oder Filter ergeben 422; ohne Anmeldung keine Liste.
+- Zeilenlängen in `charts.py` und eine Typzusicherung in der Auswertung korrigiert; die seit 5.9.8
+  ungenutzte Formatfunktion `seconds` entfernt (stellt die 100-%-Abdeckung wieder her).
+- Neue Seite im Dokumentationsinventar eingetragen.
+
 ## 5.9.9 – Webbefehle in Eingangsreihenfolge (Fehlerbehebung)
 
 - Behoben: Unter Windows mit Python 3.12 rückt die Systemuhr nur etwa alle 15,6 ms vor. Zwei kurz

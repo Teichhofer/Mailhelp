@@ -2220,6 +2220,24 @@ gemessen“. Termin- und Aufgabenerkennung teilen sich einen Knoten („je nach 
 gemessene Anteil heißt sichtbar „⏱ größte Wartezeit“. Schlüssel außerhalb der Pipeline erscheinen
 am Ende unter „Weitere KI-Aufrufe“. Ohne Metrikzeilen entfällt der Plan.
 
+**Aufrufliste (seit 5.9.10).** Jeder Wert der Faktentabelle ist ein nativer Link mit sprechendem
+`aria-label` auf `GET /auswertung/aufrufe?metric=…` und übernimmt `days`, `mode`, `model`,
+`provider`, `stage`, `since` und `until`. `metric` ∈ {`calls`, `failed`, `cloud_costs`,
+`unknown_cost`, `cloud_eur`, `electricity`, `duration`, `distribution`, `incomplete`} legt
+Auswahl, Sortierung und Erklärung fest; `status` ∈ {`alle`, `success`, `failed`} (eigener Wert für
+„alle“, weil leere Abfragewerte verworfen werden), `sort` ∈ {`time`, `duration`, `cost`}
+(absteigend, ohne Kostenangabe zuletzt) und `page` (1–10.000, 100 Zeilen je Seite) sind optional.
+Unbekannte Werte und weitere Parameter ergeben 422. Die Seite liest nur, braucht eine Sitzung und
+zeigt ausschließlich Metadaten des inhaltsfreien Journals; der Betreff stammt aus dem Mailzustand
+und wird escaped. Ohne Zustand heißt es „Mail nicht mehr gespeichert“, bei Vergleichsläufen
+„Vergleichslauf“ ohne Link. `incomplete` erklärt beschädigte Zeilen und Erfassungsfehler ohne
+Liste. Übersteigt der Zeitraum `metrics.retention_days`, weist die Seite darauf hin.
+`AttemptRecord.error_kind` ∈ {`timeout`, `rate_limited`, `provider_error`, `invalid_json`,
+`schema_invalid`, `cancelled`, `other`} wird nur bei `failed` gesetzt und allein aus Ereignisname,
+HTTP-Status und Ausnahmetyp abgeleitet; Fehlermeldungen und Inhalte werden nicht gespeichert. Ein
+erneuter Start desselben Aufrufs schließt den offenen Versuch als `cancelled`. Ältere Zeilen ohne
+das Feld bleiben gültig („Ursache nicht erfasst (vor 5.9)“); `daily.json` zählt es nicht.
+
 **Lesbare Dauern (seit 5.9.1).** `formatting.duration_text` gibt Dauern in der größten
 passenden Einheit aus: unter 60 s in Sekunden mit einer (Mittel/Median/95 %: zwei)
 Nachkommastellen, darunter einer Stunde als Minuten und ganze Sekunden, darunter einem Tag
