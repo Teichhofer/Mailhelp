@@ -1,5 +1,16 @@
 # Änderungen
 
+## 6.0.7 – Browsertests parallel
+
+- Tests: Die Browser-Suite läuft mit `pytest-xdist` parallel (`-n 4 --dist worksteal`), auch in der
+  CI; die Workerzahl ist über `-n` einstellbar, ohne `-n` läuft sie seriell wie bisher.
+- Jeder Lauf und jeder Worker hat eigene Ordner für Screenshots, Messdateien und
+  JavaScript-Abdeckung. Der Hauptprozess führt die Abdeckung aller Worker zusammen und prüft sie
+  zentral auf 100 %. Ein ausgefallener Worker, fehlende, beschädigte oder unpassende Ergebnisse lassen
+  den Lauf scheitern; Tests prüfen genau das.
+- Erste Messung auf einem i5-12400F (6 Kerne, 12 Threads, 32 GiB): seriell 21 Min. 39 s, mit vier
+  Workern 6 Min. 15 s bzw. 6 Min. 22 s. Die vollständige Vergleichsmessung folgt mit der Abnahme.
+
 ## 6.0.6 – Kompakte Werkzeugleiste der Offen-Ansicht
 
 - Web: Schnellfilter, Suche, Sortierung und „Nach Bearbeitungsbedarf gruppieren“ stehen in einer

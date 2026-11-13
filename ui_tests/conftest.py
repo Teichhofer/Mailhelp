@@ -8,12 +8,14 @@ unless every block was executed.
 """
 from __future__ import annotations
 
+import json
 import re
 import socket
 import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from playwright.sync_api import expect, sync_playwright
@@ -389,11 +391,85 @@ def act(page: Page, control, text: str) -> None:
     expect(result).to_be_visible(timeout=20000)
 
 
+# 6.0.7: with pytest-xdist every worker writes its block counts here; the controller merges them.
+COVERAGE_DIR = ROOT / ".test-tmp" / "ui-js-coverage"
+
+
+def _parallel(config) -> bool:
+    """The controller of a run with xdist workers (``-n N`` with N > 0)."""
+    return not hasattr(config, "workerinput") and bool(getattr(config.option, "numprocesses", None))
+
+
+def pytest_configure(config):
+    config.ui_workers = {}
+    worker = getattr(config, "workerinput", {})
+    config.ui_coverage_dir = Path(worker.get("ui_coverage_dir", str(COVERAGE_DIR / uuid4().hex)))
+    # Separate runs and workers also own their screenshots and measurement files.
+    import checks
+    from checks import SCREENSHOTS
+    checks.SCREENSHOTS = SCREENSHOTS / config.ui_coverage_dir.name / worker.get("workerid", "serial")
+    checks.SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_configure_node(node):
+    node.workerinput["ui_coverage_dir"] = str(node.config.ui_coverage_dir)
+    node.config.ui_workers[node.gateway.id] = "Kein Abschluss gemeldet"
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_testnodedown(node, error):
+    """xdist: remember every worker that finished, and whether it crashed."""
+    node.config.ui_workers[node.gateway.id] = error
+
+
+def merge_worker_coverage(config) -> list[str]:
+    """Merge the counts of all workers; a crashed worker or a missing result is a failure."""
+    problems = [f"Worker {worker} ausgefallen: {error}" for worker, error in config.ui_workers.items() if error]
+    if not config.ui_workers:
+        problems.append("Keine Worker-Ergebnisse gemeldet")
+    for worker in sorted(config.ui_workers):
+        path = getattr(config, "ui_coverage_dir", COVERAGE_DIR) / f"{worker}.json"
+        if not path.is_file():
+            problems.append(f"Abdeckungsdaten von Worker {worker} fehlen")
+            continue
+        try:
+            result = json.loads(path.read_text(encoding="utf-8"))
+            for name, counts in result.items():
+                if name not in COVERED_SCRIPTS or not isinstance(counts, list):
+                    raise ValueError("Ungültiges Skript oder Zählerformat")
+                if len(counts) != len((STATIC / name).read_bytes().decode("utf-8")):
+                    raise ValueError("Skriptlänge stimmt nicht überein")
+                if any(type(count) is not int or count < 0 for count in counts):
+                    raise ValueError("Ungültiger Blockzähler")
+                merged = COVERAGE.counts.setdefault(name, [0] * len(counts))
+                COVERAGE.counts[name] = [max(a, b) for a, b in zip(merged, counts, strict=True)]
+        except (OSError, ValueError, AttributeError, TypeError) as error:
+            problems.append(f"Abdeckungsdaten von Worker {worker} ungültig: {error}")
+    return problems
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Fail the run if a block of the application scripts never ran."""
-    if exitstatus != 0 or session.config.option.keyword or session.config.option.markexpr:
+    config = session.config
+    worker = getattr(config, "workerinput", None)
+    if worker is not None:
+        # A worker only reports; the controller decides over the merged counts.
+        config.ui_coverage_dir.mkdir(parents=True, exist_ok=True)
+        (config.ui_coverage_dir / f"{worker['workerid']}.json").write_text(
+            json.dumps(COVERAGE.counts), encoding="utf-8")
         return
-    if session.testscollected == 0 or getattr(session.config.option, "lf", False):
+    if exitstatus != 0 or config.option.keyword or config.option.markexpr:
+        return
+    if getattr(config.option, "lf", False):
+        return
+    if _parallel(config):
+        problems = merge_worker_coverage(config)
+        if problems:
+            print("\n" + "\n".join(problems))
+            session.exitstatus = pytest.ExitCode.TESTS_FAILED
+            return
+    elif session.testscollected == 0:
         return
     uncovered = COVERAGE.uncovered()
     if uncovered:

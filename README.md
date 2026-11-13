@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.0.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.0.7 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
@@ -696,9 +696,19 @@ die in `pyproject.toml` aufgeführt sind.
 Mit installiertem Chrome und den Browser-Testabhängigkeiten:
 
 ```sh
-python -m pip install -e ".[ui]"
-python -m pytest ui_tests --no-cov -p no:cacheprovider
+python -m pip install -e ".[test,ui]"
+python -m pytest ui_tests -n 4 --dist worksteal --no-cov -p no:cacheprovider
 ```
+
+Ab 6.0.7 laufen die vollständigen Browsertests mit vier Workern parallel, auch in der CI.
+Die Workerzahl lässt sich über `-n` an den Rechner anpassen. Für einen seriellen Vergleichslauf
+entfällt `-n 4 --dist worksteal`. Beide Aufrufe funktionieren unter Windows 11 und in einer
+Linux-/Docker-Testumgebung mit Python 3.12, Chrome und den Testabhängigkeiten
+(`python -m pip install -e ".[test,ui]"`). Unter Linux müssen zusätzlich die von Playwright
+benötigten Systembibliotheken und Chrome installiert sein.
+Jeder Testlauf und Worker erhält einen eigenen Screenshot-Ordner unter `.test-tmp/ui-screens/`.
+JavaScript-Abdeckungsdaten werden pro Lauf und Worker getrennt gespeichert und zentral geprüft.
+Fehlende, beschädigte oder unvollständige Ergebnisse lassen den Gesamtlauf scheitern.
 
 Vor einem Push genügt oft der schnelle Browser-Smoke (rund 40 Sekunden): Anmeldung,
 Bestätigen und Übersicht, Offline-Seite und offline ausgelöste Aktion, Einrichtung ohne

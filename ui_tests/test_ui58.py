@@ -1,11 +1,10 @@
 """5.8 usability: visible results, keyboard errors and consistent preparation."""
 import json
-from pathlib import Path
 
 import pytest
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import SCREENSHOTS, audit
 from conftest import sign_in
 from tests.fakes import ui_learning, ui_topics
 
@@ -22,8 +21,7 @@ def test_catalog58_results_are_near_the_search_and_have_no_overflow(page, mailhe
     box = first.bounding_box()
     assert box["y"] < page.viewport_size["height"]
     assert audit(page, "topics58-" + theme + "-" + page.device, page.mobile) == []
-    Path(".test-tmp/ui58").mkdir(exist_ok=True)
-    page.screenshot(path=f".test-tmp/ui58/topics-{theme}-{page.device}.png")
+    page.screenshot(path=str(SCREENSHOTS / f"topics58-{theme}-{page.device}.png"))
     # Record filter JS coverage before navigating away from this document.
     page.get_by_label("Themen durchsuchen", exact=True).fill("Schule")
     expect(page.locator("[data-topic-row]:visible")).to_have_count(1)
@@ -79,8 +77,7 @@ def test_cards58_titles_and_actions_remain_reachable(page, mailhelp):
         title.scroll_into_view_if_needed()
         expect(title).to_be_in_viewport()
         measurements.append({"height": card.bounding_box()["height"], "title": title.inner_text()})
-    Path(".test-tmp/ui58").mkdir(exist_ok=True)
-    Path(f".test-tmp/ui58/cards-{page.device}.json").write_text(json.dumps(measurements), encoding="utf-8")
+    (SCREENSHOTS / f"cards58-{page.device}.json").write_text(json.dumps(measurements), encoding="utf-8")
     if page.device == "narrow":
         assert max(item["height"] for item in measurements) < 793  # Audit's largest initial card.
     assert audit(page, "cards58-" + page.device, page.mobile) == []

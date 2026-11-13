@@ -1,7 +1,7 @@
 """Navigation and page hierarchy stay clear on desktop and narrow phones."""
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import SCREENSHOTS, audit
 from conftest import sign_in
 from tests.scenarios.web_scenario import mail_id
 
@@ -40,7 +40,7 @@ def test_phone_card_context_expands_without_creating_an_entry(page, mailhelp):
         expect(context.locator(".full")).to_be_visible()
         assert audit(page, "facelift-card-context-" + page.device, page.mobile) == []
         card.scroll_into_view_if_needed()
-        page.screenshot(path=".test-tmp/ui-screens/facelift-phone-viewport-" + page.device + ".png")
+        page.screenshot(path=str(SCREENSHOTS / f"facelift-phone-viewport-{page.device}.png"))
     else:
         expect(card.locator(".card-context")).not_to_be_visible()
     assert mailhelp.writer.created == []
