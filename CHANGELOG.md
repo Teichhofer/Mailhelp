@@ -1,5 +1,14 @@
 # Änderungen
 
+## 6.1.3 – Postfach-Prüfung gegen einen echten IMAP-Server getestet
+
+- Einrichtung: Bietet ein Server STARTTLS gar nicht an, lautet die Meldung jetzt „Port und
+  Verschlüsselung passen nicht zusammen“ statt „Server antwortet nicht“.
+- Tests: Ein kleiner synthetischer IMAP-Server auf 127.0.0.1 belegt die Meldungen mit echten
+  Verbindungen – erfolgreiche Prüfung mit Ordnerliste, falsches Passwort, fehlender Posteingang,
+  TLS gegen einen unverschlüsselten Server, abgelehntes oder fehlendes STARTTLS, geschlossener Port,
+  Server ohne Antwort und unbekannter Servername.
+
 ## 6.1.2 – „Prüfen“ in jedem Schritt der Ersteinrichtung
 
 - Einrichtung: Jeder Schritt hat „Prüfen“, auch „Web-Zugang und Zeitzone“; der Abschluss bietet

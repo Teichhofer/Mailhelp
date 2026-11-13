@@ -67,6 +67,9 @@ def _connect(mailbox: MailboxSettings, credentials: ImapCredentials,
         raise SetupProblem("imap.tls_mismatch") from None
     except socket.gaierror:
         raise SetupProblem("imap.host_unknown") from None
+    except imaplib.IMAP4.error if mailbox.connection_mode == "starttls" else ():
+        # imaplib refuses STARTTLS with a plain IMAP4.error when the server does not offer it.
+        raise SetupProblem("imap.tls_mismatch") from None
     except (TimeoutError, imaplib.IMAP4.error, EOFError, ConnectionResetError):
         # A TLS greeting on a plain port (or the reverse) looks like silence or garbage.
         raise SetupProblem("imap.tls_mismatch" if _mismatch(mailbox) else "imap.unreachable") from None
