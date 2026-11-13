@@ -19,10 +19,10 @@ from ..config.loader import imap_secret_values, provider_secret_names
 from ..config.models import ImapCredentials, MailboxSettings
 from ..external.contracts import (
     AuthenticationError,
-    CalendarAccessError,
     ExternalRefused,
     ExternalUnavailable,
     OAuthTokenError,
+    TargetAccessError,
 )
 from ..external.providers import build_writers
 from ..llm.ollama import LocalLlm, parse_address
@@ -31,6 +31,8 @@ from ..proposals.target_profiles import PROVIDER_FIELDS
 from .setup_messages import SetupProblem, classify
 
 TIMEOUT = 15
+# 6.1.4: the structured reason of a refused target.
+ACCESS = {"not_found": "target.not_found", "forbidden": "target.permission", "api_disabled": "target.api_disabled"}
 
 
 def setup_secrets(settings: Settings, env: dict[str, str]) -> Secrets:
@@ -67,10 +69,12 @@ def _connect(mailbox: MailboxSettings, credentials: ImapCredentials,
         raise SetupProblem("imap.tls_mismatch") from None
     except socket.gaierror:
         raise SetupProblem("imap.host_unknown") from None
-    except imaplib.IMAP4.error if mailbox.connection_mode == "starttls" else ():
-        # imaplib refuses STARTTLS with a plain IMAP4.error when the server does not offer it.
-        raise SetupProblem("imap.tls_mismatch") from None
-    except (TimeoutError, imaplib.IMAP4.error, EOFError, ConnectionResetError):
+    except imaplib.IMAP4.error:
+        # imaplib refuses STARTTLS with a plain IMAP4.error when the server does not offer it;
+        # a TLS greeting on a plain port (or the reverse) also arrives as garbage.
+        mismatch = mailbox.connection_mode == "starttls" or _mismatch(mailbox)
+        raise SetupProblem("imap.tls_mismatch" if mismatch else "imap.unreachable") from None
+    except (TimeoutError, EOFError, ConnectionResetError):
         # A TLS greeting on a plain port (or the reverse) looks like silence or garbage.
         raise SetupProblem("imap.tls_mismatch" if _mismatch(mailbox) else "imap.unreachable") from None
     except OSError:
@@ -183,8 +187,8 @@ class SetupChecks:
                                        detail=f"{label}: {provider}") from None
                 except AuthenticationError:
                     raise SetupProblem("target.auth_failed", detail=f"{label}: {provider}") from None
-                except CalendarAccessError:
-                    raise SetupProblem("target.not_found", detail=f"{label}: {provider}") from None
+                except TargetAccessError as error:
+                    raise SetupProblem(ACCESS[error.reason], detail=f"{label}: {provider}") from None
                 except ExternalUnavailable:
                     raise SetupProblem("network", detail=f"{label}: {provider}") from None
                 except ExternalRefused:

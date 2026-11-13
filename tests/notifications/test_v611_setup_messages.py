@@ -16,6 +16,7 @@ from mailhelp.external.contracts import (
     ExternalRefused,
     ExternalUnavailable,
     OAuthTokenError,
+    TargetAccessError,
 )
 from mailhelp.mailbox.imap import FolderNotReadable, ImapLoginRejected, StartTlsFailed
 from mailhelp.runtime import setup_checks as module
@@ -185,6 +186,8 @@ def test_openrouter_transport_errors_are_general_codes(initial):
 @pytest.mark.parametrize(("error", "code"), [
     (OAuthTokenError(SECRET), "google.token_expired"), (AuthenticationError(SECRET), "target.auth_failed"),
     (CalendarAccessError(SECRET), "target.not_found"), (ExternalUnavailable(SECRET), "network"),
+    (TargetAccessError(SECRET, reason="forbidden"), "target.permission"),
+    (CalendarAccessError(SECRET, reason="api_disabled"), "target.api_disabled"),
     (ExternalRefused(SECRET), "target.permission"), (httpx.ConnectTimeout(SECRET), "timeout"),
 ])
 def test_target_failures_name_the_target_and_their_cause(initial, monkeypatch, error, code):

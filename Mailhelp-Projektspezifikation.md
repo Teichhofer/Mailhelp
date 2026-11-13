@@ -2241,7 +2241,9 @@ geschieht ausschließlich über Ausnahmetypen und strukturierte Merkmale: `ImapL
 `StartTlsFailed`, `ssl.SSLCertVerificationError`, `ssl.SSLError`, `socket.gaierror`, Zeitlimit und
 Verbindungsfehler (bei den Paaren 993/SSL und 143/STARTTLS als vertauschte Verschlüsselung),
 `FolderNotReadable`, HTTP-Status (OpenRouter 401/403 Schlüssel, 402 Guthaben, sonst Dienst),
-`OAuthTokenError` (bei Google „Freigabe abgelaufen“); seit 6.1.3 gilt ein `IMAP4.error` im Modus
+`OAuthTokenError` (bei Google „Freigabe abgelaufen“), `TargetAccessError` mit `reason` ∈ {`not_found`,
+`forbidden`, `api_disabled`} (seit 6.1.4; `CalendarAccessError` ist eine Unterklasse, Todoist meldet
+403/404 damit statt mit einem allgemeinen `PermanentError`); seit 6.1.3 gilt ein `IMAP4.error` im Modus
 `starttls` (Server bietet STARTTLS nicht an) ebenfalls als vertauschte Verschlüsselung, `AuthenticationError`,
 `CalendarAccessError`, `ExternalUnavailable`, `ExternalRefused`. Texte aus Anbieterantworten
 oder Ausnahmen erreichen weder Meldung noch Detail; Details enthalten nur Feldnamen, Ordner- und

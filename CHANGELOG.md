@@ -1,5 +1,17 @@
 # Änderungen
 
+## 6.1.4 – KI-Anbieter und Ziele: genaue Gründe
+
+- Ziele: Abgelehnte Zugriffe tragen einen festen Grund (`TargetAccessError.reason`: nicht gefunden,
+  keine Berechtigung, API deaktiviert). Todoist meldete bei 403/404 bisher nur einen allgemeinen
+  Fehler, die Prüfung zeigte daher „Unerwarteter Fehler“; jetzt „Projekt nicht gefunden“ bzw.
+  „keine Berechtigung“ (Regressionstest). Bei Google heißt eine deaktivierte Calendar API jetzt so,
+  mit dem Weg zur Aktivierung in der Cloud Console.
+- Schreibzugriffe behandeln diese Fehler unverändert als dauerhafte Ablehnung.
+- Die KI-Prüfung unterscheidet seit 6.1.1 ungültigen Schlüssel, fehlendes Guthaben, fehlende
+  Modelle, überlasteten Anbieter, nicht erreichbares Ollama und Ollama ohne Modelle.
+- Korrektur zu 6.1.3: Die Zuordnung eines `IMAP4.error` folgt ruff-konform in einem eigenen Zweig.
+
 ## 6.1.3 – Postfach-Prüfung gegen einen echten IMAP-Server getestet
 
 - Einrichtung: Bietet ein Server STARTTLS gar nicht an, lautet die Meldung jetzt „Port und

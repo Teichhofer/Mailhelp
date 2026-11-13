@@ -10,7 +10,7 @@ import httpx
 from ..llm.adapter import PermanentError, RetryPolicy
 from ..logging import EventLogger
 from ..models import CalendarDuplicateDecision, Proposal
-from .contracts import AccessTokenProvider, AuthenticationError, CalendarAccessError
+from .contracts import AccessTokenProvider, AuthenticationError, CalendarAccessError, TargetAccessError
 
 
 class HttpTransport:
@@ -85,15 +85,16 @@ class HttpTransport:
                 message = ("Google Calendar: Zielkalender existiert nicht oder ist für das authentifizierte "
                            "Konto nicht sichtbar")
                 error = CalendarAccessError
-            elif reason in {"insufficientPermissions", "forbidden"}:
-                message = "Google Calendar: OAuth-Token bezogen, aber Berechtigung für den Zielkalender fehlt"
-                error = CalendarAccessError
             elif reason in {"accessNotConfigured", "serviceDisabled", "apiDisabled"}:
-                message = "Google Calendar: OAuth-Token bezogen, aber die Calendar API ist deaktiviert"
-                error = CalendarAccessError
+                self.logger.event("ERROR", self.service, "target_access_failed", status=status, reason=reason)
+                raise CalendarAccessError("Google Calendar: OAuth-Token bezogen, aber die Calendar API ist "
+                                          "deaktiviert", reason="api_disabled")
             else:
-                message = "Google Calendar: OAuth-Token bezogen, aber der Calendar-Aufruf wurde verweigert"
-                error = CalendarAccessError
+                message = ("Google Calendar: OAuth-Token bezogen, aber Berechtigung für den Zielkalender fehlt"
+                           if reason in {"insufficientPermissions", "forbidden"} else
+                           "Google Calendar: OAuth-Token bezogen, aber der Calendar-Aufruf wurde verweigert")
+                self.logger.event("ERROR", self.service, "target_access_failed", status=status, reason=reason)
+                raise CalendarAccessError(message, reason="forbidden")
             self.logger.event("ERROR", self.service, "target_access_failed", status=status,
                               reason=reason)
             raise error(message)
@@ -109,8 +110,9 @@ class HttpTransport:
                 # credentials or provider-supplied confidential content.
                 event = "authentication_failed" if response.status_code == 401 else "target_access_failed"
                 self.logger.event("ERROR", self.service, event, status=response.status_code)
-                error = AuthenticationError if response.status_code == 401 else PermanentError
-                raise error(message)
+                if response.status_code == 401:
+                    raise AuthenticationError(message)
+                raise TargetAccessError(message, reason="forbidden" if response.status_code == 403 else "not_found")
         response.raise_for_status()
 
 

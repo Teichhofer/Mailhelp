@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -37,7 +37,18 @@ class OAuthTokenError(AuthenticationError):
     """Client oder Refresh-Token wurden am OAuth-Endpunkt abgelehnt."""
 
 
-class CalendarAccessError(ExternalRefused):
+class TargetAccessError(ExternalRefused):
+    """6.1.4: Ziel (Kalender, Liste, Projekt) nicht erreichbar; *reason* ist ein festes Stichwort.
+
+    Der Grund wird strukturiert übergeben, damit Meldungen nie aus Antworttexten abgeleitet werden.
+    """
+
+    def __init__(self, message: str, reason: Literal["not_found", "forbidden", "api_disabled"] = "not_found"):
+        super().__init__(message)
+        self.reason = reason
+
+
+class CalendarAccessError(TargetAccessError):
     """Ein bezogener Access-Token konnte den Zielkalender nicht erreichen."""
 
 

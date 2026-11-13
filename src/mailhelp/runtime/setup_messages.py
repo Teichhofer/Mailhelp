@@ -92,10 +92,14 @@ CATALOGUE: dict[str, Message] = {
         "Token oder Passwort neu erzeugen und eintragen.",
         "Bei Google oder Microsoft die Verbindung über „verbinden“ neu herstellen.")),
     "target.not_found": Message(cause="Kalender, Liste oder Projekt wurde nicht gefunden.", steps=(
-        "Die Auswahl des Kalenders beziehungsweise Projekts prüfen.",
+        "Die Auswahl des Kalenders beziehungsweise Projekts prüfen; bei Google hilft „Google-Kalender "
+        "auswählen“, die Todoist-Projekt-ID steht in der Adresse des Projekts.",
         "Bei CalDAV die vollständige Kalender-URL eintragen.")),
     "target.permission": Message(cause="Der Zugang hat keine Berechtigung für dieses Ziel.", steps=(
         "Beim Verbinden alle angefragten Berechtigungen erteilen.",)),
+    "target.api_disabled": Message(cause="Die Google Calendar API ist für das Google-Projekt deaktiviert.",
+                                   steps=("In der Google Cloud Console unter „APIs und Dienste“ die Google "
+                                          "Calendar API aktivieren und nach einigen Minuten erneut prüfen.",)),
     "google.token_expired": Message(cause="Die Google-Freigabe ist abgelaufen oder wurde widerrufen.",
                                     field="GOOGLE_OAUTH_REFRESH_TOKEN", steps=(
         "„Google verbinden“ erneut ausführen.",
