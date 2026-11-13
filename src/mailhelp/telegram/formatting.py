@@ -9,8 +9,10 @@ Todoist or Google Calendar unchanged.
 from __future__ import annotations
 
 import re
+from zoneinfo import ZoneInfo
 
 from ..models import Proposal, ProposalKind
+from ..proposals import conflicts
 from ..review.calendar_display import candidate_label, change_parts
 from ..review.cards import (
     CERTAINTY,
@@ -89,6 +91,17 @@ def _calendar_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
     return lines
 
 
+def _conflict_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
+    """5.9.4: each field conflict with every value and its origin; buttons follow below."""
+    zone = ZoneInfo(configured_timezone)
+    lines = []
+    for conflict in proposal.field_conflicts:
+        lines.append(f"⚠️ Widerspruch: {conflicts.label(conflict)} – welcher Wert soll gelten?")
+        lines.extend(f"• {conflicts.origin_text(variant, proposal.sources)}: "
+                     f"{conflicts.value_text(conflict, variant, zone)}" for variant in conflict.variants)
+    return lines
+
+
 def format_proposal(
     proposal: Proposal, configured_timezone: str, test_mode: bool = False
 ) -> str:
@@ -116,9 +129,12 @@ def format_proposal(
         lines.append("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.")
     elif test_mode:
         lines.append("🧪 Testmodus: Der Eintrag wird nur simuliert, nicht extern angelegt.")
-    if card.questions:
+    lines.extend(_conflict_lines(proposal, configured_timezone))
+    shown = {conflict.question for conflict in proposal.field_conflicts}
+    questions = [question for question in card.questions if question not in shown]
+    if questions:
         lines.append("❓ Offen:")
-        lines.extend(f"- {question}" for question in card.questions)
+        lines.extend(f"- {question}" for question in questions)
     if card.description:
         lines.append(f"📝 {card.description}")
     lines.append(f"Beleg: „{card.evidence}“")

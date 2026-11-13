@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from zoneinfo import ZoneInfo
 
 from ..domain.proposal_sources import ProposalReference
 from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
+from ..proposals import conflicts
 from .callbacks import Decision, DecisionAction, validate_callback_markup
 from .formatting import format_proposal, numbered_message_parts, revision_summary
 
@@ -104,6 +106,7 @@ class ProposalPresenter:
             choice = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                               action=DecisionAction.CHOOSE_EVENT, candidate=index)
             buttons.append([{"text": f"Termin {index + 1} meinen", "callback_data": self.encode(choice)}])
+        buttons[0:0] = self._conflict_rows(proposal)
         buttons.append([button("✓ Schon erledigt", DecisionAction.ALREADY_DONE)])
         if proposal.mail_link is not None and proposal.mail_link.startswith("https://"):
             # 4.7: Gmail or Outlook on the web; Telegram opens only http(s) links in buttons.
@@ -125,6 +128,22 @@ class ProposalPresenter:
             buttons.insert(0, choices)
         validate_callback_markup(markup)
         return ProposalPresentation(parts=parts, reply_markup=markup)
+
+    def _conflict_rows(self, proposal: Proposal) -> list[list[dict[str, str]]]:
+        """5.9.4: one row per field conflict, one button per value; choosing is not confirming."""
+        zone = ZoneInfo(self.configured_timezone)
+        rows = []
+        for conflict in proposal.field_conflicts:
+            row = []
+            for variant in conflict.variants:
+                decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                                    version=proposal.version, action=DecisionAction.CHOOSE_VARIANT,
+                                    conflict_id=conflict.id, variant=variant.id)
+                verb = "übernehmen" if variant.origin == "source" else "behalten"
+                row.append({"text": f"{conflicts.button_text(conflict, variant, zone)} {verb}",
+                            "callback_data": self.encode(decision)})
+            rows.append(row)
+        return rows
 
 
 __all__ = ["ProposalPresentation", "ProposalPresenter"]

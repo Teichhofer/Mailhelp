@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -25,6 +25,8 @@ class DecisionAction(StrEnum):
     RETARGET = "retarget"
     CHOOSE_EVENT = "choose_event"
     VERIFY_ENTRY = "verify_entry"
+    # 5.9.4: take one value of a field conflict as a new version.
+    CHOOSE_VARIANT = "choose_variant"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -59,11 +61,16 @@ class Decision(InternalTelegramModel):
     target_profile: int | None = Field(default=None, ge=1, le=99)
     profile_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     candidate: int | None = Field(default=None, ge=0, le=9)
+    conflict_id: str | None = Field(default=None, pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")
+    variant: Literal["a", "b", "c"] | None = None
 
     @model_validator(mode="after")
     def validate_additional(self) -> Decision:
         if (self.action == DecisionAction.CHOOSE_EVENT) != (self.candidate is not None):
             raise ValueError("Nur die Terminauswahl enthält einen Kandidaten")
+        choice = self.action == DecisionAction.CHOOSE_VARIANT
+        if choice != (self.conflict_id is not None) or choice != (self.variant is not None):
+            raise ValueError("Nur die Auswahl eines Werts nennt Widerspruch und Variante")
         if (self.action == DecisionAction.RETARGET) != (
             self.target_profile is not None and self.profile_hash is not None
         ):
@@ -88,6 +95,8 @@ class Decision(InternalTelegramModel):
         if store is None:
             if self.additional_ref is not None:
                 raise ValueError("Quellenentscheidung benötigt einen dauerhaften Callback-Token")
+            if self.conflict_id is not None:
+                raise ValueError("Die Auswahl eines Werts benötigt einen dauerhaften Callback-Token")
             value = f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
             validate_callback_data(value)
             return value

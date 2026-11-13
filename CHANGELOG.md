@@ -1,5 +1,17 @@
 # Änderungen
 
+## 5.9.4 – Widersprüche in Telegram mit einem Klick auflösen
+
+- Telegram: Widersprüche stehen als eigener Block mit allen Werten und ihrer Herkunft in der
+  Nachricht; darüber hinaus gibt es je Wert eine Schaltfläche („18:30 Uhr behalten“,
+  „20:30 Uhr übernehmen“).
+- Die Schaltfläche führt denselben versionsgebundenen Befehl wie im Web aus; danach wird die neue
+  Version zur Bestätigung vorgelegt. Angelegt wird nichts ohne diese Bestätigung.
+- Die Quittung nennt Feld und gewählten Wert („Endzeit 20:30 Uhr übernommen; neue Version bitte
+  separat bestätigen.“), in Telegram wie im Web.
+- Wiederholte oder veraltete Schaltflächen ändern nichts und melden „veraltet“. Die Auswahl
+  benötigt einen dauerhaften Callback-Token und übersteht Neustarts.
+
 ## 5.9.3 – Widersprüche im Web mit einem Klick auflösen
 
 - Web: Widersprüche erscheinen auf der Vorschlagskarte als Gegenüberstellung beider Werte mit

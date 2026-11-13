@@ -274,16 +274,25 @@ class ReviewService:
 
     def _choose_variant(self, command: ReviewCommand) -> ReviewResult:
         """5.9.3: one value of a field conflict becomes a new version; it is not a confirmation."""
-        from ..proposals.conflicts import ConflictChoiceError, choose
+        from zoneinfo import ZoneInfo
+
+        from ..proposals.conflicts import ConflictChoiceError, button_text, choose, label
         previous = self._target(command)
         assert command.conflict_id is not None and command.variant is not None  # required by ReviewCommand
         try:
             chosen = choose(previous, command.conflict_id, command.variant)
         except ConflictChoiceError as exc:
             raise StaleCommand(str(exc)) from exc
+        # choose() succeeded, so conflict and variant exist in the previous version.
+        conflict = next(item for item in previous.field_conflicts if item.id == command.conflict_id)
+        variant = next(item for item in conflict.variants if item.id == command.variant)
         self._commit(previous, chosen)
         self.controller.send_proposal(chosen)
-        return ReviewResult(status=ResultStatus.DONE, message="Wert übernommen; neue Version bitte separat bestätigen.")
+        # 5.9.4: the receipt names the field and the value (plan 2.1.5), e.g. "Endzeit 20:30 Uhr übernommen".
+        value = button_text(conflict, variant, ZoneInfo(self.controller.configured_timezone))
+        verb = "übernommen" if variant.origin == "source" else "behalten"
+        return ReviewResult(status=ResultStatus.DONE,
+                            message=f"{label(conflict)} {value} {verb}; neue Version bitte separat bestätigen.")
 
     def _choose_event(self, command: ReviewCommand) -> ReviewResult:
         """Bind a change or cancellation to the calendar entry the user picked (4.6, 17.4)."""

@@ -2212,6 +2212,16 @@ geändert“ ohne Änderung, eine Wiederholung desselben Formulars keine zweite 
 die neue Version wie jede Änderung erneut vorgelegt und muss separat bestätigt werden. Ohne
 Aktionsbereich (etwa ohne gültige Sitzung) erscheint die Gegenüberstellung ohne Formulare.
 
+Seit 5.9.4 nennt die Telegram-Karte jeden Widerspruch als Block „⚠️ Widerspruch: Endzeit – welcher
+Wert soll gelten?“ mit einer Zeile je Variante („• bisher: 18:30 Uhr“, „• laut Mail „…“ vom 03.12.:
+20:30 Uhr“) statt in der Liste offener Fragen. Über den übrigen Schaltflächen steht je Widerspruch
+eine Zeile mit einer Schaltfläche je Wert („18:30 Uhr behalten“, „20:30 Uhr übernehmen“). Die
+Schaltflächen sind dauerhafte Callback-Token (`DecisionAction.CHOOSE_VARIANT` mit Widerspruch,
+Variante und Version) und führen denselben versionsgebundenen Befehl aus wie im Web; eine ältere
+oder bereits verwendete Schaltfläche gilt als veraltet und ändert nichts. Die neue Version wird
+über die Ausgangswarteschlange vorgelegt und muss separat bestätigt werden. Die Quittung nennt Feld
+und Wert, etwa „Endzeit 20:30 Uhr übernommen; neue Version bitte separat bestätigen.“
+
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
 einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
 Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und

@@ -37,6 +37,7 @@ _COMMAND_KINDS = {
     DecisionAction.REJECT: CommandKind.REJECT,
     DecisionAction.ALREADY_DONE: CommandKind.ALREADY_DONE,
     DecisionAction.VERIFY_ENTRY: CommandKind.VERIFY_ENTRY,
+    DecisionAction.CHOOSE_VARIANT: CommandKind.CHOOSE_VARIANT,
 }
 
 
@@ -315,6 +316,8 @@ class TelegramUpdateHandler:
                     extra = {"target_profile": decision.target_profile, "proposal_hash": decision.profile_hash}
                 if decision.action == DecisionAction.CHOOSE_EVENT:
                     extra = {"candidate": decision.candidate}
+                if decision.action == DecisionAction.CHOOSE_VARIANT:
+                    extra = {"conflict_id": decision.conflict_id, "variant": decision.variant}
                 identity = decision.mail_id, decision.proposal_id, decision.version
                 if association:
                     assert decision.additional_ref is not None and decision.additional_version is not None

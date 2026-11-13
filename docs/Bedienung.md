@@ -30,6 +30,7 @@ bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endze
 Ab 5.9.3 stehen beide Werte auf der Karte nebeneinander. Eine Schaltfläche wie „18:30 Uhr behalten“
 oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine neue Version; angelegt wird erst, wenn du diese
 Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
+In Telegram stehen ab 5.9.4 dieselben Werte in der Nachricht und als Schaltflächen darunter.
 
 ## Nach dem Anlegen
 

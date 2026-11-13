@@ -11,9 +11,12 @@ from mailhelp.proposals.proposal_merge import merge_facts
 from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.review.views import ReviewViews
+from mailhelp.telegram import TelegramDialogController
+from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.web.actions import conflict_boxes
 from mailhelp.web.review_pages import proposal_card
-from tests.scenarios.web_scenario import mail_id, proposal, save_mail
+from tests.fakes.shared_telegram_dialog import Logger, callback
+from tests.scenarios.web_scenario import Revisions, mail_id, proposal, save_mail
 
 START = datetime(2026, 12, 4, 17, tzinfo=UTC)
 
@@ -111,3 +114,74 @@ def test_conflict_and_variant_belong_to_the_choice_command_only():
         ReviewCommand(kind="confirm", variant="a", **base)
     with pytest.raises(ValidationError):
         ReviewCommand(kind="choose_conflict_variant", conflict_id="DUE", variant="a", **base)
+
+
+def buttons(web):
+    return [button for row in web.telegram.sent[-1][2]["inline_keyboard"] for button in row]
+
+
+def test_telegram_names_each_value_and_offers_a_button_per_value(web, item):
+    web.dialog.delivery.deliver(item)
+    text = web.telegram.sent[-1][1]
+    assert ("⚠️ Widerspruch: Endzeit – welcher Wert soll gelten?\n• bisher: 18:30 Uhr\n"
+            "• laut Mail „Elternabend“ vom 03.12.: 20:30 Uhr") in text
+    assert item.field_conflicts[0].question not in text  # not repeated as an open question
+    first_row = web.telegram.sent[-1][2]["inline_keyboard"][0]
+    assert [button["text"] for button in first_row] == ["18:30 Uhr behalten", "20:30 Uhr übernehmen"]
+    choice = Decision.parse(first_row[1]["callback_data"], web.store)
+    assert (choice.action, choice.conflict_id, choice.variant, choice.version) == (
+        DecisionAction.CHOOSE_VARIANT, "interval-2", "b", item.version)
+
+
+def test_a_telegram_choice_revises_once_and_an_outdated_button_changes_nothing(web, item):
+    web.dialog.delivery.deliver(item)
+    data = next(button["callback_data"] for button in buttons(web) if button["text"] == "20:30 Uhr übernehmen")
+    web.telegram.updates = [callback(1, data)]
+    web.run()
+    chosen = current(web, item)
+    assert chosen.version == item.version + 1 and chosen.end == START + timedelta(hours=2, minutes=30)
+    assert chosen.status == ProposalStatus.PENDING_CONFIRMATION and web.writer.created == 0
+    # The same button again (repeated update or a tap on the old message) is outdated.
+    web.telegram.updates = [callback(2, data)]
+    web.run()
+    assert current(web, item).version == chosen.version
+    assert any("veraltet" in text for _, text, _ in web.telegram.sent)
+
+
+def test_a_variant_choice_needs_a_durable_token():
+    choice = Decision(mail_id=mail_id(1), proposal_id="p", version=1, action=DecisionAction.CHOOSE_VARIANT,
+                      conflict_id="due-2", variant="a")
+    with pytest.raises(ValueError, match="dauerhaften Callback-Token"):
+        choice.encode()
+    with pytest.raises(ValidationError, match="Widerspruch und Variante"):
+        Decision(mail_id=mail_id(1), proposal_id="p", version=1, action=DecisionAction.CHOOSE_VARIANT)
+    with pytest.raises(ValidationError, match="Widerspruch und Variante"):
+        Decision(mail_id=mail_id(1), proposal_id="p", version=1, action=DecisionAction.CONFIRM, variant="a")
+
+
+def test_the_receipt_names_the_field_and_the_chosen_value(web, item):
+    web.dialog.delivery.deliver(item)
+    data = next(button["callback_data"] for button in buttons(web) if button["text"] == "18:30 Uhr behalten")
+    web.telegram.updates = [callback(1, data)]
+    web.run()
+    assert current(web, item).end == item.end and current(web, item).version == item.version + 1
+    receipts = [text for _, text in web.telegram.answered] + [text for _, text, _ in web.telegram.sent]
+    assert any("Endzeit 18:30 Uhr behalten; neue Version bitte separat bestätigen." in text for text in receipts)
+
+
+def test_a_choice_survives_a_restart_and_a_foreign_chat_cannot_choose(web, item):
+    web.dialog.delivery.deliver(item)
+    data = next(button["callback_data"] for button in buttons(web) if button["text"] == "20:30 Uhr übernehmen")
+    # A foreign user or chat is ignored and changes nothing.
+    web.telegram.updates = [callback(1, data, user=9, chat=9)]
+    web.run()
+    assert current(web, item) == item
+    # After a restart, a new controller on the same store still resolves the durable token.
+    web.dialog = TelegramDialogController(
+        web.store, web.telegram, 1, 2, Logger(), {"todoist": web.writer, "google_calendar": web.writer},
+        False, "Europe/Berlin", Revisions(), commands=web.commands)
+    web.telegram.updates = [callback(2, data)]
+    web.run()
+    chosen = current(web, item)
+    assert chosen.version == item.version + 1 and chosen.end == START + timedelta(hours=2, minutes=30)
+    assert web.writer.created == 0
