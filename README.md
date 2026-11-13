@@ -13,11 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.0.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.0.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
-Bildschirme.
+Bildschirme. Ab 6.0.2 prüfen die Browsertests alle Kernseiten auch auf sehr breiten Bildschirmen.
 
 Version 5.9 ist abgeschlossen. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
 Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche
@@ -705,7 +705,8 @@ JavaScript und Barrierefreiheitsprüfung. Die JavaScript-Abdeckung prüft nur de
 python -m pytest ui_tests -m smoke --no-cov -p no:cacheprovider
 ```
 
-Die Browserprüfungen umfassen Desktop-, Mobil- und schmale Telefonansichten,
+Die Browserprüfungen umfassen Desktop-, Mobil- und schmale Telefonansichten, seit 6.0.2 zusätzlich
+alle Kernseiten bei 2560 × 1440 und 1920 × 1080 (`ui_tests/test_ui_widescreen60.py`),
 Barrierefreiheitsprüfungen und vollständige JavaScript-Blockabdeckung. Die CI prüft
 Windows, Linux, Distributionspakete und Docker-Wiederanläufe.
 

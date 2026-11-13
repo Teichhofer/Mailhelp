@@ -1,5 +1,16 @@
 # Änderungen
 
+## 6.0.2 – Breitbild-Prüfung aller Kernseiten
+
+- Tests: `ui_tests/test_ui_widescreen60.py` prüft alle Kernseiten bei 2560 × 1440 und 1920 × 1080,
+  hell und dunkel: keine über mehrere Zeilen zerlegten Wörter in Tabellenköpfen, Abzeichen und
+  Schaltflächen, kein waagerechter Überlauf, ausgewogene Seitenbreite, Barrierefreiheitsprüfung
+  und Bildschirmfotos. Die Lernseite wird mit offenem Prüfstand geprüft.
+- Ein Wächtertest scheitert, wenn eine Seite der Hauptnavigation nicht in der Liste steht; neue
+  Seiten werden so automatisch erfasst. Eine Selbstprüfung belegt, dass die Erkennung zerlegte
+  Wörter und Überlauf tatsächlich meldet.
+- Die bisherigen Geräte (Desktop, Mobil, schmal) bleiben unverändert.
+
 ## 6.0.1 – Lernseite für breite Bildschirme
 
 - Web: Die Vergleichstabelle auf `/lernen/entscheidungen` trennt Wörter nur noch an Wortgrenzen.
