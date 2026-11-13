@@ -7,7 +7,7 @@ from typing import Any
 
 from ..rule_learning.mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL
 from ..rule_learning.models import RuleState, RuleTopic
-from ..rule_learning.service import DecisionRuleLearning
+from ..rule_learning.service import DecisionRuleLearning, hidden_text
 from ..rule_learning.validation import RuleConflict, parse_yaml
 from ..storage import CorruptState
 from . import rule_preview
@@ -195,6 +195,7 @@ class RuleLearningSite:
                 + (f"; {state.trimmed} ältere wegen der Nutzlastgrenze nicht übertragen" if state.trimmed else "")
                 + (f"; {state.condensed} gleichartige Ablehnungen nur als Anzahl übertragen"
                    if state.condensed else "")
+                + (f"; {hidden_text(state.suppressed)}" if state.suppressed else "")
                 + '); '
                 f'{state.skipped} beschädigte, doppelte oder ungeeignete Zeilen übersprungen.</p><ol>'
                 + "".join(f'<li><a href="#vorschlag-{index + 1}">{e(proposal.proposed.name)}</a> · {kind}</li>'

@@ -15,7 +15,7 @@ from ..storage import CorruptState, atomic_replace
 from .changes import assemble, compact_topics, condense
 from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
 from .models import RejectedRuleProposal, RuleAnalysis, RuleHistory, RuleState
-from .rejections import readmit, rejection, remember
+from .rejections import readmit, rejection, remember, suppressed
 from .validation import FILES, RuleConflict, RuleValidationService
 
 STATE = "decision-rule-learning"
@@ -49,6 +49,13 @@ def failure_message(error: Exception) -> str:
         # Mailhelp's own checks (missing prompt, payload limit, unknown evidence) are safe to show.
         return f"Analyse nicht abgeschlossen: {error}."
     return GENERIC_FAILURE
+
+
+def hidden_text(count: int) -> str:
+    """6.0.5: e.g. "1 bereits abgelehnter Vorschlag wurde ausgeblendet"."""
+    if count == 1:
+        return "1 bereits abgelehnter Vorschlag wurde ausgeblendet"
+    return f"{count} bereits abgelehnte Vorschläge wurden ausgeblendet"
 
 
 def digest(value: str) -> str:
@@ -255,7 +262,34 @@ class DecisionRuleLearning:
             # The single fallback after truncated output: half the examples, strong signals first.
             sent = sent[:max(1, len(sent) // 2)]
         return redact_data({"topics": compact_topics(documents, evidence), "decisions": sent, "groups": groups,
-                            "summary": DecisionRuleMiner.counts(evidence)}, self.redact)
+                            "summary": DecisionRuleMiner.counts(evidence),
+                            "rejected": self.rejected_payload(documents)}, self.redact)
+
+    def rejected_payload(self, documents: dict[str, Any]) -> list[dict[str, Any]]:
+        """6.0.5: rejected changes of the sent topics (and the 20 newest rejected new topics).
+
+        Category, topic, action and the change only – never a rationale or evidence.
+        """
+        present = {(category, topic["id"]) for category, document in documents.items()
+                   for topic in document["topics"]}
+        rejected = self.history().rejected
+        chosen = [item for item in rejected if (item.category, item.topic_id) in present]
+        chosen += [item for item in rejected if (item.category, item.topic_id) not in present][-20:]
+        return [{"category": item.category, "topic_id": item.topic_id, "action": item.action,
+                 "changes": item.changes.model_dump(exclude_defaults=True)} for item in chosen]
+
+    def without_rejected(self, state: RuleState) -> None:
+        """6.0.5: drop proposals the user already rejected, even if the model repeats them."""
+        rejected = self.history().rejected
+        kept = []
+        for proposal in state.proposals:
+            old = next((topic for topic in state.documents[proposal.category]["topics"]
+                        if topic["id"] == proposal.topic_id), None)
+            if suppressed(proposal, old, rejected):
+                state.suppressed += 1
+            else:
+                kept.append(proposal)
+        state.proposals = kept
 
     def before_call(self, actor: str) -> None:
         self.check(actor)
@@ -295,7 +329,13 @@ class DecisionRuleLearning:
                 raise ValueError("Unbekannter Entscheidungsbeleg")
             state.proposals = RuleAnalysis.model_validate(analysis.model_dump()).proposals
             state.evidence = evidence
-            state.status, state.message = "review", "Vorschläge einzeln prüfen und bearbeiten; noch nichts gespeichert."
+            self.without_rejected(state)
+            if state.suppressed and not state.proposals:
+                state.status = "done"
+                state.message = "Keine neuen Vorschläge; " + hidden_text(state.suppressed) + "."
+            else:
+                state.status = "review"
+                state.message = "Vorschläge einzeln prüfen und bearbeiten; noch nichts gespeichert."
         except Exception as error:
             state.status = "failed"
             state.message = failure_message(error)
@@ -309,7 +349,7 @@ class DecisionRuleLearning:
                 return True
             state.version += 1
             self.save(state)
-            if state.status == "review":
+            if state.status == "review" or state.suppressed:
                 history = self.history()
                 history.analyzed_at = self.clock()
                 history.decision_ids = list(dict.fromkeys(

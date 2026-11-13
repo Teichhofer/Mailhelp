@@ -81,6 +81,8 @@ class RuleState(BaseModel):
     trimmed: int = 0
     # 5.7.7: repeated rejections sent only as a count (not as individual examples).
     condensed: int = 0
+    # 6.0.5: proposals left out because the user already rejected them (count only).
+    suppressed: int = 0
     proposals: list[RuleProposal] = Field(default_factory=list)
     receipts: dict[str, str] = Field(default_factory=dict)
     commit: dict[str, str] = Field(default_factory=dict)

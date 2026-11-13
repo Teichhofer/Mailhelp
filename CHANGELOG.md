@@ -1,5 +1,15 @@
 # Änderungen
 
+## 6.0.5 – Abgelehnte Regelvorschläge nicht wieder vorschlagen
+
+- Regellernen: Die KI erhält bei der nächsten Analyse die abgelehnten Änderungen (Feld `rejected`,
+  nur Thema, Art und Änderung) mit der Anweisung, sie nicht erneut vorzuschlagen; beide
+  mitgelieferten Prompts sind ergänzt.
+- Liefert sie dieselbe Änderung oder nur bereits abgelehnte Einträge trotzdem, blendet Mailhelp den
+  Vorschlag aus und nennt die Zahl in der Zusammenfassung. Bleibt nichts übrig: „Keine neuen
+  Vorschläge; 1 bereits abgelehnter Vorschlag wurde ausgeblendet.“
+- Nach „Wieder zulassen“ darf der Vorschlag wieder erscheinen.
+
 ## 6.0.4 – Regelvorschläge verwerfen und wieder zulassen
 
 - Web: Jede Vorschlagskarte auf `/lernen/entscheidungen` bietet **Übernehmen**, **Verwerfen – nicht

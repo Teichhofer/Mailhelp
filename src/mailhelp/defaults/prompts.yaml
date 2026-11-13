@@ -942,7 +942,8 @@ prompts:
         "category", "action", "rationale" (ein kurzer deutscher Satz), "evidence"
         (höchstens 5 IDs aus decisions) und "changes" (nur geänderte Felder:
         add_examples, remove_examples, add_exclusions, remove_exclusions, name,
-        description, enabled). Bei unzureichenden Belegen {"proposals": []}.
+        description, enabled). Bei unzureichenden Belegen {"proposals": []}. Änderungen
+        aus "rejected" hat der Nutzer abgelehnt; schlage sie nicht erneut vor.
     system_prompt: |
       Analysiere aufgezeichnete Nutzerentscheidungen für Mailhelp-Themenregeln.
       "topics" enthält die bisherigen relevanten und irrelevanten Regeln (Themen ohne
@@ -967,6 +968,8 @@ prompts:
       "enabled". create braucht name, description und add_examples sowie eine neue,
       nicht vergebene topic_id; disable braucht keine weiteren Felder. Keine automatische
       Übernahme behaupten.
+      "rejected" nennt Änderungen, die der Nutzer ausdrücklich abgelehnt hat (Kategorie, Thema,
+      Art und Änderung). Schlage diese oder sinngemäß gleiche Änderungen nicht erneut vor.
   diagnostic_test:
     # Nur auf ausdrücklichen Klick unter /diagnose. Keine Mailinhalte.
     parameters: {temperature: 0.0, max_tokens: 128}

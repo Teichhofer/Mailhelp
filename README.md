@@ -13,12 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.0.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.0.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
 Bildschirme. Ab 6.0.2 prüfen die Browsertests alle Kernseiten auch auf sehr breiten Bildschirmen. Ab 6.0.4
-lassen sich Regelvorschläge verwerfen; verworfene werden gespeichert und lassen sich wieder zulassen.
+lassen sich Regelvorschläge verwerfen; verworfene werden gespeichert und lassen sich wieder zulassen. Ab 6.0.5
+erfährt die KI davon; schlägt sie dieselbe Änderung trotzdem vor, wird sie ausgeblendet.
 
 Version 5.9 ist abgeschlossen. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
 Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche

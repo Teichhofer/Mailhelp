@@ -4068,3 +4068,13 @@ Idempotenzschlüssel hebt eine Sperre auf. Die Sitzung wird vor und unmittelbar 
 geprüft; eine veraltete Version oder ein bereits aufgehobener Eintrag ergibt 409 ohne Änderung,
 eine Wiederholung mit demselben Schlüssel hat keine zweite Wirkung (Belege in
 `RuleHistory.receipts`, höchstens 100).
+
+Seit 6.0.5 enthält die Nutzlast von `decision_rule_learning` das Feld `rejected`: Kategorie,
+Themen-ID, Art und Änderungsmenge (ohne leere Felder) aller Ablehnungen zu Themen der aktuellen
+Regeldateien sowie der 20 neuesten Ablehnungen neuer Themen. Beide Prompts (`system_prompt` und
+`output_token_retry`) weisen an, diese oder sinngemäß gleiche Änderungen nicht erneut
+vorzuschlagen. Nach dem Modellaufruf entfernt `DecisionRuleLearning` jeden Vorschlag, der nach der
+Regel aus 6.0.3 bereits abgelehnt ist, und zählt ihn in `RuleState.suppressed`; Inhalte werden dabei
+nicht protokolliert. Bleibt kein Vorschlag übrig, endet die Analyse als `done` mit „Keine neuen
+Vorschläge; N bereits abgelehnte Vorschläge wurden ausgeblendet.“ Die analysierten
+Entscheidungen gelten auch dann als ausgewertet.

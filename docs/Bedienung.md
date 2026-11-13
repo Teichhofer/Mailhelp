@@ -184,6 +184,10 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    keine Regeldatei wird geändert. „Offen lassen“ speichert nichts – ein späterer Lauf darf den
    Vorschlag wieder bringen. Am Seitenende listet „Zuvor verworfene Vorschläge anzeigen“ alle
    gesperrten Vorschläge mit Datum und Änderung; **Wieder zulassen** hebt die Sperre auf.
+   Ab 6.0.5 erfährt die KI bei der nächsten Analyse, welche Änderungen du abgelehnt hast. Schlägt
+   sie dieselbe Änderung trotzdem vor, blendet Mailhelp sie aus; die Zusammenfassung nennt, wie viele
+   Vorschläge so ausgeblendet wurden. Eine anders formulierte, sinngemäß gleiche Regel kann die KI
+   dennoch erneut bringen – dann einfach wieder verwerfen.
 
 Neue Analysen übernehmen relevante Regeln am nächsten sicheren Verarbeitungspunkt. Die
 Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmodus; für
