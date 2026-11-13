@@ -76,7 +76,7 @@ def test_status_page_counts_the_run(browser):
     from mailhelp import __version__
     assert f"<dt>Version</dt><dd>{__version__}</dd>" in html and "<dt>Modus</dt><dd>Produktiv</dd>" in html
     assert "<dt>Weboberfläche</dt><dd>http://127.0.0.1:8765</dd>" in html
-    assert "<dt>Gekoppelte Geräte</dt><dd>1</dd>" in html and "<dt>Gespeichert</dt><dd>7</dd>" in html
+    assert "<dt>Gekoppelte Geräte</dt><dd>1</dd>" in html and "<dt>Gespeichert (alle Zustände)</dt><dd>7</dd>" in html
     assert '<strong>2</strong><span>Klärung nötig</span>' in html and "Angelegt</span>" in html
     assert "Keine Fehler bei gespeicherten Mails." in html
     assert "<dd>0 wartend, 0 laufend, 0 erledigt, 0 abgelehnt, 0 fehlgeschlagen</dd>" in html

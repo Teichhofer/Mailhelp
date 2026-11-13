@@ -18,6 +18,20 @@ Alle Ziele erfordern eine gültige Sitzung. Lesen und Aktualisieren legen nichts
 an und wiederholen keine Aktion. Die Übersichten besitzen einen ausdrücklichen Leerzustand.
 Es entstehen keine neuen Konfigurationseinstellungen.
 
+## Statuszähler „Mails verarbeitet“ (5.9.7)
+
+`mails_processed` ist die Zahl der Mailzustände mit `steps.completion == "completed"`,
+einschließlich irrelevanter Mails und Duplikate. Der Wert wird bei jedem Aufruf aus dem
+gespeicherten Zustand berechnet; es gibt keine Zählerdatei. Die Aufbewahrung bereinigt Zustände
+nur und löscht sie nicht, daher bleibt die Zahl über Bereinigung und Neustarts stabil. Eine Mail
+in Neuanalyse (`completion` wieder `pending`) zählt bis zu ihrem erneuten Abschluss nicht; die
+Zahl kann dabei kurz sinken. `completion == "skipped"` ist im Modell vorgesehen, wird von der
+Verarbeitung derzeit aber nicht gesetzt und zählt nicht. `/status` nennt die Zahl im Satz zur
+letzten Mail hinter den offenen Vorgängen und im Abschnitt „Mails“ neben „Gespeichert (alle
+Zustände)“; eine eigene Kachel gibt es nicht. Telegram `/status` beginnt mit
+„📊 Bisher N Mails verarbeitet.“ und liest dafür nur; `/offen` bleibt unverändert. Zahlen ab
+1000 erhalten einen Tausenderpunkt.
+
 ## Verlässliche Web-Vorschauen (5.8)
 
 Regellernen trennt Bearbeiten, Prüfen und ausdrückliche Übernahme. Der serverseitig

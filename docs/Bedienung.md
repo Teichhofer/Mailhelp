@@ -226,6 +226,9 @@ mit dem Filter „mit Fehler“. **Wartende Web-Aktionen** zeigt die Warteschlan
 Links zu deinen einzelnen Aktionen. Andere Sitzungen werden ohne private Inhalte
 aufgeführt. Auch bei null Einträgen ist die Übersicht erreichbar. „Übersicht aktualisieren“
 lädt den aktuellen Stand; das Öffnen und Aktualisieren führt keine Aktion aus.
+Darunter steht, wie viele Mails Mailhelp bisher vollständig verarbeitet hat (auch irrelevante
+und doppelte); Telegram `/status` beginnt mit derselben Zahl. Während eine Mail neu analysiert
+wird, zählt sie kurz nicht mit.
 
 ### Auswertung
 

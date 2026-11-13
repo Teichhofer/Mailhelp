@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from ..formatting import format_datetime_local
 from ..review.inbox import CommandStatus
-from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus
+from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
 from .pages import e, layout, notice
 
 RUN_LABELS = (
@@ -89,6 +89,15 @@ def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
 
 def _when(value: datetime | None, zone: ZoneInfo) -> str:
     return format_datetime_local(value, zone) if value else "—"
+
+
+def _processed_sentence(system: SystemStatus, zone: ZoneInfo) -> str:
+    """5.9.7: e.g. Bisher 1.234 Mails verarbeitet, zuletzt am 12.11.2026, 07:45 Uhr."""
+    count = system.mails_processed
+    total = f"Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet"
+    if system.last_processed is None:
+        return f"{total}."
+    return f"{total}, zuletzt am {_when(system.last_processed, zone)}."
 
 
 def _imap_error_section(info: ServiceInfo, zone: ZoneInfo) -> str:
@@ -193,7 +202,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     title = "Handlungsbedarf" if issues else "Keine gespeicherten Mailfehler oder beschädigten Datensätze"
     parts.append(f'<section class="card status-summary"><h2>{title}</h2>'
                  f'<p>{len(overview.open)} offene Vorschläge · {len(overview.relevance)} Relevanzfragen.</p>'
-                 f'<p>Letzte verarbeitete Mail: {e(_when(system.last_processed, zone))}.</p>'
+                 f'<p>{e(_processed_sentence(system, zone))}</p>'
                  '<p>„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
                  'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p>'
                  '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
@@ -228,7 +237,8 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
 
     parts.append("<h2>Mails</h2>")
     parts.append(_facts([
-        ("Gespeichert", str(system.mails_total)),
+        ("Verarbeitet (abgeschlossen)", german_number(system.mails_processed)),
+        ("Gespeichert (alle Zustände)", german_number(system.mails_total)),
         ("Zuletzt verarbeitet", _when(system.last_processed, zone)),
         ("Warten auf Relevanzentscheidung", str(system.mails_waiting_relevance)),
         ("Zurückgestellt (neuer Versuch später)", str(system.mails_deferred)),

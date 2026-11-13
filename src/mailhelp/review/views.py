@@ -181,6 +181,29 @@ class ErrorView:
         return f"{self.mail_id}:{self.stage_code}:{self.cause_code}"
 
 
+def processed(state: MailState) -> bool:
+    """5.9.7: a mail counts as processed once its completion step is done.
+
+    Computed from the stored state on every call: retention only cleans states, so the count
+    survives restarts and never counts twice; a mail being analyzed again counts once it is
+    completed again.
+    """
+    return state.steps.completion == "completed"
+
+
+def count_processed(store: JsonStore) -> int:
+    """Read-only count of processed mails (Telegram /status)."""
+    with store.locked():
+        reader = _Reader(store)
+        return sum(processed(state) for name in state_names.mail_state_names(store)
+                   if (state := reader.model(name, MailState)) is not None)
+
+
+def german_number(value: int) -> str:
+    """1234 → "1.234" (German thousands separator)."""
+    return f"{value:,}".replace(",", ".")
+
+
 @dataclass(frozen=True)
 class SystemStatus:
     mails_total: int
@@ -198,6 +221,8 @@ class SystemStatus:
     telegram_unprocessed: int
     llm_calls_last_minute: int
     already_done: int = 0
+    # 5.9.7: states whose processing is completed (irrelevant mails and duplicates included).
+    mails_processed: int = 0
 
 
 STAGE_LABELS = {
@@ -393,6 +418,7 @@ class ReviewViews:
             already_done=sum(proposal.resolution == "already_done" for proposal in proposals),
             mails_total=len(mails),
             mails_failed=len(failed),
+            mails_processed=sum(processed(state) for state in mails),
             mails_deferred=sum(state.deferred_until is not None and state.deferred_until > now
                                for state in mails),
             mails_waiting_relevance=sum(state.awaiting_relevance for state in mails),

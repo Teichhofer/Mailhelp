@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 HELP = (
     "Mailhelp – Befehle\n"
     "/offen – aktuelle Entscheidung erneut zeigen\n"
-    "/status – alle offenen Vorgänge auflisten\n"
+    "/status – Zahl verarbeiteter Mails und alle offenen Vorgänge\n"
     "/abbrechen – laufende Rückfrage beenden\n"
     "/web – Link und Code für die Weboberfläche\n"
     "/web_abmelden – alle Geräte der Weboberfläche abmelden\n"
@@ -48,6 +48,7 @@ class _Overview:
     current_key: tuple[str, str | None] | None = None
     held_back: int = 0
     active_prompt: str | None = None
+    header: str | None = None
 
 
 class TelegramCommands:
@@ -63,7 +64,7 @@ class TelegramCommands:
         if command in {"/hilfe", "/start"}:
             self.telegram.send(self.chat_id, HELP)
         elif command in {"/status", "/offen"}:
-            self.overview(interactive=command == "/offen")
+            self.overview(interactive=command == "/offen", counted=command == "/status")
         elif command == "/abbrechen":
             self.cancel()
         elif command == "/web_abmelden":
@@ -73,9 +74,16 @@ class TelegramCommands:
         else:
             self.telegram.send(self.chat_id, "Unbekannter Befehl. Verfügbare Befehle: /hilfe")
 
-    def overview(self, *, interactive: bool = False, compact: bool = False) -> None:
-        """List open decisions; *compact* counts held-back proposals instead of listing them."""
+    def overview(self, *, interactive: bool = False, compact: bool = False, counted: bool = False) -> None:
+        """List open decisions; *compact* counts held-back proposals instead of listing them.
+
+        *counted* (5.9.7, /status) starts with the number of processed mails; it only reads.
+        """
         report = _Overview(interactive=interactive, compact=compact)
+        if counted:
+            from ..review.views import count_processed, german_number
+            count = count_processed(self.store)
+            report.header = f"📊 Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet."
         profiles = self.presenter.profiles_status()
         if profiles:
             report.lines.append(profiles)
@@ -164,8 +172,8 @@ class TelegramCommands:
         return "Warte auf Bestätigung oder Verwerfen"
 
     def _send_overview(self, report: _Overview) -> None:
-        self.telegram.send(self.chat_id, "\n".join(report.lines) if report.lines
-                           else "Keine offene Telegram-Entscheidung.")
+        lines = report.lines or ["Keine offene Telegram-Entscheidung."]
+        self.telegram.send(self.chat_id, "\n".join(([report.header] if report.header else []) + lines))
         for _, presentation in report.presentations:
             for part in presentation.parts[:-1]:
                 self.telegram.send(self.chat_id, part)

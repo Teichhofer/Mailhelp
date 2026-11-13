@@ -1,6 +1,6 @@
 {
- "app_version": "5.9.6",
- "revision": "58bfda8ec9a191128334a5ccf120c2bc15941f6dc88d1c7d5a4a5486f592c970",
+ "app_version": "5.9.7",
+ "revision": "0bfe61472e8282a014b59ae07fbca6240c805eb8d62d6afa38e213a472122210",
  "schema_version": 1,
  "sections": 93,
  "sources": [
@@ -22,7 +22,7 @@
   },
   {
    "path": "docs/Bedienung.md",
-   "sha256": "a538725c58be57827fe84c69ec0472fab56c12d7d7088bcf835b8ca7cbc2710b"
+   "sha256": "9a6baabee763091e65e3bd1c297f40f82afcfe3179192d21518925f83eade8b5"
   },
   {
    "path": "docs/Fehlerbehebung.md",

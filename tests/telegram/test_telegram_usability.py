@@ -56,7 +56,9 @@ def test_commands_do_not_reach_llm_or_writers_and_unauthorized_are_silent(tmp_pa
         assert not service.mock_calls
         assert writer.created == writer.reconciled == 0
         if text in {"/status", "/offen"}:
-            assert t.sent[0][1] == "Keine offene Telegram-Entscheidung."
+            # 5.9.7: /status starts with the number of processed mails; /offen does not.
+            count = "📊 Bisher 0 Mails verarbeitet.\n" if text == "/status" else ""
+            assert t.sent[0][1] == count + "Keine offene Telegram-Entscheidung."
         elif text in {"/hilfe", "/start"}:
             assert all(name in t.sent[0][1] for name in ("/hilfe", "/status", "/offen", "/abbrechen"))
         elif text == "/abbrechen":

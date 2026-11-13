@@ -1,5 +1,15 @@
 # Änderungen
 
+## 5.9.7 – Statuszähler „Mails verarbeitet“
+
+- Web: Die Zusammenfassung auf `/status` nennt nach den offenen Vorgängen „Bisher 1.234 Mails
+  verarbeitet, zuletzt am …“; der Abschnitt „Mails“ zeigt „Verarbeitet (abgeschlossen)“ und
+  „Gespeichert (alle Zustände)“. Es gibt bewusst keine weitere Kachel.
+- Telegram: `/status` beginnt mit „📊 Bisher 1.234 Mails verarbeitet.“; `/offen` bleibt unverändert.
+- Gezählt werden Mails mit abgeschlossener Verarbeitung, auch irrelevante und Duplikate. Die Zahl
+  wird bei jedem Aufruf aus dem Zustand berechnet; Neustarts zählen nichts doppelt, eine Mail in
+  Neuanalyse zählt erst nach ihrem erneuten Abschluss wieder.
+
 ## 5.9.6 – Themenliste für breite Bildschirme
 
 - Web: `/themen` nutzt ab 1024 px bis zu 1320 px Breite; die Bearbeitungsseiten bleiben schmal.
