@@ -267,4 +267,13 @@ Voreinstellung, etwa nur die fehlgeschlagenen Aufrufe mit ihrer Ursache, die teu
 längsten. Status und Sortierung lassen sich dort ändern; „← Zurück zur Auswertung“ behält den
 Filter. Einzelaufrufe gibt es nur für die Aufbewahrungsdauer der Metriken (Standard 90 Tage).
 
+Ab 6.1.8 misst Mailhelp jeden Verarbeitungsschritt, nicht nur die KI-Aufrufe. Die Faktentabelle nennt
+die **Durchlaufzeit je Mail** (ohne die Zeit, in der eine Mail auf deine Entscheidung wartet; diese steht
+darunter). „Zeit je Verarbeitungsschritt“ zeigt, wie viel Zeit jeder Schritt tatsächlich braucht, der
+Ablaufplan nennt je Schritt Dauer und KI-Anteil („davon KI“) und markiert die größte Wartezeit.
+„Aufbereitung im Detail“ teilt die Aufbereitung in Zerlegen, Anhänge und Bilderkennung. Ein Klick
+auf einen Schritt unter „Langsamste Durchläufe“ zeigt die langsamsten Mails dieses Schritts. Für
+Zeiträume vor 6.1.6 gibt es keine Schrittzeiten; dann erscheint die Auswertung wie bisher. Auf
+**Status** steht beim laufenden Schritt, wie lange er üblicherweise dauert.
+
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.

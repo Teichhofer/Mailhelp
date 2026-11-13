@@ -211,6 +211,7 @@ class MetricsRecorder:
     def runtime(self) -> dict:
         with self._lock:
             return {**self.activity, "elapsed": time.monotonic() - self.activity["started"],
+                    "usual_ms": self.stages.usual(self.activity["stage"]),
                     "contacts": dict(self.contacts),
                     "accounts": {key: dict(value) for key, value in self.accounts.items()},
                     "imap_errors": [dict(item) for _, item in sorted(self.imap_errors.items())]}

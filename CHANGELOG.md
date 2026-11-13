@@ -1,5 +1,17 @@
 # Änderungen
 
+## 6.1.8 – Schrittzeiten in der Auswertung
+
+- Auswertung: neue Kennzahlen „Durchlaufzeit je Mail (Median / 95 % / Maximum)“ und „Wartezeit auf
+  Entscheidungen“; Rangliste „Zeit je Verarbeitungsschritt“ nach tatsächlicher Dauer (die
+  KI-Rangliste bleibt daneben); Punktwolke der Durchlaufzeit; „Aufbereitung im Detail“.
+- Der Ablaufplan zeigt jeden gemessenen Schritt mit Dauer und KI-Anteil („davon KI 2,1 s“) statt
+  „lokal · nicht gemessen“; die größte Wartezeit richtet sich nach der tatsächlichen Dauer.
+- Neue Liste `/auswertung/schritte`: die langsamsten Durchläufe eines Schritts oder ganzer Mails mit
+  Link zur Mail, sortierbar, nur lesend.
+- Status: Der laufende Schritt nennt die Zeit in Sekunden und wie lange er üblicherweise dauert.
+- Zeiträume ohne Schrittdaten (vor 6.1.6) erscheinen unverändert.
+
 ## 6.1.7 – Schrittzeiten verdichten und abfragen
 
 - Metriken: Zeilen des Schritt-Journals jenseits der Aufbewahrungsdauer werden bei der Wartung zu

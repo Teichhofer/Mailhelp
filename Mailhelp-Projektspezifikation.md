@@ -2285,6 +2285,18 @@ Tageswerten je Erfassung und Schritt (Anzahl, Summe, Median, 95 %, Maximum, Fehl
 Median, 95 %, Maximum, Fehler, KI-Anteil und Median je Mail, dazu die Durchlaufzeiten, den Median der
 Wartezeit und die Teilzeiten der Aufbereitung.
 
+**Schrittzeiten in der Auswertung (seit 6.1.8).** `/auswertung` liest zusätzlich
+`stage_metrics.report` mit denselben Filtern. Mit Schrittdaten erscheinen die Kennzahlen „Durchlaufzeit
+je Mail (Median / 95 % / Maximum)“ (Link auf die langsamsten Durchläufe) und „Wartezeit auf
+Entscheidungen (Median)“, die Rangliste „Zeit je Verarbeitungsschritt“ (Anteil, Summe, Anzahl, Median,
+95 %, Maximum, Fehler, davon KI) mit Links je Schritt, die Punktwolke „Durchlaufzeit je Mail“ und
+„Aufbereitung im Detail“. Der Ablaufplan zeigt dann je Schritt Wanduhrzeit, Anteil, Median je Mail und
+„davon KI“; der Flaschenhals richtet sich nach der Wanduhrzeit. Ohne Schrittdaten bleibt alles wie in
+5.9. `GET /auswertung/schritte?stage=…` (Schritt aus `ProcessingStage` oder `total`, `sort` ∈
+{`duration`, `time`}, `page`, Filter wie die Aufrufliste; sonst 422) listet die Durchläufe mit Beginn,
+Dauer, KI-Anteil, Ergebnis bzw. Wartezeit und Mail, 100 je Seite, nur lesend und nur mit Anmeldung. Die
+Statusseite nennt beim laufenden Schritt die Zeit seit Beginn in Sekunden und den Median dieses Schritts.
+
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
 Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis

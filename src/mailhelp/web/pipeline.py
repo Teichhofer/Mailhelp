@@ -1,8 +1,8 @@
 """Computing time per processing step and the pipeline plan of the evaluation page (5.9.10).
 
-Only AI calls are measured. Local steps appear in the plan as "lokal · nicht gemessen": they are
-fast and cause no relevant waiting time. A step shows its time as soon as metric rows with its
-stage key exist, without a code change. The plan is an ordered HTML list, not SVG, so its text
+Since 6.1.8 the wall time of every step (stage journal, 6.1.6) is shown with its AI share; for
+periods without step data the plan falls back to the AI calls and marks other steps as
+"lokal · nicht gemessen". The plan is an ordered HTML list, not SVG, so its text
 stays readable at every width and needs neither inline styles nor JavaScript.
 """
 from __future__ import annotations
@@ -28,6 +28,8 @@ class StageTime:
     calls: int
     # Median of the summed duration per mail; None without calls that name a mail.
     per_mail: float | None
+    # 6.1.8: with wall times, the part of the step spent in AI calls.
+    ai_seconds: float | None = None
 
     def share(self, total: float) -> float:
         return self.seconds / total * 100 if total else 0.0
@@ -60,6 +62,39 @@ def stage_times(records: list[dict[str, Any]]) -> dict[str, StageTime]:
             for key, value in seconds.items()}
 
 
+def wall_times(steps: dict[str, dict[str, Any]]) -> dict[str, StageTime]:
+    """6.1.8: the step journal's figures in the shape of the AI call times."""
+    return {key: StageTime(key, label(key), figures["sum_ms"] / 1000, figures["count"],
+                           figures["per_mail_median_ms"] / 1000 if figures["per_mail_median_ms"] is not None else None,
+                           figures["llm_ms"] / 1000)
+            for key, figures in steps.items()}
+
+
+def wall_ranking(steps: dict[str, dict[str, Any]], link: str = "") -> str:
+    """6.1.8: steps by their wall time, largest first; the AI ranking stays as a second view."""
+    times = wall_times(steps)
+    total = sum(item.seconds for item in times.values())
+    ordered = sorted(times.values(), key=lambda item: (-item.seconds, item.label))
+
+    def seconds(value: float | None) -> str:
+        return duration_text(value / 1000) if value is not None else "—"
+    rows = [[item.label, percent(item.share(total)), duration_text(item.seconds), _number(item.calls, 0),
+             seconds(steps[item.key]["median_ms"]), seconds(steps[item.key]["p95_ms"]),
+             seconds(steps[item.key]["max_ms"]), _number(steps[item.key]["failed"], 0),
+             duration_text(item.ai_seconds or 0)] for item in ordered]
+    rows.append(["Hinweis", "Gerundete Anteile ergeben nicht immer genau 100 %.", "", "", "", "", "", "", ""])
+    chart = bar_list("chart-wall", "Zeit je Verarbeitungsschritt",
+                     "Tatsächliche Dauer jedes Schritts von der Aufbereitung bis zum Abschluss, größter Anteil zuerst.",
+                     [(item.label, item.seconds) for item in ordered],
+                     lambda value: f"{percent(value / total * 100 if total else 0)} · {duration_text(value)}",
+                     table=(["Schritt", "Anteil", "Summe", "Anzahl", "Median", "95 %", "Maximum", "Fehler", "davon KI"],
+                            rows))
+    if link:
+        chart += ('<p class="meta stage-links">Langsamste Durchläufe: ' + " · ".join(
+            f'<a href="{e(link)}&amp;stage={e(item.key)}">{e(item.label)}</a>' for item in ordered) + "</p>")
+    return chart
+
+
 def ranking(times: dict[str, StageTime]) -> str:
     """Largest share first, each bar labelled with share and duration."""
     total = sum(item.seconds for item in times.values())
@@ -83,6 +118,8 @@ def _measured(number: int, item: StageTime, total: float, bottleneck: bool) -> s
     share = item.share(total)
     median = f'<span class="meta">Median je Mail {e(duration_text(item.per_mail))}</span>' \
         if item.per_mail is not None else ""
+    if item.ai_seconds:
+        median += f'<span class="meta">davon KI {e(duration_text(item.ai_seconds))}</span>'
     mark = '<span class="pipeline-mark">⏱ größte Wartezeit</span>' if bottleneck else ""
     return (f'<div class="pipeline-part"><span class="pipeline-name">{number}. {e(item.label)}</span>{mark}'
             f'<span class="pipeline-time">{e(percent(share))} · {e(duration_text(item.seconds))}</span>{median}'
@@ -94,9 +131,13 @@ def _local(number: int, key: str) -> str:
             '<span class="meta">lokal · nicht gemessen</span></div>')
 
 
-def pipeline_plan(records: list[dict[str, Any]]) -> str:
-    """The processing chain in the order of ProcessingStage; nothing when nothing was measured."""
-    times = stage_times(records)
+def pipeline_plan(records: list[dict[str, Any]], walls: dict[str, dict[str, Any]] | None = None) -> str:
+    """The processing chain in the order of ProcessingStage; nothing when nothing was measured.
+
+    6.1.8: with step data (*walls*) every step shows its wall time and AI share; the bottleneck is the
+    step with the largest wall time.
+    """
+    times = wall_times(walls) if walls else stage_times(records)
     if not times:
         return ""
     total = sum(item.seconds for item in times.values())
@@ -142,8 +183,10 @@ def pipeline_plan(records: list[dict[str, Any]]) -> str:
              + "</tbody></table></div></details>")
     return ('<figure class="chart pipeline-figure" aria-labelledby="pipeline-title"><figcaption>'
             '<span id="pipeline-title">Ablauf der Mailverarbeitung</span></figcaption>'
-            '<p class="meta">Gemessen werden nur KI-Aufrufe; lokale Schritte erzeugen keine relevante Wartezeit.</p>'
-            f'<ol class="pipeline">{"".join(nodes)}</ol>{table}</figure>')
+            + ('<p class="meta">Dauer jedes Schritts mit dem Anteil der KI-Aufrufe.</p>' if walls else
+               '<p class="meta">Gemessen werden nur KI-Aufrufe; lokale Schritte erzeugen keine relevante '
+               'Wartezeit.</p>')
+            + f'<ol class="pipeline">{"".join(nodes)}</ol>{table}</figure>')
 
 
-__all__ = ["pipeline_plan", "ranking", "stage_times"]
+__all__ = ["pipeline_plan", "ranking", "stage_times", "wall_ranking", "wall_times"]

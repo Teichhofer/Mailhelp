@@ -80,6 +80,11 @@ class StageJournal:
             cutoff = datetime.now(UTC) - timedelta(days=self.retention_days())
             return [item for item in self._cache if datetime.fromisoformat(item["started_at"]) >= cutoff]
 
+    def usual(self, stage: str) -> float | None:
+        """6.1.8: the median duration of a step in milliseconds, for the status page."""
+        durations = [item["duration_ms"] for item in self.records() if item["stage"] == stage]
+        return median(durations) if durations else None
+
     def finish(self, context: dict[str, Any], run_id: str, mode: str, llm_ms: float) -> None:
         """Write the step of a ``stage_finished`` event and, at the end of a mail, its run time."""
         started = datetime.fromtimestamp(float(context["started_wall"]), UTC)

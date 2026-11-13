@@ -250,8 +250,9 @@ def _call_mark(record: dict[str, Any], x: float, y: float, zone: ZoneInfo) -> st
     moment = datetime.fromisoformat(record["started_at"]).astimezone(zone)
     failed = record["status"] != "success"
     stage = STAGE_LABELS.get(record["stage"], record["stage"])
-    detail = (f"{moment:%d.%m. %H:%M} · {stage} · {_seconds_text(record['duration_ms'] / 1000)} · "
-              f"{record['model'].rsplit('/', 1)[-1]}" + (" · Fehler" if failed else ""))
+    model = record.get("model", "").rsplit("/", 1)[-1]
+    detail = (f"{moment:%d.%m. %H:%M} · {stage} · {_seconds_text(record['duration_ms'] / 1000)}"
+              + (f" · {model}" if model else "") + (" · Fehler" if failed else ""))
     if failed:
         return (f'<path class="chart-cross" stroke="{FILLS["chart-cross"]}" stroke-width="1.6" '
                 f'd="M{x - 3:.1f} {y - 3:.1f}L{x + 3:.1f} {y + 3:.1f}M{x - 3:.1f} {y + 3:.1f}L{x + 3:.1f} {y - 3:.1f}" '
@@ -260,7 +261,8 @@ def _call_mark(record: dict[str, Any], x: float, y: float, zone: ZoneInfo) -> st
             f'cy="{y:.1f}" r="2.5" data-chart-detail="{e(detail)}"><title>{e(detail)}</title></circle>')
 
 
-def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: datetime) -> str:
+def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: datetime,
+                  title: str = "Aufrufdauer", what: str = "jedes KI-Aufrufs") -> str:
     """5.9.9: every call at its exact time on a logarithmic duration axis, with the median per period.
 
     Points are not focusable (thousands of tab stops); the value table is the keyboard path.
@@ -319,7 +321,7 @@ def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: Zo
         rows.append([label, count(len(group)), count(failures), *figures])
     subtitle = (f"{count(len(shown))} von {count(len(inside))} Aufrufen dargestellt"
                 if len(shown) < len(inside) else "")
-    return _figure(ident, "Aufrufdauer", "Dauer jedes KI-Aufrufs zum genauen Zeitpunkt auf logarithmischer "
+    return _figure(ident, title, f"Dauer {what} zum genauen Zeitpunkt auf logarithmischer "
                    f"Achse mit dem Median je {period}.", svg,
                    ["", "Aufrufe", "Fehler", "Median", "95 %", "Maximum"], rows,
                    hint="Punkte für Details berühren oder mit der Maus zeigen; alle Werte in der Tabelle.",
@@ -355,11 +357,45 @@ def dollars(value: float) -> str:
     return _number(value, 4) + " $"
 
 
-def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: datetime) -> str:
-    """Calls, costs, durations and their distribution over steps and models of the selected records."""
-    if not records:
+def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: datetime,
+                      steps: dict[str, Any] | None = None, link: str = "") -> str:
+    """Calls, costs, durations and their distribution over steps and models of the selected records.
+
+    6.1.8: with *steps* (``stage_metrics.report``) the wall time of every step, the run time per mail
+    and the parts of the preparation follow; *link* leads to the slowest runs of a step.
+    """
+    walls = (steps or {}).get("stages") or {}
+    totals = (steps or {}).get("totals") or []
+    if not records and not walls and not totals:
         return ""
     tz = ZoneInfo(zone)
+    body = '<h2>Verlauf und Verteilung</h2><div class="chart-grid-layout">'
+    if records:
+        body += _call_charts(records, days, tz, now)
+    if totals:
+        runs = [{"started_at": row["started_at"], "duration_ms": row["duration_ms"], "status": "success",
+                 "stage": "Durchlauf"} for row in totals]
+        body += scatter_chart("chart-runs", runs, days, tz, now, title="Durchlaufzeit je Mail",
+                              what="jeder vollständig verarbeiteten Mail ohne Wartezeit auf Entscheidungen")
+    from .pipeline import pipeline_plan, ranking, stage_times, wall_ranking
+    if walls:
+        body += wall_ranking(walls, link)
+    if records:
+        body += ranking(stage_times(records))
+    body += pipeline_plan(records, walls or None)
+    parts = (steps or {}).get("parts") or {}
+    if parts:
+        names = {"zerlegen": "Mail zerlegen", "anhaenge": "Anhänge und Vorschauen", "bilderkennung": "Bilderkennung"}
+        body += bar_list("chart-parts", "Aufbereitung im Detail",
+                         "Summierte Dauer der Teile der Aufbereitung, größter zuerst.",
+                         [(names.get(key, key), value / 1000) for key, value in parts.items()],
+                         lambda value: duration_text(value))
+    if records:
+        body += _model_costs(records)
+    return body + "</div>"
+
+
+def _call_charts(records: list[dict[str, Any]], days: int, tz: ZoneInfo, now: datetime) -> str:
     labels, bucket = _buckets(records, days, tz, now)
     succeeded, failed, costs = [0.0] * len(labels), [0.0] * len(labels), [0.0] * len(labels)
     for record in records:
@@ -369,15 +405,9 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
         (succeeded if record["status"] == "success" else failed)[index] += 1
         costs[index] += float(Decimal(record["cost_usd"])) if record["cost_usd"] is not None else 0.0
     period = "Stunde" if days == 1 else "Tag"
-    by_model: dict[str, float] = {}
-    for record in records:
-        if record["cost_usd"] is not None:
-            model = record["model"].rsplit("/", 1)[-1]
-            by_model[model] = by_model.get(model, 0.0) + float(Decimal(record["cost_usd"]))
-    body = '<h2>Verlauf und Verteilung</h2><div class="chart-grid-layout">'
-    body += column_chart("chart-calls", f"KI-Aufrufe je {period}",
-                         f"Erfolgreiche und fehlgeschlagene Aufrufe je {period} im gewählten Zeitraum.", labels,
-                         [("erfolgreich", "chart-ok", succeeded), ("fehlgeschlagen", "chart-failed", failed)], count)
+    body = column_chart("chart-calls", f"KI-Aufrufe je {period}",
+                        f"Erfolgreiche und fehlgeschlagene Aufrufe je {period} im gewählten Zeitraum.", labels,
+                        [("erfolgreich", "chart-ok", succeeded), ("fehlgeschlagen", "chart-failed", failed)], count)
     average, trend = cost_lines(records, costs, bucket, days)
     summary = [["Summe", dollars(sum(costs))]]
     if average is not None:
@@ -391,14 +421,20 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
                          labels, [("Kosten", "chart-cost", costs)], dollars,
                          average=(f"Ø {dollars(average)} je {period}", average) if average is not None else None,
                          trend=("7-Tage-Mittel", trend) if trend is not None else None, summary=summary)
-    body += scatter_chart("chart-durations", records, days, tz, now)
-    from .pipeline import pipeline_plan, ranking, stage_times
-    body += ranking(stage_times(records)) + pipeline_plan(records)
-    if by_model:
-        body += bar_list("chart-models", "Gemeldete Kosten je Modell",
-                         "Summe der gemeldeten Kosten in US-Dollar je Modell, größtes zuerst.",
-                         list(by_model.items()), dollars, css="chart-cost")
-    return body + "</div>"
+    return body + scatter_chart("chart-durations", records, days, tz, now)
+
+
+def _model_costs(records: list[dict[str, Any]]) -> str:
+    by_model: dict[str, float] = {}
+    for record in records:
+        if record["cost_usd"] is not None:
+            model = record["model"].rsplit("/", 1)[-1]
+            by_model[model] = by_model.get(model, 0.0) + float(Decimal(record["cost_usd"]))
+    if not by_model:
+        return ""
+    return bar_list("chart-models", "Gemeldete Kosten je Modell",
+                    "Summe der gemeldeten Kosten in US-Dollar je Modell, größtes zuerst.",
+                    list(by_model.items()), dollars, css="chart-cost")
 
 
 __all__ = ["bar_list", "column_chart", "scatter_chart", "statistics_charts", "thin"]

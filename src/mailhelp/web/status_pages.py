@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from ..formatting import format_datetime_local
+from ..formatting import duration_text, format_datetime_local
 from ..review.inbox import CommandStatus
 from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
 from .pages import e, layout, notice
@@ -68,7 +68,12 @@ def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
         return ""
     stage = runtime["stage"]
     label = RUNTIME_STAGES.get(stage) or STAGE_LABELS.get(stage) or stage
-    rows = [("Schritt", label), ("Seit", _duration(runtime["elapsed"]))]
+    # 6.1.8: seconds instead of whole minutes, comparable with the usual duration next to it.
+    since = duration_text(max(0.0, runtime["elapsed"]))
+    if runtime.get("usual_ms"):
+        # 6.1.8: e.g. "41 s · üblich 6,0 s" – the median of this step from the step journal.
+        since += f' · üblich {duration_text(runtime["usual_ms"] / 1000)}'
+    rows = [("Schritt", label), ("Seit", since)]
     mail = runtime.get("mail_id")
     next_poll = runtime.get("next_poll")
     if next_poll:

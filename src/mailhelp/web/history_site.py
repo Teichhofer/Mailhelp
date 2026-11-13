@@ -26,7 +26,7 @@ class HistorySite:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/verlauf", self.history), ("GET", "/auswertung", self.statistics),
-                ("GET", "/auswertung/aufrufe", self.calls),
+                ("GET", "/auswertung/aufrufe", self.calls), ("GET", "/auswertung/schritte", self.steps),
                 ("GET", PROPOSAL_PATH + r"/version/(?P<version>[1-9][0-9]{0,5})", self.version)):
             self.site.app.route(method, path, self.site.signed_in(handler))
 
@@ -111,6 +111,34 @@ class HistorySite:
                           self.site.configured_timezone, subject, MODE_LABELS)
         return Response.html(200, layout(METRICS[metric].title, html, active="/auswertung"))
 
+    def steps(self, request: Request, session: WebSession) -> Response:
+        """6.1.8: the slowest runs of one step; read only, unknown values are rejected with 422."""
+        from ..runtime.stage_metrics import report as stage_report
+        from .stage_page import SORTS, STAGES, stage_page, title
+        metrics = self.archive.metrics
+        if metrics is None:
+            return Response.html(200, layout("Auswertung",
+                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+        try:
+            params: dict[str, Any] = dict(self.archive.parameters(request))
+            stage = params.pop("stage", "total")
+            sort = params.pop("sort", "duration")
+            page = int(params.pop("page", "1"))
+            if stage not in STAGES or sort not in SORTS or not 1 <= page <= 10_000:
+                raise ValueError("Unbekannte Auswahl")
+            selected, _ = self._report(params)
+            steps = stage_report(selected.stages, **{key: params[key] for key in ("days", "mode", "since", "until")
+                                                     if key in params})
+        except (ValueError, TypeError):
+            return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
+        views = self.site.views
+
+        def subject(mail_id: str) -> str | None:
+            mail = views.mail(mail_id)
+            return mail.subject if mail is not None else None
+        html = stage_page(stage, params, sort, page, steps, self.site.configured_timezone, subject, MODE_LABELS)
+        return Response.html(200, layout(title(stage), html, active="/auswertung"))
+
     def statistics(self, request: Request, session: WebSession) -> Response:
         metrics = self.archive.metrics
         if metrics is None:
@@ -122,6 +150,9 @@ class HistorySite:
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]
+        from ..runtime.stage_metrics import report as stage_report
+        steps = stage_report(selected.stages, **{key: params[key] for key in
+                                                 ("days", "mode", "stage", "since", "until") if key in params})
         return Response.html(200, layout("Auswertung", statistics_page(params, report, everything,
-                                                                         self.site.configured_timezone),
+                                                                         self.site.configured_timezone, steps=steps),
                                          active="/auswertung"))

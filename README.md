@@ -13,13 +13,14 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.1.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.1.8 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.1 wird in Patches umgesetzt ([Planung 6.1](docs/Planung-6.1.md)): Prüfen in jedem Schritt der
 Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.
 Ab 6.1.1 nennen die Verbindungsprüfungen Ursache und Lösung eines Fehlers. Ab 6.1.2 hat jeder Schritt
 der Ersteinrichtung „Prüfen“; Prüfen speichert nichts, und die Eingaben bleiben stehen. Ab 6.1.6
-misst Mailhelp die Dauer jedes Verarbeitungsschritts und die Durchlaufzeit je Mail (Anzeige folgt).
+misst Mailhelp die Dauer jedes Verarbeitungsschritts und die Durchlaufzeit je Mail; ab 6.1.8 zeigt die
+**Auswertung** beides, mit den langsamsten Durchläufen je Schritt.
 
 Version 6.0 wird in Patches umgesetzt ([Planung 6.0](docs/Planung-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite

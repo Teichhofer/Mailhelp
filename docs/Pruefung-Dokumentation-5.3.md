@@ -163,6 +163,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/berichte/neu` | Neuen Tätigkeitsbericht starten | Web-Einstellungen (activity_report) |
 | `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
 | `/auswertung/aufrufe` | Aufrufliste hinter jeder Kennzahl (5.9.10) | [Bedienung](Bedienung.md) |
+| `/auswertung/schritte` | Langsamste Durchläufe je Verarbeitungsschritt (6.1.8) | [Bedienung](Bedienung.md) |
 | `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
 | `/themen/relevant/{identity}` | Relevantes Thema einzeln bearbeiten oder anlegen | Web-Einstellungen |

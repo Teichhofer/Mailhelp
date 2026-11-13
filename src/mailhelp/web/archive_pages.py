@@ -56,7 +56,7 @@ def _total_duration(seconds: float) -> str:
 
 
 def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: list[dict[str, Any]], zone: str = "UTC",
-                    now: datetime | None = None) -> str:
+                    now: datetime | None = None, steps: dict[str, Any] | None = None) -> str:
     """Costs and durations with readable labels and charts; unknown values are never shown as zero."""
     from datetime import UTC
 
@@ -99,15 +99,36 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
                         e(f'{report["damaged"]} beschädigte Zeilen, {report["capture_failures"]} Erfassungsfehler'),
                         "Bedeutung der unvollständigen Erfassung anzeigen"))
     rows = [(name, _Html(metric_link(metric, value, label, params))) for name, metric, value, label in figures]
+    rows += _run_time_rows(params, steps)
     body = ("<h1>Kosten und Zeiten</h1>" + form
             + '<dl class="facts-table">'
             + "".join(f"<dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd>" for k, v in rows) + "</dl>"
             + '<p class="meta">Kosten in USD stammen aus den Angaben des Anbieters; fehlt eine Angabe, ist sie '
               "unbekannt, nicht null. Stromkosten sind eine Schätzung aus der eingestellten Leistung und dem "
               "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "
-              "nicht enthalten. Die summierte Aufrufdauer ist keine Durchlaufzeit.</p>")
-    charts = statistics_charts(report["records"], params["days"], zone, now or datetime.now(UTC))
+              "nicht enthalten. Die summierte Aufrufdauer ist keine Durchlaufzeit; die Durchlaufzeit je Mail "
+              "steht darüber (ab 6.1.6 erfasst).</p>")
+    from .calls_page import filters
+    link = "/auswertung/schritte?" + urlencode(filters(params))
+    charts = statistics_charts(report["records"], params["days"], zone, now or datetime.now(UTC), steps, link)
     return body + charts + _statistics_groups(report["groups"])
+
+
+def _run_time_rows(params: dict[str, Any], steps: dict[str, Any] | None) -> list[tuple[str, _Html]]:
+    """6.1.8: run time per mail and the waiting for decisions; a link to the slowest runs."""
+    from .calls_page import filters
+    total = (steps or {}).get("total") or {}
+    if not total.get("count"):
+        return []
+    figures = " / ".join(duration_text(total[key] / 1000, precise=True) for key in ("median_ms", "p95_ms", "max_ms"))
+    href = "/auswertung/schritte?" + urlencode({**filters(params), "stage": "total"})
+    rows = [("Durchlaufzeit je Mail (Median / 95 % / Maximum)",
+             _Html(f'<a class="fact-link" href="{e(href)}" aria-label="Langsamste Durchläufe anzeigen">'
+                   f'{e(figures)} ›</a>'))]
+    waiting = (steps or {}).get("waiting_median_ms")
+    if waiting:
+        rows.append(("Wartezeit auf Entscheidungen (Median)", _Html(e(duration_text(waiting / 1000)))))
+    return rows
 
 
 def _statistics_groups(groups: list[dict[str, Any]]) -> str:
