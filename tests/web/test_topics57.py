@@ -134,3 +134,15 @@ def test_legacy_forms_without_a_preview_keep_their_checks(topics):
     assert web.browser.request("POST", "/themen/speichern", fields(topics, enabled="vielleicht")).status == 422
     web.run()
     assert (path / "topics.yaml").read_text(encoding="utf-8") == before
+
+
+def test_v596_the_list_has_one_tool_row_and_a_screen_reader_only_action_header(topics):
+    web, _path = catalog(topics)
+    html = web.browser.request("GET", "/themen").body.decode()
+    toolbar = html[html.index('<div class="topic-toolbar">'):html.index('<p role="status"')]
+    # Search, status, the filter button for use without JavaScript and "Neues Thema" in one row.
+    assert toolbar.index('id="topic-query"') < toolbar.index('id="topic-status"') < toolbar.index(
+        "Themen suchen") < toolbar.index('class="button primary topic-new" href="/themen/relevant/neu"')
+    assert '<label for="topic-query">Themen durchsuchen</label>' in toolbar  # labels stay visible
+    assert ('<th scope="col" class="topic-action"><span class="visually-hidden">Bearbeiten</span></th>'
+            in html) and html.count('<td class="topic-action">') == 48

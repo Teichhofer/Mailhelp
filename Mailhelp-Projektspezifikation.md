@@ -3856,6 +3856,13 @@ führen ohne Schreibzugriff zu einer Fehlermeldung. Der Suchtext ist auf 80 Zeic
 Alle Einträge sind im DOM vorhanden; serverseitig nicht passende Zeilen bleiben verborgen.
 `topics.js` filtert dieselben Felder und Status sofort vor Ort, ohne Netzwerkaufruf.
 
+Seit 5.9.6 ist die Liste ab 1024 px bis zu 1320 px breit (`main:has(.topic-table)`); die
+Editorseiten bleiben bei 760 px. Tabellenzellen brechen nur an Wortgrenzen um, die technische ID
+darf beliebig umbrechen. Status, Listenumfang und Bearbeiten-Schaltfläche bleiben einzeilig.
+Suchfeld, Statusauswahl, Filterschaltfläche und „Neues Thema“ bilden ab 720 px eine
+Werkzeugzeile mit sichtbaren Beschriftungen; die Kopfzeile „Bearbeiten“ ist nur für Screenreader
+sichtbar. Die Kartenansicht unter 800 px bleibt unverändert.
+
 Eine Zeile zeigt Namen, stabile ID, Aktivierung, Postfachnamen, Listenumfang, den ersten
 Beschreibungssatz und einen eigenen Bearbeitungslink. Deaktivierte Themen stehen am Ende.
 Neue Themen und bestehende Themen werden auf eigenen Seiten bearbeitet. Die ID `neu` bleibt

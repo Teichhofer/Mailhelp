@@ -1,5 +1,16 @@
 # Änderungen
 
+## 5.9.6 – Themenliste für breite Bildschirme
+
+- Web: `/themen` nutzt ab 1024 px bis zu 1320 px Breite; die Bearbeitungsseiten bleiben schmal.
+- Wörter in der Tabelle werden nur noch an Wortgrenzen umbrochen („Geltungsbereich“,
+  „Ausschlüsse“ und „Bearbeiten“ bleiben ganz). Nur die technische Themen-ID darf beliebig umbrechen.
+- Suchfeld, Statusauswahl, „Themen suchen“ und „Neues Thema“ stehen ab 720 px in einer
+  Werkzeugzeile; die Kopfzeile der Bearbeiten-Spalte ist nur für Screenreader sichtbar.
+- Mindestbreiten der Spalten gelten erst ab 1280 px, damit die Tabelle neben der Seitenleiste
+  auch bei 1024 px nicht waagerecht scrollt.
+- Browsertest der Bildvorschau an den seit 5.9.5 eingeklappten Quellbeleg auf Mobilgeräten angepasst.
+
 ## 5.9.5 – Quellbeleg je nach Bildschirmbreite
 
 - Web: Ab 1024 px Breite (geteilte Ansicht und Detailseite) ist der Quellbeleg eines Vorschlags

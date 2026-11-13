@@ -77,15 +77,17 @@ class TopicSite:
         description = ("Mails zu diesen Themen werden ausgewertet." if kind == "relevant" else
                        "Negative Themen für Lern- und Entscheidungstests. Im Mailbetrieb wirken die Ausschlüsse "
                        "der relevanten Themen; ein Ausschlussthema ist kein zusätzlicher globaler Vorfilter.")
-        body += ('</nav><form method="get" action="/themen" id="topic-filter">'
+        # 5.9.6: search, status, filter button and "Neues Thema" share one tool row from 720 px.
+        body += ('</nav><div class="topic-toolbar"><form method="get" action="/themen" id="topic-filter">'
                  f'<input type="hidden" name="art" value="{kind}">'
-                 '<label for="topic-query">Themen durchsuchen</label>'
-                 f'<input id="topic-query" name="suche" value="{e(query)}" maxlength="80" type="search">'
-                 '<label for="topic-status">Status filtern</label><select id="topic-status" name="status">')
+                 '<div class="topic-search"><label for="topic-query">Themen durchsuchen</label>'
+                 f'<input id="topic-query" name="suche" value="{e(query)}" maxlength="80" type="search"></div>'
+                 '<div class="topic-state"><label for="topic-status">Status filtern</label>'
+                 '<select id="topic-status" name="status">')
         for value, title in (("alle", "Alle"), ("aktiv", "Aktiv"), ("deaktiviert", "Deaktiviert")):
             body += f'<option value="{value}"{" selected" if value == status else ""}>{title}</option>'
-        body += ('</select><button class="button">Themen suchen</button></form>'
-                 f'<p><a class="button" href="/themen/{kind}/neu">Neues Thema</a></p>')
+        body += ('</select></div><button class="button">Themen suchen</button></form>'
+                 f'<a class="button primary topic-new" href="/themen/{kind}/neu">Neues Thema</a></div>')
         selected = sorted(documents[kind], key=lambda item: (not item.enabled, item.name.casefold(), item.id))
         drafts = self.editing.drafts("web:" + session.id)
         if drafts:
@@ -100,7 +102,8 @@ class TopicSite:
                  '<table class="topic-table"><caption>Themenübersicht</caption><thead><tr>'
                  '<th scope="col">Thema</th><th scope="col">Status</th><th scope="col">Geltungsbereich</th>'
                  '<th scope="col">Beispiele / Ausschlüsse</th><th scope="col">Beschreibung</th>'
-                 '<th scope="col">Bearbeiten</th></tr></thead><tbody>')
+                 '<th scope="col" class="topic-action"><span class="visually-hidden">Bearbeiten</span></th>'
+                 '</tr></thead><tbody>')
         pending = self.pending()
         pending.update((category, identity) for _draft, category, identity, _name in drafts)
         for topic in selected:
@@ -124,7 +127,7 @@ class TopicSite:
                 f'{"aktiv" if topic.enabled else "deaktiviert"}</span>'
                 f'</td><td data-label="Geltungsbereich">{e(self.scope(topic))}</td>'
                 f'<td data-label="Beispiele / Ausschlüsse">{len(topic.examples)} / {len(topic.exclusions)}</td>'
-                f'<td data-label="Beschreibung">{e(description)}</td><td>'
+                f'<td data-label="Beschreibung">{e(description)}</td><td class="topic-action">'
                 f'<a class="button" href="{topic_link(kind, topic.id)}" aria-label="{e(topic.name)} bearbeiten">'
                 'Bearbeiten</a></td></tr>')
 

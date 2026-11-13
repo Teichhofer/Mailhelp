@@ -201,6 +201,8 @@ def test_image_preview_opens_in_a_zoomable_lightbox(page, mailhelp):
     else:
         page.goto(f"{mailhelp.url}/vorschlag/{mail_id(1)}/elternabend")
         scope = page
+        # 5.9.5: below 1024 px the source is collapsed at first, also with image previews.
+        scope.locator("details[data-source-mail] > summary").click()
     link = scope.get_by_role("link", name="aushang.png vergrößern")
     expect(link.locator("img")).to_be_visible()
     expect(scope.get_by_text("aushang.png · 900 × 1200 px")).to_be_visible()

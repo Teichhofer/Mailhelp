@@ -889,9 +889,24 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
 .topic-tabs [aria-current="page"] { border-color: var(--accent); font-weight: 700; }
 .topic-table { width: 100%; border-collapse: collapse; }
 .topic-table caption { text-align: left; font-weight: 700; padding: .75rem 0; }
-.topic-table th, .topic-table td { text-align: left; padding: .7rem; vertical-align: top; overflow-wrap: anywhere; }
+/* 5.9.6: words break only at word boundaries; only the technical id may break anywhere. */
+.topic-table th, .topic-table td { text-align: left; padding: .7rem; vertical-align: top;
+  overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .topic-table th { font-size: .9rem; }
-.topic-table td small { display: block; color: var(--muted); }
+.topic-table td small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+@media (min-width: 801px) {
+  .topic-table td[data-label="Status"] { white-space: nowrap; }
+  .topic-table td[data-label="Beispiele / Ausschlüsse"] { white-space: nowrap; text-align: center;
+    font-variant-numeric: tabular-nums; }
+  .topic-table td[data-label="Beschreibung"] { overflow-wrap: break-word; }
+  .topic-table .topic-action { white-space: nowrap; text-align: right; }
+}
+/* Minimum widths only where they fit next to the sidebar (no horizontal scrolling at 1024 px). */
+@media (min-width: 1280px) {
+  .topic-table td[data-label="Thema"] { min-width: 12rem; }
+  .topic-table td[data-label="Geltungsbereich"] { min-width: 9rem; }
+  .topic-table td[data-label="Beschreibung"] { min-width: 16rem; }
+}
 .topic-row { border-top: 1px solid var(--border); }
 .topic-row.is-disabled { color: var(--muted); }
 .topic-row[hidden] { display: none; }
@@ -957,12 +972,19 @@ html:has(.confirm-bar) { scroll-padding-bottom: 12rem; }
 
 /* 5.8: compact tasks; evidence, explanations and technical facts remain accessible. */
 .topic-heading { margin: 0; }
-#topic-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, .45fr); gap: .3rem .6rem; }
-#topic-filter label { margin: 0; }
-#topic-filter label[for="topic-status"] { grid-column: 2; grid-row: 1; }
-#topic-filter input { grid-column: 1; grid-row: 2; }
-#topic-filter select { grid-column: 2; grid-row: 2; }
-#topic-filter button { justify-self: start; }
+/* 5.9.6: one tool row from 720 px (search, status, filter, "Neues Thema"); wraps below. */
+.topic-toolbar { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: flex-end; margin: .5rem 0; }
+#topic-filter { display: flex; flex-wrap: wrap; gap: .6rem; align-items: flex-end; flex: 1 1 32rem; }
+#topic-filter label { display: block; margin: 0 0 .25rem; }
+#topic-filter .topic-search { flex: 1 1 18rem; max-width: 28rem; }
+#topic-filter .topic-search input, #topic-filter select { width: 100%; box-sizing: border-box; }
+#topic-filter .topic-state { flex: 0 1 11rem; }
+.topic-new { margin-left: auto; white-space: nowrap; }
+@media (max-width: 719px) {
+  .topic-toolbar, #topic-filter { display: block; }
+  #topic-filter > * { margin-bottom: .5rem; max-width: none; }
+  .topic-new { display: inline-block; margin: .25rem 0 0; }
+}
 .topic-tabs { gap: .4rem; margin: .5rem 0; }
 .topic-guidance { margin: 1rem 0; }
 main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
@@ -1001,3 +1023,5 @@ main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
 .conflict-side form { margin-top: auto; }
 .conflict-side .button { width: 100%; white-space: normal; }
 .conflict .meta { margin: 6px 0 0; }
+/* 5.9.6: only the topic list gets more width; the editor pages stay narrow. */
+@media (min-width: 1024px) { main:has(.topic-table) { max-width: 1320px; } }
