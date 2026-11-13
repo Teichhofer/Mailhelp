@@ -2260,7 +2260,10 @@ Formular (`role="alert"` bei Fehlern, sonst `status`) mit Ursache, Lösungsschri
 Link zum Feld; das Feld trägt `aria-invalid` und `aria-describedby`. Eingegebene Werte außer
 Passwörtern bleiben erhalten. Auch ein fehlgeschlagenes „Speichern und weiter“ zeigt diese Meldungen
 (409) statt einer Sammelseite; ein fehlgeschlagener Start zeigt die Übersicht aller Schritte. Die
-frühere Route `/einrichtung/test/{imap|llm|ziele}`, die bei Erfolg speicherte, entfällt.
+frühere Route `/einrichtung/test/{imap|llm|ziele}`, die bei Erfolg speicherte, entfällt. Seit 6.1.5 trägt
+„Prüfen“ `formnovalidate`; `setup.js` zeigt während der Prüfung „Wird geprüft …“ und setzt den
+Fokus auf das Ergebnis. `IncomingCommands.read` wiederholt ein durch Windows kurz gesperrtes
+Lesen einer Quittung (`PermissionError`) bis zu dreimal, wie `replace_file` beim Ersetzen.
 
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die

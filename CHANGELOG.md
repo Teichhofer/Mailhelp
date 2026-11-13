@@ -1,5 +1,19 @@
 # Änderungen
 
+## 6.1.5 – Prüfergebnis in der Ersteinrichtung bedienbar
+
+- Einrichtung: Das Prüfergebnis erhält beim Laden den Fokus und wird angesagt; jede Meldung führt mit
+  einem Link zum betroffenen Feld („Feld „Web-Passwort““), das Feld ist als fehlerhaft markiert.
+  Während einer Prüfung steht „Wird geprüft …“ auf der Seite; ein zweiter Klick sendet nichts.
+- „Prüfen“ umgeht die Formularprüfung des Browsers, damit der Server erklärt, was nicht stimmt –
+  bisher blockierte der Browser etwa ein zu kurzes Passwort mit einer knappen Blase (vom Browsertest
+  gefunden).
+- Behoben: Die Übersicht konnte mit HTTP 500 antworten, wenn Windows eine Eingangsquittung kurz
+  sperrte, während der Hauptthread sie ersetzte (`PermissionError`, in einem seriellen Browserlauf
+  beobachtet). Das Lesen wird jetzt wie das Ersetzen kurz wiederholt; Regressionstest.
+- Browsertests für Ergebnisanzeige, Feldlinks, Ordnerauswahl, Übersicht im Abschluss und Betrieb
+  ohne JavaScript.
+
 ## 6.1.4 – KI-Anbieter und Ziele: genaue Gründe
 
 - Ziele: Abgelehnte Zugriffe tragen einen festen Grund (`TargetAccessError.reason`: nicht gefunden,

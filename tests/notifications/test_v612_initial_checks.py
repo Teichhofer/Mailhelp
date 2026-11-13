@@ -43,7 +43,7 @@ def test_every_step_has_a_check_button_and_step_five_checks_everything(initial):
     h = initial
     h.advance()
     for step in (1, 2, 3, 4):
-        assert 'formaction="/einrichtung/pruefen" data-check>Prüfen</button>' in html(
+        assert 'formaction="/einrichtung/pruefen" data-check formnovalidate>Prüfen</button>' in html(
             request(h, "GET", f"/einrichtung/schritt/{step}"))
     assert "Alles prüfen" in html(request(h, "GET", "/einrichtung/schritt/5"))
     overview = html(check(h, 5))

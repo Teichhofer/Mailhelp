@@ -1110,3 +1110,16 @@ main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
 .conflict .meta { margin: 6px 0 0; }
 /* 5.9.6: only the topic list gets more width; the editor pages stay narrow. */
 @media (min-width: 1024px) { main:has(.topic-table) { max-width: 1320px; } }
+
+/* 6.1: result of a setup check – cause, steps and the field concerned; colour is never the only signal. */
+.check-result { margin: 0 0 16px; }
+.check-result:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+.check-result h2 { margin-top: 0; color: inherit; }
+.check-result h3 { font-size: 1rem; margin: 12px 0 4px; }
+.check-finding { margin: 8px 0; }
+.check-finding p { margin: 0; }
+.check-finding ul { margin: 4px 0 0; padding-left: 1.2rem; }
+.check-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 0; }
+.check-facts dt { color: var(--muted); }
+.check-facts dd { margin: 0; overflow-wrap: anywhere; }
+[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }

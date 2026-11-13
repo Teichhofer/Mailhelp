@@ -19,6 +19,8 @@ LABELS = {
     "targets.caldav_task_url": "CalDAV-Aufgabenadresse", "targets.outlook_calendar": "Outlook-Kalender-ID",
     "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
     "web.google_redirect_uri": "Google-Rückleitungsadresse (Webanwendungs-Client)",
+    # 6.1: names in the links of the check result.
+    "password": "Web-Passwort", "model": "Ollama-Modell",
 }
 CHOICES = {"imap.connection_mode": ("ssl", "starttls", "plain"), "llm.provider": ("openrouter", "ollama"),
            "targets.calendar_provider": ("google", "caldav", "outlook"),
@@ -44,7 +46,7 @@ def check_box(results: list[CheckResult]) -> str:
     title = ("Prüfung fehlgeschlagen" if failed else "Geprüft – mit Hinweisen" if warned
              else "Geprüft – alles in Ordnung")
     role = "alert" if failed else "status"
-    body = (f'<section class="notice {kind} check-result" id="pruefergebnis" role="{role}" tabindex="-1" '
+    body = (f'<section class="notice notice-{kind} check-result" id="pruefergebnis" role="{role}" tabindex="-1" '
             f'aria-labelledby="pruefergebnis-titel"><h2 id="pruefergebnis-titel">{title}</h2>')
     for result in results:
         if len(results) > 1:
@@ -118,13 +120,14 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
                          if models and state.config.get("llm", {}).get("provider") == "ollama"
                          else field("model", "Ollama-Modell (nur für lokalen Betrieb)", state.model))
         # 6.1: every step can be checked; checking changes nothing.
-        controls += ('<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check>'
-                     'Prüfen</button>')
+        # formnovalidate: the server explains a too short password instead of a bare browser bubble.
+        controls += ('<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check '
+                     'formnovalidate>Prüfen</button>')
     if step == 5:
         controls += ('<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check '
                      'formnovalidate>Alles prüfen</button>')
     controls = _identify(controls, step, checks or [])
-    body += check_box(checks or [])
+    body += check_box(checks or []) + '<p class="meta" role="status" data-check-status></p>'
     body += post_form("/einrichtung/speichern", csrf, controls,
                       "Speichern und starten" if step == 5 else "Speichern und weiter",
                       version=state.version, step=step)

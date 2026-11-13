@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.1.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.1.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 6.1 wird in Patches umgesetzt ([Planung 6.1](docs/Planung-6.1.md)): Prüfen in jedem Schritt der
 Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.

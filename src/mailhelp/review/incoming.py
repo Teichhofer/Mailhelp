@@ -62,6 +62,25 @@ def requires_ack(entry: CommandEntry) -> bool:
     return entry.result is not None and entry.result.status not in SUCCESS and not entry.acknowledged
 
 
+def read_file(path: Path) -> bytes | None:
+    """6.1.5: web threads read receipts without the store lock while the main thread replaces them.
+
+    On Windows opening a file at the moment it is replaced fails with PermissionError; like
+    ``replace_file`` the read is retried a few times. A missing file is None.
+    """
+    for attempt in range(3):
+        try:
+            return path.read_bytes()
+        except FileNotFoundError:
+            return None
+        except PermissionError:
+            time.sleep(0.005 * (2 ** attempt))
+    try:
+        return path.read_bytes()  # The fourth and last attempt reports a persistent block.
+    except FileNotFoundError:
+        return None
+
+
 def replace_file(source: Path, target: Path) -> None:
     """Windows readers/indexers can briefly prevent replacement; retries are bounded."""
     for attempt in range(3):
@@ -107,9 +126,8 @@ class IncomingCommands:
         return self.directory / section / f"{name}.json"
 
     def read(self, path: Path) -> IncomingRecord | None:
-        try:
-            value = path.read_bytes()
-        except FileNotFoundError:
+        value = read_file(path)
+        if value is None:
             return None
         record = IncomingRecord.model_validate_json(value)
         if path.parent.name == "incoming" and path.stem != record.key_hash:
