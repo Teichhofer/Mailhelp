@@ -1,5 +1,19 @@
 # Änderungen
 
+## 6.0.6 – Kompakte Werkzeugleiste der Offen-Ansicht
+
+- Web: Schnellfilter, Suche, Sortierung und „Nach Bearbeitungsbedarf gruppieren“ stehen in einer
+  kompakten Leiste über den offenen Entscheidungen; die Überschrift zählt „4 von 12“.
+- Suche in Vorschlagstitel, Betreff und Absender (bei Relevanzfragen Betreff und Absender);
+  kombinierbar mit den Schnellfiltern. Ohne Treffer bleiben Leiste und „Zurücksetzen“ sichtbar.
+- Sortierung „Neueste Mail zuerst“ (Standard), „Älteste Mail zuerst“ und „Nächster Termin /
+  nächste Frist zuerst“ (ohne Datum am Ende, stabil).
+- Gruppierung in „Rückfrage nötig“, „Bereit zum Bestätigen“ und „Weitere Prüfung nötig“; jede
+  Entscheidung genau einmal.
+- Alles über die Adresse, auch ohne JavaScript; die Leiste ändert nur die Anzeige und legt nichts an.
+- Behoben und durch einen Regressionstest abgesichert, dass mehrere Vorschläge aus derselben
+  Mail die gewählte Sortierreihenfolge anderer Entscheidungen verändern konnten.
+
 ## 6.0.5 – Abgelehnte Regelvorschläge nicht wieder vorschlagen
 
 - Regellernen: Die KI erhält bei der nächsten Analyse die abgelehnten Änderungen (Feld `rejected`,

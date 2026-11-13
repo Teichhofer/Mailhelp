@@ -13,7 +13,7 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, TypeVar
 from zoneinfo import ZoneInfo
 
@@ -131,6 +131,9 @@ class ProposalView:
     verification: VerificationSummary | None = None
     # 5.9.3: contradicting source values, each with its options.
     conflicts: tuple[ConflictChoice, ...] = ()
+    # 6.0.6: sort keys – arrival of the mail at Mailhelp and the start or due date (aware).
+    arrived_at: datetime | None = None
+    due_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -139,6 +142,8 @@ class RelevanceView:
     version: int
     sender: str
     subject: str
+    # 6.0.6: when the mail arrived at Mailhelp (sorting of the open decisions).
+    arrived_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -269,6 +274,7 @@ class _MailSummary:
     """What the overview needs of a mail; full mail states stay on disk."""
     display_headers: DisplayHeaders | None
     updated_at: datetime
+    created_at: datetime
     uid: int
     proposal_ids: tuple[str, ...]
     relevance_dialog: RelevanceDialog | None
@@ -279,7 +285,7 @@ def _same[M](value: M) -> M:
 
 
 def _summary(mail: MailState) -> _MailSummary:
-    return _MailSummary(mail.display_headers, mail.updated_at, mail.imap.uid,
+    return _MailSummary(mail.display_headers, mail.updated_at, mail.created_at, mail.imap.uid,
                         tuple(item.id for item in mail.proposals), mail.relevance_dialog)
 
 
@@ -488,7 +494,8 @@ class ReviewViews:
             result.append(RelevanceView(
                 mail_id=dialog.mail_id, version=dialog.version,
                 sender=sender_name(headers.sender) if headers else "—",
-                subject=headers.subject if headers else "Mail ohne Betreff"))
+                subject=headers.subject if headers else "Mail ohne Betreff",
+                arrived_at=mail.created_at))  # type: ignore[union-attr]
         return result
 
     def _run(self, reader: _Reader) -> RunStatus:
@@ -614,7 +621,16 @@ class ReviewViews:
             mail_link=proposal.mail_link,
             verification=verification,
             conflicts=conflict_choices(proposal, self.configured_timezone),
+            arrived_at=mail.created_at if mail is not None else None,
+            due_at=_moment(proposal.start or proposal.due, self.configured_timezone),
         )
+
+
+def _moment(value: date | datetime | None, configured_timezone: str) -> datetime | None:
+    """A date as the start of that day in the configured zone, so dates and times compare."""
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime(value.year, value.month, value.day, tzinfo=ZoneInfo(configured_timezone))
 
 
 def _open_actions(proposal: Proposal, editing: bool, blocked: bool) -> set[CommandKind]:

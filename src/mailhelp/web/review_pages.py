@@ -225,12 +225,43 @@ def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
 </article>"""
 
 
+def _proposal_items(views: tuple[ProposalView, ...], actions: Actions | None) -> list[str]:
+    """Cards in the given order; members of a series stay together in a folded group."""
+    items = []
+    groups: dict[tuple[str, str | None, str | None], list[ProposalView]] = {}
+    for view in views:
+        # Only series may collect non-adjacent members. Ordinary proposals keep their sort order.
+        identity = (view.mail_id, view.series_key, None if view.series_key else view.proposal_id)
+        groups.setdefault(identity, []).append(view)
+    for (mail_id, key, _proposal_id), group in groups.items():
+        cards = "".join(proposal_card(view, actions=actions) for view in group)
+        if key is not None and len(group) > 1:
+            title = e(group[0].base_title or group[0].card.title)
+            # A running or finished action of a member must not hide in a closed group (4.4).
+            opened = " open" if "data-command-result" in cards or "data-card-command-status" in cards else ""
+            items.append(f'<details class="series-group"{opened}><summary>Serie: {title} '
+                         f'({len(group)} Termine)</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
+                         f'Serie bearbeiten und bestätigen</a></p>{cards}</details>')
+        else:
+            items.append(cards)
+    return items
+
+
+Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
+
+
 def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
                   message: str | None = None, message_kind: str = "ok",
-                  before: str = "", empty: str | None = None, after: str = "") -> str:
-    """*before* places filters below the heading; *empty* replaces the default empty state."""
-    count = len(overview.open) + len(overview.relevance)
+                  before: str = "", empty: str | None = None, after: str = "",
+                  count: str | None = None, sections: list[Section] | None = None,
+                  no_match: str | None = None) -> str:
+    """*before* places filters below the heading; *empty* replaces the default empty state.
+
+    6.0.6: *count* replaces the number in the heading ("4 von 12"); *sections* group the decisions
+    under their own headings; *no_match* is shown when a search or filter leaves nothing.
+    """
+    count = count if count is not None else str(len(overview.open) + len(overview.relevance))
     parts = [f'<div class="page-heading"><p class="eyebrow">Arbeitsübersicht</p>'
              f'<h1>Offene Entscheidungen <span class="count">{count}</span></h1>'
              '<p class="page-intro">Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen.</p></div>', before]
@@ -239,30 +270,25 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     if overview.damaged:
         parts.append(notice(f"{overview.damaged} gespeicherte Datensätze sind beschädigt und werden "
                             "nicht angezeigt. Bitte die Protokolle prüfen.", "error"))
-    items = []
-    if overview.relevance:
-        items.append("<h2>Relevanz klären</h2>")
-        items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
-    if overview.open:
-        items.append("<h2>Vorschläge</h2>")
-        groups: dict[tuple[str, str | None], list[ProposalView]] = {}
-        for view in overview.open:
-            groups.setdefault((view.mail_id, view.series_key), []).append(view)
-        for (mail_id, key), group in groups.items():
-            cards = "".join(proposal_card(view, actions=actions) for view in group)
-            if key is not None and len(group) > 1:
-                title = e(group[0].base_title or group[0].card.title)
-                # A running or finished action of a member must not hide in a closed group (4.4).
-                opened = " open" if "data-command-result" in cards or "data-card-command-status" in cards else ""
-                items.append(f'<details class="series-group"{opened}><summary>Serie: {title} '
-                             f'({len(group)} Termine)</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
-                             f'Serie bearbeiten und bestätigen</a></p>{cards}</details>')
-            else:
-                items.append(cards)
+    items: list[str] = []
+    if sections is not None:
+        for title, people, views in sections:
+            items.append(f'<h2>{e(title)} <span class="count">{len(people) + len(views)}</span></h2>')
+            items.extend(relevance_card(view, relevance_actions) for view in people)
+            items.extend(_proposal_items(views, actions))
+    else:
+        if overview.relevance:
+            items.append("<h2>Relevanz klären</h2>")
+            items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
+        if overview.open:
+            items.append("<h2>Vorschläge</h2>")
+            items.extend(_proposal_items(overview.open, actions))
     if items:
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
-    if not overview.open and not overview.relevance:
+    if not overview.open and not overview.relevance and no_match is not None:
+        parts.append(no_match)
+    elif not overview.open and not overview.relevance:
         parts.append(empty if empty is not None else
                      '<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.</p>')
     if overview.recent:

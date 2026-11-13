@@ -31,12 +31,15 @@ class ReviewSite:
 
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.site.auth.csrf_token(session.id)
-        from ..review.filters import FILTERS, matches
-        from .filters import chips
-        selected = parse_qs(request.query).get("filter", [""])[0]
-        if selected not in FILTERS:
+        from ..review.filters import matches
+        from . import open_toolbar as tools
+        try:
+            choice = tools.parse(request.query)
+        except ValueError:
             return Response.text(422, "Ungültiger Filter.")
+        selected = choice.filter
         overview = self.site.overview()
+        total = len(overview.open) + len(overview.relevance)
         def include(view: ProposalView) -> bool:
             # Only the attachment filter needs the mail; reading it for every card cost ~1 ms each.
             mail = self.site.views.mail(view.mail_id) if selected == "attachments" else None
@@ -44,8 +47,13 @@ class ReviewSite:
                            mail.extracted_attachments if mail else ())
         overview = replace(overview, open=tuple(view for view in overview.open if include(view)),
                            relevance=overview.relevance if selected in {"", "clarification"} else ())
+        # 6.0.6: search, then sort; the tool row only changes what is shown.
+        overview = replace(overview,
+                           open=tools.ordered(tools.search_open(overview.open, choice.q), choice.sort),
+                           relevance=tools.ordered(tools.search_relevance(overview.relevance, choice.q),
+                                                   choice.sort))
         # The day's summary reads the history; only the finished, unfiltered state needs it.
-        finished = not overview.open and not overview.relevance and not selected
+        finished = not overview.open and not overview.relevance and not choice.narrowed
         from .command_cards import CommandCards
         cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request))
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
@@ -58,9 +66,12 @@ class ReviewSite:
         # copy from ?ergebnis= on top, which would be announced twice.
         page = overview_page(overview, actions=cards.proposal,
                              relevance_actions=cards.relevance,
-                             before=warning + chips("/offen", selected),
+                             before=warning + tools.toolbar("/offen", choice),
                              empty=self.site._empty if finished else None,
-                             after=cards.detached(references))
+                             after=cards.detached(references),
+                             count=tools.count(len(overview.open) + len(overview.relevance), total, choice),
+                             sections=tools.groups(overview.relevance, overview.open) if choice.group else None,
+                             no_match=tools.NO_MATCH.format(path="/offen") if choice.narrowed else None)
         return Response.html(200, page)
 
     def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:

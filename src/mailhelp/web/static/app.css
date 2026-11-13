@@ -439,6 +439,20 @@ h2 { overflow-wrap: anywhere; }
 .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .filter-chips .button { border-radius: 999px; padding: 8px 14px; font-size: .9rem; }
 .filter-chips [aria-current="true"] { background: var(--accent); color: var(--accent-text); }
+/* 6.0.6: one tool row for the open decisions: quick filters, search, sort and grouping. */
+.open-toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; margin: 12px 0 16px; }
+.open-toolbar .filter-chips { margin: 0; }
+/* Quick filters on the first line, every other control together on the second. */
+.open-search { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; flex: 1 1 100%; }
+.open-field { display: flex; flex-direction: column; gap: 4px; }
+.open-field label { font-size: .85rem; color: var(--muted); }
+.open-field:first-of-type { flex: 1 1 14rem; max-width: 24rem; }
+.open-field input, .open-field select { width: 100%; box-sizing: border-box; }
+.open-group { display: flex; gap: 6px; align-items: center; min-height: 44px; white-space: nowrap; }
+@media (max-width: 719px) {
+  .open-search, .open-field:first-of-type { flex-basis: 100%; max-width: none; }
+  .open-field { flex: 1 1 100%; }
+}
 .image-preview { list-style: none; margin: 12px 0; }
 .image-preview img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 12px; border: 1px solid var(--border); }
 .disclosure { margin: 16px 0; }

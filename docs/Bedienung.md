@@ -11,6 +11,14 @@ Liste links und der gewählte Vorschlag rechts; die Taste `A` legt den gewählte
 Der **Quellbeleg** (die Mail mit Anhängen) ist ab 1024 px Breite sofort aufgeklappt, auf
 schmaleren Bildschirmen zunächst eingeklappt; seine Überschrift nennt Absender und Zahl der Bilder.
 
+Über der Liste stehen ab 6.0.6 die Schnellfilter und darunter Suche, Sortierung und Gruppierung.
+Die Suche findet Vorschlagstitel, Betreff und Absender. Die Zahl in der Überschrift lautet dann
+etwa „4 von 12“. Die Sortierung bietet „Neueste Mail zuerst“ (Standard, nach Eingang bei
+Mailhelp), „Älteste Mail zuerst“ und „Nächster Termin / nächste Frist zuerst“; Einträge ohne Datum
+stehen am Ende. „Nach Bearbeitungsbedarf gruppieren“ teilt in „Rückfrage nötig“, „Bereit zum
+Bestätigen“ und „Weitere Prüfung nötig“. Alle Einstellungen stehen in der Adresse und bleiben beim
+Neuladen erhalten; „Zurücksetzen“ zeigt wieder alles. Die Leiste ändert nur die Anzeige.
+
 | Schaltfläche | Wirkung |
 | --- | --- |
 | **Als Aufgabe anlegen** / **Im Kalender anlegen** | legt genau diese Version an; 5 Sekunden lang rückgängig zu machen |

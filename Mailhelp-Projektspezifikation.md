@@ -2220,6 +2220,20 @@ gemessen“. Termin- und Aufgabenerkennung teilen sich einen Knoten („je nach 
 gemessene Anteil heißt sichtbar „⏱ größte Wartezeit“. Schlüssel außerhalb der Pipeline erscheinen
 am Ende unter „Weitere KI-Aufrufe“. Ohne Metrikzeilen entfällt der Plan.
 
+**Werkzeugleiste der Offen-Ansicht (seit 6.0.6).** `/` und `/offen` lesen `filter` (unbekannt: 422
+wie bisher), `q` (Leerraum zusammengefasst, höchstens 80 Zeichen), `sort` ∈ {`neu`, `alt`,
+`datum`} und `gruppe=bedarf`; unbekannte Werte für `sort` und `gruppe` fallen auf die
+Standardansicht zurück. Die Suche verlangt jedes Wort in Vorschlagstitel, Betreff oder Absender
+(Anzeigename), bei Relevanzfragen in Betreff oder Absender. `neu`/`alt` sortieren nach dem Eingang
+der Mail bei Mailhelp (`MailState.created_at`), `datum` nach Beginn oder Fälligkeit (ein Datum gilt
+ab Tagesbeginn in der konfigurierten Zeitzone); fehlende Werte stehen am Ende, die Sortierung ist
+stabil. Mit `gruppe=bedarf` erscheint jede Entscheidung genau einmal unter „Rückfrage nötig“
+(Relevanzfragen, Klärung, offene Fragen oder Widersprüche), „Bereit zum Bestätigen“ (Aktion
+`confirm` erlaubt) oder „Weitere Prüfung nötig“, jeweils mit Anzahl. Die Überschrift zeigt bei
+Suche oder Filter „angezeigt von gesamt“. Schnellfilter behalten Suche, Sortierung und Gruppierung,
+das Formular behält den Schnellfilter. Ohne Treffer bleiben Leiste und „Zurücksetzen“ sichtbar.
+Die Leiste liest nur und funktioniert ohne JavaScript.
+
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
 Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis
