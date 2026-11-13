@@ -38,7 +38,7 @@ def test_empty_directory_is_protected_and_starts_no_adapters(initial):
     assert not (h.directory / "config.yaml").exists()
     for path in ["/", "/einrichtung/start", "/einrichtung/schritt/1", "/hilfe/google-playground"]:
         assert request(h, "GET", path, token=False).status == 303
-    for path in ["/einrichtung/speichern", "/einrichtung/test/imap", "/auth/microsoft/device"]:
+    for path in ["/einrichtung/speichern", "/einrichtung/pruefen", "/auth/microsoft/device"]:
         assert request(h, "POST", path, h.form(1), token=False).status == 403
     assert request(h, "GET", "/mail/" + "a"*24).status == 404
     assert request(h, "GET", "/einrichtung/schritt/5").status == 303
@@ -78,7 +78,7 @@ def test_draft_replay_conflict_failure_and_unknown_step(initial):
     assert h.setup.save(h.actor, form) == state
     with pytest.raises(ValueError, match="Idempotenz"):
         h.setup.save(h.actor, {**form, "timezone": "UTC"})
-    with pytest.raises(ValueError, match="geändert"):
+    with pytest.raises(ValueError, match="conflict"):
         h.setup.save(h.actor, {**h.form(1), "version":"0"})
     for invalid in [{**h.form(2), "step":"0"}, {**h.form(2), "key":"!"}, h.form(4)]:
         with pytest.raises(ValueError):
@@ -86,48 +86,40 @@ def test_draft_replay_conflict_failure_and_unknown_step(initial):
     assert request(h, "POST", "/einrichtung/speichern", h.form(5)).status == 409
     assert request(h, "POST", "/einrichtung/speichern", {}).status == 403
     assert request(h, "POST", "/einrichtung/speichern", h.form(2), content="application/json").status == 415
-    assert request(h, "POST", "/einrichtung/test/imap", h.form(3)).status == 400
+    assert request(h, "POST", "/einrichtung/pruefen", h.form(9)).status == 400
     assert request(h, "POST", "/einrichtung/speichern", h.form(1, password="tiny")).status == 409
 
 
 def test_probes_folders_and_model_choices_use_synthetic_services(initial):
     h = initial
     h.advance(True)
-    assert request(h, "POST", "/einrichtung/test/imap", h.form(2)).status == 303
-    assert b"Entw" in request(h, "GET", "/einrichtung/schritt/2").body
-    assert request(h, "POST", "/einrichtung/test/llm", h.form(3)).status == 303
-    assert b"synthetic:latest" in request(h, "GET", "/einrichtung/schritt/3").body
-    assert request(h, "POST", "/einrichtung/test/ziele", h.form(4)).status == 303
+    folders = request(h, "POST", "/einrichtung/pruefen", h.form(2))
+    assert folders.status == 200 and b'<option value="Entw' in folders.body
+    models = request(h, "POST", "/einrichtung/pruefen", h.form(3, model="synthetic:latest"))
+    assert models.status == 200 and b'<option value="synthetic:latest"' in models.body
+    assert "Geprüft" in request(h, "POST", "/einrichtung/pruefen", h.form(4)).body.decode()
     h.checks.imap = lambda *a: (_ for _ in ()).throw(RuntimeError("secret-from-server"))
-    failed = request(h, "POST", "/einrichtung/test/imap", h.form(2))
-    assert failed.status == 409 and b"secret-from-server" not in failed.body
+    failed = request(h, "POST", "/einrichtung/pruefen", h.form(2))
+    assert failed.status == 200 and b"Pr\xc3\xbcfung fehlgeschlagen" in failed.body
+    assert b"secret-from-server" not in failed.body
 
 
-def test_revocation_during_probe_and_external_edit_do_not_commit(initial):
+def test_revocation_during_a_check_shows_nothing_and_finish_is_refused(initial):
     h = initial
     h.advance()
     before = h.setup.state()
     h.checks.imap = lambda *a: h.auth.revoke(h.session.id)
-    with pytest.raises(PermissionError):
-        h.setup.save(h.actor, h.form(2), probe=True)
+    assert request(h, "POST", "/einrichtung/pruefen", h.form(2)).status == 403
     assert h.setup.state() == before
     with pytest.raises(PermissionError):
         h.setup.finish(h.actor, before.version, "f"*32)
 
 
-def test_probe_concurrent_draft_or_env_change_is_rejected(initial):
+def test_external_env_change_rejects_a_save(initial):
     h = initial
     h.advance()
-    def change(*args):
-        state=h.setup.state()
-        state.version+=1
-        h.setup._save(state)
-        return {}
-    h.checks.imap=change
-    with pytest.raises(ValueError, match="während"):
-        h.setup.save(h.actor,h.form(2),probe=True)
     (h.directory/'.env').write_text((h.directory/'.env').read_text()+'\nOTHER=changed\n')
-    with pytest.raises(ValueError, match="inzwischen"):
+    with pytest.raises(ValueError, match="conflict"):
         h.setup.save(h.actor,h.form(2))
 
 
@@ -196,7 +188,7 @@ def test_finish_rechecks_all_inputs_and_session_before_atomic_activation(initial
     state=h.setup.state()
     state.model='not-installed'
     h.setup._save(state)
-    with pytest.raises(ValueError,match='installiertes'):h.setup.finish(h.actor,state.version,'d'*32)
+    with pytest.raises(ValueError,match='llm.ollama_model_missing'):h.setup.finish(h.actor,state.version,'d'*32)
     state.model='synthetic:latest'
     h.setup._save(state)
     WebPassword(h.store).reset()
@@ -214,7 +206,7 @@ def test_finish_does_not_overwrite_new_configuration_or_concurrent_draft(initial
         state=h.setup.state();state.version+=1;h.setup._save(state)
         return {}
     h.checks.targets=change
-    with pytest.raises(ValueError,match='während'):h.setup.finish(h.actor,version,'f'*32)
+    with pytest.raises(ValueError,match='conflict'):h.setup.finish(h.actor,version,'f'*32)
 
 
 def test_empty_or_broken_form_is_rejected_without_publishing_config(initial):
@@ -228,7 +220,7 @@ def test_configuration_cannot_be_published_when_its_password_record_disappeared(
     h=initial
     h.advance()
     h.store.save('web-password',{'schema_version':1,'version':0,'salt':'','digest':''})
-    with pytest.raises(ValueError,match='Passwort fehlt'):
+    with pytest.raises(ValueError,match='password.missing'):
         h.setup.finish(h.actor,h.setup.state().version,'e'*32)
     assert not (h.directory/'config.yaml').exists()
 

@@ -56,24 +56,29 @@ Fehlt der Code, mit `mailhelp --pair --config-directory .` einen neuen anfordern
 
 ## 4. Assistent durchlaufen
 
-Jeder Schritt hat **Speichern und weiter**; über die Schrittliste kommst du jederzeit zurück.
-Passwortfelder bleiben leer angezeigt: **Leer: gespeicherten Wert behalten**.
+Jeder Schritt hat **Prüfen** und **Speichern und weiter**; über die Schrittliste kommst du jederzeit
+zurück. **Prüfen** testet die eingegebenen Werte und speichert nichts. Das Ergebnis steht über dem
+Formular: bei einem Problem Ursache, betroffenes Feld (mit Link dorthin) und konkrete Schritte zur
+Lösung. Die eingegebenen Werte bleiben stehen, Passwörter werden nie wieder angezeigt. Passwortfelder
+bleiben leer angezeigt: **Leer: gespeicherten Wert behalten**. Höchstens zehn Prüfungen pro Minute
+sind möglich, um Kontosperren beim Mailanbieter zu vermeiden.
 
 1. **Web-Zugang und Zeitzone:** **Zeitzone** prüfen (z. B. `Europe/Berlin`) und ein
    **Web-Passwort (mindestens 12 Zeichen)** vergeben.
 2. **Postfach:** **IMAP-Server**, **Port**, **Verschlüsselung** (`ssl` meist Port 993,
    `starttls` meist 143), Benutzername (`IMAP_USERNAME`) und Passwort (`IMAP_PASSWORD`)
-   eintragen und **Verbindung jetzt prüfen** wählen. Danach **Posteingang** und
-   **Entwurfsordner** aus der gefundenen Ordnerliste wählen.
+   eintragen und **Prüfen** wählen. Danach **Posteingang** und **Entwurfsordner** aus der
+   gefundenen Ordnerliste wählen.
 3. **KI-Anbieter:** `openrouter` mit `OPENROUTER_API_KEY` oder `ollama` mit
-   **Ollama-Adresse (HOST:PORT)**; **Verbindung jetzt prüfen** wählen.
+   **Ollama-Adresse (HOST:PORT)**; **Prüfen** wählen.
 4. **Kalender und Aufgaben:** **Kalenderdienst** und **Aufgabendienst** wählen und die passende
    Kennung eintragen (**Google-Kalender-ID**, **Todoist-Projekt-ID**, **CalDAV-Kalenderadresse**,
    **CalDAV-Aufgabenadresse**, **Outlook-Kalender-ID**, **Microsoft-To-Do-Liste**). Für Google und
    Microsoft stehen **Google verbinden** bzw. **Microsoft verbinden** bereit. Einzelheiten:
    [Einstellungen, Abschnitt Ziele](Web-Einstellungen.md#ziele).
-5. **Abschluss:** Das **Prüfergebnis** lesen, **Konfiguration speichern und Normalbetrieb
-   starten** ankreuzen und **Speichern und starten** wählen.
+5. **Abschluss:** **Alles prüfen** zeigt jeden Schritt mit ✓ oder ✗ und einem Link dorthin.
+   **Konfiguration speichern und Normalbetrieb starten** ankreuzen und **Speichern und starten**
+   wählen. Schlägt dabei eine Prüfung fehl, erscheint dieselbe Übersicht und nichts wird aktiviert.
 
 **Ergebnis:** „Einrichtung abgeschlossen“. `config.yaml` und `.env` sind gespeichert; die
 Zugangsdaten stehen nur in `.env`.

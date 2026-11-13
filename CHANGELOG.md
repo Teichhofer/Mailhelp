@@ -1,5 +1,17 @@
 # Änderungen
 
+## 6.1.2 – „Prüfen“ in jedem Schritt der Ersteinrichtung
+
+- Einrichtung: Jeder Schritt hat „Prüfen“, auch „Web-Zugang und Zeitzone“; der Abschluss bietet
+  „Alles prüfen“ mit ✓/✗ je Schritt und Link dorthin.
+- Prüfen speichert nichts – weder `.env` noch `config.yaml` noch den Entwurf. Bisher übernahm
+  „Verbindung jetzt prüfen“ die Zugangsdaten, sobald sie funktionierten (Regressionstest).
+- Ergebnisse und Fehler stehen über dem Formular: Ursache, Lösungsschritte und ein Link zum
+  betroffenen Feld; eingegebene Werte bleiben stehen, Passwörter werden nie angezeigt. Auch ein
+  fehlgeschlagenes „Speichern und weiter“ erklärt sich so, statt eine Sammelseite zu zeigen.
+- Höchstens zehn Prüfungen pro Minute und Sitzung (Schutz vor Passwortraten und Kontosperren).
+- Die alte Route `/einrichtung/test/…` entfällt.
+
 ## 6.1.1 – Aussagekräftige Prüfmeldungen der Ersteinrichtung (Grundlage)
 
 - Einrichtung: Die Verbindungsprüfungen für Postfach, KI-Anbieter sowie Kalender und Aufgaben

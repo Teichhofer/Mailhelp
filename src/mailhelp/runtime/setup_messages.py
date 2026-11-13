@@ -134,7 +134,8 @@ class CheckResult(BaseModel):
     ok: bool
     findings: list[Finding] = Field(default_factory=list)
     facts: dict[str, str] = Field(default_factory=dict)
-    fingerprint: str = ""
+    # Lists the form offers as choices after a check, e.g. folders or installed models.
+    choices: dict[str, list[str]] = Field(default_factory=dict)
     checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @property

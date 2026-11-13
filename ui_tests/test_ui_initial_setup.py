@@ -43,11 +43,11 @@ def test_initial_wizard_from_empty_directory_to_saved_configuration(page,initial
     page.get_by_label('IMAP-Server',exact=True).fill('imap.example.test')
     page.get_by_label('IMAP_USERNAME',exact=True).fill('synthetic@example.test')
     page.get_by_label('IMAP_PASSWORD',exact=True).fill('synthetic-imap-password')
-    page.get_by_role('button',name='Verbindung jetzt prüfen',exact=True).click()
+    page.get_by_role('button',name='Prüfen',exact=True).click()
     expect(page.get_by_role('combobox',name='Entwurfsordner',exact=True)).to_have_value('Entwürfe')
     page.get_by_role('button',name='Speichern und weiter',exact=True).click()
     page.get_by_label('OPENROUTER_API_KEY',exact=True).fill('synthetic-router-key')
-    page.get_by_role('button',name='Verbindung jetzt prüfen',exact=True).click()
+    page.get_by_role('button',name='Prüfen',exact=True).click()
     page.get_by_role('button',name='Speichern und weiter',exact=True).click()
     for name,value in {'GOOGLE_OAUTH_CLIENT_ID':'synthetic-client','GOOGLE_OAUTH_CLIENT_SECRET':'private-secret',
                        'GOOGLE_OAUTH_REFRESH_TOKEN':'private-refresh','TODOIST_TOKEN':'private-todoist'}.items():

@@ -19,6 +19,7 @@ from ..config.loader import _dotenv
 from ..storage import JsonStore, atomic_replace
 from .env_file import file_hash, set_values
 from .setup_checks import SetupChecks
+from .setup_messages import SetupProblem
 from .web_password import WebPassword
 
 FIELDS = {
@@ -49,6 +50,7 @@ class InitialDraft(BaseModel):
     completed_step: int = 0
     config: dict[str, Any]
     model: str = ""
+    # Probe results of drafts saved before 6.1; checks no longer store anything here.
     result: dict[str, Any] = Field(default_factory=dict)
     operations: dict[str, str] = Field(default_factory=dict)
     env_revision: str
@@ -122,12 +124,14 @@ class InitialSetup:
         self.prompts(candidate)
         return candidate
 
-    def save(self, actor: str, form: dict[str, str], *, probe: bool = False) -> InitialDraft:
+    def save(self, actor: str, form: dict[str, str]) -> InitialDraft:
+        """Save one step. 6.1: checking is separate (InitialChecks) and never saves anything."""
         self._guard(actor)
         step, version, key = int(form["step"]), int(form["version"]), form["key"]
         if step not in FIELDS or not re.fullmatch(r"[a-f0-9]{32}", key):
             raise ValueError("Ungültiger Einrichtungsschritt.")
-        signature = self.sign(json.dumps([actor, version, form, probe], sort_keys=True))
+        # The trailing False keeps signatures of drafts saved before 6.1 (former probe flag) valid.
+        signature = self.sign(json.dumps([actor, version, form, False], sort_keys=True))
         with self.store.locked():
             before = self.state()
             if key in before.operations:
@@ -136,31 +140,26 @@ class InitialSetup:
                 return before
             if (before.version != version or before.status != "draft" or step > before.completed_step + 1
                     or before.env_revision != file_hash(self.directory / ".env")):
-                raise ValueError("Einrichtung inzwischen geändert; Seite neu laden.")
+                raise SetupProblem("conflict")
             candidate = self._candidate(before, step, form)
-            env = self.environment()
             secrets = {name: form[name] for name in SECRET_FIELDS[step] if form.get(name)}
-            env.update(secrets)
-        # Network probes and scrypt do not hold the store lock.
-        result: dict[str, Any] = {}
+        # scrypt does not hold the store lock.
         if step == 1 and (form.get("password") or not WebPassword(self.store).state().digest):
             password = form.get("password", "")
             if not 12 <= len(password) <= 1024 or any(ord(c) < 32 for c in password):
-                raise ValueError("Ein Web-Passwort mit mindestens 12 Zeichen ist erforderlich.")
-        if probe:
-            result = self._probe(step, candidate, env)
+                raise SetupProblem("password.too_short")
         with self.store.locked():
             self._guard(actor)
             if self.state() != before or file_hash(self.directory / ".env") != before.env_revision:
-                raise ValueError("Einrichtung während der Prüfung geändert.")
+                raise SetupProblem("conflict")
             if step == 1 and form.get("password"):
                 WebPassword(self.store).set(form["password"], WebPassword(self.store).state().version)
             if secrets:
                 set_values(self.directory / ".env", secrets, before.env_revision)
             candidate.env_revision = file_hash(self.directory / ".env")
-            candidate.result = result
+            candidate.result = {}
             candidate.completed_step = max(candidate.completed_step, step)
-            candidate.step = step if probe else min(step + 1, 5)
+            candidate.step = min(step + 1, 5)
             candidate.operations = dict([*before.operations.items(), (key, signature)][-100:])
             candidate.version += 1
             self._save(candidate)
@@ -183,7 +182,7 @@ class InitialSetup:
             if before.status == "done" and before.operations.get(key) == actor:
                 return
             if before.version != version or before.completed_step != 4 or before.status != "draft":
-                raise ValueError("Einrichtung unvollständig oder inzwischen geändert.")
+                raise SetupProblem("conflict")
             env_revision = file_hash(self.directory / ".env")
         env = self.environment()
         for step in (2, 3, 4):
@@ -192,13 +191,13 @@ class InitialSetup:
             result = self._probe(3, before, env)
             local = self.prompts(before).ollama
             if local is None or local.model not in result["models"]:
-                raise ValueError("Ein installiertes Ollama-Modell auswählen.")
+                raise SetupProblem("llm.ollama_model_missing")
         with self.store.locked():
             self._guard(actor)
             if self.state() != before or file_hash(self.directory / ".env") != env_revision:
-                raise ValueError("Einrichtung während der Prüfung geändert.")
+                raise SetupProblem("conflict")
             if not WebPassword(self.store).state().digest:
-                raise ValueError("Web-Passwort fehlt.")
+                raise SetupProblem("password.missing")
             if (self.directory / "config.yaml").exists():
                 raise ValueError("Konfiguration existiert bereits.")
             before.status = "committing"

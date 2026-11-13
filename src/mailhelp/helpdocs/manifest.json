@@ -1,6 +1,6 @@
 {
- "app_version": "6.1.1",
- "revision": "92c067b9cb28a3247b288292eeee9129ddc896976421645d698159fb2c155f70",
+ "app_version": "6.1.2",
+ "revision": "78d70a6fef1473fabb94410ed8f429b82f035b82724ce7bffa6b2eb4a5e5f295",
  "schema_version": 1,
  "sections": 93,
  "sources": [
@@ -10,7 +10,7 @@
   },
   {
    "path": "docs/Ersteinrichtung.md",
-   "sha256": "c51d3c594e7fa2636cb1eb980e46b8d044f13b1108458a7e5050d2e9a48479e7"
+   "sha256": "9d60565628953a01f850d52a5d2a9c312bf86f7bd37568d6479895caae0c0d45"
   },
   {
    "path": "docs/Konten-verwalten.md",

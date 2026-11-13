@@ -2246,6 +2246,19 @@ Verbindungsfehler (bei den Paaren 993/SSL und 143/STARTTLS als vertauschte Versc
 oder Ausnahmen erreichen weder Meldung noch Detail; Details enthalten nur Feldnamen, Ordner- und
 Modellnamen sowie das betroffene Ziel.
 
+**Prüfen in der Ersteinrichtung (seit 6.1.2).** Jeder Schritt hat „Prüfen“ (`POST
+/einrichtung/pruefen` mit Sitzung, CSRF und Schritt bis höchstens dem nächsten offenen; sonst 400
+bzw. 403). Prüfen schreibt weder `.env` noch `config.yaml` noch den Einrichtungsentwurf; im
+Formular eingegebene Zugangsdaten gelten nur für diese Prüfung. Schritt 1 prüft Zeitzone und
+Web-Passwort, die Schritte 2–4 die Dienste, Schritt 5 („Alles prüfen“) alle Schritte mit den
+gespeicherten Werten. Die Sitzung wird nach der Prüfung erneut geprüft, bevor ein Ergebnis
+erscheint. Höchstens zehn Prüfungen je Minute und Sitzung, danach 429. Das Ergebnis steht über dem
+Formular (`role="alert"` bei Fehlern, sonst `status`) mit Ursache, Lösungsschritten, Details und
+Link zum Feld; das Feld trägt `aria-invalid` und `aria-describedby`. Eingegebene Werte außer
+Passwörtern bleiben erhalten. Auch ein fehlgeschlagenes „Speichern und weiter“ zeigt diese Meldungen
+(409) statt einer Sammelseite; ein fehlgeschlagener Start zeigt die Übersicht aller Schritte. Die
+frühere Route `/einrichtung/test/{imap|llm|ziele}`, die bei Erfolg speicherte, entfällt.
+
 **Regelvergleich (seit 6.0.1).** `.compare-table` und `.rule-diff` brechen nur an Wortgrenzen um
 (`overflow-wrap: break-word`); Kopfzeilen, Abzeichen und Änderungsmarken bleiben einzeilig, die
 Spalten „Feld“ und „Bisher“ haben mindestens 6,5 rem. `/lernen/entscheidungen` ist ab 1024 px bis

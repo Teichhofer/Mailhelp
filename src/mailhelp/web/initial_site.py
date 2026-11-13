@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from pydantic import ValidationError
+
 from ..config import WebSettings
-from ..runtime.initial_setup import InitialSetup
+from ..runtime.initial_checks import InitialChecks, invalid_findings
+from ..runtime.initial_setup import SECRET_FIELDS, InitialSetup
 from ..runtime.local_pairing import issue
+from ..runtime.setup_messages import CheckResult, SetupProblem, classify, finding
 from .app import WebApp
 from .auth import PairingLimited, WebAuth, WebSession
 from .http import Request, Response
@@ -20,6 +24,7 @@ class InitialSite:
                  setup: InitialSetup, stop: Callable[[], None]):
         self.app, self.auth, self.settings, self.logger = app, auth, settings, logger
         self.setup, self.stop = setup, stop
+        self.checks = InitialChecks(setup)
         self.configured_timezone = "Europe/Berlin"
         self.login_pages = LoginSite(self)
         for method, path, public_handler in (
@@ -32,7 +37,7 @@ class InitialSite:
             ("GET", "/", self.page), ("GET", "/einrichtung/start", self.page),
             ("GET", r"/einrichtung/schritt/(?P<step>[1-5])", self.page),
             ("POST", "/einrichtung/speichern", self.save),
-            ("POST", r"/einrichtung/test/(?P<component>imap|llm|ziele)", self.probe),
+            ("POST", "/einrichtung/pruefen", self.check),
             ("POST", "/abmelden", self.login_pages.logout)):
             app.route(method, path, self.signed_in(handler))
 
@@ -82,19 +87,50 @@ class InitialSite:
                 response.after_send = self.stop
                 return response
             self.setup.save("web:" + session.id, form)
-        except Exception:
-            return self._failed()
+        except PermissionError:
+            return self._forbidden()
+        except Exception as error:  # noqa: BLE001 – classified by type; the text never reaches the browser
+            return self._explain(session, form, error)
         return Response.redirect("/einrichtung/start")
 
-    def probe(self, _request: Request, session: WebSession, form: dict[str, str], component: str) -> Response:
-        if form.get("step") != {"imap": "2", "llm": "3", "ziele": "4"}[component]:
+    def _explain(self, session: WebSession, form: dict[str, str], error: Exception) -> Response:
+        """6.1: a failed save shows what is wrong on the same step, with the entered values kept."""
+        step = int(form["step"]) if form.get("step", "").isdigit() and 1 <= int(form["step"]) <= 5 else 0
+        if not step:
+            return self._failed()
+        if step == 5:
+            try:
+                results = self.checks.check_all("web:" + session.id)
+            except PermissionError:
+                return self._forbidden()
+        elif isinstance(error, ValidationError):
+            results = [CheckResult(step=step, ok=False, findings=invalid_findings(error))]
+        elif isinstance(error, SetupProblem):
+            results = [CheckResult(step=step, ok=False, findings=[
+                finding(error.code, detail=error.detail, field=error.field)])]
+        else:
+            results = [CheckResult(step=step, ok=False, findings=[finding(classify(error))])]
+        return self._result(session, step, form, results, 409)
+
+    def check(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """6.1: check the entered values of one step (5: every step); nothing is saved."""
+        actor = "web:" + session.id
+        step = int(form["step"]) if form.get("step", "").isdigit() else 0
+        if not 1 <= step <= min(5, self.setup.state().completed_step + 1):
             return Response.text(400, "Ungültiger Prüfschritt.")
         try:
-            self.setup.save("web:" + session.id, form, probe=True)
-        except Exception:
-            # Server responses may contain passwords; only this fixed message reaches the browser.
-            return self._failed()
-        return Response.redirect("/einrichtung/start")
+            results = self.checks.check_all(actor) if step == 5 else [self.checks.check(actor, form)]
+        except PermissionError:
+            return self._forbidden()
+        limited = any(item.code == "limit" for result in results for item in result.findings)
+        return self._result(session, step, form, results, 429 if limited else 200)
+
+    def _result(self, session: WebSession, step: int, form: dict[str, str], results: list[CheckResult],
+                status: int) -> Response:
+        hidden = {"csrf", "key", "version", "step", "password", "confirm", *SECRET_FIELDS.get(step, ())}
+        values = {name: value for name, value in form.items() if name not in hidden}
+        return Response.html(status, initial_page(self.setup.state(), self.auth.csrf_token(session.id), step,
+                                                  checks=results, values=values))
 
     @staticmethod
     def _failed() -> Response:
