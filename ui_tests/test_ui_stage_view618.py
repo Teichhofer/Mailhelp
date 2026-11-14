@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import audit, open_charts
 from conftest import sign_in
 from mailhelp.runtime.stage_metrics import StageRecord
 from tests.scenarios.web_scenario import mail_id
@@ -35,6 +35,7 @@ def test_stage618_evaluation_shows_step_times_on_every_screen(page, mailhelp):
     journal(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/auswertung?days=7")
+    open_charts(page)
     expect(page.locator("#chart-wall-title")).to_have_text("Zeit je Verarbeitungsschritt")
     expect(page.locator("#chart-runs-title")).to_have_text("Durchlaufzeit je Mail")
     plan = page.locator("ol.pipeline")

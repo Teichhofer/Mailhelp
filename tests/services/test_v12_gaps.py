@@ -321,9 +321,9 @@ def test_production_and_decision_tests_are_reported_separately(web, tmp_path):
 def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
     _, metrics, *_ = configure(web, tmp_path)
     page = web.browser.request("GET", "/auswertung").body.decode()
-    assert "Für diese Auswahl gibt es keine erfassten Aufrufe." in page
-    # 5.9.11: the figures are links to the call list.
-    assert ">0,0000 EUR ›</a></dd>" in page and ">— / — / — ›</a></dd>" in page
+    # Regression 6.2.10: an empty period showed eight figures full of zeros; now one sentence says why.
+    assert "Für diese Auswahl gibt es keine erfassten Aufrufe. Einen längeren Zeitraum wählen" in page
+    assert "kpi-grid" not in page and ">0,0000 EUR ›</a></dd>" not in page
     assert web.browser.request("GET", "/auswertung?mode=unbekannt").status == 422
     metrics.settings = MetricsSettings(usd_per_eur=1.25, exchange_rate_date="2026-10-01")
     attempt(metrics, "c1", model="openrouter/deepseek", reported_cost=2.5)
@@ -332,6 +332,7 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
         stream.write("kaputt\n")
     page = web.browser.request("GET", "/auswertung?model=openrouter/deepseek").body.decode()
     assert ">2,0000 EUR (Wechselkurs vom 2026-10-01) ›</a></dd>" in page
+    assert '<div class="kpi-tile"><dt>Aufrufe (einzelne Versuche)</dt>' in page  # 5.9.11: figures are links
     assert ">1 beschädigte Zeilen, 1 Erfassungsfehler ›</a></dd>" in page
     assert "<th>$Cent</th>" in page
     assert '<td title="openrouter/deepseek">deepseek</td>' in page

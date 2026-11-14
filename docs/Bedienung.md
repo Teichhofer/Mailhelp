@@ -261,6 +261,11 @@ wird, zählt sie kurz nicht mit.
 
 ### Auswertung
 
+Oben stehen die Kennzahlen als Kacheln; ein Klick öffnet die passenden Aufrufe. Die Links darüber
+springen zu Diagrammen, Ablauf und der Tabelle „Nach Modell und Schritt“. Auf dem Telefon sind die
+Diagramme zugeklappt (**Verlauf und Verteilung** öffnet sie). Ohne erfasste Aufrufe im Zeitraum steht
+dort nur ein Hinweis.
+
 **Auswertung** zeigt Kosten und Zeiten der KI-Aufrufe für den gewählten Zeitraum. Dauern
 erscheinen ab 5.9.1 in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Min.` oder
 `3 Tage 4 Std.`; bei der summierten Aufrufdauer stehen die genauen Sekunden in Klammern

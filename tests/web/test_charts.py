@@ -76,7 +76,7 @@ def test_evaluation_page_places_the_charts_before_the_groups():
               "groups": [{"model": "openai/gpt-synthetic", "stage": "summary", "provider": "openrouter", "count": 1,
                           "failed": 0, "seconds": 2.5, "median": 2.5, "p95": 2.5, "usd": "0.0012"}]}
     page = statistics_page({"days": 30, "mode": "production"}, report, report["records"], "UTC", NOW)
-    assert page.index("Verlauf und Verteilung") < page.index("Nach Modell und Schritt")
+    assert page.index('id="diagramme"') < page.index('id="nach-modell"')  # 6.2.10: jump links name both first
     assert statistics_page({"days": 30, "mode": "production"}, report, report["records"]).count("<figure") == 6
 
 

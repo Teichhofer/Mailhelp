@@ -106,3 +106,10 @@ def axe_findings(page) -> list[str]:
 
 
 __all__ = ["AXE_OPTIONS", "SCREENSHOTS", "audit", "axe_findings"]
+
+
+def open_charts(page) -> None:
+    """6.2.10: on phones the evaluation charts start folded; open them before checking a chart."""
+    section = page.locator("details.chart-section")
+    if section.count() and section.get_attribute("open") is None:
+        section.locator("> summary").click()

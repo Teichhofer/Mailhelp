@@ -2983,6 +2983,12 @@ dem Kopf mit einer Zeile „Alles in Ordnung“ oder „Handlungsbedarf“ mit L
 IMAP-Abruffehlern; beschädigte Datensätze sind dort genannt. Danach folgen die vier Kennzahlen, dann
 Verarbeitungsstand und Hinweis zu „Verbunden“.
 
+Seit 6.2.10 zeigt die Auswertung ihre Kennzahlen als Kacheln (Beschriftung über dem Wert, weiterhin
+eine Definitionsliste und je ein Link zur Aufrufliste). Ohne erfasste Aufrufe, beschädigte Zeilen und
+Schrittzeiten steht statt der Kennzahlen ein Satz mit dem Hinweis auf Zeitraum und Filter. Sprunglinks
+führen zu Kennzahlen, Diagrammen, Ablauf und „Nach Modell und Schritt“. Die Diagramme liegen in einem
+aufklappbaren Abschnitt, den `app.js` auf Telefonen beim Laden zuklappt; ohne JavaScript bleibt er offen.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste

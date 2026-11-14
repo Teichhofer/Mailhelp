@@ -105,10 +105,17 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
                         "Bedeutung der unvollständigen Erfassung anzeigen"))
     rows = [(name, _Html(metric_link(metric, value, label, params))) for name, metric, value, label in figures]
     rows += _run_time_rows(params, steps)
-    body = (page_head("Auswertung", "Einblicke", "Kosten und Zeiten der KI-Aufrufe und Verarbeitungsschritte.")
-            + form
-            + '<dl class="facts-table">'
-            + "".join(f"<dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd>" for k, v in rows) + "</dl>"
+    head = page_head("Auswertung", "Einblicke", "Kosten und Zeiten der KI-Aufrufe und Verarbeitungsschritte.")
+    measured = report["count"] or report["damaged"] or report["capture_failures"]
+    if not measured and not (steps or {}).get("totals") and not (steps or {}).get("stages"):
+        # 6.2.10: nothing measured – one sentence instead of a table full of zeros.
+        return (head + form + '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe. Einen längeren '
+                "Zeitraum wählen oder die Filter zurücksetzen.</p>")
+    # 6.2.10: every figure is a tile (label above the value); the pairs stay a definition list.
+    tiles = "".join(f'<div class="kpi-tile"><dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd></div>'
+                    for k, v in rows)
+    body = (head + form + SECTIONS
+            + f'<h2 id="kennzahlen" class="visually-hidden">Kennzahlen</h2><dl class="kpi-grid">{tiles}</dl>'
             + '<p class="meta">Kosten in USD stammen aus den Angaben des Anbieters; fehlt eine Angabe, ist sie '
               "unbekannt, nicht null. Stromkosten sind eine Schätzung aus der eingestellten Leistung und dem "
               "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "
@@ -118,6 +125,12 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
     link = "/auswertung/schritte?" + urlencode(filters(params))
     charts = statistics_charts(report["records"], params["days"], zone, now or datetime.now(UTC), steps, link)
     return body + charts + _statistics_groups(report["groups"])
+
+
+# 6.2.10: jump links to the parts of a long page (about fourteen screen heights on a phone before).
+SECTIONS = ('<nav class="page-sections" aria-label="Abschnitte der Auswertung"><a href="#kennzahlen">Kennzahlen</a>'
+            '<a href="#diagramme">Diagramme</a><a href="#pipeline-title">Ablauf</a>'
+            '<a href="#nach-modell">Nach Modell und Schritt</a></nav>')
 
 
 def _run_time_rows(params: dict[str, Any], steps: dict[str, Any] | None) -> list[tuple[str, _Html]]:
@@ -141,7 +154,7 @@ def _statistics_groups(groups: list[dict[str, Any]]) -> str:
     if not groups:
         return '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'
     # Scrollable on phones, so it must be reachable by keyboard (axe scrollable-region-focusable).
-    body = ('<h2>Nach Modell und Schritt</h2><div class="table-scroll" tabindex="0" role="region" '
+    body = ('<h2 id="nach-modell">Nach Modell und Schritt</h2><div class="table-scroll" tabindex="0" role="region" '
             'aria-label="Nach Modell und Schritt"><table><thead><tr>'
             "<th>Modell</th><th>Schritt</th><th>Anbieter</th><th>Aufrufe</th><th>Fehler</th>"
             "<th>Summe</th><th>Median</th><th>95 %</th><th>$Cent</th></tr></thead><tbody>")

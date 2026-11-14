@@ -1206,3 +1206,16 @@ main.page-wide, main:has(.split-view) { max-width: var(--page-wide); }
   .open-toolbar .filter-chips .button { flex: none; }
   .open-more .open-search { margin-top: var(--space-2); }
 }
+
+/* 6.2.10: evaluation – figures as tiles, jump links, a foldable chart section. */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: var(--space-3);
+  margin: 0 0 var(--space-3); }
+.kpi-tile { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); min-width: 0; }
+.kpi-tile dt { color: var(--muted); font-size: var(--text-s); }
+.kpi-tile dd { margin: 0; font-size: var(--text-l); font-weight: 700; font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere; }
+.page-sections { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0 0 var(--space-4); }
+.page-sections a { display: inline-flex; align-items: center; min-height: 44px; }
+.chart-section > summary h2 { display: inline; margin: 0; }
+.chart-section > summary { margin: var(--space-5) 0 var(--space-3); }

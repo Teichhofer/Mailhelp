@@ -369,7 +369,9 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
     if not records and not walls and not totals:
         return ""
     tz = ZoneInfo(zone)
-    body = '<h2>Verlauf und Verteilung</h2><div class="chart-grid-layout">'
+    # 6.2.10: on phones app.js folds the charts below the figures; without JavaScript they stay open.
+    body = ('<details class="chart-section" id="diagramme" open data-fold-phone><summary><h2>Verlauf und Verteilung'
+            '</h2></summary><div class="chart-grid-layout">')
     if records:
         body += _call_charts(records, days, tz, now)
     if totals:
@@ -392,7 +394,7 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
                          lambda value: duration_text(value))
     if records:
         body += _model_costs(records)
-    return body + "</div>"
+    return body + "</div></details>"
 
 
 def _call_charts(records: list[dict[str, Any]], days: int, tz: ZoneInfo, now: datetime) -> str:

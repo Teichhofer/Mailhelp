@@ -240,6 +240,8 @@ function randomHexKey() {
     var tools = main.querySelector("details[data-open-more]");
     if (tools && phone.matches && !tools.hasAttribute("data-set")) tools.open = false;
   }
+  // 6.2.10: long sections (the evaluation charts) also start folded on phones.
+  if (phone.matches) document.querySelectorAll("details[data-fold-phone]").forEach(function (node) { node.open = false; });
   // From 900 px the summary is hidden, so the controls must never stay folded there.
   phone.addEventListener("change", function () {
     var tools = main.querySelector("details[data-open-more]");

@@ -172,6 +172,8 @@ UI-11 (Abstände im Themeneditor) und UI-12 (Fachbegriffe bei Zuordnen/Verwerfen
   voller Nullen.
 - Abschnitte „Kosten“, „Zeiten“, „Ablauf“ mit Sprungmarken am Seitenanfang; auf dem Handy sind
   Diagramme unterhalb des ersten Abschnitts eingeklappt.
+  Umgesetzt (6.2.10): Sprungmarken zu Kennzahlen, Diagrammen, Ablauf und „Nach Modell und Schritt“ –
+  die Diagramme mischen Kosten und Zeiten, eine Trennung nach Kosten/Zeiten hätte sie zerrissen.
 
 ---
 

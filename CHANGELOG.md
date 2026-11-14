@@ -1,5 +1,14 @@
 # Änderungen
 
+## 6.2.10 – Auswertung mit Kacheln und Abschnitten
+
+- Die Kennzahlen der Auswertung sind Kacheln (Beschriftung über dem Wert); jede öffnet weiterhin die
+  passenden Aufrufe.
+- Ohne erfasste Aufrufe steht statt einer Tabelle voller Nullen ein Satz mit dem Hinweis auf Zeitraum und
+  Filter; beschädigte Zeilen oder Erfassungsfehler bleiben sichtbar.
+- Sprunglinks führen zu Kennzahlen, Diagrammen, Ablauf und „Nach Modell und Schritt“. Auf dem Telefon sind
+  die Diagramme beim Laden zugeklappt (bisher rund 14 Bildschirmhöhen).
+
 ## 6.2.9 – Einstellungen ohne Doppelungen, Status mit klarer Kopfzeile
 
 - Einstellungen: 18 statt 22 Kacheln. „Verbindungen prüfen“ ersetzt „Diagnose“ und „Lesender Selbsttest“

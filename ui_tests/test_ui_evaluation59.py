@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import audit, open_charts
 from conftest import sign_in
 from tests.scenarios.web_scenario import mail_id
 
@@ -33,6 +33,7 @@ def test_evaluation59_charts_and_pipeline_fit_every_screen(page, mailhelp):
     journal(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/auswertung?days=7")
+    open_charts(page)
     expect(page.get_by_text("Ablauf der Mailverarbeitung", exact=True)).to_be_visible()
     plan = page.locator("ol.pipeline")
     expect(plan.locator(".is-bottleneck")).to_contain_text("⏱ größte Wartezeit")

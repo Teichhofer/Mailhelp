@@ -1,7 +1,7 @@
 """Evaluation charts: enlargement, pointer/focus details, touch and the no-script fallback."""
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import audit, open_charts
 from conftest import sign_in
 
 
@@ -17,6 +17,7 @@ def test_charts_zoom_and_show_details_with_pointer_keyboard_and_touch(page, mail
     seed_charts(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/auswertung")
+    open_charts(page)
     chart = page.locator("figure.chart").first
     zoom = chart.get_by_role("button", name="vergrößern", exact=False)
     expect(zoom).to_have_count(1)
@@ -78,6 +79,7 @@ def test_horizontal_chart_details_are_plain_text_and_tables_still_work(page, mai
     seed_charts(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/auswertung")
+    open_charts(page)
     chart = page.locator("figure.chart").last
     chart.get_by_role("button", name="vergrößern", exact=False).click()
     dialog = page.get_by_role("dialog")
