@@ -38,7 +38,7 @@ def test_archive_shows_and_filters_the_mailbox(web):
     assert '<select name="postfach">' in page and '<option value="2">Arbeit</option>' in page
     assert '<span class="badge">Arbeit</span>' in page and '<span class="badge">Entferntes Postfach</span>' in page
     filtered = web.browser.request("GET", "/mails?postfach=2").body.decode()
-    assert '<option value="2" selected>Arbeit</option>' in filtered and "1 gespeicherte Mails" in filtered
+    assert '<option value="2" selected>Arbeit</option>' in filtered and "1 gespeicherte Mail ·" in filtered
     assert web.browser.request("GET", "/mails?postfach=100").status == 422
 
 

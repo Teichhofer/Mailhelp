@@ -65,7 +65,7 @@ def test_evaluation59_a_figure_opens_its_call_list(page, mailhelp):
     page.get_by_role("button", name="Anzeigen", exact=True).click()
     expect(page.locator(".calls-table tbody tr")).to_have_count(51)
     page.get_by_role("link", name="← Zurück zur Auswertung", exact=True).click()
-    expect(page.get_by_role("heading", name="Kosten und Zeiten", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Auswertung", exact=True)).to_be_visible()
     assert page.url.endswith("/auswertung?days=7&mode=production")
     assert audit(page, "calls59-" + page.device, page.mobile) == []
     assert page.errors == []

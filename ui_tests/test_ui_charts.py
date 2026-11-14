@@ -30,7 +30,7 @@ def test_charts_zoom_and_show_details_with_pointer_keyboard_and_touch(page, mail
     zoom.hover()
     expect(tip).to_be_hidden()
     point.focus()
-    page.get_by_role("heading", name="Kosten und Zeiten").hover()
+    page.get_by_role("heading", name="Auswertung").hover()
     expect(tip).to_be_visible()  # Keyboard focus keeps the details open.
     point.press("Tab")
     expect(tip).to_contain_text("fehlgeschlagen 1")

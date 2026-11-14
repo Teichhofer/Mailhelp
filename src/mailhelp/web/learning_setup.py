@@ -52,8 +52,8 @@ def setup_form(worker: Any, query_string: str) -> tuple[str, dict[str, list[str]
                      for route in worker.app.analyzer.prompts.resolved_routes(stage)[0]})
     body += (f'<p>Konfigurierte Modelle (einschließlich Ausweichrouten): {e(", ".join(models))}.</p>'
              '<p>Aktuelle Modellpreise einschließlich Ausgabe und Reasoning selbst prüfen. '
-             'Die Preisobergrenze ist Ihre manuelle Annahme; Anbieterabrechnungen können abweichen. '
+             'Die Preisobergrenze ist deine manuelle Annahme; Anbieterabrechnungen können abweichen. '
              'Gelesen wird ohne Änderung am Postfach. Es entstehen keine Termine oder Aufgaben.</p></fieldset>'
-             '<p>4. Die Schätzung zeigt Tokens und Kosten, bevor Sie den Lauf ausdrücklich starten.</p>'
+             '<p>4. Die Schätzung zeigt Tokens und Kosten, bevor du den Lauf ausdrücklich startest.</p>'
              '<button class="button">Schätzung anzeigen</button></form>')
     return body, query

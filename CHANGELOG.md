@@ -1,5 +1,19 @@
 # Änderungen
 
+## 6.2.3 – Verständliche Bezeichnungen statt interner Werte
+
+- Verlauf und Revisionsliste zeigen Zeiten in der eingestellten Zeitzone („14.11.2026, 07:12 Uhr“)
+  statt ISO-Zeitstempeln und deutsche Bezeichnungen statt interner Werte (`rejected` → „Verworfen“,
+  `web` → „Weboberfläche“, `edit` → „Felder bearbeitet“). Unbekannte Werte erscheinen als
+  „unbekannt (Wert)“. Altbestand zeigt keine leere Versionsangabe mehr.
+- Zählangaben stimmen mit dem Substantiv überein: „1 Vorschlag“, „1 gespeicherte Mail“, „1 Ereignis“,
+  „1 Durchlauf“, „1 Änderung, 1 neues Thema“ (bisher „1 Vorschlägen“, „1 Änderungen“ …).
+- Alle Seiten sprechen mit „du“ an (bisher teils „Sie“ auf den Lernseiten und im Themeneditor).
+- Wächtertests: Seitentexte ohne Sie-Form; Kernseiten ohne ISO-Zeitstempel und interne Statuswerte.
+- Nachgezogen aus 6.2.2: Die Themenseite verzichtet auf den Zurück-Link im Kopf, damit die erste
+  Themenzeile auch bei 320 px im ersten Bildschirm bleibt; zwei Browsertests erwarteten noch den alten
+  Titel „Kosten und Zeiten“.
+
 ## 6.2.2 – Einheitlicher Seitenkopf und zwei Seitenbreiten
 
 - Jede Kernseite beginnt mit demselben Seitenkopf: Bereich, Titel, eine Zeile Erklärung, bei

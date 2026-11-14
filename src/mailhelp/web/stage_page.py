@@ -12,6 +12,7 @@ from ..formatting import duration_text, format_datetime_local
 from ..review.views import STAGE_LABELS
 from ..runtime.stage_metrics import TOTAL
 from .calls_page import PAGE_SIZE, describe, filters
+from .labels import count_text
 from .pages import e, page_head
 
 STAGES = {stage.value for stage in ProcessingStage} | {TOTAL}
@@ -64,7 +65,7 @@ def stage_page(stage: str, params: dict[str, Any], sort: str, page: int, steps: 
         return body + '<p class="empty">Für diese Auswahl gibt es keine gemessenen Durchläufe.</p>'
     count = max(1, math.ceil(len(rows) / PAGE_SIZE))
     page = min(page, count)
-    navigation = [f"{len(rows)} Durchläufe · Seite {page} von {count}"]
+    navigation = [f"{count_text(len(rows), 'Durchlauf', 'Durchläufe')} · Seite {page} von {count}"]
     if page > 1:
         navigation.append(f'<a href="{e(_link(params, stage=stage, sort=sort, page=str(page - 1)))}">'
                           "‹ Vorherige Seite</a>")

@@ -33,7 +33,7 @@ def test_overview_reports_progress_dates_counts_and_missing_prompt_without_calls
     rules = attach(h)
     rules.log(record())
     html = h.browser.request("GET", "/lernen").body.decode()
-    assert "1 neue verwertbare Entscheidungen" in html and "Noch kein Lernlauf gestartet" in html
+    assert "1 neue verwertbare Entscheidung seit" in html and "Noch kein Lernlauf gestartet" in html
     h.change("start", h.selection)
     assert h.jobs.state().started_at > 0
     html = h.browser.request("GET", "/lernen").body.decode()
@@ -52,7 +52,7 @@ def test_analyzed_decision_metadata_survives_expiry_and_does_not_expose_foreign_
     rules.service.change(actor, 0, "analyze-1", "analyze", {"confirm": True})
     rules.service.tick()
     html = h.browser.request("GET", "/lernen").body.decode()
-    assert "Prüfentwurf mit 1 Vorschlägen" in html and "0 neue verwertbare" in html
+    assert "Prüfentwurf mit 1 Vorschlag wartet" in html and "0 neue verwertbare" in html
     assert "Elternbrief" not in html and "secret-token" not in html
     foreign = rules.service.overview("web:other")
     assert foreign["proposals"] == 0 and not foreign["owned"]

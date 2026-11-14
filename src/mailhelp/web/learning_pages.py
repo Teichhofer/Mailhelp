@@ -13,5 +13,5 @@ def heading(title: str, introduction: str, *, back: bool = True) -> str:
 def cost_hint() -> str:
     return ('<details class="help-cost-hint"><summary>Kostenpflichtig</summary>'
             '<p>Eine Analyse überträgt die auf der Unterseite genannten Daten an den aktiven KI-Anbieter. '
-            'Kosten entstehen erst nach Ihrer ausdrücklichen Startfreigabe. Das Öffnen dieser Seite '
+            'Kosten entstehen erst nach deiner ausdrücklichen Startfreigabe. Das Öffnen dieser Seite '
             'startet keine Analyse.</p></details>')

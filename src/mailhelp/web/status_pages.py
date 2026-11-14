@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from ..formatting import duration_text, format_datetime_local
 from ..review.inbox import CommandStatus
 from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
+from .labels import count_text
 from .pages import e, layout, notice, page_head
 
 RUN_LABELS = (
@@ -206,14 +207,16 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     issues = overview.damaged + system.mails_failed + len((info.runtime or {}).get("imap_errors", []))
     title = "Handlungsbedarf" if issues else "Keine gespeicherten Mailfehler oder beschädigten Datensätze"
     parts.append(f'<section class="card status-summary"><h2>{title}</h2>'
-                 f'<p>{len(overview.open)} offene Vorschläge · {len(overview.relevance)} Relevanzfragen.</p>'
+                 f'<p>{count_text(len(overview.open), "offener Vorschlag", "offene Vorschläge")} · '
+                 f'{count_text(len(overview.relevance), "Relevanzfrage", "Relevanzfragen")}.</p>'
                  f'<p>{e(_processed_sentence(system, zone))}</p>'
                  '<p>„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
                  'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p>'
                  '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
                  '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p></section>')
     if overview.damaged:
-        parts.append(notice(f"{overview.damaged} beschädigte Datensätze – bitte Protokolle prüfen.", "error"))
+        parts.append(notice(count_text(overview.damaged, "beschädigter Datensatz", "beschädigte Datensätze")
+                            + " – bitte Protokolle prüfen.", "error"))
     parts.append(_status_links(overview, system, info))
 
     parts.append('<details class="status-details"><summary>Betriebsdetails und Zähler anzeigen</summary>')

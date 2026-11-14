@@ -2937,6 +2937,14 @@ zurück. Der Titel einer Seite der Hauptnavigation ist deren Eintrag (z. B. „A
 Seitenleiste beginnen alle Seiten an derselben linken Kante. Das erste Element einer Karte hat
 keinen zusätzlichen Abstand nach oben.
 
+Seit 6.2.3 übersetzt `web/labels.py` jeden internen Wert, den eine Seite zeigt: Vorschlagsstatus,
+Ereignisart, Quelle (Mailhelp, Weboberfläche, Telegram) und Art (Termin, Aufgabe). Ein Wert ohne
+Namen erscheint als „unbekannt (Wert)“. Verlauf und Revisionsliste zeigen Zeiten in der eingestellten
+Zeitzone; die Ereignisart steht nur dort, wo sie mehr sagt als der Status. Zählangaben stimmen mit
+dem Substantiv überein („1 Vorschlag“, „2 Vorschläge“). Alle Seiten sprechen mit „du“ an; ein Test
+durchsucht die Seitentexte nach der Sie-Form, ein Browsertest die Kernseiten nach ISO-Zeitstempeln
+und internen Statuswerten. Altbestand ohne Verlauf hat den Status `legacy` und die Quelle `unknown`.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste

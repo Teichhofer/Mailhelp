@@ -79,7 +79,7 @@ def test_the_slowest_runs_of_a_step_and_of_whole_mails(evaluation):
     web, _ = evaluation
     status, html = page(web, "/auswertung/schritte?days=7")
     assert status == 200 and "<h1>Durchlaufzeit je Mail</h1>" in html and "<th scope=\"col\">Wartezeit</th>" in html
-    assert "1 Durchläufe · Seite 1 von 1" in html and f'<a href="/mail/{mail_id(1)}">' in html
+    assert "1 Durchlauf · Seite 1 von 1" in html and f'<a href="/mail/{mail_id(1)}">' in html
     steps = page(web, "/auswertung/schritte?days=7&stage=relevance")[1]
     assert "<h1>Schritt „Relevanzprüfung“</h1>" in steps
     rows = re.findall(r"<tr><td>(.*?)</td></tr>", steps)

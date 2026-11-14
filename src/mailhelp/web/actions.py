@@ -124,8 +124,8 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         parts.append(f'<div class="actions decision-bar">{"".join(buttons)}</div>')
         parts.append('<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>'
                      '<p>Verwerfen lehnt diesen Vorschlag ab. Schon erledigt bedeutet: relevant, '
-                     'aber bereits erledigt; es wird kein neuer Eintrag angelegt. Diese Entscheidungen '
-                     'können später ausdrücklich zur Verbesserung Ihrer Themenregeln ausgewertet werden.</p></details>')
+                     'aber bereits erledigt; es wird kein neuer Eintrag angelegt. Diese Entscheidungen können '
+                     'später ausdrücklich zur Verbesserung deiner Themenregeln ausgewertet werden.</p></details>')
         if CommandKind.ANSWER in view.actions and not view.question:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)

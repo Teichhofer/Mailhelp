@@ -31,7 +31,7 @@ def test_mail_archive_filters_and_analysis(web):
     record_analysis(web.store, state, {'school': 'Schule'}, 'JEV')
     assert web.browser.request('GET', '/mails').status == 200
     page = web.browser.request('GET', '/mails?q=Schule&relevance=relevant&topic=school').body.decode()
-    assert '1 gespeicherte Mails' in page and '&lt;b&gt;' in page
+    assert '1 gespeicherte Mail ·' in page and '&lt;b&gt;' in page
     page = web.browser.request('GET', f'/mail/{state.id}').body.decode()
     assert 'Zusammenfassung' in page and 'Schule' in page and 'JEV' in page and '&lt;script&gt;reason' in page
     queries = ArchiveQueries(web.store)

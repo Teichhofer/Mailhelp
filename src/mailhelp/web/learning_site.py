@@ -8,6 +8,7 @@ from typing import Any
 
 from ..runtime.learning_jobs import LearningConflict, LearningSelection
 from .http import Response
+from .labels import count_text
 from .learning_pages import heading
 from .learning_setup import setup_form
 from .pages import e, layout, notice
@@ -44,9 +45,10 @@ class LearningSite:
     def home(self, request: Any, session: Any) -> Response:
         state = self.jobs.state()
         content = (
-            heading("Aus dem Postfach lernen", "Entdecken Sie neue Themen in vorhandenen Mails. "
-                    "Prüfen Sie erst die Auswahl und Kosten, dann geben Sie den lesenden Lauf ausdrücklich frei.")
-            + f'<p role="status">{e(LABELS[state.status])}: {state.cursor} Mails geprüft, {state.failures} Fehler.</p>'
+            heading("Aus dem Postfach lernen", "Entdecke neue Themen in vorhandenen Mails. "
+                    "Prüfe erst Auswahl und Kosten, dann gib den lesenden Lauf ausdrücklich frei.")
+            + f'<p role="status">{e(LABELS[state.status])}: {count_text(state.cursor, "Mail", "Mails")} geprüft, '
+            f'{state.failures} Fehler.</p>'
         )
         content += notice(state.message) if state.message else ""
         stale = self.jobs.stale(state)

@@ -883,13 +883,15 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
     assert "<summary>Technische LLM-Analyse &amp; Metriken</summary>" in page
     assert "Noch keine Revisionen erfasst." in page
     rows = [{"mail_id": MAIL1, "proposal_id": "elternabend", "version": v, "at": f"2026-10-0{v}T10:00:00+00:00",
-             "status": "pending_confirmation", "source": "system"} for v in (1, 2)]
+             "kind": "state", "status": "pending_confirmation", "source": "system"} for v in (1, 2)]
     rows.append({**rows[0], "proposal_id": "formular"})
     monkeypatch.setattr(web.site.archive.queries, "history_of",
                         lambda mail_id: [row for row in rows if row["mail_id"] == mail_id])
     page = web.browser.request("GET", f"/vorschlag/{MAIL1}/elternabend").body.decode()
     assert page.index(f"/vorschlag/{MAIL1}/elternabend/version/2") < page.index(f"/vorschlag/{MAIL1}/elternabend/version/1")
     assert "/formular/version" not in page
+    # 6.2.3: local time and German names instead of ISO times and internal values.
+    assert "Version 2</a> · 02.10.2026, 12:00 Uhr · Wartet auf Bestätigung · Mailhelp</li>" in page
     # 5.9.5: image previews no longer open the section on the server (app.js opens it from 1024 px);
     # the collapsed summary still says that images are there.
     raw = mail(("scan.png", "image", "png", image_bytes(Image.new("RGB", (300, 200)))))

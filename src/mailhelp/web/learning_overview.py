@@ -5,8 +5,10 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from ..review.views import german_number
 from ..rule_learning.service import digest
 from .http import Response
+from .labels import count_text
 from .learning_pages import cost_hint, heading
 from .pages import e, layout
 
@@ -41,14 +43,14 @@ class LearningOverviewSite:
             + '<p><a class="button" href="/lernen/postfach">Aus dem Postfach lernen</a></p>', active="/lernen"))
 
     def home(self, request: Any, session: Any) -> Response:
-        body = heading("Lernen", "Verbessern Sie Ihre Themenregeln: mit einem Lernlauf aus dem Postfach "
+        body = heading("Lernen", "Verbessere deine Themenregeln: mit einem Lernlauf aus dem Postfach "
                        "oder mit den bereits protokollierten Entscheidungen.", back=False)
         if self.worker is None:
             mailbox_status, last_run = "Lernlauf derzeit nicht verfügbar.", "Noch kein Lernlauf."
         else:
             state = self.worker.jobs.state()
             from .learning_site import LABELS
-            mailbox_status = f"{LABELS[state.status]}: {state.cursor} Mails geprüft"
+            mailbox_status = f"{LABELS[state.status]}: {count_text(state.cursor, 'Mail', 'Mails')} geprüft"
             if state.selection is not None:
                 mailbox_status += f" von {state.selection.count} ausgewählten Mails"
             last_run = ("Letzter Lauf: " + run_date(state.started_at, self.site.configured_timezone)
@@ -56,7 +58,7 @@ class LearningOverviewSite:
             if state.status == "empty":
                 mailbox_status, last_run = "Noch kein Lernlauf gestartet.", "Noch kein Lernlauf."
         body += '<div class="learning-options">' + self.card("Aus dem Postfach lernen", "/lernen/postfach",
-                          "Sinnvoll, wenn Sie neue Themen in vorhandenen Mails entdecken möchten. "
+                          "Sinnvoll, wenn du neue Themen in vorhandenen Mails entdecken möchtest. "
                           "Der lesende Lauf schlägt Themen, Filter und Ordner vor.", mailbox_status, last_run)
         service = self.site.rule_learning.service
         if service is None:
@@ -66,16 +68,18 @@ class LearningOverviewSite:
             from .rule_learning_site import STATUSES
             status = STATUSES[summary["status"]]
             if summary["status"] == "review":
-                status = (f'Prüfentwurf mit {summary["proposals"]} Vorschlägen wartet.' if summary["owned"]
+                status = (f'Prüfentwurf mit {count_text(summary["proposals"], "Vorschlag", "Vorschlägen")} '
+                          "wartet." if summary["owned"]
                           else "Prüfentwurf in einer anderen Sitzung.")
-            metric = (f'{summary["new_decisions"]} neue verwertbare Entscheidungen seit der letzten Analyse, '
-                      f'{summary["all_decisions"]} verwertbare insgesamt.')
+            metric = (count_text(summary["new_decisions"], "neue verwertbare Entscheidung",
+                                 "neue verwertbare Entscheidungen") + " seit der letzten Analyse, "
+                      f'{german_number(summary["all_decisions"])} verwertbare insgesamt.')
             if not summary["available"]:
                 status = ("In prompts.yaml fehlt decision_rule_learning. Den Block aus dem mitgelieferten "
                           "Beispiel übernehmen und die Konfiguration neu laden.")
         body += self.card("Aus Entscheidungen lernen", "/lernen/entscheidungen",
                           "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen. Analysiert vorhandene "
-                          "Entscheidungen und schlägt gezielte Änderungen Ihrer Themenregeln vor.", status, metric)
+                          "Entscheidungen und schlägt gezielte Änderungen deiner Themenregeln vor.", status, metric)
         body += '</div><p class="meta">Status wird automatisch lesend aktualisiert. '
         body += 'Das Öffnen dieser Seite startet keine Analyse.</p>'
         return Response.html(200, layout("Lernen", body, active="/lernen",

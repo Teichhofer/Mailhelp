@@ -48,7 +48,7 @@ def test_all_reuses_analysed_decisions_and_new_explains_when_none_are_left(page)
     assert harness.service.state("web:" + session.id).scope == "all"
     assert harness.service.tick()
     html = web.browser.request("GET", "/lernen/entscheidungen").body.decode()
-    assert "aus 1 Entscheidungen (alle bisherigen); " in html
+    assert "aus 1 Entscheidung (alle bisherigen); " in html
 
 
 def test_the_summary_names_decisions_left_out_by_the_payload_limit(page):

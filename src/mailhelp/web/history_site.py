@@ -56,7 +56,9 @@ class HistorySite:
         rows = [row for row in queries.history() if self._matches(row, query, sources[row["mail_id"]])]
         rows.sort(key=lambda row: row["at"], reverse=True)
         page = rows[(query.page - 1)*query.size:query.page*query.size]
-        return Response.html(200, layout("Verlauf", history_page(query, page, len(rows), params), active="/verlauf"))
+        return Response.html(200, layout("Verlauf", history_page(query, page, len(rows), params,
+                                                                   self.site.configured_timezone),
+                                         active="/verlauf"))
 
     def version(self, request: Request, session: WebSession, mail_id: str, proposal_id: str, version: str) -> Response:
         store = self.site.views.store

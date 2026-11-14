@@ -185,6 +185,6 @@ class ArchiveQueries:
         if not events:
             return [{"at": updated, "mail_id": mail_id, "title": subject,
                      "proposal_id": "", "version": "", "kind": "legacy", "proposal_kind": "",
-                     "status": "Altbestand / Ablauf nicht vollständig erfasst", "source": "unbekannt"}]
+                     "status": "legacy", "source": "unknown"}]
         return [{**event, "mail_id": mail_id, "title": subject,
                  "proposal_kind": kinds.get(event["proposal_id"], "")} for event in events]

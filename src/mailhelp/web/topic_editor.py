@@ -191,7 +191,7 @@ class TopicEditor:
         self.check(actor)
         before, revision, documents = self.context(kind, original)
         if revision != form["expected_hash"]:
-            raise TopicFieldError("__all__", "Datei inzwischen geändert. Neu laden, bevor Sie erneut bestätigen.", 409)
+            raise TopicFieldError("__all__", "Datei inzwischen geändert. Neu laden, bevor du erneut bestätigst.", 409)
         identity = draft_id(actor, kind, original)
         state = self.load(identity, actor)
         fingerprint = owner(json.dumps([kind, original, revision, values], sort_keys=True))
@@ -247,7 +247,7 @@ class TopicEditor:
         before = state.before.model_dump(mode="json") if state.before is not None else None
         body = ('<div class="page-heading"><p class="eyebrow">' + KINDS[state.kind][2] + '</p>'
                 '<h1>Änderung prüfen</h1><p>Bisherige und neue Regel im Vergleich. Gespeichert wird erst nach '
-                f'Ihrer ausdrücklichen Bestätigung.</p></div><p>Themen-ID: <code>{e(state.topic.id)}</code></p>'
+                f'deiner ausdrücklichen Bestätigung.</p></div><p>Themen-ID: <code>{e(state.topic.id)}</code></p>'
                 + compare(before, state.topic.model_dump(mode="json")))
         body += '<form method="post" action="/themen/speichern" class="stack confirm-bar">'
         for key, value in {"csrf": self.site.auth.csrf_token(session.id), "key": state.key, "draft_id": identity,

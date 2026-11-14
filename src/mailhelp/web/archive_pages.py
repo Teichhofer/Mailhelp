@@ -15,6 +15,7 @@ from ..review.search import Hit
 from .actions import recheck_form
 from .filters import chips
 from .forms import field, select
+from .labels import EVENTS, SOURCES, STATUSES, count_text, label
 from .pages import e, notice, page_head
 
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
@@ -230,17 +231,17 @@ def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int,
             f'<details class="filter-box"{" open" if active else ""}><summary>Filter</summary>'
             f'<div class="filters">{_archive_filters(query, topics, mailboxes)}</div></details>'
             '<button class="button primary">Suchen</button></form>')
-    body += f'<p class="meta">{total} gespeicherte Mails · Seite {query.page}</p>'
+    body += f'<p class="meta">{count_text(total, "gespeicherte Mail", "gespeicherte Mails")} · Seite {query.page}</p>'
     if not items:
         body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'
     body += f'<ul class="archive-list">{"".join(_archive_row(item, zone, mailboxes, csrf) for item in items)}</ul>'
     pages = []
-    for number, label in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
+    for number, text in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
         if 1 <= number <= max(1, (total + query.size - 1) // query.size):
             parameters = query.model_dump(mode="json", exclude_none=True)
             parameters["page"] = number
             parameters = {k: v for k, v in parameters.items() if v not in ("", None)}
-            pages.append(f'<a class="button" href="/mails?{e(urlencode(parameters))}">{label}</a>')
+            pages.append(f'<a class="button" href="/mails?{e(urlencode(parameters))}">{text}</a>')
     if pages:
         body += f'<p class="actions">{" ".join(pages)}</p>'
     if damaged:
@@ -316,17 +317,27 @@ def processing_path_section(explanation: Explanation, topics: dict[str, str], hi
             + _hints(hints) + '</section>')
 
 
-def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]]) -> str:
+def event_text(row: dict[str, Any], zone: str) -> str:
+    """6.2.3: "14.11.2026, 07:12 Uhr · Verworfen · Weboberfläche" – never ISO times or internal values."""
+    parts = [format_datetime_local(datetime.fromisoformat(row["at"]), zone)]
+    if row["kind"] not in ("state", "legacy") and label(EVENTS, row["kind"]) != label(STATUSES, row["status"]):
+        parts.append(label(EVENTS, row["kind"]))
+    parts += [label(STATUSES, row["status"]), label(SOURCES, row["source"])]
+    return " · ".join(parts)
+
+
+def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]], zone: str) -> str:
     if not rows:
         return '<p class="meta">Noch keine Revisionen erfasst.</p>'
     items = "".join(
         f'<li><a href="/vorschlag/{mail_id}/{e(proposal_id)}/version/{e(row["version"])}">'
-        f'Version {e(row["version"])}</a> · {e(row["at"])} · {e(row["status"])} · {e(row["source"])}</li>'
+        f'Version {e(row["version"])}</a> · {e(event_text(row, zone))}</li>'
         for row in rows)
     return f'<ul class="archive-list">{items}</ul>'
 
 
-def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, params: dict[str, Any]) -> str:
+def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, params: dict[str, Any],
+                 zone: str) -> str:
     body = (page_head("Verlauf", "Einblicke", "Was mit Vorschlägen und Mails geschehen ist.")
             + chips("/verlauf", query.filter) + '<form method="get" class="stack">'
             + field("q", "Betreff, Absender oder Mail-ID", query.q))
@@ -334,12 +345,13 @@ def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, pa
              + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind)
              + field("since", "Von", query.since or "") + field("until", "Bis", query.until or ""))
     body += ('<button class="button">Filtern</button></form>'
-             f'<p>{total} Ereignisse · Seite {query.page}</p><ul class="archive-list">')
+             f'<p>{count_text(total, "Ereignis", "Ereignisse")} · Seite {query.page}</p><ul class="archive-list">')
     for row in rows:
         link = (f'/vorschlag/{row["mail_id"]}/{row["proposal_id"]}/version/{row["version"]}'
                 if row["proposal_id"] else f'/mail/{row["mail_id"]}')
-        body += (f'<li class="card"><a href="{e(link)}">{e(row["title"])}</a><p>{e(row["at"])} · '
-                 f'{e(row["status"])} · {e(row["source"])} · Version {e(row["version"])}</p></li>')
+        version = f' · Version {e(row["version"])}' if row["version"] else ""
+        body += (f'<li class="card"><a href="{e(link)}">{e(row["title"])}</a>'
+                 f'<p>{e(event_text(row, zone))}{version}</p></li>')
     body += '</ul>'
     if query.page > 1:
         params["page"] = query.page - 1

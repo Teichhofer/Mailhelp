@@ -157,7 +157,9 @@ def test_history_filters_paging_and_first_version(web):
         web.store.save(f"proposal-{item.source_mail_id}-{item.id}-v{version}", item.model_dump(mode="json"))
         record_event(web.store, item, kind, "web", f"key-{version}")
     by_kind = web.browser.request("GET", "/verlauf?kind=reject").body.decode()
-    assert "1 Ereignisse" in by_kind
+    # Regression 6.2.3: "1 Ereignisse", raw values ("reject", "web") and ISO times.
+    assert "1 Ereignis ·" in by_kind and "Verworfen" in by_kind and "Weboberfläche" in by_kind
+    assert "T10:" not in by_kind and ">reject<" not in by_kind and " · web · " not in by_kind
     by_status = web.browser.request("GET", "/verlauf?status=created").body.decode()
     assert "0 Ereignisse" in by_status
     by_type = web.browser.request("GET", "/verlauf?proposal_kind=event").body.decode()

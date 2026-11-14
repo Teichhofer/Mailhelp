@@ -69,7 +69,7 @@ class TopicSite:
         except (ValueError, KeyError, OSError, yaml.YAMLError):
             return self.site._reply(request, 400, "Themen oder Filter nicht lesbar; Angaben und Dateien prüfen.")
         body = ('<div class="topic-heading">'
-                + page_head("Themen", "Einstellungen", back=("/einstellungen", "Einstellungen")) + '</div>'
+                + page_head("Themen", "Einstellungen") + '</div>'
                 '<nav class="topic-tabs" aria-label="Themenarten">')
         for category, (_internal, _filename, title) in KINDS.items():
             href = "/themen?" + urlencode({"art": category, "suche": query, "status": status})

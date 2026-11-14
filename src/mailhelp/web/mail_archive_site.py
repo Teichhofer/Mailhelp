@@ -66,4 +66,4 @@ class MailArchiveSite:
         rows = sorted((row for row in self.archive.queries.history_of(mail_id)
                        if row["proposal_id"] == proposal_id),
                       key=lambda row: row["at"], reverse=True)
-        return revisions_list(mail_id, proposal_id, rows)
+        return revisions_list(mail_id, proposal_id, rows, self.site.configured_timezone)

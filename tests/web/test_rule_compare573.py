@@ -57,7 +57,7 @@ def review(web, tmp_path):
 def test_the_review_starts_with_a_summary_and_jump_links(review):
     web, _harness, _session = review
     html = web.browser.request("GET", "/lernen/entscheidungen").body.decode()
-    assert "3 Vorschläge: 1 Änderungen, 1 neue Themen, 1 Deaktivierungen · aus 3 Entscheidungen" in html
+    assert "3 Vorschläge: 1 Änderung, 1 neues Thema, 1 Deaktivierung · aus 3 Entscheidungen" in html
     for index in (1, 2, 3):
         assert f'href="#vorschlag-{index}"' in html and f'id="vorschlag-{index}"' in html
     assert '<span class="badge accent">Neues Thema</span>' in html and "Deaktivierung</span>" in html

@@ -13,6 +13,7 @@ from ..storage import CorruptState
 from . import rule_preview
 from .auth import WebSession
 from .http import Request, Response
+from .labels import count_text as counted
 from .learning_overview import UPDATED
 from .learning_pages import heading
 from .pages import e, layout, notice
@@ -40,6 +41,7 @@ def count_text(accepted: int, rejected: int) -> str:
 
 
 UNAVAILABLE = "Regeln aus den protokollierten Entscheidungen verbessern."
+
 
 class RuleLearningSite:
     def __init__(self, site: MailhelpSite):
@@ -71,7 +73,7 @@ class RuleLearningSite:
             except (OSError, CorruptState):
                 status, message = 503, "Prüfstand nicht lesbar. Bitte Eingaben erneut prüfen."
         content = heading("Aus Entscheidungen lernen", "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen: "
-                          "Verbessern Sie Regeln mit den bereits protokollierten Entscheidungen. "
+                          "Verbessere Regeln mit den bereits protokollierten Entscheidungen. "
                           "Vorschläge werden vor jeder Übernahme einzeln geprüft.")
         content += notice(message, "error") if message else ""
         content += notice(state.message) if state.message else ""
@@ -189,11 +191,13 @@ class RuleLearningSite:
         olds = [next((topic for topic in state.documents[proposal.category]["topics"]
                       if topic["id"] == proposal.topic_id), None) for proposal in state.proposals]
         kinds = [self.action(proposal, old) for proposal, old in zip(state.proposals, olds, strict=True)]
-        counts = ", ".join(f"{kinds.count(kind)} {label}" for kind, label in (
-            ("Änderung", "Änderungen"), ("Neues Thema", "neue Themen"), ("Deaktivierung", "Deaktivierungen"))
-            if kinds.count(kind))
-        body = (f'<section class="card rule-summary"><h2>Vorschläge prüfen</h2><p>{len(state.proposals)} Vorschläge'
-                + (f": {counts}" if counts else "") + f' · aus {len(state.evidence)} Entscheidungen '
+        counts = ", ".join(counted(kinds.count(kind), one, many) for kind, one, many in (
+            ("Änderung", "Änderung", "Änderungen"), ("Neues Thema", "neues Thema", "neue Themen"),
+            ("Deaktivierung", "Deaktivierung", "Deaktivierungen")) if kinds.count(kind))
+        body = ('<section class="card rule-summary"><h2>Vorschläge prüfen</h2><p>'
+                + counted(len(state.proposals), "Vorschlag", "Vorschläge")
+                + (f": {counts}" if counts else "")
+                + f' · aus {counted(len(state.evidence), "Entscheidung", "Entscheidungen")} '
                 f'({SCOPE_LABELS[state.scope]}'
                 + (f"; {state.trimmed} ältere wegen der Nutzlastgrenze nicht übertragen" if state.trimmed else "")
                 + (f"; {state.condensed} gleichartige Ablehnungen nur als Anzahl übertragen"
@@ -240,7 +244,7 @@ class RuleLearningSite:
         chosen = [self.chosen(index, values) for index in range(len(state.proposals))]
         body += ('<div class="confirm-bar"><p role="status" data-rule-count>'
                  f'{count_text(chosen.count("accept"), chosen.count("reject"))}</p>'
-                 '<p>Im nächsten Schritt sehen Sie Ihre bearbeiteten Änderungen vor der Bestätigung.</p>'
+                 '<p>Im nächsten Schritt siehst du deine bearbeiteten Änderungen vor der Bestätigung.</p>'
                  '<button class="button" type="submit">Ausgewählte Änderungen prüfen</button></div>'
                  '<script src="/static/learning.js" defer></script>')
         return self.form(session, state, "preview", body)
