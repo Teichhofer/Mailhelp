@@ -46,7 +46,10 @@ NAVIGATION_ICONS = {
 
 
 # 5.0.1: the phone bar at the bottom shows these routes; the others are under "Mehr".
-TAB_BAR = ("/", "/mails", "/verlauf", "/status")
+# 6.2.8 (E3): the reconciliation is daily work and takes the place of the status page.
+TAB_BAR = ("/", "/mails", "/abgleich", "/verlauf")
+# Labels that would not fit a fifth of a 320 px phone bar.
+TAB_LABELS = {"/abgleich": "Abgleich"}
 MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 
 # Open decisions of the current request, set once by the session guard (5.0.1).
@@ -75,13 +78,13 @@ def _icon(path: str) -> str:
             f'<path d="{path}"/></svg>')
 
 
-def _link(href: str, active: str | None, open_count: int) -> str:
+def _link(href: str, active: str | None, open_count: int, *, tab: bool = False) -> str:
     current = ' aria-current="page"' if href == active else ""
     badge = ""
     if href == "/" and open_count:
         current += ' aria-describedby="offen-zahl"'
         badge = f'<span class="nav-count" aria-hidden="true">{open_count}</span>'
-    label = dict(NAVIGATION)[href]
+    label = TAB_LABELS.get(href, dict(NAVIGATION)[href]) if tab else dict(NAVIGATION)[href]
     return f'<a href="{href}"{current}>{_icon(NAVIGATION_ICONS[href])}<span class="nav-label">{label}</span>{badge}</a>'
 
 
@@ -96,7 +99,7 @@ def _navigation(active: str | None) -> str:
     if open_count:
         noun = "offene Entscheidung" if open_count == 1 else "offene Entscheidungen"
         described = f'<span id="offen-zahl" hidden>{open_count} {noun}</span>'
-    tabs = "".join(_link(href, active, open_count) for href in TAB_BAR)
+    tabs = "".join(_link(href, active, open_count, tab=True) for href in TAB_BAR)
     others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION if href not in TAB_BAR)
     current = " has-current" if active is not None and active not in TAB_BAR else ""
     more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">Mehr</span>'

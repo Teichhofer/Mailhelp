@@ -1,5 +1,16 @@
 # Änderungen
 
+## 6.2.8 – „Offen“ auf dem Telefon
+
+- Unter 900 px stehen nur die Schnellfilter in einer seitlich scrollbaren Zeile; Suche, Sortierung und
+  Gruppierung liegen unter „Suchen und sortieren“ und sind beim Laden zugeklappt, außer wenn etwas gesetzt
+  ist (dann nennt die Zusammenfassung die Werte). Ohne JavaScript bleiben sie offen.
+- Die erste Entscheidung beginnt bei 390 × 844 und 320 × 640 in den oberen 60 % des Fensters (bisher bei
+  rund 800 px); gemessen im echten Fenster, nicht im Ganzseiten-Screenshot.
+- Die Leiste unten führt zu Offen, Mails, Abgleich und Verlauf; „Status“ liegt jetzt unter „Mehr“.
+- Geklärt: Der Leerraum unter den Entscheidungsknöpfen in Ganzseiten-Screenshots ist die am Fensterrand
+  haftende Entscheidungsleiste; im Fenster sitzt sie direkt über der Erklärung (Test ergänzt).
+
 ## 6.2.7 – Dichte Zeilenlisten
 
 - Mails, Verlauf und Vorschlagsabgleich zeigen je Eintrag eine Zeile statt einer hohen Karte: Titel als Link,

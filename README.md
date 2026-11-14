@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.2.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.2.8 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Seit 6.2.5 bevorzugt der Telegram-Befehl `/web` die erste in `web.allowed_hosts` eingetragene
 Domain oder Subdomain per HTTPS vor IP-Adressen und LAN-Zugriff. Trage dort die
@@ -28,7 +28,8 @@ Kernseiten denselben Seitenkopf und eine von zwei Seitenbreiten. Ab 6.2.3 zeigt 
 Bezeichnungen und lokale Zeiten statt interner Werte; alle Seiten sprechen mit „du“ an. Ab 6.2.4 führen
 Hinweise direkt zur passenden Einstellung statt zu Schlüsseln in `config.yaml`. Ab 6.2.6 haben Verlauf,
 Mails und Auswertung dieselbe Werkzeugleiste mit „Mehr Filter“. Ab 6.2.7 sind Mails, Verlauf
-und Abgleich dichte Zeilenlisten.
+und Abgleich dichte Zeilenlisten. Ab 6.2.8 zeigt „Offen“ auf dem Telefon die erste
+Entscheidung ohne Scrollen; die Leiste unten führt zum Abgleich.
 
 Version 6.1 ist umgesetzt und abgenommen ([Planung 6.1](docs/Planung-6.1.md), [Release 6.1](docs/Release-6.1.md)): Prüfen in jedem Schritt der
 Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.

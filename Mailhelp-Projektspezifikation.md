@@ -2969,13 +2969,20 @@ Link, eine Zeile mit Absender und Zeit bzw. Zeit, Ereignis, Quelle und Version, 
 bleiben Vorschläge mit Vergleich, Angebot oder fehlgeschlagener Dublettenprüfung Karten; ihr Titel ist
 ein Link statt einer Schaltfläche.
 
+Seit 6.2.8 stehen in „Offen“ unter 900 px nur die Schnellfilter in einer seitlich scrollbaren Zeile;
+Suche, Sortierung und Gruppierung liegen unter „Suchen und sortieren“. `app.js` klappt diesen Bereich
+auf Telefonen beim Laden zu, außer wenn etwas gesetzt ist; die Zusammenfassung nennt dann die Werte.
+Ohne JavaScript bleibt er offen; ab 900 px ist er immer offen und die Zusammenfassung ausgeblendet.
+Bei 390 × 844 und 320 × 640 beginnt die erste Entscheidung in den oberen 60 % des Fensters.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste
 mit „Navigation einklappen“ auf Symbole verkleinern; die Wahl speichert der Browser je Gerät
 (`localStorage`), ohne Speicher oder ohne JavaScript bleibt sie ausgeklappt. Unter 900 Pixeln
 liegt die Navigation („Schnellnavigation“) fest am unteren Rand mit „Offen“, „Mails“,
-„Verlauf“, „Status“ und „Mehr“; „Mehr“ ist ein HTML-Ausklappmenü mit den übrigen Bereichen
+„Abgleich“ (Vorschlagsabgleich, seit 6.2.8 statt „Status“), „Verlauf“ und „Mehr“; „Mehr“ ist ein
+HTML-Ausklappmenü mit den übrigen Bereichen
 und funktioniert ohne JavaScript. Die Aktionsleisten der Karten und der Rückgängig-Hinweis
 liegen darüber. Der Eintrag „Offen“ zeigt die Zahl offener Entscheidungen (Vorschläge und
 Relevanzfragen der veröffentlichten Übersicht) und beschreibt sie für Screenreader; die

@@ -233,7 +233,21 @@ function randomHexKey() {
   // On wide screens the open items become a master list with a detail pane.
   // *previous* is the pane before a background refresh: it stays visible until
   // the selected item is loaded again, so the page does not flash.
+  // 6.2.8: on phones the search and sort controls of "Offen" start folded unless something is set,
+  // so the first decision is on the first screen. Without JavaScript they simply stay open.
+  var phone = window.matchMedia("(max-width: 899px)");
+  function foldTools() {
+    var tools = main.querySelector("details[data-open-more]");
+    if (tools && phone.matches && !tools.hasAttribute("data-set")) tools.open = false;
+  }
+  // From 900 px the summary is hidden, so the controls must never stay folded there.
+  phone.addEventListener("change", function () {
+    var tools = main.querySelector("details[data-open-more]");
+    if (tools && !phone.matches) tools.open = true;
+  });
+
   function enhance(previous) {
+    foldTools();
     items = main.querySelector(".open-items");
     pane = selected = null;
     if (!items) return;

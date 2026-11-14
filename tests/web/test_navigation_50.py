@@ -11,7 +11,7 @@ def bar(html):
 
 
 def test_the_phone_bar_holds_four_routes_and_the_rest_under_more():
-    html = layout("Status", "<h1>Status</h1>", active="/status")
+    html = layout("Verlauf", "<h1>Verlauf</h1>", active="/verlauf")
     tabs = bar(html)
     assert 'aria-label="Schnellnavigation"' in tabs
     menu = tabs[tabs.index('<details class="tab-more">'):]

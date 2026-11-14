@@ -11,6 +11,8 @@ from tests.scenarios.web_scenario import mail_id
 def test_toolbar606_search_sort_and_group_keep_each_other_and_survive_reload(page, mailhelp):
     sign_in(page, mailhelp)
     toolbar = page.locator(".open-toolbar")
+    if page.mobile:  # 6.2.8: on phones search and sort start folded
+        toolbar.locator(".open-more > summary").click()
     toolbar.get_by_label("Suchen", exact=True).fill("klassenleitung")
     toolbar.get_by_label("Sortierung", exact=True).select_option("datum")
     toolbar.get_by_label("Nach Bearbeitungsbedarf gruppieren", exact=True).check()

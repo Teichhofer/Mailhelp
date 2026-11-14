@@ -42,6 +42,10 @@ oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine
 Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
 In Telegram stehen ab 5.9.4 dieselben Werte in der Nachricht und als Schaltflächen darunter.
 
+
+Auf dem Telefon stehen oben nur die Schnellfilter; **Suchen und sortieren** klappt Suche,
+Sortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**, **Abgleich** und
+**Verlauf**; **Status** und die übrigen Bereiche liegen unter **Mehr**.
 ## Nach dem Anlegen
 
 Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:

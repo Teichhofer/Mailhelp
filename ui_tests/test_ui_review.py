@@ -38,6 +38,8 @@ def test_detail_and_status_pages(page, mailhelp):
     expect(scope.get_by_role("heading", name="Termin")).to_be_visible()
     scope.get_by_text("Beleg vollständig anzeigen").click()
     assert audit(page, f"detail-{page.device}", page.mobile) == []
+    if page.mobile:  # 6.2.8: on phones the status page is under "Mehr"
+        page.locator("nav.tab-bar").get_by_text("Mehr", exact=True).click()
     page.get_by_role("link", name="Status").click()
     expect(page.locator(".stat").filter(has_text="Warten auf dich")).to_contain_text("4")
     assert audit(page, f"status-{page.device}", page.mobile) == []

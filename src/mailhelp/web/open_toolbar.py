@@ -111,7 +111,15 @@ def toolbar(path: str, view: OpenView) -> str:
     sorts = "".join(f'<option value="{key}"{" selected" if key == view.sort else ""}>{label}</option>'
                     for key, label in SORTS.items())
     filter_field = f'<input type="hidden" name="filter" value="{e(view.filter)}">' if view.filter else ""
+    # 6.2.8: on phones search, sort and grouping fold under one control (app.js closes it there unless
+    # something is set); from 900 px the summary is hidden and the form always shown.
+    active = [text for text in (f"„{view.q}“" if view.q else "",
+                                SORTS[view.sort] if view.sort != "neu" else "",
+                                "gruppiert" if view.group else "") if text]
+    state = f' <span class="open-more-state">({e(", ".join(active))})</span>' if active else ""
     return ('<div class="open-toolbar"><nav class="filter-chips" aria-label="Schnellfilter">' + chips + '</nav>'
+            f'<details class="open-more" open data-open-more{" data-set" if active else ""}>'
+            f'<summary>Suchen und sortieren{state}</summary>'
             f'<form method="get" action="{e(path)}" class="open-search" role="search">{filter_field}'
             '<div class="open-field"><label for="open-q">Suchen</label>'
             f'<input id="open-q" type="search" name="q" maxlength="{MAX_QUERY}" value="{e(view.q)}" '
@@ -121,7 +129,7 @@ def toolbar(path: str, view: OpenView) -> str:
             f'<label class="open-group"><input type="checkbox" name="gruppe" value="{GROUP}"'
             f'{" checked" if view.group else ""}> Nach Bearbeitungsbedarf gruppieren</label>'
             '<button class="button primary" type="submit">Anzeigen</button>'
-            f'<a class="button link" href="{e(path)}">Zurücksetzen</a></form></div>')
+            f'<a class="button link" href="{e(path)}">Zurücksetzen</a></form></details></div>')
 
 
 __all__ = ["OpenView", "count", "groups", "ordered", "parse", "search_open", "search_relevance", "toolbar"]
