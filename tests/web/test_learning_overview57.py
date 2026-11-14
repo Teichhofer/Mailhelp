@@ -40,7 +40,10 @@ def test_overview_reports_progress_dates_counts_and_missing_prompt_without_calls
     assert "Läuft: 0 Mails" in html and "von 2" in html and "Letzter Lauf:" in html
     assert rules.analyzer.calls == [] and h.client.calls == []
     rules.analyzer.prompts.prompts.clear()
-    assert "fehlt decision_rule_learning" in h.browser.request("GET", "/lernen").body.decode()
+    missing = h.browser.request("GET", "/lernen").body.decode()
+    assert "fehlt der Schritt decision_rule_learning" in missing
+    assert '<a href="/hilfe/dokumentation/bedienung/aus-entscheidungen-lernen">' in missing
+    assert h.browser.request("GET", "/hilfe/dokumentation/bedienung/aus-entscheidungen-lernen").status == 200
     assert run_date(0, "UTC") == "01.01.1970, 00:00"
 
 

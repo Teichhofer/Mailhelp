@@ -16,7 +16,7 @@ def test_archive_history_statistics_settings_and_topics(page, mailhelp):
     page.goto(f'{mailhelp.url}/mails')
     page.get_by_label('Suche', exact=True).fill('Klassenfahrt')
     page.get_by_role('button', name='Suchen', exact=True).click()
-    expect(page.locator('main')).to_contain_text('1 gespeicherte Mails')
+    expect(page.locator('main')).to_contain_text('1 gespeicherte Mail ·')
     assert page.errors == []
 
 

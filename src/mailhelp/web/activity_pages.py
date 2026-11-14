@@ -9,6 +9,7 @@ from ..activity.models import ActivityReport, ReportEvent, ReportMail, ReportSta
 from ..activity.presentation import ReportFilter, fingerprint, highlighted_text
 from .actions import new_key
 from .pages import e, layout, notice, page_head
+from .settings_search import setting_href
 
 STATUS_LABELS = {
     ReportStatus.COUNTING: "Zählt die Mails des Zeitraums …", ReportStatus.READY: "Bereit – wartet auf den Start",
@@ -21,8 +22,15 @@ ACTIONS = {ReportStatus.COUNTING: ["cancel"], ReportStatus.READY: ["start", "can
            ReportStatus.DONE: ["delete"], ReportStatus.CANCELLED: ["delete"], ReportStatus.FAILED: ["delete"]}
 SKIPPED = {"sender": "ignorierter Absender", "automated": "automatische Mail", "size": "zu groß",
            "suspicious": "verdächtiger Link", "duplicate": "Duplikat", "unreadable": "nicht lesbar"}
-DISABLED = ("Tätigkeitsberichte sind ausgeschaltet. Sie werden mit activity_report.enabled in config.yaml "
-            "und den Prompts activity_relevance und activity_events in prompts.yaml aktiviert.")
+HELP = "/hilfe/dokumentation/web-einstellungen/taetigkeitsberichte"
+
+
+def disabled_notice() -> str:
+    """6.2.4: where to switch reports on – a link to the setting, not a key in config.yaml."""
+    return ('<p class="notice notice-info" role="status">Tätigkeitsberichte sind ausgeschaltet. Einschalten unter '
+            f'<a href="{e(setting_href("activity_report.enabled"))}">Einstellungen → Tätigkeitsberichte '
+            'aktivieren</a>. Die KI-Schritte <code>activity_relevance</code> und <code>activity_events</code> '
+            f'müssen in <code>prompts.yaml</code> stehen (<a href="{HELP}">Hilfe zu Tätigkeitsberichten</a>).</p>')
 
 
 INTRO = "Tätigkeitsberichte: Welche Termine gehörten im Zeitraum zu einem Thema?"
@@ -38,7 +46,7 @@ def _day(value: date) -> str:
 
 
 def disabled_page(*, decisions: str = "") -> str:
-    return layout("Berichte", page_head("Berichte", "Einblicke", INTRO) + f"{notice(DISABLED)}{decisions}",
+    return layout("Berichte", page_head("Berichte", "Einblicke", INTRO) + disabled_notice() + decisions,
                   active="/berichte")
 
 

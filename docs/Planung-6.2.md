@@ -125,6 +125,8 @@ UI-11 (Abstände im Themeneditor) und UI-12 (Fachbegriffe bei Zuordnen/Verwerfen
   Web-Einstellung gibt, bleibt der Dateiname, ergänzt um einen Link in die Hilfe.
 - **Anrede** nach E1 in Seiten, Hilfetexten und Doku.
 - **Einstellungen bestätigen** (UI-07): Anzeigename, bisheriger und neuer Wert, konkrete Wirkung.
+  Bei der Umsetzung geprüft (6.2.4): seit 5.8 bereits so umgesetzt (Anzeigename, „Bisher gespeichert“,
+  „Neu“, Warnungen nur für die jeweils betroffene Einstellung); keine Änderung nötig.
 - **Wächtertest:** Kernseiten mit synthetischen Daten enthalten keine internen Statuswerte, keine
   ISO-Zeitstempel und kein „Sie/Ihre“.
 

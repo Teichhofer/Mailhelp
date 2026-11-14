@@ -2060,10 +2060,14 @@ diesen Browser gebunden) oder Web-Passwort. Sitzungen als gehashte Zufallstoken 
 Tailscale-Identitäts-Header werden ignoriert. Mit `web.lan_access` (erfordert `host: 0.0.0.0`) sind zusätzlich
 private IPv4-Adressen mit dem konfigurierten Port als Host zulässig; Cookies tragen
 `Secure` nur bei einem Host-Namen (HTTPS über Tailscale), nicht bei IP-Adressen oder
-`localhost`. Der Telegram-Befehl `/web` sendet einen Link zur Anmeldeseite (mit
-`lan_access` die bei jedem Aufruf neu ermittelte IP des PCs im Heimnetz, sonst den
-Tailnet-Namen per HTTPS, falls in `allowed_hosts` eingetragen, sonst die lokale
-Adresse) mit einem nicht an einen Browser gebundenen
+`localhost`. Der Telegram-Befehl `/web` sendet einen Link zur Anmeldeseite. Vorrang hat
+die erste Domain/Subdomain aus `web.allowed_hosts` per HTTPS (einschließlich Tailnet-Namen
+und optionalem Port), auch bei aktiviertem `lan_access` und vor eingetragenen IP-Adressen.
+Ohne Domain folgt bei `lan_access` die bei jedem Aufruf neu ermittelte IP des PCs im Heimnetz,
+danach die erste konfigurierte entfernte IP per HTTPS, zuletzt die lokale Adresse.
+Die Domain muss auf den HTTPS-Proxy dieser Instanz zeigen; die Auswahl führt keine DNS- oder
+Erreichbarkeitsprüfung durch und übernimmt keine Ziele aus Anfragen oder Reverse-DNS.
+Der Link enthält einen nicht an einen Browser gebundenen
 Einmal-Code, der im Link vorausgefüllt ist und einen früheren `/web`-Code ersetzt.
 Jede Kopplung wird in Telegram gemeldet; `/web_abmelden` meldet alle Geräte ab. Ein Befehl wird nur ausgeführt,
 solange seine Sitzung besteht.
@@ -2944,6 +2948,12 @@ Zeitzone; die Ereignisart steht nur dort, wo sie mehr sagt als der Status. Zähl
 dem Substantiv überein („1 Vorschlag“, „2 Vorschläge“). Alle Seiten sprechen mit „du“ an; ein Test
 durchsucht die Seitentexte nach der Sie-Form, ein Browsertest die Kernseiten nach ISO-Zeitstempeln
 und internen Statuswerten. Altbestand ohne Verlauf hat den Status `legacy` und die Quelle `unknown`.
+
+Seit 6.2.4 verweisen Seiten auf die passende Einstellung (`settings_search.setting_href`), statt
+Schlüssel in `config.yaml` zu nennen, z. B. „Einstellungen → Tätigkeitsberichte aktivieren“. Wo es
+keine Web-Einstellung gibt (Schritte in `prompts.yaml`), bleibt der Dateiname und ein Link in die
+eingebaute Hilfe kommt hinzu; ein Test prüft, dass jeder solche Link auf einen vorhandenen
+Hilfeabschnitt zeigt. Vorschläge ohne gespeicherten Zieldienst nennen im Abgleich ihr Zielprofil.
 
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren

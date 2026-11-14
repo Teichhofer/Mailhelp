@@ -1,5 +1,28 @@
 # Änderungen
 
+## Noch nicht veröffentlicht
+
+- `/web` und die Web-Statusadresse bevorzugen automatisch die erste Domain/Subdomain
+  aus `web.allowed_hosts` per HTTPS vor eingetragenen IP-Adressen und der LAN-IP.
+  So führen Telegram-Links bei vorhandener Domain konsistent zur selben Adresse.
+- Ohne Domain bleiben die bisherigen LAN-/IP-/localhost-Rückfälle verfügbar.
+  Die Auswahl verwendet ausschließlich konfigurierte Hosts, keine Anfrage-Header oder DNS-Ermittlung.
+- Regressionstests reproduzieren die falsche IP-Auswahl und prüfen Wiederholung,
+  Neustart, mehrere Domains, optionale Ports und Rückfälle ohne Domain.
+
+## 6.2.4 – Links zur Einstellung statt Konfigurationsschlüsseln
+
+- „Berichte“ (ausgeschaltet): statt „activity_report.enabled in config.yaml“ ein Link auf
+  „Einstellungen → Tätigkeitsberichte aktivieren“ und die Hilfe zu Tätigkeitsberichten.
+- „Lernen“: Fehlt `decision_rule_learning` in `prompts.yaml`, verlinkt die Karte die passende Hilfe.
+- Einrichtung: Postfächer verweisen auf „Einstellungen → Postfächer“, Modelle auf „Einstellungen → KI und
+  Auswertung“.
+- Vorschlagsabgleich: Vorschläge ohne gespeicherten Zieldienst zeigen „Ziel: Zielprofil „Familie““ statt
+  „Anbieter nicht gespeichert“.
+- Ein Test stellt sicher, dass jeder Hilfelink der Seiten auf einen vorhandenen Abschnitt zeigt.
+- Nachgezogen aus 6.2.3: zwei Browsertests erwarteten noch „1 gespeicherte Mails“ und
+  „aus 1 Entscheidungen“.
+
 ## 6.2.3 – Verständliche Bezeichnungen statt interner Werte
 
 - Verlauf und Revisionsliste zeigen Zeiten in der eingestellten Zeitzone („14.11.2026, 07:12 Uhr“)

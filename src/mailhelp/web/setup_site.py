@@ -186,7 +186,7 @@ class SetupSite:
                      for item in mailboxes]
         return ('<p>Vorhandene Ordner aus der letzten Diagnose: ' + e("; ".join(parts))
                 + '. Lesbarkeit beweist keine Schreibberechtigung. Postfächer hinzufügen oder entfernen: '
-                  'imap.mailboxes in config.yaml, Zugangsdaten IMAP_&lt;Nummer&gt;_USERNAME/_PASSWORD.</p>')
+                  '<a href="/einstellungen/postfaecher">Einstellungen → Postfächer</a>.</p>')
 
     def setup(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
@@ -206,7 +206,9 @@ class SetupSite:
             if index == 2:
                 body += self._listed_folders()
             if index == 3:
-                body += '<p>Modelle und Parameter werden in prompts.yaml gepflegt. Tests unter Diagnose starten.</p>'
+                body += ('<p>Welche Modelle mit welchen Parametern arbeiten, zeigt <a href="/einstellungen?bereich=ki">'
+                         'Einstellungen → KI und Auswertung</a>; geändert werden sie in <code>prompts.yaml</code>. '
+                         'Tests unter Diagnose starten.</p>')
             if index == 4:
                 body += self.site.experience.controls(self.site.auth.csrf_token(session.id))
                 body += '<p>Push benötigt HTTPS oder localhost, Browserunterstützung, Berechtigung und ein '

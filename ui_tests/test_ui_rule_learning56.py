@@ -110,7 +110,7 @@ def test_rule56_review_and_apply_work_without_javascript(page, mailhelp, rules):
     page.cdp.send("Emulation.setScriptExecutionDisabled", {"value": True})
     # 5.7.6: the scope is an ordinary radio choice and works without scripts.
     start_review(page, mailhelp, rules, scope="Alle bisherigen verwertbaren Entscheidungen")
-    expect(page.get_by_text(re.compile(r"aus 1 Entscheidungen \(alle bisherigen\)"))).to_be_visible()
+    expect(page.get_by_text(re.compile(r"aus 1 Entscheidung \(alle bisherigen\)"))).to_be_visible()
     choose(page)
     page.get_by_label(re.compile("^Beschreibung")).fill("Ohne JavaScript von Hand bearbeitet")
     page.get_by_role("button", name="Ausgewählte Änderungen prüfen", exact=True).click()

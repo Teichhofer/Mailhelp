@@ -145,6 +145,11 @@ def catalog() -> tuple[Entry, ...]:
     return tuple(entries)
 
 
+def setting_href(name: str) -> str:
+    """6.2.4: the link to one setting on its area page; pages link there instead of naming config.yaml."""
+    return next(entry.href for entry in catalog() if entry.key == name)
+
+
 def extra_catalog() -> tuple[Entry, ...]:
     """Generated public file/setup metadata; a broken resource never disables normal settings."""
     try:

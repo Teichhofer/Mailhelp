@@ -93,7 +93,11 @@ def test_pages_require_a_session_and_posts_a_csrf_token(web, reports):
 def test_switched_off_reports_explain_how_to_enable_them(web):
     assert web.site.activity.service is None
     status, html = page(web, "/berichte")
-    assert status == 200 and "activity_report.enabled" in html
+    # 6.2.4: a link to the setting instead of "activity_report.enabled in config.yaml".
+    assert status == 200 and "config.yaml" not in html and "activity_report.enabled in" not in html
+    assert '<a href="/einstellungen?bereich=ki#einstellung-activity-report-enabled">Einstellungen → ' in html
+    assert '<a href="/hilfe/dokumentation/web-einstellungen/taetigkeitsberichte">' in html
+    assert page(web, "/hilfe/dokumentation/web-einstellungen/taetigkeitsberichte")[0] == 200
 
 
     report_id = "a" * 32
@@ -102,7 +106,7 @@ def test_switched_off_reports_explain_how_to_enable_them(web):
         assert page(web, path)[0] == 404
     for path in ("/berichte", f"/berichte/{report_id}/aktion", f"/berichte/{report_id}/mail/0"):
         response = post(web, path, {"csrf": csrf(web)})
-        assert response.status == 404 and b"activity_report.enabled" in response.body
+        assert response.status == 404 and b"#einstellung-activity-report-enabled" in response.body
 
 
 def test_delete_requires_an_idempotency_key(web, reports):

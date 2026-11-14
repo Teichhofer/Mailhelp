@@ -12,6 +12,8 @@ from .labels import count_text
 from .learning_pages import cost_hint, heading
 from .pages import e, layout
 
+RULE_HELP = "/hilfe/dokumentation/bedienung/aus-entscheidungen-lernen"
+
 UPDATED = "Seite wurde aktualisiert, bitte erneut bestätigen."
 
 
@@ -60,7 +62,7 @@ class LearningOverviewSite:
         body += '<div class="learning-options">' + self.card("Aus dem Postfach lernen", "/lernen/postfach",
                           "Sinnvoll, wenn du neue Themen in vorhandenen Mails entdecken möchtest. "
                           "Der lesende Lauf schlägt Themen, Filter und Ordner vor.", mailbox_status, last_run)
-        service = self.site.rule_learning.service
+        service, more = self.site.rule_learning.service, ""
         if service is None:
             status, metric = "Regellernen derzeit nicht verfügbar.", "Noch keine Analyse."
         else:
@@ -75,18 +77,20 @@ class LearningOverviewSite:
                                  "neue verwertbare Entscheidungen") + " seit der letzten Analyse, "
                       f'{german_number(summary["all_decisions"])} verwertbare insgesamt.')
             if not summary["available"]:
-                status = ("In prompts.yaml fehlt decision_rule_learning. Den Block aus dem mitgelieferten "
-                          "Beispiel übernehmen und die Konfiguration neu laden.")
+                status = ("In prompts.yaml fehlt der Schritt decision_rule_learning. Den Block aus dem "
+                          "mitgelieferten Beispiel übernehmen und die Konfiguration neu laden.")
+                more = f'<p><a href="{RULE_HELP}">Hilfe zum Lernen aus Entscheidungen</a></p>'
         body += self.card("Aus Entscheidungen lernen", "/lernen/entscheidungen",
                           "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen. Analysiert vorhandene "
-                          "Entscheidungen und schlägt gezielte Änderungen deiner Themenregeln vor.", status, metric)
+                          "Entscheidungen und schlägt gezielte Änderungen deiner Themenregeln vor.", status, metric,
+                          more)
         body += '</div><p class="meta">Status wird automatisch lesend aktualisiert. '
         body += 'Das Öffnen dieser Seite startet keine Analyse.</p>'
         return Response.html(200, layout("Lernen", body, active="/lernen",
                                         fingerprint=self.fingerprint(session), state_url="/api/lernen/uebersicht"))
 
     @staticmethod
-    def card(title: str, href: str, introduction: str, status: str, metric: str) -> str:
+    def card(title: str, href: str, introduction: str, status: str, metric: str, more: str = "") -> str:
         return (f'<section class="card stack"><h2>{e(title)}</h2><p>{e(introduction)}</p>'
-                f'<p role="status">{e(status)}</p><p>{e(metric)}</p>' + cost_hint()
+                f'<p role="status">{e(status)}</p>{more}<p>{e(metric)}</p>' + cost_hint()
                 + f'<p><a class="button" href="{href}">{e(title)} öffnen</a></p></section>')

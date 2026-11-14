@@ -68,8 +68,10 @@ def section_head(item: Proposal, csrf: str) -> str:
             f'{e(item.title)}</a></h2>')
     body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
     labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
-    provider = labels.get(item.target_provider, item.target_provider or "Anbieter nicht gespeichert")
-    body += f'<p>Ziel: {e(provider)} · {e(item.target)}</p>'
+    # 6.2.4: older proposals have no stored service; the target profile decides when confirming.
+    target = (f"{labels.get(item.target_provider, item.target_provider)} · {item.target}" if item.target_provider
+              else f"Zielprofil „{item.target}“")
+    body += f'<p>Ziel: {e(target)}</p>'
     if item.duplicate_check_failed and item.status in OPEN:
         body += post_form("/abgleich", csrf, '', 'Dublettenprüfung wiederholen',
             kind="recheck_proposal", mail_id=item.source_mail_id, proposal_id=item.id, version=item.version)
