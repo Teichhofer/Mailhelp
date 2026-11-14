@@ -457,11 +457,14 @@ web:
   # Genau diese Host-Header werden angenommen (Schutz gegen DNS-Rebinding).
   # Für das iPhone über Tailscale Serve den Tailnet-Namen ohne Port ergänzen,
   # z. B. mailhelp-pc.tailnet-name.ts.net
+  # /web bevorzugt automatisch die erste Domain/Subdomain in dieser Liste
+  # per HTTPS, vor IP-Adressen und LAN-Zugriff (auch bei lan_access: true).
+  # Beispiel hinter einem HTTPS-Proxy: mailhelp.example.org ergänzen.
   allowed_hosts: [127.0.0.1:8765, localhost:8765]
   # Gültigkeit einer gekoppelten Browsersitzung in Tagen.
   # Noch nicht begonnene Web-Anlagen prüfen dieselbe Sitzung auch nach Neustart
   # und nach langsamen Vorprüfungen erneut; Widerruf/Ablauf blockieren die Anlage.
   session_days: 30
   # Zugriff im eigenen WLAN über die IP-Adresse des PCs (unverschlüsseltes HTTP).
-  # Benötigt host: 0.0.0.0; /web sendet dann den Link mit der aktuellen IP.
+  # Benötigt host: 0.0.0.0; /web nutzt die aktuelle IP, wenn keine Domain eingetragen ist.
   lan_access: false

@@ -120,11 +120,34 @@ def settings(tmp_path, **web):
     return configured
 
 
-def test_link_prefers_the_lan_ip_and_falls_back(tmp_path):
+def test_link_prefers_a_configured_domain_over_the_lan_ip(tmp_path):
     lan = settings(tmp_path, host="0.0.0.0", lan_access=True, allowed_hosts=[LOCAL, TAILNET])
-    assert base_url(lan, lambda: LAN) == f"http://{LAN}:8765"
+    assert base_url(lan, lambda: LAN) == f"https://{TAILNET}"
     assert base_url(lan, lambda: None) == f"https://{TAILNET}"
     assert base_url(settings(tmp_path, allowed_hosts=[LOCAL, TAILNET]), lambda: LAN) == f"https://{TAILNET}"
+
+
+@pytest.mark.parametrize("lan_access", [False, True])
+def test_web_command_prefers_domain_after_public_ip_and_keeps_it_after_restart(tmp_path, monkeypatch, lan_access):
+    monkeypatch.setattr("mailhelp.web.factory.lan_ip", lambda: LAN)
+    configured = settings(tmp_path, host="0.0.0.0", lan_access=lan_access,
+                          allowed_hosts=[LOCAL, "localhost:8765", "158.181.51.41", "stefan.inboxstride.test"])
+    for _ in range(2):
+        with JsonStore(tmp_path / "data") as store:
+            components = create_web(configured, SECRET, store, lambda _: None, Logger(), CommandInbox(store))
+            invite = components.invite()
+            assert re.search(r"https://stefan\.inboxstride\.test/anmelden\?code=\d{4}", invite)
+            assert components.site.link_base() == "https://stefan.inboxstride.test"
+            assert "158.181.51.41" not in invite and "Nur im selben Netzwerk" not in invite
+
+
+@pytest.mark.parametrize(("hosts", "expected"), [
+    (["localhost", LOCAL], "http://127.0.0.1:8765"),
+    ([LOCAL, "158.181.51.41"], "https://158.181.51.41"),
+    ([LOCAL, "first.test:9443", "second.test"], "https://first.test:9443"),
+])
+def test_link_without_domain_falls_back_and_multiple_domains_use_configured_order(tmp_path, hosts, expected):
+    assert base_url(settings(tmp_path, allowed_hosts=hosts), lambda: None) == expected
 
 
 def test_web_command_sends_the_current_lan_address(tmp_path, monkeypatch):

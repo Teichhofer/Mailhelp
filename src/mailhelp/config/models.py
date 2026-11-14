@@ -554,7 +554,7 @@ class WebSettings(ConfigModel):
         default_factory=lambda: ["127.0.0.1:8765", "localhost:8765"], min_length=1, max_length=20)
     session_days: int = Field(default=30, ge=1, le=365)
     # Reachable in the home network under the PC's private IP address (plain
-    # HTTP); /web then sends that address. Requires host 0.0.0.0.
+    # HTTP); /web uses it if no domain is configured. Requires host 0.0.0.0.
     lan_access: bool = False
     google_redirect_uri: str = "http://localhost:8765/auth/google/callback"
 

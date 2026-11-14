@@ -1,6 +1,6 @@
 # Änderungen
 
-## Noch nicht veröffentlicht
+## 6.2.5 – Domain für Weblinks bevorzugen
 
 - `/web` und die Web-Statusadresse bevorzugen automatisch die erste Domain/Subdomain
   aus `web.allowed_hosts` per HTTPS vor eingetragenen IP-Adressen und der LAN-IP.

@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.2.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.2.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
-Der Telegram-Befehl `/web` bevorzugt die erste in `web.allowed_hosts` eingetragene
+Seit 6.2.5 bevorzugt der Telegram-Befehl `/web` die erste in `web.allowed_hosts` eingetragene
 Domain oder Subdomain per HTTPS vor IP-Adressen und LAN-Zugriff. Trage dort die
 Adresse deines HTTPS-Proxys ein und verwende sie durchgehend, damit der Browser
 seine bestehende Sitzung wiederverwenden kann. Ohne Domain bleibt der lokale

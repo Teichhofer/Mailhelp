@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -60,14 +61,28 @@ def create_web(settings: Settings, secret: str | None, store: JsonStore,
 
 
 def base_url(settings: Settings, find_lan_ip: Callable[[], str | None] | None = None) -> str:
-    """Address for links: the PC's IP in the home network with lan_access, else the
-    Tailnet name over HTTPS if configured, else the local address."""
+    """Prefer a configured domain, then LAN, configured IP and finally localhost.
+
+    Only administrator-configured hosts determine links containing pairing codes;
+    request headers and reverse DNS never supply a destination.
+    """
+    remote = [host for host in settings.web.allowed_hosts
+              if host.split(":", 1)[0] not in {"127.0.0.1", "localhost"}]
+    domain = next((host for host in remote if _domain(host)), None)
+    if domain is not None:
+        return f"https://{domain}"
     address = (find_lan_ip or lan_ip)() if settings.web.lan_access else None
     if address is not None:
         return f"http://{address}:{settings.web.port}"
-    local = {f"127.0.0.1:{settings.web.port}", f"localhost:{settings.web.port}"}
-    remote = next((host for host in settings.web.allowed_hosts if host not in local), None)
-    return f"https://{remote}" if remote else f"http://127.0.0.1:{settings.web.port}"
+    return f"https://{remote[0]}" if remote else f"http://127.0.0.1:{settings.web.port}"
+
+
+def _domain(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host.split(":", 1)[0])
+    except ValueError:
+        return True
+    return False
 
 
 __all__ = ["WebComponents", "base_url", "create_web"]
