@@ -319,3 +319,41 @@ def test_collect_decided_proposals_edge_cases(tmp_path: Path):
     assert done_rec is not None
     assert done_rec.reject_reason == "already_done"
 
+
+def test_proposal_evaluation_counts_removed_separately(tmp_path):
+    store = JsonStore(tmp_path)
+    now = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
+
+    # 1. Stored proposals
+    m1 = _make_mail("000000000000000000000001", now=now)
+    store.save(state_names.mail(m1.id), m1.model_dump(mode="json"))
+
+    p_acc = _make_proposal(m1.id, "p-acc", ProposalKind.TASK, ProposalStatus.CREATED, now=now)
+    p_rej = _make_proposal(m1.id, "p-rej", ProposalKind.TASK, ProposalStatus.REJECTED, now=now)
+    p_rem = _make_proposal(m1.id, "p-rem", ProposalKind.EVENT, ProposalStatus.REMOVED, now=now)
+
+    store.save(state_names.proposal(m1.id, "p-acc"), p_acc.model_dump(mode="json"))
+    store.save(state_names.proposal(m1.id, "p-rej"), p_rej.model_dump(mode="json"))
+    store.save(state_names.proposal(m1.id, "p-rem"), p_rem.model_dump(mode="json"))
+
+    # 2. decisions.jsonl with a removed proposal
+    log_dir = tmp_path / "learning"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    records = [
+        {"id": "d-rem", "mail_id": "000000000000000000000099", "proposal_id": "p-logrem",
+         "recorded_at": now.isoformat(), "kind": "remove", "proposal": {"decided": {"kind": "task"}}},
+    ]
+    (log_dir / "decisions.jsonl").write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+
+    report = evaluate_proposals(store, days=30, now=now)
+    assert report.summary.total_decided == 4
+    assert report.summary.total_accepted == 1
+    assert report.summary.total_rejected == 1
+    assert report.summary.total_removed == 2
+    assert report.summary.tasks_removed == 1
+    assert report.summary.events_removed == 1
+    # Acceptance quote: 1 out of 4 = 25% (removed does not count as accepted!)
+    assert report.summary.total_quote == 25.0
+    assert len(report.weeks) == 1
+    assert report.weeks[0].removed == 2
+

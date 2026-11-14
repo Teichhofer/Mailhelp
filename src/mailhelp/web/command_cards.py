@@ -42,11 +42,13 @@ def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
 
 class CommandCards:
     def __init__(self, entries: list[CommandEntry], csrf: str, refresh: str,
-                 sender_hint_lookup: Callable[[str], Any] | None = None):
+                 sender_hint_lookup: Callable[[str], Any] | None = None,
+                 views: Any | None = None):
         self.entries = [entry for entry in entries if isinstance(entry.command, ReviewCommand)
                         and entry.command.source.value == "web" and not entry.acknowledged]
         self.csrf, self.refresh = csrf, refresh
         self.sender_hint_lookup = sender_hint_lookup
+        self.views = views
 
     def matching(self, mail_id: str, proposal_id: str | None) -> list[CommandEntry]:
         result = []
@@ -101,6 +103,17 @@ class CommandCards:
                         f'</div>'
                     )
             return "".join(parts)
+        if (isinstance(command, ReviewCommand)
+                and command.kind == CommandKind.CONFIRM
+                and entry.result is not None
+                and entry.result.status in {ResultStatus.DONE, ResultStatus.WRITTEN}
+                and command.proposal_id is not None
+                and self.views is not None):
+            view = self.views.proposal(command.mail_id, command.proposal_id)
+            if view is not None and view.can_remove:
+                return (f'<p class="card-links"><a class="button" '
+                        f'href="/vorschlag/{e(command.mail_id)}/{e(command.proposal_id)}/entfernen">'
+                        f'Eintrag wieder entfernen</a></p>')
         return ""
 
     def detached(self, references: set[tuple[str, str | None]]) -> str:

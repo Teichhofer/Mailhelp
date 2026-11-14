@@ -91,6 +91,24 @@ Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:
 **Erneut prüfen** liest nur noch einmal; Mailhelp ändert, repariert oder wiederholt nie eine
 Anlage.
 
+### Angelegte Einträge wieder entfernen
+
+Hast du einen Vorschlag versehentlich bestätigt oder hat sich der Anlass erledigt, kannst du den
+Eintrag innerhalb einer Frist (standardmäßig 10 Minuten nach dem Anlegen, einstellbar über
+`targets.removal_window_minutes`) wieder aus dem Kalender oder der Aufgabenliste löschen:
+
+- **Weboberfläche:** Auf der Ergebniskarte („Deine Aktion“) und auf der Vorschlagsdetailseite
+  erscheint während der Frist die Schaltfläche **Eintrag wieder entfernen**. Sie führt auf eine
+  Bestätigungsseite, die Titel, Zeit und Ziel anzeigt. Mit **Eintrag wirklich entfernen** wird der
+  Eintrag beim Anbieter gelöscht; **Abbrechen** führt ohne Änderungen zurück. Nach Ablauf der Frist
+  erscheint stattdessen der direkte Link zum Anbieter („Im Kalender öffnen“ bzw. „Aufgabe öffnen“).
+- **Telegram:** Unter der Meldung „✅ Angelegt …“ erscheint die Schaltfläche **Wieder entfernen**.
+  Ein Klick fragt nach („Wirklich entfernen: …?“ mit „Ja, entfernen“ und „Abbrechen“).
+- **Sicherheit:** Wurde der Eintrag beim Anbieter inzwischen von Hand geändert (z. B. durch ein
+  Familienmitglied), verweigert Mailhelp das Löschen, um fremde Änderungen zu schützen.
+- **Verlauf:** Ein entfernter Vorschlag wird im Verlauf und unter „Zuletzt erledigt“ als
+  **Wieder entfernt** gekennzeichnet und zählt in der Annahmequote nicht als angenommen.
+
 ## Mails nachlesen
 
 **Mails** listet alle verarbeiteten Mails. Die Mailseite zeigt „So wurde diese Mail

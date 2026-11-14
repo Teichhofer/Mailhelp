@@ -23,7 +23,7 @@ from ..models import Proposal
 
 TEMPORAL = ("due", "start", "end")
 # How the written entry became known: by the write answer, found by its key, or already there.
-How = Literal["created", "found_by_key", "updated", "appended", "cancelled", "existing"]
+How = Literal["created", "found_by_key", "updated", "appended", "cancelled", "existing", "removed"]
 
 
 @dataclass(frozen=True)

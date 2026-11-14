@@ -60,6 +60,8 @@ class ProposalStatus(StrEnum):
     MERGED = "merged"
     # 5.2: written with a known external id, not yet proven by a fresh read at the target.
     VERIFYING = "verifying"
+    # 6.6: successfully created externally and subsequently removed by user confirmation.
+    REMOVED = "removed"
 
 
 class DuplicateSource(StrEnum):
@@ -235,6 +237,7 @@ class Proposal(StrictModel):
     reject_reason: str | None = None
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
+    created_at: datetime | None = None
     uncertain_notified: bool = False
     simulation_notified: bool = False
     # Non-secret session identity, retained across restarts until this version finishes.
@@ -291,7 +294,8 @@ class Proposal(StrictModel):
             (self.classification == ProposalClassification.NON_BINDING and
              self.explicit_non_binding_create_confirmed)
         )
-        return (self.status != ProposalStatus.MERGED and not self.pending_sources
+        return (self.status not in {ProposalStatus.MERGED, ProposalStatus.REMOVED}
+                and not self.pending_sources
                 and not self.matching_candidates and classification_allowed and
                 self.responsibility == ProposalResponsibility.USER and
                 self.certainty == ProposalCertainty.CERTAIN)

@@ -50,7 +50,7 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                      # 2.3: further write targets; an unchanged Google/Todoist configuration keeps its fingerprint.
                      *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
                                                       "caldav_task_url", "outlook_calendar", "microsoft_todo_list",
-                                                      "microsoft_tenant")))
+                                                      "microsoft_tenant", "removal_window_minutes")))
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                                     "timeouts", "retries", *EXPERIENCE})
 OPERATIONAL = OPERATIONAL_BEFORE_3_1 | {"imap"}

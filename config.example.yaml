@@ -326,6 +326,9 @@ targets:
   outlook_calendar: default
   microsoft_todo_list: default
   microsoft_tenant: common
+  # Frist in Minuten nach dem Anlegen, in der ein Eintrag im Kalender oder in der Aufgabenliste
+  # über die Weboberfläche oder Telegram wieder entfernt werden kann (1–1440; Standard 10).
+  removal_window_minutes: 10
 # Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails
 # zum Herunterladen in der Weboberfläche; gelöscht mit retention.full_mail_days.
 attachments:

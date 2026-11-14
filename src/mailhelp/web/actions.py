@@ -11,7 +11,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Callable
 
-from ..models import ProposalStatus
+from ..models import ProposalKind, ProposalStatus
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash
@@ -285,5 +285,38 @@ def stale_page(message: str, current: ProposalView | None) -> str:
 <p><a class="button primary" href="/">Aktuellen Stand anzeigen</a></p>""")
 
 
-__all__ = ["command_page", "needs_choice", "new_key", "proposal_actions", "relevance_actions",
+def confirm_remove_page(view: ProposalView, csrf: str) -> str:
+    """Bestätigungsseite für das Entfernen eines angelegten Eintrags (Planung 6.6 / D3)."""
+    event = view.card.kind == ProposalKind.EVENT
+    target_name = "Kalender" if event else "Aufgaben"
+    explanation = (
+        "Der Eintrag wird im Kalender gelöscht. Der Vorschlag bleibt als ‚wieder entfernt‘ im Verlauf."
+        if event
+        else "Der Eintrag wird in den Aufgaben gelöscht. Der Vorschlag bleibt als ‚wieder entfernt‘ im Verlauf."
+    )
+    time_val = view.card.when if event else view.card.due
+    time_line = f'<p class="meta">Zeit: {e(time_val)}</p>' if time_val else ""
+    hidden = _hidden(csrf, CommandKind.REMOVE_CREATED, view.mail_id, view.version, view.proposal_id)
+    form = (
+        f'<form method="post" action="/aktion">{hidden}'
+        f'<div class="actions">'
+        f'<button class="button danger" type="submit">Eintrag wirklich entfernen</button>'
+        f'<a class="button" href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Abbrechen</a>'
+        f'</div></form>'
+    )
+    content = (
+        f'<p><a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">← Zurück zum Vorschlag</a></p>'
+        f'<h1>Eintrag wieder entfernen</h1>'
+        f'<div class="card">'
+        f'<h2>{e(view.card.title)}</h2>'
+        f'{time_line}'
+        f'<p class="meta">Ziel: {e(target_name)}</p>'
+        f'<div class="notice warn"><p>{e(explanation)}</p></div>'
+        f'{form}'
+        f'</div>'
+    )
+    return layout("Eintrag entfernen", content)
+
+
+__all__ = ["command_page", "confirm_remove_page", "needs_choice", "new_key", "proposal_actions", "relevance_actions",
            "reject_reason_block", "result_kind", "stale_page"]

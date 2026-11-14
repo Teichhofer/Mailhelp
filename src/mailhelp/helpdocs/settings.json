@@ -1121,6 +1121,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].removal_window_minutes",
+  "key": "target_profiles[].removal_window_minutes",
+  "label": "target_profiles[].removal_window_minutes",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "`todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].task_provider",
@@ -1138,6 +1148,16 @@
   "label": "target_profiles[].todoist_project",
   "path": "Zielprofilseite",
   "summary": "Zielprofilseite: Todoist-Projekt-ID, bis 500 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er über die Weboberfläche oder Telegram wieder entfernt werden kann: 1–1440; Standard 10. Nach Ablauf der Frist wird der Eintrag nicht mehr von Mailhelp gelöscht.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ziele",
+  "id": "setting:targets.removal_window_minutes",
+  "key": "targets.removal_window_minutes",
+  "label": "targets.removal_window_minutes",
+  "path": "Datei",
+  "summary": "Datei: Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er über die Weboberfläche oder Telegram wieder entfernt werden kann: 1–1440; Standard 10."
  },
  {
   "area": "Weitere Einstellungen",

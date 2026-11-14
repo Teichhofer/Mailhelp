@@ -1,6 +1,8 @@
 """Todoist task payloads, pagination and idempotency lookup."""
 from __future__ import annotations
 
+import time
+import traceback
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Any
@@ -8,8 +10,11 @@ from urllib.parse import quote
 
 from pydantic import ValidationError
 
+from ..domain.verification import FieldDifference
+from ..llm.adapter import uncertain_write
 from ..models import Proposal, ProposalKind
 from .contracts import (
+    EntryModifiedError,
     IntegrationModel,
     PreparedWrite,
     TodoistTaskListResponse,
@@ -17,7 +22,7 @@ from .contracts import (
     validation_path,
 )
 from .transport import HttpTransport
-from .verification import EntryRead, task_facts
+from .verification import EntryRead, compare, task_facts
 
 # A task completed before its check is looked up among recently completed ones (5.2).
 COMPLETED_WINDOW = timedelta(days=14)
@@ -80,6 +85,61 @@ class TodoistOperations(HttpTransport):
             if not cursor or cursor in seen_cursors:
                 raise ValueError("Todoist tasks: ungültige Antwort am Schlüsselpfad next_cursor")
             seen_cursors.add(cursor)
+
+    def _prepare_remove_todoist(self, proposal: Proposal, key: str) -> PreparedWrite:
+        if proposal.external_id is None:
+            raise ValueError("Vorschlag hat keine externe ID")
+        task_id = str(proposal.external_id)
+        entry = self._read_todoist(task_id)
+        if entry is None:
+            return PreparedWrite(lambda: {"id": task_id, "operation": "already_removed"},
+                                 requires_write=False, expected=None, kind="remove")
+        if entry.completed:
+            raise EntryModifiedError(
+                f"{self.label}: Aufgabe wurde beim Anbieter bereits erledigt; nicht entfernt.",
+                differences={"completed": FieldDifference(expected="offen", actual="erledigt")},
+                link=entry.link,
+            )
+        create_key = f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
+        expected = self._todoist_expected(proposal, create_key)
+        if expected is not None:
+            diffs = compare(expected, entry.facts)
+            if diffs:
+                raise EntryModifiedError(
+                    f"{self.label}: Aufgabe wurde beim Anbieter geändert; nicht entfernt.",
+                    differences=diffs,
+                    link=entry.link,
+                )
+        return PreparedWrite(lambda: self._remove_todoist(task_id, key, proposal),
+                             expected=None, kind="remove")
+
+    def _remove_todoist(self, task_id: str, key: str, proposal: Proposal) -> dict[str, Any]:
+        started = time.perf_counter()
+        url = f"/tasks/{quote(task_id, safe='')}"
+        try:
+            response = uncertain_write(lambda: self._delete(url, key))
+        except Exception as exc:
+            self.logger.event("ERROR", self.service, "remove_failed", call_id=key,
+                              mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                              error=exc, stacktrace=traceback.format_exc(),
+                              duration_ms=round((time.perf_counter() - started) * 1000, 3))
+            raise
+        self.logger.event("INFO", self.service, "remove_completed", call_id=key,
+                          mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                          duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                          status=response.status_code)
+        self._read_cache.clear()
+        if response.status_code == 404:
+            return {"id": task_id, "operation": "already_removed"}
+        return {"id": task_id, "operation": "removed"}
+
+    def _reconcile_remove_todoist(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if proposal.external_id is None:
+            return None
+        entry = self._read_todoist(str(proposal.external_id))
+        if entry is None:
+            return {"id": proposal.external_id, "operation": "removed"}
+        return None
 
     def _prepare_todoist(self, proposal: Proposal, key: str) -> PreparedWrite:
         if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")

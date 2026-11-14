@@ -10,8 +10,9 @@ from typing import Any
 
 import httpx
 
-from mailhelp.external.contracts import PreparedWrite, TargetWriter
-from mailhelp.external.verification import EntryRead, task_facts
+from mailhelp.domain.verification import FieldDifference
+from mailhelp.external.contracts import EntryModifiedError, PreparedWrite, TargetWriter
+from mailhelp.external.verification import EntryRead, compare, task_facts
 from mailhelp.llm.adapter import UncertainWriteError
 
 
@@ -62,6 +63,45 @@ class VerifyingWriter(TargetWriter):
             raise UncertainWriteError("Verbindung nach dem Schreiben abgebrochen")
         return dict(self.provider.by_key[key])
 
+    def prepare_remove(self, proposal, key: str) -> PreparedWrite:
+        if proposal.external_id is None:
+            raise ValueError("Vorschlag hat keine externe ID")
+        entry = self.read_entry(proposal.external_id)
+        if entry is None:
+            return PreparedWrite(lambda: {"id": proposal.external_id, "operation": "already_removed"},
+                                 requires_write=False, expected=None, kind="remove")
+        if entry.completed:
+            raise EntryModifiedError(
+                f"{self.label}: Aufgabe wurde beim Anbieter bereits erledigt; nicht entfernt.",
+                differences={"completed": FieldDifference(expected="offen", actual="erledigt")},
+                link=entry.link,
+            )
+        create_key = f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
+        expected = self.expected_facts(proposal, create_key)
+        if expected is not None:
+            diffs = compare(expected, entry.facts)
+            if diffs:
+                raise EntryModifiedError(
+                    f"{self.label}: Eintrag wurde beim Anbieter geändert; nicht entfernt.",
+                    differences=diffs,
+                    link=entry.link,
+                )
+        return PreparedWrite(lambda: self._remove(proposal.external_id, key), expected=None, kind="remove")
+
+    def _remove(self, external_id: str, key: str) -> dict[str, Any]:
+        if self.unclear_write:
+            self.provider.entries.pop(external_id, None)
+            raise UncertainWriteError("Verbindung nach dem Löschen abgebrochen")
+        self.provider.entries.pop(external_id, None)
+        return {"id": external_id, "operation": "removed"}
+
+    def reconcile_remove(self, proposal, key: str) -> dict[str, Any] | None:
+        if proposal.external_id is None:
+            return None
+        if proposal.external_id not in self.provider.entries:
+            return {"id": proposal.external_id, "operation": "removed"}
+        return None
+
     def read_entry(self, external_id: str) -> EntryRead | None:
         self.provider.reads.append(external_id)
         self.on_read()
@@ -71,7 +111,8 @@ class VerifyingWriter(TargetWriter):
         stored = self.provider.entries.get(external_id)
         if outcome is None or stored is None:
             return None
-        return EntryRead({**stored, **(outcome if isinstance(outcome, dict) else {})})
+        completed = bool(outcome.get("completed", False)) if isinstance(outcome, dict) else False
+        return EntryRead({**stored, **(outcome if isinstance(outcome, dict) else {})}, completed=completed)
 
 
 def provider_reads(request, posted: dict[str, Any]):

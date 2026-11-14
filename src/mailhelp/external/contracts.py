@@ -8,7 +8,7 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..domain.verification import Operation
+from ..domain.verification import FieldDifference, Operation
 from ..llm.adapter import PermanentError, RetryableError, UncertainWriteError
 from ..models import Proposal
 
@@ -50,6 +50,16 @@ class TargetAccessError(ExternalRefused):
 
 class CalendarAccessError(TargetAccessError):
     """Ein bezogener Access-Token konnte den Zielkalender nicht erreichen."""
+
+
+class EntryModifiedError(ExternalRefused):
+    """6.6 (E5): Eintrag beim Anbieter weicht von den bestätigten Angaben ab."""
+
+    def __init__(self, message: str, differences: dict[str, FieldDifference] | None = None,
+                 link: str | None = None):
+        super().__init__(message)
+        self.differences = differences or {}
+        self.link = link
 
 
 class IntegrationModel(BaseModel):
@@ -100,6 +110,8 @@ class PreparedWrite:
 class ExternalWriter(Protocol):
     def reconcile(self, key: str) -> dict[str, Any] | None: ...
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]: ...
+    def remove(self, proposal: Proposal, key: str) -> dict[str, Any]: ...
+    def reconcile_remove(self, proposal: Proposal, key: str) -> dict[str, Any] | None: ...
 
 
 class AccessTokenProvider(Protocol):
@@ -135,6 +147,15 @@ class TargetWriter(ABC):
 
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]:
         return self.prepare(proposal, key).operation()
+
+    def prepare_remove(self, proposal: Proposal, key: str) -> PreparedWrite:
+        raise NotImplementedError(f"{self.label}: Entfernen wird nicht unterstützt")
+
+    def remove(self, proposal: Proposal, key: str) -> dict[str, Any]:
+        return self.prepare_remove(proposal, key).operation()
+
+    def reconcile_remove(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        return None
 
     def fetch_events_in_window(self, start: Any, end: Any, *, strict: bool = False) -> list[CalendarOverlapEvent]:
         """Existing calendar entries for the duplicate pre-check; task lists have none."""

@@ -56,7 +56,7 @@ class ReviewSite:
         finished = not overview.open and not overview.relevance and not choice.narrowed
         from .command_cards import CommandCards
         cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request),
-                             sender_hint_lookup=self._sender_hint)
+                             sender_hint_lookup=self._sender_hint, views=self.site.views)
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
         from .pages import notice
@@ -172,10 +172,29 @@ class ReviewSite:
                  + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
         from .command_cards import CommandCards
         cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id),
-                             refresh_target(request), sender_hint_lookup=self._sender_hint)
+                             refresh_target(request), sender_hint_lookup=self._sender_hint, views=self.site.views)
         page = detail_page(view, actions=cards.proposal,
                            mail=self.site.views.mail(mail_id), after=extra)
         return Response.html(200, page)
+
+    def confirm_remove(self, request: Request, session: WebSession, mail_id: str,
+                       proposal_id: str) -> Response:
+        view = self.site.views.proposal(mail_id, proposal_id)
+        if view is None or not view.can_remove:
+            return Response.html(404, error_page(
+                "Nicht möglich", "Dieser Eintrag kann nicht wieder entfernt werden."))
+        csrf = self.site.auth.csrf_token(session.id)
+        from .actions import confirm_remove_page
+        return Response.html(200, confirm_remove_page(view, csrf))
+
+    def execute_remove(self, request: Request, session: WebSession, form: dict[str, str],
+                       mail_id: str, proposal_id: str) -> Response:
+        form = dict(form)
+        from ..review import CommandKind
+        form.setdefault("kind", CommandKind.REMOVE_CREATED.value)
+        form.setdefault("mail_id", mail_id)
+        form.setdefault("proposal_id", proposal_id)
+        return self.site.act(request, session, form)
 
     def _sender_hint(self, mail_id: str) -> Any:
         mail = self.site.views.mail(mail_id)

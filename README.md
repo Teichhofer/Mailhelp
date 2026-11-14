@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.6.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.6 ermöglicht das Wiederentfernen versehentlich angelegter Termine und Aufgaben ([Release 6.6](docs/Release-6.6.md)):
+- Angelegte Einträge können innerhalb eines konfigurierbaren Zeitfensters (Standard 10 Minuten, `targets.removal_window_minutes`) im Web und über Telegram wieder entfernt werden.
+- Strenger zweistufiger Bestätigungsablauf im Web (Bestätigungsseite mit Prüfdetails) und in Telegram (Inline-Rückfrage mit „Ja, entfernen“ / „Abbrechen“).
+- Kontrollabruf und Schutz vor Datenverlust: Wurde der Eintrag beim externen Anbieter zwischenzeitlich bearbeitet, wird er nicht gelöscht.
+- Wieder entfernte Vorschläge erhalten den Endzustand „Angelegt und wieder entfernt“ und werden in der Annahmequote separat ausgewiesen.
 
 6.5 misst die Annahmequote von Vorschlägen und senkt Fehlvorschläge gezielt ([Release 6.5](docs/Release-6.5.md)):
 - Neue Auswertung unter **Lernen → Vorschläge** (`/lernen/vorschlaege`) mit Annahmequoten gesamt, für Aufgaben und Termine, Wochenverlauf, Tabellen nach Thema und Absender sowie Ablehnungsgründen.

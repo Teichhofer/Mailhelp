@@ -44,6 +44,7 @@ class DecidedProposalRecord:
     topics: list[str]
     decided_at: datetime
     reject_reason: str | None = None
+    is_removed: bool = False
 
 
 @dataclass
@@ -51,16 +52,19 @@ class ProposalEvaluationSummary:
     total_decided: int = 0
     total_accepted: int = 0
     total_rejected: int = 0
+    total_removed: int = 0
     total_quote: float = 0.0
 
     tasks_decided: int = 0
     tasks_accepted: int = 0
     tasks_rejected: int = 0
+    tasks_removed: int = 0
     tasks_quote: float = 0.0
 
     events_decided: int = 0
     events_accepted: int = 0
     events_rejected: int = 0
+    events_removed: int = 0
     events_quote: float = 0.0
 
 
@@ -71,6 +75,7 @@ class WeeklyEvaluation:
     decided: int = 0
     accepted: int = 0
     rejected: int = 0
+    removed: int = 0
     quote: float = 0.0
 
 
@@ -153,7 +158,8 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
             continue
         is_accepted = proposal.status in ACCEPTED_STATUSES
         is_rejected = proposal.status == ProposalStatus.REJECTED
-        if not (is_accepted or is_rejected):
+        is_removed = proposal.status == ProposalStatus.REMOVED
+        if not (is_accepted or is_rejected or is_removed):
             continue
 
         mail_id = proposal.source_mail_id
@@ -187,6 +193,7 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
             kind=kind_str,
             is_accepted=is_accepted,
             is_rejected=is_rejected,
+            is_removed=is_removed,
             status=proposal.status.value,
             resolution=proposal.resolution,
             sender=sender,
@@ -214,7 +221,8 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
         kind_val = record.get("kind")
         is_accepted = kind_val in {"confirm", "confirm_duplicate", "merge_proposals", "already_done"}
         is_rejected = kind_val == "reject"
-        if not (is_accepted or is_rejected):
+        is_removed = kind_val == "remove"
+        if not (is_accepted or is_rejected or is_removed):
             continue
 
         seen.add((mail_id, prop_id))
@@ -235,7 +243,8 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
             kind=prop_kind,
             is_accepted=is_accepted,
             is_rejected=is_rejected,
-            status="confirmed" if is_accepted else "rejected",
+            is_removed=is_removed,
+            status="removed" if is_removed else "rejected" if is_rejected else "created",
             resolution="already_done" if kind_val == "already_done" else None,
             sender=sender,
             topics=list(topics),
@@ -261,32 +270,38 @@ def evaluate_proposals(
     total_decided = len(proposals)
     total_accepted = sum(1 for p in proposals if p.is_accepted)
     total_rejected = sum(1 for p in proposals if p.is_rejected)
+    total_removed = sum(1 for p in proposals if p.is_removed)
     total_quote = (total_accepted / total_decided * 100) if total_decided else 0.0
 
     tasks = [p for p in proposals if p.kind == "task"]
     tasks_decided = len(tasks)
     tasks_accepted = sum(1 for p in tasks if p.is_accepted)
     tasks_rejected = sum(1 for p in tasks if p.is_rejected)
+    tasks_removed = sum(1 for p in tasks if p.is_removed)
     tasks_quote = (tasks_accepted / tasks_decided * 100) if tasks_decided else 0.0
 
     events = [p for p in proposals if p.kind == "event"]
     events_decided = len(events)
     events_accepted = sum(1 for p in events if p.is_accepted)
     events_rejected = sum(1 for p in events if p.is_rejected)
+    events_removed = sum(1 for p in events if p.is_removed)
     events_quote = (events_accepted / events_decided * 100) if events_decided else 0.0
 
     summary = ProposalEvaluationSummary(
         total_decided=total_decided,
         total_accepted=total_accepted,
         total_rejected=total_rejected,
+        total_removed=total_removed,
         total_quote=total_quote,
         tasks_decided=tasks_decided,
         tasks_accepted=tasks_accepted,
         tasks_rejected=tasks_rejected,
+        tasks_removed=tasks_removed,
         tasks_quote=tasks_quote,
         events_decided=events_decided,
         events_accepted=events_accepted,
         events_rejected=events_rejected,
+        events_removed=events_removed,
         events_quote=events_quote,
     )
 
@@ -304,12 +319,14 @@ def evaluate_proposals(
         dec = len(items)
         acc = sum(1 for item in items if item.is_accepted)
         rej = sum(1 for item in items if item.is_rejected)
+        rem = sum(1 for item in items if item.is_removed)
         weeks.append(WeeklyEvaluation(
             week_key=key,
             week_label=label,
             decided=dec,
             accepted=acc,
             rejected=rej,
+            removed=rem,
             quote=(acc / dec * 100) if dec else 0.0,
         ))
 

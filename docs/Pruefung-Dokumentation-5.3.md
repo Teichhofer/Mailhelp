@@ -200,7 +200,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **241 Einstellungen**, davon **241** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -381,6 +381,7 @@ Erzeugt mit `python -m devtools.inventory`: **241 Einstellungen**, davon **241**
 | `target_profiles[].microsoft_tenant` | str | 'common' |  | Zielprofilseite | ja |
 | `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Zielprofilseite | ja |
 | `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Zielprofilseite | ja |
 | `target_profiles[].todoist_project` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
 | `targets.caldav_calendar_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
@@ -390,6 +391,7 @@ Erzeugt mit `python -m devtools.inventory`: **241 Einstellungen**, davon **241**
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
+| `targets.removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Datei | ja |
 | `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Weboberfläche | ja |
 | `targets.todoist_project` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `telegram.chat_id` | int | 1 |  | Weboberfläche | ja |

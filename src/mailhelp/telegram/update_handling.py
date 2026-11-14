@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import traceback
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import ValidationError
 
 from ..domain.processing import ProposalClarificationState
 from ..llm.adapter import PermanentError
-from ..models import RelevanceDialog, TelegramDialogState, TelegramOffset
+from ..models import ProposalStatus, RelevanceDialog, TelegramDialogState, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
 from ..state_names import clarification
@@ -39,6 +40,7 @@ _COMMAND_KINDS = {
     DecisionAction.VERIFY_ENTRY: CommandKind.VERIFY_ENTRY,
     DecisionAction.CHOOSE_VARIANT: CommandKind.CHOOSE_VARIANT,
     DecisionAction.REJECT_REASON: CommandKind.REJECT_REASON,
+    DecisionAction.REMOVE_CONFIRM: CommandKind.REMOVE_CREATED,
 }
 
 
@@ -312,6 +314,26 @@ class TelegramUpdateHandler:
                         self.o.chat_id,
                         "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
                     )
+                    return None
+                if decision.action == DecisionAction.REMOVE_ASK:
+                    current = self.o.repository.load_current(decision.mail_id, decision.proposal_id)
+                    if current is None or current.version != decision.version or current.status != ProposalStatus.CREATED:
+                        self.o.telegram.send(self.o.chat_id, "Dieser Eintrag wurde inzwischen geändert oder bereits entfernt.")
+                        return None
+                    from ..review.service import proposal_creation_time
+                    created = proposal_creation_time(self.o.store, current)
+                    if created is not None:
+                        now = datetime.now(UTC)
+                        window = self.o.review._removal_window_minutes()
+                        if now > created + timedelta(minutes=window):
+                            self.o.telegram.send(self.o.chat_id, "Die Frist zum Entfernen des Eintrags ist abgelaufen.")
+                            return None
+                    from .callbacks import remove_confirmation_markup
+                    markup = remove_confirmation_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
+                    self.o.telegram.send(self.o.chat_id, f"Wirklich entfernen: „{current.title}“?", markup)
+                    return None
+                if decision.action == DecisionAction.REMOVE_CANCEL:
+                    self.o.telegram.send(self.o.chat_id, "Entfernen abgebrochen; der Eintrag bleibt erhalten.")
                     return None
                 association = decision.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
                 extra: dict[str, Any] = {}

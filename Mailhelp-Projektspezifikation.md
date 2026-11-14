@@ -4283,3 +4283,36 @@ Regel aus 6.0.3 bereits abgelehnt ist, und zählt ihn in `RuleState.suppressed`;
 nicht protokolliert. Bleibt kein Vorschlag übrig, endet die Analyse als `done` mit „Keine neuen
 Vorschläge; N bereits abgelehnte Vorschläge wurden ausgeblendet.“ Die analysierten
 Entscheidungen gelten auch dann als ausgewertet.
+
+## Version 6.6 – Angelegte Einträge wieder entfernen
+
+### Schreibvertrag, Befehl und Zustände (6.6.0)
+
+Ein von Mailhelp angelegter Kalendereintrag oder eine angelegte Aufgabe lässt sich innerhalb des
+konfigurierten Zeitfensters (`targets.removal_window_minutes`, Standard 10 Minuten) über Web
+oder Telegram wieder entfernen.
+
+1. **Schreibvertrag**:
+   - `external.contracts.ExternalWriter.remove(prepared, key)`: Entfernt einen von Mailhelp
+     angelegten externen Eintrag.
+   - `PreparedWrite.operation == "remove"`, `expected_state="deleted"`.
+   - `reconcile` vor Wiederholung prüft, ob der Eintrag bereits gelöscht oder beim Anbieter
+     geändert wurde. Ein geänderter Eintrag wird zum Schutz vor Datenverlust nie gelöscht.
+   - Google Kalender / Outlook / CalDAV: Termin löschen bzw. absagen.
+   - Todoist / Microsoft To Do / CalDAV: Aufgabe löschen.
+   - Simulierte Einträge und Kalenderdateien bieten kein Entfernen an.
+
+2. **Befehl und Vorschlagsstatus**:
+   - `CommandKind.REMOVE_CREATED` (`remove_created`): versionsgeprüfter Befehl mit Sitzungsprüfung,
+     CSRF-Schutz und Idempotenzschlüssel.
+   - Endzustand: `ProposalStatus.REMOVED` („Angelegt und wieder entfernt“).
+   - In der Annahmequote (`/lernen/vorschlaege`) wird `REMOVED` separat geführt und nicht als
+     angenommen gezählt.
+
+3. **Bedienung**:
+   - Weboberfläche: Zweistufige Bestätigung („Eintrag wieder entfernen“ führt zur Bestätigungsseite
+     mit Titel, Zeit und Ziel; erst „Jetzt entfernen“ sendet). Nach Ablauf des Zeitfensters
+     erscheint der externe Link.
+   - Telegram: Inline-Schaltfläche „Wieder entfernen“ unter der Erfolgsmeldung mit Rückfrage
+     („Wirklich entfernen?“ / „Ja, entfernen“ / „Abbrechen“).
+

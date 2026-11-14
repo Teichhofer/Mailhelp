@@ -13,7 +13,7 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, TypeVar
 from zoneinfo import ZoneInfo
 
@@ -28,7 +28,7 @@ from ..domain.processing import (
     TelegramOutboxState,
 )
 from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR, answerable_questions, reconciliation_only
-from ..domain.verification import OPERATIONS, WriteVerification, operation_id
+from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
 from ..formatting import format_datetime_local
 from ..models import (
     DisplayHeaders,
@@ -62,6 +62,7 @@ STATUS_LABELS = {
     ProposalStatus.CONFIRMED: "Bestätigt – wird angelegt",
     ProposalStatus.WRITING: "Wird angelegt",
     ProposalStatus.CREATED: "Angelegt",
+    ProposalStatus.REMOVED: "Wieder entfernt",
     ProposalStatus.VERIFYING: "Gespeichert – Eintrag wird geprüft",
     ProposalStatus.SIMULATED: "Simuliert (Testmodus)",
     ProposalStatus.REJECTED: "Verworfen",
@@ -135,6 +136,7 @@ class ProposalView:
     arrived_at: datetime | None = None
     due_at: datetime | None = None
     reject_reason: str | None = None
+    can_remove: bool = False
 
 
 @dataclass(frozen=True)
@@ -343,6 +345,7 @@ class ReviewViews:
         self.mailboxes: dict[str, tuple[int, str]] = {}
         self.profile_label: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
+        self.removal_window_minutes: Callable[[], int] = lambda: 10
         # (cache key, monotonic time, overview): reading every state took up to seconds per page view.
         self._overview: tuple[tuple[Any, ...], float, Overview] | None = None
         self.clock: Callable[[], float] = time.monotonic
@@ -606,6 +609,13 @@ class ReviewViews:
         target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:
             target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
+        can_remove = (
+            proposal.status == ProposalStatus.CREATED
+            and not self.test_mode
+            and proposal.external_id is not None
+            and (verification is None or verification.state != VerificationState.UNSUPPORTED)
+            and self._is_within_removal_window(proposal)
+        )
         return ProposalView(
             mail_id=proposal.source_mail_id, proposal_id=proposal.id,
             version=proposal.version, status=proposal.status, card=card,
@@ -633,7 +643,17 @@ class ReviewViews:
             arrived_at=mail.created_at if mail is not None else None,
             due_at=_moment(proposal.start or proposal.due, self.configured_timezone),
             reject_reason=proposal.reject_reason,
+            can_remove=can_remove,
         )
+
+    def _is_within_removal_window(self, proposal: Proposal) -> bool:
+        from .service import proposal_creation_time
+        created = proposal_creation_time(self.store, proposal)
+        if created is None:
+            return True
+        now = datetime.now(UTC)
+        window = timedelta(minutes=self.removal_window_minutes())
+        return now <= created + window
 
 
 def _moment(value: date | datetime | None, configured_timezone: str) -> datetime | None:

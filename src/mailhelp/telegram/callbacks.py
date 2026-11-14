@@ -28,6 +28,9 @@ class DecisionAction(StrEnum):
     # 5.9.4: take one value of a field conflict as a new version.
     CHOOSE_VARIANT = "choose_variant"
     REJECT_REASON = "reject_reason"
+    REMOVE_ASK = "remove_ask"
+    REMOVE_CONFIRM = "remove_confirm"
+    REMOVE_CANCEL = "remove_cancel"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -215,5 +218,23 @@ def reject_reason_markup(store: JsonStore, mail_id: str, proposal_id: str, versi
                             action=DecisionAction.REJECT_REASON, reason=code)
         rows.append([{"text": label, "callback_data": decision.encode(store)}])
     markup = {"inline_keyboard": rows}
+    validate_callback_markup(markup)
+    return markup
+
+
+def remove_confirmation_markup(store: JsonStore, mail_id: str, proposal_id: str, version: int) -> dict[str, Any]:
+    """Inline buttons to confirm or cancel removing a created entry (Planung 6.6 / D4)."""
+    confirm_token = Decision(mail_id=mail_id, proposal_id=proposal_id, version=version,
+                             action=DecisionAction.REMOVE_CONFIRM).encode(store)
+    cancel_token = Decision(mail_id=mail_id, proposal_id=proposal_id, version=version,
+                            action=DecisionAction.REMOVE_CANCEL).encode(store)
+    markup = {
+        "inline_keyboard": [
+            [
+                {"text": "Ja, entfernen", "callback_data": confirm_token},
+                {"text": "Abbrechen", "callback_data": cancel_token},
+            ]
+        ]
+    }
     validate_callback_markup(markup)
     return markup

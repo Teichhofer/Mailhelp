@@ -55,7 +55,7 @@ def before_2_0(dump: dict, settings) -> dict:
     # 3.3.7: IServ accounts are a further mail source, never part of the analysis.
     dump.pop("iserv", None)
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
-                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes"):
         dump["targets"].pop(name)
     return dump
 
@@ -193,7 +193,7 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
     dump["telegram"].pop("enabled")
     dump.get("retention", {}).pop("activity_report_days", None)
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
-                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes"):
         dump["targets"].pop(name)
     step_prompts = prompts.model_dump(exclude={"prompts": {"vision_ocr", "draft_reply", "activity_relevance",
                                                            "activity_events", "diagnostic_test",

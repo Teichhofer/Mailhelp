@@ -1,5 +1,19 @@
 # Änderungen
 
+## 6.6.5 – Angelegte Einträge wieder entfernen
+
+- Angelegte Einträge wieder entfernen: Innerhalb von 10 Minuten (konfigurierbar über
+  `targets.removal_window_minutes`) können versehentlich angelegte Kalendertermine und Aufgaben
+  aus Mailhelp heraus wieder entfernt werden.
+- Strenge zweistufige Bestätigung: Im Web führt „Eintrag wieder entfernen“ zu einer
+  Bestätigungsseite mit Details (Titel, Zeit, Ziel) vor dem endgültigen Löschaufruf; in Telegram
+  fordert eine Inline-Rückfrage „Wirklich entfernen?“ eine ausdrückliche Bestätigung.
+- Schutz vor Datenverlust: Vor dem Entfernen gleicht Mailhelp den externen Eintrag ab. Wurde er
+  beim Anbieter zwischenzeitlich bearbeitet, wird er nicht gelöscht.
+- Vorschlagsstatus und Annahmequote: Wieder entfernte Einträge erhalten den Endzustand „Angelegt
+  und wieder entfernt“ (`ProposalStatus.REMOVED`), werden in der Annahmequote separat aufgeführt
+  und zählen nicht als angenommen.
+
 ## 6.5.5 – Annahmequote messen und gezielt verbessern
 
 - Auswertung „Vorschläge“ unter Lernen (`/lernen/vorschlaege`): Annahmequote gesamt, für Aufgaben

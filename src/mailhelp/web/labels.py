@@ -27,6 +27,7 @@ EVENTS: dict[str, str] = {
     "file_mail": "Nicht verarbeitet – abgelegt",
     "legacy": "Altbestand",
     CommandKind.CONFIRM: "Bestätigt",
+    CommandKind.REMOVE_CREATED: "Angelegter Eintrag wieder entfernt",
     CommandKind.CONFIRM_DUPLICATE: "Trotz möglicher Dublette bestätigt",
     CommandKind.REJECT: "Verworfen",
     CommandKind.REJECT_REASON: "Grund der Ablehnung gespeichert",
@@ -62,7 +63,7 @@ KINDS: dict[str, str] = {"event": "Termin", "task": "Aufgabe"}
 BADGE_KINDS: dict[str, str] = {
     "created": "ok", "already_exists": "ok", "merged": "ok", "simulated": "ok", "relevant": "ok",
     "pending_confirmation": "accent", "confirmed": "accent", "writing": "accent", "verifying": "accent",
-    "needs_clarification": "warn", "uncertain": "warn",
+    "needs_clarification": "warn", "uncertain": "warn", "removed": "warn",
     "failed": "danger",
 }
 

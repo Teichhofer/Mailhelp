@@ -26,7 +26,7 @@ from pydantic import Field, model_validator
 from ._base import StrictModel
 from .proposal import ProposalStatus
 
-Operation = Literal["create", "update", "append", "cancel", "duplicate"]
+Operation = Literal["create", "update", "append", "cancel", "duplicate", "remove"]
 OPERATIONS: tuple[Operation, ...] = get_args(Operation)
 
 
@@ -60,7 +60,8 @@ TRANSITIONS: dict[ProposalStatus, frozenset[ProposalStatus]] = {
     ProposalStatus.WRITING: frozenset({ProposalStatus.VERIFYING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED}),
     ProposalStatus.UNCERTAIN: frozenset({ProposalStatus.VERIFYING, ProposalStatus.UNCERTAIN}),
     ProposalStatus.VERIFYING: frozenset({ProposalStatus.VERIFYING, ProposalStatus.CREATED}),
-    ProposalStatus.CREATED: frozenset({ProposalStatus.CREATED}),
+    ProposalStatus.CREATED: frozenset({ProposalStatus.CREATED, ProposalStatus.REMOVED}),
+    ProposalStatus.REMOVED: frozenset({ProposalStatus.REMOVED}),
 }
 
 
@@ -94,7 +95,7 @@ class WriteReceipt(StrictModel):
     external_id: str = Field(min_length=1, max_length=500)
     written_at: datetime
     revision: str | None = Field(default=None, max_length=500)
-    result: Literal["created", "found_by_key", "updated", "appended", "cancelled", "existing"]
+    result: Literal["created", "found_by_key", "updated", "appended", "cancelled", "existing", "removed"]
 
 
 class FieldDifference(StrictModel):

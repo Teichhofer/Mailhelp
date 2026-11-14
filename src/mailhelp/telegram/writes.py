@@ -112,7 +112,11 @@ class ConfirmedWriteExecutor:
             if reference in self._reported_authorization_failures:
                 return changed
             self._reported_authorization_failures.add(reference)
-        self.telegram.send(self.chat_id, text)
+        markup = self._remove_button(changed) if changed.status == ProposalStatus.CREATED and self._can_remove(changed, result) else None
+        if markup is not None:
+            self.telegram.send(self.chat_id, text, markup)
+        else:
+            self.telegram.send(self.chat_id, text)
         if changed.status == ProposalStatus.UNCERTAIN:
             self.persistence.persist(changed.model_copy(update={"uncertain_notified": True}))
         elif changed.status == ProposalStatus.SIMULATED:
@@ -130,7 +134,12 @@ class ConfirmedWriteExecutor:
         if record.state != VerificationState.VERIFIED:
             self.telegram.send(self.chat_id, self._unverified_text(proposal, record), self._recheck_button(changed))
         elif changed.status == ProposalStatus.CREATED:
-            self.telegram.send(self.chat_id, self._verified_text(proposal, changed, record, result))
+            msg = self._verified_text(proposal, changed, record, result)
+            markup = self._remove_button(changed) if self._can_remove(changed, result) else None
+            if markup is not None:
+                self.telegram.send(self.chat_id, msg, markup)
+            else:
+                self.telegram.send(self.chat_id, msg)
         self.verification.mark_notified(record)
         return changed
 
@@ -163,6 +172,20 @@ class ConfirmedWriteExecutor:
         token = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                          action=DecisionAction.VERIFY_ENTRY).encode(self.store)
         return {"inline_keyboard": [[{"text": "Erneut prüfen", "callback_data": token}]]}
+
+    def _remove_button(self, proposal: Proposal) -> dict[str, Any]:
+        token = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
+                         action=DecisionAction.REMOVE_ASK).encode(self.store)
+        return {"inline_keyboard": [[{"text": "Wieder entfernen", "callback_data": token}]]}
+
+    def _can_remove(self, proposal: Proposal, result: dict[str, Any]) -> bool:
+        if self.test_mode or result.get("simulation"):
+            return False
+        if result.get("operation") == "calendar_file":
+            return False
+        if proposal.external_id is None:
+            return False
+        return True
 
     def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
         if record.state == VerificationState.MISMATCH:

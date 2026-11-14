@@ -78,7 +78,11 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         f'<div class="kpi-tile"><dt>Termine</dt>'
         f'<dd><strong>{_quote_fmt(s.events_quote)}</strong> '
         f'<span class="meta">({s.events_accepted} von {s.events_decided} angenommen)</span></dd></div>'
-        '</dl>'
+        + (f'<div class="kpi-tile"><dt>Wieder entfernt</dt>'
+           f'<dd><strong>{s.total_removed}</strong> '
+           f'<span class="meta">({s.tasks_removed} Aufgaben, {s.events_removed} Termine)</span></dd></div>'
+           if s.total_removed > 0 else "")
+        + '</dl>'
     )
 
     # Weekly breakdown
@@ -87,6 +91,7 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         f'<td>{w.decided}</td>'
         f'<td>{w.accepted}</td>'
         f'<td>{w.rejected}</td>'
+        f'<td>{w.removed}</td>'
         f'<td>{_quote_fmt(w.quote)}</td></tr>'
         for w in report.weeks
     )
@@ -94,7 +99,7 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         '<section id="wochen" class="stack"><h2>Verlauf je Woche</h2>'
         '<div class="table-scroll" tabindex="0" role="region" aria-label="Verlauf je Woche">'
         '<table><thead><tr>'
-        '<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>Annahmequote</th>'
+        '<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>Wieder entfernt</th><th>Annahmequote</th>'
         '</tr></thead><tbody>'
         f'{weekly_rows}'
         '</tbody></table></div></section>'

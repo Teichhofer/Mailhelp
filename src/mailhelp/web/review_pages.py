@@ -27,6 +27,7 @@ _STATE_BADGE = {
     ProposalStatus.PENDING_CONFIRMATION: "accent",
     ProposalStatus.NEEDS_CLARIFICATION: "warn",
     ProposalStatus.CREATED: "ok",
+    ProposalStatus.REMOVED: "",
     ProposalStatus.SIMULATED: "ok",
     ProposalStatus.REJECTED: "",
     ProposalStatus.FAILED: "danger",
@@ -185,9 +186,14 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                f'<p class="labels">{metadata}</p>{description}{evidence}</details>'
                if detail_link else description + evidence)
     created = https_link(view.external_link)
-    created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
-                    f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
-                    if created else "")
+    if view.can_remove:
+        created_link = (f'<p class="card-links"><a class="button" '
+                        f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}/entfernen">'
+                        f'Eintrag wieder entfernen</a></p>')
+    else:
+        created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
+                        f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
+                        if created else "")
     # 4.7: the link is one of the percent-encoded forms validated on Proposal.mail_link.
     original = (f'<p class="card-links"><a href="{e(view.mail_link)}" rel="noopener noreferrer">'
                 "📧 Original-Mail öffnen</a></p>" if view.mail_link else "")

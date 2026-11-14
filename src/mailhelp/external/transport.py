@@ -66,6 +66,14 @@ class HttpTransport:
         return response
 
 
+    def _delete(self, url: str, key: str) -> httpx.Response:
+        self.logger.event("DEBUG", self.service, "http_request", method="DELETE", url=url, call_id=key)
+        response = self.client.delete(url, headers={**self._auth_headers(), "X-Request-Id": key})
+        if response.status_code != 404:
+            self._raise_for_status(response)
+        return response
+
+
     def _auth_headers(self) -> dict[str, str]:
         token = self._token_provider.access_token() if self._token_provider is not None else self._static_token
         return {"Authorization": f"Bearer {token}"}

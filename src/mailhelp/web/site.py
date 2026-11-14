@@ -94,6 +94,10 @@ class MailhelpSite:
         app.route("GET", "/", self.signed_in(self.review.home))
         app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})",
                   self.signed_in(self.review.detail))
+        app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})/entfernen",
+                  self.signed_in(self.review.confirm_remove))
+        app.route("POST", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})/entfernen",
+                  self.signed_in(self.review.execute_remove))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.review.mail))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/anhang/(?P<index>[0-9]{1,5})",
                   self.signed_in(self.review.attachment))
@@ -363,6 +367,13 @@ class MailhelpSite:
         if command.kind == CommandKind.REJECT_REASON:
             if current is not None and (command.version != current.version or current.status != ProposalStatus.REJECTED):
                 return "Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen."
+            return None
+        if command.kind == CommandKind.REMOVE_CREATED:
+            if current is not None and (
+                command.version != current.version
+                or current.status not in {ProposalStatus.CREATED, ProposalStatus.REMOVED}
+            ):
+                return "Dieser Vorschlag wurde inzwischen geändert oder ist nicht angelegt."
             return None
         if (current is not None and (command.version < current.version
                 or (command.version == current.version and current.status not in {ProposalStatus.PENDING_CONFIRMATION,

@@ -10,6 +10,7 @@ in the serialized operator thread; commits also compare the authoritative state.
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import ValidationError
@@ -19,6 +20,7 @@ from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
 from ..domain.proposal import (
     RECONCILIATION_HINT,
+    ActionLedger,
     invalidate_creation_permissions,
     reconciliation_only,
     required_revision_questions,
@@ -45,6 +47,7 @@ _RECHECK_REFUSED = {
 # Shown in the web; Telegram keeps its own confirmation texts.
 _DONE_MESSAGES = {
     CommandKind.REJECT: "Vorschlag verworfen.",
+    CommandKind.REMOVE_CREATED: "Eintrag entfernt und geprüft.",
     CommandKind.ALREADY_DONE: "Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)",
     CommandKind.START_CLARIFICATION: "Bearbeitung gestartet – bitte die Rückfrage beantworten.",
     CommandKind.ANSWER: "Antwort übernommen – der Vorschlag wird aktualisiert.",
@@ -130,6 +133,11 @@ class ReviewService:
             if learning is not None and command.reason is not None and command.proposal_id is not None:
                 learning.reject_reason(command.mail_id, command.proposal_id, command.version, command.reason)
             return
+        if command.kind == CommandKind.REMOVE_CREATED:
+            if learning is not None and command.proposal_id is not None:
+                learning.proposal_decision(command.mail_id, command.proposal_id, command.version, "remove",
+                                           command.source.value, command.idempotency_key)
+            return
         if command.proposal_id is None:
             state = self.controller.store.load_model(state_names.mail(command.mail_id), MailState)
             if state is not None:
@@ -200,6 +208,17 @@ class ReviewService:
             return current.version == command.version and current.resolution == "already_done"
         if command.kind == CommandKind.REJECT_REASON:
             return current.version == command.version and current.reject_reason == command.reason
+        if command.kind == CommandKind.REMOVE_CREATED:
+            if current.version == command.version and current.status == ProposalStatus.REMOVED:
+                return True
+            writer = self._writer_for(current)
+            if writer is not None:
+                found = writer.reconcile_remove(current, command.idempotency_key)
+                if found is not None:
+                    removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
+                    self.controller.persist(removed)
+                    return True
+            return False
         if command.kind == CommandKind.RESTORE:
             return True
         if current.version != command.version or current.status not in _OPEN:
@@ -284,8 +303,108 @@ class ReviewService:
                     CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
                     CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
                     CommandKind.CHOOSE_EVENT: self._choose_event, CommandKind.CHOOSE_VARIANT: self._choose_variant,
-                    CommandKind.REJECT_REASON: self._reject_reason}
+                    CommandKind.REJECT_REASON: self._reject_reason,
+                    CommandKind.REMOVE_CREATED: self._remove_created}
         return handlers.get(command.kind, self._decide)(command)
+
+    def _writer_for(self, proposal: Proposal) -> ExternalWriter | None:
+        write_executor = getattr(self.controller, "write_executor", None)
+        if write_executor is not None:
+            return write_executor.writer_for(proposal)
+        writers = getattr(self.controller, "writers", None)
+        if writers:
+            from ..external.roles import writer_for
+            return writer_for(writers, proposal)
+        return None
+
+    def _removal_window_minutes(self) -> int:
+        if self.configuration is not None:
+            return self.configuration.active.targets.removal_window_minutes
+        handler = getattr(self.controller, "relevance_handler", None)
+        targets = getattr(handler, "targets", None)
+        if targets is not None:
+            return getattr(targets, "removal_window_minutes", 10)
+        return 10
+
+    def _is_within_removal_window(self, proposal: Proposal) -> bool:
+        created = proposal_creation_time(self.controller.store, proposal)
+        if created is None:
+            return True
+        now = datetime.now(UTC)
+        window = timedelta(minutes=self._removal_window_minutes())
+        return now <= created + window
+
+    def _remove_created(self, command: ReviewCommand) -> ReviewResult:
+        from ..external.contracts import EntryModifiedError
+        from ..llm.adapter import UncertainWriteError
+        from .archive import record_event
+        from .errors import ReviewError
+
+        assert command.proposal_id is not None
+        with self.controller.store.locked():
+            current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+            if current is None or current.version != command.version:
+                raise StaleCommand("Vorschlag inzwischen geändert oder nicht gefunden")
+            if current.status == ProposalStatus.REMOVED:
+                return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
+            if current.status == ProposalStatus.SIMULATED:
+                raise ReviewError("Simulierte Vorschläge können nicht extern entfernt werden.")
+            if current.status != ProposalStatus.CREATED:
+                raise ReviewError("Nur angelegte Einträge können wieder entfernt werden.")
+            if current.external_id is None:
+                raise ReviewError("Keine externe ID vorhanden.")
+            if not self._is_within_removal_window(current):
+                raise ReviewError(
+                    "Die Frist zum Entfernen des Eintrags ist abgelaufen (maximal 10 Minuten nach dem Anlegen)."
+                )
+
+            writer = self._writer_for(current)
+            if writer is None:
+                raise ReviewError("Kein Schreibdienst für diesen Vorschlag konfiguriert.")
+
+            try:
+                prepared = writer.prepare_remove(current, command.idempotency_key)
+            except EntryModifiedError:
+                return ReviewResult(
+                    status=ResultStatus.INVALID,
+                    message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
+                )
+
+            if not prepared.requires_write:
+                removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
+                self.controller.persist(removed)
+                record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
+                return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
+
+            # Live authorization check at the write boundary
+            if not self._authorized(command):
+                return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+
+            try:
+                result = prepared.operation()
+            except UncertainWriteError:
+                rec = writer.reconcile_remove(current, command.idempotency_key)
+                if rec is not None:
+                    removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
+                    self.controller.persist(removed)
+                    record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
+                    return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
+                return ReviewResult(
+                    status=ResultStatus.WRITE_UNCERTAIN,
+                    message="Entfernen noch nicht bestätigt; Abgleich läuft.",
+                )
+            except EntryModifiedError:
+                return ReviewResult(
+                    status=ResultStatus.INVALID,
+                    message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
+                )
+            except Exception:
+                return ReviewResult(status=ResultStatus.FAILED, message="Entfernen fehlgeschlagen.")
+
+            removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
+            self.controller.persist(removed)
+            record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
+            return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
 
     def _reject_reason(self, command: ReviewCommand) -> ReviewResult:
         from .reject_reasons import REJECT_REASONS
@@ -559,4 +678,29 @@ def _error_message(exc: Exception) -> str:
     return "Die Eingabe ist ungültig."
 
 
-__all__ = ["ReviewService"]
+def proposal_creation_time(store: Any, proposal: Proposal) -> datetime | None:
+    if proposal.created_at is not None:
+        return proposal.created_at
+    ledger = store.load_model("action-ledger", ActionLedger)
+    if isinstance(ledger, ActionLedger):
+        for entry in ledger.entries:
+            if (entry.mail_id, entry.proposal_id, entry.proposal_version) == (
+                proposal.source_mail_id, proposal.id, proposal.version
+            ):
+                return entry.created_at
+    from ..domain.verification import OPERATIONS, WriteVerification, operation_id
+    for operation in OPERATIONS:
+        rec = store.load_model(
+            state_names.write_verification(
+                operation_id(proposal.source_mail_id, proposal.id, proposal.version, operation)
+            ),
+            WriteVerification,
+        )
+        if rec is not None:
+            if rec.receipt is not None:
+                return rec.receipt.written_at
+            return rec.created_at
+    return None
+
+
+__all__ = ["ReviewService", "proposal_creation_time"]

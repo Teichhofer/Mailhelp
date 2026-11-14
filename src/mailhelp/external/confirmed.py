@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -15,7 +16,7 @@ from .verification import EntryReader, How, VerificationPort
 
 # The receipt of each write operation (5.2); a found entry is "found_by_key".
 RECEIPTS: dict[str, How] = {"create": "created", "update": "updated", "append": "appended",
-                            "cancel": "cancelled", "duplicate": "existing"}
+                            "cancel": "cancelled", "duplicate": "existing", "remove": "removed"}
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
@@ -152,5 +153,6 @@ def _with_external_result(proposal: Proposal, result: dict[str, Any]) -> Proposa
         "status": ProposalStatus.CREATED,
         "external_id": external_id,
         "external_link": str(link) if link is not None else None,
+        "created_at": datetime.now(UTC),
     })
 

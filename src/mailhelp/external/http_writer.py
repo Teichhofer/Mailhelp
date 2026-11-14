@@ -99,6 +99,27 @@ class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport, TargetWri
             return self._prepare_todoist(proposal, key)
         return self._prepare_calendar(proposal, key)
 
+    def prepare_remove(self, proposal: Proposal, key: str) -> PreparedWrite:
+        if proposal.external_id is None:
+            raise ValueError("Vorschlag hat keine externe ID")
+        if proposal.target != self.target:
+            raise ValueError("Konfiguriertes Ziel weicht vom bestätigten Vorschlagsziel ab")
+        self.logger.event("INFO", self.service, "remove_started", call_id=key,
+                          mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                          external_id=proposal.external_id)
+        if self.service == "todoist":
+            return self._prepare_remove_todoist(proposal, key)
+        return self._prepare_remove_calendar(proposal, key)
+
+    def reconcile_remove(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if proposal.external_id is None:
+            return None
+        self.logger.event("INFO", self.service, "reconcile_remove_started", call_id=key,
+                          external_id=proposal.external_id)
+        if self.service == "todoist":
+            return self._reconcile_remove_todoist(proposal, key)
+        return self._reconcile_remove_calendar(proposal, key)
+
     def _create_prepared(self, proposal: Proposal, key: str, url: str,
                          body: dict[str, Any]) -> dict[str, Any]:
         started = time.perf_counter()

@@ -18,12 +18,13 @@ from .contracts import (
     CalendarEventResponse,
     CalendarListResponse,
     CalendarOverlapEvent,
+    EntryModifiedError,
     IntegrationModel,
     PreparedWrite,
     validation_path,
 )
 from .transport import HttpTransport
-from .verification import EntryRead, event_facts
+from .verification import EntryRead, compare, event_facts
 
 
 class CalendarEventRead(IntegrationModel):
@@ -69,6 +70,41 @@ class CalendarOperations(HttpTransport):
             raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
                              f"{validation_path(exc)}") from exc
         return items[0].model_dump() if items else None
+
+    def _prepare_remove_calendar(self, proposal: Proposal, key: str) -> PreparedWrite:
+        if proposal.external_id is None:
+            raise ValueError("Vorschlag hat keine externe ID")
+        event_id = proposal.external_id
+        existing = self.existing_event(event_id)
+        if existing is None:
+            return PreparedWrite(lambda: {"id": event_id, "operation": "already_removed"},
+                                 requires_write=False, expected=CANCELLED, kind="remove")
+        expected = self._calendar_expected(proposal, key)
+        if expected is not None:
+            actual = self._read_calendar(event_id)
+            if actual is not None:
+                diffs = compare(expected, actual.facts)
+                if diffs:
+                    raise EntryModifiedError(
+                        f"{self.label}: Termin wurde beim Anbieter geändert; nicht entfernt.",
+                        differences=diffs,
+                        link=existing.htmlLink,
+                    )
+        body: dict[str, Any] = {"status": "cancelled", "extendedProperties": {"private": {"mailhelp_key": key}}}
+
+        def remove_op() -> dict[str, Any]:
+            result = self._update_calendar_event(event_id, body, key, proposal)
+            return {**result, "operation": "removed"}
+
+        return PreparedWrite(remove_op, expected=CANCELLED, kind="remove")
+
+    def _reconcile_remove_calendar(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        if proposal.external_id is None:
+            return None
+        existing = self.existing_event(proposal.external_id)
+        if existing is None:
+            return {"id": proposal.external_id, "operation": "removed"}
+        return None
 
 
     def _prepare_calendar(self, proposal: Proposal, key: str) -> PreparedWrite:

@@ -321,6 +321,7 @@ class TargetSettings(ConfigModel):
     outlook_calendar: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
     microsoft_todo_list: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
     microsoft_tenant: str = Field(default="common", pattern=r"^[A-Za-z0-9.-]{1,100}$")
+    removal_window_minutes: int = Field(default=10, ge=1, le=1440)
 
     @model_validator(mode="after")
     def provider_targets(self) -> TargetSettings:

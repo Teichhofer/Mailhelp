@@ -8,6 +8,9 @@ Listen-ID das konkrete Ziel innerhalb dieses Kontos.
 
 Mailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten
 Vorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.
+Angelegte Einträge können innerhalb der Frist (standardmäßig 10 Minuten, `targets.removal_window_minutes`)
+über Web oder Telegram wieder entfernt werden. Die vorhandenen Berechtigungen für Google Kalender,
+Outlook, Todoist und CalDAV decken das Löschen der von Mailhelp angelegten Einträge bereits ab.
 
 ## Anbieter und ihre Fähigkeiten
 

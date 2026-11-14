@@ -27,6 +27,22 @@ class ProviderWriter(TargetWriter):
                           proposal_id=proposal.id)
         return self._prepare(proposal, key)
 
+    def prepare_remove(self, proposal: Proposal, key: str) -> PreparedWrite:
+        if proposal.external_id is None:
+            raise ValueError("Vorschlag hat keine externe ID")
+        if proposal.target != self.target:
+            raise ValueError("Konfiguriertes Ziel weicht vom bestätigten Vorschlagsziel ab")
+        from .calendar import CalendarOperations
+        if isinstance(self, CalendarOperations):
+            return self._prepare_remove_calendar(proposal, key)
+        raise NotImplementedError(f"{self.label}: Entfernen wird nicht unterstützt")
+
+    def reconcile_remove(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
+        from .calendar import CalendarOperations
+        if isinstance(self, CalendarOperations):
+            return self._reconcile_remove_calendar(proposal, key)
+        return None
+
     @abstractmethod
     def _prepare(self, proposal: Proposal, key: str) -> PreparedWrite: ...
 

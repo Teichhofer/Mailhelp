@@ -50,6 +50,7 @@ class CommandKind(StrEnum):
     # 5.9.3: take one value of a field conflict; a new version, never a write.
     CHOOSE_VARIANT = "choose_conflict_variant"
     REJECT_REASON = "reject_reason"
+    REMOVE_CREATED = "remove_created"
 
 
 # Commands on a whole mail instead of one proposal.

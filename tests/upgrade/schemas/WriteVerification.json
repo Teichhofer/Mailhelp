@@ -101,7 +101,8 @@
             "updated",
             "appended",
             "cancelled",
-            "existing"
+            "existing",
+            "removed"
           ],
           "title": "Result",
           "type": "string"
@@ -242,7 +243,8 @@
         "update",
         "append",
         "cancel",
-        "duplicate"
+        "duplicate",
+        "remove"
       ],
       "title": "Operation",
       "type": "string"

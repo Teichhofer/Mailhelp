@@ -43,6 +43,11 @@ class FakeGoogleCalendar:
             return httpx.Response(200, json={"items": self._listed(request.url.params)})
         if event_id not in self.events:
             return httpx.Response(410 if kind == "get" else 404, json={"error": {"errors": []}})
+        if request.method == "DELETE":
+            if event_id not in self.events:
+                return httpx.Response(404, json={"error": {"errors": []}})
+            del self.events[event_id]
+            return httpx.Response(204)
         if kind == "patch":
             body = json.loads(request.content)
             self.patches.append((event_id, body))

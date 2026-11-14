@@ -330,6 +330,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.archive.configuration = configuration
     components.site.views.profile_label = dialog.presenter.profile_of
     components.site.views.profile_available = dialog.presenter.profile_available
+    components.site.views.removal_window_minutes = lambda: configuration.active.targets.removal_window_minutes
     if len(application.sources) > 1:
         # Labels and the mailbox filter appear only with several mailboxes (3.1).
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}

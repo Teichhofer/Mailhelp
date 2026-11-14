@@ -777,7 +777,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     legacy.pop("event_defaults")
     legacy.pop("proposal_reconciliation")
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
-                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes"):
         legacy["targets"].pop(name)
     legacy.pop("llm", None)
     assert _hash([legacy, analysis_prompts(prompts), []]) in legacy_fingerprints(cfg, prompts, [])

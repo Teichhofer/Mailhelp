@@ -86,20 +86,44 @@ def controller(store, updates=(), writers=None, test_mode=False, revision_servic
     return TelegramDialogController(store,transport,1,2,log,writers,test_mode,"UTC",service),transport,log
 
 class Writer:
-    def __init__(self, found=None, error=None):
-        self.found=found
-        self.error=error
-        self.created=0
-        self.reconciled=0
-        self.versions=[]
-    def reconcile(self,key):
-        self.reconciled+=1
+    def __init__(self, found=None, error=None, remove_error=None, modified_error=None, already_removed=False):
+        self.found = found
+        self.error = error
+        self.remove_error = remove_error
+        self.modified_error = modified_error
+        self.already_removed = already_removed
+        self.created = 0
+        self.reconciled = 0
+        self.removed = 0
+        self.reconcile_removed = 0
+        self.versions = []
+    def reconcile(self, key):
+        self.reconciled += 1
         return self.found
-    def create(self,p,key):
-        self.created+=1
+    def create(self, p, key):
+        self.created += 1
         self.versions.append(p.version)
         if self.error: raise self.error
-        return {"id":"external-1","url":"https://example.test/item"}
+        return {"id": "external-1", "url": "https://example.test/item"}
+    def prepare_remove(self, p, key):
+        from mailhelp.external.contracts import PreparedWrite
+        if self.modified_error:
+            raise self.modified_error
+        if self.already_removed:
+            return PreparedWrite(lambda: {"id": p.external_id, "operation": "already_removed"}, requires_write=False, kind="remove")
+        def op():
+            self.removed += 1
+            if self.remove_error:
+                raise self.remove_error
+            return {"id": p.external_id, "operation": "removed"}
+        return PreparedWrite(op, kind="remove")
+    def remove(self, p, key):
+        return self.prepare_remove(p, key).operation()
+    def reconcile_remove(self, p, key):
+        self.reconcile_removed += 1
+        if self.already_removed or self.removed > 0:
+            return {"id": p.external_id, "operation": "removed"}
+        return None
 
 class RelevanceHandler:
     def __init__(self, store):
