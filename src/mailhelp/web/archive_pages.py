@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, SupportsFloat
+from typing import Any, SupportsFloat, get_args
 from urllib.parse import urlencode
 
 from ..formatting import duration_text, format_datetime_local
@@ -14,9 +14,10 @@ from ..review.queries import ArchiveQuery
 from ..review.search import Hit
 from .actions import recheck_form
 from .filters import chips
-from .forms import field, select
-from .labels import EVENTS, SOURCES, STATUSES, count_text, label
+from .forms import select
+from .labels import EVENTS, KINDS, SOURCES, STATUSES, count_text, label
 from .pages import e, notice, page_head
+from .toolbar import date_field, search_field, toolbar
 
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
                "local": "Betrieb mit Ollama", "decision_test": "Vergleichsläufe (Decision-Tests)"}
@@ -66,15 +67,16 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
     def choices(key: str) -> list[tuple[str, str]]:
         return [("", "alle")] + [(value, value) for value in sorted({row[key] for row in everything})]
 
-    form = ('<form method="get" class="filters">'
-            + select("days", "Zeitraum", params["days"], list(PERIODS))
-            + select("mode", "Erfassung", params["mode"], list(MODE_LABELS.items()))
-            + select("model", "Modell", params.get("model", ""), choices("model"))
-            + select("provider", "Anbieter", params.get("provider", ""), choices("provider"))
-            + select("stage", "Verarbeitungsschritt", params.get("stage", ""), choices("stage"))
-            + f'<label>Von<input type="date" name="since" value="{e(params.get("since", ""))}"></label>'
-            + f'<label>Bis<input type="date" name="until" value="{e(params.get("until", ""))}"></label>'
-            + '<button class="button primary">Auswerten</button></form>')
+    narrowing = ("model", "provider", "stage", "since", "until")
+    form = toolbar("/auswertung", [select("days", "Zeitraum", params["days"], list(PERIODS)),
+                                   select("mode", "Erfassung", params["mode"], list(MODE_LABELS.items()))],
+                   submit="Auswerten", active=sum(1 for key in narrowing if params.get(key)),
+                   reset="/auswertung" if any(params.get(key) for key in narrowing) else "",
+                   more=[select("model", "Modell", params.get("model", ""), choices("model")),
+                         select("provider", "Anbieter", params.get("provider", ""), choices("provider")),
+                         select("stage", "Verarbeitungsschritt", params.get("stage", ""), choices("stage")),
+                         date_field("since", "Von", params.get("since")),
+                         date_field("until", "Bis", params.get("until"))])
     from .calls_page import metric_link
     rate = report["exchange_rate_date"]
     # 5.9.11: every figure opens the call list with a matching preset (a native link, no JavaScript).
@@ -218,19 +220,17 @@ def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int,
                    csrf: str = "") -> str:
     """Search and filters for stored mails; works without JavaScript."""
     mailboxes = mailboxes or {}
-    active = any((query.relevance, query.topic, query.state, query.status is not None, query.since, query.until,
-                  query.sort != "received", query.postfach))
+    active = sum(1 for value in (query.relevance, query.topic, query.state, query.status is not None, query.since,
+                                 query.until, query.sort != "received", query.postfach) if value)
     body = (page_head("Mails", "Arbeitsbereich", "Von Mailhelp gespeicherte Mails durchsuchen.")
             + chips("/mails", query.filter)
-            + '<form method="get" class="stack">'
-            f'<label>Suche<input type="search" name="q" value="{e(query.q)}" maxlength="200" '
-            'aria-describedby="suche-hinweis"></label>'
-            '<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ in '
-            'Anführungszeichen. Groß-/Kleinschreibung und ä/ae, ö/oe, ü/ue, ß/ss sind gleichwertig.</p>'
-            + select("scope", "Suchen in", query.scope, list(SEARCH_SCOPES)) +
-            f'<details class="filter-box"{" open" if active else ""}><summary>Filter</summary>'
-            f'<div class="filters">{_archive_filters(query, topics, mailboxes)}</div></details>'
-            '<button class="button primary">Suchen</button></form>')
+            + toolbar("/mails", [search_field("q", "Suche", query.q, hint_id="suche-hinweis"),
+                                 select("scope", "Suchen in", query.scope, list(SEARCH_SCOPES))],
+                      submit="Suchen", more=[_archive_filters(query, topics, mailboxes)], active=active,
+                      reset="/mails" if active or query.q or query.filter else "", hidden=_kept_filter(query),
+                      below='<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ '
+                            'in Anführungszeichen. Groß-/Kleinschreibung und ä/ae, ö/oe, ü/ue, ß/ss sind '
+                            'gleichwertig.</p>'))
     body += f'<p class="meta">{count_text(total, "gespeicherte Mail", "gespeicherte Mails")} · Seite {query.page}</p>'
     if not items:
         body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'
@@ -317,6 +317,16 @@ def processing_path_section(explanation: Explanation, topics: dict[str, str], hi
             + _hints(hints) + '</section>')
 
 
+HISTORY_STATUSES = [("", "alle"), *((key, text) for key, text in STATUSES.items() if key != "legacy")]
+HISTORY_EVENTS = [("", "alle"), *((key, label(EVENTS, key))
+                                  for key in get_args(ArchiveQuery.model_fields["kind"].annotation) if key)]
+
+
+def _kept_filter(query: ArchiveQuery) -> str:
+    """The quick filter chosen above the tool row stays selected when the form is sent."""
+    return f'<input type="hidden" name="filter" value="{e(query.filter)}">' if query.filter else ""
+
+
 def event_text(row: dict[str, Any], zone: str) -> str:
     """6.2.3: "14.11.2026, 07:12 Uhr · Verworfen · Weboberfläche" – never ISO times or internal values."""
     parts = [format_datetime_local(datetime.fromisoformat(row["at"]), zone)]
@@ -339,13 +349,17 @@ def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]], z
 def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, params: dict[str, Any],
                  zone: str) -> str:
     body = (page_head("Verlauf", "Einblicke", "Was mit Vorschlägen und Mails geschehen ist.")
-            + chips("/verlauf", query.filter) + '<form method="get" class="stack">'
-            + field("q", "Betreff, Absender oder Mail-ID", query.q))
-    body += (field("status", "Vorschlagsstatus", query.status or "") + field("kind", "Ereignisart", query.kind)
-             + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind)
-             + field("since", "Von", query.since or "") + field("until", "Bis", query.until or ""))
-    body += ('<button class="button">Filtern</button></form>'
-             f'<p>{count_text(total, "Ereignis", "Ereignisse")} · Seite {query.page}</p><ul class="archive-list">')
+            + chips("/verlauf", query.filter))
+    more = sum(1 for value in (query.kind, query.since, query.until) if value)
+    narrowed = more or query.q or query.status is not None or query.proposal_kind or query.filter
+    body += toolbar(
+        "/verlauf", [search_field("q", "Betreff, Absender oder Mail-ID", query.q),
+                     select("status", "Status", "" if query.status is None else str(query.status), HISTORY_STATUSES),
+                     select("proposal_kind", "Art", query.proposal_kind, [("", "alle"), *KINDS.items()])],
+        submit="Filtern", active=more, reset="/verlauf" if narrowed else "", hidden=_kept_filter(query),
+        more=[select("kind", "Ereignis", query.kind, HISTORY_EVENTS),
+              date_field("since", "Von", query.since), date_field("until", "Bis", query.until)])
+    body += f'<p>{count_text(total, "Ereignis", "Ereignisse")} · Seite {query.page}</p><ul class="archive-list">'
     for row in rows:
         link = (f'/vorschlag/{row["mail_id"]}/{row["proposal_id"]}/version/{row["version"]}'
                 if row["proposal_id"] else f'/mail/{row["mail_id"]}')

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 6.2.6 – Gemeinsame Werkzeugleiste für Listen
+
+- Verlauf, Mails und Auswertung: Suche und die wichtigsten Auswahlfelder in einer Zeile neben genau einer
+  hervorgehobenen Hauptaktion; weitere Filter unter „Mehr Filter“ mit der Zahl der aktiven Filter;
+  „Zurücksetzen“, sobald gefiltert wird.
+- Verlauf: statt sechs Freitextfeldern (darunter „Aufgabe (task) oder Termin (event)“) Auswahlfelder für
+  Status, Art und Ereignis mit deutschen Namen und Datumsfelder für Von/Bis. Der Schnellfilter bleibt beim
+  Absenden erhalten.
+- „Offen“: „Anzeigen“ ist als Hauptaktion hervorgehoben, „Zurücksetzen“ ein Textlink.
+
 ## 6.2.5 – Domain für Weblinks bevorzugen
 
 - `/web` und die Web-Statusadresse bevorzugen automatisch die erste Domain/Subdomain

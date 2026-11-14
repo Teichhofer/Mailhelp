@@ -589,14 +589,14 @@ def test_mail_list_shows_readable_entries_filters_and_paging(web):
     web.store.save(f"mail-{mail_id(2)}", state.model_copy(update={
         "error": ProcessingError(code="internal_error", stage="summary", occurred_at=now)}).model_dump(mode="json"))
     page = web.browser.request("GET", "/mails").body.decode()
-    assert "<details class=\"filter-box\"><summary>Filter</summary>" in page
+    assert '<details class="toolbar-more"><summary>Mehr Filter</summary>' in page  # 6.2.5
     assert ">Klassenleitung 4b · " in page and "&lt;klasse4b" not in page
     assert '<span class="badge warn">wartet auf dich</span>' in page
     assert '<span class="badge danger">Fehler</span>' in page
     assert "× Wartet auf Bestätigung" in page and "nicht mehr bekannt" in page
     assert "beschädigt" not in page
     filtered = web.browser.request("GET", "/mails?state=waiting&sort=updated").body.decode()
-    assert '<details class="filter-box" open>' in filtered
+    assert '<details class="toolbar-more" open><summary>Mehr Filter (2 aktiv)</summary>' in filtered
     assert '<option value="waiting" selected>' in filtered and '<option value="updated" selected>' in filtered
     second = web.browser.request("GET", "/mails?size=1&page=2").body.decode()
     assert "Vorherige Seite" in second and "Nächste Seite" in second

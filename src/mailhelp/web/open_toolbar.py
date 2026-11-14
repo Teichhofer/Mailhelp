@@ -120,8 +120,8 @@ def toolbar(path: str, view: OpenView) -> str:
             f'{sorts}</select></div>'
             f'<label class="open-group"><input type="checkbox" name="gruppe" value="{GROUP}"'
             f'{" checked" if view.group else ""}> Nach Bearbeitungsbedarf gruppieren</label>'
-            '<button class="button" type="submit">Anzeigen</button>'
-            f'<a class="button small" href="{e(path)}">Zurücksetzen</a></form></div>')
+            '<button class="button primary" type="submit">Anzeigen</button>'
+            f'<a class="button link" href="{e(path)}">Zurücksetzen</a></form></div>')
 
 
 __all__ = ["OpenView", "count", "groups", "ordered", "parse", "search_open", "search_relevance", "toolbar"]

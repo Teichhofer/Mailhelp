@@ -1155,3 +1155,17 @@ main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
    starts at the same left edge, so switching pages never moves the content sideways. */
 main.page-wide, main:has(.split-view) { max-width: var(--page-wide); }
 @media (min-width: 900px) { .app-shell main { margin: 0; } }
+
+/* 6.2.5: one tool row per list – search and the most used choices next to the primary action. */
+.toolbar { margin: 0 0 var(--space-4); }
+.toolbar-row { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: flex-end; }
+.toolbar-row > label { display: grid; gap: var(--space-1); flex: 1 1 10rem; min-width: 0; }
+.toolbar-row > .toolbar-search { flex: 3 1 16rem; }
+.toolbar-row > .button { flex: none; }
+.toolbar .meta { margin: var(--space-2) 0 0; }
+.toolbar-more { margin: var(--space-2) 0 0; }
+.toolbar-more > summary { font-weight: 600; }
+.toolbar-more .filters { margin: var(--space-2) 0 0; }
+@media (max-width: 719px) {
+  .toolbar-row > label, .toolbar-row > .toolbar-search { flex-basis: 100%; }
+}

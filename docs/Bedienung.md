@@ -228,9 +228,14 @@ verändert selbst keine Daten.
 
 ### Seitenübersicht
 
+Listen (Verlauf, Mails, Auswertung) haben oben eine Werkzeugleiste: Suche und die wichtigsten
+Auswahlfelder in einer Zeile neben der Hauptaktion. Weitere Filter stehen unter **Mehr Filter**; dort
+steht, wie viele davon aktiv sind. **Zurücksetzen** erscheint, sobald etwas gefiltert ist. Die Filter
+stehen in der Adresse, ein Lesezeichen behält sie also.
+
 | Seite | Inhalt |
 | --- | --- |
-| **Verlauf** | jede Änderung und Entscheidung mit Version |
+| **Verlauf** | jede Änderung und Entscheidung mit Version; filtern nach Suche, Status und Art, unter **Mehr Filter** nach Ereignis und Zeitraum |
 | **Briefing** | Tagesüberblick über offene Entscheidungen und Termine |
 | **Themen** | was als relevant gilt (Einstellungen → Themen): Übersicht, Suche, Bearbeitung mit Vorschau |
 | **Lernen** | Lernlauf aus dem Postfach und Regeln aus Entscheidungen verbessern |

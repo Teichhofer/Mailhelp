@@ -2955,6 +2955,13 @@ keine Web-Einstellung gibt (Schritte in `prompts.yaml`), bleibt der Dateiname un
 eingebaute Hilfe kommt hinzu; ein Test prüft, dass jeder solche Link auf einen vorhandenen
 Hilfeabschnitt zeigt. Vorschläge ohne gespeicherten Zieldienst nennen im Abgleich ihr Zielprofil.
 
+Seit 6.2.6 haben Verlauf, Mails und Auswertung dieselbe Werkzeugleiste (`web/toolbar.py`): Suche und
+die meistgenutzten Auswahlfelder in einer Zeile neben genau einer hervorgehobenen Hauptaktion; weitere
+Filter unter „Mehr Filter“ mit der Zahl der aktiven Filter, geöffnet, solange einer aktiv ist;
+„Zurücksetzen“ als Textlink, sobald gefiltert wird. Der Verlauf filtert über Auswahlfelder (Status, Art,
+Ereignis) und Datumsfelder statt Freitext. Ein gewählter Schnellfilter bleibt beim Absenden erhalten.
+Auch „Anzeigen“ in „Offen“ ist als Hauptaktion hervorgehoben.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste
