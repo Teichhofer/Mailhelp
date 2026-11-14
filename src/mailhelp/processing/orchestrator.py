@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from datetime import UTC, datetime
 from threading import Event
 from typing import Any, Literal, Protocol, cast
+from zoneinfo import ZoneInfo
 
 from .. import state_names
 from ..config import (
@@ -255,12 +257,56 @@ class Orchestrator:
             metadata["vision"] = "completed"
         self.save(name, state)
 
+    def _future_deadlines(self, state: MailState) -> list[str]:
+        if state.summary is None:
+            return []
+        raw = getattr(state.summary, "deadlines", []) or []
+        if not raw:
+            return []
+        context = (
+            MailDateContext(
+                date_context_status=state.prepared.date_context_status,
+                date_header_parsed=state.prepared.date_header_parsed,
+                imap_received_at=state.prepared.imap_received_at,
+                user_timezone=state.prepared.user_timezone or self.user_timezone,
+            )
+            if state.prepared is not None
+            else None
+        )
+        try:
+            today = datetime.fromtimestamp(self.clock(), UTC).astimezone(ZoneInfo(self.user_timezone)).date()
+        except Exception:
+            today = datetime.now(UTC).date()
+        from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, resolve_day
+        token_re = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")
+        future: list[str] = []
+        for item in raw:
+            match = token_re.search(item)
+            if match is not None:
+                token = match.group(0)
+                day = resolve_day(token, context) if context is not None else None
+                if day is None:
+                    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
+                        try:
+                            day = datetime.strptime(token, fmt).date()
+                            break
+                        except ValueError:
+                            pass
+                if day is not None and day < today:
+                    continue
+            future.append(item)
+            if len(future) == 3:
+                break
+        return future
+
     def notification_text(self, state: MailState) -> str:
         """Format the compact mail notification from validated display values."""
         assert state.prepared is not None and state.relevance is not None and state.summary is not None
         headers = state.prepared.headers
         sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
-        return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}"
+        deadlines = self._future_deadlines(state)
+        deadline_line = f"\nFristen: {'; '.join(deadlines)}" if deadlines else ""
+        return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}{deadline_line}"
 
     def accepts_configuration(self, fingerprint: str, account_id: str | None = None) -> bool:
         current = self.fingerprint_for(account_id) if account_id is not None else self.config_fingerprint

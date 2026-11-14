@@ -275,3 +275,11 @@ def test_a_failed_duplicate_check_can_be_repeated_from_the_card(web):
         2, "pending_confirmation", False)
     assert web.form("/", kind="confirm", proposal_id="elternabend")["version"] == "2"
     assert web.writer.created == 0
+
+
+def test_decision_help_renders_short_sentences_per_button(web):
+    page = web.browser.request("GET", "/").body.decode()
+    assert '<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>' in page
+    assert "<p><strong>Verwerfen</strong>: Lehnt diesen Vorschlag ab; es wird nichts angelegt.</p>" in page
+    assert "<p><strong>Schon erledigt</strong>: Relevant, aber bereits erledigt; es wird kein neuer Eintrag angelegt.</p>" in page
+    assert "Diese Entscheidungen können später ausdrücklich" not in page

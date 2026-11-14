@@ -121,12 +121,15 @@ def comparison(item: Proposal, target: Proposal, zone: str, csrf: str,
                   target_version=target.version)
     body = ('<div class="compare">' + compare_side(True, item, origin(item), zone)
             + compare_side(False, target, origin(target), zone) + '</div>')
+    item_title = shorten(item.title, 80)
+    target_title = shorten(target.title, 80)
     if target.status in OPEN:
-        body += (f'<p>Zuordnen verbindet „{e(item.title)}“ mit „{e(target.title)}“ und dessen Quellen. '
-                 'Die entstehende Version muss anschließend separat bestätigt werden.</p>'
-                 + post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen', kind="merge_proposals", **fields))
+        body += (f'<p>Fügt die Angaben aus „{e(item_title)}“ zu „{e(target_title)}“ hinzu. '
+                 'Es entsteht kein zweiter Eintrag; den ergänzten Vorschlag bestätigst du danach unter Offen.</p>'
+                 + post_form("/abgleich", csrf, '', 'Zu diesem Eintrag hinzufügen',
+                             primary=item.merge_review_required, kind="merge_proposals", **fields))
     if item.merge_review_required or item.matching_candidates:
-        body += '<p>Als eigenen Vorschlag behalten: Die beiden Vorgänge bleiben getrennt.</p>'
+        body += '<p>Beide bleiben getrennte Vorschläge unter Offen.</p>'
         body += post_form("/abgleich", csrf, '', 'Als eigenen Vorschlag behalten', kind="separate_proposals", **fields)
     return body
 
@@ -134,7 +137,7 @@ def comparison(item: Proposal, target: Proposal, zone: str, csrf: str,
 def defaults_offer(item: Proposal, candidate: Proposal, defaults_hash: str, zone: str, csrf: str) -> str:
     """A changed default duration is offered for explicit adoption, never applied silently."""
     return ('<p>Dauerannahme: ' + e(event_time(candidate, zone)) + '</p>'
-            + post_form("/abgleich", csrf, '', 'Dauerannahme ausdrücklich übernehmen',
+            + post_form("/abgleich", csrf, '', 'Dauerannahme übernehmen',
                         kind="reapply_defaults", mail_id=item.source_mail_id, proposal_id=item.id,
                         version=item.version, proposal_hash=defaults_hash))
 

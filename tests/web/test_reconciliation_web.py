@@ -40,7 +40,7 @@ def test_preview_is_read_only_escaped_and_merge_is_local_idempotent(web):
     first, second = pair(web)
     before = {p.name: p.read_bytes() for p in web.store.directory.glob("*.json")}
     page = web.browser.request("GET", "/abgleich")
-    assert page.status == 200 and "Zusatz ausdrücklich" in page.body.decode()
+    assert page.status == 200 and "Zu diesem Eintrag hinzufügen" in page.body.decode()
     assert before == {p.name: p.read_bytes() for p in web.store.directory.glob("*.json")}
     form = post(web, kind="merge_proposals", proposal_id=second.id, target_proposal_id=first.id)
     assert web.dialog.repository.load_current(second.source_mail_id, second.id).status == "merged"
@@ -244,3 +244,42 @@ def test_restore_recovery_recognizes_a_repaired_open_record_without_new_version(
         mail_id=first.source_mail_id, proposal_id=first.id, version=first.version,
         proposal_hash=digest(first.model_dump(mode="json")), idempotency_key="restored-before-result")
     assert web.dialog.review.reconcile(command).status == ResultStatus.DONE
+
+
+def test_reconciliation_new_wording_and_guard_against_old_terms(web):
+    first, second = pair(web, uncertain=True)
+    body = web.browser.request("GET", "/abgleich").body.decode()
+    # New phrases
+    assert "Fügt die Angaben aus" in body
+    assert "Es entsteht kein zweiter Eintrag; den ergänzten Vorschlag bestätigst du danach unter Offen." in body
+    assert "Beide bleiben getrennte Vorschläge unter Offen." in body
+    assert "Zu diesem Eintrag hinzufügen" in body
+    assert "Als eigenen Vorschlag behalten" in body
+    # Guard against old terms (P1 / D1)
+    assert "Zusatz ausdrücklich zuordnen" not in body
+    assert "dessen Quellen" not in body
+    assert "entstehende Version" not in body
+    assert "Dauerannahme ausdrücklich übernehmen" not in body
+
+
+def test_reconciliation_primary_button_only_when_merge_review_required(web):
+    first, second = pair(web, uncertain=True)
+    body = web.browser.request("GET", "/abgleich").body.decode()
+    assert '<button class="button primary">Zu diesem Eintrag hinzufügen</button>' in body
+
+    web.store.delete(f"proposal-{first.source_mail_id}-{first.id}")
+    web.store.delete(f"proposal-{second.source_mail_id}-{second.id}")
+    p1, p2 = pair(web, uncertain=False)
+    body2 = web.browser.request("GET", "/abgleich").body.decode()
+    assert '<button class="button">Zu diesem Eintrag hinzufügen</button>' in body2
+
+
+def test_reconciliation_escapes_and_shortens_long_and_malicious_titles(web):
+    long_malicious = "<script>alert('xss')</script>" + "A" * 120
+    first = proposal(80, "first", title=long_malicious, description="Bisher")
+    second = proposal(81, "second", title=long_malicious, description="Zusatz")
+    save_mail(web.store, 80, "test@example.com", "Test", [first])
+    save_mail(web.store, 81, "test@example.com", "Test", [second])
+    body = web.browser.request("GET", "/abgleich").body.decode()
+    assert "<script>" not in body
+    assert "&lt;script&gt;" in body

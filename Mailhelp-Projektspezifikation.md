@@ -4316,3 +4316,39 @@ oder Telegram wieder entfernen.
    - Telegram: Inline-Schaltfläche „Wieder entfernen“ unter der Erfolgsmeldung mit Rückfrage
      („Wirklich entfernen?“ / „Ja, entfernen“ / „Abbrechen“).
 
+## Version 6.7 – Offene Punkte der Bedienung abschließen
+
+### Vorschlagsabgleich und Begriffe (6.7.1, P1, E1, E2)
+
+- Schaltflächen im Vorschlagsabgleich (`web/reconciliation_pages.py`):
+  - „Zu diesem Eintrag hinzufügen“ (ersetzt „Zusatz ausdrücklich zuordnen“).
+  - „Als eigenen Vorschlag behalten“ bleibt unverändert.
+  - „Dauerannahme übernehmen“ (ersetzt „Dauerannahme ausdrücklich übernehmen“).
+  - Das Wort „ausdrücklich“ entfällt aus den Schaltflächenbeschriftungen; die Bestätigungspflicht selbst bleibt unverändert.
+- Erklärsätze:
+  - „Fügt die Angaben aus ‚…‘ zu ‚…‘ hinzu. Es entsteht kein zweiter Eintrag; den ergänzten Vorschlag bestätigst du danach unter Offen.“
+  - „Beide bleiben getrennte Vorschläge unter Offen.“
+  - Titel werden einzeilig auf maximal 80 Zeichen gekürzt und HTML-escaped.
+- Hervorhebung (`primary=True`): Genau eine Schaltfläche ist hervorgehoben, und nur dann, wenn Mailhelp die Zuordnung selbst zur Prüfung vorgelegt hat (`merge_review_required`).
+- Auch in Telegram (`telegram/presenter.py`) heißen die entsprechenden Texte „Möglicher zweiter Eintrag“ und „Zu diesem Eintrag hinzufügen“.
+
+### Wischgesten-Tipptext (6.7.2, P2, E5)
+
+- Der Tipp-Text unter der ersten Karte passt sich an den Kartentyp an:
+  - Bei einer Relevanzfrage: „Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant.“
+  - Bei einem Vorschlag: „Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.“
+
+### Alltagsbedienung und Hilfeindex (6.7.3, P3, E4)
+
+- `docs/Bedienung.md` ist nach dem täglichen Arbeitsablauf gegliedert (Offen entscheiden mit Tippen/Wischen/Tastatur → Rückfragen und Widersprüche → Vorschlagsabgleich → Nach dem Anlegen → Mails und Verlauf → Lernen → Bedienung auf dem Telefon → Fehlgeschlagene Mails → Weitere Seiten).
+- Historische Versionshinweise („ab 5.x / 6.x“) sind im Fließtext entfernt; der Kopf nennt den aktuellen Versionsstand.
+- Der Hilfeindex (`devtools.help_index`) indexiert die neu geordneten Abschnitte; typische Nutzerfragen finden ohne Modellaufruf die passenden Abschnitte.
+
+### Fristzeile in Telegram (6.7.4, P4, E3)
+
+- Die Telegram-Zusammenfassungsbenachrichtigung (`Orchestrator.notification_text`) enthält als letzte Zeile die erkannten Fristen:
+  `\nFristen: <frist1>; <frist2>; <frist3>`
+- Höchstens drei Fristen werden ausgegeben.
+- Vergangene Fristen (vor dem heutigen Tag in der Benutzer-Zeitzone) werden herausgefiltert.
+- Liegen keine oder nur vergangene Fristen vor, entfällt die Zeile.
+

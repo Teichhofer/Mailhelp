@@ -20,7 +20,7 @@ def test_preview_is_accessible_and_explicit_duration_revision_is_local(page, mai
     page.goto(mailhelp.url + "/abgleich")
     expect(page.get_by_role("heading", name="Vorschlagsabgleich", exact=True)).to_be_visible()
     assert audit(page, "reconciliation-" + page.device, page.mobile) == []
-    page.get_by_role("button", name="Dauerannahme ausdrücklich übernehmen").click()
+    page.get_by_role("button", name="Dauerannahme übernehmen").click()
     # The result shows on the card in the list and, once loaded, in the split view's detail pane too.
     expect(page.get_by_role("status").filter(has_text="separat bestätigen").first).to_be_visible(timeout=10000)
     current = mailhelp.dialog.repository.load_current(item.source_mail_id, item.id)
@@ -35,7 +35,7 @@ def test_duration_preview_and_revision_work_without_javascript(browser, mailhelp
     try:
         sign_in(page, mailhelp)
         page.goto(mailhelp.url + "/abgleich")
-        page.get_by_role("button", name="Dauerannahme ausdrücklich übernehmen").click()
+        page.get_by_role("button", name="Dauerannahme übernehmen").click()
         expect(page.get_by_role("status")).to_contain_text("separat bestätigen", timeout=10000)
         assert mailhelp.dialog.repository.load_current(item.source_mail_id, item.id).version == 2
         assert mailhelp.writer.created == []

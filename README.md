@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.6.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.7.4 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/Release-6.7.md)):
+- Verständlicher Vorschlagsabgleich: Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“, mit klaren Erklärsätzen zum weiteren Ablauf. Nur noch von Mailhelp vorgelegte Zuordnungen heben eine Schaltfläche hervor.
+- Passender Wischgesten-Tipp: Dynamischer Hinweis unter der ersten Karte („relevant / irrelevant“ bei Relevanzfragen, „zum Anlegen / zum Verwerfen“ bei Vorschlägen).
+- Neu gegliederte Alltagsanleitung (`docs/Bedienung.md`): Orientiert am täglichen Arbeitsablauf (Entscheiden, Klären, Abgleich, Kontrolle, Verlauf, Lernen), frei von Versionsfloskeln im Fließtext und mit deterministischem Hilfeindex.
+- Fristzeile in Telegram: Zusammenfassungen enthalten künftige Fristen als kompakte Abschlusszeile (`Fristen: ...`).
 
 6.6 ermöglicht das Wiederentfernen versehentlich angelegter Termine und Aufgaben ([Release 6.6](docs/Release-6.6.md)):
 - Angelegte Einträge können innerhalb eines konfigurierbaren Zeitfensters (Standard 10 Minuten, `targets.removal_window_minutes`) im Web und über Telegram wieder entfernt werden.

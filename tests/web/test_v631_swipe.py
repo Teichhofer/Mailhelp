@@ -7,7 +7,7 @@ import pytest
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.views import ReviewViews
 from mailhelp.web.actions import SWIPE_BLOCKED_DEFAULT, proposal_actions, swipe_blocked
-from mailhelp.web.review_pages import SWIPE_HINT, overview_page
+from mailhelp.web.review_pages import SWIPE_HINT, overview_page, swipe_hint
 from tests.scenarios.web_scenario import mail_id
 
 OPEN = frozenset({CommandKind.REJECT, CommandKind.ALREADY_DONE})
@@ -59,9 +59,18 @@ def test_the_reason_is_escaped_in_the_attribute(view, monkeypatch):
 def test_the_tip_stands_hidden_above_the_cards_and_only_with_cards(web):
     html = page(web)
     assert html.count("data-swipe-hint") == 2  # the tip and its close button
-    assert html.index(SWIPE_HINT) < html.index('<div class="open-items">')
+    # The first item on the overview is a relevance question, so the tip explains relevance decisions
+    assert html.index(swipe_hint(True)) < html.index('<div class="open-items">')
+    assert "nach rechts wischen für relevant, nach links für irrelevant" in html
     # Regression 6.3.1: as a .notice the hidden tip was taken for the result message of an action.
     assert '<div class="swipe-hint" data-swipe-hint hidden>' in html and "notice" not in SWIPE_HINT
+
+    # When only proposals are present, tip explains creating and rejecting
     overview = ReviewViews(web.store, "Europe/Berlin").overview()
+    proposal_only = overview_page(replace(overview, relevance=()))
+    assert swipe_hint(False) in proposal_only
+    assert "nach rechts wischen zum Anlegen, nach links zum Verwerfen" in proposal_only
+
+    # When nothing is open, no tip is rendered
     empty = overview_page(replace(overview, open=(), relevance=()))
     assert "data-swipe-hint" not in empty

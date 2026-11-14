@@ -459,7 +459,7 @@ def test_the_tip_appears_once_and_goes_after_understanding(phone, mailhelp):
     sign_in(page, mailhelp)
     tip = page.locator(".swipe-hint")
     expect(tip).to_be_visible()
-    expect(tip).to_contain_text("nach rechts wischen zum Anlegen, nach links zum Verwerfen")
+    expect(tip).to_contain_text("nach rechts wischen für relevant, nach links für irrelevant")
     # Below the first card it explains, so the first decision keeps its place on the first screen.
     assert tip.evaluate("(node) => node.previousElementSibling.id") == RELEVANCE[1:]
     top = "(node) => node.getBoundingClientRect().top"

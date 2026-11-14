@@ -126,10 +126,12 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         # 6.3: without a confirmation the swipe to the right names what has to happen first.
         blocked = "" if CommandKind.CONFIRM in view.actions else f' data-swipe-blocked="{e(swipe_blocked(view))}"'
         parts.append(f'<div class="actions decision-bar"{blocked}>{"".join(buttons)}</div>')
-        parts.append('<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>'
-                     '<p>Verwerfen lehnt diesen Vorschlag ab. Schon erledigt bedeutet: relevant, '
-                     'aber bereits erledigt; es wird kein neuer Eintrag angelegt. Diese Entscheidungen können '
-                     'später ausdrücklich zur Verbesserung deiner Themenregeln ausgewertet werden.</p></details>')
+        help_items = []
+        if CommandKind.CONFIRM in view.actions:
+            help_items.append(f"<p><strong>{e(view.confirm_label)}</strong>: Legt den Eintrag beim Anbieter an.</p>")
+        help_items.append("<p><strong>Verwerfen</strong>: Lehnt diesen Vorschlag ab; es wird nichts angelegt.</p>")
+        help_items.append("<p><strong>Schon erledigt</strong>: Relevant, aber bereits erledigt; es wird kein neuer Eintrag angelegt.</p>")
+        parts.append(f'<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>{"".join(help_items)}</details>')
         if CommandKind.ANSWER in view.actions and not view.question:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)

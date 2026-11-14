@@ -59,7 +59,7 @@ class ProposalPresenter:
                     if self.profile_of(proposal)
                     else ""
                 )
-                + (f"\n\nUngeprüfter Zusatz: {additional.title}\n{additional.evidence}" if additional else ""),
+                + (f"\n\nMöglicher zweiter Eintrag: {additional.title}\n{additional.evidence}" if additional else ""),
                 mailbox=self.mailbox_of(proposal),
             )
         )
@@ -118,8 +118,8 @@ class ProposalPresenter:
         markup: dict[str, object] = {"inline_keyboard": buttons}
         if additional is not None:
             choices = []
-            for label, action in (("Zusatz zuordnen", DecisionAction.MERGE_SOURCE),
-                                  ("Separat behalten", DecisionAction.SEPARATE_SOURCE)):
+            for label, action in (("Zu diesem Eintrag hinzufügen", DecisionAction.MERGE_SOURCE),
+                                  ("Als eigenen Vorschlag behalten", DecisionAction.SEPARATE_SOURCE)):
                 decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                     version=proposal.version, action=action,
                     additional_ref=ProposalReference(mail_id=additional.source_mail_id, proposal_id=additional.id),

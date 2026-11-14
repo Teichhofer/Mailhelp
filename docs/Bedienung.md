@@ -1,15 +1,6 @@
 # Alltagsbedienung
 
-## Fehlgeschlagene Mails
-
-Die Statusseite zeigt unter „Handlungsbedarf und Wiederholungen“, welche Mail erneut
-versucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.
-„Erneut versuchen“ startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen
-Versuche zurück. „Ablegen“ beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.
-Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
-Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
-
-Stand: Mailhelp 5.3. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
+Stand: Mailhelp 6.7. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
 nachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.
 
 ## Offene Entscheidungen
@@ -20,7 +11,7 @@ Liste links und der gewählte Vorschlag rechts; die Taste `A` legt den gewählte
 Der **Quellbeleg** (die Mail mit Anhängen) ist ab 1024 px Breite sofort aufgeklappt, auf
 schmaleren Bildschirmen zunächst eingeklappt; seine Überschrift nennt Absender und Zahl der Bilder.
 
-Über der Liste stehen ab 6.0.6 die Schnellfilter und darunter Suche, Sortierung und Gruppierung.
+Über der Liste stehen die Schnellfilter und darunter Suche, Sortierung und Gruppierung.
 Die Suche findet Vorschlagstitel, Betreff und Absender. Die Zahl in der Überschrift lautet dann
 etwa „4 von 12“. Die Sortierung bietet „Neueste Mail zuerst“ (Standard, nach Eingang bei
 Mailhelp), „Älteste Mail zuerst“ und „Nächster Termin / nächste Frist zuerst“; Einträge ohne Datum
@@ -38,27 +29,9 @@ Neuladen erhalten; „Zurücksetzen“ zeigt wieder alles. Die Leiste ändert nu
 | **Dublettenprüfung wiederholen** | nach einer fehlgeschlagenen Prüfung auf vorhandene Einträge |
 | **Erneut anlegen** | nur nach Rückfrage, wenn derselbe Eintrag schon früher angelegt wurde |
 
-Bei Änderungen oder Absagen eines vorhandenen Termins heißt die Schaltfläche **Bestehenden
-Termin aktualisieren** bzw. **Termin absagen**. Passt eine Änderung zu mehreren Terminen, wählst
-du mit „Diesen Termin meinen: …“ den richtigen. Hält Mailhelp zwei Vorschläge für dieselbe
-Sache, entscheidest du im **Vorschlagsabgleich**.
-
-Bringt eine weitere Mail andere Angaben zum selben Termin oder zur selben Aufgabe, nennt die
-Rückfrage ab 5.9.2 beide Werte und ihre Herkunft, zum Beispiel „Widerspruch bei der Endzeit:
-bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“.
-Ab 5.9.3 stehen beide Werte auf der Karte nebeneinander. Eine Schaltfläche wie „18:30 Uhr behalten“
-oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine neue Version; angelegt wird erst, wenn du diese
-Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
-In Telegram stehen ab 5.9.4 dieselben Werte in der Nachricht und als Schaltflächen darunter.
-
-
-Auf dem Telefon stehen oben nur die Schnellfilter; **Suchen und sortieren** klappt Suche,
-Sortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**, **Abgleich** und
-**Verlauf**; **Status** und die übrigen Bereiche liegen unter **Mehr**.
-
 ### Wischen auf dem Telefon
 
-Ab 6.3 entscheidest du auf Telefon und Tablet auch mit dem Finger: Karte **nach rechts** ziehen
+Auf Telefon und Tablet entscheidest du auch mit dem Finger: Karte **nach rechts** ziehen
 legt an (bzw. „Relevant“), **nach links** verwirft (bzw. „Irrelevant“). Unter der Karte steht dabei
 genau die Schaltfläche, die ausgelöst würde, etwa „✓ Im Kalender anlegen“. Solange der Streifen hell
 ist, passiert beim Loslassen nichts; erst wenn er kräftig grün bzw. rot wird (bei etwa 40 % der
@@ -75,7 +48,34 @@ Ein gewöhnlicher Tipp aktiviert sie. Nach einer erkannten Wischbewegung wird de
 abgefangen. Eingabefelder und seitlich scrollende Inhalte behalten ihre eigene Bedienung.
 Mit der Maus und auf breiten Bildschirmen (ab 1024 px)
 gibt es kein Wischen – dort gelten die Tastenkürzel. Ein Tipp unter der ersten Karte erklärt die
-Geste einmal; „Verstanden“ blendet ihn auf diesem Gerät aus.
+Geste einmal; „Verstanden“ blendet ihn auf diesem Gerät aus. Bei einer Relevanzfrage nennt der Tipp
+„nach rechts für relevant, nach links für irrelevant“, bei einem Vorschlag „zum Anlegen, nach links zum Verwerfen“.
+
+## Rückfragen und Widersprüche
+
+Bei Änderungen oder Absagen eines vorhandenen Termins heißt die Schaltfläche **Bestehenden
+Termin aktualisieren** bzw. **Termin absagen**. Passt eine Änderung zu mehreren Terminen, wählst
+du mit „Diesen Termin meinen: …“ den richtigen.
+
+Bringt eine weitere Mail andere Angaben zum selben Termin oder zur selben Aufgabe, nennt die
+Rückfrage beide Werte und ihre Herkunft, zum Beispiel „Widerspruch bei der Endzeit:
+bisher 16:30 Uhr, laut Mail „Elternabend“ vom 08.11. 19:30 Uhr. Welche Endzeit soll gelten?“.
+Beide Werte stehen auf der Karte nebeneinander. Eine Schaltfläche wie „18:30 Uhr behalten“
+oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine neue Version; angelegt wird erst, wenn du diese
+Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
+In Telegram stehen dieselben Werte in der Nachricht und als Schaltflächen darunter.
+
+## Vorschlagsabgleich
+
+Hält Mailhelp zwei Vorschläge für dieselbe Sache oder bringt eine Mail Zusatzangaben zu einem bestehenden Vorschlag,
+entscheidest du im **Vorschlagsabgleich** (`/abgleich`):
+
+- **Zu diesem Eintrag hinzufügen:** Fügt die Angaben aus dem einen Vorschlag zum bestehenden Eintrag hinzu. Es entsteht kein zweiter Eintrag; den ergänzten Vorschlag bestätigst du danach unter Offen.
+- **Als eigenen Vorschlag behalten:** Beide bleiben getrennte Vorschläge unter Offen.
+- **Dauerannahme übernehmen:** Merkt sich eine feste Zuordnungsregel für künftige Vorschläge.
+
+Hat Mailhelp die Zuordnung selbst zur Prüfung vorgelegt, ist die empfohlene Schaltfläche hervorgehoben.
+
 ## Nach dem Anlegen
 
 Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:
@@ -103,19 +103,22 @@ Eintrag innerhalb einer Frist (standardmäßig 10 Minuten nach dem Anlegen, eins
   Eintrag beim Anbieter gelöscht; **Abbrechen** führt ohne Änderungen zurück. Nach Ablauf der Frist
   erscheint stattdessen der direkte Link zum Anbieter („Im Kalender öffnen“ bzw. „Aufgabe öffnen“).
 - **Telegram:** Unter der Meldung „✅ Angelegt …“ erscheint die Schaltfläche **Wieder entfernen**.
-  Ein Klick fragt nach („Wirklich entfernen: …?“ mit „Ja, entfernen“ und „Abbrechen“).
+  Ein Klick fragt nach („Wirklich entfernen: …?“ mit „Ja, entfernen“ und **Abbrechen**).
 - **Sicherheit:** Wurde der Eintrag beim Anbieter inzwischen von Hand geändert (z. B. durch ein
   Familienmitglied), verweigert Mailhelp das Löschen, um fremde Änderungen zu schützen.
 - **Verlauf:** Ein entfernter Vorschlag wird im Verlauf und unter „Zuletzt erledigt“ als
   **Wieder entfernt** gekennzeichnet und zählt in der Annahmequote nicht als angenommen.
 
-## Mails nachlesen
+## Mails nachlesen und Verlauf
 
 **Mails** listet alle verarbeiteten Mails. Die Mailseite zeigt „So wurde diese Mail
 verarbeitet“ mit jedem Schritt und seinem Ergebnis. Hat Mailhelp etwas übersehen, startet
 **Aufgabe oder Termin übersehen?** eine gezielte Nachanalyse (**Erneut analysieren**, begrenzt
 durch ein Tageslimit). Neue Befunde übernimmst du mit **Ergebnis übernehmen** als unbestätigte
 Vorschläge; **Nachanalyse abbrechen** beendet eine laufende.
+
+Im **Verlauf** findest du jede Änderung und Entscheidung mit ihrer Version. Du kannst nach Begriffen,
+Status und Art filtern, unter **Mehr Filter** auch nach Ereignis und Zeitraum.
 
 ## Lernmodus (Lernfunktion)
 
@@ -160,10 +163,10 @@ Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Besc
 Belege aus den Mails und die Absender:
 
 - **Übernahme:** **Nicht übernehmen**, **Thema** (relevant, `topics.yaml`) oder **Ausschlussthema**
-  (irrelevant, `irrelevant_topics.yaml`).
+   (irrelevant, `irrelevant_topics.yaml`).
 - **Für alle Postfächer** übernimmt das Thema global statt nur für das gewählte Postfach.
 - **Absender bei Ausschlussthema ignorieren** setzt bei einem Ausschlussthema die Absender
-  zusätzlich auf die Liste der ignorierten Absender (`irrelevant-senders.json`).
+   zusätzlich auf die Liste der ignorierten Absender (`irrelevant-senders.json`).
 - **Auswahl als Entwurf speichern** merkt die Entscheidung je Vorschlag.
 
 Unter **Zusätzliche Abrufordner** wählst du Ordner aus, die künftig mit abgerufen werden
@@ -214,7 +217,7 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
    Korrekturen werden an den aktiven KI-Anbieter übertragen. Ohne Freigabe erfolgt kein Aufruf.
 2. Nach Abschluss oben die Zusammenfassung lesen; die Links springen zu den einzelnen
    Vorschlägen. Sie nennt auch, wie viele gleichartige Ablehnungen nur als Anzahl an die KI
-   gingen (ab 5.7.7). In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
+   gingen. In jeder Karte zeigt „Bisherige Regel und Vorschlag“ nur die geänderten Felder;
    neue und entfernte Beispiele sind mit „+ neu“ und „− entfernt“ markiert, unveränderte Felder
    öffnet „Unveränderte Felder anzeigen“. „Entscheidungsbelege“ listet Betreff, Entscheidung und Datum; der
    Auszug öffnet sich mit „Auszug anzeigen“. Eine abgelehnte Aufgabe macht
@@ -239,12 +242,12 @@ aus dem mitgelieferten Beispiel übernehmen und die Promptkonfiguration wie übl
 6. Bei unterbrochenem Schreiben nach Anmeldung „Übernahme abschließen“ ausdrücklich bestätigen.
    Mailhelp prüft alle Dateien erneut und vervollständigt nur die bereits freigegebene lokale
    Änderung. Es startet keinen neuen KI-Aufruf und überschreibt keine fremden Änderungen.
-7. Verworfene Vorschläge (ab 6.0.4) nennt die Prüfansicht unter „Wird verworfen und nicht wieder
+7. Verworfene Vorschläge nennt die Prüfansicht unter „Wird verworfen und nicht wieder
    vorgeschlagen“. Werden nur Vorschläge verworfen, heißt die Schaltfläche **Vorschläge verwerfen**;
    keine Regeldatei wird geändert. „Offen lassen“ speichert nichts – ein späterer Lauf darf den
    Vorschlag wieder bringen. Am Seitenende listet „Zuvor verworfene Vorschläge anzeigen“ alle
    gesperrten Vorschläge mit Datum und Änderung; **Wieder zulassen** hebt die Sperre auf.
-   Ab 6.0.5 erfährt die KI bei der nächsten Analyse, welche Änderungen du abgelehnt hast. Schlägt
+   Mailhelp teilt der KI bei der nächsten Analyse mit, welche Änderungen du abgelehnt hast. Schlägt
    sie dieselbe Änderung trotzdem vor, blendet Mailhelp sie aus; die Zusammenfassung nennt, wie viele
    Vorschläge so ausgeblendet wurden. Eine anders formulierte, sinngemäß gleiche Regel kann die KI
    dennoch erneut bringen – dann einfach wieder verwerfen.
@@ -282,6 +285,23 @@ entstehen und wie du sie gezielt vermeidest.
    Ablehnungen vor, empfiehlt Mailhelp oben auf „Offen“ und „Lernen“ einen neuen Lernlauf,
    um deine Themenregeln nachzuschärfen. Der Hinweis erscheint höchstens einmal pro Woche
    und lässt sich mit „Ausblenden“ für sieben Tage pausieren.
+
+## Bedienung auf dem Telefon
+
+Auf dem Telefon stehen oben nur die Schnellfilter; **Suchen und sortieren** klappt Suche,
+Sortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**, **Abgleich** und
+**Verlauf**; **Status** und die übrigen Bereiche liegen unter **Mehr**.
+
+Auf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wischen auf dem Telefon](#wischen-auf-dem-telefon)).
+
+## Fehlgeschlagene Mails
+
+Die Statusseite zeigt unter „Handlungsbedarf und Wiederholungen“, welche Mail erneut
+versucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.
+**Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen
+Versuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.
+Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
+Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
 
 ## Weitere Seiten
 
@@ -343,29 +363,28 @@ Diagramme zugeklappt (**Verlauf und Verteilung** öffnet sie). Ohne erfasste Auf
 dort nur ein Hinweis.
 
 **Auswertung** zeigt Kosten und Zeiten der KI-Aufrufe für den gewählten Zeitraum. Dauern
-erscheinen ab 5.9.1 in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Min.` oder
+erscheinen in der passenden Einheit, etwa `4 Min. 12 s`, `20 Std. 54 Min.` oder
 `3 Tage 4 Std.`; bei der summierten Aufrufdauer stehen die genauen Sekunden in Klammern
 dahinter. Die summierte Aufrufdauer addiert alle Versuche, auch parallele, und ist keine
 Durchlaufzeit.
 
-Ab 5.9.8 zeigt das Kostendiagramm eine gestrichelte Durchschnittslinie und ab 14 Tagen ein
+Das Kostendiagramm zeigt eine gestrichelte Durchschnittslinie und ab 14 Tagen ein
 7-Tage-Mittel. Die **Aufrufdauer** ist eine Punktwolke: jeder Punkt ein Aufruf, Kreuze sind Fehler,
 die Linie ist der Median je Tag. **Rechenzeit je Verarbeitungsschritt** nennt Anteil und Dauer
 jedes Schritts, der **Ablauf der Mailverarbeitung** zeigt alle Schritte in ihrer Reihenfolge und
 markiert die größte Wartezeit; lokale Schritte heißen „lokal · nicht gemessen“.
 
-Ab 5.9.10 ist jeder Wert der Faktentabelle ein Link. Er öffnet die Aufrufliste mit passender
+Jeder Wert der Faktentabelle ist ein Link. Er öffnet die Aufrufliste mit passender
 Voreinstellung, etwa nur die fehlgeschlagenen Aufrufe mit ihrer Ursache, die teuersten oder die
 längsten. Status und Sortierung lassen sich dort ändern; „← Zurück zur Auswertung“ behält den
 Filter. Einzelaufrufe gibt es nur für die Aufbewahrungsdauer der Metriken (Standard 90 Tage).
 
-Ab 6.1.8 misst Mailhelp jeden Verarbeitungsschritt, nicht nur die KI-Aufrufe. Die Faktentabelle nennt
+Mailhelp misst jeden Verarbeitungsschritt, nicht nur die KI-Aufrufe. Die Faktentabelle nennt
 die **Durchlaufzeit je Mail** (ohne die Zeit, in der eine Mail auf deine Entscheidung wartet; diese steht
 darunter). „Zeit je Verarbeitungsschritt“ zeigt, wie viel Zeit jeder Schritt tatsächlich braucht, der
 Ablaufplan nennt je Schritt Dauer und KI-Anteil („davon KI“) und markiert die größte Wartezeit.
 „Aufbereitung im Detail“ teilt die Aufbereitung in Zerlegen, Anhänge und Bilderkennung. Ein Klick
-auf einen Schritt unter „Langsamste Durchläufe“ zeigt die langsamsten Mails dieses Schritts. Für
-Zeiträume vor 6.1.6 gibt es keine Schrittzeiten; dann erscheint die Auswertung wie bisher. Auf
+auf einen Schritt unter „Langsamste Durchläufe“ zeigt die langsamsten Mails dieses Schritts. Auf
 **Status** steht beim laufenden Schritt, wie lange er üblicherweise dauert.
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.

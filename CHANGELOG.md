@@ -1,5 +1,22 @@
 # Änderungen
 
+## 6.7.4 – Offene Punkte der Bedienung abschließen
+
+- Vorschlagsabgleich verständlich machen:
+  - Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ (mit Erklärsatz „Fügt die Angaben aus ‚…‘ zu ‚…‘ hinzu. Es entsteht kein zweiter Eintrag; den ergänzten Vorschlag bestätigst du danach unter Offen.“) und „Als eigenen Vorschlag behalten“ („Beide bleiben getrennte Vorschläge unter Offen.“).
+  - „Dauerannahme übernehmen“ ersetzt die frühere Beschriftung. Das Wort „ausdrücklich“ entfällt aus den Schaltflächen; die Bestätigungspflicht selbst bleibt unverändert.
+  - Genau eine Schaltfläche ist primär hervorgehoben, und nur dann, wenn Mailhelp die Zuordnung selbst zur Prüfung vorgelegt hat (`merge_review_required`).
+  - Gekürzte, maskierte Titel und bereinigte Begriffe auch in Telegram („Möglicher zweiter Eintrag“, „Zu diesem Eintrag hinzufügen“).
+- Wischgesten-Tipptext:
+  - Dynamischer Hinweistext unter der ersten Karte richtet sich nach dem Kartentyp: Bei Relevanzfragen „Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant“, bei Vorschlägen „zum Anlegen, nach links zum Verwerfen“.
+- Bedienungsanleitung und Hilfeindex:
+  - `docs/Bedienung.md` folgt dem täglichen Arbeitsablauf (Offen entscheiden mit Tippen/Wischen/Tastatur → Rückfragen und Widersprüche → Vorschlagsabgleich → Nach dem Anlegen → Mails und Verlauf → Lernen → Bedienung auf dem Telefon → Fehlgeschlagene Mails → Weitere Seiten).
+  - Historische Versionsangaben im Fließtext entfernt; aktueller Versionsstand im Dokumentenkopf.
+  - Zehn typische Alltagsfragen finden deterministisch den passenden Abschnitt im Hilfeindex.
+- Fristzeile in Telegram:
+  - Zusammenfassungsbenachrichtigungen in Telegram enthalten als letzte Zeile die erkannten Fristen (`\nFristen: <frist1>; <frist2>; <frist3>`).
+  - Höchstens drei Fristen werden genannt; vergangene Fristen werden herausgefiltert.
+
 ## 6.6.5 – Angelegte Einträge wieder entfernen
 
 - Angelegte Einträge wieder entfernen: Innerhalb von 10 Minuten (konfigurierbar über

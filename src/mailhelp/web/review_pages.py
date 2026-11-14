@@ -257,9 +257,16 @@ Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
 
 # Not a .notice: it is no result message. app.js moves it below the first card it explains, so the first
 # decision stays in the upper 60 % of a phone window (6.2.8).
-SWIPE_HINT = ('<div class="swipe-hint" data-swipe-hint hidden>'
-              '<span>Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.</span>'
-              '<button class="button small" type="button" data-swipe-hint-close>Verstanden</button></div>')
+def swipe_hint(first_is_relevance: bool = False) -> str:
+    text = ("Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant."
+            if first_is_relevance
+            else "Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.")
+    return ('<div class="swipe-hint" data-swipe-hint hidden>'
+            f'<span>{text}</span>'
+            '<button class="button small" type="button" data-swipe-hint-close>Verstanden</button></div>')
+
+
+SWIPE_HINT = swipe_hint(False)
 
 
 def overview_page(overview: Overview, *, actions: Actions | None = None,
@@ -296,8 +303,18 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
             items.append("<h2>Vorschläge</h2>")
             items.extend(_proposal_items(overview.open, actions))
     if items:
+        first_is_relevance = False
+        if sections is not None:
+            for _heading, relevance_views, views in sections:
+                if relevance_views:
+                    first_is_relevance = True
+                    break
+                if views:
+                    break
+        elif overview.relevance:
+            first_is_relevance = True
         # 6.3: app.js shows the swipe tip once on touch screens; without JavaScript there is no gesture.
-        parts.append(SWIPE_HINT)
+        parts.append(swipe_hint(first_is_relevance))
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
     if not overview.open and not overview.relevance and no_match is not None:

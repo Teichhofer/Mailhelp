@@ -25,12 +25,13 @@ def field(name: str, label: str, value: object = "", *, hidden: bool = False) ->
             'maxlength="4000"></label>')
 
 
-def post_form(route: str, csrf: str, body: str, label: str = "Speichern", **hidden: object) -> str:
+def post_form(route: str, csrf: str, body: str, label: str = "Speichern", *, primary: bool = False, **hidden: object) -> str:
     """A POST form with CSRF token and a fresh idempotency key."""
     inputs = field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
     inputs += "".join(field(name, "", value, hidden=True) for name, value in hidden.items())
+    btn_class = "button primary" if primary else "button"
     return (f'<form method="post" action="{e(route)}" class="stack">{inputs}{body}'
-            f'<button class="button">{e(label)}</button></form>')
+            f'<button class="{btn_class}">{e(label)}</button></form>')
 
 
 __all__ = ["field", "post_form", "select"]

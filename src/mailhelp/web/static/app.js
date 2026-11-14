@@ -444,7 +444,15 @@ function randomHexKey() {
   function showHint() {
     var first = items.querySelector(REJECT), tip = main.querySelector("[data-swipe-hint]");
     if (!coarse.matches || !first || remembered()) return;
-    first.closest("article.card").after(tip);
+    var card = first.closest("article.card");
+    var span = tip.querySelector("span");
+    if (span) {
+      var isRelevance = !!card.querySelector('input[name="decision"][value="irrelevant"]');
+      span.textContent = isRelevance
+        ? "Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant."
+        : "Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.";
+    }
+    card.after(tip);
     tip.hidden = false;
   }
   document.addEventListener("click", function (event) {

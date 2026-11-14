@@ -47,7 +47,7 @@ def test_the_focused_view_shows_only_the_proposal_and_its_candidates(web):
     assert "seminar@example.test · Seminar" in other_side and "Ort" not in other_side
     # Only the blocked proposal's section, with both decisions for its candidate.
     assert focused.count('<section class="card">') == 1
-    assert "Zusatz ausdrücklich zuordnen" in focused and "Als eigenen Vorschlag behalten" in focused
+    assert "Zu diesem Eintrag hinzufügen" in focused and "Als eigenen Vorschlag behalten" in focused
     assert '<a href="/abgleich">Alle Vorschläge im Abgleich anzeigen</a>' in focused
     assert web.writer.created == 0
 

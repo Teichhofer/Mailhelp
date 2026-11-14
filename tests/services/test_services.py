@@ -1314,6 +1314,7 @@ def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
         "✉️ Alice · Rechnung",
         "• Satz eins.",
         "• Satz zwei.",
+        "Fristen: 31.12.2026",
     ])
     assert "Mail-ID" not in summary
 
