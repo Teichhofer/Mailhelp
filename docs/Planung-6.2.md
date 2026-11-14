@@ -139,6 +139,9 @@ UI-11 (Abstände im Themeneditor) und UI-12 (Fachbegriffe bei Zuordnen/Verwerfen
   der Adresse erhalten. Ungültige Werte werden wie bisher abgelehnt.
 - **Zeilenliste** (E6) für Mails, Verlauf und Abgleich: Titel als Link, Absender, Zeit, Status als
   Plakette; auf dem Handy zweizeilig. Die Statusplakette ist überall dasselbe Element.
+  Umgesetzt (6.2.7): Auf dem Handy hat eine Zeile drei kurze Zeilen (Titel, Absender und Zeit,
+  Plaketten), bei langen Plaketten vier; zwei Zeilen hätten Plaketten abgeschnitten. Im Abgleich bleiben
+  Vorschläge mit Vergleich oder Angebot Karten, alle anderen sind Zeilen.
 
 ### 3.4 Offen auf dem Handy (B2, B12, B14, UI-05)
 

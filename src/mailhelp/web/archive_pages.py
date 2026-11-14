@@ -15,8 +15,9 @@ from ..review.search import Hit
 from .actions import recheck_form
 from .filters import chips
 from .forms import select
-from .labels import EVENTS, KINDS, SOURCES, STATUSES, count_text, label
+from .labels import EVENTS, KINDS, SOURCES, STATUSES, count_text, label, status_badge
 from .pages import e, notice, page_head
+from .rows import row
 from .toolbar import date_field, search_field, toolbar
 
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
@@ -190,7 +191,6 @@ def _archive_filters(query: ArchiveQuery, topics: list[str], mailboxes: dict[str
 
 def _archive_row(item: dict[str, Any], zone: str, mailboxes: dict[str, tuple[int, str]], csrf: str = "") -> str:
     from ..review.cards import sender_name
-    from ..review.views import STATUS_LABELS
 
     badges = [f'<span class="badge">{e(RELEVANCE_LABELS.get(item["relevance"], item["relevance"]))}</span>']
     if mailboxes:
@@ -203,16 +203,14 @@ def _archive_row(item: dict[str, Any], zone: str, mailboxes: dict[str, tuple[int
     counts: dict[str, int] = {}
     for value in item["statuses"]:
         counts[value] = counts.get(value, 0) + 1
-    for value, count in sorted(counts.items()):
-        label = next(text for state, text in STATUS_LABELS.items() if state.value == value)
-        badges.append(f'<span class="badge accent">{count} × {e(label)}</span>')
-    summary = f'<p>{e(item["summary"])}</p>' if item["summary"] else ""
+    badges += [status_badge(value, f"{count} × ") for value, count in sorted(counts.items())]
+    summary = f'<p class="row-detail">{e(item["summary"])}</p>' if item["summary"] else ""
     recheck = (recheck_form(csrf, item["id"], item["recheck_round"], small=True)
                if csrf and item.get("recheck_round") is not None else "")
-    return (f'<li class="card"><h3><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a></h3>'
-            f'<p class="source">{e(sender_name(item["sender"]))} · '
-            f'{e(_local_time(item["received"], zone))}</p>'
-            f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}{recheck}</li>')
+    return row(f'/mail/{item["id"]}', item["subject"],
+               f'{sender_name(item["sender"])} · {_local_time(item["received"], zone)}', " ".join(badges),
+               summary + _hit(item.get("hit")) + recheck)
+
 
 
 def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int, damaged: int,
@@ -234,7 +232,7 @@ def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int,
     body += f'<p class="meta">{count_text(total, "gespeicherte Mail", "gespeicherte Mails")} · Seite {query.page}</p>'
     if not items:
         body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'
-    body += f'<ul class="archive-list">{"".join(_archive_row(item, zone, mailboxes, csrf) for item in items)}</ul>'
+    body += f'<ul class="row-list">{"".join(_archive_row(item, zone, mailboxes, csrf) for item in items)}</ul>'
     pages = []
     for number, text in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
         if 1 <= number <= max(1, (total + query.size - 1) // query.size):
@@ -336,6 +334,17 @@ def event_text(row: dict[str, Any], zone: str) -> str:
     return " · ".join(parts)
 
 
+def history_meta(entry: dict[str, Any], zone: str) -> str:
+    """Time, what happened (when it says more than the status badge), who, and the version."""
+    parts = [format_datetime_local(datetime.fromisoformat(entry["at"]), zone)]
+    if entry["kind"] not in ("state", "legacy") and label(EVENTS, entry["kind"]) != label(STATUSES, entry["status"]):
+        parts.append(label(EVENTS, entry["kind"]))
+    parts.append(label(SOURCES, entry["source"]))
+    if entry["version"]:
+        parts.append(f'Version {entry["version"]}')
+    return " · ".join(parts)
+
+
 def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]], zone: str) -> str:
     if not rows:
         return '<p class="meta">Noch keine Revisionen erfasst.</p>'
@@ -359,13 +368,11 @@ def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, pa
         submit="Filtern", active=more, reset="/verlauf" if narrowed else "", hidden=_kept_filter(query),
         more=[select("kind", "Ereignis", query.kind, HISTORY_EVENTS),
               date_field("since", "Von", query.since), date_field("until", "Bis", query.until)])
-    body += f'<p>{count_text(total, "Ereignis", "Ereignisse")} · Seite {query.page}</p><ul class="archive-list">'
-    for row in rows:
-        link = (f'/vorschlag/{row["mail_id"]}/{row["proposal_id"]}/version/{row["version"]}'
-                if row["proposal_id"] else f'/mail/{row["mail_id"]}')
-        version = f' · Version {e(row["version"])}' if row["version"] else ""
-        body += (f'<li class="card"><a href="{e(link)}">{e(row["title"])}</a>'
-                 f'<p>{e(event_text(row, zone))}{version}</p></li>')
+    body += f'<p>{count_text(total, "Ereignis", "Ereignisse")} · Seite {query.page}</p><ul class="row-list">'
+    for entry in rows:
+        link = (f'/vorschlag/{entry["mail_id"]}/{entry["proposal_id"]}/version/{entry["version"]}'
+                if entry["proposal_id"] else f'/mail/{entry["mail_id"]}')
+        body += row(link, entry["title"], history_meta(entry, zone), status_badge(entry["status"]))
     body += '</ul>'
     if query.page > 1:
         params["page"] = query.page - 1

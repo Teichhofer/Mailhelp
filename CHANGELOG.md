@@ -1,5 +1,15 @@
 # Änderungen
 
+## 6.2.7 – Dichte Zeilenlisten
+
+- Mails, Verlauf und Vorschlagsabgleich zeigen je Eintrag eine Zeile statt einer hohen Karte: Titel als Link,
+  Absender und Zeit (im Verlauf Zeit, Ereignis, Quelle, Version), rechts die Plaketten; ab 1024 px in Spalten.
+  Bei 1920 × 1080 passen jetzt mindestens zwölf Einträge auf den Bildschirm (bisher etwa fünf).
+- Der Status ist überall dieselbe Plakette; die Farbe wiederholt nur den Text (grün angelegt, gelb Klärung,
+  rot fehlgeschlagen).
+- Vorschlagsabgleich: Vorschläge mit Vergleich oder Angebot bleiben Karten, ihr Titel ist ein Link statt
+  einer Schaltfläche; alle anderen erscheinen als Zeilen.
+
 ## 6.2.6 – Gemeinsame Werkzeugleiste für Listen
 
 - Verlauf, Mails und Auswertung: Suche und die wichtigsten Auswahlfelder in einer Zeile neben genau einer

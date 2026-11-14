@@ -1169,3 +1169,25 @@ main.page-wide, main:has(.split-view) { max-width: var(--page-wide); }
 @media (max-width: 719px) {
   .toolbar-row > label, .toolbar-row > .toolbar-search { flex-basis: 100%; }
 }
+
+/* 6.2.7: dense lists (mails, history, reconciliation) – one or two lines per entry, columns from 1024 px. */
+.row-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius); }
+.row-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-4); border-top: 1px solid var(--border); }
+.row-item:first-child { border-top: 0; }
+.row-main { display: flex; flex-direction: column; flex: 1 1 18rem; min-width: 0; }
+.row-title { font-weight: 600; overflow-wrap: anywhere; text-decoration: none; }
+.row-title:hover, .row-title:focus-visible { text-decoration: underline; }
+.row-meta { color: var(--muted); font-size: var(--text-s); }
+.row-badges { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.row-item > :is(.row-detail, .search-hit, form) { flex-basis: 100%; margin: 0; }
+.row-detail { color: var(--muted); font-size: var(--text-s); overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.row-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--text); }
+.row-heading a { text-decoration: none; }
+@media (min-width: 1024px) {
+  .row-main { flex-direction: row; align-items: baseline; gap: var(--space-3); }
+  .row-title { flex: 1 1 auto; }
+  .row-meta { flex: 0 1 auto; text-align: right; }
+}

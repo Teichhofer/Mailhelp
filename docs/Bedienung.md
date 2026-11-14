@@ -232,6 +232,8 @@ Listen (Verlauf, Mails, Auswertung) haben oben eine Werkzeugleiste: Suche und di
 Auswahlfelder in einer Zeile neben der Hauptaktion. Weitere Filter stehen unter **Mehr Filter**; dort
 steht, wie viele davon aktiv sind. **Zurücksetzen** erscheint, sobald etwas gefiltert ist. Die Filter
 stehen in der Adresse, ein Lesezeichen behält sie also.
+Mails, Verlauf und Vorschlagsabgleich zeigen je Eintrag eine Zeile: Titel, Absender und Zeit, rechts
+der Status als Plakette. Ein Klick auf den Titel öffnet die Mail bzw. den Vorschlag.
 
 | Seite | Inhalt |
 | --- | --- |

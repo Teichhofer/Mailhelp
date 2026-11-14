@@ -29,6 +29,6 @@ def test_every_help_link_in_the_pages_points_to_a_packaged_section():
 def test_the_target_names_the_profile_when_no_service_was_stored():
     """Regression 6.2.4: proposals without a stored service read "Ziel: Anbieter nicht gespeichert · Familie"."""
     older = proposal(1, "a", target="Familie", target_provider="")
-    assert "<p>Ziel: Zielprofil „Familie“</p>" in section_head(older, "c" * 32)
+    assert "Ziel: Zielprofil „Familie“</p>" in section_head(older, "c" * 32)
     google = proposal(1, "b", target="Familie", target_provider="todoist")
-    assert "<p>Ziel: Todoist · Familie</p>" in section_head(google, "c" * 32)
+    assert "Ziel: Todoist · Familie</p>" in section_head(google, "c" * 32)

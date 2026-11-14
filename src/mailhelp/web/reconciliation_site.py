@@ -29,6 +29,7 @@ from .reconciliation_pages import (
     mail_summary,
     missing_record,
     no_comparison,
+    proposal_row,
     section_head,
     sources_fragment,
 )
@@ -40,6 +41,18 @@ if TYPE_CHECKING:
 def digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
+
+
+def grouped(parts: list[str]) -> str:
+    """Consecutive rows share one list; cards stand between them in their original order."""
+    body, rows = "", ""
+    for part in parts:
+        if part.startswith("<li"):
+            rows += part
+            continue
+        body += (f'<ul class="row-list">{rows}</ul>' if rows else "") + part
+        rows = ""
+    return body + (f'<ul class="row-list">{rows}</ul>' if rows else "")
 
 class ReconciliationSite:
     def __init__(self, site: MailhelpSite):
@@ -99,7 +112,7 @@ class ReconciliationSite:
             if "mail" in query and "vorschlag" in query:
                 body = self._focus(query["mail"][0], query["vorschlag"][0], items, csrf)
             else:
-                body = INTRO + "".join(self._proposal_section(item, items, csrf) for item in items)
+                body = INTRO + grouped([self._proposal_section(item, items, csrf) for item in items])
                 body += self._missing_records(items, csrf)
             return Response.html(200, layout("Vorschlagsabgleich", body + '</div>'))
         except (CorruptState, ValueError):
@@ -113,18 +126,20 @@ class ReconciliationSite:
         return FOCUS_INTRO + self._proposal_section(found[0], items, csrf, focused=True) + ALL_LINK
 
     def _proposal_section(self, item: Proposal, items: list[Proposal], csrf: str, focused: bool = False) -> str:
+        """A card with comparisons and offers; without any of them one row of a list (6.2.7)."""
         defaults = self.defaults(item)
         zone = self.site.configured_timezone
-        body = section_head(item, csrf)
         targets = [target for target in self._targets(item, items) if target is not None]
-        body += "".join(comparison(item, target, zone, csrf, self._origin) for target in targets)
+        extra = "".join(comparison(item, target, zone, csrf, self._origin) for target in targets)
         if focused and not targets:
-            body += no_comparison()
+            extra += no_comparison()
         if item.status in OPEN:
             candidate = reapply_defaults(item, defaults)
             if candidate.version != item.version:
-                body += defaults_offer(item, candidate, digest(defaults.model_dump()), zone, csrf)
-        return body + '</section>'
+                extra += defaults_offer(item, candidate, digest(defaults.model_dump()), zone, csrf)
+        if not extra and not (item.duplicate_check_failed and item.status in OPEN):
+            return proposal_row(item)
+        return section_head(item, csrf) + extra + '</section>'
 
     def _origin(self, proposal: Proposal) -> str:
         """Sender and subject of the mail a proposal came from, as shown on its card."""

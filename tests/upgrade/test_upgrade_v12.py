@@ -34,8 +34,9 @@ def test_a_1_1_command_inbox_with_an_open_command_is_processed_after_the_upgrade
 
 def test_old_proposals_without_history_are_marked_as_incomplete(web):
     page = web.browser.request("GET", "/verlauf").body.decode()
-    assert "Altbestand – Ablauf nicht vollständig erfasst · unbekannt" in page
-    assert " · Version" not in page.split("Altbestand", 1)[1].split("</li>", 1)[0]  # no empty version
+    row = page.split('<li class="row-item">', 1)[1].split("</li>", 1)[0]
+    assert "Altbestand – Ablauf nicht vollständig erfasst</span>" in row and " · unbekannt</span>" in row
+    assert "Version" not in row  # no empty version
 
 
 def test_a_read_only_config_mount_gives_a_clear_result_and_changes_nothing(web, tmp_path):

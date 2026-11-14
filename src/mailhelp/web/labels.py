@@ -5,6 +5,7 @@ A value without a name is shown as "unbekannt (value)", never raw; counts agree 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from html import escape
 
 from ..review.commands import CommandKind
 from ..review.views import STATUS_LABELS, german_number
@@ -51,6 +52,21 @@ SOURCES: dict[str, str] = {"system": "Mailhelp", "web": "Weboberfläche", "teleg
 KINDS: dict[str, str] = {"event": "Termin", "task": "Aufgabe"}
 
 
+# 6.2.7: one colour per meaning; the text always names the status, colour only repeats it.
+BADGE_KINDS: dict[str, str] = {
+    "created": "ok", "already_exists": "ok", "merged": "ok", "simulated": "ok", "relevant": "ok",
+    "pending_confirmation": "accent", "confirmed": "accent", "writing": "accent", "verifying": "accent",
+    "needs_clarification": "warn", "uncertain": "warn",
+    "failed": "danger",
+}
+
+
+def status_badge(status: object, prefix: str = "") -> str:
+    """The status as the same badge on every page, e.g. ``<span class="badge warn">Klärung nötig</span>``."""
+    kind = BADGE_KINDS.get(str(status), "")
+    return f'<span class="badge{" " + kind if kind else ""}">{escape(prefix + label(STATUSES, status))}</span>'
+
+
 def label(names: Mapping[str, str], value: object) -> str:
     """The German name of *value*; unknown values stay recognisable but are marked as such."""
     text = str(value)
@@ -62,4 +78,4 @@ def count_text(number: int, one: str, many: str) -> str:
     return f"{german_number(number)} {one if number == 1 else many}"
 
 
-__all__ = ["EVENTS", "KINDS", "SOURCES", "STATUSES", "count_text", "label"]
+__all__ = ["BADGE_KINDS", "EVENTS", "KINDS", "SOURCES", "STATUSES", "count_text", "label", "status_badge"]

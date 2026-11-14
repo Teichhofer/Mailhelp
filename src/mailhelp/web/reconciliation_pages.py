@@ -10,7 +10,9 @@ from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import display_date, event_time, shorten
 from ..review.views import STATUS_LABELS
 from .forms import post_form
+from .labels import status_badge
 from .pages import e, notice, page_head
+from .rows import row
 
 INTRO = ('<div class="setup-page">' + page_head(
     "Vorschlagsabgleich", "Arbeitsbereich", "Lokale Vorschläge und Quellen vergleichen. Übernehmen legt nichts "
@@ -63,15 +65,23 @@ def mail_summary(mail: MailState, other_profile: bool) -> str:
     return body + '</ul><p><a href="/abgleich">Gespeicherte Befunde prüfen</a></p></section>'
 
 
-def section_head(item: Proposal, csrf: str) -> str:
-    body = (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
-            f'{e(item.title)}</a></h2>')
-    body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
+def target_text(item: Proposal) -> str:
     labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
     # 6.2.4: older proposals have no stored service; the target profile decides when confirming.
-    target = (f"{labels.get(item.target_provider, item.target_provider)} · {item.target}" if item.target_provider
-              else f"Zielprofil „{item.target}“")
-    body += f'<p>Ziel: {e(target)}</p>'
+    return (f"{labels.get(item.target_provider, item.target_provider)} · {item.target}" if item.target_provider
+            else f"Zielprofil „{item.target}“")
+
+
+def proposal_row(item: Proposal) -> str:
+    """6.2.7: a proposal without comparison or offer is one row: title, version, target, status."""
+    return row(proposal_link(item), item.title, f"Version {item.version} · Ziel: {target_text(item)}",
+               status_badge(item.status))
+
+
+def section_head(item: Proposal, csrf: str) -> str:
+    body = (f'<section class="card"><h2 class="row-heading"><a href="{e(proposal_link(item))}">{e(item.title)}</a> '
+            f'{status_badge(item.status)}</h2>')
+    body += f'<p class="meta">Version {item.version} · Ziel: {e(target_text(item))}</p>'
     if item.duplicate_check_failed and item.status in OPEN:
         body += post_form("/abgleich", csrf, '', 'Dublettenprüfung wiederholen',
             kind="recheck_proposal", mail_id=item.source_mail_id, proposal_id=item.id, version=item.version)

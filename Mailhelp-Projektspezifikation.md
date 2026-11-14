@@ -2962,6 +2962,13 @@ Filter unter „Mehr Filter“ mit der Zahl der aktiven Filter, geöffnet, solan
 Ereignis) und Datumsfelder statt Freitext. Ein gewählter Schnellfilter bleibt beim Absenden erhalten.
 Auch „Anzeigen“ in „Offen“ ist als Hauptaktion hervorgehoben.
 
+Seit 6.2.7 zeigen Mails, Verlauf und Vorschlagsabgleich dichte Zeilenlisten (`web/rows.py`): Titel als
+Link, eine Zeile mit Absender und Zeit bzw. Zeit, Ereignis, Quelle und Version, daneben Plaketten; ab
+1024 px in Spalten, bei 1920 × 1080 mindestens zwölf Einträge je Bildschirm. Der Status erscheint
+überall als dieselbe Plakette (`labels.status_badge`); die Farbe wiederholt nur den Text. Im Abgleich
+bleiben Vorschläge mit Vergleich, Angebot oder fehlgeschlagener Dublettenprüfung Karten; ihr Titel ist
+ein Link statt einer Schaltfläche.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste
