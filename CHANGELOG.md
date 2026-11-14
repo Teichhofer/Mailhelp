@@ -1,5 +1,11 @@
 # Änderungen
 
+## 6.2.11 – Abnahme 6.2
+
+- Abnahme von Version 6.2 (Bedienkonzept und Design): `docs/Release-6.2.md` mit Zuordnung der Planschritte,
+  Vorher-Nachher-Messwerten, Abweichungen und Prüfergebnissen.
+- Planung 6.2 als umgesetzt markiert. Keine Änderung am Programmverhalten.
+
 ## 6.2.10 – Auswertung mit Kacheln und Abschnitten
 
 - Die Kennzahlen der Auswertung sind Kacheln (Beschriftung über dem Wert); jede öffnet weiterhin die

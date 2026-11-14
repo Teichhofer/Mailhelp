@@ -4,7 +4,7 @@
 
 **Stand:** 13. November 2026
 
-**Status:** In Umsetzung – E1 bis E6 mit dem jeweiligen Vorschlag übernommen (14. November 2026)
+**Status:** Umgesetzt und abgenommen (siehe [Release 6.2](Release-6.2.md)); E1 bis E6 mit dem jeweiligen Vorschlag übernommen
 
 **Ausgangsstand:** 6.1.9
 
