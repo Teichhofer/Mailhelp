@@ -1,5 +1,15 @@
 # Mailhelp – Projektspezifikation
 
+## Ergänzung 6.7.5: Wiederverwendete Auswertungsdaten
+
+Die Vorschlagsauswertung und Absenderhinweise verwenden die validierten, nur gelesenen
+Projektionen des Zustandsspeichers. Eine Dateisignatur aus Schreibgeneration,
+Änderungszeit und Dateigröße erneuert die Projektion bei eigenen und externen Änderungen.
+Die Auswertung verändert ihre geteilten Modelle nicht. Schreibbefehle und ihre
+Autorisierung prüfen weiterhin ihren maßgeblichen Zustand unmittelbar bei Ausführung.
+Absenderhinweise derselben Seitenanfrage teilen eine Auswertung je Zeitraum und
+Schwellenwerten. Die nächste Anfrage beginnt mit einem neuen Auswertungssnapshot.
+
 ## Ergänzung 6.4: Begrenzte Wiederaufnahme
 
 Der Mailzustand speichert optional `processing_retry` (Fehlerbild, Zahl der Versuche,

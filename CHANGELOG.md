@@ -1,5 +1,16 @@
 # Änderungen
 
+## 6.7.5 – Schnelle Ergebnisanzeigen bei vielen gespeicherten Mails
+
+- Lernhinweise verwenden die vorhandenen Dateisignaturen und validierten Projektionen
+  des Zustandsspeichers. Unveränderte Mail- und Vorschlagsdateien werden beim Rendern
+  mehrerer Ergebniskarten nicht mehr wiederholt gelesen und validiert.
+- Neue Entscheidungen und externe Dateiänderungen erneuern den betroffenen Eintrag.
+- Alle Ergebniskarten einer Seitenanfrage teilen dieselbe Auswertung; sie wird nicht
+  je Karte erneut über den gesamten Bestand aufgebaut.
+- Regression für wiederholte Lesezugriffe und Aktualisierung nach Änderungen;
+  zusätzliche Abdeckung für defensive Lösch-, Autorisierungs- und Legacy-Fälle.
+
 ## 6.7.4 – Offene Punkte der Bedienung abschließen
 
 - Vorschlagsabgleich verständlich machen:

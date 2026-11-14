@@ -1,6 +1,44 @@
 # Mailhelp 6.7 – Umsetzung und Abnahme
 
-Zielstand: 6.7.4.
+## Nachtrag 6.7.5: Produktivfreigabe
+
+Die Vorprüfung von 6.7.4 bestand mit 5.238 Python-Tests und 754 Browserfällen.
+Die zunächst fehlenden defensiven Zweige wurden durch acht weitere Tests ergänzt;
+die leere Live-Suche sichert ihre gemessene Skriptabdeckung vor der Navigation.
+Die ergänzten Messungen erreichten exakt 100 % Zeilen-, Branch- und JavaScript-Abdeckung.
+
+Der getrennte Lasttest mit 2.000 Mails fand dabei eine tatsächliche Regression:
+Ergebnisanzeigen benötigten im Median rund 1,9 Sekunden, weil Lernhinweise dieselben
+Mail- und Vorschlagsdateien je Ergebniskarte erneut einlasen. 6.7.5 verwendet dafür
+die vorhandenen signaturgebundenen Projektionen des Speichers. Die Regression für
+wiederholte Zugriffe schlägt vor der Änderung fehl und prüft danach auch eigene sowie
+externe Dateiänderungen. Alle Ergebniskarten einer Seitenanfrage teilen außerdem
+eine Auswertung, statt den Bestand je Karte erneut zusammenzustellen.
+
+Der vollständige erneute Lauf `python -m devtools.check full --workers 8` ist erfolgreich:
+5.248 Tests bestanden, ein Fall ausgelassen und beide getrennten Lasttests bestanden.
+33.798 Anweisungen und 9.892 Zweige sind ohne fehlende Zeilen oder Teilzweige abgedeckt.
+Der Lasttest mit 2.000 Mails misst 449 ms Median und 720 ms Maximum für Ergebnisanzeigen.
+Die Typprüfung der beiden geänderten Anwendungsmodule und zwanzig gezielte Auswertungs-
+und Webregressionen bestanden ebenfalls.
+
+Die vollständige Browser-Suite bestand mit 754 Fällen (150 geräteabhängig ausgelassen).
+Die Nachmessung der leeren Live-Suche bestand in allen drei Ansichten. Die aus diesen
+Läufen zusammengeführte Abdeckung erreicht 100 % aller Blöcke in den fünf unveränderten
+Anwendungsskripten; Skriptinhalte wurden dabei gegen das Releasearchiv geprüft.
+
+Die Produktivinstanz wurde am 14.11.2026 auf `6.7.5-local-bafcdac2b2a3` aktualisiert.
+Die vollständige Sicherung einschließlich Laufzeitdaten und vorherigem Image liegt unter
+`/opt/mailhelp/backups/pre-6.7.5-20261114T191133Z`.
+Alle zehn unmittelbar vor dem Wechsel gespeicherten Sitzungen sind erhalten; die
+Konfigurations- und Geheimnisdateien blieben bytegenau gleich. HTTPS, Skript-/Stylesheet-
+Prüfsummen, Inhaltskürzel und Anmeldungspflicht der Status- und Vorschlagsauswertung
+wurden kontrolliert. Die Abschlussprüfung wird als `verification-6.7.5.json` im
+Sicherungsordner dokumentiert.
+Auch nach mehr als 150 Sekunden und mehreren Abrufzyklen: keine neuen Fehlerereignisse,
+keine Container-Neustarts, alle zehn Sitzungen erhalten.
+
+Zielstand: 6.7.5, einschließlich der Arbeitspakete aus 6.7.4.
 
 Die Arbeitspakete D1 bis D4 aus [Planung 6.7](Planung-6.7.md) sind vollständig umgesetzt.
 

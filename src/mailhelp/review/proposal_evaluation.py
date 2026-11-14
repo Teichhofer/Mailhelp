@@ -130,17 +130,24 @@ def _parse_iso(value: str | None) -> datetime | None:
         return None
 
 
+def _snapshot[T](value: T) -> T:
+    """Shared read-only model projection, invalidated by the store's file signature."""
+    return value
+
+
 def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, now: datetime | None = None) -> list[DecidedProposalRecord]:
     """Collect every decided proposal from stored states and decisions.jsonl without double counting."""
     results: list[DecidedProposalRecord] = []
     seen: set[tuple[str, str]] = set()
     mail_cache: dict[str, MailState | None] = {}
     now = now or datetime.now(UTC)
+    listing = store.scan()
 
     def get_mail(mid: str) -> MailState | None:
         if mid not in mail_cache:
             try:
-                mail_cache[mid] = store.load_model(state_names.mail(mid), MailState)
+                name = state_names.mail(mid)
+                mail_cache[mid] = store.cached(name, MailState, _snapshot, listing.get(name))
             except Exception:
                 mail_cache[mid] = None
         return mail_cache[mid]
@@ -151,7 +158,7 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
         if "-v" in suffix and suffix.rsplit("-v", 1)[1].isdigit():
             continue
         try:
-            proposal = store.load_model(name, Proposal)
+            proposal = store.cached(name, Proposal, _snapshot, listing.get(name))
         except Exception:
             continue
         if not proposal:
@@ -205,17 +212,17 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
     # 2. decisions.jsonl for decisions whose proposal states were removed by retention
     log_path = learning_path(store.directory)
     for record in _read(log_path):
-        mail_id = record.get("mail_id")
-        prop_id = record.get("proposal_id")
-        if not mail_id or not prop_id:
+        record_mail_id = record.get("mail_id")
+        record_prop_id = record.get("proposal_id")
+        if not record_mail_id or not record_prop_id:
             continue
-        if (mail_id, prop_id) in seen:
+        if (record_mail_id, record_prop_id) in seen:
             continue
 
-        decided_at = _parse_iso(record.get("recorded_at"))
-        if decided_at is None:
+        recorded_at = _parse_iso(record.get("recorded_at"))
+        if recorded_at is None:
             continue
-        if cutoff is not None and decided_at < cutoff:
+        if cutoff is not None and recorded_at < cutoff:
             continue
 
         kind_val = record.get("kind")
@@ -225,7 +232,7 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
         if not (is_accepted or is_rejected or is_removed):
             continue
 
-        seen.add((mail_id, prop_id))
+        seen.add((record_mail_id, record_prop_id))
 
         decided_obj = (record.get("proposal") or {}).get("decided") or {}
         original_obj = (record.get("proposal") or {}).get("original") or {}
@@ -238,8 +245,8 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
             reject_reason = "already_done"
 
         results.append(DecidedProposalRecord(
-            mail_id=mail_id,
-            proposal_id=prop_id,
+            mail_id=record_mail_id,
+            proposal_id=record_prop_id,
             kind=prop_kind,
             is_accepted=is_accepted,
             is_rejected=is_rejected,
@@ -248,7 +255,7 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
             resolution="already_done" if kind_val == "already_done" else None,
             sender=sender,
             topics=list(topics),
-            decided_at=decided_at,
+            decided_at=recorded_at,
             reject_reason=reject_reason,
         ))
 
@@ -519,10 +526,17 @@ def sender_hints(store: JsonStore, configuration: Any = None, *, now: datetime |
 
 def sender_hint_for_sender(store: JsonStore, sender: str, configuration: Any = None, *,
                            now: datetime | None = None, days: int = 90, min_proposals: int = 5,
-                           max_acceptance_rate: float = 0.10) -> SenderHint | None:
+                           max_acceptance_rate: float = 0.10,
+                           request_cache: dict[tuple[int, int, float], list[SenderHint]] | None = None,
+                           ) -> SenderHint | None:
     """Return a SenderHint for a specific sender if it exceeds the threshold."""
-    hints = sender_hints(store, configuration, now=now, days=days, min_proposals=min_proposals,
-                         max_acceptance_rate=max_acceptance_rate)
+    options = (days, min_proposals, max_acceptance_rate)
+    hints = request_cache.get(options) if request_cache is not None else None
+    if hints is None:
+        hints = sender_hints(store, configuration, now=now, days=days, min_proposals=min_proposals,
+                             max_acceptance_rate=max_acceptance_rate)
+        if request_cache is not None:
+            request_cache[options] = hints
     from ..mailbox.sender_filter import sender_addresses
     target_addresses = sender_addresses(sender)
     for h in hints:

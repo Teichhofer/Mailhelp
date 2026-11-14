@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.7.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.7.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.7.5 verwendet für Lernhinweise bereits geprüfte, unveränderte Zustände erneut.
+Neue Entscheidungen und außerhalb von Mailhelp geänderte Dateien werden weiterhin erkannt.
 
 6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/Release-6.7.md)):
 - Verständlicher Vorschlagsabgleich: Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“, mit klaren Erklärsätzen zum weiteren Ablauf. Nur noch von Mailhelp vorgelegte Zuordnungen heben eine Schaltfläche hervor.

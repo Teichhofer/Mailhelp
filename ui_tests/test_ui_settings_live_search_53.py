@@ -33,6 +33,8 @@ def test_matches_appear_while_typing_and_clearing_removes_them(page, mailhelp):
     expect(status).to_have_text("")
     field.fill("niemandkenntdieseoption")
     expect(status).to_have_text("Keine Einstellung gefunden.")
+    # Capture the empty-result branch before the following form navigation destroys its document.
+    page.collect()
     field.fill("Zeitzone")
     field.press("Enter")
     page.wait_for_url(re.compile(r"suche=Zeitzone"))

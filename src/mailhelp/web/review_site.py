@@ -1,7 +1,7 @@
 """Dedicated routes with unchanged authentication and response contracts."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .auth import WebSession
 from .http import Request, Response
@@ -13,6 +13,7 @@ from dataclasses import replace
 from urllib.parse import parse_qs, quote
 
 from ..processing.mail_recheck import recheck_round
+from ..review.proposal_evaluation import SenderHint
 from ..review.views import ProposalView
 from .actions import recheck_form, relevance_actions, result_kind
 from .pages import error_page
@@ -55,8 +56,10 @@ class ReviewSite:
         # The day's summary reads the history; only the finished, unfiltered state needs it.
         finished = not overview.open and not overview.relevance and not choice.narrowed
         from .command_cards import CommandCards
+        hint_cache: dict[tuple[int, int, float], list[SenderHint]] = {}
         cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request),
-                             sender_hint_lookup=self._sender_hint, views=self.site.views)
+                             sender_hint_lookup=lambda mail_id: self._sender_hint(mail_id, hint_cache),
+                             views=self.site.views)
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
         from .pages import notice
@@ -196,7 +199,8 @@ class ReviewSite:
         form.setdefault("proposal_id", proposal_id)
         return self.site.act(request, session, form)
 
-    def _sender_hint(self, mail_id: str) -> Any:
+    def _sender_hint(self, mail_id: str,
+                     request_cache: dict[tuple[int, int, float], list[SenderHint]] | None = None) -> Any:
         mail = self.site.views.mail(mail_id)
         if mail and mail.sender:
             from ..review.proposal_evaluation import sender_hint_for_sender
@@ -209,5 +213,6 @@ class ReviewSite:
                     "min_proposals": l_cfg.sender_hint_min_proposals,
                     "max_acceptance_rate": l_cfg.sender_hint_max_acceptance_rate,
                 }
-            return sender_hint_for_sender(self.site.views.store, mail.sender, cfg, **kwargs)
+            return sender_hint_for_sender(self.site.views.store, mail.sender, cfg,
+                                           request_cache=request_cache, **kwargs)
         return None
