@@ -699,6 +699,18 @@
           "default": null,
           "title": "Reconciliation Journal"
         },
+        "reject_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reject Reason"
+        },
         "resolution": {
           "anyOf": [
             {

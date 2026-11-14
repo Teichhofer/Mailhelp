@@ -53,3 +53,14 @@ def test_a_record_with_invalid_utf8_is_skipped_as_corrupt(tmp_path):
     content = json.dumps(record()).encode("utf-8").replace(b"Elternbrief", b"Eltern\xffbrief")
     path.write_bytes(content)
     assert DecisionRuleMiner(path).mine() == ([], 1)
+
+
+def test_evidence_includes_reject_reason_when_present(tmp_path):
+    path = tmp_path / "decisions.jsonl"
+    rec_with = record(identity="rec-1", kind="reject", reject_reason="advertising")
+    rec_without = record(identity="rec-2", kind="reject")
+    path.write_text("\n".join([json.dumps(rec_with), json.dumps(rec_without)]), encoding="utf-8")
+    evidence, _ = DecisionRuleMiner(path).mine()
+    assert len(evidence) == 2
+    assert evidence[0]["id"] == "rec-2" and evidence[0]["reject_reason"] is None
+    assert evidence[1]["id"] == "rec-1" and evidence[1]["reject_reason"] == "advertising"

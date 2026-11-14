@@ -106,10 +106,10 @@ Mails, ordnet sie frei ein und schlägt daraus Themen, Ausschlussthemen, zu igno
 und zusätzliche Abrufordner vor. Er liest nur: Das Postfach wird nicht verändert, und es entstehen
 keine Termine oder Aufgaben. Übernommen wird erst, was du ausdrücklich bestätigst.
 
-Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Lernübersicht zeigt zwei Karten mit
-Zweck, aktuellem Stand und einem Kostenhinweis: **Aus dem Postfach lernen** (der Lernlauf unten)
-und **Aus Entscheidungen lernen** (Regeln aus deinen bisherigen Entscheidungen verbessern, siehe
-[Aus Entscheidungen lernen](#aus-entscheidungen-lernen)). Das Öffnen der Übersicht oder einer
+Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Lernübersicht zeigt drei Karten mit
+Zweck, aktuellem Stand und Kennzahlen: **Aus dem Postfach lernen** (der Lernlauf unten),
+**Aus Entscheidungen lernen** (Regeln aus deinen bisherigen Entscheidungen verbessern, siehe
+[Aus Entscheidungen lernen](#aus-entscheidungen-lernen)) und **Vorschläge** (Annahmequote messen nach Art, Thema und Absender, siehe [Annahmequote messen und verbessern](#annahmequote-messen-und-verbessern)). Das Öffnen der Übersicht oder einer
 Karte startet nichts und kostet nichts. Die Themen selbst werden unter Einstellungen → Themen
 verwaltet.
 
@@ -236,6 +236,34 @@ Ausschlussthemen behalten ihre bisherige Bedeutung im Lern-/Entscheidungstestmod
 normale Mailanalysen wirken die relevanten Themen und deren Ausschlüsse. Bestehende
 Kalendereinträge und Aufgaben werden durch Regellernen nicht geändert. Eine neue Analyse
 ersetzt einen noch offenen Prüfentwurf; ein Neustart wiederholt keine laufende KI-Analyse.
+
+### Annahmequote messen und verbessern
+
+Unter **Lernen → Vorschläge** (`/lernen/vorschlaege`) misst Mailhelp, wie viele Vorschläge du
+annimmst und wie viele du verwirfst. Die Auswertung hilft dir zu erkennen, wo Fehlvorschläge
+entstehen und wie du sie gezielt vermeidest.
+
+1. **Kennzahlen und Auswertung:** Drei Kacheln zeigen die Annahmequote gesamt, für Aufgaben
+   und für Termine. Darunter folgen der Verlauf je Kalenderwoche, sortierbare Tabellen nach
+   Thema und nach Absender sowie eine Aufstellung der Ablehnungsgründe. Der Zeitraum lässt
+   sich über die Auswahlliste (z. B. 30, 90 Tage oder Gesamter Zeitraum) filtern.
+2. **Gründe für Ablehnungen:** Nach dem Verwerfen eines Vorschlags (im Web auf der Ergebniskarte
+   oder in Telegram) fragt Mailhelp freiwillig „Verworfen. Warum?“. Fünf feste Gründe stehen
+   zur Wahl: „Betrifft mich nicht“, „Nur zur Information“, „Werbung oder Rundschreiben“,
+   „Falsch erkannt (Datum, Inhalt)“ und „Anderer Grund“. Die Angabe ist nie Pflicht; Verwerfen
+   bleibt ein einziger Schritt. Ein Klick speichert den Grund, der in die Auswertung und als
+   Merkmal in das Regellernen einfließt.
+3. **Hinweise zu Absendern:** Verursacht ein Absender auffällig viele Fehlvorschläge
+   (mindestens 5 entschiedene Vorschläge in 90 Tagen bei höchstens 10 % Annahmequote),
+   erscheint ein Hinweis auf der Auswertungsseite und der Ergebniskarte. „Ansehen“ öffnet
+   eine Vorschau aller gespeicherten Mails dieses Absenders mit Kennzeichnung angenommener
+   Vorschläge. Per Knopfdruck lässt sich die Adresse nach ausdrücklicher Bestätigung in den
+   Absender-Vorfilter aufnehmen. Mit „Nicht mehr vorschlagen“ wird der Hinweis ausgeblendet;
+   zuvor verworfene Hinweise lassen sich in der Übersicht jederzeit wieder zulassen.
+4. **Hinweis auf Regellernlauf:** Liegen seit dem letzten Regellernlauf mindestens 20 neue
+   Ablehnungen vor, empfiehlt Mailhelp oben auf „Offen“ und „Lernen“ einen neuen Lernlauf,
+   um deine Themenregeln nachzuschärfen. Der Hinweis erscheint höchstens einmal pro Woche
+   und lässt sich mit „Ausblenden“ für sieben Tage pausieren.
 
 ## Weitere Seiten
 

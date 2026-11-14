@@ -134,6 +134,7 @@ class ProposalView:
     # 6.0.6: sort keys – arrival of the mail at Mailhelp and the start or due date (aware).
     arrived_at: datetime | None = None
     due_at: datetime | None = None
+    reject_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -631,6 +632,7 @@ class ReviewViews:
             conflicts=conflict_choices(proposal, self.configured_timezone),
             arrived_at=mail.created_at if mail is not None else None,
             due_at=_moment(proposal.start or proposal.due, self.configured_timezone),
+            reject_reason=proposal.reject_reason,
         )
 
 

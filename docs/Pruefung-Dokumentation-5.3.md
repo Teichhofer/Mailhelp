@@ -174,6 +174,8 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/lernen` | Gemeinsame Lernübersicht, kein Analysestart | Bedienung, Web-Einstellungen |
 | `/lernen/postfach` | Lesender Lernlauf aus dem Postfach | Bedienung |
 | `/lernen/entscheidungen` | Regeln aus protokollierten Entscheidungen | Bedienung, Web-Einstellungen |
+| `/lernen/vorschlaege` | Annahmequote messen: Kacheln, Wochen, Themen, Absender, Gründe | [Bedienung](Bedienung.md) |
+| `/lernen/absender-hinweis` | Vorschau und Übernahme eines vorgeschlagenen Absenders | [Bedienung](Bedienung.md) |
 | `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
 | `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |
@@ -198,7 +200,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **235 Einstellungen**, davon **235** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **241 Einstellungen**, davon **241** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -275,7 +277,13 @@ Erzeugt mit `python -m devtools.inventory`: **235 Einstellungen**, davon **235**
 | `iserv.accounts[].mailbox` | int | 1 | ≥ 1, ≤ 99 | IServ-Seite | ja |
 | `iserv.accounts[].server` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | IServ-Seite | ja |
 | `learning.decision_llm_content` | bool | False |  | Weboberfläche | ja |
+| `learning.learning_run_hint_rejections` | int | 20 | ≥ 1, ≤ 500 | Datei | ja |
+| `learning.learning_run_hints_enabled` | bool | True |  | Datei | ja |
 | `learning.parallel_llm_calls` | int | 4 | ≥ 1, ≤ 100 | Weboberfläche | ja |
+| `learning.sender_hint_days` | int | 90 | ≥ 1, ≤ 365 | Datei | ja |
+| `learning.sender_hint_max_acceptance_rate` | float | 0.1 | ≥ 0.0, ≤ 1.0 | Datei | ja |
+| `learning.sender_hint_min_proposals` | int | 5 | ≥ 1, ≤ 100 | Datei | ja |
+| `learning.sender_hints_enabled` | bool | True |  | Datei | ja |
 | `limits.llm_calls_per_minute` | int | Pflicht | ≥ 1, ≤ 600 | Weboberfläche | ja |
 | `limits.max_attachment_bytes` | int | 5000000 | ≥ 1024, ≤ 100000000 | Weboberfläche | ja |
 | `limits.max_decoded_text_bytes` | int | 1000000 | ≥ 1, ≤ 100000000 | Datei | ja |

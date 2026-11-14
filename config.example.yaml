@@ -218,6 +218,13 @@ learning:
   # (nur vorhanden mit logging.llm.include_requests/include_responses) in jeden
   # Datensatz des Entscheidungs-Lernbestands. Standard false: nur Aufruf-IDs.
   decision_llm_content: false
+  # 6.5.4: Schwellen für Absender-Hinweise und Hinweis auf einen neuen Regellernlauf.
+  sender_hints_enabled: true
+  sender_hint_days: 90
+  sender_hint_min_proposals: 5
+  sender_hint_max_acceptance_rate: 0.10
+  learning_run_hints_enabled: true
+  learning_run_hint_rejections: 20
 # 3.1: Mehrere Postfächer (höchstens 10) statt der Postfachfelder direkt unter imap
 # (= Postfach 1): Liste imap.mailboxes mit stabiler Nummer id (1–99), Anzeigename label
 # und enabled. Abruf, Kontingent und Duplikaterkennung gelten über alle Postfächer; Entwürfe

@@ -104,6 +104,24 @@ class DecisionLearningLog:
                           operation: str, answer: str | None = None) -> None:
         self._guarded(lambda: self._proposal(mail_id, proposal_id, version, kind, source, operation, answer))
 
+    def reject_reason(self, mail_id: str, proposal_id: str, version: int, reason: str) -> None:
+        self._guarded(lambda: self._set_reject_reason(mail_id, proposal_id, version, reason))
+
+    def _set_reject_reason(self, mail_id: str, proposal_id: str, version: int, reason: str) -> None:
+        with self._lock:
+            if not self.path.is_file():
+                return
+            records = _read(self.path)
+            changed = False
+            for record in records:
+                if (record.get("mail_id") == mail_id
+                        and record.get("proposal_id") == proposal_id
+                        and record.get("kind") == "reject"):
+                    record["reject_reason"] = reason
+                    changed = True
+            if changed:
+                atomic_replace(self.path, "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records))
+
     def relevance_decision(self, mail_id: str, source: str, operation: str) -> None:
         self._guarded(lambda: self._relevance(mail_id, source, operation))
 
@@ -137,11 +155,13 @@ class DecisionLearningLog:
         if decided is None and result.get("version") == version:
             decided = result
         original = self._original(state, proposal_id)
+        reject_reason = (result or {}).get("reject_reason")
         self._append(state, {"kind": kind, "source": source,
                              "operation": "already_done" if kind == "already_done" else operation,
                              "idempotency_key": operation, "relevance_preserved": kind == "already_done",
                              "proposal_id": proposal_id, "version": version,
                              "decision": "relevant" if kind == "already_done" else None,
+                             "reject_reason": reject_reason,
                              "answer": answer, "proposal": {
                                  "original": original, "decided": decided, "result": result,
                                  "changes": _changes(original, decided)}})

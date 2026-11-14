@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.4.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.5 misst die Annahmequote von Vorschlägen und senkt Fehlvorschläge gezielt ([Release 6.5](docs/Release-6.5.md)):
+- Neue Auswertung unter **Lernen → Vorschläge** (`/lernen/vorschlaege`) mit Annahmequoten gesamt, für Aufgaben und Termine, Wochenverlauf, Tabellen nach Thema und Absender sowie Ablehnungsgründen.
+- Freiwillige Begründung von Ablehnungen im Web und in Telegram mit fünf festen Gründen; der Grund fließt in das Regellernen ein.
+- Automatische Absender-Hinweise bei auffällig vielen Ablehnungen mit Vorschau betroffener Mails und optionaler Aufnahme in den Vorfilter.
+- Automatische Empfehlung für einen neuen Regellernlauf bei mindestens 20 neuen Ablehnungen.
 
 6.4 begrenzt wiederkehrende Verarbeitungsfehler auf fünf Versuche. Der Status zeigt
 Versuche, Beginn und nächsten Zeitpunkt; fehlgeschlagene Mails lassen sich bewusst

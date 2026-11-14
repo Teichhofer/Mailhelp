@@ -55,18 +55,27 @@ class ReviewSite:
         # The day's summary reads the history; only the finished, unfiltered state needs it.
         finished = not overview.open and not overview.relevance and not choice.narrowed
         from .command_cards import CommandCards
-        cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request))
+        cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request),
+                             sender_hint_lookup=self._sender_hint)
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
         from .pages import notice
         damaged = len(tuple((self.site.commands.incoming.directory / "quarantine").glob("*.invalid")))
         warning = (notice("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen.", "error")
                    if damaged else "")
+        cfg = getattr(self.site.archive, "configuration", None)
+        l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
+        run_hints_enabled = l_cfg.learning_run_hints_enabled if l_cfg is not None else True
+        min_rejections = l_cfg.learning_run_hint_rejections if l_cfg is not None else 20
+        from ..review.proposal_evaluation import get_learning_run_hint
+        from .proposal_evaluation_pages import learning_run_hint_banner
+        learning_hint = get_learning_run_hint(self.site.views.store, enabled=run_hints_enabled, min_rejections=min_rejections)
+        hint_banner = learning_run_hint_banner(learning_hint, csrf) if learning_hint else ""
         # 4.4: every review result is shown on its card (or as "Deine Aktion"); no second
         # copy from ?ergebnis= on top, which would be announced twice.
         page = overview_page(overview, actions=cards.proposal,
                              relevance_actions=cards.relevance,
-                             before=warning + tools.toolbar("/offen", choice),
+                             before=warning + hint_banner + tools.toolbar("/offen", choice),
                              empty=self.site._empty if finished else None,
                              after=cards.detached(references),
                              count=tools.count(len(overview.open) + len(overview.relevance), total, choice),
@@ -163,7 +172,23 @@ class ReviewSite:
                  + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
         from .command_cards import CommandCards
         cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id),
-                             refresh_target(request))
+                             refresh_target(request), sender_hint_lookup=self._sender_hint)
         page = detail_page(view, actions=cards.proposal,
                            mail=self.site.views.mail(mail_id), after=extra)
         return Response.html(200, page)
+
+    def _sender_hint(self, mail_id: str) -> Any:
+        mail = self.site.views.mail(mail_id)
+        if mail and mail.sender:
+            from ..review.proposal_evaluation import sender_hint_for_sender
+            cfg = getattr(self.site.archive, "configuration", None)
+            l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
+            kwargs = {}
+            if l_cfg is not None:
+                kwargs = {
+                    "days": l_cfg.sender_hint_days,
+                    "min_proposals": l_cfg.sender_hint_min_proposals,
+                    "max_acceptance_rate": l_cfg.sender_hint_max_acceptance_rate,
+                }
+            return sender_hint_for_sender(self.site.views.store, mail.sender, cfg, **kwargs)
+        return None

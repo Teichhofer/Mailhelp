@@ -128,6 +128,8 @@ class MailhelpSite:
         self.rule_learning = RuleLearningSite(self)
         from .learning_overview import LearningOverviewSite
         self.learning_overview = LearningOverviewSite(self)
+        from .proposal_evaluation_site import ProposalEvaluationSite
+        self.proposal_evaluation = ProposalEvaluationSite(self)
         from .status_details import StatusDetails
         self.status_details = StatusDetails(self)
         self.notification_runtime: NotificationRuntime | None = None
@@ -296,7 +298,8 @@ class MailhelpSite:
                 version=int(form.get("version", "")), idempotency_key=form.get("key", ""),
                 text=form.get("text") or None, decision=form.get("decision") or None,
                 candidate=int(form["candidate"]) if form.get("candidate") else None,
-                conflict_id=form.get("conflict_id") or None, variant=form.get("variant") or None)
+                conflict_id=form.get("conflict_id") or None, variant=form.get("variant") or None,
+                reason=form.get("reason") or None)
         except (ValueError, ValidationError):
             return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
         stale = self._stale(command)
@@ -356,6 +359,10 @@ class MailhelpSite:
             if current is not None and (command.version != current.version
                                         or CommandKind.VERIFY_ENTRY not in current.actions):
                 return "Dieser Eintrag wird bereits geprüft oder wurde inzwischen geändert."
+            return None
+        if command.kind == CommandKind.REJECT_REASON:
+            if current is not None and (command.version != current.version or current.status != ProposalStatus.REJECTED):
+                return "Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen."
             return None
         if (current is not None and (command.version < current.version
                 or (command.version == current.version and current.status not in {ProposalStatus.PENDING_CONFIRMATION,

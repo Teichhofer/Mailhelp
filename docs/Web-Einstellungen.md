@@ -394,6 +394,12 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 | --- | --- | --- |
 | Lernmodus: parallele KI-Aufrufe (`learning.parallel_llm_calls`) | Gleichzeitige KI-Aufrufe im Lernmodus (--learn): 1–100; Standard 4. Mehr parallele Aufrufe beschleunigen das Lernen und erhöhen Lastspitzen; das Minutenbudget limits.llm_calls_per_minute gilt weiterhin. | Nach Neustart |
 | Lernbestand: vollständige KI-Inhalte übernehmen (`learning.decision_llm_content`) | ja (true) übernimmt vollständige KI-Anfragen und -Antworten aus dem KI-Log in jeden Datensatz des Entscheidungs-Lernbestands; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. nein (false, Standard) speichert nur die Aufruf-IDs. | Nach Neustart |
+| Absender-Hinweise aktivieren (`learning.sender_hints_enabled`) | ja (true, Standard) blendet Hinweise zu Absendern mit auffällig vielen Ablehnungen ein. nein (false) schaltet Absender-Hinweise vollständig ab. | Im laufenden Betrieb |
+| Absender-Hinweise: Auswertungszeitraum in Tagen (`learning.sender_hint_days`) | Betrachteter Zeitraum für die Annahmequote eines Absenders: 1–365 Tage; Standard 90. Ältere Entscheidungen werden für Absender-Hinweise nicht herangezogen. | Im laufenden Betrieb |
+| Absender-Hinweise: Mindestanzahl Vorschläge (`learning.sender_hint_min_proposals`) | Mindestanzahl entschiedener Vorschläge eines Absenders, bevor ein Hinweis erscheint: 1–100; Standard 5. | Im laufenden Betrieb |
+| Absender-Hinweise: Maximale Annahmequote (`learning.sender_hint_max_acceptance_rate`) | Höchste Annahmequote, bis zu der ein Hinweis erzeugt wird: 0.0–1.0 (0 % bis 100 %); Standard 0.1 (10 %). | Im laufenden Betrieb |
+| Hinweis auf Regellernlauf aktivieren (`learning.learning_run_hints_enabled`) | ja (true, Standard) zeigt auf „Offen“ und „Lernen“ einen Hinweis, wenn seit dem letzten Lernlauf viele neue Ablehnungen vorliegen. nein (false) schaltet diesen Hinweis ab. | Im laufenden Betrieb |
+| Hinweis auf Regellernlauf: Schwellenwert Ablehnungen (`learning.learning_run_hint_rejections`) | Anzahl neuer Ablehnungen seit dem letzten Regellernlauf, ab der ein Hinweis eingeblendet wird: 1–500; Standard 20. | Im laufenden Betrieb |
 
 ## Weboberfläche
 

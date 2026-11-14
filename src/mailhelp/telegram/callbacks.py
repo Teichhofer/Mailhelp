@@ -27,6 +27,7 @@ class DecisionAction(StrEnum):
     VERIFY_ENTRY = "verify_entry"
     # 5.9.4: take one value of a field conflict as a new version.
     CHOOSE_VARIANT = "choose_variant"
+    REJECT_REASON = "reject_reason"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -63,6 +64,7 @@ class Decision(InternalTelegramModel):
     candidate: int | None = Field(default=None, ge=0, le=9)
     conflict_id: str | None = Field(default=None, pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")
     variant: Literal["a", "b", "c"] | None = None
+    reason: str | None = Field(default=None, max_length=50)
 
     @model_validator(mode="after")
     def validate_additional(self) -> Decision:
@@ -71,6 +73,12 @@ class Decision(InternalTelegramModel):
         choice = self.action == DecisionAction.CHOOSE_VARIANT
         if choice != (self.conflict_id is not None) or choice != (self.variant is not None):
             raise ValueError("Nur die Auswahl eines Werts nennt Widerspruch und Variante")
+        if (self.action == DecisionAction.REJECT_REASON) != (self.reason is not None):
+            raise ValueError("Nur die Angabe eines Grundes nennt einen Ablehnungsgrund")
+        if self.reason is not None:
+            from ..review.reject_reasons import REJECT_REASONS
+            if self.reason not in REJECT_REASONS:
+                raise ValueError(f"Unbekannter Ablehnungsgrund: {self.reason}")
         if (self.action == DecisionAction.RETARGET) != (
             self.target_profile is not None and self.profile_hash is not None
         ):
@@ -97,6 +105,8 @@ class Decision(InternalTelegramModel):
                 raise ValueError("Quellenentscheidung benötigt einen dauerhaften Callback-Token")
             if self.conflict_id is not None:
                 raise ValueError("Die Auswahl eines Werts benötigt einen dauerhaften Callback-Token")
+            if self.reason is not None:
+                raise ValueError("Die Angabe eines Grundes benötigt einen dauerhaften Callback-Token")
             value = f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
             validate_callback_data(value)
             return value
@@ -194,3 +204,16 @@ def apply_decision(
     if decision.action == DecisionAction.REJECT:
         return proposal.model_copy(update={"status": ProposalStatus.REJECTED})
     return proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
+
+
+def reject_reason_markup(store: JsonStore, mail_id: str, proposal_id: str, version: int) -> dict[str, Any]:
+    """6.5.3: the five rejection reasons as inline keyboard buttons under the Telegram confirmation."""
+    from ..review.reject_reasons import USER_REJECT_REASONS
+    rows = []
+    for code, label in USER_REJECT_REASONS:
+        decision = Decision(mail_id=mail_id, proposal_id=proposal_id, version=version,
+                            action=DecisionAction.REJECT_REASON, reason=code)
+        rows.append([{"text": label, "callback_data": decision.encode(store)}])
+    markup = {"inline_keyboard": rows}
+    validate_callback_markup(markup)
+    return markup

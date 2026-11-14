@@ -75,7 +75,8 @@
         "series_confirm",
         "choose_calendar_event",
         "verify_entry",
-        "choose_conflict_variant"
+        "choose_conflict_variant",
+        "reject_reason"
       ],
       "title": "CommandKind",
       "type": "string"
@@ -736,6 +737,18 @@
           "default": null,
           "title": "Reconciliation Journal"
         },
+        "reject_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reject Reason"
+        },
         "resolution": {
           "anyOf": [
             {
@@ -1304,6 +1317,19 @@
           ],
           "default": null,
           "title": "Proposal Id"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 50,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
         },
         "replay_offset": {
           "anyOf": [

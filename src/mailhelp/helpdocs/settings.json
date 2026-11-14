@@ -451,6 +451,66 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Anzahl neuer Ablehnungen seit dem letzten Regellernlauf, ab der ein Hinweis eingeblendet wird: 1–500; Standard 20.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.learning_run_hint_rejections",
+  "key": "learning.learning_run_hint_rejections",
+  "label": "learning.learning_run_hint_rejections",
+  "path": "Datei",
+  "summary": "Datei: Anzahl neuer Ablehnungen seit dem letzten Regellernlauf, ab der ein Hinweis eingeblendet wird: 1–500; Standard 20."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ja (true, Standard) zeigt auf „Offen“ und „Lernen“ einen Hinweis, wenn seit dem letzten Lernlauf viele neue Ablehnungen vorliegen. nein (false) schaltet diesen Hinweis ab.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.learning_run_hints_enabled",
+  "key": "learning.learning_run_hints_enabled",
+  "label": "learning.learning_run_hints_enabled",
+  "path": "Datei",
+  "summary": "Datei: ja (true, Standard) zeigt auf „Offen“ und „Lernen“ einen Hinweis, wenn seit dem letzten Lernlauf viele neue Ablehnungen vorliegen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Betrachteter Zeitraum für die Annahmequote eines Absenders: 1–365 Tage; Standard 90. Ältere Entscheidungen werden für Absender-Hinweise nicht herangezogen.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_days",
+  "key": "learning.sender_hint_days",
+  "label": "learning.sender_hint_days",
+  "path": "Datei",
+  "summary": "Datei: Betrachteter Zeitraum für die Annahmequote eines Absenders: 1–365 Tage; Standard 90."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Höchste Annahmequote, bis zu der ein Hinweis erzeugt wird: 0.0–1.0 (0 % bis 100 %); Standard 0.1 (10 %).",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_max_acceptance_rate",
+  "key": "learning.sender_hint_max_acceptance_rate",
+  "label": "learning.sender_hint_max_acceptance_rate",
+  "path": "Datei",
+  "summary": "Datei: Höchste Annahmequote, bis zu der ein Hinweis erzeugt wird: 0.0–1.0 (0 % bis 100 %); Standard 0.1 (10 %)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Mindestanzahl entschiedener Vorschläge eines Absenders, bevor ein Hinweis erscheint: 1–100; Standard 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_min_proposals",
+  "key": "learning.sender_hint_min_proposals",
+  "label": "learning.sender_hint_min_proposals",
+  "path": "Datei",
+  "summary": "Datei: Mindestanzahl entschiedener Vorschläge eines Absenders, bevor ein Hinweis erscheint: 1–100; Standard 5."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ja (true, Standard) blendet Hinweise zu Absendern mit auffällig vielen Ablehnungen ein. nein (false) schaltet Absender-Hinweise vollständig ab.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hints_enabled",
+  "key": "learning.sender_hints_enabled",
+  "label": "learning.sender_hints_enabled",
+  "path": "Datei",
+  "summary": "Datei: ja (true, Standard) blendet Hinweise zu Absendern mit auffällig vielen Ablehnungen ein."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Entschlüsselter Text aller Teile, 1–100000000 Bytes; Standard 1000000.",
   "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
   "id": "setting:limits.max_decoded_text_bytes",

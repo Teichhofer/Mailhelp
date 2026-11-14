@@ -537,6 +537,12 @@ class LearningSettings(ConfigModel):
     parallel_llm_calls: int = Field(default=4, ge=1, le=100)
     # Copies full prompts and responses from the LLM log into each decision record.
     decision_llm_content: bool = False
+    sender_hints_enabled: bool = True
+    sender_hint_days: int = Field(default=90, ge=1, le=365)
+    sender_hint_min_proposals: int = Field(default=5, ge=1, le=100)
+    sender_hint_max_acceptance_rate: float = Field(default=0.10, ge=0.0, le=1.0)
+    learning_run_hints_enabled: bool = True
+    learning_run_hint_rejections: int = Field(default=20, ge=1, le=500)
 
 
 _WEB_HOST = re.compile(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")

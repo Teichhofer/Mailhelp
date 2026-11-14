@@ -126,6 +126,10 @@ class ReviewService:
             record_recheck(self.controller.store, command.mail_id, command.version, command.source.value,
                            command.idempotency_key)
             return
+        if command.kind == CommandKind.REJECT_REASON:
+            if learning is not None and command.reason is not None and command.proposal_id is not None:
+                learning.reject_reason(command.mail_id, command.proposal_id, command.version, command.reason)
+            return
         if command.proposal_id is None:
             state = self.controller.store.load_model(state_names.mail(command.mail_id), MailState)
             if state is not None:
@@ -194,6 +198,8 @@ class ReviewService:
             return False
         if command.kind == CommandKind.ALREADY_DONE:
             return current.version == command.version and current.resolution == "already_done"
+        if command.kind == CommandKind.REJECT_REASON:
+            return current.version == command.version and current.reject_reason == command.reason
         if command.kind == CommandKind.RESTORE:
             return True
         if current.version != command.version or current.status not in _OPEN:
@@ -277,8 +283,26 @@ class ReviewService:
         handlers = {CommandKind.RETRY_MAIL: self._processing, CommandKind.FILE_MAIL: self._processing,
                     CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
                     CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
-                    CommandKind.CHOOSE_EVENT: self._choose_event, CommandKind.CHOOSE_VARIANT: self._choose_variant}
+                    CommandKind.CHOOSE_EVENT: self._choose_event, CommandKind.CHOOSE_VARIANT: self._choose_variant,
+                    CommandKind.REJECT_REASON: self._reject_reason}
         return handlers.get(command.kind, self._decide)(command)
+
+    def _reject_reason(self, command: ReviewCommand) -> ReviewResult:
+        from .reject_reasons import REJECT_REASONS
+        assert command.proposal_id is not None
+        assert command.reason is not None
+        if command.reason not in REJECT_REASONS:
+            raise ValueError(f"Unbekannter Ablehnungsgrund: {command.reason}")
+        with self.controller.store.locked():
+            current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+            if current is None or current.version != command.version:
+                raise StaleCommand("Vorschlag inzwischen geändert oder nicht gefunden")
+            if current.status != ProposalStatus.REJECTED:
+                raise ValueError("Grund kann nur für verworfene Vorschläge angegeben werden.")
+            updated = current.model_copy(update={"reject_reason": command.reason})
+            self.controller.persist(updated)
+        label = REJECT_REASONS[command.reason]
+        return ReviewResult(status=ResultStatus.DONE, message=f"Grund gespeichert: {label}.")
 
     def _choose_variant(self, command: ReviewCommand) -> ReviewResult:
         """5.9.3: one value of a field conflict becomes a new version; it is not a confirmation."""

@@ -49,6 +49,7 @@ class CommandKind(StrEnum):
     VERIFY_ENTRY = "verify_entry"
     # 5.9.3: take one value of a field conflict; a new version, never a write.
     CHOOSE_VARIANT = "choose_conflict_variant"
+    REJECT_REASON = "reject_reason"
 
 
 # Commands on a whole mail instead of one proposal.
@@ -88,6 +89,7 @@ class ReviewCommand(BaseModel):
     # 5.9.3: Proposal.field_conflicts[].id and one of its variants, bound by the version.
     conflict_id: str | None = Field(default=None, pattern=r"^[a-z_]{1,20}-[0-9]{1,6}$")
     variant: Literal["a", "b", "c"] | None = None
+    reason: str | None = Field(default=None, max_length=50)
 
     @model_validator(mode="after")
     def candidate_only_for_a_choice(self) -> ReviewCommand:
@@ -96,6 +98,12 @@ class ReviewCommand(BaseModel):
         choice = self.kind == CommandKind.CHOOSE_VARIANT
         if choice != (self.conflict_id is not None) or choice != (self.variant is not None):
             raise ValueError("Nur die Auswahl eines Werts nennt Widerspruch und Variante")
+        if (self.kind == CommandKind.REJECT_REASON) != (self.reason is not None):
+            raise ValueError("Nur die Angabe eines Grundes nennt einen Ablehnungsgrund")
+        if self.reason is not None:
+            from .reject_reasons import REJECT_REASONS
+            if self.reason not in REJECT_REASONS:
+                raise ValueError(f"Unbekannter Ablehnungsgrund: {self.reason}")
         return self
 
     @model_validator(mode="after")

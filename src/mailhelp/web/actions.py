@@ -89,6 +89,8 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             return notice("Antwort gespeichert – der Vorschlag wird aktualisiert.", "info")
         if view.paused:
             return notice("Die Verarbeitung ist pausiert. Bitte den Betreiber prüfen lassen.", "warn")
+        if view.status == ProposalStatus.REJECTED:
+            return reject_reason_block(csrf, view.mail_id, view.proposal_id, view.version, view.reject_reason)
         if not view.actions:
             return ""
         parts = []
@@ -257,6 +259,24 @@ def command_page(entry: CommandEntry, csrf: str, current: ProposalView | None) -
     return layout("Ergebnis", "<h1>Ergebnis</h1>" + "".join(parts))
 
 
+def reject_reason_block(csrf: str, mail_id: str, proposal_id: str, version: int,
+                        current_reason: str | None = None) -> str:
+    """6.5.2: five reason buttons on the result card or detail page of a rejected proposal."""
+    from ..review.reject_reasons import REJECT_REASONS, USER_REJECT_REASONS
+    buttons = []
+    for code, label in USER_REJECT_REASONS:
+        selected = code == current_reason
+        style = "small primary" if selected else "small"
+        aria = ' aria-pressed="true"' if selected else ""
+        hidden = _hidden(csrf, CommandKind.REJECT_REASON, mail_id, version, proposal_id, reason=code)
+        buttons.append(f'<form method="post" action="/aktion">{hidden}'
+                       f'<button class="button {style}" type="submit"{aria}>{e(label)}</button></form>')
+    hint = f' <span class="meta">(gespeichert: {e(REJECT_REASONS.get(current_reason, current_reason))})</span>' if current_reason else ""
+    return (f'<div class="reject-reasons"><p class="meta"><strong>Verworfen. Warum?</strong>'
+            f' (freiwillig, verbessert künftige Vorschläge){hint}</p>'
+            f'<div class="actions reject-reasons-actions">{"".join(buttons)}</div></div>')
+
+
 def stale_page(message: str, current: ProposalView | None) -> str:
     detail = (f'<p>Aktueller Stand: Version {current.version} – {e(current.state)}.</p>'
               if current is not None else "")
@@ -265,5 +285,5 @@ def stale_page(message: str, current: ProposalView | None) -> str:
 <p><a class="button primary" href="/">Aktuellen Stand anzeigen</a></p>""")
 
 
-__all__ = ["command_page", "needs_choice", "new_key", "result_kind", "proposal_actions", "relevance_actions",
-           "stale_page"]
+__all__ = ["command_page", "needs_choice", "new_key", "proposal_actions", "relevance_actions",
+           "reject_reason_block", "result_kind", "stale_page"]

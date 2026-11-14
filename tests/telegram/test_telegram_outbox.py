@@ -263,7 +263,7 @@ def test_regression_log_sequence_2026_10_08_is_sequential(tmp_path):
             t.updates = [callback(update_id, data)]
             c.poll_once()
             new = buttons()[before:]
-            assert len(new) == 1 and expected in new[0]
+            assert expected in new[-1]
         assert outbox(store).entries == []
 
 

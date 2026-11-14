@@ -24,7 +24,8 @@ def test_unavailable_cards_are_authenticated_read_only_and_offer_both_paths(web)
     assert response.status == 200 and "Aus dem Postfach lernen öffnen" in html
     assert "/lernen/entscheidungen" in html and "derzeit nicht verfügbar" in html
     cards = re.findall(r'<section class="card stack">(.*?)</section>', html, re.S)
-    assert len(cards) == 2 and all('class="help-cost-hint"' in card for card in cards)
+    assert len(cards) == 3 and all('class="help-cost-hint"' in card for card in cards[:2])
+    assert "Vorschläge öffnen" in cards[2]
     assert "Hilfschat öffnen" in html and 'href="/lernen" aria-current="page"' in html
 
 

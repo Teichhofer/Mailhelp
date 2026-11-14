@@ -6,8 +6,9 @@ from collections.abc import Callable
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import requires_ack
+from ..review.results import ResultStatus
 from ..review.views import ProposalView, RelevanceView
-from .actions import _button_form, needs_choice, proposal_actions, relevance_actions, result_kind
+from .actions import _button_form, needs_choice, proposal_actions, reject_reason_block, relevance_actions, result_kind
 from .pages import e, notice
 
 
@@ -40,10 +41,12 @@ def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
 
 
 class CommandCards:
-    def __init__(self, entries: list[CommandEntry], csrf: str, refresh: str):
+    def __init__(self, entries: list[CommandEntry], csrf: str, refresh: str,
+                 sender_hint_lookup: Callable[[str], Any] | None = None):
         self.entries = [entry for entry in entries if isinstance(entry.command, ReviewCommand)
                         and entry.command.source.value == "web" and not entry.acknowledged]
         self.csrf, self.refresh = csrf, refresh
+        self.sender_hint_lookup = sender_hint_lookup
 
     def matching(self, mail_id: str, proposal_id: str | None) -> list[CommandEntry]:
         result = []
@@ -78,6 +81,28 @@ class CommandCards:
     def relevance(self, view: RelevanceView) -> str:
         return self.render(self.matching(view.mail_id, None), lambda: relevance_actions(self.csrf)(view))
 
+    def _detached_actions(self, entry: CommandEntry) -> str:
+        command = entry.command
+        if (isinstance(command, ReviewCommand)
+                and command.kind in {CommandKind.REJECT, CommandKind.REJECT_REASON}
+                and entry.result is not None
+                and entry.result.status == ResultStatus.DONE
+                and command.proposal_id is not None):
+            current_reason = command.reason if command.kind == CommandKind.REJECT_REASON else None
+            parts = [reject_reason_block(self.csrf, command.mail_id, command.proposal_id, command.version, current_reason)]
+            if self.sender_hint_lookup is not None:
+                hint = self.sender_hint_lookup(command.mail_id)
+                if hint is not None:
+                    from urllib.parse import quote
+                    parts.append(
+                        f'<div class="sender-hint-notice notice warn" data-sender-hint>'
+                        f'<p>{e(hint.trigger_sentence)}</p>'
+                        f'<p class="card-links"><a class="button primary small" href="/lernen/absender-hinweis?sender={quote(hint.sender)}">Ansehen</a></p>'
+                        f'</div>'
+                    )
+            return "".join(parts)
+        return ""
+
     def detached(self, references: set[tuple[str, str | None]]) -> str:
         """Keep outcomes visible when a decision removed the original open card."""
         parts = []
@@ -95,6 +120,6 @@ class CommandCards:
             link = (f'/vorschlag/{command.mail_id}/{command.proposal_id}' if command.proposal_id
                     else f'/mail/{command.mail_id}')
             parts.append(f'<article class="card" id="{anchor(entry)}"><h2>Deine Aktion</h2>'
-                         + self.render(entries, lambda: '')
+                         + self.render(entries, lambda e=entry: self._detached_actions(e))
                          + f'<p class="card-links"><a data-detail href="{link}">Details</a></p></article>')
         return ''.join(parts)

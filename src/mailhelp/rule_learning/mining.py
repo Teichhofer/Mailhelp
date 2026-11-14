@@ -74,6 +74,7 @@ class DecisionRuleMiner:
         relevance = (record.get("analysis") or {}).get("relevance") or {}
         proposal = record.get("proposal") or {}
         fields = ("title", "description", "due_date", "start", "end")
+        reject_reason = record.get("reject_reason")
         return {"id": identity, "signal": reason,
                 "recorded_at": str(record.get("recorded_at") or "")[:40],
                 "subject": self.redact(str((mail.get("headers") or {}).get("subject", "")))[:200],
@@ -81,6 +82,7 @@ class DecisionRuleMiner:
                 "topic_ids": [str(key)[:64] for key in relevance.get("topic_ids", [])][:20],
                 "decision": str(record.get("decision") or record.get("kind")),
                 "answer": self.redact(str(record.get("answer") or ""))[:500],
+                "reject_reason": str(reject_reason)[:50] if reject_reason else None,
                 "changes": {key: self.redact(str(value))[:500]
                             for key, value in (proposal.get("changes") or {}).items() if key in fields}}
 

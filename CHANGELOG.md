@@ -1,5 +1,20 @@
 # Änderungen
 
+## 6.5.5 – Annahmequote messen und gezielt verbessern
+
+- Auswertung „Vorschläge“ unter Lernen (`/lernen/vorschlaege`): Annahmequote gesamt, für Aufgaben
+  und Termine; Verlauf je Kalenderwoche; sortierbare Tabellen nach Thema und Absender; Ablehnungsgründe;
+  Zeitraumauswahl.
+- Grund einer Ablehnung: Nach dem Verwerfen bietet die Ergebniskarte im Web und Telegram freiwillig
+  fünf feste Gründe („Betrifft mich nicht“, „Nur zur Information“, „Werbung oder Rundschreiben“,
+  „Falsch erkannt (Datum, Inhalt)“, „Anderer Grund“). Der Grund wird am Vorschlag und in `decisions.jsonl`
+  gespeichert und fließt in das Regellernen ein.
+- Absender-Hinweise: Automatische Hinweise bei Absendern mit auffällig vielen Ablehnungen (>= 5 Vorschläge,
+  <= 10 % Annahmequote in 90 Tagen). Vorschau aller betroffenen Mails mit Hervorhebung angenommener Vorschläge;
+  ausdrücklich bestätigte Aufnahme in den Absender-Vorfilter; Hinweise ausblendbar und wiederzulassend.
+- Hinweis auf Regellernlauf: Empfehlung eines neuen Regellernlaufs auf „Offen“ und „Lernen“ bei >= 20 neuen
+  Ablehnungen seit dem letzten Lauf (höchstens wöchentlich, für 7 Tage ausblendbar).
+
 ## 6.4.5 – Wiederkehrende Verarbeitungsfehler begrenzen
 
 - Dauerhafte Versuchszähler je Mail, Schritt, Fehlercode und Konfiguration; nach fünf

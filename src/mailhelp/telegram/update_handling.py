@@ -38,6 +38,7 @@ _COMMAND_KINDS = {
     DecisionAction.ALREADY_DONE: CommandKind.ALREADY_DONE,
     DecisionAction.VERIFY_ENTRY: CommandKind.VERIFY_ENTRY,
     DecisionAction.CHOOSE_VARIANT: CommandKind.CHOOSE_VARIANT,
+    DecisionAction.REJECT_REASON: CommandKind.REJECT_REASON,
 }
 
 
@@ -268,23 +269,24 @@ class TelegramUpdateHandler:
             )
             self.o.telegram.send(self.o.chat_id, "❌ Nicht autorisierte Aktion.")
             return
-        confirmation = self._confirmation(update, callback)
-        if confirmation is None:
+        outcome = self._confirmation(update, callback)
+        if outcome is None:
             return
+        confirmation, markup = outcome
         self.o.telegram.remove_inline_keyboard(
             callback.message.chat.id, callback.message.message_id
         )
         if confirmation:
-            self.o.telegram.send(self.o.chat_id, confirmation)
+            self.o.telegram.send(self.o.chat_id, confirmation, markup)
 
-    def _confirmation(self, update: TelegramUpdate, callback: TelegramCallbackQuery) -> str | None:
+    def _confirmation(self, update: TelegramUpdate, callback: TelegramCallbackQuery) -> tuple[str | None, dict[str, Any] | None] | None:
         """The confirmation text of the executed button; ``None`` when already answered."""
         actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
         key = f"telegram-update-{update.update_id}"
         try:
             if callback.data.startswith("series:"):
                 from .series import execute_callback
-                return execute_callback(self.o, callback.data)
+                return execute_callback(self.o, callback.data), None
             if callback.data.startswith("relevance:"):
                 try:
                     relevance = self.o.validator.relevance_decision(callback.data)
@@ -301,6 +303,7 @@ class TelegramUpdateHandler:
                     decision=cast(Literal["relevant", "irrelevant"], relevance.decision), idempotency_key=key,
                     replay_offset=update.update_id + 1,
                 ), raise_errors=True).message
+                return confirmation, None
             else:
                 try:
                     decision = self.o.validator.decision(callback.data)
@@ -318,6 +321,8 @@ class TelegramUpdateHandler:
                     extra = {"candidate": decision.candidate}
                 if decision.action == DecisionAction.CHOOSE_VARIANT:
                     extra = {"conflict_id": decision.conflict_id, "variant": decision.variant}
+                if decision.action == DecisionAction.REJECT_REASON:
+                    extra = {"reason": decision.reason}
                 identity = decision.mail_id, decision.proposal_id, decision.version
                 if association:
                     assert decision.additional_ref is not None and decision.additional_version is not None
@@ -333,6 +338,11 @@ class TelegramUpdateHandler:
                     idempotency_key=key,
                     **extra,
                 ), raise_errors=True).message
+                markup = None
+                if decision.action == DecisionAction.REJECT:
+                    from .callbacks import reject_reason_markup
+                    markup = reject_reason_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
+                return confirmation, markup
         except StaleCommand:
             # Typically decided in the web interface after this card was sent.
             self.o.logger.event("INFO", "telegram.dialog", "stale_button",
@@ -355,7 +365,7 @@ class TelegramUpdateHandler:
                 "❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen.",
             )
             return None
-        return confirmation
+        return confirmation, None
 
     def reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""

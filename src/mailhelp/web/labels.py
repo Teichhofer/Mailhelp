@@ -29,6 +29,7 @@ EVENTS: dict[str, str] = {
     CommandKind.CONFIRM: "Bestätigt",
     CommandKind.CONFIRM_DUPLICATE: "Trotz möglicher Dublette bestätigt",
     CommandKind.REJECT: "Verworfen",
+    CommandKind.REJECT_REASON: "Grund der Ablehnung gespeichert",
     CommandKind.ALREADY_DONE: "Als schon erledigt erfasst",
     CommandKind.START_CLARIFICATION: "Klärung begonnen",
     CommandKind.ANSWER: "Rückfrage beantwortet",
