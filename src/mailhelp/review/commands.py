@@ -39,6 +39,8 @@ class CommandKind(StrEnum):
     RETARGET = "retarget_proposal"
     # A mail filed as irrelevant is analysed again; version is its analysis round (3.6.2).
     RECHECK_MAIL = "recheck_mail"
+    RETRY_MAIL = "retry_mail"
+    FILE_MAIL = "file_mail"
     SERIES_ANSWER = "series_answer"
     SERIES_CONFIRM = "series_confirm"
     # 4.6: pick one of the calendar entries a change or cancellation may refer to.
@@ -50,7 +52,7 @@ class CommandKind(StrEnum):
 
 
 # Commands on a whole mail instead of one proposal.
-MAIL_KINDS = frozenset({CommandKind.RELEVANCE, CommandKind.RECHECK_MAIL})
+MAIL_KINDS = frozenset({CommandKind.RELEVANCE, CommandKind.RECHECK_MAIL, CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL})
 PROPOSAL_KINDS = frozenset(set(CommandKind) - MAIL_KINDS)
 
 

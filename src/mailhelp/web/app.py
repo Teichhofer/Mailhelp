@@ -8,6 +8,7 @@ from collections.abc import Callable
 from importlib.resources import files
 
 from .http import Request, Response, rejected
+from .pages import ASSET_URLS
 
 Route = Callable[..., Response]
 
@@ -46,6 +47,8 @@ class WebApp:
         # stylesheet and scripts must too, even if the files on disk change meanwhile
         # (update, branch switch of an editable install).
         self.assets = {name: static_file(name) for name in (*STATIC_FILES, *ROOT_FILES)}
+        self.asset_urls = {name: f"/static/{name}?v={hashlib.sha256(self.assets[name]).hexdigest()[:16]}"
+                           for name in ("app.css", "app.js")}
         # Without a new cache name a cache-first worker kept serving an outdated stylesheet forever.
         version = hashlib.sha256(b"\0".join(self.assets[name] for name in SHELL_FILES)).hexdigest()[:16]
         self.assets["sw.js"] = self.assets["sw.js"].replace(SHELL_VERSION, version.encode())
@@ -69,7 +72,11 @@ class WebApp:
             if method != request.method:
                 path_known = True
                 continue
-            return handler(request, **match.groupdict())
+            token = ASSET_URLS.set(self.asset_urls)
+            try:
+                return handler(request, **match.groupdict())
+            finally:
+                ASSET_URLS.reset(token)
         if path_known:
             response = Response.text(405, "Methode nicht erlaubt.")
             response.headers["Allow"] = ", ".join(sorted(

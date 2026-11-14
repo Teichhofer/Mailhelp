@@ -106,6 +106,7 @@ def build_logger(
         "DEBUG" if access_diagnostics else log.file.level,
         {} if access_diagnostics else log.modules,
         known_secrets,
+        verbose=access_diagnostics or log.verbose,
         file_enabled=access_diagnostics or log.file.enabled, file_name=log.file.filename,
         file_format=log.file.format, file_max_bytes=log.file.max_bytes,
         file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,

@@ -110,6 +110,10 @@ class ProcessingRun:
         object.__setattr__(self, name, value)
 
 
+class AnalysisDataUnavailable(ValueError):
+    """A completed prerequisite has lost its result and cannot be replayed."""
+
+
 class MailPipeline:
     """Owned by the Orchestrator; reads its services through ``o``."""
 
@@ -118,6 +122,9 @@ class MailPipeline:
 
     def advance(self, run: ProcessingRun, fetched: FetchedMail) -> ProcessingResult | None:
         """Run every pending step; a result ends processing early (duplicate, open question)."""
+        if run.state.missing_analysis_steps:
+            run.stage = ProcessingStage(run.state.missing_analysis_steps[0])
+            raise AnalysisDataUnavailable("Analyse-Daten fehlen für einen abgeschlossenen Verarbeitungsschritt.")
         self._prepare(run, fetched)
         state = run.state
         assert state.mail is not None
@@ -136,7 +143,8 @@ class MailPipeline:
             with part(run.timer, "bilderkennung"):
                 self.o.read_images(run.name, state, fetched.raw)
         self._relevance(run)
-        assert state.relevance is not None
+        if state.relevance is None:
+            raise AnalysisDataUnavailable("Analyse-Daten fehlen für die Relevanzprüfung.")
         if state.relevance.decision == "irrelevant":
             self._skip_after_irrelevant(state)
         elif state.relevance.decision == "unclear":
@@ -515,6 +523,12 @@ class MailPipeline:
     def handle_failure(self, run: ProcessingRun, exc: Exception) -> ProcessingOutcome:
         """Record a failed step; called inside ``except`` so the traceback is current."""
         name, state, stage, started = run.name, run.state, run.stage, run.started
+        if isinstance(exc, AnalysisDataUnavailable):
+            self.o.failure(name, state, ProcessingErrorCode.ANALYSIS_DATA_REMOVED, stage,
+                           "Analyse-Daten fehlen. Bitte bei Bedarf eine bewusste Neuprüfung starten.", False)
+            self.o.logger.event("ERROR", "orchestrator", "analysis_data_unavailable", mail_id=state.id,
+                                stage=stage.value)
+            return ProcessingOutcome.FAILED
         if isinstance(exc, RateLimitExceeded):
             state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, UTC)
             retry_at = state.deferred_until.isoformat()

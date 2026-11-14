@@ -180,6 +180,9 @@ class ErrorView:
     # Technical codes for identities (notification references); labels are display only.
     stage_code: str = ""
     cause_code: str = ""
+    attempts: int = 0
+    abandoned: bool = False
+    first_failed_at: datetime | None = None
 
     @property
     def reference(self) -> str:
@@ -193,7 +196,7 @@ def processed(state: MailState) -> bool:
     survives restarts and never counts twice; a mail being analyzed again counts once it is
     completed again.
     """
-    return state.steps.completion == "completed"
+    return state.steps.completion == "completed" and not state.processing_filed
 
 
 def count_processed(store: JsonStore) -> int:
@@ -240,6 +243,7 @@ STAGE_LABELS = {
     "completion": "Abschluss",
 }
 ERROR_LABELS = {
+    "analysis_data_removed": "Aktionserkennung nicht nachholbar – Analyse-Daten nach Aufbewahrung entfernt",
     "mime_limit_exceeded": "Mail zu groß oder zu komplex",
     "llm_schema_validation_exhausted": "KI-Antwort wiederholt ungültig",
     "provider_response_invalid": "Ungültige Antwort des KI-Anbieters",
@@ -417,7 +421,8 @@ class ReviewViews:
         counts: dict[ProposalStatus, int] = {}
         for proposal in proposals:
             counts[proposal.status] = counts.get(proposal.status, 0) + 1
-        failed = sorted(((state, state.error) for state in mails if state.error is not None),
+        failed = sorted(((state, state.error) for state in mails
+                         if state.error is not None and not state.processing_filed),
                         key=lambda pair: pair[1].occurred_at, reverse=True)
         calls = budget.get("calls")
         entries = inbox.get("entries")
@@ -440,6 +445,9 @@ class ReviewViews:
                 stage=STAGE_LABELS[error.stage.value], cause=ERROR_LABELS[error.code.value],
                 occurred_at=error.occurred_at, retryable=error.retryable,
                 next_attempt=state.deferred_until,
+                attempts=state.processing_retry.attempts if state.processing_retry else 0,
+                abandoned=state.processing_retry.abandoned if state.processing_retry else False,
+                first_failed_at=state.processing_retry.first_failed_at if state.processing_retry else None,
                 stage_code=error.stage.value, cause_code=error.code.value,
             ) for state, error in failed[:ERROR_LIMIT]),
             telegram_held=len(outbox.entries),

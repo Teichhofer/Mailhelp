@@ -189,7 +189,7 @@ class Coverage:
 
     def add(self, result: dict) -> None:
         for script in result["result"]:
-            name = script["url"].rsplit("/", 1)[-1]
+            name = script["url"].split("?", 1)[0].rsplit("/", 1)[-1]
             if name not in COVERED_SCRIPTS or not script["url"].startswith("http"):
                 continue
             source = (STATIC / name).read_bytes().decode("utf-8")

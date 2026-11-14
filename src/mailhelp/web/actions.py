@@ -121,7 +121,9 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             buttons.append(_button_form(csrf, view, CommandKind.CANCEL_CLARIFICATION,
                                         "Bearbeitung beenden", ""))
         # 5.0.8: the decision row stays at the bottom edge of the detail pane while scrolling.
-        parts.append(f'<div class="actions decision-bar">{"".join(buttons)}</div>')
+        # 6.3: without a confirmation the swipe to the right names what has to happen first.
+        blocked = "" if CommandKind.CONFIRM in view.actions else f' data-swipe-blocked="{e(swipe_blocked(view))}"'
+        parts.append(f'<div class="actions decision-bar"{blocked}>{"".join(buttons)}</div>')
         parts.append('<details class="decision-help"><summary>Was bedeuten diese Entscheidungen?</summary>'
                      '<p>Verwerfen lehnt diesen Vorschlag ab. Schon erledigt bedeutet: relevant, '
                      'aber bereits erledigt; es wird kein neuer Eintrag angelegt. Diese Entscheidungen können '
@@ -130,6 +132,24 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             parts.append(f"<details><summary>Ändern</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)
     return render
+
+
+SWIPE_BLOCKED_DEFAULT = "Diese Aktion ist für diesen Vorgang nicht möglich."
+
+
+def swipe_blocked(view: ProposalView) -> str:
+    """6.3: why a proposal without a confirmation cannot be swiped to the right, as a whole sentence."""
+    if CommandKind.CHOOSE_VARIANT in view.actions:
+        return "Erst den Widerspruch klären."
+    if CommandKind.ANSWER in view.actions and view.question:
+        return "Erst die Rückfrage beantworten."
+    if view.reconciliation_required:
+        return "Erst im Vorschlagsabgleich entscheiden."
+    if CommandKind.RECHECK in view.actions:
+        return "Erst die Dublettenprüfung wiederholen."
+    if CommandKind.CHOOSE_EVENT in view.actions:
+        return "Erst den gemeinten Termin wählen."
+    return SWIPE_BLOCKED_DEFAULT
 
 
 def verification_block(csrf: str, view: ProposalView) -> str:

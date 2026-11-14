@@ -21,6 +21,24 @@ gleicht sie zuerst mit dem Anbieter ab.
 | „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |
 | Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |
 
+## Mail wird wiederholt nicht verarbeitet
+
+Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und
+nächstem Versuch. „Aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung
+aus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und
+Wartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv
+als nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.
+Bereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist
+nur Ablegen möglich. Diese Aktionen legen weder Termine noch Aufgaben an.
+
+## Analyse-Daten nach Aufbewahrung entfernt
+
+„Aktionserkennung nicht nachholbar – Analyse-Daten nach Aufbewahrung entfernt“ bedeutet,
+dass eine abgeschlossene Mail eine fehlgeschlagene Aktionserkennung hat und deren benötigte
+Analyse-Ergebnisse inzwischen entfernt wurden. Mailhelp beendet das automatische Nachholen
+einmalig mit `resume_abandoned`. Die Mail bleibt im Archiv unter „mit Fehler“ sichtbar.
+Falls du sie erneut auswerten möchtest, starte ausdrücklich eine Neuprüfung.
+
 ## Web-Passwort zurücksetzen
 
 1. Den laufenden Dienst kontrolliert beenden; der Rücksetzbefehl benötigt alleinigen Zugriff

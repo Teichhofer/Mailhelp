@@ -1,5 +1,49 @@
 # Änderungen
 
+## 6.4.5 – Wiederkehrende Verarbeitungsfehler begrenzen
+
+- Dauerhafte Versuchszähler je Mail, Schritt, Fehlercode und Konfiguration; nach fünf
+  Versuchen aufgeben, Rate-Limit-Wartezeiten ohne zusätzlichen Versuch.
+- Status mit Beginn, Versuchszahl und nächstem Versuch; lokale, sitzungs-, versions-
+  und idempotenzgebundene Aktionen „Erneut versuchen“ und „Ablegen“ mit Verlauf.
+- Telegram meldet das Aufgeben einmal; `/status` nennt aufgegebene Mails.
+- Unveränderte Ordnerzahlen stündlich, nur langsame/fehlerhafte Webanfragen,
+  ein Telegram-Poll-Eintrag und zusammengefasste Fehler; ausführlicher Modus zuschaltbar.
+
+## 6.3.2 – Wiederaufnahme nach Aufbewahrung und natürliche Wischbewegungen
+
+- Abgeschlossene Mails mit fehlgeschlagener Aktionserkennung und entfernten Ergebnissen
+  von Vorbereitung, Relevanzprüfung oder Zusammenfassung werden einmalig mit
+  `resume_abandoned` beendet. Der Fehler bleibt im Archiv sichtbar. Wiederholungen und
+  Neustarts führen zu keinem weiteren Abruf und verbrauchen kein Wiederaufnahmebudget.
+- Die Pipeline meldet fehlende Analyse-Daten als benannten dauerhaften Fehler.
+- Wischgesten werden ab 12 px mit einem Verhältnis von 1,5 zwischen waagerechtem und
+  senkrechtem Weg erkannt. Eine große erste Bewegung mit leichtem Höhenversatz ist möglich.
+- Titel, Zusammenfassungen und Schaltflächen erlauben den Beginn einer Wischgeste.
+  Der zugehörige Klick wird nach erkanntem Wischen abgefangen. Eingabefelder bleiben geschützt.
+- Stylesheet und Skript erhalten Inhaltskürzel, damit auch der erste Aufruf nach einem
+  Update unter einem alten Service Worker die passenden Dateien verwendet.
+- Regressionen wurden vor dem Fix nachgestellt. Die Abnahme auf einem echten Telefon
+  und die Prüfung des Produktivbestands durch den Betreiber stehen aus.
+
+## 6.3.1 – Wischen auf „Offen“
+
+- Auf Telefon und Tablet (unter 1024 px) lässt sich eine Karte in „Offen“ mit dem Finger entscheiden:
+  nach rechts legt an bzw. stuft als relevant ein, nach links verwirft bzw. stuft als irrelevant ein.
+  Der Wisch sendet genau das Formular der Schaltfläche (Version, CSRF-Token, Idempotenzschlüssel
+  unverändert). Mit der Maus und in der geteilten Ansicht gibt es kein Wischen.
+- Ausgelöst wird nur durch Weg (40 % der Kartenbreite, höchstens 160 px), nicht durch Tempo. Unter der
+  Karte steht der Wortlaut der Schaltfläche; hell heißt „Loslassen tut nichts“, kräftig heißt „Loslassen
+  löst aus“ (mit kurzem Vibrationsimpuls). Die Karte bleibt danach an ihrem Platz und zeigt das Ergebnis.
+- Ohne Bestätigungsmöglichkeit ist rechts gesperrt: Schloss, höchstens 24 px Nachgeben und beim Loslassen
+  der Grund („Erst die Rückfrage beantworten.“ usw.). Ungesendeter Antworttext sperrt beide Richtungen.
+- Scrollen, Zoomen, Textmarkieren, die Zurück-Geste am Rand sowie Berührungen auf Schaltflächen, Links,
+  Eingabefeldern und seitlich scrollendem Inhalt lösen nie aus.
+- Ein einmaliger Tipp unter der ersten Karte erklärt die Geste auf Touch-Geräten; die erste Entscheidung
+  bleibt dadurch in den oberen 60 % des Fensters.
+- Doku berichtigt: Bestätigen hat seit den parallelen Webaktionen keine 5-Sekunden-Rückgängig-Frist mehr.
+- Entfernt: ungenutzte CSS-Klasse `.card.leaving`. Abnahme in `docs/Release-6.3.md`.
+
 ## 6.2.11 – Abnahme 6.2
 
 - Abnahme von Version 6.2 (Bedienkonzept und Design): `docs/Release-6.2.md` mit Zuordnung der Planschritte,

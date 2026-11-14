@@ -176,6 +176,8 @@
         "recheck_proposal",
         "retarget_proposal",
         "recheck_mail",
+        "retry_mail",
+        "file_mail",
         "series_answer",
         "series_confirm",
         "choose_calendar_event",

@@ -259,8 +259,9 @@ function randomHexKey() {
     pane.className = "detail-pane";
     pane.dataset.dirty = "no";
     pane.setAttribute("aria-label", "Ausgewählter Vorgang");
-    items.classList.add("master-pane");
+    items.classList.add("master-pane", "swipeable");
     items.setAttribute("aria-label", "Offene Vorgänge");
+    showHint();
     items.before(split);
     split.append(items, pane);
     if (previous) pane.replaceChildren.apply(pane, Array.from(previous.childNodes));
@@ -413,6 +414,141 @@ function randomHexKey() {
       });
   }, true);
   observeCards();
+
+  // 6.3: on phones and tablets a card is decided by swiping it – right runs its main action, left
+  // rejects. Only a finger or pen, only below 1024 px and only by distance, never by speed. Letting go
+  // past the threshold submits the card's own form; session, CSRF, version and key stay as they are.
+  var SWIPE = {start: 12, vertical: 8, edge: 24, share: 0.4, most: 160, beyond: 0.25, resist: 0.15, stop: 24,
+               back: 220, ratio: 1.5};
+  var ACCEPT = 'input[name="kind"][value="confirm"], input[name="decision"][value="relevant"]';
+  var REJECT = 'input[name="kind"][value="reject"], input[name="decision"][value="irrelevant"]';
+  var BLOCKED = "Diese Aktion ist für diesen Vorgang nicht möglich.", TYPED = "Erst die Antwort senden oder das Feld leeren.";
+  var coarse = window.matchMedia("(pointer: coarse)"), HINT = "mailhelp-swipe-hint", swipe = null;
+  var suppressClick = null;
+
+  document.addEventListener("click", function (event) {
+    if (!suppressClick || !suppressClick.contains(event.target) || event.detail === 0) return;
+    suppressClick = null;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+
+  function remembered() {
+    try { return localStorage.getItem(HINT) === "1"; } catch (error) { return false; }
+  }
+  function dismissHint() {
+    main.querySelectorAll("[data-swipe-hint]").forEach(function (node) { node.hidden = true; });
+    try { localStorage.setItem(HINT, "1"); } catch (error) { return; }
+  }
+  // Below the first swipeable card: next to what it explains, without pushing the first decision down.
+  function showHint() {
+    var first = items.querySelector(REJECT), tip = main.querySelector("[data-swipe-hint]");
+    if (!coarse.matches || !first || remembered()) return;
+    first.closest("article.card").after(tip);
+    tip.hidden = false;
+  }
+  document.addEventListener("click", function (event) {
+    if (event.target.closest("[data-swipe-hint-close]")) dismissHint();
+  });
+
+  // A table or comparison that scrolls sideways keeps its own gesture.
+  function scrollsSideways(node, card) {
+    for (; node !== card; node = node.parentElement) {
+      if (node.scrollWidth > node.clientWidth && /auto|scroll/.test(getComputedStyle(node).overflowX)) return true;
+    }
+    return false;
+  }
+  function formOf(card, selector) {
+    var input = card.querySelector(selector);
+    return input ? input.form : null;
+  }
+
+  document.addEventListener("pointerdown", function (event) {
+    suppressClick = null;
+    // A second finger zooms; it never decides.
+    if (swipe) { finish(); return; }
+    var card = event.target.closest(".open-items article.card");
+    if (!card || desktop.matches || event.pointerType === "mouse" ||
+        event.target.closest("input, textarea, select") ||
+        event.clientX < SWIPE.edge || event.clientX > window.innerWidth - SWIPE.edge ||
+        String(window.getSelection()) || card.querySelector("[data-card-command-status], [data-command-result]") ||
+        scrollsSideways(event.target, card)) return;
+    var reject = formOf(card, REJECT);
+    if (!reject) return;
+    swipe = {card: card, id: event.pointerId, x: event.clientX, y: event.clientY,
+             forms: {accept: formOf(card, ACCEPT), reject: reject}, backdrop: null, armed: false, reason: ""};
+  });
+
+  function begin() {
+    var card = swipe.card, backdrop = document.createElement("div"), bar = card.querySelector("[data-swipe-blocked]");
+    swipe.limit = Math.min(card.offsetWidth * SWIPE.share, SWIPE.most);
+    swipe.why = bar ? bar.dataset.swipeBlocked : BLOCKED;
+    // Text not yet sent would be lost with a decision.
+    swipe.typed = Array.from(card.querySelectorAll("textarea")).some(function (box) { return box.value.trim(); });
+    backdrop.setAttribute("aria-hidden", "true");
+    backdrop.innerHTML = '<span class="swipe-label"><span class="swipe-symbol"></span><span class="swipe-text"></span></span>';
+    backdrop.style.cssText = "top:" + card.offsetTop + "px;left:" + card.offsetLeft + "px;width:" +
+      card.offsetWidth + "px;height:" + card.offsetHeight + "px";
+    // The text is laid out once for the strip the threshold uncovers, then only revealed.
+    backdrop.firstChild.style.width = swipe.limit + "px";
+    card.before(backdrop);
+    card.classList.add("swipe-card", "swiping");
+    swipe.backdrop = backdrop;
+  }
+
+  function follow(dx) {
+    var side = dx > 0 ? "accept" : "reject", form = swipe.forms[side], size = Math.abs(dx);
+    var reason = swipe.typed ? TYPED : form ? "" : swipe.why;
+    var offset = reason ? Math.min(size * SWIPE.resist, SWIPE.stop)
+      : size <= swipe.limit ? size : swipe.limit + (size - swipe.limit) * SWIPE.beyond;
+    var armed = !reason && size >= swipe.limit;
+    if (armed && !swipe.armed && navigator.vibrate) navigator.vibrate(10);
+    swipe.side = side; swipe.armed = armed; swipe.reason = reason;
+    swipe.card.style.transform = "translateX(" + (dx > 0 ? offset : -offset) + "px)";
+    swipe.backdrop.className = "swipe-backdrop swipe-" + side + (reason ? " swipe-blocked" : armed ? " swipe-armed" : "");
+    swipe.backdrop.querySelector(".swipe-symbol").textContent = reason ? "🔒" : dx > 0 ? "✓" : "✕";
+    swipe.backdrop.querySelector(".swipe-text").textContent = reason ? "" : form.querySelector("button").textContent;
+  }
+
+  document.addEventListener("pointermove", function (event) {
+    if (!swipe || event.pointerId !== swipe.id) return;
+    var dx = event.clientX - swipe.x, dy = event.clientY - swipe.y;
+    if (!swipe.backdrop) {
+      // A phone may deliver the first move as one large, slightly curved step.
+      if (Math.abs(dx) < SWIPE.start || Math.abs(dx) < SWIPE.ratio * Math.abs(dy)) {
+        if (Math.abs(dy) > SWIPE.vertical && Math.abs(dy) >= Math.abs(dx)) swipe = null;
+        return;
+      }
+      begin();
+    }
+    follow(dx);
+  });
+
+  // The card glides back to its place; the result appears on it like after a tap on the button.
+  function finish() {
+    var done = swipe;
+    swipe = null;
+    if (!done.backdrop) return done;
+    suppressClick = done.card;
+    done.card.classList.remove("swiping");
+    done.card.style.transform = "";
+    window.setTimeout(function () {
+      done.backdrop.remove();
+      done.card.classList.remove("swipe-card");
+    }, SWIPE.back);
+    return done;
+  }
+  function release(event) {
+    if (!swipe || event.pointerId !== swipe.id) return;
+    var done = finish();
+    if (event.type !== "pointerup" || !done.backdrop) return;
+    if (done.armed) {
+      dismissHint();
+      done.forms[done.side].requestSubmit();
+    } else if (done.reason) announce(done.reason);
+  }
+  document.addEventListener("pointerup", release);
+  document.addEventListener("pointercancel", release);
 
   function modal(label, children) {
     var dialog = document.createElement("dialog"), close = document.createElement("button");

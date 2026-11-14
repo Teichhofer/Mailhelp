@@ -1,5 +1,28 @@
 # Mailhelp – Projektspezifikation
 
+## Ergänzung 6.4: Begrenzte Wiederaufnahme
+
+Der Mailzustand speichert optional `processing_retry` (Fehlerbild, Zahl der Versuche,
+erster/letzter Fehlschlag, Aufgabestatus und Benachrichtigungsmarke), `processing_filed`
+und die letzte `processing_operation`. Alte Zustände verwenden die leeren Standardwerte.
+Fünf Fehlversuche je Schritt, Fehlercode und Konfiguration sind die Obergrenze; die
+vier Pausen sind 60, 300, 1800 und 7200 Sekunden. Dauerhafte Fehler werden sofort
+aufgegeben. Anbieterlimits verbrauchen keinen Versuch, Erfolg entfernt den Zähler.
+Wartezeit und Aufgabestatus werden vor IMAP und Budget geprüft. Externe Schreibversuche
+und deren Abgleich bleiben von dieser Begrenzung unberührt.
+
+`retry_mail` und `file_mail` sind lokale Befehle mit Sitzung, erneut geprüfter Sitzung
+bei Ausführung, CSRF, Analyserunde und Idempotenzschlüssel. Jeder angenommene Effekt
+erhöht die Analyserunde, hält seine Operation fest und erhält einen Verlauf mit Akteur.
+Ablegen löscht nichts, beendet aber die automatische Wiederaufnahme und den Handlungsbedarf.
+Fehlende Ergebnisse erledigter Analyseschritte dürfen nicht durch Fortsetzen übergangen werden.
+
+`logging.verbose` ist standardmäßig aus. Ereignisse werden nach Modul, Ereignis,
+Schritt, Fehler, Mail und Stacktrace zusammengefasst; verschiedene Stacktraces bleiben
+getrennt. Das erste Ereignis bleibt vollständig, danach höchstens alle 15 Minuten
+ein Zähler. Die Aggregation ist auf 4096 Fehlerbilder/Ordner je Prozess begrenzt.
+Die bestehenden Geheimnisfilter und die ausdrücklichen LLM-Inhaltsschalter bleiben wirksam.
+
 Stand: 12. November 2026, Anwendungsversion 5.8.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
@@ -2475,12 +2498,39 @@ rendert der Server den Quellbeleg immer eingeklappt (`<details data-source-mail>
 `(min-width: 1024px)` zutrifft, unabhängig von Art und Bildvorschauen. Eine spätere
 Größenänderung schaltet ihn nicht um. Die Zusammenfassung nennt Absender und Zahl der Bilder. Schnellfilter (`filter` = `events`,
 `tasks`, `clarification`, `attachments`, `duplicates`) werden serverseitig
-ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden im
-Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet. Bis
-zum Versand oder Rückgängigmachen bleiben Auswahlwechsel per Maus und Tastatur
-gesperrt. So bleibt das ursprüngliche Formular mit seiner Vorschlagsversion verbunden.
-Nach Rückgängig ist die Auswahl sofort wieder frei, ohne einen Befehl zu senden.
-Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
+ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden sofort
+als das Formular der Karte gesendet, ohne Rückhaltefrist und ohne Rückgängig (die
+frühere 5-Sekunden-Frist entfiel mit den parallelen Webaktionen); die Karte zeigt
+„Wird verarbeitet …“, danach an derselben Stelle das Ergebnis, und andere Vorgänge
+bleiben bedienbar. Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel.
+
+**Wischen (6.3).** Unter 1024 px Breite lässt sich eine Karte in „Offen“ mit Finger
+oder Stift waagerecht ziehen (nicht mit der Maus, nicht in der geteilten Ansicht).
+Rechts löst das `confirm`-Formular bzw. „Relevant“ aus, links das `reject`-Formular
+bzw. „Irrelevant“; `app.js` ruft dafür `requestSubmit()` auf dem Formular der Karte
+auf, sodass genau dieselbe Anfrage wie per Schaltfläche entsteht. Ausgelöst wird nur
+durch Weg: Loslassen jenseits von 40 % der Kartenbreite, höchstens 160 px; Tempo zählt
+nicht. Ab 6.3.2 beginnt eine Geste nach 12 px waagerecht bei mindestens 1,5-mal so viel
+waagerechtem wie senkrechtem Weg. Diese Prüfung erfolgt zuerst, auch bei großen ersten
+Bewegungen. Überwiegt der senkrechte Weg bei mehr als 8 px, wird die Erkennung beendet.
+Links, Schaltflächen und Zusammenfassungen erlauben den Start einer Geste. Nach erkanntem
+Wischen wird der folgende Touch-Klick abgefangen, ein neuer Tipp funktioniert wieder.
+Keine Geste beginnt in Eingabefeldern, in waagerecht scrollbaren Bereichen, 24 px
+vom Fensterrand, bei markiertem Text, auf Karten in Verarbeitung oder mit Ergebnis
+und auf Karten ohne `reject`- oder Relevanzformular; ein zweiter Finger oder
+`pointercancel` bricht ab. Unter der Karte zeigt ein Hintergrund (`aria-hidden`) den
+Wortlaut der Schaltfläche mit ✓ bzw. ✕: hell vor der Schwelle, kräftig ab der Schwelle
+(mit kurzem Vibrationsimpuls, wo verfügbar). Hat die Karte kein `confirm`-Formular,
+ist rechts gesperrt: Die Karte gibt höchstens 24 px nach, zeigt ein Schloss, und
+beim Loslassen nennt der Hinweis den Grund aus `data-swipe-blocked` an der
+Entscheidungsleiste (Widerspruch, Rückfrage, Vorschlagsabgleich, Dublettenprüfung,
+Terminwahl, sonst „Diese Aktion ist für diesen Vorgang nicht möglich.“). Ungesendeter
+Text in einem Antwortfeld sperrt beide Richtungen. Nach dem Loslassen gleitet die
+Karte an ihren Platz zurück (bei reduzierter Bewegung ohne Übergang). Auf Geräten mit
+grobem Zeiger steht einmalig ein schließbarer Tipp unter der ersten wischbaren Karte
+(nicht darüber, damit die erste Entscheidung im oberen Fensterbereich bleibt); er endet mit
+„Verstanden“ oder dem ersten ausgelösten Wisch und wird in `localStorage` gemerkt.
+Ohne JavaScript bleibt er versteckt, und alles läuft über die Schaltflächen. Tastenkürzel sind in
 Eingabefeldern und bei geöffneten Dialogen inaktiv. Seit 5.0.9 bestätigt `A` wie `C` und
 Enter; die Seitenleiste (ab 900 Pixeln, nicht in der Symbolleiste bis 1199 Pixel) enthält den
 von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Ohne JavaScript funktionieren
@@ -3705,7 +3755,19 @@ Die Wiederaufnahme unfertiger Mails (`mailbox_run`) prüft die Konfiguration nur
 `completion != completed` und mit `accepts_configuration(fingerprint, account_id)`, also
 gegen den Fingerabdruck des eigenen Postfachs – wie `Orchestrator._begin`. Eine abgeschlossene
 Mail mit `action_detection: failed` wird auch nach einer Konfigurationsänderung erneut
-versucht.
+versucht, wenn die Ergebnisse aller als erledigt markierten Vorschritte noch vorhanden sind.
+Ab 6.3.2 prüft `missing_analysis_steps` Vorbereitung (`mail`), Relevanz und Zusammenfassung.
+Fehlt ein benötigtes Ergebnis, wird `action_detection` einmalig auf `skipped` gesetzt und der
+dauerhafte Fehler `analysis_data_removed` mit Zeitpunkt gespeichert. `resume_abandoned` nennt
+Mail-ID und fehlende Schritte. Die Auswahl erfolgt vor IMAP-Abruf und Budgetverbrauch und ist
+auch nach Neustart idempotent. Eine bewusste Neuprüfung kann die gesamte Auswertung neu starten.
+Die Aufbewahrung behält ihre Fristen. Ein zusätzlicher Entfernungszeitstempel ist nicht nötig,
+weil fehlende Ergebnisse auch in Altzuständen erkennbar sind und der dauerhafte Fehler den
+Zeitpunkt des Abbruchs festhält. Die Pipeline fängt fehlende Analyse-Daten ausdrücklich ab.
+
+Stylesheet und Skript erhalten ab 6.3.2 beim Start berechnete Inhaltskürzel in den Seitenadressen.
+Jede Anfrage verwendet die Kürzel ihrer eigenen Instanz. Damit lädt auch ein alter Service Worker
+beim ersten Aufruf nach einem Update die passenden Dateien. Die Offline-Seite verwendet ihren Cache.
 
 `quality-reports/baseline-5.1.json` friert Korpus v4 (SHA-256), die Prompt-Baseline und die
 Abnahmeschwellen ein: je Art Erkennungsrate mindestens 0,9 und höchstens zwei Fehlalarme,

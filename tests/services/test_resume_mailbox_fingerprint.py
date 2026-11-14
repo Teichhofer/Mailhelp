@@ -6,7 +6,7 @@ settings therefore waited forever ("configuration_changed" on every poll), and a
 completed mail whose action detection had failed was never retried.
 """
 from mailhelp.mailbox.mailbox_run import _checkpoint_name
-from mailhelp.models import MailState
+from mailhelp.models import MailState, Relevance
 from mailhelp.processing.mail_pipeline import ProcessingOutcome
 from tests.fakes.shared_application import Imap, Orch, Store, Telegram, app
 
@@ -44,6 +44,8 @@ def test_an_unfinished_mail_with_its_mailbox_fingerprint_is_resumed(tmp_path):
 def test_a_completed_mail_with_a_failed_action_detection_is_retried_under_an_older_configuration(tmp_path):
     failed = state(4, OLD, preparation="completed", relevance="completed", action_detection="failed",
                    completion="completed")
+    failed.mail = {"text": "Synthetic retained mail"}
+    failed.relevance = Relevance(decision="relevant", topic_ids=["synthetic"], reason="Synthetic")
     service, _, warnings = run(tmp_path, failed)
     assert service.orchestrator.seen == [4] and warnings == []
 

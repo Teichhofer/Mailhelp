@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from .. import state_names
 from ..config import MailboxSettings, Settings
+from ..domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
 from ..logging import EventLogger
 from ..models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
 from ..processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -663,12 +664,28 @@ class MailboxRunService:
         for name in mail_state_names(self.store):
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
+            state = None
             try:
                 state = self.store.load_model(name, MailState)
                 if state is None or (state.steps.completion != "pending" and
                                      state.steps.action_detection != "failed"):
                     continue
                 if state.awaiting_relevance:
+                    continue
+                from ..processing.retry import blocked
+                active = getattr(self.orchestrator, "fingerprint_for", lambda _, fp=state.config_fingerprint: fp)(
+                    state.imap.account_id)
+                if blocked(state, active, now):
+                    continue
+                if state.steps.completion == "completed" and state.missing_analysis_steps:
+                    missing = state.missing_analysis_steps
+                    state.steps.action_detection = "skipped"
+                    state.error = ProcessingError(code=ProcessingErrorCode.ANALYSIS_DATA_REMOVED,
+                                                  stage=ProcessingStage.ACTION_DETECTION,
+                                                  occurred_at=now, retryable=False)
+                    self.store.save(name, state.model_dump(mode="json"))
+                    self.logger.event("WARNING", "orchestrator", "resume_abandoned", mail_id=state.id,
+                                      reason="analysis_data_removed", missing_steps=missing)
                     continue
                 source = self._source(state.imap.account_id)
                 reader = source.reader if source is not None else self.resume_readers.get(state.imap.account_id)
@@ -692,8 +709,6 @@ class MailboxRunService:
                         ProcessingOutcome.WAITING, state.model_dump(mode="json")
                     ))
                     continue
-                if state.deferred_until is not None and state.deferred_until > now:
-                    continue
                 if budget.remaining is not None:
                     budget.take()
                 mail = reader.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
@@ -705,6 +720,11 @@ class MailboxRunService:
                                       error=result.state.get("error"))
                     continue
             except Exception as exc:
+                failure = getattr(self.orchestrator, "failure", None)
+                if state is not None and failure is not None:
+                    failure(name, state, ProcessingErrorCode.INTERNAL_ERROR,
+                            state.error.stage if state.error else ProcessingStage.PREPARATION,
+                            "Wiederaufnahme fehlgeschlagen; bitte Verbindung und Konfiguration prüfen.")
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
         return results
 

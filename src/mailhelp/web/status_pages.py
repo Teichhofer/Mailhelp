@@ -181,11 +181,15 @@ def _run_section(run: RunStatus, system: SystemStatus, zone: ZoneInfo) -> list[s
 def _error_section(system: SystemStatus, zone: ZoneInfo) -> list[str]:
     """The latest stored mail failures with their next automatic attempt."""
     parts: list[str] = []
-    parts.append("<h2>Letzte Fehler</h2>")
+    parts.append("<h2>Letzte Fehler und Handlungsbedarf</h2>")
     if system.errors:
         items = []
         for error in system.errors:
             retry = " · wird automatisch wiederholt" if error.retryable else ""
+            if error.attempts:
+                retry = (" · aufgegeben" if error.abandoned else " · wird erneut versucht")
+                retry += f" ({error.attempts} von 5 Versuchen)"
+                retry += f" · seit {_when(error.first_failed_at, zone)}"
             if error.next_attempt is not None:
                 retry += f" · nächster Versuch: {_when(error.next_attempt, zone)}"
             items.append(
@@ -224,6 +228,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     # An unreadable source must remain visible before any technical disclosure.
     parts.append(_imap_error_section(info, zone))
     parts.append(_verdict(overview, system, info))
+    parts.extend(_error_section(system, zone))
     parts.append(_status_links(overview, system, info))
     parts.append(f'<section class="card status-summary"><p>{e(_processed_sentence(system, zone))}</p>'
                  '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
@@ -272,8 +277,6 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                             + ([(system.already_done, "Schon erledigt")] if system.already_done else [])))
     else:
         parts.append('<p class="meta">Noch keine Vorschläge gespeichert.</p>')
-
-    parts.extend(_error_section(system, zone))
 
     parts.append("<h2>Telegram, Web und KI</h2>")
     if info.acceptance_latencies:

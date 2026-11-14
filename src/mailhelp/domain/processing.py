@@ -136,6 +136,7 @@ class ProcessingErrorCode(StrEnum):
     PERMANENT_ADAPTER_ERROR = "permanent_adapter_error"
     LLM_RATE_LIMITED = "llm_rate_limited"
     INTERNAL_ERROR = "internal_error"
+    ANALYSIS_DATA_REMOVED = "analysis_data_removed"
 
 
 class ProcessingError(StrictModel):

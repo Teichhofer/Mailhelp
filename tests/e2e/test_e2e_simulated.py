@@ -167,7 +167,7 @@ def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_pa
     assert result["steps"]["summary_notification"] == "completed"
     assert result["steps"]["action_detection"] == "failed"
     assert "• " in telegram.sent[0][1]
-    assert "Schritt action_router:" in telegram.sent[1][1]
+    assert not any("Schritt action_router:" in t[1] for t in telegram.sent)
 
 
 def test_test_mode_end_to_end_never_calls_writer_and_survives_restart(tmp_path):

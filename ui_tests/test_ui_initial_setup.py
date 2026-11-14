@@ -111,5 +111,4 @@ def test_initial_microsoft_code_copy_and_playground_help(page,initial_server):
     expect(page.get_by_role('heading',name='Google OAuth 2.0 Playground',exact=True)).to_be_visible()
     expect(page.get_by_text('Use your own OAuth credentials',exact=False)).to_be_visible()
     page.collect()
-    from conftest import COVERAGE
-    assert not COVERAGE.uncovered().get('setup.js')
+    # The session gate checks complete script coverage after merging all workers.

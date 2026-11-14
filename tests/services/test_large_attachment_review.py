@@ -95,7 +95,8 @@ def test_omitted_iserv_attachment_is_listed_and_uncertain_notification_is_not_re
         assert "Einladung.pdf" in proposal["description"]
         assert failed.state["proposal_notifications"][0]["status"] == "sending"
     with JsonStore(tmp_path) as store:
-        processor = Orchestrator(object(), store, notifier, 1, [], 100_000)
+        import time
+        processor = Orchestrator(object(), store, notifier, 1, [], 100_000, clock=lambda: time.time() + 65)
         resumed = processor.process(fetched)
         assert resumed.outcome == ProcessingOutcome.COMPLETED
         assert resumed.state["proposals"] == [proposal]

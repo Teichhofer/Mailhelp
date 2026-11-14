@@ -2,6 +2,27 @@
 
 Stand: Mailhelp 5.4.1.
 
+## Wiederkehrende Verarbeitungsfehler
+
+Mailhelp versucht dasselbe Fehlerbild je Mail höchstens fünfmal. Die Pausen zwischen
+den Versuchen betragen 1 Minute, 5 Minuten, 30 Minuten und 2 Stunden. Danach bleibt die
+Mail gespeichert und wird nicht weiter automatisch aufgenommen. Dauerhafte Fehler
+werden sofort aufgegeben. Anbieterlimits setzen nur ihre eigene Wartezeit.
+Der Status nennt Schritt, Beginn, Versuchszahl und nächsten Versuch. Telegram meldet
+das Aufgeben einmal, mit dem Link zur Mail bei aktivierter Weboberfläche.
+
+`logging.verbose: false` reduziert Routinezeilen: unveränderte Ordnerzahlen stündlich,
+ein Abschluss je Telegram-Abfrage, Webanfragen nur bei Fehler oder über einer Sekunde.
+Der erste Stacktrace bleibt vollständig, Wiederholungen erscheinen alle 15 Minuten
+mit Zähler. „Ausführliches Protokoll“ aktiviert Einzelmeldungen nach dem Neustart;
+vollständige LLM-Inhalte benötigen weiterhin ihre eigenen Schalter.
+Das synthetische Tageslimit beträgt 2 MB bei unveränderten Rotationsgrenzen.
+Die Nachmessung am echten Bestand erfolgt nach einer Woche Betrieb.
+
+Neue Zustände enthalten optionale Wiederholungsfelder. Beim Rückwechsel auf eine
+ältere Version müssen diese im aktuellen Zustand kompatibel entfernt werden.
+Eine alte Sicherung ersetzt niemals unbesehen später bestätigte Schreibresultate.
+
 ## Starten, prüfen, beenden
 
 | Befehl oder Seite | Wirkung |
@@ -38,6 +59,10 @@ Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das D
 `.env` enthält Zugangsdaten und gehört nicht in fremde Hände.
 
 ## Update
+
+Nach dem Installieren einer neuen Version den Dienst neu starten. Stylesheet und Skript werden
+beim Start eingelesen. Ab 6.3.2 verweist jede Seite mit einem Inhaltskürzel auf den passenden
+Stand beider Dateien, auch wenn ein älterer Service Worker den ersten Aufruf übernimmt.
 
 1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.
 2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).

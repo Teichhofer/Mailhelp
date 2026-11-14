@@ -99,7 +99,7 @@ class ArchiveQueries:
                                        or relevance.get("decision", "unknown"),
                           "topics": relevance.get("topic_ids", []),
                           "summary": summary_text,
-                          "failed": state.error is not None,
+                          "failed": state.error is not None and not state.processing_filed,
                           "waiting": state.awaiting_relevance,
                           "completed": state.steps.completion == "completed",
                           "statuses": [p.status.value for p in state.proposals],

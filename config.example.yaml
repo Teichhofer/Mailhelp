@@ -152,6 +152,8 @@ data_directory: data
 retention:
   full_mail_days: 30
   debug_llm_days: disabled
+  # 6.3.2: Sind benötigte Analyse-Ergebnisse entfernt, wird eine fehlgeschlagene
+  # Aktionserkennung abgeschlossener Mails einmalig beendet statt erneut nachgeholt.
   # Ab 1.2: kompakte Analyse (Relevanz, Begründung, Themen, Zusammenfassung) für die
   # Weboberfläche. Fehlt der Schlüssel, gilt wie bisher debug_llm_days. 30 bewusst setzen,
   # damit Analysen nach Abschluss eines Vorgangs 30 Tage sichtbar bleiben.
@@ -389,6 +391,9 @@ timeouts:
     initial_backoff_seconds: 2
     max_backoff_seconds: 10
 logging:
+  # Einzelne Routineanfragen und wiederholte Fehler zur Diagnose wieder einschalten.
+  # Vollständige LLM-Inhalte werden dadurch nicht aktiviert.
+  verbose: false
   directory: logs
   console:
     enabled: true

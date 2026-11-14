@@ -48,6 +48,8 @@ RULE_REASONS = {
 }
 
 ERROR_TEXTS = {
+    ProcessingErrorCode.ANALYSIS_DATA_REMOVED:
+        "Aktionserkennung nicht nachholbar – Analyse-Daten nach Aufbewahrung entfernt.",
     ProcessingErrorCode.MIME_LIMIT_EXCEEDED: "Die Mail überschreitet die Größen- oder Teilegrenze.",
     ProcessingErrorCode.LLM_SCHEMA_VALIDATION_EXHAUSTED: "Das Modell lieferte wiederholt keine gültige Antwort.",
     ProcessingErrorCode.PROVIDER_RESPONSE_INVALID: "Der Modellanbieter lieferte eine unbrauchbare Antwort.",

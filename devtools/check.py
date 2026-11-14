@@ -19,7 +19,8 @@ LATENCY_TESTS = ("tests/services/test_v42_load.py", "tests/services/test_v441_lo
 def commands(task: str, workers: str, tests: list[str] | None = None) -> list[list[str]]:
     tasks = {
         "tdd": [["pytest", *(tests or []), "--no-cov", "-q"]],
-        "fast": [["pytest", "-n", workers, "--dist", "worksteal", "-m", FAST, "--no-cov", "-q"]],
+        "fast": [["pytest", "-n", workers, "--dist", "worksteal", "-m", FAST, "--no-cov", "-q",
+                  *("--ignore=" + path for path in LATENCY_TESTS)]],
         "full": [["hatchling", "build"], ["pytest",
                                            *([] if workers == "auto" else ["-n", workers, "--dist", "loadgroup"]),
                                            "--cov=mailhelp", "--cov=devtools", "--cov-branch",

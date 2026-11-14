@@ -115,6 +115,10 @@ class ReviewService:
             return ReviewResult(status=status, message=_error_message(exc))
 
     def _record(self, command: ReviewCommand) -> None:
+        if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
+            from .processing_actions import apply
+            apply(self.controller.store, command)
+            return
         if command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
             return
         learning = getattr(self.controller, "learning", None)
@@ -174,6 +178,9 @@ class ReviewService:
 
     def _took_effect(self, command: ReviewCommand) -> bool:
         store = self.controller.store
+        if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
+            mail = store.load_model(state_names.mail(command.mail_id), MailState)
+            return mail is not None and mail.processing_operation == command.idempotency_key
         if command.kind == CommandKind.RECHECK_MAIL:
             mail = store.load_model(state_names.mail(command.mail_id), MailState)
             return isinstance(mail, MailState) and mail.analysis_round > command.version
@@ -267,7 +274,8 @@ class ReviewService:
             if revised.version != previous.version:
                 self.controller.send_proposal(revised)
             return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
-        handlers = {CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
+        handlers = {CommandKind.RETRY_MAIL: self._processing, CommandKind.FILE_MAIL: self._processing,
+                    CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
                     CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
                     CommandKind.CHOOSE_EVENT: self._choose_event, CommandKind.CHOOSE_VARIANT: self._choose_variant}
         return handlers.get(command.kind, self._decide)(command)
@@ -411,6 +419,13 @@ class ReviewService:
             return ReviewResult(status=ResultStatus.DONE, message=text or "")
         label = "relevant" if command.decision == "relevant" else "irrelevant"
         return ReviewResult(status=ResultStatus.DONE, message=f"Mail als {label} eingestuft.")
+
+    def _processing(self, command: ReviewCommand) -> ReviewResult:
+        from .processing_actions import apply
+        apply(self.controller.store, command)
+        return ReviewResult(status=ResultStatus.DONE, message=(
+            "Erneuter Versuch beim nächsten Abruf." if command.kind == CommandKind.RETRY_MAIL else
+            "Mail als nicht verarbeitet abgelegt; sie bleibt im Archiv."))
 
     def _recheck(self, command: ReviewCommand) -> ReviewResult:
         if self.recheck is None:

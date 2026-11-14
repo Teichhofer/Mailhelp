@@ -31,8 +31,9 @@ class HistoryEvent(BaseModel):
     proposal_id: str = Field(default="", pattern=r"^(?:[A-Za-z0-9_-]{1,64})?$")
     version: int = Field(ge=1)
     kind: str = Field(max_length=50)
-    status: ProposalStatus | Literal["relevant", "irrelevant"]
+    status: ProposalStatus | Literal["relevant", "irrelevant", "retrying", "not_processed"]
     source: Literal["system", "web", "telegram"]
+    actor: str | None = None
     at: AwareDatetime
 
 

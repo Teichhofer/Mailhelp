@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import time
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -92,6 +93,7 @@ class JsonlLogger:
         module_levels: Mapping[str, str] | None = None,
         secrets: tuple[str, ...] | list[str] | set[str] = (),
         *,
+        verbose: bool = False,
         file_enabled: bool = True,
         file_name: Path | str = "application.jsonl",
         file_format: str = "jsonl",
@@ -120,6 +122,9 @@ class JsonlLogger:
         # The Telegram receiver thread logs concurrently with the main thread;
         # rotation and appends must not interleave.
         self._lock = RLock()
+        from .log_reduction import LogReduction
+        self.reduction = LogReduction()
+        self.verbose = verbose
         self.app = directory / file_name
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
@@ -226,6 +231,12 @@ class JsonlLogger:
         write_console = self.console_enabled and LEVELS[level] >= LEVELS[self.console_level]
         if not write_file and not write_console:
             return
+        with self._lock:
+            selected = self.reduction.select(level, module, event, redact(context, self.secrets),
+                                             time.monotonic(), self.verbose)
+        if selected is None:
+            return
+        event, context = selected
         record = self._record(level, module, event, context)
         if write_file:
             self._write_file(self.app, record, self.file_format, self.file_policy)

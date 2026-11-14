@@ -1509,7 +1509,7 @@ def test_orchestrator(tmp_path):
         assert failed.outcome is ProcessingOutcome.FAILED and "error" in failed
         assert notify.messages == [
             "✉️ safe@example.test · Safe subject\n⚠️ Schritt preparation: "
-            "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
+            "Mail wird nicht weiter versucht. Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
         ]
         assert failed["id"] not in notify.messages[0]
         assert failed["mail"] is None and failed["display_headers"] == {
@@ -1637,7 +1637,8 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             with pytest.raises(RuntimeError,match="power loss"):
                 Orchestrator(first,InterruptingStore(disk,fail_at),notify,1,[topic],1000).process(mail)
             second=CountingAnalyzer()
-            result=Orchestrator(second,disk,notify,1,[topic],1000).process(mail)
+            import time
+            result=Orchestrator(second,disk,notify,1,[topic],1000,clock=lambda: time.time() + 65).process(mail)
             assert result["steps"]["completion"]=="completed"
             assert second.calls == [step for step in ("relevance", "summary", "action_router", "task_extraction") if step in second.calls]
             assert len(second.calls) == len(set(second.calls))
@@ -1695,9 +1696,11 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
         }
         assert partial["steps"]["completion"] == "completed"
         assert "• " in notify.messages[0]
-        assert "Schritt event_extraction:" in notify.messages[1]
+        assert not any("Schritt event_extraction:" in message for message in notify.messages)
 
         analyzer.fail_actions = False
+        import time
+        orchestrator.clock = lambda: time.time() + 65
         resumed = orchestrator.resume_mail(store.load_model("mail-" + partial["id"], MailState))
         assert resumed.outcome is ProcessingOutcome.COMPLETED
         assert analyzer.calls == ["relevance", "summary", "action_router", "events", "events"]
@@ -1705,7 +1708,7 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
         assert resumed["event_extraction"]["events"][0]["responsibility"] == "unclear"
         assert resumed["event_extraction"]["events"][0]["time_text"] is None
         assert len([message for message in notify.messages if "\n• " in message]) == 1
-        assert len([message for message in notify.messages if "Schritt event_extraction:" in message]) == 1
+        assert not any("Schritt event_extraction:" in message for message in notify.messages)
         assert resumed["error"] is None
 
 
@@ -1748,7 +1751,8 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
         assert partial["steps"]["event_extraction"] == "failed"
         assert stable_ids == ["r", "s", "router-id", "t"]
         analyzer.fail_event = False
-        resumed = orchestrator.process(fetched)
+        import time
+        resumed = Orchestrator(analyzer, store, notify, 1, [topic], 1000, clock=lambda: time.time() + 65).process(fetched)
     assert analyzer.calls == ["relevance-call", "summary-call", "router-call", "task-call",
                               "event-call", "event-call"]
     assert resumed["llm_call_ids"][:4] == stable_ids
@@ -1890,8 +1894,16 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
     mail=FetchedMail("INBOX",1,41,b"From: sender@example.test\nSubject: Classified\n\nPrivate body")
     notify=Notify()
     with JsonStore(tmp_path/code) as store:
+        import time
+        now = time.time()
         first=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
-        second=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
+        if retryable is not False:
+            assert len(notify.messages) == 0
+            for _ in range(4):
+                now += 7500
+                second=Orchestrator(Failing(),store,notify,1,[topic],1000,clock=lambda: now).process(mail)
+        else:
+            second=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
         assert first.outcome is second.outcome is ProcessingOutcome.FAILED
         assert first["error"]["code"] == code
         assert first["error"]["stage"] == "relevance"
@@ -1965,10 +1977,10 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
     assert second["error"]["occurred_at"] == first["error"]["occurred_at"]
     assert notify.messages == [
         "✉️ bounded@example.test · Visible safely\n⚠️ Schritt preparation: "
-        "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
+        "Mail wird nicht weiter versucht. Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
     ]
     exceeded = [kwargs for args, kwargs in log.events if args[2] == "mime_limit_exceeded"]
-    assert [event["limit"] for event in exceeded] == [limit_name, limit_name]
+    assert [event["limit"] for event in exceeded] == [limit_name]
 
 
 def test_http_writer_rejects_non_writable_proposal_before_request():

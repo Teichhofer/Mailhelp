@@ -46,7 +46,26 @@ class MailArchiveSite:
             return notice("Analyse beschädigt; bitte Protokolle prüfen.", "error")
         if state is None:
             return ""
-        return analysis_section(mail_id, state, record)
+        controls = ""
+        if state.processing_filed:
+            controls = notice("Nicht verarbeitet – bewusst abgelegt.", "info")
+        elif state.error is not None:
+            controls = '<p>Diese Mail hat einen Verarbeitungsfehler.</p>'
+        return controls + analysis_section(mail_id, state, record)
+
+    def analysis_actions(self, mail_id: str, csrf: str) -> str:
+        from ..review.commands import CommandKind
+        from .actions import _hidden
+        state = self.site.views.store.peek_model(state_names.mail(mail_id), MailState)
+        if state is None or state.error is None or state.processing_filed:
+            return ""
+        kinds = [(CommandKind.FILE_MAIL, "Ablegen")]
+        if not state.missing_analysis_steps:
+            kinds.insert(0, (CommandKind.RETRY_MAIL, "Erneut versuchen"))
+        return '<div class="actions">' + ''.join(
+            '<form method="post" action="/aktion">' + _hidden(csrf, kind, state.id, state.analysis_round)
+            + '<button type="submit" class="button">' + label + '</button></form>'
+            for kind, label in kinds) + '</div>'
 
     def processing_path(self, mail_id: str) -> str:
         """5.1.1: the stored processing path of a mail, explained without a model call."""

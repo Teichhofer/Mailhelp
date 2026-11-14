@@ -961,10 +961,62 @@
         "schema_validation_failed",
         "permanent_adapter_error",
         "llm_rate_limited",
-        "internal_error"
+        "internal_error",
+        "analysis_data_removed"
       ],
       "title": "ProcessingErrorCode",
       "type": "string"
+    },
+    "ProcessingRetry": {
+      "additionalProperties": false,
+      "properties": {
+        "abandoned": {
+          "default": false,
+          "title": "Abandoned",
+          "type": "boolean"
+        },
+        "attempts": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "fingerprint": {
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "first_failed_at": {
+          "format": "date-time",
+          "title": "First Failed At",
+          "type": "string"
+        },
+        "last_failed_at": {
+          "format": "date-time",
+          "title": "Last Failed At",
+          "type": "string"
+        },
+        "notification_marked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notification Marked At"
+        }
+      },
+      "required": [
+        "fingerprint",
+        "attempts",
+        "first_failed_at",
+        "last_failed_at"
+      ],
+      "title": "ProcessingRetry",
+      "type": "object"
     },
     "ProcessingStage": {
       "enum": [
@@ -2308,6 +2360,34 @@
       },
       "title": "Normalized Proposals",
       "type": "array"
+    },
+    "processing_filed": {
+      "default": false,
+      "title": "Processing Filed",
+      "type": "boolean"
+    },
+    "processing_operation": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Processing Operation"
+    },
+    "processing_retry": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProcessingRetry"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "proposal_notifications": {
       "items": {

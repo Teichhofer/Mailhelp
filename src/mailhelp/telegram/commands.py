@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from .. import state_names
-from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
+from ..models import AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
 from ..persistence.proposals import clarification_name, proposal_name
 from .formatting import clarification_prompt
 
@@ -84,6 +84,13 @@ class TelegramCommands:
             from ..review.views import count_processed, german_number
             count = count_processed(self.store)
             report.header = f"📊 Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet."
+            from ..storage import mail_state_names
+            abandoned = sum(bool(mail_state.processing_retry and mail_state.processing_retry.abandoned)
+                            for name in mail_state_names(self.store)
+                            if (mail_state := self.store.load_model(name, MailState)) is not None
+                            and not mail_state.processing_filed)
+            if abandoned:
+                report.lines.append(f"{abandoned} aufgegebene Mails – Handlungsbedarf im Webstatus.")
         profiles = self.presenter.profiles_status()
         if profiles:
             report.lines.append(profiles)

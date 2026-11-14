@@ -5,6 +5,7 @@ from __future__ import annotations
 from .pages import e
 
 SETTING_HELP = {
+    "logging.verbose": "Ausführliches Protokoll: alle Routineanfragen und wiederholten Fehler aufzeichnen. Standard aus; unveränderte Ordnerzahlen erscheinen einmal pro Stunde und wiederholte Fehler alle 15 Minuten. Vollständige KI-Inhalte bleiben separat zuschaltbar.",
     "briefings.enabled": "Aktiviert zeitgesteuerte Briefings als IMAP-Entwürfe, Standard aus. Kein SMTP-Versand. Das Aktivieren autorisiert nur die Entwurfsablage; Kalender- und Aufgabenaktionen erfordern weiterhin eine eigene versionsbezogene Bestätigung.",
     "briefings.times": "Eindeutige lokale Uhrzeiten im Format HH:MM, durch Komma, Semikolon oder Leerzeichen getrennt, etwa 07:00, 13:00, 18:00. Verwendet die konfigurierte Zeitzone. Aktiviert muss mindestens eine Uhrzeit angegeben sein.",
     "briefings.mailbox": "Zielpostfach für die Briefing-Entwürfe. default verwendet das erste aktive Postfach; alternativ eine aktive Postfachnummer. Das Briefing sammelt offene Entscheidungen aller Postfächer. Es wird nie an fremde Empfänger versendet.",

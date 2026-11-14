@@ -318,6 +318,23 @@ class Orchestrator:
         error = state.error
         if error is None or error.code != code or error.stage != stage:
             error = state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
+        from .retry import failed
+        failed(state, self.fingerprint_for(state.imap.account_id), now)
+        retry = state.processing_retry
+        if retry is not None and not retry.abandoned:
+            self.save(name, state)
+            return
+        if retry is not None:
+            if retry.notification_marked_at is not None:
+                self.save(name, state)
+                return
+            retry.notification_marked_at = now
+            text = "Mail wird nicht weiter versucht. " + text
+            settings = getattr(self, "mailbox_settings", None)
+            if settings is not None and settings.web.enabled:
+                from ..web.factory import base_url
+                text += "\n" + base_url(settings) + "/mail/" + state.id
+            error.notification_marked_at = None
         if error.notification_marked_at is not None:
             self.save(name, state)
             return
@@ -382,6 +399,8 @@ class Orchestrator:
             run.stage = ProcessingStage.COMPLETION
             run.state.steps.completion = "completed"
             run.state.error = None
+            from .retry import succeeded
+            succeeded(run.state)
             self.save(run.name, run.state)
             self.logger.event("INFO", "orchestrator", "processing_completed", mail_id=run.state.id,
                               duration_ms=round((time.perf_counter() - run.started) * 1000, 3))
@@ -443,7 +462,12 @@ class Orchestrator:
             self.logger.event("WARNING", "orchestrator", "configuration_changed", mail_id=state.id,
                               state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
-        if state.deferred_until is not None and state.deferred_until.timestamp() > self.clock():
+        retry = state.processing_retry
+        if retry is not None and retry.abandoned:
+            self.logger.event("WARNING", "orchestrator", "processing_abandoned", mail_id=state.id)
+            return ProcessingResult(ProcessingOutcome.FAILED, state.model_dump(mode="json"))
+        from .retry import blocked
+        if blocked(state, self.fingerprint_for(state.imap.account_id), datetime.fromtimestamp(self.clock(), UTC)):
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id,
                               deferred_until=state.deferred_until)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))

@@ -497,7 +497,30 @@ h2 { overflow-wrap: anywhere; }
 .undo-toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 90vw; padding: 12px 16px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-raised); }
 [hidden] { display: none !important; }
 .card { transition: opacity .2s ease, transform .2s ease; }
-.card.leaving { opacity: 0; transform: translateX(24px); pointer-events: none; }
+/* 6.3: swiping a card on phones and tablets (app.js). Below the moved card the backdrop says what
+   letting go does: light before the threshold, strong from it on, neutral with a lock if blocked. */
+@media (max-width: 1023px) {
+  .open-items.swipeable article.card { touch-action: pan-y pinch-zoom; }
+  .open-items.swipeable article.card a, .open-items.swipeable article.card img {
+    -webkit-user-drag: none; -webkit-touch-callout: none;
+  }
+}
+.swipe-card { position: relative; z-index: 1; }
+.swipe-card.swiping { transition: none; }
+.swipe-backdrop { position: absolute; z-index: 0; display: flex; align-items: flex-start; border-radius: var(--radius);
+  font-size: var(--text-m); font-weight: 600; line-height: 1.3; pointer-events: none; user-select: none; }
+.swipe-accept { justify-content: flex-start; background: var(--accent-soft); color: var(--accent); }
+.swipe-reject { justify-content: flex-end; background: var(--danger-soft); color: var(--danger); }
+.swipe-accept.swipe-armed { background: var(--accent); color: var(--accent-text); }
+.swipe-reject.swipe-armed { background: var(--danger); color: var(--accent-text); }
+.swipe-backdrop.swipe-blocked { background: var(--surface-2); color: var(--muted); }
+.swipe-label { position: sticky; top: var(--space-4); display: flex; gap: var(--space-2); padding: var(--space-4); }
+.swipe-reject .swipe-label { flex-direction: row-reverse; text-align: right; }
+.swipe-blocked .swipe-label { padding: var(--space-4) var(--space-1); }
+.swipe-symbol { flex: none; }
+.swipe-hint:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-4); padding: 10px 12px; border-radius: var(--radius-s); background: var(--accent-soft); }
+@media (min-width: 1024px) { .swipe-hint:not([hidden]) { display: none; } }
 .draft-box textarea { display: block; width: 100%; font: inherit; margin: 12px 0; }
 .draft-box .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .draft-box textarea[readonly] { opacity: .75; }

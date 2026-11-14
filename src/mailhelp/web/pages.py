@@ -8,9 +8,10 @@ adds the connection indicator and the automatic refresh.
 from __future__ import annotations
 
 import html
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextvars import ContextVar
 from datetime import datetime
+from types import MappingProxyType
 
 from ..formatting import format_datetime_local
 from .auth import WebSession
@@ -54,6 +55,7 @@ MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 
 # Open decisions of the current request, set once by the session guard (5.0.1).
 OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
+ASSET_URLS: ContextVar[Mapping[str, str]] = ContextVar("asset_urls", default=MappingProxyType({}))
 # 5.3.12: whether the current request shows the floating help chat button (settings pages).
 HELP_BUTTON: ContextVar[bool] = ContextVar("help_button", default=False)
 HELP_WINDOW: ContextVar[Callable[[], str] | None] = ContextVar("help_window", default=None)
@@ -145,14 +147,14 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#047857">
 {meta_refresh}<title>{e(title)} · Mailhelp</title>
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="{ASSET_URLS.get().get('app.css', '/static/app.css')}">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/static/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mailhelp">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<script src="/static/app.js" defer></script>
+<script src="{ASSET_URLS.get().get('app.js', '/static/app.js')}" defer></script>
 </head>
 <body class="{"app-shell" if signed_in else "guest-shell"}"{data}>
 <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>

@@ -109,6 +109,7 @@ EXTRA_LABELS = {
     "web.session_days": "Web: Sitzungsdauer (Tage)",
     "web.lan_access": "Web: Zugriff im eigenen Netzwerk",
     "logging.console.enabled": "Konsolenausgabe aktivieren",
+    "logging.verbose": "Ausführliches Protokoll",
     "logging.file.enabled": "Logdatei aktivieren",
     "logging.llm.enabled": "KI-Log aktivieren",
     "logging.llm.level": "KI-Log: Mindeststufe",

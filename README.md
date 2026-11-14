@@ -13,13 +13,30 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.2.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.4.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.4 begrenzt wiederkehrende Verarbeitungsfehler auf fünf Versuche. Der Status zeigt
+Versuche, Beginn und nächsten Zeitpunkt; fehlgeschlagene Mails lassen sich bewusst
+erneut versuchen oder im Archiv ablegen. Routinemeldungen und wiederholte Stacktraces
+werden zusammengefasst; „Ausführliches Protokoll“ schaltet die Einzelmeldungen wieder ein.
+
+6.3.2 beendet automatische Wiederaufnahmen abgeschlossener Mails, wenn ihre benötigten
+Analyse-Daten bereits entfernt wurden. Natürliche Daumenbewegungen werden zuverlässiger
+erkannt, Wischen kann auf Titeln und Schaltflächen beginnen. Inhaltskürzel verbinden jede
+Seite mit dem passenden Stylesheet und Skript. Der Gerätetest durch den Betreiber steht aus
+([Planung 6.3.2](docs/Planung-6.3.2.md)).
 
 Seit 6.2.5 bevorzugt der Telegram-Befehl `/web` die erste in `web.allowed_hosts` eingetragene
 Domain oder Subdomain per HTTPS vor IP-Adressen und LAN-Zugriff. Trage dort die
 Adresse deines HTTPS-Proxys ein und verwende sie durchgehend, damit der Browser
 seine bestehende Sitzung wiederverwenden kann. Ohne Domain bleibt der lokale
 beziehungsweise LAN-Zugriff verfügbar.
+
+Version 6.3 ist umgesetzt ([Planung 6.3](docs/Planung-6.3.md), [Release 6.3](docs/Release-6.3.md)): Ab 6.3.1
+entscheidest du auf Telefon und Tablet eine Karte in **Offen** auch per Wischgeste – nach rechts anlegen,
+nach links verwerfen. Unter der Karte steht, was das Loslassen auslöst; Karten mit offener Klärung lassen
+sich nicht nach rechts ziehen und nennen den Grund. Schaltflächen, Tastenkürzel und die Bedienung ohne
+JavaScript bleiben unverändert.
 
 Version 6.2 ist umgesetzt und abgenommen ([Planung 6.2](docs/Planung-6.2.md), [Release 6.2](docs/Release-6.2.md)): einheitlicher Aufbau aller
 Seiten, verständliche Bezeichnungen statt interner Werte, dichtere Listen und eine kompaktere Ansicht

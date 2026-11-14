@@ -1,5 +1,14 @@
 # Alltagsbedienung
 
+## Fehlgeschlagene Mails
+
+Die Statusseite zeigt unter „Handlungsbedarf und Wiederholungen“, welche Mail erneut
+versucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.
+„Erneut versuchen“ startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen
+Versuche zurück. „Ablegen“ beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.
+Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
+Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
+
 Stand: Mailhelp 5.3. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
 nachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.
 
@@ -21,7 +30,7 @@ Neuladen erhalten; „Zurücksetzen“ zeigt wieder alles. Die Leiste ändert nu
 
 | Schaltfläche | Wirkung |
 | --- | --- |
-| **Als Aufgabe anlegen** / **Im Kalender anlegen** | legt genau diese Version an; 5 Sekunden lang rückgängig zu machen |
+| **Als Aufgabe anlegen** / **Im Kalender anlegen** | legt genau diese Version sofort an (kein Rückgängig) |
 | **Verwerfen** | keine Anlage |
 | **Schon erledigt** | als erledigt vermerken, keine Anlage |
 | **Antwort senden** | beantwortet eine Rückfrage oder ändert Angaben („Titel: …“, „Ort: …“) |
@@ -46,6 +55,27 @@ In Telegram stehen ab 5.9.4 dieselben Werte in der Nachricht und als Schaltfläc
 Auf dem Telefon stehen oben nur die Schnellfilter; **Suchen und sortieren** klappt Suche,
 Sortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**, **Abgleich** und
 **Verlauf**; **Status** und die übrigen Bereiche liegen unter **Mehr**.
+
+### Wischen auf dem Telefon
+
+Ab 6.3 entscheidest du auf Telefon und Tablet auch mit dem Finger: Karte **nach rechts** ziehen
+legt an (bzw. „Relevant“), **nach links** verwirft (bzw. „Irrelevant“). Unter der Karte steht dabei
+genau die Schaltfläche, die ausgelöst würde, etwa „✓ Im Kalender anlegen“. Solange der Streifen hell
+ist, passiert beim Loslassen nichts; erst wenn er kräftig grün bzw. rot wird (bei etwa 40 % der
+Kartenbreite, kurzer Vibrationsimpuls), löst das Loslassen aus. Zurückziehen bricht ab. Danach
+steht die Karte wieder an ihrem Platz mit „Wird verarbeitet …“ und dem Ergebnis.
+
+Braucht ein Vorschlag erst eine Klärung (Rückfrage, Widerspruch, Vorschlagsabgleich,
+Dublettenprüfung, Terminwahl), lässt er sich nicht nach rechts ziehen: Ein Schloss erscheint, und
+ein Hinweis sagt, was zuerst zu tun ist. Verwerfen bleibt möglich. Hast du in ein Antwortfeld schon
+etwas geschrieben, ist Wischen gesperrt, bis du die Antwort sendest oder das Feld leerst.
+
+Ein Wisch kann auch auf Titeln, Links, Schaltflächen und Zusammenfassungen beginnen.
+Ein gewöhnlicher Tipp aktiviert sie. Nach einer erkannten Wischbewegung wird der folgende Klick
+abgefangen. Eingabefelder und seitlich scrollende Inhalte behalten ihre eigene Bedienung.
+Mit der Maus und auf breiten Bildschirmen (ab 1024 px)
+gibt es kein Wischen – dort gelten die Tastenkürzel. Ein Tipp unter der ersten Karte erklärt die
+Geste einmal; „Verstanden“ blendet ihn auf diesem Gerät aus.
 ## Nach dem Anlegen
 
 Mailhelp ruft jeden geschriebenen Eintrag frisch beim Anbieter ab:

@@ -104,7 +104,8 @@ class ReviewSite:
                          + (self.site.reanalysis_page.section(mail_id, csrf)
                             if self.site.reanalysis_page is not None else "")
                          + self.site.experience.editor(mail_id, csrf)
-                         + self.site.archive.mail_archive.analysis(mail_id))
+                         + self.site.archive.mail_archive.analysis(mail_id)
+                         + self.site.archive.mail_archive.analysis_actions(mail_id, csrf))
         return Response.html(200, page)
 
     def attachment(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:

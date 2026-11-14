@@ -13,6 +13,7 @@ from .prepared import PreparedMail
 from .processing import ProcessingError, ProcessingSteps, ProposalNotification, ValidationIssue, WriteAttemptReference
 from .proposal import Proposal
 from .relevance import Relevance, RelevanceDialog, RelevanceDialogStatus
+from .retry import ProcessingRetry
 
 
 class DisplayHeaders(StrictModel):
@@ -68,6 +69,9 @@ class MailState(StrictModel):
     relevance_dialog: RelevanceDialog | None = None
     error: ProcessingError | None = None
     deferred_until: datetime | None = None
+    processing_retry: ProcessingRetry | None = None
+    processing_filed: bool = False
+    processing_operation: str | None = None
     duplicate: DuplicateDecision | None = None
 
     @model_validator(mode="before")
@@ -82,6 +86,13 @@ class MailState(StrictModel):
             data = {**data, "updated_at": data.get("created_at") or datetime.now(UTC)}
             data.setdefault("created_at", data["updated_at"])
         return data
+
+    @property
+    def missing_analysis_steps(self) -> tuple[str, ...]:
+        """Completed prerequisites whose retained result is no longer available."""
+        return tuple(step for step, result in (
+            ("preparation", self.mail), ("relevance", self.relevance), ("summary", self.summary)
+        ) if getattr(self.steps, step) == "completed" and result is None)
 
     @property
     def prepared(self) -> PreparedMail | None:

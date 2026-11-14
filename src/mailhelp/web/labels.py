@@ -11,6 +11,7 @@ from ..review.commands import CommandKind
 from ..review.views import STATUS_LABELS, german_number
 
 STATUSES: dict[str, str] = {
+    "retrying": "Erneuter Versuch angefordert", "not_processed": "Nicht verarbeitet – abgelegt",
     **{str(status): label for status, label in STATUS_LABELS.items()},
     "relevant": "Als relevant eingestuft",
     "irrelevant": "Als irrelevant eingestuft",
@@ -22,6 +23,8 @@ EVENTS: dict[str, str] = {
     "edit": "Felder bearbeitet",
     "relevance": "Relevanz entschieden",
     "recheck": "Mail erneut geprüft",
+    "retry_mail": "Erneut versucht",
+    "file_mail": "Nicht verarbeitet – abgelegt",
     "legacy": "Altbestand",
     CommandKind.CONFIRM: "Bestätigt",
     CommandKind.CONFIRM_DUPLICATE: "Trotz möglicher Dublette bestätigt",
@@ -39,6 +42,8 @@ EVENTS: dict[str, str] = {
     CommandKind.RECHECK: "Vorschlag erneut geprüft",
     CommandKind.RETARGET: "Ziel geändert",
     CommandKind.RECHECK_MAIL: "Mail erneut geprüft",
+    CommandKind.RETRY_MAIL: "Erneut versucht",
+    CommandKind.FILE_MAIL: "Nicht verarbeitet – abgelegt",
     CommandKind.SERIES_ANSWER: "Terminserie beantwortet",
     CommandKind.SERIES_CONFIRM: "Terminserie bestätigt",
     CommandKind.CHOOSE_EVENT: "Kalendereintrag gewählt",

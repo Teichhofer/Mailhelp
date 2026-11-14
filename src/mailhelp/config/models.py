@@ -482,6 +482,7 @@ class TelegramLoggingSettings(RotatingLogSettings):
 
 
 class LoggingSettings(ConfigModel):
+    verbose: bool = False
     directory: Path
     console: ConsoleLoggingSettings
     file: RotatingLogSettings

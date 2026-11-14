@@ -121,6 +121,7 @@ SETTINGS_FIELDS.update({
     "learning.parallel_llm_calls",
     "learning.decision_llm_content",
     "logging.console.enabled",
+    "logging.verbose",
     "logging.file.enabled",
     "logging.llm.enabled",
     "logging.llm.level",

@@ -328,10 +328,18 @@ class MailhelpSite:
             response.headers["Location"] = location
             return response
         anchor = f"v-{command.mail_id}-{command.proposal_id}" if command.proposal_id else f"r-{command.mail_id}"
+        if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
+            return Response.redirect(location)
         return Response.redirect(f"/?aktion={entry.id}#{anchor}")
 
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
+        if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
+            from ..models import MailState
+            state = self.views.store.peek_model("mail-" + command.mail_id, MailState)
+            if state is None or state.analysis_round != command.version or state.processing_filed:
+                return "Die Mail wurde inzwischen geändert oder verarbeitet."
+            return None
         if command.kind == CommandKind.RECHECK_MAIL:
             return None
         if command.kind == CommandKind.RELEVANCE:
@@ -385,7 +393,8 @@ class MailhelpSite:
                 200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status))
                             + '<a href="/einstellungen">Zurück</a>')
             )
-        if entry.result is not None and command.kind == CommandKind.RECHECK_MAIL:
+        if entry.result is not None and command.kind in {CommandKind.RECHECK_MAIL, CommandKind.RETRY_MAIL,
+                                                        CommandKind.FILE_MAIL}:
             return Response.redirect(f"/mail/{command.mail_id}?ergebnis={entry.id}")
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)

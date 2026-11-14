@@ -249,6 +249,12 @@ def _proposal_items(views: tuple[ProposalView, ...], actions: Actions | None) ->
 
 Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
 
+# Not a .notice: it is no result message. app.js moves it below the first card it explains, so the first
+# decision stays in the upper 60 % of a phone window (6.2.8).
+SWIPE_HINT = ('<div class="swipe-hint" data-swipe-hint hidden>'
+              '<span>Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.</span>'
+              '<button class="button small" type="button" data-swipe-hint-close>Verstanden</button></div>')
+
 
 def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
@@ -284,6 +290,8 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
             items.append("<h2>Vorschläge</h2>")
             items.extend(_proposal_items(overview.open, actions))
     if items:
+        # 6.3: app.js shows the swipe tip once on touch screens; without JavaScript there is no gesture.
+        parts.append(SWIPE_HINT)
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
     if not overview.open and not overview.relevance and no_match is not None:

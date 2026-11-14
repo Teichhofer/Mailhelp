@@ -198,7 +198,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **234 Einstellungen**, davon **234** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **235 Einstellungen**, davon **235** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -317,6 +317,7 @@ Erzeugt mit `python -m devtools.inventory`: **234 Einstellungen**, davon **234**
 | `logging.telegram.level` | str | 'INFO' |  | Weboberfläche | ja |
 | `logging.telegram.max_bytes` | int | 10000000 | > 0 | Datei | ja |
 | `logging.telegram.retention_days` | int | 30 | > 0, ≤ 3650 | Datei | ja |
+| `logging.verbose` | bool | False |  | Weboberfläche | ja |
 | `metrics.electricity_eur_per_kwh` | float | 0.3 | ≥ 0, ≤ 100 | Weboberfläche | ja |
 | `metrics.enabled` | bool | True |  | Weboberfläche | ja |
 | `metrics.exchange_rate_date` | date (optional) | – |  | Weboberfläche | ja |
