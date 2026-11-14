@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.1.9 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.2.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 6.2 wird in Patches umgesetzt ([Planung 6.2](docs/Planung-6.2.md)): einheitlicher Aufbau aller
+Seiten, verständliche Bezeichnungen statt interner Werte, dichtere Listen und eine kompaktere Ansicht
+auf dem Handy. Ab 6.2.1 kommen Ecken, Schriftgrößen und Schatten aus gemeinsamen Gestaltungsvariablen.
 
 Version 6.1 ist umgesetzt und abgenommen ([Planung 6.1](docs/Planung-6.1.md), [Release 6.1](docs/Release-6.1.md)): Prüfen in jedem Schritt der
 Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.

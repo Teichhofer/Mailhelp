@@ -1,5 +1,14 @@
 # Änderungen
 
+## 6.2.1 – Gestaltungsregeln als Variablen
+
+- Weboberfläche: Ecken, Schriftgrößen, Schatten und Rahmenabstände kommen aus einer gemeinsamen Skala
+  von CSS-Variablen (`--radius-*`, `--text-*`, `--space-*`, `--shadow-*`); feste Werte in `app.css`
+  sind ersetzt. Das Aussehen ändert sich höchstens um wenige Pixel.
+- Ein Test scheitert, sobald `app.css` außerhalb der Variablen feste Farben, Ecken, Schriftgrößen oder
+  Schatten enthält.
+- Plan für Version 6.2 ([Planung 6.2](docs/Planung-6.2.md)): Bedienkonzept und Design vereinheitlichen.
+
 ## 6.1.9 – Abnahme 6.0 und 6.1
 
 - Abnahme von Version 6.0 (Planschritt 6.0.8) und 6.1: `docs/Release-6.0.md` mit der Messreihe der

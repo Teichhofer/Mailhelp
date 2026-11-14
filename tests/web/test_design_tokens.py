@@ -14,7 +14,8 @@ PAIRS = (('accent-text', 'accent'), ('accent', 'accent-soft'), ('text', 'accent-
          ('danger', 'danger-soft'), ('ok', 'ok-soft'), ('warn', 'warn-soft'),
          ('text', 'danger-soft'), ('text', 'ok-soft'), ('text', 'warn-soft'),
          ('sidebar-text', 'sidebar-bg'), ('sidebar-muted', 'sidebar-bg'),
-         ('sidebar-text', 'sidebar-hover'), ('sidebar-text', 'sidebar-active'))
+         ('sidebar-text', 'sidebar-hover'), ('sidebar-text', 'sidebar-active'),
+         ('sidebar-active-text', 'sidebar-active'))
 
 
 def tokens(block):
@@ -65,7 +66,7 @@ def test_the_dark_scheme_redefines_every_colour_except_focus():
 
 def test_colours_come_from_tokens_outside_the_token_blocks():
     rules = CSS[CSS.index('*, *::before'):]
-    assert re.findall(r'#[0-9a-fA-F]{6}\b', rules) == ['#ffffff']
+    assert re.findall(r'#[0-9a-fA-F]{6}\b', rules) == []
     for removed in ('#14372d', '#f4faf6', '#b8cfc5', '#dceadf', '#204d3d', '#27654d', '#557969'):
         assert removed not in CSS
 
