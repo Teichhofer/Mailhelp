@@ -17,7 +17,7 @@ from ..review.calendar_display import change_parts
 from ..review.cards import sender_name
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
 from .actions import conflict_boxes
-from .pages import e, layout, notice
+from .pages import e, layout, notice, page_head
 
 # Renders the action forms of a card (phase 6); None shows the card read-only.
 Actions = Callable[[ProposalView], str]
@@ -262,9 +262,9 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     under their own headings; *no_match* is shown when a search or filter leaves nothing.
     """
     count = count if count is not None else str(len(overview.open) + len(overview.relevance))
-    parts = [f'<div class="page-heading"><p class="eyebrow">Arbeitsübersicht</p>'
-             f'<h1>Offene Entscheidungen <span class="count">{count}</span></h1>'
-             '<p class="page-intro">Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen.</p></div>', before]
+    parts = [page_head("Offene Entscheidungen", "Arbeitsbereich",
+                       "Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen.",
+                       count=f' <span class="count">{e(count)}</span>'), before]
     if message:
         parts.append(notice(message, message_kind))
     if overview.damaged:

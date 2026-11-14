@@ -13,8 +13,9 @@ from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery
 from ..review.search import Hit
 from .actions import recheck_form
+from .filters import chips
 from .forms import field, select
-from .pages import e, notice
+from .pages import e, notice, page_head
 
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
                "local": "Betrieb mit Ollama", "decision_test": "Vergleichsläufe (Decision-Tests)"}
@@ -100,7 +101,8 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
                         "Bedeutung der unvollständigen Erfassung anzeigen"))
     rows = [(name, _Html(metric_link(metric, value, label, params))) for name, metric, value, label in figures]
     rows += _run_time_rows(params, steps)
-    body = ("<h1>Kosten und Zeiten</h1>" + form
+    body = (page_head("Auswertung", "Einblicke", "Kosten und Zeiten der KI-Aufrufe und Verarbeitungsschritte.")
+            + form
             + '<dl class="facts-table">'
             + "".join(f"<dt>{e(k)}</dt><dd>{v if isinstance(v, _Html) else e(v)}</dd>" for k, v in rows) + "</dl>"
             + '<p class="meta">Kosten in USD stammen aus den Angaben des Anbieters; fehlt eine Angabe, ist sie '
@@ -217,7 +219,9 @@ def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int,
     mailboxes = mailboxes or {}
     active = any((query.relevance, query.topic, query.state, query.status is not None, query.since, query.until,
                   query.sort != "received", query.postfach))
-    body = ('<h1>Mails</h1><form method="get" class="stack">'
+    body = (page_head("Mails", "Arbeitsbereich", "Von Mailhelp gespeicherte Mails durchsuchen.")
+            + chips("/mails", query.filter)
+            + '<form method="get" class="stack">'
             f'<label>Suche<input type="search" name="q" value="{e(query.q)}" maxlength="200" '
             'aria-describedby="suche-hinweis"></label>'
             '<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ in '
@@ -323,9 +327,9 @@ def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]]) -
 
 
 def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, params: dict[str, Any]) -> str:
-    from .filters import chips
-    body = chips("/verlauf", query.filter) + ('<h1>Verlauf</h1><form method="get" class="stack">'
-                                              + field("q", "Betreff, Absender oder Mail-ID", query.q))
+    body = (page_head("Verlauf", "Einblicke", "Was mit Vorschlägen und Mails geschehen ist.")
+            + chips("/verlauf", query.filter) + '<form method="get" class="stack">'
+            + field("q", "Betreff, Absender oder Mail-ID", query.q))
     body += (field("status", "Vorschlagsstatus", query.status or "") + field("kind", "Ereignisart", query.kind)
              + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind)
              + field("since", "Von", query.since or "") + field("until", "Bis", query.until or ""))

@@ -8,7 +8,7 @@ from ..activity.export import without_events
 from ..activity.models import ActivityReport, ReportEvent, ReportMail, ReportStatus
 from ..activity.presentation import ReportFilter, fingerprint, highlighted_text
 from .actions import new_key
-from .pages import e, layout, notice
+from .pages import e, layout, notice, page_head
 
 STATUS_LABELS = {
     ReportStatus.COUNTING: "Zählt die Mails des Zeitraums …", ReportStatus.READY: "Bereit – wartet auf den Start",
@@ -25,6 +25,9 @@ DISABLED = ("Tätigkeitsberichte sind ausgeschaltet. Sie werden mit activity_rep
             "und den Prompts activity_relevance und activity_events in prompts.yaml aktiviert.")
 
 
+INTRO = "Tätigkeitsberichte: Welche Termine gehörten im Zeitraum zu einem Thema?"
+
+
 def _hidden(csrf: str, version: int, **fields: str) -> str:
     values = {"csrf": csrf, "key": new_key(), "version": str(version), **fields}
     return "".join(f'<input type="hidden" name="{e(name)}" value="{e(value)}">' for name, value in values.items())
@@ -35,7 +38,8 @@ def _day(value: date) -> str:
 
 
 def disabled_page(*, decisions: str = "") -> str:
-    return layout("Berichte", f"<h1>Tätigkeitsberichte</h1>{notice(DISABLED)}{decisions}", active="/berichte")
+    return layout("Berichte", page_head("Berichte", "Einblicke", INTRO) + f"{notice(DISABLED)}{decisions}",
+                  active="/berichte")
 
 
 def list_page(reports: list[ActivityReport], *, decisions: str = "") -> str:
@@ -44,9 +48,9 @@ def list_page(reports: list[ActivityReport], *, decisions: str = "") -> str:
         f'<span class="meta">{_day(report.definition.since)} – {_day(report.definition.until)} · '
         f'{e(STATUS_LABELS[report.status])} · {report.processed} von {report.total} Mails</span></span></li>'
         for report in reports)
-    body = ('<h1>Tätigkeitsberichte</h1><p class="meta">Welche Termine gehörten im Zeitraum zu einem Thema? '
-            'Mailhelp liest das Postfach dafür nur, verändert nichts und legt nichts an.</p>'
-            '<p><a class="button primary" href="/berichte/neu">Neuer Bericht</a></p>'
+    body = (page_head("Berichte", "Einblicke", INTRO + " Mailhelp liest das Postfach dafür nur, verändert nichts "
+                      "und legt nichts an.")
+            + '<p><a class="button primary" href="/berichte/neu">Neuer Bericht</a></p>'
             + (f'<ul class="recent">{rows}</ul>' if rows else '<p class="meta">Noch keine Berichte.</p>'))
     return layout("Berichte", body + decisions, active="/berichte")
 

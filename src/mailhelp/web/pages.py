@@ -105,12 +105,24 @@ def _navigation(active: str | None) -> str:
             + f'<nav class="tab-bar" aria-label="Schnellnavigation">{tabs}{more}</nav>')
 
 
+def page_head(title: str, section: str, intro: str = "", *, count: str = "",
+              back: tuple[str, str] | None = None) -> str:
+    """6.2.2: the one page head – where (*section*), what (*title*), why (*intro*).
+
+    *count* is trusted markup shown after the title; tool rows and filters follow the head.
+    """
+    link = f'<p class="page-back"><a href="{e(back[0])}">← {e(back[1])}</a></p>' if back else ""
+    return (f'<div class="page-heading">{link}<p class="eyebrow">{e(section)}</p><h1>{e(title)}{count}</h1>'
+            + (f'<p class="page-intro">{e(intro)}</p>' if intro else "") + "</div>")
+
+
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
            refresh: int | None = None, fingerprint: str | None = None,
-           state_url: str | None = None, before: str = "", after: str = "") -> str:
+           state_url: str | None = None, before: str = "", after: str = "", wide: bool = False) -> str:
     """Page frame; *refresh* adds a no-JavaScript reload for pending commands.
 
-    *before* and *after* are further sections at the start and end of ``main``.
+    *before* and *after* are further sections at the start and end of ``main``; *wide* selects the
+    second of the two page widths (6.2.2) for tables and side-by-side comparisons.
     """
     navigation = ""
     if signed_in:
@@ -146,7 +158,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>
 {navigation}
 </header>
-<main id="inhalt">{before}
+<main id="inhalt"{' class="page-wide"' if wide else ""}>{before}
 {content}
 {after}</main>
 {widget or (_help_button() if signed_in and HELP_BUTTON.get() else "")}
@@ -237,7 +249,7 @@ gültig bis {e(_local(session.expires_at, configured_timezone))}</span></div>
 <button class="button danger small" type="submit">Abmelden</button>
 </form>
 </li>""")
-    content = f"""<h1>Gekoppelte Geräte</h1>
+    content = page_head("Geräte", "Verwaltung", "Browser, die mit Mailhelp gekoppelt sind.") + f"""
 {notice(message) if message else ""}
 <ul class="devices">{"".join(rows)}</ul>
 <form method="post" action="/geraete/alle-abmelden" class="stack" data-ends-session>
@@ -258,4 +270,4 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
 
 
 __all__ = ["HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout",
-           "login_page", "notice"]
+           "login_page", "notice", "page_head"]

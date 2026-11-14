@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from ..formatting import duration_text, format_datetime_local
 from ..review.inbox import CommandStatus
 from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
-from .pages import e, layout, notice
+from .pages import e, layout, notice, page_head
 
 RUN_LABELS = (
     ("discovered", "Gefunden"), ("queued", "In Warteschlange"), ("processing", "In Bearbeitung"),
@@ -200,7 +200,7 @@ def _error_section(system: SystemStatus, zone: ZoneInfo) -> list[str]:
 def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                 system: SystemStatus, info: ServiceInfo) -> str:
     zone = ZoneInfo(configured_timezone)
-    parts = ["<h1>Status</h1>"]
+    parts = [page_head("Status", "Einblicke", "Ob Mailhelp arbeitet und wo etwas zu tun ist.")]
     # An unreadable source must remain visible before any technical disclosure.
     parts.append(_imap_error_section(info, zone))
     issues = overview.damaged + system.mails_failed + len((info.runtime or {}).get("imap_errors", []))

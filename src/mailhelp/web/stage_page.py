@@ -12,7 +12,7 @@ from ..formatting import duration_text, format_datetime_local
 from ..review.views import STAGE_LABELS
 from ..runtime.stage_metrics import TOTAL
 from .calls_page import PAGE_SIZE, describe, filters
-from .pages import e
+from .pages import e, page_head
 
 STAGES = {stage.value for stage in ProcessingStage} | {TOTAL}
 SORTS = {"duration": "Dauer", "time": "Zeit"}
@@ -54,8 +54,8 @@ def stage_page(stage: str, params: dict[str, Any], sort: str, page: int, steps: 
     explanation = ("Zeit vom ersten bis zum letzten Schritt einer Mail ohne die Wartezeit auf Entscheidungen; "
                    "die Wartezeit steht daneben." if total else
                    "Dauer dieses Schritts je Mail; „davon KI“ ist die Zeit der KI-Aufrufe in diesem Schritt.")
-    body = (f'<p><a href="{e(back)}">← Zurück zur Auswertung</a></p><h1>{e(title(stage))}</h1>'
-            f'<p class="meta">{e(describe(params, labels))}</p>'
+    body = (page_head(title(stage), "Auswertung", back=(back, "Zurück zur Auswertung"))
+            + f'<p class="meta">{e(describe(params, labels))}</p>'
             f'<section class="card calls-explanation"><p>{e(explanation)}</p></section>'
             '<p class="calls-pages">Sortierung: ' + " · ".join(
                 (f"<strong>{label}</strong>" if key == sort else f'<a href="{e(_link(params, stage=stage, sort=key))}">'

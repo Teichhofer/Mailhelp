@@ -10,15 +10,16 @@ from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import display_date, event_time, shorten
 from ..review.views import STATUS_LABELS
 from .forms import post_form
-from .pages import e, notice
+from .pages import e, notice, page_head
 
-INTRO = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschläge und Quellen vergleichen. '
-         'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
+INTRO = ('<div class="setup-page">' + page_head(
+    "Vorschlagsabgleich", "Arbeitsbereich", "Lokale Vorschläge und Quellen vergleichen. Übernehmen legt nichts "
+    "extern an; eine neue Version muss separat bestätigt werden."))
 
 
-FOCUS_INTRO = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Nur dieser Vorschlag und die Vorschläge, '
-               'mit denen Mailhelp ihn verwechseln könnte. Übernehmen legt nichts extern an; eine neue Version '
-               'muss separat bestätigt werden.</p>')
+FOCUS_INTRO = ('<div class="setup-page">' + page_head(
+    "Vorschlagsabgleich", "Arbeitsbereich", "Nur dieser Vorschlag und die Vorschläge, mit denen Mailhelp ihn "
+    "verwechseln könnte. Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden."))
 ALL_LINK = '<p><a href="/abgleich">Alle Vorschläge im Abgleich anzeigen</a></p>'
 
 

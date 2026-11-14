@@ -10,7 +10,7 @@ import yaml
 from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig, read_yaml
 from ..configuration import AdminCommand, AdminKind
 from .http import Request, Response
-from .pages import e, layout
+from .pages import e, layout, page_head
 from .settings_search import normalize
 
 if TYPE_CHECKING:
@@ -68,7 +68,8 @@ class TopicSite:
             documents = self.documents()
         except (ValueError, KeyError, OSError, yaml.YAMLError):
             return self.site._reply(request, 400, "Themen oder Filter nicht lesbar; Angaben und Dateien prüfen.")
-        body = ('<div class="page-heading topic-heading"><h1>Themen</h1></div>'
+        body = ('<div class="topic-heading">'
+                + page_head("Themen", "Einstellungen", back=("/einstellungen", "Einstellungen")) + '</div>'
                 '<nav class="topic-tabs" aria-label="Themenarten">')
         for category, (_internal, _filename, title) in KINDS.items():
             href = "/themen?" + urlencode({"art": category, "suche": query, "status": status})
@@ -113,7 +114,7 @@ class TopicSite:
                  f'<p>{e(description)}</p></details>'
                  '<p><a href="/lernen/entscheidungen">Aus Entscheidungen lernen</a></p>'
                  '<script src="/static/topics.js" defer></script>')
-        return Response.html(200, layout("Themen", body, active="/einstellungen"))
+        return Response.html(200, layout("Themen", body, active="/einstellungen", wide=True))
 
     def row(self, kind: str, topic: Topic, pending: bool, hidden: bool) -> str:
         text = normalize(" ".join([topic.id, topic.name, topic.description, *topic.examples, *topic.exclusions]))

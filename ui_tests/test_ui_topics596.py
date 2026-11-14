@@ -37,8 +37,8 @@ def test_regression_topic_headers_and_edit_buttons_stay_whole(page, mailhelp, to
         for name in ("Thema", "Status", "Geltungsbereich", "Beschreibung"):
             assert page.locator("thead th", has_text=name).evaluate_all(LINES) == [1]
         main = page.locator("main").bounding_box()
-        assert main["width"] <= 1320 + 1
-        if width >= 1920:  # below, the sidebar leaves less room than 1320 px
+        assert main["width"] <= 1500 + 1  # 6.2.2: the wide page width
+        if width >= 1920:  # below, the sidebar leaves less room
             assert main["width"] >= 1300
         toolbar = page.locator(".topic-toolbar")
         new = toolbar.get_by_role("link", name="Neues Thema", exact=True)

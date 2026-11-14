@@ -1,13 +1,13 @@
 """Shared, script-free presentation of the learning area."""
 from __future__ import annotations
 
-from .pages import e
+from .pages import page_head
 
 
 def heading(title: str, introduction: str, *, back: bool = True) -> str:
-    return ('<div class="page-heading"><p class="eyebrow">Lernen</p>'
-            f'<h1>{e(title)}</h1><p>{e(introduction)}</p></div>'
-            + ('<p><a href="/lernen">Zur Lernübersicht</a></p>' if back else ""))
+    """Subpages name the learning area above the title; the overview names its navigation group."""
+    return page_head(title, "Lernen" if back else "Verwaltung", introduction,
+                     back=("/lernen", "Zur Lernübersicht") if back else None)
 
 
 def cost_hint() -> str:

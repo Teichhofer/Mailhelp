@@ -39,6 +39,8 @@ def count_text(accepted: int, rejected: int) -> str:
     return f"{accepted} zur Übernahme ausgewählt · {rejected} zum Verwerfen markiert."
 
 
+UNAVAILABLE = "Regeln aus den protokollierten Entscheidungen verbessern."
+
 class RuleLearningSite:
     def __init__(self, site: MailhelpSite):
         self.site = site
@@ -60,7 +62,8 @@ class RuleLearningSite:
     def render(self, session: WebSession, status: int = 200, message: str = "",
                values: dict[str, str] | None = None) -> Response:
         if self.service is None:
-            return Response.html(503, layout("Regellernen", notice("Regellernen ist nicht verfügbar.")))
+            return Response.html(503, layout("Regellernen", heading("Aus Entscheidungen lernen", UNAVAILABLE)
+                                             + notice("Regellernen ist nicht verfügbar."), active="/lernen"))
         state = self.service.state("web:" + session.id)
         if state.status == "review" and values is None:
             try:
@@ -98,7 +101,7 @@ class RuleLearningSite:
                 'Bereits bestätigte Übernahme ausdrücklich abschließen</label>'
                 '<button class="button" type="submit">Übernahme abschließen</button>'))
         content += self.rejected_list(session)
-        return Response.html(status, layout("Regellernen", content, active="/lernen",
+        return Response.html(status, layout("Regellernen", content, active="/lernen", wide=True,
                                             refresh=2 if state.status in {"queued", "running"} else None))
 
     def rejected_list(self, session: WebSession) -> str:

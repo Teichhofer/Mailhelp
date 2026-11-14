@@ -8,7 +8,7 @@ from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS
 from ..runtime.credentials import CredentialSnapshot
 from .credential_pages import credentials_section
 from .forms import field, post_form, select
-from .pages import e, notice
+from .pages import e, notice, page_head
 from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 from .settings_search import anchor, search
 
@@ -359,10 +359,9 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
                   push: str = "") -> str:
     """The overview, one area or search results; *area* is empty or one of :data:`AREA_KEYS`."""
     query = query.strip()
-    body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
-            '<p class="page-intro">Konten verbinden, allgemeine Regeln festlegen und gezielt je Postfach '
-            'anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.</p>'
-            '<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p></div>')
+    body = (page_head("Einstellungen", "Verwaltung", "Konten verbinden, allgemeine Regeln festlegen und gezielt "
+                      "je Postfach anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.")
+            + '<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p>')
     if query:
         content = _search(query) + _found(query, raw, active, revision, csrf)
     elif area == CREDENTIALS_AREA:

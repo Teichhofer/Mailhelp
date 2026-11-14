@@ -1,5 +1,18 @@
 # Änderungen
 
+## 6.2.2 – Einheitlicher Seitenkopf und zwei Seitenbreiten
+
+- Jede Kernseite beginnt mit demselben Seitenkopf: Bereich, Titel, eine Zeile Erklärung, bei
+  Unterseiten ein Link zurück. Schnellfilter stehen bei Mails und Verlauf jetzt unter der Überschrift.
+- Seitentitel gleich dem Navigationseintrag: „Auswertung“ (bisher „Kosten und Zeiten“), „Berichte“
+  (bisher „Tätigkeitsberichte“), „Geräte“ (bisher „Gekoppelte Geräte“).
+- Zwei Seitenbreiten statt einer je Seitenart: Standard 1100 px, breit 1500 px für Themenliste,
+  Regellernen und die geteilte Ansicht von „Offen“. Neben der Seitenleiste beginnen alle Seiten an
+  derselben linken Kante; beim Seitenwechsel springt der Inhalt nicht mehr seitlich.
+- Karten ohne eigenen Kopf beginnen ohne zusätzlichen Leerraum (Status, Abgleich, Berichte).
+- Behoben: „Aus Entscheidungen lernen“ hatte ohne verfügbare Lernfunktion keine Überschrift und keinen
+  Weg zurück.
+
 ## 6.2.1 – Gestaltungsregeln als Variablen
 
 - Weboberfläche: Ecken, Schriftgrößen, Schatten und Rahmenabstände kommen aus einer gemeinsamen Skala

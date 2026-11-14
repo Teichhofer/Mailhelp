@@ -28,7 +28,7 @@ def test_learning57_overview_opens_both_functions_without_a_paid_call(page, lear
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.get_by_role("link", name="Aus dem Postfach lernen öffnen", exact=True).click()
     expect(page.get_by_role("heading", name="Aus dem Postfach lernen", exact=True)).to_be_visible()
-    page.get_by_role("link", name="Zur Lernübersicht", exact=True).click()
+    page.get_by_role("link", name="← Zur Lernübersicht", exact=True).click()
     page.get_by_role("link", name="Aus Entscheidungen lernen öffnen", exact=True).click()
     expect(page.get_by_role("heading", name="Aus Entscheidungen lernen", exact=True)).to_be_visible()
     assert h.client.calls == [] and rules.analyzer.calls == []

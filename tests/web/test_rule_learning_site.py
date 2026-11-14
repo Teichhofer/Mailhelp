@@ -36,7 +36,10 @@ def test_routes_require_authentication_and_post_requires_csrf(page):
 
 
 def test_service_unavailable_and_initial_page_have_no_model_side_effects(web):
-    assert web.browser.request("GET", "/lernen/entscheidungen").status == 503
+    unavailable = web.browser.request("GET", "/lernen/entscheidungen")
+    # Regression 6.2.2: the page had no heading at all (no h1, no way back to the learning area).
+    assert unavailable.status == 503 and "<h1>Aus Entscheidungen lernen</h1>" in unavailable.body.decode()
+    assert 'aria-current="page"' in unavailable.body.decode() and "← Zur Lernübersicht" in unavailable.body.decode()
     assert web.browser.request("POST", "/lernen/entscheidungen", {
         "csrf": web.auth.csrf_token(web.auth.sessions()[0].id)}).status == 503
 

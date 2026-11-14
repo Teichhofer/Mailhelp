@@ -2924,6 +2924,19 @@ WCAG 2.1; ein automatischer Test berechnet die Werte aus der Datei. Farbe ist ni
 einzige Unterscheidungsmerkmal. `theme-color` in Seiten, Offline-Seite und Manifest
 entspricht der Akzentfarbe.
 
+Seit 6.2.1 kommen auch Ecken (`--radius-xs` bis `--radius-pill`), Schriftgrößen (`--text-2xs` bis
+`--text-3xl`), Schatten (`--shadow-*`) und Rahmenabstände (`--space-1` bis `--space-6`) aus Variablen;
+ein Test scheitert, wenn `app.css` außerhalb der Variablenblöcke feste Farben, Ecken, Schriftgrößen
+oder Schatten enthält.
+
+Seit 6.2.2 beginnt jede Kernseite mit demselben Seitenkopf (`page_head`): Bereich (Gruppe der
+Navigation oder übergeordnete Seite), Titel, eine Zeile Erklärung und bei Unterseiten ein Link
+zurück. Der Titel einer Seite der Hauptnavigation ist deren Eintrag (z. B. „Auswertung“,
+„Berichte“, „Geräte“); Schnellfilter stehen unter dem Kopf. Es gibt zwei Seitenbreiten: Standard
+1100 px und breit 1500 px (Themenliste, Regellernen, geteilte Ansicht von „Offen“). Neben der
+Seitenleiste beginnen alle Seiten an derselben linken Kante. Das erste Element einer Karte hat
+keinen zusätzlichen Abstand nach oben.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste

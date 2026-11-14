@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 
 from ..formatting import duration_text, format_datetime_local
 from ..review.views import STAGE_LABELS
-from .pages import e, notice
+from .pages import e, notice, page_head
 
 FILTER_KEYS = ("days", "mode", "model", "provider", "stage", "since", "until")
 SORTS = {"time": "Zeit", "duration": "Dauer", "cost": "Kosten"}
@@ -208,8 +208,8 @@ def calls_page(metric: str, params: dict[str, Any], sort: str, status: str | Non
             + "".join(f'<option value="{key}"{" selected" if key == sort else ""}>{text}</option>'
                       for key, text in SORTS.items())
             + '</select></label><button class="button">Anzeigen</button></form>')
-    body = (f'<p><a href="{e(back)}">← Zurück zur Auswertung</a></p><h1>{e(info.title)}</h1>'
-            f'<p class="meta">{e(describe(params, labels))}</p>'
+    body = (page_head(info.title, "Auswertung", back=(back, "Zurück zur Auswertung"))
+            + f'<p class="meta">{e(describe(params, labels))}</p>'
             + _explanation(metric, rows, report, settings))
     if int(params["days"]) > settings.retention_days or (
             params.get("since") and (datetime.now().date() - datetime.fromisoformat(params["since"]).date()).days

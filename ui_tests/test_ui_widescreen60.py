@@ -11,14 +11,13 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from checks import audit
+from checks import CORE_PAGES, audit
 from conftest import sign_in
 from mailhelp.web.pages import NAVIGATION
 from tests.fakes.rule_learning import RuleHarness, record
 
 WIDE = {"qhd": {"width": 2560, "height": 1440}, "full_hd": {"width": 1920, "height": 1080}}
-PAGES = ("/", "/mails", "/abgleich", "/verlauf", "/berichte", "/auswertung", "/auswertung/aufrufe", "/status",
-         "/einstellungen", "/themen", "/lernen", "/lernen/entscheidungen", "/geraete")
+PAGES = CORE_PAGES
 
 # Words in headers, badges and buttons must never be split over lines (counted on the text itself).
 SPLIT_WORDS = """() => Array.from(document.querySelectorAll(

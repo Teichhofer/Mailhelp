@@ -60,7 +60,7 @@ def test_regression_bisher_and_keine_are_not_broken_into_letters(page, mailhelp,
     else:
         assert right["y"] > left["y"] + left["height"] - 1  # stacked inside a narrow card
     if width == 2560:
-        assert card["width"] >= 1400 and page.locator("main").bounding_box()["width"] <= 1600 + 1
+        assert card["width"] >= 1400 and page.locator("main").bounding_box()["width"] <= 1500 + 1
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     assert audit(page, f"rule-layout60-{width}", False) == []
 
