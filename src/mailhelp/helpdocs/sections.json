@@ -826,7 +826,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Ersteinrichtung.md",
-  "text": "1. `http://localhost:8765/anmelden` öffnen und mit dem Web-Passwort anmelden. Weitere Geräte\n   koppelst du mit **Code per Telegram senden** (bei aktivem Telegram) oder einem neuen\n   Terminal-Code.\n2. **Einstellungen → Diagnose** öffnen: Die Prüfungen lesen nur und ändern nichts.\n3. Unter **Status** siehst du den letzten Kontakt je Dienst; das Postfach erscheint nach dem\n   ersten Mailabruf.",
+  "text": "1. `http://localhost:8765/anmelden` öffnen und mit dem Web-Passwort anmelden. Weitere Geräte\n   koppelst du mit **Code per Telegram senden** (bei aktivem Telegram) oder einem neuen\n   Terminal-Code.\n2. **Einstellungen → Verbindungen prüfen** öffnen: Die Prüfungen lesen nur und ändern nichts.\n3. Unter **Status** siehst du den letzten Kontakt je Dienst; das Postfach erscheint nach dem\n   ersten Mailabruf.",
   "title": "5. Anmelden und Verbindungen prüfen"
  },
  {
@@ -1237,7 +1237,7 @@
    "logging.directory"
   ],
   "source": "docs/Fehlerbehebung.md",
-  "text": "**Einstellungen → Diagnose** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und\nHandlungsempfehlung; die Kachel **Lesender Selbsttest** unter Einstellungen prüft alle Komponenten. Der Diagnosebericht\nenthält keine Zugangsdaten. Protokolle stehen im Protokollverzeichnis (`logging.directory`);\nInhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.",
+  "text": "**Einstellungen → Verbindungen prüfen** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und\nHandlungsempfehlung; **Alles auf einmal prüfen (Selbsttest)** auf derselben Seite prüft alle Komponenten. Der Diagnosebericht\nenthält keine Zugangsdaten. Protokolle stehen im Protokollverzeichnis (`logging.directory`);\nInhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.",
   "title": "Diagnose"
  },
  {

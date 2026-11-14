@@ -88,7 +88,7 @@ Zugangsdaten stehen nur in `.env`.
 1. `http://localhost:8765/anmelden` öffnen und mit dem Web-Passwort anmelden. Weitere Geräte
    koppelst du mit **Code per Telegram senden** (bei aktivem Telegram) oder einem neuen
    Terminal-Code.
-2. **Einstellungen → Diagnose** öffnen: Die Prüfungen lesen nur und ändern nichts.
+2. **Einstellungen → Verbindungen prüfen** öffnen: Die Prüfungen lesen nur und ändern nichts.
 3. Unter **Status** siehst du den letzten Kontakt je Dienst; das Postfach erscheint nach dem
    ersten Mailabruf.
 

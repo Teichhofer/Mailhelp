@@ -98,7 +98,7 @@ Anmeldedaten des Elternkontos.
 1. **Einstellungen → IServ-Konten**: Adresse, Anzeigename und das Postfach eintragen, dessen
    Zielprofil gelten soll; „IServ-Konto als Entwurf hinzufügen“.
 2. **Einstellungen → Zugangsdaten**: `ISERV_<n>_USERNAME` und `ISERV_<n>_PASSWORD` eintragen.
-3. **Diagnose → iserv** starten. „bereit“ bestätigt Anmeldung und Briefübersicht; ein
+3. **Verbindungen prüfen → iserv** starten. „bereit“ bestätigt Anmeldung und Briefübersicht; ein
    Zugangsdatenproblem bedeutet falsche Anmeldedaten oder einen zweiten Anmeldeschritt, den
    Mailhelp noch nicht unterstützt.
 4. Den Entwurf übernehmen und Mailhelp neu starten.

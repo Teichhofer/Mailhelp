@@ -35,8 +35,8 @@ gleicht sie zuerst mit dem Anbieter ab.
 
 ## Diagnose
 
-**Einstellungen → Diagnose** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und
-Handlungsempfehlung; die Kachel **Lesender Selbsttest** unter Einstellungen prüft alle Komponenten. Der Diagnosebericht
+**Einstellungen → Verbindungen prüfen** prüft jede Verbindung nur lesend und nennt je Dienst Ergebnis und
+Handlungsempfehlung; **Alles auf einmal prüfen (Selbsttest)** auf derselben Seite prüft alle Komponenten. Der Diagnosebericht
 enthält keine Zugangsdaten. Protokolle stehen im Protokollverzeichnis (`logging.directory`);
 Inhalte von KI-Anfragen nur, wenn sie ausdrücklich eingeschaltet sind.
 

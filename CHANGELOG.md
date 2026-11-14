@@ -1,5 +1,13 @@
 # Änderungen
 
+## 6.2.9 – Einstellungen ohne Doppelungen, Status mit klarer Kopfzeile
+
+- Einstellungen: 18 statt 22 Kacheln. „Verbindungen prüfen“ ersetzt „Diagnose“ und „Lesender Selbsttest“
+  (die Seite verlinkt den Selbsttest); Benachrichtigungsprofil und Zustellhistorie sind im Bereich
+  „Benachrichtigungen“ verlinkt; „Geräte“ steht nur noch in der Hauptnavigation. Alle Adressen bleiben gültig.
+- Status: Unter dem Kopf steht zuerst „Alles in Ordnung“ oder „Handlungsbedarf“ mit Links zu den Mails mit
+  Fehler und den IMAP-Abruffehlern; beschädigte Datensätze werden dort genannt. Danach folgen die Kennzahlen.
+
 ## 6.2.8 – „Offen“ auf dem Telefon
 
 - Unter 900 px stehen nur die Schnellfilter in einer seitlich scrollbaren Zeile; Suche, Sortierung und

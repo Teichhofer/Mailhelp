@@ -117,7 +117,7 @@ def _imap_error_section(info: ServiceInfo, zone: ZoneInfo) -> str:
         when = _when(datetime.fromisoformat(error["occurred_at"]), zone)
         items.append(f'<li><strong>{e(label)}</strong><br><span class="meta">'
                      f'{e(error["cause"])} · {e(when)}</span></li>')
-    return ("<h2>Aktuelle IMAP-Abruffehler</h2>"
+    return ('<h2 id="imap-fehler">Aktuelle IMAP-Abruffehler</h2>'
             + notice("Mindestens ein Mailordner konnte nicht gelesen werden. "
                      "Der letzte Durchlauf kann deshalb unvollständig sein.", "error")
             + '<ul class="recent">' + "".join(items) + "</ul>")
@@ -198,26 +198,38 @@ def _error_section(system: SystemStatus, zone: ZoneInfo) -> list[str]:
     return parts
 
 
+def _verdict(overview: Overview, system: SystemStatus, info: ServiceInfo) -> str:
+    """6.2.9 (UI-08): one line on top – everything fine, or what needs attention with a way to it."""
+    problems = []
+    if system.mails_failed:
+        failed = count_text(system.mails_failed, "Mail mit Fehler", "Mails mit Fehler")
+        problems.append(f'<a href="/mails?state=failed">{failed}</a>')
+    imap = len((info.runtime or {}).get("imap_errors", []))
+    if imap:
+        problems.append(f'<a href="#imap-fehler">{count_text(imap, "Abruffehler", "Abruffehler")}</a>')
+    if overview.damaged:
+        problems.append(e(count_text(overview.damaged, "beschädigter Datensatz", "beschädigte Datensätze"))
+                        + " – bitte Protokolle prüfen")
+    if not problems:
+        return ('<p class="notice notice-ok status-verdict" role="status"><strong>Alles in Ordnung.</strong> '
+                "Keine Mailfehler, keine Abruffehler und keine beschädigten Datensätze.</p>")
+    kind = "error" if overview.damaged else "warn"
+    return (f'<p class="notice notice-{kind} status-verdict" role="alert"><strong>Handlungsbedarf:</strong> '
+            + " · ".join(problems) + "</p>")
+
 def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                 system: SystemStatus, info: ServiceInfo) -> str:
     zone = ZoneInfo(configured_timezone)
     parts = [page_head("Status", "Einblicke", "Ob Mailhelp arbeitet und wo etwas zu tun ist.")]
     # An unreadable source must remain visible before any technical disclosure.
     parts.append(_imap_error_section(info, zone))
-    issues = overview.damaged + system.mails_failed + len((info.runtime or {}).get("imap_errors", []))
-    title = "Handlungsbedarf" if issues else "Keine gespeicherten Mailfehler oder beschädigten Datensätze"
-    parts.append(f'<section class="card status-summary"><h2>{title}</h2>'
-                 f'<p>{count_text(len(overview.open), "offener Vorschlag", "offene Vorschläge")} · '
-                 f'{count_text(len(overview.relevance), "Relevanzfrage", "Relevanzfragen")}.</p>'
-                 f'<p>{e(_processed_sentence(system, zone))}</p>'
-                 '<p>„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
-                 'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p>'
-                 '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
-                 '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p></section>')
-    if overview.damaged:
-        parts.append(notice(count_text(overview.damaged, "beschädigter Datensatz", "beschädigte Datensätze")
-                            + " – bitte Protokolle prüfen.", "error"))
+    parts.append(_verdict(overview, system, info))
     parts.append(_status_links(overview, system, info))
+    parts.append(f'<section class="card status-summary"><p>{e(_processed_sentence(system, zone))}</p>'
+                 '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
+                 '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p>'
+                 '<p class="meta">„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
+                 'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p></section>')
 
     parts.append('<details class="status-details"><summary>Betriebsdetails und Zähler anzeigen</summary>')
     parts.append("<h2>Mailhelp</h2>")

@@ -120,7 +120,7 @@ class SetupSite:
                 '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
                 '<a class="button" href="/einstellungen/zugangsdaten">Zugangsdaten</a> '
                 '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
-                '<a class="button" href="/diagnose">Diagnose</a> '
+                '<a class="button" href="/diagnose">Verbindungen prüfen</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
                 '<a class="button" href="/benachrichtigungen">Zustellhistorie</a></p>')
 
@@ -274,8 +274,9 @@ class SetupSite:
         service = self.runtime.diagnostics
         self.runtime.update_profile_checks()
         state = service.state()
-        body = '<h1>Diagnose</h1>' + self.links() + '<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten '
+        body = '<h1>Verbindungen prüfen</h1>' + self.links() + '<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten '
         body += 'werden nicht angezeigt. Kalender, Todoist und IMAP werden ausschließlich gelesen.</p>'
+        body += ('<p><a class="button" href="/dienst/selbsttest">Alles auf einmal prüfen (Selbsttest)</a></p>')
         for name in service.checks:
             result = state.results.get(name, DiagnosticResult())
             if result.checked_at is not None and result.config_revision != self.runtime.setup.fingerprint():
@@ -289,7 +290,7 @@ class SetupSite:
             body += post_form("/diagnose/pruefen", self.site.auth.csrf_token(session.id), "", label,
                               name=name, version=state.version) + '</section>'
         body += '<p><a href="/diagnose/bericht">Bereinigten Diagnosebericht herunterladen</a></p>'
-        return Response.html(200, layout("Diagnose", '<div class="setup-page">' + body + '</div>'))
+        return Response.html(200, layout("Verbindungen prüfen", '<div class="setup-page">' + body + '</div>'))
 
     def check(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:

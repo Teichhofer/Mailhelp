@@ -2975,6 +2975,14 @@ auf Telefonen beim Laden zu, außer wenn etwas gesetzt ist; die Zusammenfassung 
 Ohne JavaScript bleibt er offen; ab 900 px ist er immer offen und die Zusammenfassung ausgeblendet.
 Bei 390 × 844 und 320 × 640 beginnt die erste Entscheidung in den oberen 60 % des Fensters.
 
+Seit 6.2.9 hat die Einstellungsübersicht 18 statt 22 Kacheln ohne Überschneidungen: „Verbindungen
+prüfen“ (`/diagnose`, mit Link zum Selbsttest) ersetzt „Diagnose“ und „Lesender Selbsttest“;
+Benachrichtigungsprofil und Zustellhistorie sind aus dem Bereich „Benachrichtigungen“ verlinkt; „Geräte“
+steht nur noch in der Hauptnavigation. Alle Seiten behalten ihre Adresse. Die Statusseite beginnt unter
+dem Kopf mit einer Zeile „Alles in Ordnung“ oder „Handlungsbedarf“ mit Links zu Mails mit Fehler und
+IMAP-Abruffehlern; beschädigte Datensätze sind dort genannt. Danach folgen die vier Kennzahlen, dann
+Verarbeitungsstand und Hinweis zu „Verbunden“.
+
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
 Einträge ihren Namen für Screenreader behalten. Ab 1200 Pixeln lässt sich die Seitenleiste

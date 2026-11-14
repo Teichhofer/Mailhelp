@@ -285,7 +285,8 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
         + _tile("/einstellungen/zielprofile", "Zielprofile", "Kalender und Aufgabenlisten je Postfach")
         + _tile(f"/einstellungen?bereich={CREDENTIALS_AREA}", "Zugangsdaten", "Passwörter und API-Schlüssel")
         + _tile("/einrichtung", "Einrichtung", "Verbindungen Schritt für Schritt einrichten")
-        + _tile("/diagnose", "Diagnose", "Zugriffe lesend prüfen")))
+        # 6.2.9: one entry for every read-only check (diagnosis per service and the whole self-test).
+        + _tile("/diagnose", "Verbindungen prüfen", "Lesend prüfen: einzelne Dienste oder alles auf einmal")))
     tiles = ""
     for key, title, text, groups in AREAS:
         names = [name for group in groups for name in _names(group)]
@@ -294,16 +295,13 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
                  if changed else "")
         tiles += _tile(f"/einstellungen?bereich={key}", title, text, badge)
     body += _tiles("Allgemeine Einstellungen", tiles)
-    body += _tiles("Inhalte und Benachrichtigungen", (
+    # 6.2.9: profile and delivery history are part of "Benachrichtigungen"; devices are in the main navigation.
+    body += _tiles("Inhalte", (
         _tile("/themen", "Themen", "Relevante und irrelevante Themen")
-        + _tile("/einstellungen/ignorierte-absender", "Ignorierte Absender", "Absender und Domains ausblenden")
-        + _tile("/einstellungen/benachrichtigungen", "Benachrichtigungsprofil", "Ruhezeiten und Kanäle")
-        + _tile("/benachrichtigungen", "Zustellhistorie", "Gesendete Benachrichtigungen")))
+        + _tile("/einstellungen/ignorierte-absender", "Ignorierte Absender", "Absender und Domains ausblenden")))
     body += _tiles("System", (
-        _tile("/geraete", "Geräte", "Angemeldete Browser verwalten")
-        + _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
+        _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
         + _tile("/dienst/neu-laden", "Konfiguration neu laden", "Verbindungen ohne Prozessneustart wechseln")
-        + _tile("/dienst/selbsttest", "Lesender Selbsttest", "Alle Komponenten und Handlungsempfehlungen")
         + _tile("/einstellungen/beenden", "Mailhelp beenden", "Dienst kontrolliert anhalten", kind="danger")))
     return body
 
@@ -313,7 +311,9 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
     title, text, groups = next((title, text, groups) for name, title, text, groups in AREAS if name == key)
     body = f'<div class="area-heading"><h2>{e(title)}</h2><p class="meta">{e(text)}</p></div>'
     if key == "benachrichtigungen":
-        body += push
+        body += ('<p class="settings-shortcuts"><a class="button small" href="/einstellungen/benachrichtigungen">'
+                 'Benachrichtigungsprofil: Ruhezeiten und Kanäle</a> <a class="button small" '
+                 'href="/benachrichtigungen">Zustellhistorie</a></p>' + push)
     elif key == "ki":
         body += ('<section class="settings-section"><div class="setting-row"><h2>Modelle (nur lesend)</h2>'
                  + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>" + _models_table(models)

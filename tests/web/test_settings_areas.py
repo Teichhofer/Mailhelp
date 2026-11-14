@@ -12,7 +12,7 @@ from tests.fakes.shared_web_v12 import configure
 def test_overview_links_counts_and_pending_badges(profiled):
     ctx = profiled
     page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
-    for title in ("Konten und Verbindungen", "Allgemeine Einstellungen", "Inhalte und Benachrichtigungen", "System"):
+    for title in ("Konten und Verbindungen", "Allgemeine Einstellungen", "Inhalte", "System"):
         assert f"<h2>{title}</h2>" in page
     assert "2 eingerichtet" in page and "0 eingerichtet" in page
     assert 'name="suche"' in page and "/einstellungen/speichern" not in page

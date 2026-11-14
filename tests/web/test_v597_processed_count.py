@@ -51,8 +51,8 @@ def test_status_page_and_telegram_status_show_the_count(web):
     html = web.browser.request("GET", "/status").body.decode()
     assert "<dt>Verarbeitet (abgeschlossen)</dt><dd>4</dd>" in html
     assert "Bisher 4 Mails verarbeitet, zuletzt am" in html
-    # The open work stays first in the summary.
-    assert html.index("offene Vorschläge") < html.index("Bisher 4 Mails verarbeitet")
+    # The open work stays first (6.2.9: as the figure "Offene Vorschläge" above the summary).
+    assert html.index("Offene Vorschläge") < html.index("Bisher 4 Mails verarbeitet")
     web.telegram.updates = [message(1, "/status")]
     web.run()
     assert web.telegram.sent[-1][1].startswith("📊 Bisher 4 Mails verarbeitet.\n")

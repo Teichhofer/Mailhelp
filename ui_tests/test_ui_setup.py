@@ -69,7 +69,7 @@ def test_profile_switch_card_stays_unconfirmed_and_visible_on_small_phones(page,
 
 def test_setup_pages_are_accessible_and_touch_controls_have_48_pixels(page, setup_server):
     sign_in(page, setup_server)
-    for path, title in (("/einrichtung", "Einrichtung"), ("/diagnose", "Diagnose"),
+    for path, title in (("/einrichtung", "Einrichtung"), ("/diagnose", "Verbindungen prüfen"),
                         ("/einstellungen/benachrichtigungen", "Benachrichtigungsprofil"),
                         ("/benachrichtigungen", "Zustellhistorie")):
         page.goto(setup_server.url + path)
@@ -100,7 +100,7 @@ def test_no_javascript_setup_and_diagnosis_remain_operable(browser, setup_server
         sign_in(page, setup_server)
         page.goto(setup_server.url + "/diagnose")
         page.get_by_role("button", name="llm prüfen", exact=True).click()
-        expect(page.get_by_role("heading", name="Diagnose", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name="Verbindungen prüfen", exact=True)).to_be_visible()
         result = page.locator("section").filter(has=page.get_by_role("heading", name="llm", exact=True))
         expect(result).to_contain_text("bereit")
         page.goto(setup_server.url + "/einrichtung")

@@ -158,6 +158,9 @@ UI-11 (Abstände im Themeneditor) und UI-12 (Fachbegriffe bei Zuordnen/Verwerfen
 
 - Kacheln nach E4 zusammenlegen; Weiterleitungen für alte Adressen; Einstellungssuche und Hilfeindex
   finden die neuen Orte.
+  Umgesetzt (6.2.9): 18 statt rund 14 Kacheln; „Einrichtung“, „Konfiguration neu laden“ und die zwei
+  Inhaltskacheln haben eigene Zwecke und blieben. Da keine Seite ihre Adresse verliert, sind keine
+  Weiterleitungen nötig.
 - **Status:** oben eine Zeile „Alles in Ordnung“ oder der konkrete Handlungsbedarf mit Link; darunter
   die vier Kennzahlen; der Hinweis zu „Verbunden“ wandert in eine Erklärung am Verbindungszeichen.
 - Themeneditor und Einstellungsformulare übernehmen die Abstände aus 3.1.
