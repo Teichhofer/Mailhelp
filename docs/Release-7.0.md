@@ -264,3 +264,25 @@ den neuen Modulnamen.
 
 Prüfung: 5 334 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests. Nebenbei
 entfernte ruff einen ungenutzten Import in `web/proposal_evaluation_site.py` (Befund seit 6.5).
+
+## 7.0.10 – Konfigurationsmodelle geteilt, Grenzwerte als Test (D9, Teil 1)
+
+**`config/models.py`** (1 119 Zeilen) ist nach Bereichen geteilt: `base` (gemeinsame Basisklasse),
+`mail_settings` (Postfächer, IServ), `target_settings` (Ziele, Zielprofile, Termin-Vorgaben),
+`runtime_settings` (Telegram, Grenzen, Zeitlimits, Protokolle, Aufbewahrung, Web und weitere Dienste),
+`topics` und `prompts`. In `models.py` bleiben `Settings`, `ImapCredentials` und `Secrets` (181 Zeilen).
+`mailhelp.config` exportiert dieselben Namen wie vorher; `loader.py`, `setup_checks.py` und vier Tests
+importieren aus dem neuen Modul. Ein Test zur Auflösung von Vorwärtsverweisen nutzte als Beispiel ein
+Modell, das jetzt in einem anderen Modul als `Settings` liegt; er nutzt jetzt `ImapCredentials`.
+
+**Grenzwerte.** `tests/unit/test_limits70.py`: keine Funktion über 80 Zeilen (vorher 16, längste 179),
+höchstens 10 Parameter. Zerlegt wurden noch `cli._parser` (91 Zeilen, jetzt nach Optionsgruppen) und
+`llm/evaluation.evaluate` (87 Zeilen). `_build_orchestrator` erhält die Analysekonfiguration als
+unveränderliche Datenklasse. 19 Funktionen bleiben benannte Ausnahmen mit Begründung: Konstruktoren,
+denen der Zusammenbau jede Abhängigkeit einzeln übergibt, Aufrufe eines KI-Anbieters und
+Einstiegspunkte, die Tests mit Schlüsselwörtern oder allen Argumenten aufrufen.
+
+**Abweichung vom Plan.** Die strenge Typprüfung für das ganze Paket (R8) folgt wegen ihres Umfangs
+als eigener Patch 7.0.11; die folgenden Patchnummern verschieben sich um eins.
+
+Prüfung: 5 336 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests.

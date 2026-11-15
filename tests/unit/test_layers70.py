@@ -48,7 +48,7 @@ EXCEPTIONS = {
     ("mailhelp.config.loader", "mailhelp.mailbox.imap"): CONFIG_RULES,
     ("mailhelp.config.loader", "mailhelp.mailbox.mailbox_settings"): CONFIG_RULES,
     ("mailhelp.config.loader", "mailhelp.proposals.target_profiles"): "Geheimnisse der Zielprofile laden",
-    ("mailhelp.config.models", "mailhelp.llm.ollama"): CONFIG_RULES,
+    ("mailhelp.config.runtime_settings", "mailhelp.llm.ollama"): CONFIG_RULES,
     ("mailhelp.config.models", "mailhelp.mailbox.mailbox_settings"): CONFIG_RULES,
     ("mailhelp.config.models", "mailhelp.proposals.target_profiles"): CONFIG_RULES,
     ("mailhelp.mailbox.connection_activation", "mailhelp.review.results"): EDITING,

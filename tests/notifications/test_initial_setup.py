@@ -12,7 +12,7 @@ import yaml
 from mailhelp.app.bootstrap import create_initial, ensure_web_secret, run_initial_setup
 from mailhelp.config import Settings, WebSettings, load_all
 from mailhelp.config.loader import provider_secret_names
-from mailhelp.config.models import TargetSettings
+from mailhelp.config.target_settings import TargetSettings
 from mailhelp.runtime import initial_setup as module
 from mailhelp.runtime.initial_setup import InitialSetup
 from mailhelp.runtime.web_password import WebPassword

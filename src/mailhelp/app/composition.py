@@ -250,10 +250,21 @@ def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: J
     return dialog
 
 
-def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[Topic], fingerprint: str,
-                        jev_prompts: Any, store: JsonStore, sender_store: JsonStore, logger: JsonlLogger,
-                        analyzer: Analyzer, dialog: TelegramDialogController, writers: dict[str, Any],
-                        access_diagnostics: bool) -> Orchestrator:
+@dataclass(frozen=True)
+class _AnalysisConfiguration:
+    """What decides how mails are analysed; part of every configuration fingerprint."""
+    settings: Settings
+    prompts: PromptConfig
+    topics: list[Topic]
+    fingerprint: str
+    jev_prompts: Any
+
+
+def _build_orchestrator(analysis: _AnalysisConfiguration, store: JsonStore, sender_store: JsonStore,
+                        logger: JsonlLogger, analyzer: Analyzer, dialog: TelegramDialogController,
+                        writers: dict[str, Any], access_diagnostics: bool) -> Orchestrator:
+    settings, prompts, topics = analysis.settings, analysis.prompts, analysis.topics
+    fingerprint, jev_prompts = analysis.fingerprint, analysis.jev_prompts
     precheck = DuplicatePreCheckService(
         writers=writers,
         ledger=dialog.ledger,
@@ -546,8 +557,8 @@ def build_application(
         writers = built.slots
         web_enabled = settings.web.enabled and not access_diagnostics
         dialog = _build_dialog(settings, store, telegram, logger, writers, analyzer, web_enabled)
-        orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
-                                           logger, analyzer, dialog, writers, access_diagnostics)
+        orchestrator = _build_orchestrator(_AnalysisConfiguration(settings, prompts, topics, fingerprint, jev_prompts),
+                                           store, sender_store, logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
         dialog.review.recheck = partial(request_recheck, orchestrator)
         iserv_resources = stack.enter_context(ExitStack())

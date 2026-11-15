@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.0.10 – Konfigurationsmodelle geteilt, Grenzwerte als Test
+
+- `config/models.py` in sechs Bereichsmodule geteilt; `mailhelp.config` exportiert dieselben Namen.
+- Keine Funktion mehr über 80 Zeilen; Parameterlisten über 10 nur noch als benannte Ausnahmen;
+  beides durch `tests/unit/test_limits70.py` erzwungen.
+
 ## 7.0.9 – Große Klassen nach Aufgaben
 
 - Methodenrümpfe von `Application`, `Orchestrator`, `MailboxRunService`, `ReviewService`, `MailboxSite`

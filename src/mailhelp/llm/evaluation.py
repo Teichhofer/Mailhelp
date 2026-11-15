@@ -263,11 +263,9 @@ def _recognized_images(mail: dict[str, Any], recognized: dict[str, str]) -> None
                                                     "character_count": len(text), "vision": "read"}
 
 
-def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter, max_calls: int,
-             progress: Callable[[dict[str, Any]], None] | None = None, *,
-             decision_prompts: DecisionPrompts | None = None,
-             decision_client: DecisionClient | None = None) -> dict[str, Any]:
-    bounded = BoundedCompleter(client, max_calls)
+def _evaluation_analyzer(bounded: BoundedCompleter, prompts: PromptConfig, decision_prompts: DecisionPrompts | None,
+                         decision_client: DecisionClient | None) -> Analyzer:
+    """The analyzer of the pipeline, without retries and limited to the call budget."""
     if decision_prompts is None:
         analyzer = Analyzer(bounded, prompts, validation_retries=0, provider_retries=0)
     else:
@@ -276,10 +274,13 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
                                      decision_prompts, 500_000)
         analyzer = JevRelevanceAnalyzer(bounded, prompts, decisions=decisions,
                                        validation_retries=0, provider_retries=0)
-    topics = [Topic.model_validate(item) for item in corpus["topics"]]
-    timezone_name = corpus.get("user_timezone", "UTC")
-    results: list[dict[str, Any]] = []
-    report = {
+    return analyzer
+
+
+def _report_head(corpus: dict[str, Any], prompts: PromptConfig, decision_prompts: DecisionPrompts | None,
+                 max_calls: int, results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Fingerprints, routes and limits of the run; the cases are appended to *results*."""
+    return {
         "schema_version": 3, "created_at": datetime.now(UTC).isoformat(),
         "relevance_mode": "legacy" if decision_prompts is None else "jev_unclear_fallback",
         "decision_prompts": None if decision_prompts is None else decision_prompts.model_dump(mode="json"),
@@ -294,50 +295,69 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
         "complete": False, "passed": False, "cases": results,
         "manual_review": "Zusammenfassung, Titel, Beschreibung und Evidenz benötigen zusätzlich fachliche Prüfung.",
     }
+
+
+def _evaluate_case(case: dict[str, Any], analyzer: Analyzer, topics: list[Topic], timezone_name: str,
+                   own: frozenset[str]) -> dict[str, Any]:
+    """Run one corpus case through every stage and compare each answer with the accepted ones."""
+    mail = prepare(case["raw_email"].encode("utf-8"), 100_000,
+                   received_at=_received_at(case), user_timezone=timezone_name)
+    _recognized_images(mail, case.get("vision", {}))
+    # Routing and extraction receive what the pipeline sends, including the perspective.
+    perspective = read_perspective(mail, own)
+    routed = perspective.model_input(mail)
+    context = _context(mail)
+    observed = {}
+    error = None
+    try:
+        # 4.5.6: like the pipeline, an own note needs no relevance call.
+        relevance = perspective.own_relevance() or analyzer.relevance(mail, topics)[1]
+        observed["relevance"] = relevance.model_dump(mode="json")
+        observed["summary"] = analyzer.summary(routed)[1].model_dump(mode="json")
+        route = analyzer.action_route(routed)[1]
+        observed["action_router"] = route.model_dump(mode="json")
+        observed["task_extraction"] = {"tasks": []}
+        observed["event_extraction"] = {"events": []}
+        # The route model guarantees task/event states carry a positive
+        # count, so this is the orchestrator's extraction rule.
+        if route.task_count > 0:
+            observed["task_extraction"] = analyzer.extract_tasks(
+                routed, expected_count=route.task_count)[1].model_dump(mode="json")
+        if route.event_count > 0:
+            observed["event_extraction"] = analyzer.extract_events(
+                routed, expected_count=route.event_count)[1].model_dump(mode="json")
+    except Exception as exc:
+        error = type(exc).__name__  # Provider messages may contain credentials.
+    comparisons = {}
+    for stage, actual in observed.items():
+        key = _EXPECTED_KEY.get(stage, stage)
+        accepted = [semantic_result(stage, item, context)
+                    for item in [case["expected"][key], *case.get("accept", {}).get(key, [])]]
+        actual = semantic_result(stage, actual, context)
+        comparisons[stage] = {"passed": actual in accepted, "expected": accepted[0],
+                              "accepted_alternatives": accepted[1:], "actual": actual}
+    result = {"id": case["id"], "error": error, "stages": comparisons,
+              "review_outputs": observed,
+              "passed": error is None and all(item["passed"] for item in comparisons.values())}
+    return result
+
+
+def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter, max_calls: int,
+             progress: Callable[[dict[str, Any]], None] | None = None, *,
+             decision_prompts: DecisionPrompts | None = None,
+             decision_client: DecisionClient | None = None) -> dict[str, Any]:
+    bounded = BoundedCompleter(client, max_calls)
+    analyzer = _evaluation_analyzer(bounded, prompts, decision_prompts, decision_client)
+    topics = [Topic.model_validate(item) for item in corpus["topics"]]
+    timezone_name = corpus.get("user_timezone", "UTC")
+    results: list[dict[str, Any]] = []
+    report = _report_head(corpus, prompts, decision_prompts, max_calls, results)
     # Stage-separated evaluation also checks action extraction for irrelevant cases.
     # No expected answer is ever supplied to the provider.
     # 4.5: the corpus names the user's own addresses, as configured for a mailbox.
     own = addresses_in(corpus.get("own_addresses", []))
     for case in corpus["cases"]:
-        mail = prepare(case["raw_email"].encode("utf-8"), 100_000,
-                       received_at=_received_at(case), user_timezone=timezone_name)
-        _recognized_images(mail, case.get("vision", {}))
-        # Routing and extraction receive what the pipeline sends, including the perspective.
-        perspective = read_perspective(mail, own)
-        routed = perspective.model_input(mail)
-        context = _context(mail)
-        observed = {}
-        error = None
-        try:
-            # 4.5.6: like the pipeline, an own note needs no relevance call.
-            relevance = perspective.own_relevance() or analyzer.relevance(mail, topics)[1]
-            observed["relevance"] = relevance.model_dump(mode="json")
-            observed["summary"] = analyzer.summary(routed)[1].model_dump(mode="json")
-            route = analyzer.action_route(routed)[1]
-            observed["action_router"] = route.model_dump(mode="json")
-            observed["task_extraction"] = {"tasks": []}
-            observed["event_extraction"] = {"events": []}
-            # The route model guarantees task/event states carry a positive
-            # count, so this is the orchestrator's extraction rule.
-            if route.task_count > 0:
-                observed["task_extraction"] = analyzer.extract_tasks(
-                    routed, expected_count=route.task_count)[1].model_dump(mode="json")
-            if route.event_count > 0:
-                observed["event_extraction"] = analyzer.extract_events(
-                    routed, expected_count=route.event_count)[1].model_dump(mode="json")
-        except Exception as exc:
-            error = type(exc).__name__  # Provider messages may contain credentials.
-        comparisons = {}
-        for stage, actual in observed.items():
-            key = _EXPECTED_KEY.get(stage, stage)
-            accepted = [semantic_result(stage, item, context)
-                        for item in [case["expected"][key], *case.get("accept", {}).get(key, [])]]
-            actual = semantic_result(stage, actual, context)
-            comparisons[stage] = {"passed": actual in accepted, "expected": accepted[0],
-                                  "accepted_alternatives": accepted[1:], "actual": actual}
-        result = {"id": case["id"], "error": error, "stages": comparisons,
-                  "review_outputs": observed,
-                  "passed": error is None and all(item["passed"] for item in comparisons.values())}
+        result = _evaluate_case(case, analyzer, topics, timezone_name, own)
         results.append(result)
         report["calls"] = bounded.calls
         if progress is not None:

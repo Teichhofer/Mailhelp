@@ -185,7 +185,7 @@ def test_test_push_rejection_key_conflict_and_stale_receipt(web):
 
 
 def test_mailbox_channel_confirmation_preserves_other_profiles(configured):
-    from mailhelp.config.models import ImapSettings, MailboxSettings
+    from mailhelp.config.mail_settings import ImapSettings, MailboxSettings
     from mailhelp.config.notifications import NotificationSettings
 
     cfg = configured.app.settings

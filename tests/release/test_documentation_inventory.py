@@ -64,10 +64,11 @@ def test_every_page_of_the_web_interface_is_inventoried(web):
 def test_a_forward_reference_is_resolved_in_the_module_of_its_model():
     import typing
 
-    from mailhelp.config.models import MailboxSettings, Settings
-    resolved = inventory._resolved(typing.ForwardRef("Settings | None"), MailboxSettings)
+    # 7.0.10: a model of the same module as Settings, since MailboxSettings moved to config.mail_settings.
+    from mailhelp.config.models import ImapCredentials, Settings
+    resolved = inventory._resolved(typing.ForwardRef("Settings | None"), ImapCredentials)
     assert set(typing.get_args(resolved)) == {Settings, type(None)}
-    assert inventory._resolved(int, MailboxSettings) is int
+    assert inventory._resolved(int, ImapCredentials) is int
 
 
 def test_every_numeric_limit_in_the_code_is_named_in_the_reference():

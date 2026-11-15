@@ -246,6 +246,13 @@ def _parser() -> argparse.ArgumentParser:
                         help="Am Host Web-Passwort zurücksetzen und alle Websitzungen abmelden")
     parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")
     parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
+    _add_access_arguments(parser)
+    _add_learning_arguments(parser)
+    return parser
+
+
+def _add_access_arguments(parser: argparse.ArgumentParser) -> None:
+    """Read-only access checks, credentials and the processing limits of one run."""
     parser.add_argument(
         "--check-access", action="store_true",
         help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
@@ -269,6 +276,10 @@ def _parser() -> argparse.ArgumentParser:
         help=("konfiguriertes imap.historical_start und den gespeicherten "
               "historischen Startpunkt für diesen Abruf aufheben"),
     )
+
+
+def _add_learning_arguments(parser: argparse.ArgumentParser) -> None:
+    """Learning runs, the local model and the decision test."""
     parser.add_argument(
         "--learn", type=_positive_int, metavar="ANZAHL",
         help="ANZAHL Mails frei klassifizieren und Themen interaktiv im Terminal lernen",
@@ -316,7 +327,6 @@ def _parser() -> argparse.ArgumentParser:
         help="Postfach (imap.mailboxes.id) oder alle aktivierten Postfächer für --learn und "
              "--decision-test; bei mehreren aktivierten Postfächern erforderlich",
     )
-    return parser
 
 
 def _check_decision_test_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:

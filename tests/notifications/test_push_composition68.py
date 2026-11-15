@@ -139,7 +139,7 @@ def test_template_mail_analysis_open_decision_queue_and_provider(configured, kin
 def test_two_devices_mailbox_override_batching_quiet_hours_and_restart(configured):
     from datetime import UTC, datetime, timedelta
 
-    from mailhelp.config.models import ImapSettings, MailboxSettings
+    from mailhelp.config.mail_settings import ImapSettings, MailboxSettings
 
     app, web, runtime, push, sent = install(configured)
     app.settings.imap = ImapSettings(

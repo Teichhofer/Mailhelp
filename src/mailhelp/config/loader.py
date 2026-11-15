@@ -10,18 +10,11 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from .models import (
-    ImapSettings,
-    IrrelevantTopicsConfig,
-    IServSettings,
-    MailboxSettings,
-    PromptConfig,
-    Secrets,
-    Settings,
-    TargetSettings,
-    Topic,
-    TopicsConfig,
-)
+from .mail_settings import ImapSettings, IServSettings, MailboxSettings
+from .models import Secrets, Settings
+from .prompts import PromptConfig
+from .target_settings import TargetSettings
+from .topics import IrrelevantTopicsConfig, Topic, TopicsConfig
 
 
 class MissingConfiguration(FileNotFoundError):

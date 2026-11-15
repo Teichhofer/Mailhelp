@@ -16,7 +16,8 @@ import httpx
 
 from ..config import PromptConfig, Secrets, Settings
 from ..config.loader import imap_secret_values, provider_secret_names
-from ..config.models import ImapCredentials, MailboxSettings
+from ..config.mail_settings import MailboxSettings
+from ..config.models import ImapCredentials
 from ..external.contracts import (
     AuthenticationError,
     ExternalRefused,
