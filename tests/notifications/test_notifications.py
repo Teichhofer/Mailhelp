@@ -5,8 +5,7 @@ from types import SimpleNamespace as NS
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.llm.adapter import PermanentError, RetryableError
-from mailhelp.notifications.notification_config import (
+from mailhelp.config.notifications import (
     Batching,
     Categories,
     DeliverySettings,
@@ -14,6 +13,7 @@ from mailhelp.notifications.notification_config import (
     QuietHours,
     effective_profile,
 )
+from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.notifications.notifications import NotificationService, QueueFull, quiet_now
 from mailhelp.persistence.storage import JsonStore
 

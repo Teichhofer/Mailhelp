@@ -1,9 +1,12 @@
 """Validated notification profile; omitted profiles preserve the 2.x choices."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+if TYPE_CHECKING:
+    from .models import Settings
 
 Channel = Literal["telegram", "web_push"]
 Category = Literal["decisions", "action_results", "daily_briefing", "system_errors"]
@@ -87,7 +90,7 @@ class NotificationOverrides(ProfileModel):
     categories: CategoryOverrides | None = None
 
 
-def effective_profile(settings) -> NotificationSettings:
+def effective_profile(settings: Settings) -> NotificationSettings:
     if settings.notifications is not None:
         return settings.notifications
     telegram: list[Channel] = ["telegram"] if settings.telegram.enabled else []

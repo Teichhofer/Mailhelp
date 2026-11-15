@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from ..runtime.metrics import electricity
+from ..support.metrics import electricity
 from .models import ActivityReport
 
 

@@ -1,5 +1,5 @@
 """6.2.7: dense row lists for mails, history and reconciliation; the same status badge everywhere."""
-from mailhelp.review.archive import record_event
+from mailhelp.persistence.archive import record_event
 from mailhelp.web.archive_pages import history_meta
 from mailhelp.web.labels import status_badge
 from mailhelp.web.reconciliation_site import grouped

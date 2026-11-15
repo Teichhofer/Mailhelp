@@ -102,8 +102,8 @@ def test_helpers_are_imported_through_their_package_only():
 
 
 # Planung 3.3, pillar 1: modules outside the Telegram package that may use it (channel integration).
-TELEGRAM_CLIENTS = {"runtime/application.py", "runtime/composition.py", "processing/orchestrator.py", "review/service.py",
-                    "runtime/service_coordinator.py"}
+TELEGRAM_CLIENTS = {"app/application.py", "app/composition.py", "processing/orchestrator.py", "review/service.py",
+                    "app/service_coordinator.py"}
 
 
 def telegram_importers() -> set[str]:

@@ -81,3 +81,56 @@ Betreibers.
   `persistence/storage.py` 454 / 69 / 0, `external/confirmed.py` 184 / 90 / 0. Kein Wert ist
   schlechter als vor 7.0.
 - Prüfung: 5 318 Python-Tests mit voller Abdeckung, 922 Browsertests.
+
+## 7.0.4 – Schichten und späte Importe (R3, R4)
+
+**Schichten.** `tests/unit/test_layers70.py` legt die Richtung der Importe fest, von unten nach
+oben: Basis (`domain`, `text`, `state_names`, `paths`, `formatting`, `log_reduction`) →
+Infrastruktur (`logging`, `persistence`, `support`) → `config` → Adapter (`external`, `llm`) →
+`mailbox`, `proposals` → Dienste (`processing`, `review`, `rule_learning`, `notifications`,
+`activity`) → `runtime` → Kanäle (`telegram`, `web`, `helpdocs`) → Zusammenbau (`app`) → `cli`.
+Auch Importe innerhalb von Funktionen zählen. Der Test scheitert an jedem neuen Import gegen
+die Richtung und an jeder nicht mehr benötigten Ausnahme.
+
+Die Messung ergab mehr Gegenrichtungen als im Plan angenommen (52 Modulpaare). Aufgelöst durch
+Verschieben (mit `git mv`, Importe und Patch-Ziele nachgezogen):
+
+- Neues Paket `app` für den Zusammenbau: `composition`, `application`, `bootstrap`,
+  `service_coordinator`, `setup_runtime`, `browser_accounts`, `reload` (bisher in `runtime`).
+- Neues Paket `support` (Infrastruktur): `metrics`, `stage_metrics`, `lock_metrics`, `yaml_edit`.
+- `runtime/env_file` → `config/env_file`, `notifications/notification_config` →
+  `config/notifications`, `review/revision_origin` und `review/archive` → `persistence`,
+  `processing/calendar_parser` und `processing/attachment_extractor` → `text`,
+  `runtime/local_pairing` → `web/local_pairing`.
+- `_mailbox_labels` und `_build_iserv` aus dem Zusammenbau als `mailbox_labels` und
+  `build_iserv_sources` nach `mailbox/sources.py`.
+- `app/application.py` gab drei Funktionen aus `composition` weiter (weitere Fassade); entfernt.
+  Damit ist der Importzyklus zwischen beiden aufgelöst, der `composition` bisher nur in einer
+  bestimmten Ladereihenfolge importierbar machte.
+
+Verblieben sind 23 benannte Ausnahmen mit Begründung, vor allem die Validierung der Einstellungen,
+die Fachregeln aus `mailbox`, `proposals` und `llm` nutzt, und der Abruf, der jede Mail an
+`processing` übergibt. Module eines gemischten Pakets mit eigener Schicht: die Werkzeuge in `llm`
+(Auswertung, Entscheidungstest, Lernen, Entscheidungsclients) und der Schemakatalog
+`persistence.schemas`, den nur Prüfwerkzeuge lesen.
+
+**Späte Importe: 25 statt 328.** Angehoben wurden alle Importe in niedrigere Schichten sowie
+innerhalb einer Schicht, wo kein Ladezyklus entsteht; jedes Modul wird dafür in einem eigenen
+Prozess als erstes importiert. Wo Tests eine Klasse im Ursprungsmodul ersetzen, greift der Aufrufer
+jetzt über das Modul zu (`imap_module.ImapReader`), sodass der Ersatz weiterhin wirkt. Übrig sind
+18 Importe gegen die Schichtrichtung (die benannten Ausnahmen), zwei plattformabhängige Module
+(`msvcrt`, `fcntl`) und fünf echte Paarzyklen. Jeder trägt eine Zeile `# Late: …` mit dem Grund;
+der Schichtentest erzwingt Grund und Obergrenze. **Abweichung vom Plan:** Ziel waren höchstens 20.
+Die übrigen fünf Zyklen und die Validierungsimporte von `config` aufzulösen hieße, Fachregeln
+zwischen Paketen zu verlagern; das geschieht nicht in einem reinen Umbau-Patch.
+
+**Gefundener Fehler beim Umbau.** Zwei Funktionen in `web/history_site.py` importierten je ein
+anderes `SORTS`; nebeneinander am Dateianfang hätte das zweite das erste verdeckt und die Sortierung
+„Kosten“ der Aufrufliste abgelehnt. Vor dem Commit bemerkt (ruff F811) und behoben; ein neuer
+Regressionstest scheitert mit der Verdeckung und besteht ohne sie.
+
+**Prüfung.** 5 322 Python-Tests mit voller Abdeckung, Lasttests bestanden (mit `--workers 12` in
+44 Minuten, siehe R9). Browsersuite mit 6 Prozessen: 921 bestanden, ein Fehlschlag in
+`test_no_swipe_starts_where_the_touch_means_something_else`; der Test ist unabhängig von 7.0.4
+unzuverlässig (allein gestartet einer von drei Läufen rot, `app.js` und Test unverändert) und wird
+in 7.0.5 untersucht. Ruff 41 Befunde, mypy 14 Fehler wie zuvor.

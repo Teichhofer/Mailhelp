@@ -674,6 +674,7 @@ class MailboxRunService:
                     continue
                 if state.awaiting_relevance:
                     continue
+                # Late: against the layer direction, named in tests/unit/test_layers70.py.
                 from ..processing.retry import blocked
                 active = getattr(self.orchestrator, "fingerprint_for", lambda _, fp=state.config_fingerprint: fp)(
                     state.imap.account_id)

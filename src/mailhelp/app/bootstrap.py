@@ -12,14 +12,14 @@ from ..config import Settings, WebSettings
 from ..config.loader import _dotenv
 from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
+from ..runtime.initial_setup import InitialSetup
+from ..runtime.oauth_web import BrowserOAuth, oauth_config
+from ..runtime.setup_checks import SetupChecks
 from ..web.app import WebApp
 from ..web.auth import WebAuth
 from ..web.initial_site import InitialSite
 from ..web.oauth_site import OAuthSite
 from ..web.server import WebServer
-from .initial_setup import InitialSetup
-from .oauth_web import BrowserOAuth, oauth_config
-from .setup_checks import SetupChecks
 
 
 def ensure_web_secret(directory: Path) -> str:

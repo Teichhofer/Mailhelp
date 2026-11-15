@@ -6,8 +6,8 @@ import pytest
 import yaml
 
 from mailhelp.config.configuration import ConfigurationConflict, ConfigurationService, file_hash
+from mailhelp.config.notifications import NotificationSettings
 from mailhelp.llm.fingerprints import config_fingerprint
-from mailhelp.notifications.notification_config import NotificationSettings
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.diagnostics import DiagnosticsService

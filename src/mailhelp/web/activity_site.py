@@ -19,6 +19,7 @@ from ..activity.export import filename, workbook
 from ..activity.models import ActivityReport, ReportDefinition, ReportMail
 from ..activity.presentation import ReportFilter, fingerprint
 from ..activity.service import ActivityService, ReportConflict, event_values
+from ..domain.proposal import ProposalStatus
 from .activity_pages import disabled_page, list_page, mail_page, new_page, report_page
 from .auth import WebSession
 from .http import Request, Response
@@ -76,7 +77,6 @@ class ActivitySite:
 
     def reports(self, request: Request, session: WebSession) -> Response:
         system = self.site.views.system()
-        from ..domain.proposal import ProposalStatus
         rejected = system.proposals.get(ProposalStatus.REJECTED, 0) - system.already_done
         decisions = (f'<section class="card"><h2>Manuelle Entscheidungen im aktuellen Bestand</h2>'
                      f'<p><span class="badge ok">Schon erledigt: {system.already_done}</span> '

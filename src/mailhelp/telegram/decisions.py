@@ -17,6 +17,7 @@ from ..domain.proposal import (
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import JsonStore
+from ..proposals.proposal_reconciliation import ProposalReconciliationService
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
 from ..review.verification_texts import VERIFYING_MESSAGE
@@ -61,7 +62,6 @@ class ProposalDecisionService:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.store).recover()
         proposal = self._open_proposal(decision)
         if decision.action == DecisionAction.EDIT:

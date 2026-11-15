@@ -6,7 +6,7 @@ import pytest
 
 from mailhelp.domain.run import TelegramOffset
 from mailhelp.persistence.storage import JsonStore
-from mailhelp.runtime import lock_metrics
+from mailhelp.support import lock_metrics
 from tests.fakes.shared_web_auth import pair
 
 

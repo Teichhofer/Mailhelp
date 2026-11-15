@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 
 from .. import state_names
 from ..domain.mail import MailState
+from ..persistence.archive import AnalysisSnapshot
 from ..persistence.storage import CorruptState
-from ..review.archive import AnalysisSnapshot
+from ..review.commands import CommandKind
 from ..review.consistency import hints
 from ..review.explanation import explain
 from ..review.queries import ArchiveQuery
+from .actions import _hidden
 from .archive_pages import analysis_section, mail_list_page, processing_path_section, revisions_list
 from .auth import WebSession
 from .http import Request, Response
@@ -54,8 +56,6 @@ class MailArchiveSite:
         return controls + analysis_section(mail_id, state, record)
 
     def analysis_actions(self, mail_id: str, csrf: str) -> str:
-        from ..review.commands import CommandKind
-        from .actions import _hidden
         state = self.site.views.store.peek_model(state_names.mail(mail_id), MailState)
         if state is None or state.error is None or state.processing_filed:
             return ""

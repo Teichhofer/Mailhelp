@@ -1,7 +1,7 @@
 """HTML of the mail archive, the history and the cost evaluation; no routing, no state access."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, SupportsFloat, get_args
 from urllib.parse import urlencode
@@ -9,11 +9,15 @@ from urllib.parse import urlencode
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..formatting import duration_text, format_datetime_local
+from ..review.cards import sender_name
 from ..review.consistency import Hint
 from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery
 from ..review.search import Hit
+from ..review.views import STATUS_LABELS
 from .actions import recheck_form
+from .calls_page import filters, metric_link
+from .charts import statistics_charts
 from .filters import chips
 from .forms import select
 from .labels import EVENTS, KINDS, SOURCES, STATUSES, count_text, label, status_badge
@@ -63,9 +67,7 @@ def _total_duration(seconds: float) -> str:
 def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: list[dict[str, Any]], zone: str = "UTC",
                     now: datetime | None = None, steps: dict[str, Any] | None = None) -> str:
     """Costs and durations with readable labels and charts; unknown values are never shown as zero."""
-    from datetime import UTC
 
-    from .charts import statistics_charts
     def choices(key: str) -> list[tuple[str, str]]:
         return [("", "alle")] + [(value, value) for value in sorted({row[key] for row in everything})]
 
@@ -79,7 +81,6 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
                          select("stage", "Verarbeitungsschritt", params.get("stage", ""), choices("stage")),
                          date_field("since", "Von", params.get("since")),
                          date_field("until", "Bis", params.get("until"))])
-    from .calls_page import metric_link
     rate = report["exchange_rate_date"]
     # 5.9.11: every figure opens the call list with a matching preset (a native link, no JavaScript).
     figures: list[tuple[str, str, str, str]] = [
@@ -122,7 +123,6 @@ def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: 
               "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "
               "nicht enthalten. Die summierte Aufrufdauer ist keine Durchlaufzeit; die Durchlaufzeit je Mail "
               "steht darüber (ab 6.1.6 erfasst).</p>")
-    from .calls_page import filters
     link = "/auswertung/schritte?" + urlencode(filters(params))
     charts = statistics_charts(report["records"], params["days"], zone, now or datetime.now(UTC), steps, link)
     return body + charts + _statistics_groups(report["groups"])
@@ -136,7 +136,6 @@ SECTIONS = ('<nav class="page-sections" aria-label="Abschnitte der Auswertung"><
 
 def _run_time_rows(params: dict[str, Any], steps: dict[str, Any] | None) -> list[tuple[str, _Html]]:
     """6.1.8: run time per mail and the waiting for decisions; a link to the slowest runs."""
-    from .calls_page import filters
     total = (steps or {}).get("total") or {}
     if not total.get("count"):
         return []
@@ -185,7 +184,6 @@ def _local_time(value: str | None, zone: str) -> str:
 
 
 def _archive_filters(query: ArchiveQuery, topics: list[str], mailboxes: dict[str, tuple[int, str]]) -> str:
-    from ..review.views import STATUS_LABELS
 
     status = "" if query.status is None else str(query.status)
     status_choices = [("", "alle")] + [(item.value, label) for item, label in STATUS_LABELS.items()]
@@ -204,7 +202,6 @@ def _archive_filters(query: ArchiveQuery, topics: list[str], mailboxes: dict[str
 
 
 def _archive_row(item: dict[str, Any], zone: str, mailboxes: dict[str, tuple[int, str]], csrf: str = "") -> str:
-    from ..review.cards import sender_name
 
     badges = [f'<span class="badge">{e(RELEVANCE_LABELS.get(item["relevance"], item["relevance"]))}</span>']
     if mailboxes:

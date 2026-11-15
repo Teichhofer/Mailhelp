@@ -8,8 +8,8 @@ from urllib.parse import parse_qs
 
 from ..config import Settings, read_yaml
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..config.notifications import effective_profile
 from ..mailbox.mailbox_settings import effective_settings
-from ..notifications.notification_config import effective_profile
 from ..runtime.setup import profile_patch
 from .actions import new_key
 from .auth import WebSession

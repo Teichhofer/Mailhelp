@@ -5,6 +5,7 @@ from datetime import UTC, timedelta
 
 from ..config import EventDefaultsSettings
 from ..domain.extraction import ExtractedEvent
+from ..domain.proposal import ProposalStatus, required_revision_questions
 from .action_normalization import MailDateContext, NormalizationReason, TemporalValue, normalize_event
 
 
@@ -39,7 +40,6 @@ def normalized_event(event: ExtractedEvent, context: MailDateContext, defaults: 
 
 
 def reapply_defaults(proposal, defaults: EventDefaultsSettings):
-    from ..domain.proposal import ProposalStatus, required_revision_questions
     start = proposal.start or (proposal.known_temporal_facts.start if proposal.known_temporal_facts else None)
     if (proposal.kind != "event" or proposal.end is not None and proposal.end_origin != "standard" or start is None or
             proposal.duration_minutes is not None or proposal.all_day):

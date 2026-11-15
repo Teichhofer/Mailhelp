@@ -21,23 +21,39 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from .. import __version__
-from ..config import WebSettings
+from ..config import Settings, WebSettings, read_yaml
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService
+from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
 from ..runtime.lifecycle import Lifecycle
 from .actions import command_page, needs_choice, result_kind, stale_page
+from .activity_site import ActivitySite
 from .app import WebApp
+from .archive_site import ArchiveSite
 from .auth import WebAuth, WebSession
+from .command_cards import anchor, visible
+from .experience import ExperienceSite
 from .http import Request, Response
+from .iserv_site import IServSite
+from .learning_overview import LearningOverviewSite
 from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
+from .mailbox_add_site import MailboxAddSite
+from .mailbox_site import MailboxSite
 from .pages import HELP_BUTTON, HELP_WINDOW, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
+from .proposal_evaluation_site import ProposalEvaluationSite
+from .reconciliation_site import ReconciliationSite
 from .review_site import ReviewSite
+from .rule_learning_site import RuleLearningSite
+from .secrets_site import SecretsSite
 from .sender_site import LIST_PATH as SENDERS_PATH
 from .sender_site import SenderSite
-from .status_accounts import AccountInfo
+from .series_site import SeriesSite
+from .setup_site import SetupSite
+from .status_accounts import AccountInfo, account_rows, configured_accounts
+from .status_details import StatusDetails
 from .status_pages import ServiceInfo, status_page
 
 FORM_TYPE = "application/x-www-form-urlencoded"
@@ -52,7 +68,7 @@ class EventLogger(Protocol):
 Handler = Callable[..., Response]
 if TYPE_CHECKING:
     from ..notifications.notification_runtime import NotificationRuntime
-    from ..runtime.metrics import MetricsRecorder
+    from ..support.metrics import MetricsRecorder
     from .reanalysis_site import ReanalysisSite
 
 
@@ -77,7 +93,6 @@ class MailhelpSite:
         self.local_hosts = {f"127.0.0.1:{settings.port}", f"localhost:{settings.port}"}
         self.login_pages = LoginSite(self)
         self.review = ReviewSite(self)
-        from .series_site import SeriesSite
         self.series = SeriesSite(self)
         app.route("GET", "/offen", self.signed_in(self.review.home))
         app.route("GET", "/anmelden", self.login_pages.login)
@@ -109,32 +124,19 @@ class MailhelpSite:
         app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
         app.route("GET", r"/api/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.command_status))
         app.route("POST", r"/aktion/(?P<entry_id>[a-f0-9]{32})/gesehen", self.signed_in(self.acknowledge))
-        from .archive_site import ArchiveSite
         self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
         self.senders = SenderSite(self)
-        from .experience import ExperienceSite
         self.experience = ExperienceSite(self)
-        from .activity_site import ActivitySite
         self.activity = ActivitySite(self)
-        from .setup_site import SetupSite
         self.setup_page = SetupSite(self)
-        from .mailbox_site import MailboxSite
         self.mailbox_page = MailboxSite(self)
-        from .mailbox_add_site import MailboxAddSite
         self.mailbox_add = MailboxAddSite(self)
-        from .iserv_site import IServSite
         self.iserv_page = IServSite(self)
-        from .secrets_site import SecretsSite
         self.secrets_page = SecretsSite(self)
-        from .reconciliation_site import ReconciliationSite
         self.reconciliation_page = ReconciliationSite(self)
-        from .rule_learning_site import RuleLearningSite
         self.rule_learning = RuleLearningSite(self)
-        from .learning_overview import LearningOverviewSite
         self.learning_overview = LearningOverviewSite(self)
-        from .proposal_evaluation_site import ProposalEvaluationSite
         self.proposal_evaluation = ProposalEvaluationSite(self)
-        from .status_details import StatusDetails
         self.status_details = StatusDetails(self)
         self.notification_runtime: NotificationRuntime | None = None
         # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
@@ -242,7 +244,6 @@ class MailhelpSite:
 
 
     def status(self, request: Request, session: WebSession) -> Response:
-        from .status_accounts import account_rows
         overview = self.views.overview()
         now = self.clock()
         info = ServiceInfo(
@@ -270,8 +271,6 @@ class MailhelpSite:
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone, system, info))
 
     def _status_accounts(self) -> tuple[AccountInfo, ...]:
-        from ..config import Settings, read_yaml
-        from .status_accounts import configured_accounts
         configuration = self.archive.configuration
         if configuration is None:
             return ()
@@ -347,7 +346,6 @@ class MailhelpSite:
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
-            from ..domain.mail import MailState
             state = self.views.store.peek_model("mail-" + command.mail_id, MailState)
             if state is None or state.analysis_round != command.version or state.processing_filed:
                 return "Die Mail wurde inzwischen geändert oder verarbeitet."
@@ -423,21 +421,18 @@ class MailhelpSite:
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):
             # Done: back to the overview; the anchor selects the card that shows the result.
-            from .command_cards import anchor
             return Response.redirect(f"/?ergebnis={entry.id}#{anchor(entry)}")
         return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
 
     def command_status(self, request: Request, session: WebSession, entry_id: str) -> Response:
         """Only the authenticated browser's durable command, without rebuilding views."""
         entry = self.commands.get(entry_id)
-        from .command_cards import visible
         if entry is None or not visible(entry, f"web:{session.id}"):
             return Response.json(404, {"error": "Diese Aktion ist nicht (mehr) bekannt."})
         return Response.json(200, {"status": entry.status.value,
                                    "target": f"/aktion/{entry.id}" if entry.result is not None else None})
 
     def acknowledge(self, request: Request, session: WebSession, form: dict[str, str], entry_id: str) -> Response:
-        from .command_cards import visible
         entry = self.commands.get(entry_id)
         if entry is None or entry.result is None or not visible(entry, f"web:{session.id}"):
             return self._reply(request, 404, "Diese abgeschlossene Aktion ist nicht bekannt.")

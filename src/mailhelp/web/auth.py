@@ -33,7 +33,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..persistence.storage import CorruptState, JsonStore
-from ..runtime.lock_metrics import measured_lock
+from ..runtime.web_password import WebPassword
+from ..support.lock_metrics import measured_lock
 
 SESSIONS = "web-sessions"
 PAIRING = "web-pairing"
@@ -260,7 +261,6 @@ class WebAuth:
         return token
 
     def password_login(self, password: str, device: str) -> str:
-        from ..runtime.web_password import WebPassword
         with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT:

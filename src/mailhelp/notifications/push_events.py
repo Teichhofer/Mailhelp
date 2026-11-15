@@ -2,8 +2,8 @@
 from datetime import UTC, datetime
 
 from ..domain.mail import MailState
+from ..persistence.archive import HistorySnapshot
 from ..persistence.storage import CorruptState
-from ..review.archive import HistorySnapshot
 
 
 class PushDecisionEvents:

@@ -17,6 +17,7 @@ from .http import Request, Response
 from .pages import layout, notice
 from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page
 from .settings_search import LIVE_LIMIT, bounded, search
+from .topic_site import TopicSite
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
@@ -45,7 +46,6 @@ class SettingsSite:
                 ("POST", "/themen/speichern", self.save_topic),
                 ("GET", "/api/einstellungen/suche", self.live_search)):
             self.site.app.route(method, path, self.site.signed_in(handler))
-        from .topic_site import TopicSite
         self.topic_site = TopicSite(self)
 
     def live_search(self, request: Request, session: WebSession) -> Response:

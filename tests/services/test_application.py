@@ -6,6 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from mailhelp.app.application import Application
+from mailhelp.app.composition import _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Topic
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.run import MailRunCounters, MailRunEntry, MailRunState
@@ -13,7 +15,6 @@ from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals.integrations import OAuthTokenError
-from mailhelp.runtime.application import Application, _state_directory, build_application, build_logger
 from mailhelp.telegram.commands import HELP, STARTUP
 from tests.fakes.factories import build_mail_state
 from tests.fakes.log_fakes import RecordingLogger as Log
@@ -721,7 +722,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     complete._poll_telegram=lambda: complete.stop_event.set()
     complete.run()
 
-    import mailhelp.runtime.application as application_module
+    import mailhelp.app.application as application_module
     original = application_module.RetentionService
     class BrokenRetention:
         def __init__(self, *args): pass
@@ -1592,10 +1593,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class FakeOAuth(Resource):
         calls=[]
         def __init__(self,*args,**kwargs): type(self).calls.append((args,kwargs))
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader",FakeImap)
-    monkeypatch.setattr("mailhelp.runtime.composition.OpenRouterClient",FakeOpen)
-    monkeypatch.setattr("mailhelp.runtime.composition.DecisionClient",FakeDecision)
-    monkeypatch.setattr("mailhelp.runtime.composition.TelegramClient",FakeTelegram)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.app.composition.OpenRouterClient",FakeOpen)
+    monkeypatch.setattr("mailhelp.app.composition.DecisionClient",FakeDecision)
+    monkeypatch.setattr("mailhelp.app.composition.TelegramClient",FakeTelegram)
     monkeypatch.setattr("mailhelp.external.providers.HttpWriter",FakeWriter)
     monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider",FakeOAuth)
     cfg=settings(tmp_path)
@@ -1645,7 +1646,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     closed.clear()
     class BrokenImap(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("authentication failed")
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader",BrokenImap)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader",BrokenImap)
     with build_application(
         cfg, sec, topic, prompt_config(), "f" * 64,
         base_directory=tmp_path, access_diagnostics=True,
@@ -1664,10 +1665,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
 
     cfg.data_directory=Path("relative")
     cfg.logging.directory=Path("relative-logs")
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader",FakeImap)
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
-    monkeypatch.setattr("mailhelp.runtime.composition.TelegramClient",BrokenTelegram)
+    monkeypatch.setattr("mailhelp.app.composition.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
         with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
     assert (tmp_path/"relative/test/.lock").exists()
@@ -1693,10 +1694,10 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     class FakeTelegram(Resource):
         def send(self, *args): pass
 
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader", Resource)
-    monkeypatch.setattr("mailhelp.runtime.composition.OpenRouterClient", NoOpenRouter)
-    monkeypatch.setattr("mailhelp.runtime.composition.OllamaClient", FakeOllama)
-    monkeypatch.setattr("mailhelp.runtime.composition.TelegramClient", FakeTelegram)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader", Resource)
+    monkeypatch.setattr("mailhelp.app.composition.OpenRouterClient", NoOpenRouter)
+    monkeypatch.setattr("mailhelp.app.composition.OllamaClient", FakeOllama)
+    monkeypatch.setattr("mailhelp.app.composition.TelegramClient", FakeTelegram)
     monkeypatch.setattr("mailhelp.external.providers.HttpWriter", Resource)
     monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider", Resource)
     cfg = settings(tmp_path)
@@ -1737,7 +1738,7 @@ def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatc
 
     for name in ("ImapReader", "OpenRouterClient", "TelegramClient", "HttpWriter",
                  "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'runtime.composition'}.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'app.composition'}.{name}", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.vision.enabled = enabled

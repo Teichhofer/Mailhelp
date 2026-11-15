@@ -4,7 +4,12 @@ from __future__ import annotations
 from contextlib import ExitStack
 
 from ..config import ImapSettings
+from ..llm.adapter import RetryPolicy
+from . import imap as imap_module
 from .connection_runtime import PendingConnections
+from .imap import mailbox_account_id, reader_arguments
+from .mailbox_run import MailboxSource
+from .sources import mailbox_labels
 
 
 class MailboxRuntime(PendingConnections):
@@ -16,10 +21,6 @@ class MailboxRuntime(PendingConnections):
         self.secrets = secrets
 
     def _apply(self, pending):
-        from ..llm.adapter import RetryPolicy
-        from ..runtime.composition import _mailbox_labels
-        from .imap import ImapReader, mailbox_account_id, reader_arguments
-        from .mailbox_run import MailboxSource
         configured, secrets = pending
         app = self.app
         running = {source.mailbox.id for source in app.sources}
@@ -38,7 +39,7 @@ class MailboxRuntime(PendingConnections):
                 policy = RetryPolicy(timeouts.retries, timeouts.initial_backoff_seconds,
                                      timeouts.max_backoff_seconds, app.stop_event.wait)
                 # Connects and signs in here; a failure leaves the running mailboxes as they are.
-                reader = ImapReader(*address, timeouts.timeout_seconds, **options, policy=policy,
+                reader = imap_module.ImapReader(*address, timeouts.timeout_seconds, **options, policy=policy,
                                     logger=app.logger, batch_size=imap.batch_size)
                 resources.callback(reader.close)
                 sources.append(MailboxSource(mailbox, reader))
@@ -58,7 +59,7 @@ class MailboxRuntime(PendingConnections):
                 **{mailbox_account_id(source.mailbox, self.secrets.imap_credentials(source.mailbox.id)):
                    source.mailbox.id for source in sources}}
             iserv = app.iserv.sources if app.iserv is not None else []
-            app.dialog.presenter.mailbox_of = _mailbox_labels(
+            app.dialog.presenter.mailbox_of = mailbox_labels(
                 app.store, app.sources, {source.reader.account_id: source.account.label for source in iserv})
             if app.experience is not None:
                 app.experience.add_mailboxes(settings, self.secrets)

@@ -24,8 +24,8 @@ from mailhelp.mailbox.mime import MimeLimitExceeded, MimeLimits, extract_display
 from mailhelp.notifications.drafts import message
 from mailhelp.notifications.webpush import subscription
 from mailhelp.processing.analysis import Analyzer, LlmSchemaValidationFailed
-from mailhelp.processing.calendar_parser import _unescape_text, _unfold_ical
 from mailhelp.proposals.action_normalization import _parse_date
+from mailhelp.text.calendar_parser import _unescape_text, _unfold_ical
 from mailhelp.text.german_dates import WEEKDAYS, explicit_years, weekday_contradicts
 from mailhelp.text.temporal_answers import _localize, parse_deterministic_temporal_answer
 from tests.fakes.shared_quality_corpus import prompt_config

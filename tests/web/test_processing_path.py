@@ -2,7 +2,7 @@
 from mailhelp.domain.extraction import ActionRoute
 from mailhelp.domain.processing import ProcessingError
 from mailhelp.domain.relevance import Relevance
-from mailhelp.review.archive import AnalysisSnapshot
+from mailhelp.persistence.archive import AnalysisSnapshot
 from tests.scenarios.web_scenario import NOW, mail_id, save_mail
 
 DONE = dict(preparation="completed", relevance="completed", summary="completed", action_detection="completed",

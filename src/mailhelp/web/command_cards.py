@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from urllib.parse import quote
 
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
@@ -95,7 +96,6 @@ class CommandCards:
             if self.sender_hint_lookup is not None:
                 hint = self.sender_hint_lookup(command.mail_id)
                 if hint is not None:
-                    from urllib.parse import quote
                     parts.append(
                         f'<div class="sender-hint-notice notice warn" data-sender-hint>'
                         f'<p>{e(hint.trigger_sentence)}</p>'

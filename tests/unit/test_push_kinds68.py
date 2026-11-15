@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-from mailhelp.notifications.notification_config import CATEGORIES
+from mailhelp.config.notifications import CATEGORIES
 
 
 def test_every_producer_category_has_a_fixed_worker_text_and_target():

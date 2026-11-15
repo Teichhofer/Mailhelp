@@ -14,6 +14,9 @@ from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any
 
+from ..text.attachment_extractor import extract_attachment_text
+from ..text.calendar_parser import parse_icalendar
+
 
 @dataclass(frozen=True)
 class MimeLimits:
@@ -231,8 +234,6 @@ def _collect_and_extract_attachments(
     message: Message, user_timezone: str, max_attachment_bytes: int
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Collect attachment parts and extract calendar events and document texts."""
-    from ..processing.attachment_extractor import extract_attachment_text
-    from ..processing.calendar_parser import parse_icalendar
 
     calendar_events: list[dict[str, Any]] = []
     extracted_attachments: list[dict[str, Any]] = []

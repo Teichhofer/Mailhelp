@@ -1,14 +1,19 @@
 """5.3 (H7): the local reader of the packaged help sections, also without the help chat."""
 from __future__ import annotations
 
+import hashlib
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, quote
 
-from ..helpdocs import HelpBase, HelpUnavailable, load
+from ..helpdocs import HelpBase, HelpUnavailable, concise, load, same_text
+from ..helpdocs.chat import MESSAGES, ChatRefused
+from ..helpdocs.markdown import render
 from .actions import new_key
 from .auth import WebSession
+from .help_window import HelpWindow
 from .http import Request, Response
 from .pages import e, layout, notice
+from .settings_search import catalog
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
@@ -20,7 +25,6 @@ class HelpSite:
         self._base: HelpBase | None = None
         # The help chat (H9); without it the documentation stays readable.
         self.chat: Any = None
-        from .help_window import HelpWindow
         self.window = HelpWindow(self)
         site.app.route("GET", "/hilfe/dokumentation", site.signed_in(self.index))
         site.app.route("GET", "/hilfe", site.signed_in(self.page))
@@ -87,7 +91,6 @@ class HelpSite:
                 links.append(f"<li>{e(source_id)} (frühere Dokumentationsfassung)</li>")
             else:
                 links.append(f'<li><a href="/hilfe/dokumentation/{e(item.id)}">{e(" › ".join(item.path))}</a></li>')
-        from .settings_search import catalog
         entries = {entry.id: entry for entry in catalog()}
         settings = [f'<li><a href="{e(entries[key].href)}">{e(entries[key].label)}</a></li>'
                     for key in turn.setting_ids if key in entries]
@@ -105,8 +108,6 @@ class HelpSite:
         5.5.6: both are written in a small Markdown subset and rendered by the escaping
         renderer of ``helpdocs.markdown``; no markup of the model reaches the page.
         """
-        from ..helpdocs import concise, same_text
-        from ..helpdocs.markdown import render
         short = concise(turn.answer, turn.short_answer)
         # Mailhelp's own short notices (no matching section) are always shown in full.
         if turn.local or same_text(short, turn.answer):
@@ -116,15 +117,12 @@ class HelpSite:
                 f'<div class="help-answer-text">{render(turn.answer)}</div></details>')
 
     def setting(self, value: str) -> str:
-        from .settings_search import catalog
         return value if any(item.key == value and value for item in catalog()) else ""
 
     def _form(self, csrf: str, version: int, setting: str, draft: str = "",
               target: str = "/einstellungen", window_version: int = 1) -> str:
-        from .actions import new_key
         reference = ""
         if setting:
-            from .settings_search import catalog
             entry = next((item for item in catalog() if item.key == setting), None)
             if entry is not None:
                 reference = (f'<input type="hidden" name="einstellung" value="{e(setting)}">'
@@ -169,7 +167,6 @@ class HelpSite:
             progress = (f'<p class="notice info" role="status" data-help-job="{e(pending.id)}">'
                         "Antwort wird vorbereitet …</p>")
         elif last is not None and last.status in {"failed", "interrupted"}:
-            from ..helpdocs.chat import MESSAGES
             progress = notice(MESSAGES.get(last.error or "failed", MESSAGES["failed"]), "warn")
         clear = ""
         if state.turns or current:
@@ -184,7 +181,6 @@ class HelpSite:
                 + clear)
 
     def window_data(self, request: Request, session: WebSession) -> Response:
-        import hashlib
         state = self.window.state(session)
         setting = self.setting(parse_qs(request.query).get("einstellung", [state.setting])[0])
         stamp = (self.chat.state(session.id).model_dump_json(exclude={"updated_at"})
@@ -207,7 +203,6 @@ class HelpSite:
 
     def _chat_result(self, request: Request, session: WebSession, form: dict[str, str],
                      text: str = "", status: int = 200) -> Response:
-        from .actions import new_key
         state = self.window.state(session)
         self.window.change(session, {"window_action": "save", "window_version": str(state.version),
                                      "key": new_key(), "draft": form.get("frage", "") if text else "",
@@ -223,7 +218,6 @@ class HelpSite:
         return Response.redirect(target)
 
     def ask(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        from ..helpdocs.chat import ChatRefused
         if self.chat is None:
             return self._chat_result(request, session, form, "Der Hilfschat ist nicht aktiv.", 503)
         try:
@@ -238,7 +232,6 @@ class HelpSite:
         return self._chat_result(request, session, form)
 
     def clear(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        from ..helpdocs.chat import ChatRefused
         if self.chat is not None:
             try:
                 self.chat.clear(session.id, int(form.get("version", "0")))

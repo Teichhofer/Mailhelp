@@ -12,8 +12,10 @@ from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Any, Protocol, TextIO
 
+from .log_reduction import LogReduction
+
 if TYPE_CHECKING:
-    from .runtime.metrics import MetricsRecorder
+    from .support.metrics import MetricsRecorder
 
 LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 SENSITIVE_KEYS = ("token", "password", "authorization", "api_key", "apikey", "secret", "cookie")
@@ -122,7 +124,6 @@ class JsonlLogger:
         # The Telegram receiver thread logs concurrently with the main thread;
         # rotation and appends must not interleave.
         self._lock = RLock()
-        from .log_reduction import LogReduction
         self.reduction = LogReduction()
         self.verbose = verbose
         self.app = directory / file_name

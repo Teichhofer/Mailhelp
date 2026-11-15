@@ -43,7 +43,10 @@ from ..external.roles import provider_key
 from ..external.verification import EntryReader, How, compare
 from ..llm.adapter import PermanentError, RetryableError
 from ..logging import EventLogger, NullLogger
+from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import CorruptState, JsonStore
+from ..review.commands import CommandKind, ReviewCommand
+from ..review.inbox import CommandInboxState, CommandStatus
 
 # A read that may succeed later; every other failure ends the automatic checks.
 NOT_VISIBLE = "not_visible"
@@ -337,9 +340,6 @@ def prepare_rollback(store: JsonStore) -> tuple[int, int]:
     write a created entry again. Refused while an "Erneut prüfen" command is still queued, since
     older versions cannot read it. Returns (converted proposals, waiting commands).
     """
-    from ..persistence.proposals import ProposalRepository
-    from ..review.commands import CommandKind, ReviewCommand
-    from ..review.inbox import CommandInboxState, CommandStatus
     with store.locked():
         inbox = store.load_model("command-inbox", CommandInboxState, CommandInboxState())
         waiting = sum(1 for entry in inbox.entries if entry.status == CommandStatus.QUEUED

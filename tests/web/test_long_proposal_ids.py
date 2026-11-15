@@ -16,7 +16,8 @@ from pydantic import BaseModel
 from mailhelp.domain import processing, proposal_sources
 from mailhelp.domain import proposal as proposal_module
 from mailhelp.domain.proposal import Proposal
-from mailhelp.review import archive, commands
+from mailhelp.persistence import archive
+from mailhelp.review import commands
 from mailhelp.review.errors import StaleCommand
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.telegram import callbacks

@@ -135,7 +135,7 @@ def test_saved_credentials_are_reused_and_unrelated_drafts_are_preserved(activat
     assert ctx.runtime.setup.draft_settings().timezone == "Europe/Berlin"
     assert "# keep\nOTHER=value" in (ctx.tmp_path / ".env").read_text()
     # A new service after restart reads the persisted config and credentials.
-    from mailhelp.runtime.setup_runtime import SetupRuntime
+    from mailhelp.app.setup_runtime import SetupRuntime
     restarted = SetupRuntime(ctx.app, ctx.web.site, ctx.runtime.secrets)
     assert restarted.credentials(restarted.setup.draft_settings()).iserv[1].username == "saved-user"
 

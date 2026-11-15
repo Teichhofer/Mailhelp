@@ -8,6 +8,8 @@ from ..domain.mail import MailState, next_updated_at
 from ..domain.processing import ProposalNotification, WriteAttemptReference
 from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.run import MailRunCounters, MailRunEntryStatus, MailRunState
+from .archive import record_event
+from .revision_origin import ORIGIN
 from .storage import JsonStore
 
 
@@ -69,8 +71,6 @@ class ProposalRepository:
             proposal.source_mail_id, proposal.id, proposal.version)
         if self.store.load(version) is None:
             self.store.save(version, value)
-        from ..review.archive import record_event
-        from ..review.revision_origin import ORIGIN
         record_event(self.store, proposal, "state", source=ORIGIN.get())
         # Provenance is durable before publishing the current pointer to the push producer.
         self.store.save(proposal_name(proposal.source_mail_id, proposal.id), value)

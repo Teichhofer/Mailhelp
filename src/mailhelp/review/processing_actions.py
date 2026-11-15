@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 
 from .. import state_names
 from ..domain.mail import MailState
+from ..persistence.archive import HistoryEvent, append_event
 from ..persistence.storage import JsonStore
-from .archive import HistoryEvent, append_event
 from .commands import CommandKind, ReviewCommand
 from .errors import StaleCommand
 

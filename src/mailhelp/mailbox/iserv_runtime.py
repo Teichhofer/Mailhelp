@@ -4,19 +4,19 @@ from __future__ import annotations
 from contextlib import ExitStack
 
 from .connection_runtime import PendingConnections
+from .iserv import IServRunService
+from .sources import build_iserv_sources, mailbox_labels
 
 
 class IServRuntime(PendingConnections):
     area = "iserv"
 
     def _apply(self, pending):
-        from ..runtime.composition import _build_iserv, _mailbox_labels
-        from .iserv import IServRunService
         configured, secrets = pending
         app = self.app
         settings = app.settings.model_copy(update={"iserv": configured.iserv})
         with ExitStack() as resources:
-            sources = _build_iserv(settings, secrets, resources)
+            sources = build_iserv_sources(settings, secrets, resources)
             service = IServRunService(app.store, app.logger, sources, app._process_mail, app.stop_event)
             old = set(app.mailbox.resume_readers)
             numbers = {key: value for key, value in app.orchestrator.mailbox_numbers.items() if key not in old}
@@ -29,7 +29,7 @@ class IServRuntime(PendingConnections):
             app.iserv = service
             app.mailbox.resume_readers = service.readers()
             app.logger.metrics.mailbox_numbers = numbers
-            app.dialog.presenter.mailbox_of = _mailbox_labels(
+            app.dialog.presenter.mailbox_of = mailbox_labels(
                 app.store, app.sources, {source.reader.account_id: source.account.label for source in sources})
             previous = self.resources
             self.resources = resources.pop_all()

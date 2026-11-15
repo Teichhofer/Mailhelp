@@ -8,8 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import EventDefaultsSettings
 from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions
+from ..mailbox.mailbox_settings import event_defaults_for
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
+from ..proposals.revision_protection import protect_revision
 from ..text.temporal_answers import deterministic_temporal_revision
 from .commands import CommandKind, ReviewCommand, SeriesMember
 from .errors import AnswerRequired, StaleCommand
@@ -130,12 +132,10 @@ class SeriesService:
         candidate = deterministic_temporal_revision(original, question, answer, self.controller.configured_timezone)
         if candidate is None:
             raise AnswerRequired("Bitte eine eindeutige Uhrzeit oder ein Zeitintervall angeben")
-        from ..proposals.revision_protection import protect_revision
         candidate = protect_revision(original, candidate)
         state = self.controller.repository.load_mail(original.source_mail_id)
         policy = state.proposal_policy if state is not None else None
         if self.review.configuration is not None:
-            from ..mailbox.mailbox_settings import event_defaults_for
             handler = self.controller.relevance_handler
             defaults = event_defaults_for(self.review.configuration.active, self.store, original,
                                           getattr(handler, "mailbox_numbers", {}))

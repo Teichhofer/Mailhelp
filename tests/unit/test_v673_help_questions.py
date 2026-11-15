@@ -10,7 +10,6 @@ import pytest
 
 from mailhelp.helpdocs import load
 
-
 QUESTIONS: list[tuple[str, str]] = [
     (
         "Wie wische ich auf dem Smartphone, um einen Termin anzulegen oder zu verwerfen?",

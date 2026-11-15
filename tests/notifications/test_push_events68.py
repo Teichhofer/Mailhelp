@@ -6,8 +6,8 @@ import pytest
 from mailhelp.notifications.push_events import PushDecisionEvents
 from mailhelp.notifications.webpush import PushService
 from mailhelp.persistence.proposals import ProposalRepository
+from mailhelp.persistence.revision_origin import ORIGIN, revision_origin
 from mailhelp.persistence.storage import JsonStore
-from mailhelp.review.revision_origin import ORIGIN, revision_origin
 from tests.fakes.factories import build_proposal
 from tests.fakes.push68 import subscription
 

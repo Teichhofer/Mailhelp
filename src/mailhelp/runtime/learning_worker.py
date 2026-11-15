@@ -10,6 +10,7 @@ from ..config import IrrelevantTopicsConfig, read_yaml
 from ..llm.learning import LearningMode, LearningSource
 from ..mailbox.sender_filter import sender_addresses
 from ..processing.analysis import Analyzer
+from . import experience
 from .learning_jobs import LearningCard, LearningConflict, LearningJobs
 
 # Two relevance groups, classification and abstraction per mail.
@@ -83,10 +84,9 @@ class LearningCompleter:
 
 class LearningWorker:
     def __init__(self, app, site, secrets, open_reader=None):
-        from .experience import _reader
 
         self.app, self.secrets = app, secrets
-        self.open_reader = open_reader or _reader
+        self.open_reader = open_reader or experience._reader
         self.stopped, self.thread = Event(), None
         self.rules: Any = None
         self.jobs = LearningJobs(

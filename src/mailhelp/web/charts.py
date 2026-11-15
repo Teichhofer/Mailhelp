@@ -14,6 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..formatting import duration_text
+from ..review.views import STAGE_LABELS
 from .pages import e
 
 WIDTH, HEIGHT, LEFT, BOTTOM, TOP = 640, 220, 56, 28, 12
@@ -246,7 +247,6 @@ def _duration_grid(top: float, y_of: Callable[[float], float]) -> str:
 
 
 def _call_mark(record: dict[str, Any], x: float, y: float, zone: ZoneInfo) -> str:
-    from ..review.views import STAGE_LABELS
     moment = datetime.fromisoformat(record["started_at"]).astimezone(zone)
     failed = record["status"] != "success"
     stage = STAGE_LABELS.get(record["stage"], record["stage"])
@@ -379,6 +379,7 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
                  "stage": "Durchlauf"} for row in totals]
         body += scatter_chart("chart-runs", runs, days, tz, now, title="Durchlaufzeit je Mail",
                               what="jeder vollständig verarbeiteten Mail ohne Wartezeit auf Entscheidungen")
+    # Late: pipeline imports the chart helpers at load time.
     from .pipeline import pipeline_plan, ranking, stage_times, wall_ranking
     if walls:
         body += wall_ranking(walls, link)

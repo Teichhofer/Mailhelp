@@ -9,11 +9,16 @@ from .. import state_names
 from ..domain.proposal import Proposal
 from ..review.filters import matches
 from ..review.queries import ArchiveQuery
+from ..support.stage_metrics import report as stage_report
 from .archive_pages import MODE_LABELS, history_page, statistics_page, version_diff
 from .auth import WebSession
+from .calls_page import METRICS, STATUSES, calls_page
+from .calls_page import SORTS as CALL_SORTS
 from .http import Request, Response
 from .pages import layout
 from .review_pages import detail_page
+from .stage_page import SORTS as STAGE_SORTS
+from .stage_page import STAGES, stage_page, title
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
@@ -86,7 +91,6 @@ class HistorySite:
 
     def calls(self, request: Request, session: WebSession) -> Response:
         """5.9.11: read only; unknown figures, sort orders or filters are rejected with 422."""
-        from .calls_page import METRICS, SORTS, STATUSES, calls_page
         metrics = self.archive.metrics
         if metrics is None:
             return Response.html(200, layout("Auswertung",
@@ -97,7 +101,8 @@ class HistorySite:
             sort = params.pop("sort", "")
             status = params.pop("status", None)
             page = int(params.pop("page", "1"))
-            if metric not in METRICS or (sort and sort not in SORTS) or (status is not None and status not in STATUSES):
+            if (metric not in METRICS or (sort and sort not in CALL_SORTS)
+                    or (status is not None and status not in STATUSES)):
                 raise ValueError("Unbekannte Auswahl")
             if not 1 <= page <= 10_000:
                 raise ValueError("Ungültige Seite")
@@ -115,8 +120,6 @@ class HistorySite:
 
     def steps(self, request: Request, session: WebSession) -> Response:
         """6.1.8: the slowest runs of one step; read only, unknown values are rejected with 422."""
-        from ..runtime.stage_metrics import report as stage_report
-        from .stage_page import SORTS, STAGES, stage_page, title
         metrics = self.archive.metrics
         if metrics is None:
             return Response.html(200, layout("Auswertung",
@@ -126,7 +129,7 @@ class HistorySite:
             stage = params.pop("stage", "total")
             sort = params.pop("sort", "duration")
             page = int(params.pop("page", "1"))
-            if stage not in STAGES or sort not in SORTS or not 1 <= page <= 10_000:
+            if stage not in STAGES or sort not in STAGE_SORTS or not 1 <= page <= 10_000:
                 raise ValueError("Unbekannte Auswahl")
             selected, _ = self._report(params)
             steps = stage_report(selected.stages, **{key: params[key] for key in ("days", "mode", "since", "until")
@@ -152,7 +155,6 @@ class HistorySite:
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]
-        from ..runtime.stage_metrics import report as stage_report
         steps = stage_report(selected.stages, **{key: params[key] for key in
                                                  ("days", "mode", "stage", "since", "until") if key in params})
         return Response.html(200, layout("Auswertung", statistics_page(params, report, everything,

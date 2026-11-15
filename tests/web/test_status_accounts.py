@@ -5,7 +5,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Settings
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
 
 
 def configure_accounts(profiled):

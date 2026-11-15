@@ -9,6 +9,7 @@ from typing import Any
 
 from ..domain.proposal import Proposal
 from ..logging import EventLogger
+from .calendar import CalendarOperations
 from .contracts import PreparedWrite, TargetWriter, proposal_is_writable
 
 
@@ -32,13 +33,11 @@ class ProviderWriter(TargetWriter):
             raise ValueError("Vorschlag hat keine externe ID")
         if proposal.target != self.target:
             raise ValueError("Konfiguriertes Ziel weicht vom bestätigten Vorschlagsziel ab")
-        from .calendar import CalendarOperations
         if isinstance(self, CalendarOperations):
             return self._prepare_remove_calendar(proposal, key)
         raise NotImplementedError(f"{self.label}: Entfernen wird nicht unterstützt")
 
     def reconcile_remove(self, proposal: Proposal, key: str) -> dict[str, Any] | None:
-        from .calendar import CalendarOperations
         if isinstance(self, CalendarOperations):
             return self._reconcile_remove_calendar(proposal, key)
         return None

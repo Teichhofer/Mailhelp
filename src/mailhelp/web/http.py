@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import parse_qs
 
+from .network import lan_host
+
 MAX_BODY_BYTES = 16 * 1024
 ALLOWED_METHODS = frozenset({"GET", "POST"})
 # No inline scripts or styles; everything is served by Mailhelp itself.
@@ -115,7 +117,6 @@ def rejected(request: Request, allowed_hosts: frozenset[str],
 
     With *lan_port*, the PC's private IP addresses with that port are accepted too.
     """
-    from .network import lan_host
 
     if request.host not in allowed_hosts and not (
             lan_port is not None and lan_host(request.host, lan_port)):

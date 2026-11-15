@@ -143,7 +143,7 @@ def mailhelp(tmp_path):
 
         from mailhelp.config.configuration import ConfigurationService
         from mailhelp.runtime.lifecycle import Lifecycle
-        from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+        from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
         from tests.fakes.shared_application import settings as application_settings
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
@@ -230,9 +230,9 @@ def setup_server(mailhelp):
     """A synthetic configuration runtime shared by setup and connection-form tests."""
     from types import SimpleNamespace as NS
 
+    from mailhelp.app.setup_runtime import SetupRuntime
     from mailhelp.notifications.notification_runtime import NotificationRuntime
     from mailhelp.processing.orchestrator import Orchestrator
-    from mailhelp.runtime.setup_runtime import SetupRuntime
     from tests.fakes.shared_core import prompt_config
 
     site = mailhelp.site

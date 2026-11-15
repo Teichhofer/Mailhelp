@@ -5,10 +5,10 @@ from threading import Event
 
 import pytest
 
+from mailhelp.app.bootstrap import create_initial
 from mailhelp.config import WebSettings
 from mailhelp.logging import NullLogger
 from mailhelp.persistence.storage import JsonStore
-from mailhelp.runtime.bootstrap import create_initial
 
 
 class SyntheticChecks:

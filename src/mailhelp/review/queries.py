@@ -9,10 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
+from ..persistence.archive import AnalysisSnapshot, HistorySnapshot
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.mail_recheck import filed_as_irrelevant
 from ..state_names import mail_state_names
-from .archive import AnalysisSnapshot, HistorySnapshot
 from .filters import matches
 from .search import SEPARATOR, bounded, excerpt, fold, terms
 

@@ -6,7 +6,7 @@ from email.message import EmailMessage
 import pypdf
 
 from mailhelp.mailbox.mime import MimeLimits, prepare
-from mailhelp.processing.attachment_extractor import (
+from mailhelp.text.attachment_extractor import (
     _TRUNCATION_MARKER,
     clean_text,
     extract_attachment_text,
@@ -244,7 +244,7 @@ def test_docx_empty_paragraph_and_extract_text_error(monkeypatch):
     assert "Text nach Leerzeile" in res.text
 
     # extract_text unexpected error branch
-    monkeypatch.setattr("mailhelp.processing.attachment_extractor.clean_text", lambda _t: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr("mailhelp.text.attachment_extractor.clean_text", lambda _t: (_ for _ in ()).throw(RuntimeError("boom")))
     res_err = extract_attachment_text("boom.txt", "text/plain", b"irrelevant")
     assert res_err.extraction_status == "error"
 

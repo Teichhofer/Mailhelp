@@ -15,10 +15,9 @@ from typing import Any, Protocol, overload, runtime_checkable
 
 from pydantic import BaseModel, ValidationError
 
-from ..runtime.lock_metrics import measured_lock
-
 # Re-exported for existing callers; the name patterns live in state_names.
 from ..state_names import mail_state_names  # noqa: F401
+from ..support.lock_metrics import measured_lock
 from .migrations import migrate_document
 
 
@@ -155,6 +154,7 @@ class JsonStore:
         # The type stubs of msvcrt and fcntl are complete only on their own platform;
         # each module is used untyped so the check gives the same result everywhere.
         if os.name == "nt":
+            # Late: platform-specific module.
             import msvcrt
 
             windows: Any = msvcrt
@@ -164,6 +164,7 @@ class JsonStore:
             os.lseek(descriptor, 0, os.SEEK_SET)
             windows.locking(descriptor, windows.LK_NBLCK, 1)
         else:
+            # Late: platform-specific module.
             import fcntl
 
             posix: Any = fcntl

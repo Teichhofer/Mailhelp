@@ -135,6 +135,7 @@ class CommandInbox:
         # notification thread reads the inbox while holding the store lock, and a web
         # page holding a separate inbox lock and waiting for the store deadlocked with it.
         self.store, self.wake, self.clock = store, wake, clock or _now
+        # Late: incoming imports the inbox at load time.
         from .incoming import IncomingCommands
         self.changed: Callable[[], None] | None = None
         self._snapshot: tuple[CommandEntry, ...] = ()
@@ -301,6 +302,7 @@ class CommandInbox:
         return sorted(entries.values(), key=lambda entry: (entry.received_at, entry.id))
 
     def _update(self, entry_id: str, **changes: object) -> None:
+        # Late: incoming imports the inbox at load time.
         from .incoming import requires_ack
         if not any(entry.id == entry_id for entry in self._snapshot):
             self.drain()

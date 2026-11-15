@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from mailhelp.config import Settings
-from mailhelp.runtime.env_file import file_hash
+from mailhelp.config.env_file import file_hash
 from mailhelp.runtime.google_calendars import google_calendars
 from mailhelp.runtime.oauth_web import BrowserOAuth, OAuthJob, oauth_config
 from tests.fakes.initial_harness import InitialHarness

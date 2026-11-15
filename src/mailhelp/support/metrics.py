@@ -14,8 +14,12 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from threading import RLock
 from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
+
+from ..persistence.storage import atomic_replace
+from .stage_metrics import StageJournal, compact, journal_path
 
 
 class MetricsSettings(BaseModel):
@@ -204,7 +208,6 @@ class MetricsRecorder:
         self.comparison: MetricsRecorder | None = None
         self.changed: Callable[[], None] = lambda: None
         # 6.1.6: wall time of every processing step; recent calls give each step its AI share.
-        from .stage_metrics import StageJournal, journal_path
         self.stages = StageJournal(journal_path(path), lambda: self.settings.retention_days)
         self._recent_calls: deque[tuple[str | None, float, float, float]] = deque(maxlen=5000)
 
@@ -472,7 +475,6 @@ class MetricsRecorder:
                 "damaged": damaged, "capture_failures": self.failures, "groups": summaries, "records": records}
 
     def month_cost(self, now: datetime, timezone: str) -> tuple[str, int]:
-        from zoneinfo import ZoneInfo
         zone = ZoneInfo(timezone)
         today = now.astimezone(zone)
         rows = [row for row in self.report(days=32)["records"]
@@ -488,8 +490,6 @@ class MetricsRecorder:
         Daily aggregates contain no mail/call IDs. The journal is written first;
         recovery replaces both outputs instead of incrementing a sum twice.
         """
-        from ..persistence.storage import atomic_replace
-        from .stage_metrics import compact
         compact(self.stages)  # 6.1.7: the step journal is folded the same way
         with self._lock:
             pending = sibling(self.path, "compaction")

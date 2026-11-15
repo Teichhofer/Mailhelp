@@ -10,17 +10,17 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
+from mailhelp.app.application import Application
 from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProcessingError
 from mailhelp.domain.relevance import RelevanceDialog
 from mailhelp.llm.decision_test import ComparisonRecorder
-from mailhelp.review.archive import record_event, record_relevance
+from mailhelp.persistence.archive import record_event, record_relevance
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
-from mailhelp.runtime.application import Application
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, server_electricity
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings, server_electricity
 from tests.fakes.shared_application import Log, Orch
 from tests.fakes.shared_application import settings as app_settings
 from tests.fakes.shared_review import command
@@ -208,9 +208,9 @@ def test_successful_contacts_per_service_from_logged_events(tmp_path, mode, llm)
 
 
 def test_telegram_messages_count_as_contacts_without_content(tmp_path):
+    from mailhelp.app.composition import build_logger
     from mailhelp.config import Secrets
     from mailhelp.logging import JsonlLogger
-    from mailhelp.runtime.application import build_logger
     from tests.fakes.shared_application import settings as app_settings
     secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
@@ -270,7 +270,7 @@ def test_status_without_metrics_and_unknown_stage(web, tmp_path):
 # --- R3: metrics location, no double counting, readable report --------------------
 
 def test_legacy_metrics_move_once_with_their_aggregates(tmp_path):
-    from mailhelp.runtime.metrics import adopt_legacy, sibling
+    from mailhelp.support.metrics import adopt_legacy, sibling
     legacy = tmp_path / "data" / "production" / "metrics" / "llm.jsonl"
     legacy.parent.mkdir(parents=True)
     legacy.write_text('{"id": "a"}\n', encoding="utf-8")
@@ -348,8 +348,8 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
 
 
 def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
+    from mailhelp.app.composition import build_application
     from mailhelp.config import Secrets, Topic
-    from mailhelp.runtime.application import build_application
     from tests.fakes.shared_core import prompt_config
 
     class Resource:
@@ -358,7 +358,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'runtime.composition'}.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'app.composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"

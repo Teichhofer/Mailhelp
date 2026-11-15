@@ -66,7 +66,7 @@ def test_check_save_retry_and_restart(activation):
     assert len(ctx.reloads) == 1 and ctx.app.settings.imap.mailbox(3) is None
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 303
     assert len(ctx.reloads) == 1 and len(Reader.calls) == 3
-    from mailhelp.runtime.setup_runtime import SetupRuntime
+    from mailhelp.app.setup_runtime import SetupRuntime
     restarted = SetupRuntime(ctx.app, ctx.web.site, ctx.runtime.secrets)
     assert restarted.credentials(cfg).imap[3].username == VALUES["username"]
     for path in ctx.web.store.directory.glob("*.json"):
@@ -233,7 +233,7 @@ def test_limit_and_missing_runtime(activation):
     submitted = {**VALUES, "id": "11", "version": "1", "key": "limit-0001", "csrf": ctx.web.browser.csrf(ROUTE),
                  "revision": "", "env_revision": ""}
     from mailhelp.config.configuration import file_hash
-    from mailhelp.runtime.env_file import file_hash as env_hash
+    from mailhelp.config.env_file import file_hash as env_hash
     submitted.update(revision=file_hash(ctx.tmp_path / "config.yaml"), env_revision=env_hash(ctx.tmp_path / ".env"),
                      version=str(ctx.runtime.setup.state().version))
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 422

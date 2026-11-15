@@ -26,18 +26,25 @@ from ..domain.mail import MailState, next_updated_at
 from ..domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
 from ..domain.proposal import Proposal
 from ..domain.relevance import IrrelevantSenders, Relevance, RelevanceDialog, RelevanceDialogStatus
+from ..llm.decisions import relevance_fingerprint
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
+from ..mailbox.mailbox_settings import effective_settings, effective_topics, mailbox_fingerprint, mailbox_topic_policy
 from ..mailbox.sender_filter import is_irrelevant_sender
+from ..persistence.archive import record_analysis
 from ..persistence.storage import JsonStore
-from ..proposals.action_normalization import MailDateContext
+from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, MailDateContext, resolve_day
 from ..proposals.precheck import DuplicatePreCheckService
 from ..proposals.proposal_builder import ProposalBuilder
+from ..proposals.proposal_reconciliation import ProposalReconciliationService
 from ..telegram.formatting import mail_line
 from .analysis import Analyzer
+from .attachments import AttachmentCache
+from .identity import addresses_in
 from .mail_duplicates import DuplicateMailCheck
 from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
 from .mail_questions import MailQuestions
+from .retry import blocked, failed, succeeded
 from .stage_timing import StageClock
 from .vision import VisionExtractor
 
@@ -78,7 +85,6 @@ class Orchestrator:
         self.event_defaults = event_defaults or EventDefaultsSettings()
         self.reconciliation_settings = reconciliation_settings or ProposalReconciliationSettings()
         self.proposal_matcher = proposal_matcher
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         self.reconciliation = ProposalReconciliationService(
             store, proposal_matcher, self.reconciliation_settings.max_semantic_candidates)
         self.pipeline = MailPipeline(self)
@@ -104,7 +110,6 @@ class Orchestrator:
 
         The IMAP user name, configured aliases and addresses in personal_info.
         """
-        from .identity import addresses_in
         if self.mailbox_settings is None:
             return frozenset()
         number = self.mailbox_number(account_id)
@@ -114,15 +119,12 @@ class Orchestrator:
         return addresses_in([self.mailbox_usernames.get(number), *aliases, personal])
 
     def effective_settings(self, account_id: str):
-        from ..mailbox.mailbox_settings import effective_settings
         assert self.mailbox_settings is not None
         return effective_settings(self.mailbox_settings, self.mailbox_number(account_id))
 
     def fingerprint_for(self, account_id: str) -> str:
         if self.mailbox_settings is None:
             return self.config_fingerprint
-        from ..llm.decisions import relevance_fingerprint
-        from ..mailbox.mailbox_settings import mailbox_fingerprint
         value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
                                     self.mailbox_number(account_id))
         return relevance_fingerprint(value, self.mailbox_jev) if self.mailbox_jev is not None else value
@@ -130,7 +132,6 @@ class Orchestrator:
     def policy_for(self, account_id: str) -> str | None:
         if self.mailbox_settings is None:
             return self.topic_policy
-        from ..mailbox.mailbox_settings import mailbox_topic_policy
         return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
@@ -201,7 +202,6 @@ class Orchestrator:
 
     def cache_previews(self, state: MailState, raw: bytes) -> None:
         """Image previews are optional; a failure never stops the analysis."""
-        from .attachments import AttachmentCache
         assert state.mail is not None  # previews are cached while the mail is prepared
         try:
             AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"],
@@ -269,7 +269,6 @@ class Orchestrator:
             today = datetime.fromtimestamp(self.clock(), UTC).astimezone(ZoneInfo(self.user_timezone)).date()
         except Exception:
             today = datetime.now(UTC).date()
-        from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, resolve_day
         token_re = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")
         future: list[str] = []
         for item in raw:
@@ -309,7 +308,6 @@ class Orchestrator:
             return False
         record = self.store.load(f"processing-topics-{fingerprint}", {})
         if account_id is not None and any(topic.mailboxes is not None for topic in self.topics):
-            from ..mailbox.mailbox_settings import effective_topics
 
             previous = [Topic.model_validate(item).model_copy(update={"mailboxes": None})
                         for item in record.get("topics", [])]
@@ -321,7 +319,6 @@ class Orchestrator:
 
     def topics_for(self, fingerprint: str, account_id: str | None = None) -> list[Topic]:
         if account_id is not None and fingerprint == self.fingerprint_for(account_id):
-            from ..mailbox.mailbox_settings import effective_topics
             return effective_topics(self.topics, self.mailbox_number(account_id))
         if fingerprint == self.config_fingerprint:
             return self.topics
@@ -342,7 +339,6 @@ class Orchestrator:
     def save(self, name: str, state: MailState) -> None:
         state.updated_at = next_updated_at(state)
         self.store.save(name, state.model_dump(mode="json"))
-        from ..review.archive import record_analysis
         names = {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)}
         record_analysis(self.store, state, names, getattr(self.analyzer, "last_relevance_source", "unknown"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
@@ -356,7 +352,6 @@ class Orchestrator:
         error = state.error
         if error is None or error.code != code or error.stage != stage:
             error = state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
-        from .retry import failed
         failed(state, self.fingerprint_for(state.imap.account_id), now)
         retry = state.processing_retry
         if retry is not None and not retry.abandoned:
@@ -370,6 +365,7 @@ class Orchestrator:
             text = "Mail wird nicht weiter versucht. " + text
             settings = getattr(self, "mailbox_settings", None)
             if settings is not None and settings.web.enabled:
+                # Late: against the layer direction, named in tests/unit/test_layers70.py.
                 from ..web.factory import base_url
                 text += "\n" + base_url(settings) + "/mail/" + state.id
             error.notification_marked_at = None
@@ -437,7 +433,6 @@ class Orchestrator:
             run.stage = ProcessingStage.COMPLETION
             run.state.steps.completion = "completed"
             run.state.error = None
-            from .retry import succeeded
             succeeded(run.state)
             self.save(run.name, run.state)
             self.logger.event("INFO", "orchestrator", "processing_completed", mail_id=run.state.id,
@@ -504,7 +499,6 @@ class Orchestrator:
         if retry is not None and retry.abandoned:
             self.logger.event("WARNING", "orchestrator", "processing_abandoned", mail_id=state.id)
             return ProcessingResult(ProcessingOutcome.FAILED, state.model_dump(mode="json"))
-        from .retry import blocked
         if blocked(state, self.fingerprint_for(state.imap.account_id), datetime.fromtimestamp(self.clock(), UTC)):
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id,
                               deferred_until=state.deferred_until)

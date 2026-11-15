@@ -7,6 +7,7 @@ from threading import Event
 
 import pytest
 
+from mailhelp.app.application import Application
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.domain.proposal import Proposal
 from mailhelp.logging import NullLogger
@@ -14,7 +15,6 @@ from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.runtime.application import Application
 from mailhelp.telegram import TelegramDialogController
 from tests.fakes.clock_fakes import step_back_wall_clock
 from tests.fakes.shared_e2e_simulated import FakeImap as FakeImap

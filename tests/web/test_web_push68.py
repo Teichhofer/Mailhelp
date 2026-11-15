@@ -186,7 +186,7 @@ def test_test_push_rejection_key_conflict_and_stale_receipt(web):
 
 def test_mailbox_channel_confirmation_preserves_other_profiles(configured):
     from mailhelp.config.models import ImapSettings, MailboxSettings
-    from mailhelp.notifications.notification_config import NotificationSettings
+    from mailhelp.config.notifications import NotificationSettings
 
     cfg = configured.app.settings
     cfg.notifications = NotificationSettings(categories={"decisions": ["telegram"]})

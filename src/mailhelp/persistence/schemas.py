@@ -8,6 +8,7 @@ der Invarianten verbleibt in den jeweiligen Domain-Kontexten.
 from __future__ import annotations
 
 from ..activity.models import ActivityReport, ReportMail
+from ..app.reload import ReloadState
 from ..domain.duplicate import DuplicateIndex
 from ..domain.mail import MailState
 from ..domain.processing import (
@@ -30,7 +31,6 @@ from ..runtime.diagnostics import DiagnosticsState
 from ..runtime.initial_setup import InitialDraft
 from ..runtime.learning_jobs import LearningJob
 from ..runtime.oauth_web import OAuthJobs
-from ..runtime.reload import ReloadState
 from ..runtime.setup import SetupState
 from ..runtime.web_password import PasswordState
 

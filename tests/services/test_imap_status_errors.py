@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from mailhelp.mailbox.mailbox_run import MailboxRunService
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
 from tests.fakes.shared_web_actions import web  # noqa: F401
 from tests.fakes.shared_web_v12 import configure
 

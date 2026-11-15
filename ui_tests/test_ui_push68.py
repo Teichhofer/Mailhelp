@@ -6,7 +6,7 @@ import pytest
 from playwright.sync_api import expect
 
 from conftest import sign_in
-from mailhelp.notifications.notification_config import NotificationSettings
+from mailhelp.config.notifications import NotificationSettings
 from mailhelp.notifications.webpush import PushService
 from push_browser_fakes68 import PUSH_STUB
 from tests.fakes.push68 import subscription

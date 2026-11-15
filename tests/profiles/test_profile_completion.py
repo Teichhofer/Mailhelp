@@ -5,6 +5,8 @@ from types import SimpleNamespace as NS
 import pytest
 import yaml
 
+from mailhelp.app.application import Application
+from mailhelp.app.setup_runtime import SetupRuntime
 from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.domain.mail import MailState
 from mailhelp.external.providers import Writers
@@ -14,9 +16,7 @@ from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileWriters
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
-from mailhelp.runtime.application import Application
 from mailhelp.runtime.experience import ExperienceRuntime
-from mailhelp.runtime.setup_runtime import SetupRuntime
 from tests.fakes.factories import build_mail_state
 from tests.fakes.shared_profiles import ACCOUNT_TWO, TOPICS
 from tests.fakes.shared_telegram_dialog import proposal

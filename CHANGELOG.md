@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.0.4 – Schichten und späte Importe
+
+- Schichtentest (`tests/unit/test_layers70.py`) mit 23 benannten Ausnahmen; neue Pakete `app`
+  (Zusammenbau) und `support` (Kennzahlen, Sperrmessung, YAML-Bearbeitung); weitere Module in ihre
+  Schicht verschoben.
+- Fassade in `app/application.py` entfernt; Importzyklus zwischen `application` und `composition` aufgelöst.
+- Importe innerhalb von Funktionen von 328 auf 25; jeder verbliebene nennt seinen Grund.
+- Regressionstest für eine beim Umbau entdeckte Namensverdeckung (Sortierung der Aufrufliste).
+
 ## 7.0.3 – Fassaden entfernt, Module in ihren Paketen
 
 - `mailhelp.models` und `mailhelp.telegram._core` entfallen; Importe zeigen auf das definierende Modul.

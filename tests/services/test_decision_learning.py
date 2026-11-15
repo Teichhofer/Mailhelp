@@ -206,8 +206,8 @@ def test_retention_prunes_records_by_the_configured_period(tmp_path):
 def test_live_retention_change_reaches_the_recorder(tmp_path):
     from types import SimpleNamespace
 
-    from mailhelp.runtime.application import Application
-    from mailhelp.runtime.metrics import MetricsRecorder
+    from mailhelp.app.application import Application
+    from mailhelp.support.metrics import MetricsRecorder
     from tests.fakes.shared_application import settings as app_settings
 
     configured = app_settings(tmp_path)

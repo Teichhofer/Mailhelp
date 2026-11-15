@@ -7,7 +7,7 @@ import yaml
 from mailhelp.config import Topic
 from mailhelp.config.configuration import ConfigurationService
 from mailhelp.runtime.lifecycle import Lifecycle
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
 from tests.fakes.shared_application import settings
 
 

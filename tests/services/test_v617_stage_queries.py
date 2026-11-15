@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
-from mailhelp.runtime.stage_metrics import TOTAL, StageJournal, StageRecord, compact, median, quantile, report
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.stage_metrics import TOTAL, StageJournal, StageRecord, compact, median, quantile, report
 
 NOW = datetime.now(UTC)
 

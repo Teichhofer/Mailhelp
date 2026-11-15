@@ -29,6 +29,7 @@ from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionErr
 from ..llm.adapter import RetryableError
 from ..notifications.notification_context import web_reply
 from ..persistence.proposals import clarification_name, proposal_name, proposal_version_name
+from ..persistence.revision_origin import revision_origin
 from ..persistence.storage import JsonStore
 from .answer_interpretation import AuthorizedAnswerInterpreter
 from .client import TelegramTransport
@@ -285,7 +286,6 @@ class ProposalRevisionProcessor:
                 previous_version=original.version,
                 new_version=revised.version,
             )
-        from ..review.revision_origin import revision_origin
         with revision_origin(state.source):
             self.persistence.send_proposal(revised)
         self.store.save(

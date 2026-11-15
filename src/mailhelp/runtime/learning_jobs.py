@@ -8,6 +8,7 @@ import re
 import time
 from typing import Literal
 
+import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
@@ -236,7 +237,6 @@ class LearningJobs:
         selected = payload["folders"]
         if not isinstance(selected, list) or not set(selected) <= set(state.folders):
             raise LearningConflict("Ungültige Ordnerauswahl")
-        import yaml
 
         raw = read_yaml(self.directory / "config.yaml")
         section = raw["imap"]

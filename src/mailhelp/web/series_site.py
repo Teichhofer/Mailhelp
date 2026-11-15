@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from ..domain.proposal import Proposal
+from ..proposals.proposal_reconciliation import ProposalReconciliationService
 from ..review.cards import event_time
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandConflict, CommandInboxFull
@@ -25,7 +26,6 @@ class SeriesSite:
         site.app.route("POST", r"/serie/(?P<token>[a-f0-9]{32})", site.signed_in(self.act))
 
     def show(self, request: Request, session: WebSession, mail_id: str, key: str) -> Response:
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         first = next((item for item in ProposalReconciliationService(self.site.views.store).current()
                       if item.source_mail_id == mail_id and item.series_key == key), None)
         if first is None:

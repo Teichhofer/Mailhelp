@@ -11,6 +11,9 @@ from ..domain.mail import MailState
 from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
 from ..domain.proposal import Proposal, ProposalStatus
 from ..persistence.proposals import clarification_name, proposal_name
+from ..review.views import count_processed, german_number
+from ..state_names import mail_state_names
+from ..web.auth import PairingLimited
 from .formatting import clarification_prompt
 
 if TYPE_CHECKING:
@@ -83,10 +86,8 @@ class TelegramCommands:
         """
         report = _Overview(interactive=interactive, compact=compact)
         if counted:
-            from ..review.views import count_processed, german_number
             count = count_processed(self.store)
             report.header = f"📊 Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet."
-            from ..state_names import mail_state_names
             abandoned = sum(bool(mail_state.processing_retry and mail_state.processing_retry.abandoned)
                             for name in mail_state_names(self.store)
                             if (mail_state := self.store.load_model(name, MailState)) is not None
@@ -195,7 +196,6 @@ class TelegramCommands:
         if self.web_invite is None:
             self.telegram.send(self.chat_id, "Die Weboberfläche ist nicht aktiviert.")
             return
-        from ..web.auth import PairingLimited
 
         try:
             text = self.web_invite()

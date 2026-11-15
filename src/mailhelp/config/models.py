@@ -21,8 +21,8 @@ from pydantic import (
     model_validator,
 )
 
-from ..notifications.notification_config import NotificationOverrides, NotificationSettings
-from ..runtime.metrics import MetricsSettings
+from ..support.metrics import MetricsSettings
+from .notifications import NotificationOverrides, NotificationSettings
 
 
 class ConfigModel(BaseModel):
@@ -243,7 +243,6 @@ class IServAccountSettings(ConfigModel):
     @classmethod
     def valid_server(cls, value: str) -> str:
         """The school's HTTPS origin; a pasted link (path, query) or a bare host name is reduced to it."""
-        from urllib.parse import urlsplit
         text = value.strip()
         parts = urlsplit(text if "://" in text else "https://" + text)
         if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
@@ -704,6 +703,7 @@ class LlmConnection(ConfigModel):
     @field_validator("ollama_address")
     @classmethod
     def valid_address(cls, value: str) -> str:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..llm.ollama import parse_address
         value = value.removeprefix("http://").removesuffix("/")
         parse_address(value)
@@ -760,6 +760,7 @@ class Settings(ConfigModel):
 
     @model_validator(mode="after")
     def valid_mailbox_policies(self) -> Settings:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..mailbox.mailbox_settings import validate_policies
         validate_policies(self)
         return self
@@ -832,6 +833,7 @@ class Secrets(BaseModel):
         return self.imap[mailbox_id]
 
     def for_profile(self, profile_id: int) -> Secrets:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..proposals.target_profiles import profile_secrets
         return profile_secrets(self, profile_id)
 

@@ -1,9 +1,9 @@
 import json
 
+from mailhelp.app import composition
 from mailhelp.config import load_all
 from mailhelp.review.learning_log import learning_path
 from mailhelp.rule_learning.service import DecisionRuleLearning
-from mailhelp.runtime import composition
 from tests.fakes.learning_harness import learning
 from tests.fakes.rule_learning import record
 

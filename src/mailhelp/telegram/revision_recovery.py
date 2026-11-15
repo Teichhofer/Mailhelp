@@ -15,6 +15,7 @@ from ..domain.processing import (
 )
 from ..domain.proposal import Proposal
 from ..persistence.proposals import proposal_name
+from ..persistence.revision_origin import revision_origin
 from ..persistence.storage import JsonStore
 from ..processing.analysis import validate_revision_successor
 from .revision_contracts import EventLogger, ProposalRevisionService
@@ -99,7 +100,6 @@ class RevisionRecovery:
                 error=exc,
             )
             return
-        from ..review.revision_origin import revision_origin
         with revision_origin("telegram"):
             self.persistence.send_proposal(revised)
         self.store.save("telegram-dialog", TelegramDialogState().model_dump())

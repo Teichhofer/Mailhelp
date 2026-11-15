@@ -13,7 +13,9 @@ from ..config import load_all
 from ..config.configuration import file_hash
 from ..domain.mail import MailState
 from ..domain.run import MailRunState
+from ..llm.ollama import LocalLlm, parse_address
 from ..state_names import mail_state_names
+from . import composition
 
 
 class ReloadState(BaseModel):
@@ -106,8 +108,6 @@ class ReloadService:
                 app.experience.wait_stopped()
 
     def _build(self, old, stack):
-        from ..llm.ollama import LocalLlm, parse_address
-        from .composition import build_application
 
         settings, secrets, topics, _, prompts, fingerprint = load_all(self.directory)
         # A changed persistence namespace or listening/authentication boundary needs a process restart.
@@ -125,7 +125,7 @@ class ReloadService:
             host, port = parse_address(settings.llm.ollama_address)
             local = LocalLlm(host, port, **prompts.ollama.model_dump())
         new = stack.enter_context(
-            build_application(
+            composition.build_application(
                 settings,
                 secrets,
                 topics,

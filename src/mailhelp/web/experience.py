@@ -15,6 +15,7 @@ from .actions import new_key
 from .auth import WebSession
 from .http import Request, Response
 from .pages import e, layout
+from .push_site import PushSite
 
 if TYPE_CHECKING:
     from ..notifications.drafts import DraftService
@@ -28,7 +29,6 @@ class ExperienceSite:
         # Attached by the experience runtime when Web-Push or reply drafts are available.
         self.push: PushService | None = None
         self.drafts: DraftService | None = None
-        from .push_site import PushSite
         self.push_page = PushSite(self)
         route = site.app.route
         route("GET", "/briefing", site.signed_in(self.briefing))

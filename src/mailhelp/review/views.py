@@ -43,9 +43,11 @@ from ..domain.verification import OPERATIONS, VerificationState, WriteVerificati
 from ..formatting import format_datetime_local
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.attachments import AttachmentCache, OriginalFile
+from ..proposals import conflicts
 from .calendar_display import candidate_label
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
+from .service import proposal_creation_time
 from .verification_texts import VerificationSummary, summary
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
@@ -647,7 +649,6 @@ class ReviewViews:
         )
 
     def _is_within_removal_window(self, proposal: Proposal) -> bool:
-        from .service import proposal_creation_time
         created = proposal_creation_time(self.store, proposal)
         if created is None:
             return True
@@ -683,7 +684,6 @@ def _open_actions(proposal: Proposal, editing: bool, blocked: bool) -> set[Comma
 
 def conflict_choices(proposal: Proposal, configured_timezone: str) -> tuple[ConflictChoice, ...]:
     """Field conflicts with their values in the configured zone (5.9.3)."""
-    from ..proposals import conflicts
     zone = ZoneInfo(configured_timezone)
     return tuple(ConflictChoice(
         id=item.id, label=conflicts.label(item), question=conflicts.question(item, proposal.sources, zone),

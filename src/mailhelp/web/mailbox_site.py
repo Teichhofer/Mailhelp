@@ -7,17 +7,22 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 from ..config import Settings, TargetProfileSettings, Topic, read_yaml
-from ..config.configuration import MAILBOX_POLICY_FIELDS
+from ..config.configuration import MAILBOX_POLICY_FIELDS, set_dotted
+from ..domain.mail import MailState
 from ..domain.proposal import Proposal
+from ..llm.decisions import relevance_fingerprint
 from ..mailbox.mailbox_settings import effective_settings, mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
 from ..proposals.profile_binding import choices
 from ..proposals.profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..state_names import mail_state_names
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
 from .pages import e, layout, notice
+from .setup_site import CHOICES
+from .setup_site import LABELS as TARGET_LABELS
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
@@ -95,8 +100,6 @@ def lookup(value: Any, name: str) -> Any:
 
 
 def control(name: str, value: object, prefix: str = "mailbox") -> str:
-    from .setup_site import CHOICES
-    from .setup_site import LABELS as TARGET_LABELS
 
     identity = prefix + "-" + name.replace(".", "-")
     title = LABELS.get(name, TARGET_LABELS.get("targets." + name, name))
@@ -231,9 +234,6 @@ class MailboxSite:
         return text
 
     def affected(self) -> dict[int, int]:
-        from ..domain.mail import MailState
-        from ..llm.decisions import relevance_fingerprint
-        from ..state_names import mail_state_names
 
         app = self.runtime.app
         cfg = self.runtime.setup.draft_settings()
@@ -456,7 +456,6 @@ class MailboxSite:
                     )
                 else:
                     value = form["value"]
-                from ..config.configuration import set_dotted
 
                 set_dotted(box, field, value)
             self.runtime.setup.save(

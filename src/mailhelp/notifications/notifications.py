@@ -9,8 +9,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..config.notifications import Category, effective_profile
 from ..llm.adapter import PermanentError, RetryableError
-from .notification_config import Category, effective_profile
 
 PENDING = {"pending", "deferred", "failed"}
 TERMINAL = {"sent", "uncertain", "cancelled"}

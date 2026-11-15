@@ -8,8 +8,8 @@ from typing import Any
 from ..config import Settings, read_yaml
 from ..config.loader import _dotenv
 from ..mailbox.mailbox_settings import target_profiles
+from ..runtime.oauth_web import BrowserOAuth, oauth_config
 from ..web.oauth_site import OAuthSite
-from .oauth_web import BrowserOAuth, oauth_config
 
 
 def attach_accounts(app: Any, site: Any, directory: Path) -> None:

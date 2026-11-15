@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ..config import Settings, imap_secret_names
 from .connection_activation import ActivationProblem, ConnectionActivation
+from .imap import FolderNotReadable, account_id
 
 # Folder names come from the server; only this many are listed in a message.
 SHOWN_FOLDERS = 30
@@ -26,8 +27,8 @@ class MailboxActivation(ConnectionActivation):
         return keys.imap
 
     def probe(self, cfg, item, keys):
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..runtime.experience import _reader
-        from .imap import FolderNotReadable, account_id
         own = account_id(item.host, item.port, keys.imap[item.id].username)
         environment = self.runtime.environment()
         for other in cfg.imap.configured_mailboxes():

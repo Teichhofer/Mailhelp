@@ -16,11 +16,18 @@ from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from ..domain.extraction import LearnedCategory, MailClassification
 from ..domain.relevance import IrrelevantSenders
 from ..mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
+from ..mailbox.mailbox_settings import effective_topics
 from ..mailbox.mime import prepare
-from ..mailbox.sender_filter import is_irrelevant_sender
+from ..mailbox.sender_filter import (
+    change_irrelevant_senders,
+    is_irrelevant_sender,
+    save_sender_filter,
+    sender_addresses,
+)
 from ..persistence.storage import CorruptState, JsonStore, atomic_replace
 from ..processing.analysis import Analyzer
-from ..runtime.yaml_edit import set_list
+from ..review.learning_log import preserves_relevance
+from ..support.yaml_edit import set_list
 
 
 def _safe_terminal(value: str) -> str:
@@ -263,7 +270,6 @@ class LearningMode:
         """One resumable unit of work, shared by CLI and browser; no questions or writes."""
         try:
             if self.decision_store is not None:
-                from ..review.learning_log import preserves_relevance
                 identity = f"{mail.account_id}:{mail.folder}:{mail.uidvalidity}:{mail.uid}"
                 mail_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
                 if preserves_relevance(self.decision_store, mail_id):
@@ -331,7 +337,6 @@ class LearningMode:
         for classification, payload, _failed in results:
             if classification is None or payload is None:
                 continue
-            from ..mailbox.mailbox_settings import effective_topics
             number = int(payload.get("mailbox_id", 1))
             local_topics = effective_topics(rejected_topics, number)
             names = {topic.name.casefold() for topic in local_topics}
@@ -348,7 +353,6 @@ class LearningMode:
                 global_match = any(item.name.casefold() in global_names for item in classification.categories)
                 scope = number if self.scoped_learning and not global_match else None
                 headers.setdefault(scope, []).append(payload["headers"].get("from", ""))
-        from ..mailbox.sender_filter import change_irrelevant_senders, save_sender_filter, sender_addresses
         updated = blocked
         for scope, values in headers.items():
             addresses = sorted(set().union(*(sender_addresses(header) for header in values)))
@@ -362,7 +366,6 @@ class LearningMode:
 
     def _known(self, payload: dict[str, object], topics: list[Topic]) -> bool:
         """Return whether a mail matches an enabled topic in the supplied category set."""
-        from ..mailbox.mailbox_settings import effective_topics
         enabled = [topic for topic in effective_topics(topics, int(cast(int, payload.get("mailbox_id", 1))))
                    if topic.enabled]
         if not enabled:

@@ -20,6 +20,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from mailhelp.domain.proposal import Proposal
+from mailhelp.persistence.archive import AnalysisSnapshot, HistorySnapshot
 from mailhelp.persistence.schemas import (
     ActionLedger,
     ActivityReport,
@@ -40,7 +41,6 @@ from mailhelp.persistence.schemas import (
     WriteVerification,
 )
 from mailhelp.persistence.storage import CorruptState, JsonStore
-from mailhelp.review.archive import AnalysisSnapshot, HistorySnapshot
 from mailhelp.review.inbox import CommandInboxState
 
 # Longest prefix first: "mail-run-" files are no mails.

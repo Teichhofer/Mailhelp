@@ -15,6 +15,7 @@ from ..domain.proposal import ProposalKind, ProposalStatus
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash
+from ..review.reject_reasons import REJECT_REASONS, USER_REJECT_REASONS
 from ..review.results import ResultStatus
 from ..review.views import ConflictChoice, ProposalView, RelevanceView
 from .pages import e, layout, notice
@@ -266,7 +267,6 @@ def command_page(entry: CommandEntry, csrf: str, current: ProposalView | None) -
 def reject_reason_block(csrf: str, mail_id: str, proposal_id: str, version: int,
                         current_reason: str | None = None) -> str:
     """6.5.2: five reason buttons on the result card or detail page of a rejected proposal."""
-    from ..review.reject_reasons import REJECT_REASONS, USER_REJECT_REASONS
     buttons = []
     for code, label in USER_REJECT_REASONS:
         selected = code == current_reason

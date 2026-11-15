@@ -12,17 +12,10 @@ from ..config.configuration import AdminCommand, AdminKind
 from .http import Request, Response
 from .pages import e, layout, page_head
 from .settings_search import normalize
+from .topic_editor import KINDS, TopicEditor, topic_link
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
-
-KINDS = {"relevant": ("relevant", "topics.yaml", "Relevante Themen"),
-         "ausschluss": ("irrelevant", "irrelevant_topics.yaml", "Ausschlussthemen")}
-
-
-def topic_link(kind: str, identity: str) -> str:
-    return f"/themen/{kind}/{identity}" + ("?vorhanden=1" if identity == "neu" else "")
-
 
 def matches(topic: Topic, query: str, status: str) -> bool:
     text = normalize(" ".join([topic.id, topic.name, topic.description, *topic.examples, *topic.exclusions]))
@@ -35,7 +28,6 @@ class TopicSite:
         self.settings, self.archive = settings, settings.archive
         self.site: MailhelpSite = settings.site
         self.site.app.route("GET", "/themen", self.site.signed_in(self.home))
-        from .topic_editor import TopicEditor
         self.editing = TopicEditor(self)
 
     def documents(self) -> dict[str, list[Topic]]:

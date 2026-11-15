@@ -7,6 +7,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.app.composition import _state_directory
 from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import (
@@ -40,7 +41,6 @@ from mailhelp.processing.analysis import (
     validate_revision_successor,
 )
 from mailhelp.proposals.integrations import CalendarFileWriter
-from mailhelp.runtime.application import _state_directory
 from mailhelp.telegram import (
     Decision,
     DecisionAction,

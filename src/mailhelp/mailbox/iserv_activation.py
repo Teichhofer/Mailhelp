@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ..config import Settings
+from . import iserv as iserv_module
 from .connection_activation import ConnectionActivation
 
 
@@ -22,8 +23,7 @@ class IServActivation(ConnectionActivation):
         return keys.iserv
 
     def probe(self, cfg, item, keys):
-        from .iserv import IServReader
-        reader = IServReader(item, keys.iserv[item.id], cfg.timezone, cfg.limits.max_mail_bytes,
+        reader = iserv_module.IServReader(item, keys.iserv[item.id], cfg.timezone, cfg.limits.max_mail_bytes,
                              max_attachment_bytes=cfg.limits.max_attachment_bytes)
         try:
             reader.check_access()

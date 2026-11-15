@@ -14,11 +14,15 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from ..config import HelpChatSettings
+from ..llm.adapter import PermanentError, RetryableError
+from ..llm.openrouter import RateLimitExceeded
 from ..logging import EventLogger, NullLogger
 from ..persistence.storage import CorruptState, JsonStore
+from ..processing.analysis import TechnicalRevisionError
+from ..web.settings_search import catalog
 from . import HelpBase, HelpUnavailable
 
 PREFIX = "help-chat-"
@@ -247,7 +251,6 @@ class HelpChat:
         if analyzer is None or "settings_help" not in analyzer.prompts.prompts:
             self._finish(session_id, job, "failed", "not_configured")
             return
-        from ..web.settings_search import catalog
         referenced = {key for section in sources for key in section.setting_ids}
         offered = [{"id": f"setting:{entry.key}", "label": entry.label, "path": entry.path}
                    for entry in catalog() if entry.key in referenced]
@@ -337,7 +340,6 @@ def redactor(values: list[str]) -> Callable[[str], str]:
 
 def secret_values(model: BaseModel) -> list[str]:
     """Every secret string of the secrets model, including those of each mailbox."""
-    from pydantic import SecretStr
     found: list[str] = []
     for value in model.__dict__.values():
         items = value.values() if isinstance(value, dict) else [value]
@@ -350,9 +352,6 @@ def secret_values(model: BaseModel) -> list[str]:
 
 
 def classify(error: Exception) -> str:
-    from ..llm.adapter import PermanentError, RetryableError
-    from ..llm.openrouter import RateLimitExceeded
-    from ..processing.analysis import TechnicalRevisionError
     if isinstance(error, ChatRefused):
         return error.code
     if isinstance(error, RateLimitExceeded):

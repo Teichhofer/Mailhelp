@@ -6,14 +6,14 @@ from threading import Event
 
 import pytest
 
+from mailhelp.app.application import Application
+from mailhelp.app.composition import _FailedAccessAdapter
 from mailhelp.config import Settings
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.run import MailRunState
 from mailhelp.mailbox.imap import FetchedMail, ListedMailbox, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
-from mailhelp.runtime.application import Application
-from mailhelp.runtime.composition import _FailedAccessAdapter
 from tests.fakes.shared_application import Log, Orch, Store, Telegram
 from tests.fakes.shared_application import settings as app_settings
 

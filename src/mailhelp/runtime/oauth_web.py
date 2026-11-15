@@ -17,6 +17,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import Settings
+from ..config.env_file import EnvFileConflict, file_hash, set_values
 from ..config.loader import _dotenv
 from ..external.microsoft import (
     DEVICE_GRANT,
@@ -29,7 +30,6 @@ from ..external.microsoft import (
 from ..mailbox.mailbox_settings import target_profiles
 from ..persistence.storage import JsonStore, atomic_replace
 from ..proposals.target_profiles import secret_name
-from .env_file import EnvFileConflict, file_hash, set_values
 
 GOOGLE_SCOPES = ("https://www.googleapis.com/auth/calendar.events "
                  "https://www.googleapis.com/auth/calendar.calendars.readonly "

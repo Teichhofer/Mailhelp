@@ -166,12 +166,12 @@ def test_a_repeated_cleanup_rewrites_nothing(tmp_path):
 def test_maintenance_runs_at_the_configured_interval(monkeypatch, tmp_path, interval, runs):
     from types import SimpleNamespace
 
+    from mailhelp.app.application import Application
     from mailhelp.logging import NullLogger
-    from mailhelp.runtime.application import Application
 
     clock = iter([0.0, 10.0, 3600.0, 7300.0])
     done = []
-    monkeypatch.setattr("mailhelp.runtime.application.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("mailhelp.app.application.time.monotonic", lambda: next(clock))
 
     class Service:
         def __init__(self, *args, **kwargs):
@@ -180,7 +180,7 @@ def test_maintenance_runs_at_the_configured_interval(monkeypatch, tmp_path, inte
         def run(self):
             done.append(now[0])
 
-    monkeypatch.setattr("mailhelp.runtime.application.RetentionService", Service)
+    monkeypatch.setattr("mailhelp.app.application.RetentionService", Service)
     settings = SimpleNamespace(retention=RetentionSettings(cleanup_interval_minutes=interval))
     app = SimpleNamespace(settings=settings, store=None, logger=NullLogger(), _maintained_at=None, orchestrator=None)
     now = [0.0]

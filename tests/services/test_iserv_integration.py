@@ -13,7 +13,7 @@ from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
 from tests.fakes.shared_application import Imap, Orch, Store, Telegram, app
 from tests.fakes.shared_application import settings as app_settings
 from tests.fakes.shared_core import prompt_config
@@ -175,14 +175,14 @@ def test_unfinished_letters_resume_through_their_reader(tmp_path):
 
 
 def test_composition_builds_and_closes_the_iserv_readers(tmp_path, monkeypatch):
-    from mailhelp.runtime.application import build_application
+    from mailhelp.app.composition import build_application
 
     class Resource:
         account_id = "0" * 24
 
         def __init__(self, *args, **kwargs): pass
         def close(self): pass
-    for target in ("mailhelp.runtime.composition.ImapReader", "mailhelp.runtime.composition.TelegramClient",
+    for target in ("mailhelp.app.composition.ImapReader", "mailhelp.app.composition.TelegramClient",
                    "mailhelp.external.providers.HttpWriter", "mailhelp.external.providers.GoogleOAuthTokenProvider"):
         monkeypatch.setattr(target, Resource)
     cfg = with_iserv(app_settings(tmp_path), label="Grundschule")

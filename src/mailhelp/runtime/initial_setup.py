@@ -15,9 +15,9 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import PromptConfig, Settings
+from ..config.env_file import file_hash, set_values
 from ..config.loader import _dotenv
 from ..persistence.storage import JsonStore, atomic_replace
-from .env_file import file_hash, set_values
 from .setup_checks import SetupChecks
 from .setup_messages import SetupProblem
 from .web_password import WebPassword

@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.runtime.metrics import AttemptRecord
-from mailhelp.runtime.stage_metrics import StageRecord
+from mailhelp.support.metrics import AttemptRecord
+from mailhelp.support.stage_metrics import StageRecord
 from mailhelp.web.pipeline import pipeline_plan, wall_ranking
 from mailhelp.web.status_pages import _runtime_section
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)

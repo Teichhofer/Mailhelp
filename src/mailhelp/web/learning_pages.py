@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from .pages import page_head
 
+UPDATED = "Seite wurde aktualisiert, bitte erneut bestätigen."
+
 
 def heading(title: str, introduction: str, *, back: bool = True) -> str:
     """Subpages name the learning area above the title; the overview names its navigation group."""

@@ -18,22 +18,29 @@ from ..domain.relevance import RelevanceDialog
 from ..domain.run import TelegramOffset
 from ..external.contracts import ExternalWriter
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
+from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import JsonStore
 from ..processing.write_verification import WriteVerifications
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.learning_log import DecisionLearningLog
 from ..review.results import ResultStatus, ReviewResult
-from ..runtime.lock_metrics import measure_lock_waits, measured_lock
+from ..review.service import ReviewService
+from ..support.lock_metrics import measure_lock_waits, measured_lock
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport
+from .commands import TelegramCommands
+from .decisions import ProposalDecisionService
+from .delivery import ProposalDeliveryService
 from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
+from .presenter import ProposalPresenter
 from .receiver import TelegramInbox
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revision_contracts import EventLogger, ProposalRevisionService
 from .revisions import ProposalRevisionProcessor, ProposalRevisions
+from .series import offer_confirmation
 from .update_handling import (  # noqa: F401
     INBOX_MAX_ATTEMPTS,
     INBOX_RETRY_SECONDS,
@@ -55,7 +62,6 @@ class _DialogResponsePersistence:
 
     def send_proposal(self, proposal: Proposal) -> None:
         self.controller.delivery.deliver(proposal)
-        from .series import offer_confirmation
         offer_confirmation(self.controller, proposal)
 
     def delivered(self, proposal: Proposal) -> bool:
@@ -118,10 +124,6 @@ class TelegramDialogController:
 
     def _compose(self, sequential_questions: bool) -> None:
         """Wire the services that share this dialog's state and transport."""
-        from ..persistence.proposals import ProposalRepository
-        from .decisions import ProposalDecisionService
-        from .delivery import ProposalDeliveryService
-        from .presenter import ProposalPresenter
 
         store, telegram, user_id, chat_id = self.store, self.telegram, self.user_id, self.chat_id
         logger, test_mode, configured_timezone = self.logger, self.test_mode, self.configured_timezone
@@ -192,7 +194,6 @@ class TelegramDialogController:
             revision_attempts=revision_attempts,
             revision_backoff_seconds=revision_backoff_seconds,
         )
-        from ..review.service import ReviewService
 
         self.review = ReviewService(self)
         # Set by the composition; records manual decisions as learning material.
@@ -239,7 +240,6 @@ class TelegramDialogController:
         with self.lock:
             entry_id = self.delivery.enqueue(proposal, flush=False)
         self.outbox.flush(raise_for=entry_id)
-        from .series import offer_confirmation
         offer_confirmation(self, proposal)
 
     def flush_outbox(self) -> None:
@@ -269,7 +269,6 @@ class TelegramDialogController:
 
     def show_open_decisions(self) -> None:
         """Redisplay at startup: the current decision, held-back ones only as a count."""
-        from .commands import TelegramCommands
 
         TelegramCommands(self.store, self.repository, self.presenter,
                          self.telegram, self.chat_id, self.relevance,

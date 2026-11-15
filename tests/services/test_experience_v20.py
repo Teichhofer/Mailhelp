@@ -686,8 +686,8 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
 
     import yaml
 
+    from mailhelp.app.composition import build_application
     from mailhelp.config import Secrets, load_all
-    from mailhelp.runtime.application import build_application
     from tests.fakes.shared_application import settings
     from tests.fakes.shared_core import prompt_config
     cfg = settings(tmp_path)
@@ -706,7 +706,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         def __init__(self, *a, **kw): pass
         def close(self): pass
     for name in ("ImapReader", "OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.runtime.composition.") + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.app.composition.") + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
         assert "Code:" not in capsys.readouterr().out

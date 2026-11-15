@@ -1,6 +1,7 @@
 """Validated local configuration commands, optimistic concurrency and recovery."""
 from __future__ import annotations
 
+import copy
 import hashlib
 import re
 from collections.abc import Callable
@@ -17,7 +18,7 @@ from ..mailbox.sender_filter import change_irrelevant_senders, save_sender_filte
 from ..persistence.storage import JsonStore, atomic_replace
 from ..review.commands import CommandSource
 from ..review.results import ResultStatus, ReviewResult
-from ..runtime.yaml_edit import YamlEditError, replace_block, set_list, set_scalars
+from ..support.yaml_edit import YamlEditError, replace_block, set_list, set_scalars
 from . import (
     MAILBOX_FIELDS,
     IrrelevantTopicsConfig,
@@ -255,7 +256,6 @@ def file_hash(path: Path) -> str:
 
 def apply_settings(raw: dict[str, Any], patch: dict[str, Any], acknowledged: bool, *,
                    setup: bool = False) -> dict[str, Any]:
-    import copy
     candidate = copy.deepcopy(raw)
     if candidate.get("notifications") is None and any(name.startswith("notifications.") for name in patch):
         candidate.pop("notifications", None)
@@ -351,6 +351,7 @@ class ConfigurationService:
         if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
             candidate = apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
             if "target_profiles" in command.patch:
+                # Late: against the layer direction, named in tests/unit/test_layers70.py.
                 from ..proposals.profile_usage import profile_references
                 proposed = {item["id"] for item in candidate["target_profiles"]}
                 for profile in raw.get("target_profiles", []):
@@ -464,6 +465,7 @@ class ConfigurationService:
                                 message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def clear_local_draft(self, command: AdminCommand) -> None:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..runtime.setup import SetupState
         draft = self.store.load_model("setup-state", SetupState)
         # Setup drafts (mailboxes, IServ accounts, profiles) share kind "settings"; once approved they

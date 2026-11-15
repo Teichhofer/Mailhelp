@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
+from mailhelp.app.application import Application
 from mailhelp.config import ImapSettings, Topic
 from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.logging import NullLogger
@@ -14,7 +15,6 @@ from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.runtime.application import Application
 from tests.fakes.shared_application import Imap, Orch, Telegram, app, with_sources
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_quality_corpus import load_corpus

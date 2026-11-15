@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from ..formatting import duration_text, format_datetime_local
 from ..review.inbox import CommandStatus
-from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
+from ..review.views import STAGE_LABELS, STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
 from .labels import count_text
 from .pages import e, layout, notice, page_head
 
@@ -63,7 +63,6 @@ RUNTIME_STAGES = {
 
 def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
     """What the main thread is doing now and the last known successful contacts."""
-    from ..review.views import STAGE_LABELS
 
     runtime = info.runtime
     if runtime is None:

@@ -4,9 +4,9 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
+from mailhelp.app.browser_accounts import attach_accounts
+from mailhelp.app.service_coordinator import ServiceCoordinator
 from mailhelp.config import TargetProfileSettings
-from mailhelp.runtime.browser_accounts import attach_accounts
-from mailhelp.runtime.service_coordinator import ServiceCoordinator
 from mailhelp.web import oauth_site
 
 

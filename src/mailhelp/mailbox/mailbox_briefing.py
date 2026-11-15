@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from .. import state_names
 from ..domain.mail import MailState
+from ..proposals.target_profiles import UnavailableWriter
 
 
 def sections(app, views):
@@ -20,7 +21,6 @@ def sections(app, views):
         elif mailbox.target_profile == 1:
             calendar, tasks = app.calendar, app.todoist
         else:
-            from ..proposals.target_profiles import UnavailableWriter
 
             calendar = UnavailableWriter("calendar", "unavailable", mailbox.target_profile)
             tasks = UnavailableWriter("tasks", "unavailable", mailbox.target_profile)

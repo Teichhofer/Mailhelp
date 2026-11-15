@@ -14,7 +14,8 @@ from ..review.commands import ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries
 from ..runtime.lifecycle import Lifecycle
-from ..runtime.metrics import MetricsRecorder
+from ..support.metrics import MetricsRecorder
+from .help_site import HelpSite
 from .history_site import HistorySite
 from .http import Request, Response
 from .mail_archive_site import MailArchiveSite
@@ -37,7 +38,6 @@ class ArchiveSite:
         self.history = HistorySite(self)
         self.proposal_edit = ProposalEditSite(self)
         self.settings = SettingsSite(self)
-        from .help_site import HelpSite
         self.help = HelpSite(self.site)
         self.shutdown = ShutdownSite(self)
 

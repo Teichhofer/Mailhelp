@@ -6,7 +6,7 @@ import pytest
 from playwright.sync_api import expect
 
 from checks import audit
-from mailhelp.runtime.env_file import file_hash, set_values
+from mailhelp.config.env_file import file_hash, set_values
 from mailhelp.web.server import WebServer
 from tests.fakes.initial_harness import InitialHarness
 

@@ -11,6 +11,7 @@ from pydantic import Field, model_validator
 from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.proposal_sources import ProposalReference
 from ..persistence.storage import JsonStore
+from ..review.reject_reasons import REJECT_REASONS, USER_REJECT_REASONS
 from .models import InternalTelegramModel
 
 
@@ -79,7 +80,6 @@ class Decision(InternalTelegramModel):
         if (self.action == DecisionAction.REJECT_REASON) != (self.reason is not None):
             raise ValueError("Nur die Angabe eines Grundes nennt einen Ablehnungsgrund")
         if self.reason is not None:
-            from ..review.reject_reasons import REJECT_REASONS
             if self.reason not in REJECT_REASONS:
                 raise ValueError(f"Unbekannter Ablehnungsgrund: {self.reason}")
         if (self.action == DecisionAction.RETARGET) != (
@@ -211,7 +211,6 @@ def apply_decision(
 
 def reject_reason_markup(store: JsonStore, mail_id: str, proposal_id: str, version: int) -> dict[str, Any]:
     """6.5.3: the five rejection reasons as inline keyboard buttons under the Telegram confirmation."""
-    from ..review.reject_reasons import USER_REJECT_REASONS
     rows = []
     for code, label in USER_REJECT_REASONS:
         decision = Decision(mail_id=mail_id, proposal_id=proposal_id, version=version,

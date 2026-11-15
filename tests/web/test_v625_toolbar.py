@@ -1,7 +1,7 @@
 """6.2.5: one tool row for history, mails and evaluation; further filters under „Mehr Filter“."""
 import re
 
-from mailhelp.review.archive import record_event
+from mailhelp.persistence.archive import record_event
 from mailhelp.web.toolbar import date_field, search_field, toolbar
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_v12 import configure

@@ -8,12 +8,12 @@ from pydantic import ValidationError
 from ..config import WebSettings
 from ..runtime.initial_checks import InitialChecks, invalid_findings
 from ..runtime.initial_setup import SECRET_FIELDS, InitialSetup
-from ..runtime.local_pairing import issue
 from ..runtime.setup_messages import CheckResult, SetupProblem, classify, finding
 from .app import WebApp
 from .auth import PairingLimited, WebAuth, WebSession
 from .http import Request, Response
 from .initial_pages import initial_page
+from .local_pairing import issue
 from .login_site import SESSION_COOKIE, LoginSite
 from .pages import error_page, layout
 from .server import EventLogger

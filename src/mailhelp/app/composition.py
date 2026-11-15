@@ -9,7 +9,9 @@ from threading import Event, Lock
 from typing import Any
 
 from ..config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
+from ..config.configuration import ConfigurationService, effective_models
 from ..external.providers import build_writers, provider_services
+from ..helpdocs.chat import HelpChat, redactor, secret_values
 from ..llm.adapter import RetryPolicy
 from ..llm.decisions import (
     DecisionAnalyzer,
@@ -18,22 +20,52 @@ from ..llm.decisions import (
     load_relevance_prompts,
     relevance_fingerprint,
 )
+from ..llm.fingerprints import (
+    adopt_legacy_configuration,
+    legacy_fingerprints,
+    legacy_policies,
+    proposal_match_policy,
+    topic_policy,
+)
 from ..llm.ollama import LocalLlm, OllamaClient
 from ..llm.openrouter import OpenRouterClient
 from ..logging import JsonlLogger
 from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
+from ..mailbox.iserv import IServRunService
+from ..mailbox.iserv_runtime import IServRuntime
 from ..mailbox.mailbox_run import MailboxSource
+from ..mailbox.mailbox_runtime import MailboxRuntime
+from ..mailbox.sources import build_iserv_sources, mailbox_labels
+from ..notifications.notification_runtime import NotificationRuntime
 from ..paths import runtime_path
 from ..persistence.storage import JsonStore
 from ..processing.analysis import Analyzer
 from ..processing.mail_recheck import request_recheck
 from ..processing.orchestrator import Orchestrator
 from ..processing.vision import VisionExtractor
+from ..proposals import profile_binding
+from ..proposals.precheck import DuplicatePreCheckService
+from ..proposals.target_profiles import build_profile_writers
 from ..review.inbox import CommandInbox
+from ..review.learning_log import DecisionLearningLog
+from ..rule_learning.service import DecisionRuleLearning
+from ..runtime import experience
+from ..runtime.diagnostics import DiagnosticResult, error_code
+from ..runtime.experience import ExperienceRuntime
+from ..runtime.learning_worker import LearningWorker
+from ..runtime.lifecycle import Lifecycle
+from ..runtime.reanalysis_worker import ReanalysisWorker, mailbox_readers
+from ..runtime.standalone import DisabledTelegram
+from ..support.metrics import DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy, metrics_directory
 from ..telegram import TelegramClient, TelegramDialogController
 from ..telegram.receiver import TelegramInbox
 from ..web.factory import create_web
+from ..web.learning_site import LearningSite
+from ..web.reanalysis_site import ReanalysisSite
+from ..web.reload_site import ReloadSite
 from .application import Application
+from .browser_accounts import attach_accounts
+from .setup_runtime import SetupRuntime
 
 
 class _FailedAccessAdapter:
@@ -53,33 +85,6 @@ class _FailedAccessAdapter:
     list_folders = discover_since
     fetch_since = discover_since
     determine_start_uid = discover_since
-
-
-def _mailbox_labels(store: JsonStore, sources: list[MailboxSource],
-                    further: dict[str, str] | None = None) -> Callable[[Any], str]:
-    """The label of the mailbox (or IServ account) a proposal's mail came from (3.1)."""
-    from .. import state_names
-    from ..domain.mail import MailState
-    labels = {source.account_id: source.mailbox.label for source in sources} | (further or {})
-
-    def label(proposal: Any) -> str:
-        mail = store.peek_model(state_names.mail(proposal.source_mail_id), MailState)
-        return labels.get(mail.imap.account_id, "Entferntes Postfach") if mail is not None else ""
-    return label
-
-
-def _build_iserv(settings: Settings, secrets: Secrets, stack: ExitStack) -> list[Any]:
-    """One reader per enabled IServ account (3.3.7); it signs in on first use, not here."""
-    from ..mailbox.iserv import IServReader, IServSource
-    result = []
-    for account in settings.iserv.enabled_accounts():
-        reader = IServReader(account, secrets.iserv[account.id], settings.timezone, settings.limits.max_mail_bytes,
-                             max_attachment_bytes=settings.limits.max_attachment_bytes)
-        stack.callback(reader.close)
-        mailbox = settings.imap.mailbox(account.mailbox)
-        assert mailbox is not None  # Settings validates that the mailbox is enabled
-        result.append(IServSource(account, reader, account.historical_start or mailbox.historical_start))
-    return result
 
 
 def _state_directory(settings: Settings, base_directory: Path) -> Path:
@@ -129,7 +134,6 @@ def build_logger(
 
 def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Path, data: Path,
                     store: JsonStore, local_llm: LocalLlm | None) -> None:
-    from .metrics import DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy, metrics_directory
     metrics_root = metrics_directory(runtime_path(settings.logging.directory, base_directory))
     production = metrics_root / PRODUCTION_FILE
     comparison = metrics_root / DECISION_TEST_FILE
@@ -188,7 +192,6 @@ def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str]
             secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds,
             poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
     else:
-        from .standalone import DisabledTelegram
         telegram = DisabledTelegram()
     stack.callback(telegram.close)
     return telegram
@@ -238,7 +241,6 @@ def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: J
         commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
         write_verification=settings.write_verification,
     )
-    from ..review.learning_log import DecisionLearningLog
     llm_log = logger.llm
     llm_logs = [llm_log, *(llm_log.with_name(f"{llm_log.name}.{number}")
                            for number in range(1, settings.logging.llm.backup_count + 1))]
@@ -251,7 +253,6 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                         jev_prompts: Any, store: JsonStore, sender_store: JsonStore, logger: JsonlLogger,
                         analyzer: Analyzer, dialog: TelegramDialogController, writers: dict[str, Any],
                         access_diagnostics: bool) -> Orchestrator:
-    from ..proposals.precheck import DuplicatePreCheckService
     precheck = DuplicatePreCheckService(
         writers=writers,
         ledger=dialog.ledger,
@@ -272,13 +273,6 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                                 reconciliation_settings=settings.proposal_reconciliation,
                                 proposal_matcher=(analyzer.open_proposal_match
                                                   if "open_proposal_match" in prompts.prompts else None))
-    from ..llm.fingerprints import (
-        adopt_legacy_configuration,
-        legacy_fingerprints,
-        legacy_policies,
-        proposal_match_policy,
-        topic_policy,
-    )
     orchestrator.reconciliation.policy = proposal_match_policy(prompts)
     orchestrator.reconciliation.recover()
     orchestrator.topic_policy = topic_policy(settings, prompts)
@@ -315,8 +309,6 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     dialog.web_logout = components.auth.revoke_all
     dialog.web_invite = components.invite
     application.web = components.server
-    from ..config.configuration import ConfigurationService
-    from .lifecycle import Lifecycle
     configuration = ConfigurationService(base_directory, store, settings, components.authorize,
                                           application.request_settings, application.request_topics,
                                           senders=sender_store)
@@ -336,22 +328,14 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}
         components.site.views.mailboxes = components.site.archive.queries.mailboxes = labels
     components.site.archive.metrics = logger.metrics
-    from ..config.configuration import effective_models
     components.site.archive.models = effective_models(
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
-    from .experience import ExperienceRuntime
     application.experience = ExperienceRuntime(application, components, secrets)
-    from ..notifications.notification_runtime import NotificationRuntime
-    from .setup_runtime import SetupRuntime
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
     application.services.diagnostics = components.site.setup_page.runtime.diagnostics
-    from ..web.learning_site import LearningSite
-    from .learning_worker import LearningWorker
     application.web_site = components.site
     application.services.learning = LearningWorker(application, components.site, secrets)
     LearningSite(components.site, application.services.learning)
-    from ..helpdocs.chat import redactor, secret_values
-    from ..rule_learning.service import DecisionRuleLearning
     rules = DecisionRuleLearning(configuration, lambda: application.analyzer,
                                  lambda actor: not application.stop_event.is_set() and components.authorize(actor),
                                  redactor(secret_values(secrets)),
@@ -359,16 +343,12 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
                                  logger=logger)
     application.services.learning.rules = components.site.rule_learning.service = rules
     # 5.1.5: "Aufgabe oder Termin übersehen?" – bounded re-analysis in its own thread.
-    from ..web.reanalysis_site import ReanalysisSite
-    from .experience import _reader
-    from .reanalysis_worker import ReanalysisWorker, mailbox_readers
     application.services.reanalysis = ReanalysisWorker(
         store, settings.reanalysis, application.orchestrator, logger,
-        mailbox_readers(settings, secrets, _reader), dialog.send_proposal,
+        mailbox_readers(settings, secrets, experience._reader), dialog.send_proposal,
         lambda actor: actor.startswith("web:") and components.site.auth.active(actor.removeprefix("web:")))
     ReanalysisSite(components.site, application.services.reanalysis)
     # 5.3: the help chat explains with the packaged documentation over the active model path.
-    from ..helpdocs.chat import HelpChat, redactor, secret_values
     help_site = components.site.archive.help
     help_site.chat = application.services.help_chat = HelpChat(
         store, lambda: application.settings.help_chat, help_site.base, lambda: application.analyzer,
@@ -376,9 +356,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         sessions=lambda: [session.id for session in components.site.auth.sessions()],
         cleanup_extra=help_site.window.cleanup)
     help_site.chat.recover()
-    from .browser_accounts import attach_accounts
     attach_accounts(application, components.site, base_directory)
-    from .diagnostics import DiagnosticResult, error_code
     health = store.load("service-health", {"schema_version": 1, "version": 0, "errors": {}})
     failed = [source.reader for source in application.sources if isinstance(source.reader, _FailedAccessAdapter)]
     errors: dict[str, Any] = {"imap": error_code(failed[0].error)} if failed else {}
@@ -444,7 +422,6 @@ def build_application(
         openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
         analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
-        from ..proposals.target_profiles import build_profile_writers
         factory = build_profile_writers if settings.target_profiles else build_writers
         built = factory(settings, secrets, base_directory, policy=policy, logger=logger,
                         calendar_matcher=analyzer.calendar_duplicate)
@@ -463,9 +440,9 @@ def build_application(
         dialog.relevance_handler = orchestrator
         dialog.review.recheck = partial(request_recheck, orchestrator)
         iserv_resources = stack.enter_context(ExitStack())
-        iserv = _build_iserv(settings, secrets, iserv_resources)
+        iserv = build_iserv_sources(settings, secrets, iserv_resources)
         if len(sources) + len(iserv) > 1:
-            dialog.presenter.mailbox_of = _mailbox_labels(
+            dialog.presenter.mailbox_of = mailbox_labels(
                 store, sources, {source.reader.account_id: source.account.label for source in iserv})
         orchestrator.original_attachments = settings.attachments
         orchestrator.stop_event = stop_event
@@ -479,18 +456,14 @@ def build_application(
         orchestrator.mailbox_usernames = {source.mailbox.id: secrets.imap_credentials(source.mailbox.id).username
                                           for source in sources}
         if iserv:
-            from ..mailbox.iserv import IServRunService
             orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)
             application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
             application.mailbox.resume_readers = application.iserv.readers()
         application.profile_writers = built
         if web_enabled:
-            from ..mailbox.iserv_runtime import IServRuntime
-            from ..mailbox.mailbox_runtime import MailboxRuntime
             application.iserv_runtime = IServRuntime(application, iserv_resources)
             stack.callback(application.iserv_runtime.close)
             application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)
-        from ..proposals import profile_binding
         dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
             application.settings, writers, proposal)
         dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)
@@ -499,13 +472,12 @@ def build_application(
         dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
-            from ..web.reload_site import ReloadSite
+            # Late: reload imports the assembly at load time.
             from .reload import ReloadService
             application.resources = stack
             application.reload = reload_service or ReloadService(
                 application, base_directory, secrets, local_llm, use_jev_relevance)
             ReloadSite(application.web_site, application.reload)
         elif not access_diagnostics:
-            from ..notifications.notification_runtime import NotificationRuntime
             application.notifications = NotificationRuntime.without_web(application)
         yield application

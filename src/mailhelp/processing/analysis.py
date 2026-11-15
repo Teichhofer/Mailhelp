@@ -32,10 +32,13 @@ from ..domain.proposal import (
     ProposalStatus,
     apply_proposal_revision,
 )
+from ..domain.proposal_sources import ProposalMatchDecision
 from ..domain.relevance import Relevance
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
 from ..llm.adapter import RetryableError
 from ..llm.openrouter import InvalidJson, ProviderResponseInvalid
+from ..notifications.drafts import ReplyDraft
+from ..rule_learning.changes import RuleSuggestions
 from ..text.temporal_answers import parse_deterministic_temporal_answer
 
 T = TypeVar("T", bound=BaseModel)
@@ -391,6 +394,7 @@ class Analyzer:
                       settings: list[dict[str, str]], *,
                       before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
         """5.3: an answer from the given help sections only, over the active model path."""
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..helpdocs import HelpAnswer, answer_validator
         payload = {"question": question, "history": history, "settings": settings,
                    "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}
@@ -407,7 +411,6 @@ class Analyzer:
         error and gets the existing bounded repair. After truncated output, ``retry_payload`` is
         sent once with the step's shorter ``output_token_retry`` prompt instead of the same request.
         """
-        from ..rule_learning.changes import RuleSuggestions
 
         known = {item["id"] for item in payload["decisions"]}
 
@@ -429,7 +432,6 @@ class Analyzer:
         The model sees the mail, every recognized attachment text (including OCR)
         and the user's own ``personal_info``, but no technical metadata.
         """
-        from ..notifications.drafts import ReplyDraft
         attachments = [{"filename": item.filename, "text": item.usable_text}
                        for item in map(PreparedAttachment.model_validate, mail.get("extracted_attachments", []))
                        if item.usable_text]
@@ -493,7 +495,6 @@ class Analyzer:
         )
 
     def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]):
-        from ..domain.proposal_sources import ProposalMatchDecision
         fields = {"kind", "title", "description", "start", "end", "due", "known_temporal_facts", "evidence"}
         payload = {"incoming": proposal.model_dump(mode="json", include=fields),
                    "candidates": [item.model_dump(mode="json", include=fields) for item in candidates]}

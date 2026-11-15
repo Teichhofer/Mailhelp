@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace as NS
 
+from mailhelp.mailbox.sources import mailbox_labels
 from mailhelp.review.queries import ArchiveQueries, ArchiveQuery
-from mailhelp.runtime.composition import _mailbox_labels
 from mailhelp.telegram.presenter import ProposalPresenter
 from tests.fakes.shared_web_details import with_mail
 from tests.scenarios.web_scenario import ACCOUNT, mail_id, proposal
@@ -61,7 +61,7 @@ def test_mail_detail_names_its_mailbox(web):
 def test_telegram_cards_name_the_mailbox_of_their_mail(web):
     source = NS(account_id=WORK, mailbox=NS(label="Arbeit"))
     move(web.store, 2, WORK)
-    label = _mailbox_labels(web.store, [source])
+    label = mailbox_labels(web.store, [source])
     assert label(NS(source_mail_id=mail_id(2))) == "Arbeit"
     assert label(NS(source_mail_id=mail_id(1))) == "Entferntes Postfach"
     assert label(NS(source_mail_id="f" * 24)) == ""

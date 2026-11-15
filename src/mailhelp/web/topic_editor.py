@@ -19,10 +19,17 @@ from .http import Request, Response
 from .pages import e, layout
 from .rule_compare import compare
 from .topic_drafts import TopicDraft, TopicFieldError, draft_id, owner, proposed_id
-from .topic_site import KINDS, topic_link
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
+
+KINDS = {"relevant": ("relevant", "topics.yaml", "Relevante Themen"),
+         "ausschluss": ("irrelevant", "irrelevant_topics.yaml", "Ausschlussthemen")}
+
+
+def topic_link(kind: str, identity: str) -> str:
+    return f"/themen/{kind}/{identity}" + ("?vorhanden=1" if identity == "neu" else "")
+
 
 LABELS = {"id": "Themen-ID", "name": "Name", "description": "Beschreibung", "examples": "Beispiele",
           "exclusions": "Ausschlüsse", "enabled": "Aktiv", "mailboxes": "Geltungsbereich"}

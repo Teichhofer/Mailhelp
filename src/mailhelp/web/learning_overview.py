@@ -4,21 +4,24 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
+from ..review.proposal_evaluation import evaluate_proposals, get_learning_run_hint
 from ..review.views import german_number
 from ..rule_learning.service import digest
 from .http import Response
 from .labels import count_text
-from .learning_pages import cost_hint, heading
+from .learning_pages import UPDATED, cost_hint, heading
+from .learning_site import LABELS
 from .pages import e, layout
+from .proposal_evaluation_pages import learning_run_hint_banner
+from .rule_learning_site import STATUSES
 
 RULE_HELP = "/hilfe/dokumentation/bedienung/aus-entscheidungen-lernen"
 
-UPDATED = "Seite wurde aktualisiert, bitte erneut bestätigen."
 
 
 def run_date(timestamp: float, timezone: str) -> str:
-    from zoneinfo import ZoneInfo
     return datetime.fromtimestamp(timestamp, UTC).astimezone(ZoneInfo(timezone)).strftime("%d.%m.%Y, %H:%M")
 
 
@@ -51,7 +54,6 @@ class LearningOverviewSite:
             mailbox_status, last_run = "Lernlauf derzeit nicht verfügbar.", "Noch kein Lernlauf."
         else:
             state = self.worker.jobs.state()
-            from .learning_site import LABELS
             mailbox_status = f"{LABELS[state.status]}: {count_text(state.cursor, 'Mail', 'Mails')} geprüft"
             if state.selection is not None:
                 mailbox_status += f" von {state.selection.count} ausgewählten Mails"
@@ -64,8 +66,6 @@ class LearningOverviewSite:
         l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
         run_hints_enabled = l_cfg.learning_run_hints_enabled if l_cfg is not None else True
         min_rejections = l_cfg.learning_run_hint_rejections if l_cfg is not None else 20
-        from ..review.proposal_evaluation import get_learning_run_hint
-        from .proposal_evaluation_pages import learning_run_hint_banner
         learning_hint = get_learning_run_hint(store, enabled=run_hints_enabled, min_rejections=min_rejections)
         if learning_hint:
             body += learning_run_hint_banner(learning_hint, self.site.auth.csrf_token(session.id))
@@ -77,7 +77,6 @@ class LearningOverviewSite:
             status, metric = "Regellernen derzeit nicht verfügbar.", "Noch keine Analyse."
         else:
             summary = service.overview("web:" + session.id)
-            from .rule_learning_site import STATUSES
             status = STATUSES[summary["status"]]
             if summary["status"] == "review":
                 status = (f'Prüfentwurf mit {count_text(summary["proposals"], "Vorschlag", "Vorschlägen")} '
@@ -94,7 +93,6 @@ class LearningOverviewSite:
                           "Sinnvoll nach wiederholten Korrekturen oder Ablehnungen. Analysiert vorhandene "
                           "Entscheidungen und schlägt gezielte Änderungen deiner Themenregeln vor.", status, metric,
                           more)
-        from ..review.proposal_evaluation import evaluate_proposals
         store = getattr(self.site, "views", self.site).store if hasattr(self.site, "views") else self.site.store
         report = evaluate_proposals(store)
         if report.summary.total_decided:

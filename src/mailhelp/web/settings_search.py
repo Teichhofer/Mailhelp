@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
+from .setting_help import SETTING_HELP
+
 MAX_QUERY = 80
 LIVE_LIMIT = 10
 EXTRA_CATALOG = Path(__file__).resolve().parents[1] / "helpdocs" / "settings.json"
@@ -127,7 +129,7 @@ PAGES: tuple[tuple[str, str, str, str, str], ...] = (
 @cache
 def catalog() -> tuple[Entry, ...]:
     """Every searchable entry: the settings of the general areas and the special pages."""
-    from .setting_help import SETTING_HELP
+    # Late: the settings pages import the search at load time.
     from .settings_pages import AREAS, _names, setting_label
     entries = []
     for area_key, title, _text, groups in AREAS:

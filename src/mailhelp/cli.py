@@ -12,15 +12,23 @@ from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
 
-from .config import LOCAL_NUM_CTX, Settings, load_all
+from .app import bootstrap
+from .app.composition import build_application, build_logger
+from .config import LOCAL_NUM_CTX, Settings, load_all, read_yaml
 from .config.loader import MissingConfiguration
+from .external import providers
+from .external.contracts import OAuthTokenError
 from .llm.decision_test import run_decision_test
 from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
 from .llm.ollama import LocalLlm, parse_address
+from .mailbox.mailbox_settings import target_profiles
 from .paths import runtime_path
 from .persistence.storage import AlreadyRunning, JsonStore
-from .runtime.application import build_application, build_logger
+from .processing.write_verification import prepare_rollback
+from .runtime import google_login
+from .runtime.web_password import WebPassword
+from .web.local_pairing import request_local_code
 from .web.server import WebServerError
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
@@ -187,12 +195,9 @@ def main() -> int:
 
 def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | None:
     if args.pair:
-        from .runtime.local_pairing import request_local_code
         request_local_code(args.config_directory)
         return 0
     if args.prepare_rollback:
-        from .config import read_yaml
-        from .processing.write_verification import prepare_rollback
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
         namespace = "test" if settings.test_mode else "production"
         with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
@@ -205,8 +210,6 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
               "umgestellt (externe ID bleibt; nichts wird erneut angelegt).")
         return 0
     if args.reset_web_password:
-        from .config import read_yaml
-        from .runtime.web_password import WebPassword
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
         namespace = "test" if settings.test_mode else "production"
         with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
@@ -218,8 +221,7 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
                     args.yes, args.show_imap_credentials, args.ignore_historical_start,
                     args.learn is not None, args.decision_test is not None))
     if not (args.config_directory / "config.yaml").exists() and not one_shot:
-        from .runtime.bootstrap import run_initial_setup
-        result = run_initial_setup(args.config_directory, shutdown)
+        result = bootstrap.run_initial_setup(args.config_directory, shutdown)
         return None if result == RESTART_EXIT_CODE else result
     return None
 
@@ -415,16 +417,14 @@ def _clear(args: argparse.Namespace, settings) -> int:
 
 def _microsoft_login(settings, secrets, directory: Path, profile_id=1) -> int:
     """Device-code sign-in; the terminal shows only the code and address, never a token."""
-    from .external.contracts import OAuthTokenError
-    from .external.providers import microsoft_tokens
-    from .mailbox.mailbox_settings import target_profiles
     settings = settings.model_copy(update={"targets": target_profiles(settings)[profile_id]})
     secrets = secrets.for_profile(profile_id)
     if not secrets.microsoft_client_id.get_secret_value():
         print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
         return 1
     options = {"profile_id": profile_id} if profile_id != 1 else {}
-    tokens = microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds, **options)
+    tokens = providers.microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds,
+                                       **options)
     try:
         tokens.device_login(print)
     except OAuthTokenError as exc:
@@ -533,15 +533,12 @@ def _main() -> int:
               if args.google_auth else load_all(args.config_directory))
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
     if args.google_auth or args.microsoft_login:
-        from .mailbox.mailbox_settings import target_profiles
         number = args.profile or 1
         if number not in target_profiles(settings):
             parser.error("Zielprofil ist nicht konfiguriert")
     if args.google_auth:
-        from .external.contracts import OAuthTokenError
-        from .runtime.google_login import login
         try:
-            login(secrets.for_profile(number), args.config_directory, number)
+            google_login.login(secrets.for_profile(number), args.config_directory, number)
         except OAuthTokenError as exc:
             print(f"FEHLER: {exc}", file=sys.stderr)
             return 1

@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from ..domain.processing import ProcessingStage
 from ..formatting import duration_text, format_datetime_local
 from ..review.views import STAGE_LABELS
-from ..runtime.stage_metrics import TOTAL
+from ..support.stage_metrics import TOTAL
 from .calls_page import PAGE_SIZE, describe, filters
 from .labels import count_text
 from .pages import e, page_head

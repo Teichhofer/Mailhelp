@@ -6,9 +6,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from mailhelp.runtime import composition
+from mailhelp.app import composition
+from mailhelp.app.reload import ReloadService
 from mailhelp.runtime.lifecycle import Lifecycle
-from mailhelp.runtime.reload import ReloadService
 from mailhelp.web.reload_site import ReloadSite
 from tests.fakes.learning_harness import learning
 from tests.fakes.shared_review import mail_state
@@ -127,8 +127,8 @@ def test_config_race_and_preparation_error_keep_previous_generation(learning, mo
 
 @pytest.mark.parametrize("what", ["data", "mode", "web", "secret", "ollama_missing", "ollama", "imap_failed", "cloud"])
 def test_prepared_configuration_guards_and_local_model_selection(learning, monkeypatch, what):
+    from mailhelp.app import reload
     from mailhelp.config import load_all
-    from mailhelp.runtime import reload
 
     h = learning
     r = service(h)

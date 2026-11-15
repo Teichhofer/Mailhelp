@@ -2,7 +2,7 @@
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from mailhelp.runtime.metrics import AttemptRecord
+from mailhelp.support.metrics import AttemptRecord
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_v12 import configure
 

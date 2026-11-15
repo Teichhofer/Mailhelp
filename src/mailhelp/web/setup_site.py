@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 
+from ..config import Settings
 from ..config.configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
-from ..notifications.notification_config import CATEGORIES, effective_profile
+from ..config.notifications import CATEGORIES, effective_profile
 from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
-from ..runtime.local_pairing import issue
 from .auth import PairingLimited, WebSession
 from .forms import post_form
 from .http import Request, Response
+from .local_pairing import issue
 from .pages import e, layout
 
 if TYPE_CHECKING:
@@ -131,7 +132,6 @@ class SetupSite:
     def _raw(self, *, with_patch: bool = True) -> dict[str, Any]:
         service = self.runtime.setup
         raw = yaml.safe_load((service.configuration.directory / "config.yaml").read_text(encoding="utf-8"))
-        from ..config import Settings
         cfg = Settings.model_validate(raw)
         result = cfg.model_dump(mode="json")
         result["notifications"] = effective_profile(cfg).model_dump()

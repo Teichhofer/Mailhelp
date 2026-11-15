@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..domain.event_series import series_key
+
 
 def migrate_document(model_name: str, value: dict[str, Any]) -> bool:
     """Migrate *value* in place and report whether it must be written back."""
@@ -62,7 +64,6 @@ def _profiles(value: Any) -> bool:
     if isinstance(value, dict):
         if (value.get("kind") == "event" and "source_mail_id" in value and "title" in value
                 and "series_key" not in value):
-            from ..domain.event_series import series_key
             base = value.get("base_title", value["title"])
             if isinstance(base, str) and isinstance(value["source_mail_id"], str):
                 value.update(base_title=base, series_key=series_key(value["source_mail_id"], base))

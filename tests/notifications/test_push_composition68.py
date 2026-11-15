@@ -13,9 +13,9 @@ from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.notifications.webpush import PushService
+from mailhelp.persistence.revision_origin import revision_origin
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
-from mailhelp.review.revision_origin import revision_origin
 from tests.fakes.factories import build_proposal
 from tests.fakes.push68 import subscription
 from tests.fakes.shared_services import AnalyzerStub

@@ -17,9 +17,11 @@ from ..external.verification import EntryReader
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.storage import JsonStore
 from ..processing.write_verification import WriteVerifications
+from ..proposals.proposal_reconciliation import ProposalReconciliationService
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInboxState, CommandStatus
 from ..review.verification_texts import differences_text, reason_text
+from ..runtime.diagnostics import error_code
 from .callbacks import Decision, DecisionAction
 from .client import TelegramTransport
 
@@ -230,7 +232,6 @@ class ConfirmedWriteExecutor:
         """With target profiles a failing profile is recorded and the stored version stays; else raise."""
         if not any(":" in name for name in self.writers):
             raise exc
-        from ..runtime.diagnostics import error_code
         self._profile_health(proposal, error_code(exc))
         current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
         return current if current is not None else proposal
@@ -317,7 +318,6 @@ class ConfirmedWriteExecutor:
         Later passes execute only proposals in a write state. Rewriting all
         proposals on every pass kept the operator busy for seconds (4.4.1).
         """
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.store).recover()
         repair = not self._repaired
         for name, signature in self.store.scan(state_names.PROPOSAL_PREFIX).items():

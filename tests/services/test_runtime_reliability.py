@@ -8,10 +8,10 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
+from mailhelp.app.composition import _state_directory
 from mailhelp.cli import main
 from mailhelp.paths import runtime_path
 from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
-from mailhelp.runtime.application import _state_directory
 from tests.fakes.shared_core import proposal
 
 

@@ -4,12 +4,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+from mailhelp.app.application import Application
 from mailhelp.config import Settings
 from mailhelp.domain.run import MailRunState
 from mailhelp.mailbox.imap import FetchedMail, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
-from mailhelp.runtime.application import Application
 
 
 class Store:

@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 import secrets
-from typing import Any
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from ..persistence.storage import CorruptState
 from ..rule_learning.mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL
@@ -14,11 +15,13 @@ from . import rule_preview
 from .auth import WebSession
 from .http import Request, Response
 from .labels import count_text as counted
-from .learning_overview import UPDATED
-from .learning_pages import heading
+from .learning_pages import UPDATED, heading
 from .pages import e, layout, notice
 from .rule_compare import compare
-from .site import MailhelpSite
+from .rule_preview import ACTIONS
+
+if TYPE_CHECKING:
+    from .site import MailhelpSite
 
 LABELS = {"id": "Themen-ID", "name": "Name", "description": "Beschreibung",
           "examples": "Beispiele (ein Eintrag je Zeile)", "exclusions": "Ausschlüsse (ein Eintrag je Zeile)",
@@ -112,9 +115,7 @@ class RuleLearningSite:
         history = self.service.history()
         if not history.rejected:
             return ""
-        from datetime import UTC, datetime
 
-        from .rule_preview import ACTIONS
         names = {"add_examples": "+ Beispiel", "remove_examples": "− Beispiel", "add_exclusions": "+ Ausschluss",
                  "remove_exclusions": "− Ausschluss", "name": "Name", "description": "Beschreibung",
                  "enabled": "Aktiv"}

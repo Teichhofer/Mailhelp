@@ -8,10 +8,10 @@ import pytest
 import requests
 from pywebpush import WebPushException
 
+from mailhelp.config.notifications import Categories, NotificationSettings
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.llm.adapter import PermanentError, RetryableError
-from mailhelp.notifications.notification_config import Categories, NotificationSettings
 from mailhelp.notifications.notification_context import web_reply
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.notifications.notifications import Delivery, QueueFull
@@ -408,8 +408,8 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
 
     import yaml
 
+    from mailhelp.app.composition import build_application
     from mailhelp.config import Secrets
-    from mailhelp.runtime.application import build_application
     from tests.fakes.shared_application import settings
     from tests.fakes.shared_core import prompt_config
     cfg = settings(tmp_path)
@@ -423,8 +423,8 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
         def close(self):
             pass
     for name in ("OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.runtime.composition.") + name, Resource)
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader",
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.app.composition.") + name, Resource)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader",
                         lambda *args, **kw: (_ for _ in ()).throw(imaplib.IMAP4.error("private provider answer")))
     with build_application(cfg, secret, [], prompt_config(), "a" * 64, tmp_path, use_jev_relevance=False) as app:
         site = app.experience.site
@@ -507,9 +507,9 @@ def test_several_mailboxes_are_built_labelled_and_fail_independently(tmp_path, m
 
     import yaml
 
+    from mailhelp.app.composition import build_application
     from mailhelp.config import Secrets, Settings
     from mailhelp.mailbox.imap import account_id
-    from mailhelp.runtime.application import build_application
     from tests.fakes.shared_application import settings
     from tests.fakes.shared_core import prompt_config
     data = settings(tmp_path).model_dump(mode="json")
@@ -535,8 +535,8 @@ def test_several_mailboxes_are_built_labelled_and_fail_independently(tmp_path, m
                 raise imaplib.IMAP4.error("private provider answer")
             self.account_id = account_id(host, port, user)
     for name in ("OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.runtime.composition.") + name, Resource)
-    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader", Reader)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.app.composition.") + name, Resource)
+    monkeypatch.setattr("mailhelp.app.composition.ImapReader", Reader)
     with build_application(cfg, secret, [], prompt_config(), "a" * 64, tmp_path, use_jev_relevance=False) as app:
         assert [source.mailbox.label for source in app.sources] == ["Privat", "Arbeit"]
         assert app.imap is app.sources[0].reader and isinstance(app.sources[1].reader, Reader)

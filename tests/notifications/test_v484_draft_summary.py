@@ -4,7 +4,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 from mailhelp import state_names
-from mailhelp.notifications.notification_config import Categories, NotificationSettings
+from mailhelp.config.notifications import Categories, NotificationSettings
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from tests.fakes.shared_web_actions import MAIL1
 

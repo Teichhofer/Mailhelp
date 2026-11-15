@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.runtime.metrics import AttemptRecord, MetricsRecorder, MetricsSettings, error_kind
+from mailhelp.support.metrics import AttemptRecord, MetricsRecorder, MetricsSettings, error_kind
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_v12 import configure
 from tests.scenarios.web_scenario import mail_id
@@ -176,3 +176,10 @@ def test_failed_attempts_store_their_cause_and_old_rows_stay_valid(tmp_path):
     assert kinds == ["rate_limited", "cancelled", None]
     old = json.dumps({key: value for key, value in row(1).items() if key != "error_kind"})
     assert AttemptRecord.model_validate_json(old).error_kind is None
+
+
+def test_regression_cost_sort_of_the_call_list_is_not_the_step_view_sort(journal):
+    # 7.0.4: both pages define SORTS; only the call list knows "cost". Imported side by side, one hid the other.
+    web, _ = journal
+    response = get(web, "metric=calls&sort=cost")
+    assert response.status == 200

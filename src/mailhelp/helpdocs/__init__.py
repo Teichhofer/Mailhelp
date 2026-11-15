@@ -17,6 +17,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
+from ..web.settings_search import SYNONYMS, catalog, normalize
+from .markdown import plain
 
 DIRECTORY = Path(__file__).resolve().parent
 MAX_SECTIONS = 6
@@ -55,7 +57,6 @@ def derive_short_answer(text: str, limit: int = SHORT_ANSWER) -> str:
     Used when a model (or an answer from before 5.5.4) gives no usable short answer. Markdown
     marks are removed first (5.5.6), so a cut never leaves a dangling ``**``.
     """
-    from .markdown import plain
     text = " ".join(plain(text).split())
     end = next((match.end() for match in _SENTENCE_END.finditer(text) if match.end() >= 20), len(text))
     first = text[:end]
@@ -69,7 +70,6 @@ def concise(answer: str, short_answer: str) -> str:
 
     The length counts the visible text; a short answer may keep its inline Markdown.
     """
-    from .markdown import plain
     short = " ".join(short_answer.split())
     if short and len(" ".join(plain(short).split())) <= SHORT_ANSWER:
         return short
@@ -78,7 +78,6 @@ def concise(answer: str, short_answer: str) -> str:
 
 def same_text(first: str, second: str) -> bool:
     """Whether two answers read the same once Markdown marks and spacing are ignored."""
-    from .markdown import plain
     return " ".join(plain(first).split()) == " ".join(plain(second).split())
 
 
@@ -132,13 +131,11 @@ def stems(text: str) -> list[str]:
 
 
 def words(text: str) -> list[str]:
-    from ..web.settings_search import normalize
     return [word for word in re.findall(r"[a-z0-9_.]+", normalize(text)) if len(word) > 2 and word not in STOPWORDS]
 
 
 def _expanded(terms: set[str]) -> set[str]:
     """The stems of the question with the stems of their synonyms."""
-    from ..web.settings_search import SYNONYMS, normalize
     found = set(terms)
     for group in SYNONYMS:
         folded = {word[:STEM] for item in group for word in normalize(item).split()}
@@ -149,7 +146,6 @@ def _expanded(terms: set[str]) -> set[str]:
 
 def _settings_named(asked: set[str]) -> set[str]:
     """Settings a question names by their key or a long word of their label, e.g. "Abrufintervall"."""
-    from ..web.settings_search import catalog, normalize
     labels = {entry.key: {word for word in re.findall(r"[a-z0-9]+", normalize(entry.label)) if len(word) >= 6}
               for entry in catalog() if entry.key is not None}
     # Only words that name at most two settings are specific ("Abrufintervall", not "Postfach").

@@ -9,13 +9,17 @@ in the serialized operator thread; commits also compare the authoritative state.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
 from .. import state_names
+from ..config import EventDefaultsSettings
 from ..config.configuration import AdminCommand, ConfigurationService
 from ..domain.mail import MailState
 from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
@@ -29,13 +33,26 @@ from ..domain.proposal import (
     required_revision_questions,
 )
 from ..domain.relevance import RelevanceDialogStatus
+from ..domain.verification import OPERATIONS, WriteVerification, operation_id
+from ..external.contracts import EntryModifiedError
+from ..external.roles import writer_for
+from ..llm.adapter import UncertainWriteError
+from ..mailbox.mailbox_settings import event_defaults_for
 from ..notifications.notification_context import web_reply
+from ..persistence.archive import record_event, record_recheck, record_relevance
+from ..persistence.revision_origin import ORIGIN
 from ..processing.mail_recheck import RecheckOutcome
-from .archive import record_event, record_recheck, record_relevance
+from ..proposals.conflicts import ConflictChoiceError, button_text, choose, label
+from ..proposals.event_defaults import reapply_defaults
+from ..proposals.profile_binding import retarget
+from ..proposals.proposal_reconciliation import ProposalReconciliationService
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
+from .processing_actions import apply
+from .reject_reasons import REJECT_REASONS
 from .results import ResultStatus, ReviewResult
+from .series import SeriesService
 from .verification_texts import VERIFYING_MESSAGE
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
@@ -88,7 +105,6 @@ class ReviewService:
         self.recheck: Callable[[str, int], RecheckOutcome] | None = None
 
     def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
-        from .revision_origin import ORIGIN
         origin = ORIGIN.set(command.source.value)
         token = web_reply.set(command.source == CommandSource.WEB)
         try:
@@ -125,7 +141,6 @@ class ReviewService:
 
     def _record(self, command: ReviewCommand) -> None:
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
-            from .processing_actions import apply
             apply(self.controller.store, command)
             return
         if command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
@@ -172,7 +187,6 @@ class ReviewService:
             if self.configuration is None:
                 return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
             return self.configuration.reconcile(command)
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if self._took_effect(command):
             self._record(command)
@@ -185,7 +199,6 @@ class ReviewService:
         """Resume a committed receipt if execution had not reached its durable effect."""
         if isinstance(command, AdminCommand):
             return self.reconcile(command)
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if self._took_effect(command):
             return self.reconcile(command)
@@ -252,9 +265,7 @@ class ReviewService:
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
         if command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
-            from .series import SeriesService
             return SeriesService(self).execute(command)
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if command.kind == CommandKind.VERIFY_ENTRY:
             return self._verify_entry(command)
@@ -278,7 +289,6 @@ class ReviewService:
                 self.controller.persist(result)
             return ReviewResult(status=ResultStatus.DONE, message="Erneut geprüft; separat bestätigen.")
         if command.kind == CommandKind.RETARGET:
-            from ..proposals.profile_binding import retarget
             previous = self._target(command)
             cfg = getattr(self.controller.relevance_handler, "mailbox_settings", None)
             if cfg is None:
@@ -319,7 +329,6 @@ class ReviewService:
             return write_executor.writer_for(proposal)
         writers = getattr(self.controller, "writers", None)
         if writers:
-            from ..external.roles import writer_for
             return writer_for(writers, proposal)
         return None
 
@@ -341,10 +350,6 @@ class ReviewService:
         return now <= created + window
 
     def _remove_created(self, command: ReviewCommand) -> ReviewResult:
-        from ..external.contracts import EntryModifiedError
-        from ..llm.adapter import UncertainWriteError
-        from .archive import record_event
-        from .errors import ReviewError
 
         assert command.proposal_id is not None
         with self.controller.store.locked():
@@ -413,7 +418,6 @@ class ReviewService:
             return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
 
     def _reject_reason(self, command: ReviewCommand) -> ReviewResult:
-        from .reject_reasons import REJECT_REASONS
         assert command.proposal_id is not None
         assert command.reason is not None
         if command.reason not in REJECT_REASONS:
@@ -431,9 +435,7 @@ class ReviewService:
 
     def _choose_variant(self, command: ReviewCommand) -> ReviewResult:
         """5.9.3: one value of a field conflict becomes a new version; it is not a confirmation."""
-        from zoneinfo import ZoneInfo
 
-        from ..proposals.conflicts import ConflictChoiceError, button_text, choose, label
         previous = self._target(command)
         assert command.conflict_id is not None and command.variant is not None  # required by ReviewCommand
         try:
@@ -473,12 +475,7 @@ class ReviewService:
             self.controller.persist(changed)
 
     def _reconcile_proposal(self, command: ReviewCommand) -> ReviewResult:
-        import hashlib
-        import json
 
-        from ..config import EventDefaultsSettings
-        from ..proposals.event_defaults import reapply_defaults
-        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         service = ProposalReconciliationService(self.controller.store)
         with self.controller.store.locked():
             if command.kind == CommandKind.RESTORE:
@@ -502,7 +499,6 @@ class ReviewService:
                 if source.status not in _OPEN:
                     raise StaleCommand("Vorschlag nicht mehr offen")
                 if self.configuration is not None:
-                    from ..mailbox.mailbox_settings import event_defaults_for
                     handler = self.controller.relevance_handler
                     defaults = event_defaults_for(self.configuration.active, self.controller.store, source,
                                                   getattr(handler, "mailbox_numbers", {}))
@@ -529,6 +525,7 @@ class ReviewService:
         return ReviewResult(status=ResultStatus.DONE, message="Vorschlagsversion gespeichert; separat bestätigen.")
 
     def _decide(self, command: ReviewCommand) -> ReviewResult:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..telegram.callbacks import Decision, DecisionAction
 
         if command.source == CommandSource.WEB:
@@ -551,6 +548,7 @@ class ReviewService:
         return ReviewResult(status=status, message=message)
 
     def _relevance(self, command: ReviewCommand) -> ReviewResult:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..telegram.callbacks import RelevanceDecision
 
         assert command.decision is not None
@@ -570,7 +568,6 @@ class ReviewService:
         return ReviewResult(status=ResultStatus.DONE, message=f"Mail als {label} eingestuft.")
 
     def _processing(self, command: ReviewCommand) -> ReviewResult:
-        from .processing_actions import apply
         apply(self.controller.store, command)
         return ReviewResult(status=ResultStatus.DONE, message=(
             "Erneuter Versuch beim nächsten Abruf." if command.kind == CommandKind.RETRY_MAIL else
@@ -646,6 +643,7 @@ class ReviewService:
         return ReviewResult(status=ResultStatus.DONE, message=_DONE_MESSAGES[command.kind])
 
     def _cancel(self, command: ReviewCommand) -> ReviewResult:
+        # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..telegram.commands import TelegramCommands
 
         proposal = self._target(command)
@@ -694,7 +692,6 @@ def proposal_creation_time(store: Any, proposal: Proposal) -> datetime | None:
                 proposal.source_mail_id, proposal.id, proposal.version
             ):
                 return entry.created_at
-    from ..domain.verification import OPERATIONS, WriteVerification, operation_id
     for operation in OPERATIONS:
         rec = store.load_model(
             state_names.write_verification(

@@ -3,8 +3,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from ..domain.proposal_sources import ProposalReference
+from ..persistence.storage import CorruptState
+from ..processing.attachments import AttachmentCache, download_name
+from ..review import CommandKind
+from ..review.filters import matches
+from ..review.proposal_evaluation import get_learning_run_hint, sender_hint_for_sender
+from . import open_toolbar as tools
+from .actions import confirm_remove_page
 from .auth import WebSession
+from .command_cards import CommandCards
 from .http import Request, Response
+from .pages import notice
+from .proposal_evaluation_pages import learning_run_hint_banner
+from .review_pages import disclosure
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
@@ -32,8 +44,6 @@ class ReviewSite:
 
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.site.auth.csrf_token(session.id)
-        from ..review.filters import matches
-        from . import open_toolbar as tools
         try:
             choice = tools.parse(request.query)
         except ValueError:
@@ -55,14 +65,12 @@ class ReviewSite:
                                                    choice.sort))
         # The day's summary reads the history; only the finished, unfiltered state needs it.
         finished = not overview.open and not overview.relevance and not choice.narrowed
-        from .command_cards import CommandCards
         hint_cache: dict[tuple[int, int, float], list[SenderHint]] = {}
         cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request),
                              sender_hint_lookup=lambda mail_id: self._sender_hint(mail_id, hint_cache),
                              views=self.site.views)
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
-        from .pages import notice
         damaged = len(tuple((self.site.commands.incoming.directory / "quarantine").glob("*.invalid")))
         warning = (notice("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen.", "error")
                    if damaged else "")
@@ -70,8 +78,6 @@ class ReviewSite:
         l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
         run_hints_enabled = l_cfg.learning_run_hints_enabled if l_cfg is not None else True
         min_rejections = l_cfg.learning_run_hint_rejections if l_cfg is not None else 20
-        from ..review.proposal_evaluation import get_learning_run_hint
-        from .proposal_evaluation_pages import learning_run_hint_banner
         learning_hint = get_learning_run_hint(self.site.views.store, enabled=run_hints_enabled, min_rejections=min_rejections)
         hint_banner = learning_run_hint_banner(learning_hint, csrf) if learning_hint else ""
         # 4.4: every review result is shown on its card (or as "Deine Aktion"); no second
@@ -121,7 +127,6 @@ class ReviewSite:
         return Response.html(200, page)
 
     def attachment(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
-        from ..processing.attachments import AttachmentCache
         mail = self.site.views.mail(mail_id)
         if mail is None or mail.text is None or not any(
                 item.preview is not None and item.preview.index == int(index) for item in mail.extracted_attachments):
@@ -135,7 +140,6 @@ class ReviewSite:
 
     def original(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
         """The original document, only as a download and never rendered by the browser."""
-        from ..processing.attachments import AttachmentCache, download_name
         mail = self.site.views.mail(mail_id)
         found = (AttachmentCache(self.site.views.store).original(mail_id, int(index))
                  if mail is not None and mail.text is not None else None)
@@ -152,8 +156,6 @@ class ReviewSite:
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
-        from ..domain.proposal_sources import ProposalReference
-        from ..persistence.storage import CorruptState
         try:
             proposal = self.site.reconciliation_page.service.resolve(
                 ProposalReference(mail_id=mail_id, proposal_id=proposal_id))
@@ -166,14 +168,12 @@ class ReviewSite:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
-        from .review_pages import disclosure
         archive = self.site.archive.mail_archive
         extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
                  + (self.site.mailbox_page.target_forms(proposal, session) if proposal is not None else "")
                  + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
                  + disclosure("Revisionshistorie &amp; Differenzen", archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
-        from .command_cards import CommandCards
         cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id),
                              refresh_target(request), sender_hint_lookup=self._sender_hint, views=self.site.views)
         page = detail_page(view, actions=cards.proposal,
@@ -187,13 +187,11 @@ class ReviewSite:
             return Response.html(404, error_page(
                 "Nicht möglich", "Dieser Eintrag kann nicht wieder entfernt werden."))
         csrf = self.site.auth.csrf_token(session.id)
-        from .actions import confirm_remove_page
         return Response.html(200, confirm_remove_page(view, csrf))
 
     def execute_remove(self, request: Request, session: WebSession, form: dict[str, str],
                        mail_id: str, proposal_id: str) -> Response:
         form = dict(form)
-        from ..review import CommandKind
         form.setdefault("kind", CommandKind.REMOVE_CREATED.value)
         form.setdefault("mail_id", mail_id)
         form.setdefault("proposal_id", proposal_id)
@@ -203,7 +201,6 @@ class ReviewSite:
                      request_cache: dict[tuple[int, int, float], list[SenderHint]] | None = None) -> Any:
         mail = self.site.views.mail(mail_id)
         if mail and mail.sender:
-            from ..review.proposal_evaluation import sender_hint_for_sender
             cfg = getattr(self.site.archive, "configuration", None)
             l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
             kwargs = {}

@@ -8,7 +8,9 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails
 
 from ..config import EventDefaultsSettings, RetentionPeriod, Settings, TargetSettings, Topic
-from ..notifications.notification_config import NotificationSettings, effective_profile
+from ..config.notifications import NotificationSettings, effective_profile
+from ..domain.mail import MailState
+from ..llm.fingerprints import _hash, config_fingerprint, topic_policy
 
 
 def merge_policy(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
@@ -64,7 +66,6 @@ def effective_topics(topics: list[Topic], mailbox_id: int) -> list[Topic]:
 
 
 def event_defaults_for(settings: Settings, store, proposal, numbers=None):
-    from ..domain.mail import MailState
 
     mail = store.peek_model("mail-" + proposal.source_mail_id, MailState)
     number = (
@@ -82,7 +83,6 @@ def event_defaults_for(settings: Settings, store, proposal, numbers=None):
 
 
 def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbox_id: int) -> str:
-    from ..llm.fingerprints import _hash, config_fingerprint
 
     effective = effective_settings(settings, mailbox_id)
     selected = [topic.model_copy(update={"mailboxes": None}) for topic in effective_topics(topics, mailbox_id)]
@@ -95,7 +95,6 @@ def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbo
 
 
 def mailbox_topic_policy(settings: Settings, prompts, mailbox_id: int) -> str:
-    from ..llm.fingerprints import _hash, topic_policy
 
     cfg = effective_settings(settings, mailbox_id)
     value = topic_policy(cfg, prompts)

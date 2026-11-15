@@ -8,7 +8,7 @@ from playwright.sync_api import expect
 
 from checks import audit, open_charts
 from conftest import sign_in
-from mailhelp.runtime.stage_metrics import StageRecord
+from mailhelp.support.stage_metrics import StageRecord
 from tests.scenarios.web_scenario import mail_id
 
 

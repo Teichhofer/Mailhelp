@@ -11,6 +11,7 @@ from ..config import EventDefaultsSettings
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..domain.proposal_sources import ProposalReference, ProposalRelation
+from ..mailbox.mailbox_settings import event_defaults_for
 from ..persistence.storage import CorruptState
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_matching import compatible, relationship
@@ -64,7 +65,6 @@ class ReconciliationSite:
     def defaults(self, proposal: Proposal | None = None) -> EventDefaultsSettings:
         configuration = self.site.archive.configuration
         if configuration and proposal is not None:
-            from ..mailbox.mailbox_settings import event_defaults_for
             found: EventDefaultsSettings = event_defaults_for(configuration.active, self.site.views.store, proposal,
                                                               self.site.views.mailboxes)
             return found

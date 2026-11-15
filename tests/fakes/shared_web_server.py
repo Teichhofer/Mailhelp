@@ -7,7 +7,7 @@ from threading import Event
 
 import pytest
 
-from mailhelp.runtime.application import Application
+from mailhelp.app.application import Application
 from mailhelp.web import Request, WebApp, WebServer
 from tests.fakes.shared_application import Log, Orch
 from tests.fakes.shared_application import settings as app_settings

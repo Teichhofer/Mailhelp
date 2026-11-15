@@ -12,6 +12,8 @@ from ..activity.runner import ActivityRunner, available_report_folders, default_
 from ..activity.service import ActivityService
 from ..activity.store import ActivityReportStore
 from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
+from ..mailbox.mailbox_briefing import configure
+from ..mailbox.mailbox_settings import effective_settings
 from ..notifications.briefing import DailyBriefingService
 from ..notifications.briefing_drafts import BriefingDraftService
 from ..notifications.briefing_scheduler import BriefingScheduler
@@ -58,7 +60,6 @@ class ExperienceRuntime:
             feature.push = PushService(app.store, components.auth, settings.push.subject, logger=app.logger)
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
-        from ..mailbox.mailbox_settings import effective_settings
 
         self.draft_targets: dict | None = None
         if (
@@ -121,7 +122,6 @@ class ExperienceRuntime:
             channels["push"] = lambda _text: feature.push.notify("daily_briefing")
         self.briefing = DailyBriefingService(app.store, settings.daily_briefing, settings.timezone,
             app.calendar, app.todoist, self.site.views, channels)
-        from ..mailbox.mailbox_briefing import configure
         configure(app, self.briefing, self.site.views)
         self.briefing_drafts = BriefingDraftService(app.store, lambda: app.settings, self.site.views,
                                                    self.briefing_target, self.site.link_base)
@@ -161,7 +161,6 @@ class ExperienceRuntime:
         return target._replace(folder=self.app.settings.drafts.folder or mailbox.drafts_folder)
 
     def draft_policy(self, account):
-        from ..mailbox.mailbox_settings import effective_settings
         number = self.mailbox_numbers.get(account)
         if number is None:
             # Mail of no configured IMAP mailbox (IServ letters) has no account to reply from.
@@ -171,7 +170,6 @@ class ExperienceRuntime:
 
     def auto_draft_policy(self, account) -> bool:
         """4.8: drafts without a click need smart_reply and auto_draft of the mail's mailbox."""
-        from ..mailbox.mailbox_settings import effective_settings
         number = self.mailbox_numbers.get(account)
         if number is None:
             return False

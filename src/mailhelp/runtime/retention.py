@@ -7,11 +7,16 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from .. import state_names
-from ..config import RetentionSettings
+from ..activity.store import ActivityReportStore
+from ..config import ReanalysisSettings, RetentionSettings
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
 from ..logging import EventLogger
 from ..persistence.storage import JsonStore
+from ..processing.attachments import AttachmentCache
+from ..processing.reanalysis import ReanalysisJobs
+from ..processing.write_verification import WriteVerifications
+from ..review.learning_log import prune
 from ..state_names import mail_state_names
 
 Period = int | Literal["disabled", "unlimited"]
@@ -102,7 +107,6 @@ class RetentionService:
             if not mail_changed and not debug_changed:
                 continue
             if mail_changed:
-                from ..processing.attachments import AttachmentCache
                 AttachmentCache(self.store).remove(state.id)
                 draft = self.store.load(state_names.draft(state.id))
                 if draft is not None:
@@ -122,17 +126,12 @@ class RetentionService:
             self.logger.event("INFO", "retention", "state_scrubbed", mail_id=state.id,
                               processed_at=now.isoformat(), mail_count=int(mail_changed),
                               debug_count=int(debug_changed))
-        from ..review.learning_log import prune
         learning_removed = prune(self.store.directory, self.settings.decision_learning_days, now)
-        from ..activity.store import ActivityReportStore
         activity_scrubbed = ActivityReportStore(self.store).remove_expired_texts(
             self.settings.activity_report_days, now)
-        from ..config import ReanalysisSettings
-        from ..processing.reanalysis import ReanalysisJobs
         analysis = self.settings.debug_llm_days if self.settings.analysis_days is None else self.settings.analysis_days
         reanalysis_removed = ReanalysisJobs(self.store, ReanalysisSettings(), self.logger).remove_expired(
             analysis, self.settings.full_mail_days, now, self._expired)
-        from ..processing.write_verification import WriteVerifications
         # 5.2: expected facts are mail content; a check still running keeps its record.
         verification_removed = WriteVerifications(self.store, logger=self.logger).remove_expired(
             self.settings.full_mail_days, now, self._expired)

@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import re
 import secrets
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import httpx
@@ -15,7 +17,7 @@ import httpx
 from ..config import Settings, _dotenv, read_yaml
 
 if TYPE_CHECKING:
-    from ..web.auth import WebAuth
+    from .auth import WebAuth
 
 
 def signature(secret: str, message: str) -> str:
@@ -42,11 +44,10 @@ def issue(auth: WebAuth, message: str, supplied: str, clock: Callable[[], float]
     return auth.issue_code()
 
 
-def request_local_code(directory):
+def request_local_code(directory: Path) -> None:
     if (directory / "config.yaml").exists():
         settings = Settings.model_validate(read_yaml(directory / "config.yaml"))
     else:
-        import json
         raw = json.loads((directory / "data/production/initial-setup.json").read_text(encoding="utf-8"))
         settings = Settings.model_validate(raw["config"])
     env = {**_dotenv(directory / ".env"), **os.environ}

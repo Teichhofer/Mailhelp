@@ -12,7 +12,7 @@ from ..domain.extraction import Summary
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.relevance import Relevance
-from ..persistence.storage import JsonStore
+from .storage import JsonStore
 
 
 class AnalysisSnapshot(BaseModel):

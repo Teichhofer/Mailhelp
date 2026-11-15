@@ -13,8 +13,8 @@ from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.mail_pipeline import ProcessingRun
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.processing.stage_timing import StageClock, part
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
-from mailhelp.runtime.stage_metrics import TOTAL, StageJournal, StageRecord, journal_path
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.stage_metrics import TOTAL, StageJournal, StageRecord, journal_path
 from tests.fakes.shared_services import AnalyzerStub, Notify
 
 ACCOUNT = "c" * 24

@@ -5,12 +5,26 @@ import os
 import tempfile
 from pathlib import Path
 
-from ..config import LEGACY_IMAP_SECRETS
+from pydantic import SecretStr
+
+from ..config import (
+    LEGACY_IMAP_SECRETS,
+    ImapCredentials,
+    _dotenv,
+    imap_secret_names,
+    imap_secret_values,
+    iserv_secret_values,
+    provider_secret_names,
+)
 from ..external.providers import build_writers
+from ..mailbox import iserv as iserv_module
+from ..mailbox.iserv import IServSignInError
+from ..mailbox.mailbox_settings import active_profiles, target_profiles
 from ..persistence.storage import atomic_replace
-from .diagnostics import DiagnosticsService
-from .experience import _reader
-from .setup import SetupService
+from ..proposals.target_profiles import load_profile_secrets, secret_name
+from ..runtime.diagnostics import DiagnosticsService
+from ..runtime.experience import _reader
+from ..runtime.setup import SetupService
 
 
 class SetupRuntime:
@@ -26,7 +40,6 @@ class SetupRuntime:
             revision=self.setup.fingerprint)
 
     def update_profile_checks(self):
-        from ..mailbox.mailbox_settings import target_profiles
         configured = target_profiles(self.setup.draft_settings())
         for name in list(self.diagnostics.checks):
             if name.startswith(("calendar:", "tasks:")):
@@ -41,10 +54,7 @@ class SetupRuntime:
                 )
 
     def credentials(self, cfg):
-        from pydantic import SecretStr
 
-        from ..config import ImapCredentials, _dotenv, imap_secret_values, iserv_secret_values
-        from ..proposals.target_profiles import load_profile_secrets
         if self.secrets is None:
             return None
         env = {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
@@ -72,7 +82,6 @@ class SetupRuntime:
         return result
 
     def profile_check(self, number, role):
-        from ..mailbox.mailbox_settings import target_profiles
         cfg = self.setup.draft_settings()
         cfg = cfg.model_copy(update={"targets": target_profiles(cfg)[number]})
         secrets = self.credentials(self.setup.draft_settings())
@@ -109,9 +118,6 @@ class SetupRuntime:
                 status["/".join(account.secret_names)] = (
                     "vorhanden" if found is not None and account.id in found.iserv else "fehlt")
         if draft.target_profiles:
-            from ..config import provider_secret_names
-            from ..mailbox.mailbox_settings import active_profiles
-            from ..proposals.target_profiles import secret_name
             credentials = self.credentials(draft)
             for number, target in active_profiles(draft).items():
                 for name in provider_secret_names(target):
@@ -122,14 +128,10 @@ class SetupRuntime:
 
     def environment(self):
         """.env merged with the process environment, which takes precedence (as at start)."""
-        from ..config import _dotenv
         return {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
 
     def secret_fields(self):
         """(group, name) of every credential the draft configuration uses; never their values (3.3.11)."""
-        from ..config import imap_secret_names, provider_secret_names
-        from ..mailbox.mailbox_settings import active_profiles
-        from ..proposals.target_profiles import secret_name
         draft, env = self.setup.draft_settings(), self.environment()
         fields = [(f"Postfach {mailbox.id} ({mailbox.label})", name)
                   for mailbox in draft.imap.configured_mailboxes()
@@ -169,7 +171,6 @@ class SetupRuntime:
 
     def iserv(self, actor):
         """Sign in to every enabled IServ account of the draft and open its letter overview."""
-        from ..mailbox.iserv import IServReader, IServSignInError
         cfg = self.setup.draft_settings()
         accounts = cfg.iserv.enabled_accounts()
         if not accounts:
@@ -178,7 +179,8 @@ class SetupRuntime:
         for account in accounts:
             if credentials is None or account.id not in credentials.iserv:
                 return "failed", "auth"
-            reader = IServReader(account, credentials.iserv[account.id], cfg.timezone, cfg.limits.max_mail_bytes,
+            reader = iserv_module.IServReader(account, credentials.iserv[account.id], cfg.timezone,
+                                              cfg.limits.max_mail_bytes,
                                  max_attachment_bytes=cfg.limits.max_attachment_bytes)
             try:
                 reader.check_access()

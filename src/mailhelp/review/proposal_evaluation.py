@@ -12,8 +12,10 @@ from typing import Any
 from .. import state_names
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal, ProposalKind, ProposalStatus
+from ..mailbox.sender_filter import sender_addresses
 from ..persistence.storage import JsonStore
 from ..review.learning_log import _read, learning_path
+from .reject_reasons import REJECT_REASONS
 
 ACCEPTED_STATUSES = frozenset({
     ProposalStatus.CREATED,
@@ -384,7 +386,6 @@ def evaluate_proposals(
     senders.sort(key=lambda s: (s.rejected, s.decided), reverse=True)
 
     # 5. Reject reasons breakdown
-    from .reject_reasons import REJECT_REASONS
     reason_counts: dict[str, int] = {}
     for p in proposals:
         if p.is_rejected:
@@ -470,7 +471,6 @@ def sender_hints(store: JsonStore, configuration: Any = None, *, now: datetime |
     if isinstance(raw_blocked, dict) and isinstance(raw_blocked.get("addresses"), list):
         blocked.update(raw_blocked["addresses"])
 
-    from ..mailbox.sender_filter import sender_addresses
 
     sender_groups: dict[str, list[DecidedProposalRecord]] = {}
     for p in proposals:
@@ -538,7 +538,6 @@ def sender_hint_for_sender(store: JsonStore, sender: str, configuration: Any = N
                              max_acceptance_rate=max_acceptance_rate)
         if request_cache is not None:
             request_cache[options] = hints
-    from ..mailbox.sender_filter import sender_addresses
     target_addresses = sender_addresses(sender)
     for h in hints:
         if h.sender == sender or (target_addresses and sender_addresses(h.sender) & target_addresses):

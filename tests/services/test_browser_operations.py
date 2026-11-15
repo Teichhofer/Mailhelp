@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from mailhelp.runtime.diagnostics import DiagnosticsService
-from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
 from mailhelp.web import Response, WebServer
 from mailhelp.web.reload_site import ReloadSite
 from tests.fakes.learning_harness import learning
@@ -104,7 +104,7 @@ def test_existing_listening_socket_swaps_handler_atomically(running):
 def test_application_loop_runs_and_finishes_the_selected_generation(monkeypatch):
     from threading import Event
 
-    from mailhelp.runtime.application import Application
+    from mailhelp.app.application import Application
     root=Mock(stop_event=Event())
     new=Mock(_fatal_error=None)
     new._cycle.return_value=False

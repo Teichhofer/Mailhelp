@@ -5,6 +5,7 @@ from typing import Any
 from urllib.parse import quote
 
 from ..review.proposal_evaluation import PERIODS, ProposalEvaluationReport, SenderHint
+from ..review.reject_reasons import REJECT_REASONS
 from .actions import new_key
 from .forms import select
 from .pages import e, page_head
@@ -201,7 +202,6 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
 def sender_hint_page(hint: SenderHint, mails: list[dict[str, Any]], csrf: str,
                      expected_hash: str | None = None) -> str:
     """Render the preview and confirmation page for an identified sender (Planung 6.5, 3.3)."""
-    from ..review.reject_reasons import REJECT_REASONS
     head = page_head(
         f"Absender: {hint.sender}",
         "Lernen",

@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from ._base import CalendarDate, StrictModel
+from .event_series import series_key
 from .proposal_sources import ProposalReference, ProposalSource
 from .temporal import TemporalFact
 
@@ -177,7 +178,6 @@ class Proposal(StrictModel):
     @classmethod
     def upgrade_series(cls, value: object) -> object:
         if isinstance(value, dict) and value.get("kind") == "event":
-            from .event_series import series_key
             base = value.get("base_title")
             if base is None:
                 base = value.get("title")

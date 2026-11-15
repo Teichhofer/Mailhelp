@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain.proposal_sources import ProposalReference
 from .editing import ProposalEditPatch
+from .reject_reasons import REJECT_REASONS
 
 
 class CommandSource(StrEnum):
@@ -102,7 +103,6 @@ class ReviewCommand(BaseModel):
         if (self.kind == CommandKind.REJECT_REASON) != (self.reason is not None):
             raise ValueError("Nur die Angabe eines Grundes nennt einen Ablehnungsgrund")
         if self.reason is not None:
-            from .reject_reasons import REJECT_REASONS
             if self.reason not in REJECT_REASONS:
                 raise ValueError(f"Unbekannter Ablehnungsgrund: {self.reason}")
         return self

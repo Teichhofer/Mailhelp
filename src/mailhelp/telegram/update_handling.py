@@ -14,10 +14,19 @@ from ..domain.run import TelegramOffset
 from ..llm.adapter import PermanentError
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
+from ..review.service import proposal_creation_time
 from ..state_names import clarification
-from .callbacks import DecisionAction, RelevanceDecision, validate_callback_markup
+from .callbacks import (
+    DecisionAction,
+    RelevanceDecision,
+    reject_reason_markup,
+    remove_confirmation_markup,
+    validate_callback_markup,
+)
 from .client import TelegramTransport, validation_path
+from .commands import TelegramCommands
 from .models import TelegramCallbackQuery, TelegramUpdate
+from .series import execute_callback, offer_answer
 
 if TYPE_CHECKING:
     from .dialog import TelegramDialogController
@@ -210,7 +219,6 @@ class TelegramUpdateHandler:
             return
         normalized = message.text.strip().lower()
         if normalized.startswith("/"):
-            from .commands import TelegramCommands
 
             TelegramCommands(self.o.store, self.o.repository, self.o.presenter,
                              self.o.telegram, self.o.chat_id, self.o.relevance,
@@ -236,7 +244,6 @@ class TelegramUpdateHandler:
                 self.o.learning.relevance_decision(dialog.mail_id, "telegram", f"telegram-update-{update.update_id}")
             return
         pointer = self.o.store.load_model("telegram-dialog", TelegramDialogState)
-        from .series import offer_answer
         if offer_answer(self.o, pointer, message.text):
             return
         self.o.revisions.answer(message.text)
@@ -289,7 +296,6 @@ class TelegramUpdateHandler:
         key = f"telegram-update-{update.update_id}"
         try:
             if callback.data.startswith("series:"):
-                from .series import execute_callback
                 return execute_callback(self.o, callback.data), None
             if callback.data.startswith("relevance:"):
                 try:
@@ -322,7 +328,6 @@ class TelegramUpdateHandler:
                     if current is None or current.version != decision.version or current.status != ProposalStatus.CREATED:
                         self.o.telegram.send(self.o.chat_id, "Dieser Eintrag wurde inzwischen geändert oder bereits entfernt.")
                         return None
-                    from ..review.service import proposal_creation_time
                     created = proposal_creation_time(self.o.store, current)
                     if created is not None:
                         now = datetime.now(UTC)
@@ -330,7 +335,6 @@ class TelegramUpdateHandler:
                         if now > created + timedelta(minutes=window):
                             self.o.telegram.send(self.o.chat_id, "Die Frist zum Entfernen des Eintrags ist abgelaufen.")
                             return None
-                    from .callbacks import remove_confirmation_markup
                     markup = remove_confirmation_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
                     self.o.telegram.send(self.o.chat_id, f"Wirklich entfernen: „{current.title}“?", markup)
                     return None
@@ -364,7 +368,6 @@ class TelegramUpdateHandler:
                 ), raise_errors=True).message
                 markup = None
                 if decision.action == DecisionAction.REJECT:
-                    from .callbacks import reject_reason_markup
                     markup = reject_reason_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
                 return confirmation, markup
         except StaleCommand:

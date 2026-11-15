@@ -6,9 +6,9 @@ from datetime import datetime
 
 from .. import state_names
 from ..domain.mail import MailState
+from ..persistence.archive import AnalysisSnapshot
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.mail_recheck import filed_as_irrelevant
-from ..review.archive import AnalysisSnapshot
 from ..review.cards import shorten
 from ..review.views import ReviewViews
 

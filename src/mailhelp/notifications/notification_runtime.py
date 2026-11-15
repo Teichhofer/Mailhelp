@@ -2,18 +2,23 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import UTC, datetime
 from threading import Event, Thread
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+from ..config.notifications import effective_profile
+from ..domain.mail import MailState
+from ..mailbox.mailbox_briefing import configure
+from ..mailbox.mailbox_settings import effective_settings
 from ..review.commands import CommandSource, ReviewCommand
 from ..review.inbox import COMMAND_INBOX, CommandInbox, CommandInboxState
 from ..review.views import ProposalView, ReviewViews
 from .briefing import DailyBriefingService
 from .draft_preview import summary as draft_summary
 from .draft_preview import visible as draft_visible
-from .notification_config import effective_profile
 from .notifications import NotificationService, QueueFull
+from .push_events import PushDecisionEvents
 
 
 class NotificationRuntime:
@@ -24,9 +29,7 @@ class NotificationRuntime:
             site.commands = app.dialog.commands
         app.dialog.review.completed = self.completed
         app.telegram.route_background = True
-        from datetime import UTC, datetime
 
-        from .push_events import PushDecisionEvents
         self.push_events = PushDecisionEvents(app.store, lambda: datetime.now(UTC), self.decisions())
         self.stop_event, self.thread = Event(), None
         self.queue = NotificationService(app.store, lambda: app.settings, self.destinations,
@@ -35,7 +38,6 @@ class NotificationRuntime:
                                          eligible=self.push_eligible)
         self.briefing = DailyBriefingService(app.store, app.settings.daily_briefing, app.settings.timezone,
             app.calendar, app.todoist, site.views, {"local": lambda text: None})
-        from ..mailbox.mailbox_briefing import configure
         configure(app, self.briefing, site.views)
         self._migrate()
         self._migrate_mailboxes()
@@ -63,12 +65,10 @@ class NotificationRuntime:
             (f"{row.mail_id}:relevance", row.version): row for row in overview.relevance}
 
     def settings_for_mailbox(self, number):
-        from ..mailbox.mailbox_settings import effective_settings
         return (effective_settings(self.app.settings, number) if self.app.settings.imap.mailbox(number) is not None
                 else self.app.settings)
 
     def mailbox_of(self, reference):
-        from ..domain.mail import MailState
         mail = self.app.store.peek_model("mail-" + reference.split(":", 1)[0], MailState)
         if mail is None:
             return 1

@@ -11,6 +11,12 @@ from typing import Any
 from ..config import Settings, Topic, read_yaml
 from ..config.configuration import ConfigurationService, file_hash
 from ..persistence.storage import CorruptState, atomic_replace
+from ..processing.analysis import (
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationExceeded,
+    LlmTokenLimitExceeded,
+)
 from ..review.learning_log import learning_path
 from .changes import assemble, compact_topics, condense
 from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
@@ -26,12 +32,6 @@ GENERIC_FAILURE = "Analyse nicht abgeschlossen. Sitzung, Prompt, Budget und KI p
 
 def failure_message(error: Exception) -> str:
     """5.7.6: a specific, credential-free reason instead of one generic sentence."""
-    from ..processing.analysis import (
-        LlmInvalidJson,
-        LlmProviderResponseInvalid,
-        LlmSchemaValidationExceeded,
-        LlmTokenLimitExceeded,
-    )
     if isinstance(error, LlmTokenLimitExceeded):
         # 5.7.7: fewer decisions shrink the input, not the cut-off output; that hint misled.
         return ("Analyse nicht abgeschlossen: Die KI-Antwort wurde am Ausgabelimit abgeschnitten, auch beim "
