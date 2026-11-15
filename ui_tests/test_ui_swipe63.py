@@ -325,6 +325,8 @@ def test_unsent_answer_text_blocks_both_directions(phone, mailhelp):
 
 def test_scrolling_and_slanted_moves_never_move_a_card(phone, mailhelp):
     page = phone
+    # This test measures native scrolling, independently of the timed first-use demonstration.
+    page.add_init_script('localStorage.setItem("mailhelp-swipe-hint", "1")')
     sign_in(page, mailhelp)
     sent = actions(page)
     before = page.evaluate("scrollY")

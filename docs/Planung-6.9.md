@@ -6,7 +6,7 @@
 
 **Status:** W1 bis W12 und U2 bis U6 in 6.9.1 umgesetzt; automatisierte Abschlussprüfung am
 15. November 2026 bestanden.
-Die Arbeitspakete sind in einer Veröffentlichung gebündelt. U1 ist nicht Teil von 6.9.
+Die Arbeitspakete sind in einer Veröffentlichung gebündelt; 6.9.2 ergänzt die Abschlussprüfung. U1 ist nicht Teil von 6.9.
 Reale Geräteabnahme offen; Nachweise und Messprotokoll in [Release 6.9](Release-6.9.md).
 
 **Ausgangsstand:** 6.7.5 (Wischgeste aus 6.3.1/6.3.2, Feinabstimmung aus 6.7)

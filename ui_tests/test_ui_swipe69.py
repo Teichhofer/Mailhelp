@@ -295,8 +295,8 @@ def test_hint_waits_while_the_card_is_partly_hidden_and_nudges_once_it_is_whole(
     page.set_viewport_size(size)
     page.locator(RELEVANCE).evaluate('e=>e.scrollIntoView({block:"center"})')
     page.wait_for_function(
-        "s => new DOMMatrix(getComputedStyle(document.querySelector(s)).transform).m41 > 5",
-        arg=RELEVANCE, timeout=2500)
+        "s => new DOMMatrix(getComputedStyle(document.querySelector(s)).transform).m41 > 5", arg=RELEVANCE, timeout=2500
+    )
     assert sent == [] and page.errors == []
 
 
@@ -506,8 +506,9 @@ def test_regression_steep_start_waits_for_the_browser_instead_of_twitching(phone
         EVENT,
     )
     # Released before the next frame: the steep move must not start a swipe on the way out either.
-    phone.evaluate('emitSwipe("pointerdown",993,120,0);emitSwipe("pointermove",993,108,30);'
-                   'emitSwipe("pointerup",993,108,30)')
+    phone.evaluate(
+        'emitSwipe("pointerdown",993,120,0);emitSwipe("pointermove",993,108,30);emitSwipe("pointerup",993,108,30)'
+    )
     assert phone.locator(".swipe-backdrop").count() == 0 and matrix(phone)["x"] == 0
     phone.evaluate('emitSwipe("pointerdown",994,120,0);emitSwipe("pointermove",994,108,18)')
     phone.evaluate("frames2()")
@@ -561,13 +562,14 @@ def test_regression_pending_hint_does_not_animate_after_resize_to_desktop(page, 
     assert page.evaluate("window.__wideChecks") == 0
 
 
-@pytest.mark.parametrize("velocity,share,expected",[(0.89,0.5,False),(0.9,0.5,True),(2,1/3,False)])
-def test_exact_momentum_boundary_uses_event_timestamps(phone,mailhelp,velocity,share,expected):
-    phone.set_viewport_size({"width":392,"height":844})
-    sign_in(phone,mailhelp)
-    sent=actions(phone)
-    phone.locator(EVENT+" p.source").evaluate('e=>e.scrollIntoView({block:"center"})')
-    phone.evaluate("""({selector,velocity,share})=>{
+@pytest.mark.parametrize("velocity,share,expected", [(0.89, 0.5, False), (0.9, 0.5, True), (2, 1 / 3, False)])
+def test_exact_momentum_boundary_uses_event_timestamps(phone, mailhelp, velocity, share, expected):
+    phone.set_viewport_size({"width": 392, "height": 844})
+    sign_in(phone, mailhelp)
+    sent = actions(phone)
+    phone.locator(EVENT + " p.source").evaluate('e=>e.scrollIntoView({block:"center"})')
+    phone.evaluate(
+        """({selector,velocity,share})=>{
       const card=document.querySelector(selector), node=card.querySelector("p.source");
       const box=node.getBoundingClientRect(), dx=Math.min(card.getBoundingClientRect().width*.4,160)*share;
       const emit=(type,x,t)=>{
@@ -576,10 +578,12 @@ def test_exact_momentum_boundary_uses_event_timestamps(phone,mailhelp,velocity,s
         Object.defineProperty(event,"timeStamp",{value:1000+t});node.dispatchEvent(event);
       };
       emit("pointerdown",90,0);emit("pointermove",90+dx,dx/velocity);emit("pointerup",90+dx,dx/velocity);
-    }""",{"selector":EVENT,"velocity":velocity,"share":share})
+    }""",
+        {"selector": EVENT, "velocity": velocity, "share": share},
+    )
     if expected:
-        expect(phone.locator(EVENT+" [data-command-result]")).to_be_attached(timeout=10000)
-        assert len(sent)==1
+        expect(phone.locator(EVENT + " [data-command-result]")).to_be_attached(timeout=10000)
+        assert len(sent) == 1
     else:
         expect(phone.locator(".swipe-backdrop")).to_have_count(0)
-        assert sent==[]
+        assert sent == []

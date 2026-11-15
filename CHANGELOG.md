@@ -1,5 +1,11 @@
 # Änderungen
 
+## 6.9.2 – Abschlussprüfung und Serverfreigabe
+
+- Der Scrolltest prüft die native Geste unabhängig von der zeitgesteuerten Einführung; deren Verhalten bleibt separat abgesichert.
+- Neue Browsertests formatiert; vollständige Python-, Browser- und Abdeckungsprüfung vor dem Serverupdate.
+- Geräteabnahme auf echtem iPhone und Android bleibt offen.
+
 ## 6.9.1 – Karten am Finger und aktuelle Übersicht
 
 - Die Karte folgt dem Finger in beiden Achsen ohne Bremse oberhalb der Schwelle.

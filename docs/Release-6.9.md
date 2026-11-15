@@ -7,6 +7,10 @@ Die dort vorgeschlagenen Zwischenpatches werden nicht einzeln veröffentlicht.
 Umgesetzt sind W1 bis W12 und U2 bis U6. U1 (kompaktere Karten) bleibt ausgeschlossen.
 Ausgangspunkt ist die veröffentlichte und installierte Version 6.8.2, Commit 6d52f39.
 
+6.9.2 ergänzt die abschließende Freigabeprüfung. Der Scrolltest unterdrückt die
+separat geprüfte Einführung, damit deren zeitgesteuerter Hintergrund nicht als
+Wischbewegung gewertet wird. Die neue Testsuite ist formatiert.
+
 ## Verhalten
 
 Eine angenommene Geste folgt in beiden Achsen ohne Bremse, mit begrenzter Neigung
@@ -95,8 +99,13 @@ oben bleibt unverändert gültig.
 ## Prüfstand und Geräteabnahme
 
 Abschlussprüfung am 15. November 2026: 5 297 Python-Tests mit 100 % Zeilen- und
-Branch-Abdeckung, Lasttests bestanden; 898 Browsertests mit vollständiger
-JavaScript-Abdeckung. Ruff und mypy melden Befunde nur in Dateien, die 6.9 nicht
+Branch-Abdeckung und bestandene Lasttests sind der Freigabemaßstab.
+Die vollständige Browsersuite bestand 897 Tests bei 214 gerätebedingt übersprungenen
+Fällen; ein Scrolltest wurde durch die unabhängig laufende Einführung beeinflusst.
+Nach Trennung der Prüfungen bestanden beide Scrollvarianten und drei genaue
+Schwunggrenzen (5 bestanden, 10 gerätebedingt übersprungen). Die zusammengeführte,
+unveränderten Skriptdateien zugeordnete reale CDP-Messung deckt 100 % der Blöcke
+von app.js, sw.js, setup.js, topics.js und learning.js ab. Ruff und mypy melden Befunde nur in Dateien, die 6.9 nicht
 verändert; sie bestanden schon in 6.8.2 und sind nicht Teil dieser Version. Automatisierte Tests verwenden ausschließlich
 synthetische Daten und simulierte externe Dienste. Vorher-Nachweise für den
 40°-Wisch, die Bremse und veraltete Zähler liegen vor.
