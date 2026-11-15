@@ -90,7 +90,7 @@ def _link(href: str, active: str | None, open_count: int, *, tab: bool = False) 
     return f'<a href="{href}"{current}>{_icon(NAVIGATION_ICONS[href])}<span class="nav-label">{label}</span>{badge}</a>'
 
 
-def _navigation(active: str | None) -> str:
+def _navigation(active: str | None) -> tuple[str, str]:
     """Sidebar (from 900 px), phone bar with "Mehr" (below 900 px); both work without JavaScript."""
     open_count = OPEN_DECISIONS.get()
     groups = []
@@ -106,8 +106,8 @@ def _navigation(active: str | None) -> str:
     current = " has-current" if active is not None and active not in TAB_BAR else ""
     more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">Mehr</span>'
             f'</summary><div class="tab-menu">{others}</div></details>')
-    return (described + '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>"
-            + f'<nav class="tab-bar" aria-label="Schnellnavigation">{tabs}{more}</nav>')
+    return (described + '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>",
+            f'<nav class="tab-bar" aria-label="Schnellnavigation">{tabs}{more}</nav>')
 
 
 def page_head(title: str, section: str, intro: str = "", *, count: str = "",
@@ -129,9 +129,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
     *before* and *after* are further sections at the start and end of ``main``; *wide* selects the
     second of the two page widths (6.2.2) for tables and side-by-side comparisons.
     """
-    navigation = ""
+    navigation = tab_bar = ""
     if signed_in:
-        navigation = _navigation(active)
+        navigation, tab_bar = _navigation(active)
     meta_refresh = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
     data = f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
     if state_url:
@@ -166,6 +166,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <main id="inhalt"{' class="page-wide"' if wide else ""}>{before}
 {content}
 {after}</main>
+{tab_bar}
 {widget or (_help_button() if signed_in and HELP_BUTTON.get() else "")}
 </body>
 </html>

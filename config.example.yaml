@@ -1,3 +1,4 @@
+# Mobile Navigation und Wischgesten passen sich automatisch an Bildschirm und Eingabegerät an.
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
 # 3.7: Ohne config.yaml öffnet der Start die Ersteinrichtung; Einmalcode steht im Terminal.
 # Browser: Web-Passwort, Postfach, KI und Ziele; Abschluss startet kontrolliert neu.

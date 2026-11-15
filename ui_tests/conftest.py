@@ -250,12 +250,17 @@ def setup_server(mailhelp):
 
 
 @pytest.fixture(scope="session")
-def browser():
+def browser_runtime():
     with sync_playwright() as playwright:
-        # Without the compilation cache every load gets fresh block counters.
-        instance = playwright.chromium.launch(channel="chrome", args=["--js-flags=--no-compilation-cache"])
-        yield instance
-        instance.close()
+        yield playwright
+
+
+@pytest.fixture(scope="session")
+def browser(browser_runtime):
+    # Without the compilation cache every load gets fresh block counters.
+    instance = browser_runtime.chromium.launch(channel="chrome", args=["--js-flags=--no-compilation-cache"])
+    yield instance
+    instance.close()
 
 
 class MeasuredContext:

@@ -29,7 +29,15 @@ Neuladen erhalten; „Zurücksetzen“ zeigt wieder alles. Die Leiste ändert nu
 | **Dublettenprüfung wiederholen** | nach einer fehlgeschlagenen Prüfung auf vorhandene Einträge |
 | **Erneut anlegen** | nur nach Rückfrage, wenn derselbe Eintrag schon früher angelegt wurde |
 
+Die untere Navigation bleibt auf dem Telefon auch beim Scrollen am sichtbaren
+Bildschirmrand. Der Sicherheitsabstand zum Home-Indikator bleibt frei. Über „Mehr“
+sind unter anderem Status und Einstellungen erreichbar.
+
 ### Wischen auf dem Telefon
+
+Beim Loslassen zählt die endgültige Fingerposition. Nach rechts bzw. links über die
+Schwelle gezogen löst die angezeigte Aktion aus; normales Scrollen und ein vom
+Browser abgebrochener Wisch senden nichts.
 
 Auf dem Smartphone und Tablet wischst du nach rechts, um einen Termin oder eine
 Aufgabe anzulegen, und nach links, um einen Vorschlag zu verwerfen. Die Karte folgt

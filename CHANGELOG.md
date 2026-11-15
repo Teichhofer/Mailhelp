@@ -1,5 +1,12 @@
 # Änderungen
 
+## 6.9.3 – Wischaktionen und feste Navigation auf dem iPhone
+
+- Beim Loslassen zählt der tatsächliche letzte Fingerpunkt auch ohne vorheriges Bewegungsereignis; die Originalformulare mit Sitzung, CSRF, Version und Idempotenz bleiben erhalten.
+- Horizontale Ein-Finger-Gesten werden vor nativer Scrollübernahme geschützt; vertikale Gesten, Abbrüche und Zwei-Finger-Zoom lösen keine Aktion aus.
+- Untere Navigation aus dem scrollenden Kopf gelöst; bei messbarer WebKit-Abweichung am sichtbaren Viewport verankert, einschließlich Safe Area und Größenwechseln.
+- Regressionstests mit Chromium und WebKit; WebKit wird in der Browser-CI installiert.
+
 ## 6.9.2 – Abschlussprüfung und Serverfreigabe
 
 - Der Scrolltest prüft die native Geste unabhängig von der zeitgesteuerten Einführung; deren Verhalten bleibt separat abgesichert.

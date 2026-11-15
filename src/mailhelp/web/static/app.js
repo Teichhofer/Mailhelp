@@ -145,6 +145,38 @@ function randomHexKey() {
   start();
 })();
 
+// A fixed layer can drift during async scrolling in iOS WebKit. Keep CSS fixed positioning
+// normally; if its measured edge leaves the visible viewport, anchor it in document coordinates.
+(function () {
+  var bar = document.querySelector(".tab-bar"), view = window.visualViewport;
+  if (!bar || !view) return;
+  var frame = null, anchored = false, original = bar.style.cssText;
+  function align() {
+    frame = null;
+    if (window.matchMedia("(min-width: 900px)").matches) {
+      bar.style.cssText = original; anchored = false;
+      return;
+    }
+    var box = bar.getBoundingClientRect(), bottom = view.offsetTop + view.height;
+    if (!anchored && Math.abs(box.bottom-bottom) < 2) return;
+    anchored = true;
+    bar.style.position = "absolute";
+    bar.style.inset = "auto";
+    bar.style.top = view.pageTop + view.height - box.height + "px";
+    bar.style.left = view.pageLeft + "px";
+    bar.style.width = view.width + "px";
+  }
+  function schedule() {
+    if (frame === null) frame = requestAnimationFrame(align);
+  }
+  window.addEventListener("scroll", schedule, {passive: true});
+  window.addEventListener("resize", schedule);
+  window.addEventListener("pageshow", schedule);
+  view.addEventListener("scroll", schedule, {passive: true});
+  view.addEventListener("resize", schedule);
+  schedule();
+})();
+
 // 2.0: split view, quick filters, shortcuts, undo, lightbox and Web-Push.
 // Every form still posts to the server, which checks session, CSRF and version.
 (function () {
@@ -664,6 +696,13 @@ function randomHexKey() {
   // The browser scrolls moves steeper than 45° (pan-y) and then cancels the pointer. Starting earlier
   // only made the card twitch for a frame while the list scrolled; a flatter move is always the card's.
   function startable(dx, dy) { return Math.abs(dx) >= SWIPE.start && Math.abs(dx) >= Math.abs(dy); }
+  // WebKit must receive the horizontal decision before its native scroller takes over.
+  // Vertical moves and a second finger remain native scrolling / pinch zoom.
+  document.addEventListener("touchmove", function (event) {
+    if (!swipe || event.touches.length !== 1) return;
+    var point = event.touches[0];
+    if (swipe.backdrop || startable(point.clientX-swipe.x, point.clientY-swipe.y)) event.preventDefault();
+  }, {passive: false});
   document.addEventListener("pointermove", function (event) {
     if (!swipe || event.pointerId !== swipe.id) return;
     var state = swipe, samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
@@ -695,7 +734,15 @@ function randomHexKey() {
   }
   function release(event) {
     if (!swipe || event.pointerId !== swipe.id) return;
-    if (swipe.frame && swipe.latest &&
+    // The final finger position need not have been delivered in a pointermove (or a frame) yet.
+    if (event.type === "pointerup") {
+      swipe.latest = event;
+      var previous = swipe.samples[swipe.samples.length-1];
+      if (event.clientX !== previous.x || event.clientY !== previous.y) {
+        swipe.samples.push({x: event.clientX, y: event.clientY, t: event.timeStamp});
+      }
+    }
+    if ((swipe.frame || event.type === "pointerup") && swipe.latest &&
         (swipe.backdrop || startable(swipe.latest.clientX-swipe.x, swipe.latest.clientY-swipe.y))) {
       if (!swipe.backdrop) begin(swipe);
       follow(swipe, swipe.latest.clientX-swipe.x, swipe.latest.clientY-swipe.y);

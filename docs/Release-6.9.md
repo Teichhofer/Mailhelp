@@ -115,3 +115,22 @@ ist **offen**. Insbesondere die jeweils zehn schrägen Wischgesten, zwanzig Scro
 Randgeste, Fokus auf dem Griffpunkt und Schwungquote können nicht durch die
 Chrome-Emulation als bestanden gelten. Sie wird erst nach Betreiber-Rückmeldung
 ergänzt. Die Bedienung ohne JavaScript bleibt vollständig erhalten.
+
+## Fehlerkorrekturen 6.9.3
+
+Beim Zurückfedern wurde die Aktion vor dem Senden verworfen. Die Endpunktprüfung
+verwendete ausschließlich den letzten `pointermove`; ein weiter außen liegender
+Loslasspunkt blieb unberücksichtigt. Regressionstests mit festen Zeitstempeln
+scheiterten in Chromium und WebKit vor der Korrektur. Jetzt zählt `pointerup`
+einschließlich des letzten Geschwindigkeits-Samples. Zusätzlich verhindert ein
+nicht passiver Touch-Handler die Übernahme bereits horizontaler Gesten durch den
+nativen Scroller; Scroll-Abbrüche bestätigen weiterhin nichts.
+
+Die Navigation lag innerhalb des Kopfes. Sie ist jetzt direkt unter `body`
+angeordnet, unabhängig von dessen scrollender Kopfzeile. Ein getesteter Fallback
+korrigiert messbares Driften einer festen Ebene anhand des sichtbaren Viewports.
+Vorher scheiterten sowohl die Prüfung mit einem separaten Kopf-Containing-Block
+als auch die Fehlerinjektion einer versetzten festen Navigation in beiden Engines.
+Der iOS-Fehler ist auch im [WebKit-Bug 315992](https://bugs.webkit.org/show_bug.cgi?id=315992)
+beschrieben; die genaue Betriebssystem-Ursache auf dem Nutzergerät ist damit nicht
+bewiesen. Die reale Abnahme nach Installation bleibt erforderlich.

@@ -13,9 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.9.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.9.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
-6.9.2 lässt Karten auf dem Telefon dem Finger in beiden Achsen folgen, mit
+6.9.3 behebt zurückfedernde Wischgesten bei einem fehlenden letzten Bewegungsereignis
+und schützt horizontale Gesten vor der Übernahme durch natives Scrollen. Die untere
+Navigation bleibt auch bei einer versetzten festen WebKit-Ebene am sichtbaren Rand.
+
+6.9.3 lässt Karten auf dem Telefon dem Finger in beiden Achsen folgen, mit
 begrenzter Neigung und Schwung. Eine ausgelöste Karte fliegt zu einem Ergebnisstreifen;
 Ablehnungen holen sie zurück, unterbrochene Antworten werden weiter geprüft.
 Titel und Absender stehen vor den Schaltflächen, Zähler aktualisieren sich direkt,

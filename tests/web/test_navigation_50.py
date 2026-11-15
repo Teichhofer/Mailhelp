@@ -29,6 +29,13 @@ def test_a_current_page_under_more_marks_the_more_menu():
     assert '<details class="tab-more">' in bar(layout("Ohne", "<h1>x</h1>"))
 
 
+def test_regression_phone_navigation_is_outside_the_scrolling_header_and_content():
+    html = layout("Status", "<h1>Status</h1>", active="/status")
+    start = html.index('<nav class="tab-bar"')
+    assert html.index("</header>") < html.index("</main>") < start < html.index("</body>")
+    assert html.index('<nav class="nav"') < html.index("</header>")
+
+
 def test_the_open_count_is_shown_and_described_for_screen_readers():
     token = OPEN_DECISIONS.set(1)
     try:

@@ -2514,6 +2514,21 @@ frühere 5-Sekunden-Frist entfiel mit den parallelen Webaktionen); die Karte zei
 „Wird verarbeitet …“, danach an derselben Stelle das Ergebnis, und andere Vorgänge
 bleiben bedienbar. Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel.
 
+**Mobile Fehlerkorrekturen (6.9.3).** Die Auslöseprüfung verwendet bei `pointerup`
+den tatsächlichen Endpunkt und dessen Zeitstempel, auch wenn kein letztes
+`pointermove` oder kein weiterer Animationsframe ankam. Eine horizontale
+Ein-Finger-Geste verhindert in einem nicht passiven `touchmove` die native
+Scrollübernahme; vertikale Bewegungen und mehrere Finger bleiben nativ. Ein
+`pointercancel` bestätigt niemals eine Aktion.
+
+Die untere Navigation ist ein direktes Kind des Seitenkörpers, außerhalb des
+scrollenden Kopfes und Inhalts. CSS verankert sie am unteren Rand mit iOS-Safe-Area.
+Bei messbarer Abweichung der festen Ebene vom sichtbaren Viewport übernimmt eine
+an `visualViewport` ausgerichtete Dokumentposition. Scrollen, Größenwechsel und
+Wiederanzeigen planen höchstens eine Anpassung je Animationsframe; die Desktop-
+Seitenleiste verwendet wieder das ursprüngliche CSS. Ohne Visual-Viewport-API bleibt
+die feste CSS-Navigation erhalten.
+
 **Wischen (6.9).** Unter 1024 px und mit Finger oder Stift beginnt die Geste ab
 10 px waagerechtem Weg, sobald die Bewegung nicht steiler als 45° ist.
 `touch-action: pan-y pinch-zoom` überlässt steileres Scrollen dem Browser; dessen
