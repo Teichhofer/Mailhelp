@@ -73,6 +73,18 @@ class ProposalPresenter:
             )
             return {"text": text, "callback_data": self.encode(decision)}
 
+        buttons = self._decision_rows(proposal, button)
+        self._add_choice_rows(proposal, buttons, button)
+        markup: dict[str, object] = {"inline_keyboard": buttons}
+        if additional is not None:
+            buttons.insert(0, self._association_row(proposal, additional))
+        validate_callback_markup(markup)
+        return ProposalPresentation(parts=parts, reply_markup=markup)
+
+
+    def _decision_rows(self, proposal: Proposal,
+                       button: Callable[[str, DecisionAction], dict[str, str]]) -> list[list[dict[str, str]]]:
+        """Confirm, change and reject; only checking and rejecting while something is open."""
         if not self.profile_available(proposal) or not proposal_is_writable(proposal):
             buttons = [
                 [
@@ -101,6 +113,11 @@ class ProposalPresenter:
             )
             reject = button("Verwerfen", DecisionAction.REJECT)
             buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
+        return buttons
+
+    def _add_choice_rows(self, proposal: Proposal, buttons: list[list[dict[str, str]]],
+                         button: Callable[[str, DecisionAction], dict[str, str]]) -> None:
+        """Event choices, conflicts, "already done", the original mail and other target profiles."""
         for index, _candidate in enumerate(proposal.calendar_candidates):
             # 4.6: the text above lists the candidates with the same numbers.
             choice = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
@@ -115,19 +132,18 @@ class ProposalPresenter:
             decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                 action=DecisionAction.RETARGET, target_profile=number, profile_hash=digest)
             buttons.append([{"text": f"Auf Zielprofil {name} umstellen", "callback_data": self.encode(decision)}])
-        markup: dict[str, object] = {"inline_keyboard": buttons}
-        if additional is not None:
-            choices = []
-            for label, action in (("Zu diesem Eintrag hinzufügen", DecisionAction.MERGE_SOURCE),
-                                  ("Als eigenen Vorschlag behalten", DecisionAction.SEPARATE_SOURCE)):
-                decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
-                    version=proposal.version, action=action,
-                    additional_ref=ProposalReference(mail_id=additional.source_mail_id, proposal_id=additional.id),
-                    additional_version=additional.version)
-                choices.append({"text": label, "callback_data": self.encode(decision)})
-            buttons.insert(0, choices)
-        validate_callback_markup(markup)
-        return ProposalPresentation(parts=parts, reply_markup=markup)
+
+    def _association_row(self, proposal: Proposal, additional: Proposal) -> list[dict[str, str]]:
+        """Add a possible second entry to this proposal or keep it separate."""
+        choices = []
+        for label, action in (("Zu diesem Eintrag hinzufügen", DecisionAction.MERGE_SOURCE),
+                              ("Als eigenen Vorschlag behalten", DecisionAction.SEPARATE_SOURCE)):
+            decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                version=proposal.version, action=action,
+                additional_ref=ProposalReference(mail_id=additional.source_mail_id, proposal_id=additional.id),
+                additional_version=additional.version)
+            choices.append({"text": label, "callback_data": self.encode(decision)})
+        return choices
 
     def _conflict_rows(self, proposal: Proposal) -> list[list[dict[str, str]]]:
         """5.9.4: one row per field conflict, one button per value; choosing is not confirming."""

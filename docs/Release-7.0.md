@@ -208,3 +208,22 @@ Stand 7.0.7 Median 454–556 ms (einmal rot), Ausgangsstand 6.9.3 in eigenem Arb
 460–521 ms (einmal rot). Der Umbau hat den Weg nicht verlangsamt; der Test liegt auf diesem Rechner
 schon vor 7.0 an seiner Grenze. Die Grenze ist eine Produktanforderung und bleibt; offener Punkt für
 die Abnahme (7.0.15): auf dem Produktivsystem messen und entscheiden.
+
+## 7.0.8 – Prüfdienst und Telegram (D7)
+
+| Funktion | vorher | nachher |
+| :--- | :--- | :--- |
+| `review/proposal_evaluation.py` `evaluate_proposals` | 146 Zeilen | 20 Zeilen und fünf Abschnittsfunktionen |
+| `review/proposal_evaluation.py` `collect_decided_proposals` | 125 Zeilen | 58 Zeilen; Aufbereitung je Quelle in `_state_record` und `_log_record` |
+| `telegram/update_handling.py` `_confirmation` | 103 Zeilen | 45 Zeilen; `_relevance_answer`, `_ask_removal`, `_execute_decision` |
+| `telegram/presenter.py` `present` | 89 Zeilen | 40 Zeilen; `_decision_rows`, `_add_choice_rows`, `_association_row` |
+| `review/views.py` `_view` | 84 Zeilen | 55 Zeilen; `_state_and_actions`, `_can_remove`, `_confirm_target` |
+
+Die Reihenfolge jeder Prüfung blieb erhalten, etwa dass ein Eintrag aus dem Entscheidungsprotokoll
+auch dann als gesehen gilt, wenn er am Zeitraum scheitert. Die letzte Zeile von `_confirmation`
+(`return confirmation, None`) war unerreichbar, weil jeder Weg im `try`-Block zurückkehrt; sie entfällt.
+Nebenbei verschwinden zwei Befunde des Ausgangsstands: die Verzweigungstiefe von
+`collect_decided_proposals` (ruff C901) und ein Typfehler in `update_handling.py` (mypy jetzt 13).
+Funktionen über 80 Zeilen im Paket: 2 (`cli._parser`, `llm/evaluation.evaluate`).
+
+Prüfung: 5 334 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests.

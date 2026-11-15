@@ -338,6 +338,14 @@ class _Reader:
         return value if isinstance(value, dict) else {}
 
 
+def _confirm_target(proposal: Proposal) -> str:
+    """Label of the confirm button outside the test mode."""
+    target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
+    if proposal.target_event_id is not None:
+        target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
+    return target
+
+
 class ReviewViews:
     """Build read models from the persisted state without changing it."""
 
@@ -588,36 +596,11 @@ class ReviewViews:
             example = answer_example(answerable[0])
         elif open_ and (editing or not card.writable):
             question, example = _CHANGE_QUESTION, _CHANGE_EXAMPLE
-        actions = (_open_actions(proposal, editing, blocked)
-                   if open_ and not answer_saved and not paused else set())
-        if paused:
-            state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
-        elif answer_saved:
-            state = "Antwort gespeichert – wird verarbeitet"
-        elif editing:
-            state = "Rückfrage offen"
-        else:
-            state = "Schon erledigt" if proposal.resolution == "already_done" else STATUS_LABELS[proposal.status]
-        if not self.profile_available(proposal):
-            actions.discard(CommandKind.CONFIRM)
-            state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
-        if proposal.status == ProposalStatus.CONFIRMED and proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR:
-            state = "Freigabe des Altbestands nicht prüfbar – Anlage gesperrt"
-        if verification is not None:
-            state = verification.title
-            if verification.recheckable and proposal.status == ProposalStatus.VERIFYING:
-                actions.add(CommandKind.VERIFY_ENTRY)
+        state, actions = self._state_and_actions(proposal, open_, editing, answer_saved, paused, blocked,
+                                                 verification)
         headers = mail.display_headers if mail is not None else None
-        target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
-        if proposal.target_event_id is not None:
-            target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
-        can_remove = (
-            proposal.status == ProposalStatus.CREATED
-            and not self.test_mode
-            and proposal.external_id is not None
-            and (verification is None or verification.state != VerificationState.UNSUPPORTED)
-            and self._is_within_removal_window(proposal)
-        )
+        target = _confirm_target(proposal)
+        can_remove = self._can_remove(proposal, verification)
         return ProposalView(
             mail_id=proposal.source_mail_id, proposal_id=proposal.id,
             version=proposal.version, status=proposal.status, card=card,
@@ -646,6 +629,40 @@ class ReviewViews:
             due_at=_moment(proposal.start or proposal.due, self.configured_timezone),
             reject_reason=proposal.reject_reason,
             can_remove=can_remove,
+        )
+
+    def _state_and_actions(self, proposal: Proposal, open_: bool, editing: bool, answer_saved: bool, paused: bool,
+                           blocked: bool, verification: VerificationSummary | None) -> tuple[str, set[CommandKind]]:
+        """The status line of the card and the actions it offers."""
+        actions = (_open_actions(proposal, editing, blocked)
+                   if open_ and not answer_saved and not paused else set())
+        if paused:
+            state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
+        elif answer_saved:
+            state = "Antwort gespeichert – wird verarbeitet"
+        elif editing:
+            state = "Rückfrage offen"
+        else:
+            state = "Schon erledigt" if proposal.resolution == "already_done" else STATUS_LABELS[proposal.status]
+        if not self.profile_available(proposal):
+            actions.discard(CommandKind.CONFIRM)
+            state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
+        if proposal.status == ProposalStatus.CONFIRMED and proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR:
+            state = "Freigabe des Altbestands nicht prüfbar – Anlage gesperrt"
+        if verification is not None:
+            state = verification.title
+            if verification.recheckable and proposal.status == ProposalStatus.VERIFYING:
+                actions.add(CommandKind.VERIFY_ENTRY)
+        return state, actions
+
+    def _can_remove(self, proposal: Proposal, verification: VerificationSummary | None) -> bool:
+        """A created entry can be removed while its removal window is open and the provider supports it."""
+        return (
+            proposal.status == ProposalStatus.CREATED
+            and not self.test_mode
+            and proposal.external_id is not None
+            and (verification is None or verification.state != VerificationState.UNSUPPORTED)
+            and self._is_within_removal_window(proposal)
         )
 
     def _is_within_removal_window(self, proposal: Proposal) -> bool:

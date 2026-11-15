@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.0.8 – Prüfdienst und Telegram in kleineren Teilen
+
+- Auswertung der Vorschläge, Bestätigungsablauf und Darstellung in Telegram sowie die Kartenansicht
+  aus benannten Schritten; eingefrorene Ausgaben byte-gleich.
+- Eine unerreichbare Zeile entfernt; ein alter Typfehler und eine Komplexitätswarnung entfallen.
+
 ## 7.0.7 – Weboberfläche in kleineren Teilen
 
 - Auswertungsseite (179 Zeilen), Postfachseite (102) und Statusseite (87) aus Abschnittsfunktionen

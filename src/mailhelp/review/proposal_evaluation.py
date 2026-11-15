@@ -138,7 +138,92 @@ def _snapshot[T](value: T) -> T:
     return value
 
 
-def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, now: datetime | None = None) -> list[DecidedProposalRecord]:
+def _state_record(proposal: Proposal, mail: MailState | None, now: datetime, cutoff: datetime | None,
+                  is_accepted: bool, is_rejected: bool, is_removed: bool) -> DecidedProposalRecord | None:
+    """A decided proposal state with sender, topics and decision time of its mail."""
+    mail_id, prop_id = proposal.source_mail_id, proposal.id
+    decided_at = now
+    sender = "Absender entfernt"
+    topics: list[str] = []
+    if mail is not None:
+        decided_at = mail.updated_at or mail.created_at or now
+        if mail.display_headers and mail.display_headers.sender:
+            sender = mail.display_headers.sender
+        elif mail.mail and isinstance(mail.mail.get("headers"), dict):
+            sender = mail.mail["headers"].get("from") or mail.mail["headers"].get("sender") or sender
+        if mail.relevance and mail.relevance.topic_ids:
+            topics = list(mail.relevance.topic_ids)
+
+    if cutoff is not None and decided_at < cutoff:
+        return None
+
+    reject_reason = getattr(proposal, "reject_reason", None)
+    if reject_reason is None and proposal.resolution == "already_done":
+        reject_reason = "already_done"
+
+    kind_str = "event" if proposal.kind == ProposalKind.EVENT else "task"
+    return DecidedProposalRecord(
+        mail_id=mail_id,
+        proposal_id=prop_id,
+        kind=kind_str,
+        is_accepted=is_accepted,
+        is_rejected=is_rejected,
+        is_removed=is_removed,
+        status=proposal.status.value,
+        resolution=proposal.resolution,
+        sender=sender,
+        topics=topics,
+        decided_at=decided_at,
+        reject_reason=reject_reason,
+    )
+
+
+def _log_record(record: dict[str, Any], record_mail_id: str, record_prop_id: str, cutoff: datetime | None,
+                seen: set[tuple[str, str]]) -> DecidedProposalRecord | None:
+    """A decision from decisions.jsonl whose proposal state retention already removed."""
+    recorded_at = _parse_iso(record.get("recorded_at"))
+    if recorded_at is None:
+        return None
+    if cutoff is not None and recorded_at < cutoff:
+        return None
+
+    kind_val = record.get("kind")
+    is_accepted = kind_val in {"confirm", "confirm_duplicate", "merge_proposals", "already_done"}
+    is_rejected = kind_val == "reject"
+    is_removed = kind_val == "remove"
+    if not (is_accepted or is_rejected or is_removed):
+        return None
+
+    seen.add((record_mail_id, record_prop_id))
+
+    decided_obj = (record.get("proposal") or {}).get("decided") or {}
+    original_obj = (record.get("proposal") or {}).get("original") or {}
+    prop_kind = decided_obj.get("kind") or original_obj.get("kind") or "task"
+
+    sender = (record.get("mail") or {}).get("headers", {}).get("sender") or "Absender entfernt"
+    topics = (record.get("analysis") or {}).get("relevance", {}).get("topic_ids") or []
+    reject_reason = record.get("reject_reason")
+    if reject_reason is None and kind_val == "already_done":
+        reject_reason = "already_done"
+
+    return DecidedProposalRecord(
+        mail_id=record_mail_id,
+        proposal_id=record_prop_id,
+        kind=prop_kind,
+        is_accepted=is_accepted,
+        is_rejected=is_rejected,
+        is_removed=is_removed,
+        status="removed" if is_removed else "rejected" if is_rejected else "created",
+        resolution="already_done" if kind_val == "already_done" else None,
+        sender=sender,
+        topics=list(topics),
+        decided_at=recorded_at,
+        reject_reason=reject_reason,
+    )
+
+
+def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None,
+                              now: datetime | None = None) -> list[DecidedProposalRecord]:
     """Collect every decided proposal from stored states and decisions.jsonl without double counting."""
     results: list[DecidedProposalRecord] = []
     seen: set[tuple[str, str]] = set()
@@ -176,41 +261,10 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
         prop_id = proposal.id
         seen.add((mail_id, prop_id))
 
-        mail = get_mail(mail_id)
-        decided_at = now
-        sender = "Absender entfernt"
-        topics: list[str] = []
-        if mail is not None:
-            decided_at = mail.updated_at or mail.created_at or now
-            if mail.display_headers and mail.display_headers.sender:
-                sender = mail.display_headers.sender
-            elif mail.mail and isinstance(mail.mail.get("headers"), dict):
-                sender = mail.mail["headers"].get("from") or mail.mail["headers"].get("sender") or sender
-            if mail.relevance and mail.relevance.topic_ids:
-                topics = list(mail.relevance.topic_ids)
-
-        if cutoff is not None and decided_at < cutoff:
-            continue
-
-        reject_reason = getattr(proposal, "reject_reason", None)
-        if reject_reason is None and proposal.resolution == "already_done":
-            reject_reason = "already_done"
-
-        kind_str = "event" if proposal.kind == ProposalKind.EVENT else "task"
-        results.append(DecidedProposalRecord(
-            mail_id=mail_id,
-            proposal_id=prop_id,
-            kind=kind_str,
-            is_accepted=is_accepted,
-            is_rejected=is_rejected,
-            is_removed=is_removed,
-            status=proposal.status.value,
-            resolution=proposal.resolution,
-            sender=sender,
-            topics=topics,
-            decided_at=decided_at,
-            reject_reason=reject_reason,
-        ))
+        item = _state_record(proposal, get_mail(mail_id), now, cutoff, is_accepted, is_rejected,
+                             is_removed)
+        if item is not None:
+            results.append(item)
 
     # 2. decisions.jsonl for decisions whose proposal states were removed by retention
     log_path = learning_path(store.directory)
@@ -222,60 +276,14 @@ def collect_decided_proposals(store: JsonStore, cutoff: datetime | None = None, 
         if (record_mail_id, record_prop_id) in seen:
             continue
 
-        recorded_at = _parse_iso(record.get("recorded_at"))
-        if recorded_at is None:
-            continue
-        if cutoff is not None and recorded_at < cutoff:
-            continue
-
-        kind_val = record.get("kind")
-        is_accepted = kind_val in {"confirm", "confirm_duplicate", "merge_proposals", "already_done"}
-        is_rejected = kind_val == "reject"
-        is_removed = kind_val == "remove"
-        if not (is_accepted or is_rejected or is_removed):
-            continue
-
-        seen.add((record_mail_id, record_prop_id))
-
-        decided_obj = (record.get("proposal") or {}).get("decided") or {}
-        original_obj = (record.get("proposal") or {}).get("original") or {}
-        prop_kind = decided_obj.get("kind") or original_obj.get("kind") or "task"
-
-        sender = (record.get("mail") or {}).get("headers", {}).get("sender") or "Absender entfernt"
-        topics = (record.get("analysis") or {}).get("relevance", {}).get("topic_ids") or []
-        reject_reason = record.get("reject_reason")
-        if reject_reason is None and kind_val == "already_done":
-            reject_reason = "already_done"
-
-        results.append(DecidedProposalRecord(
-            mail_id=record_mail_id,
-            proposal_id=record_prop_id,
-            kind=prop_kind,
-            is_accepted=is_accepted,
-            is_rejected=is_rejected,
-            is_removed=is_removed,
-            status="removed" if is_removed else "rejected" if is_rejected else "created",
-            resolution="already_done" if kind_val == "already_done" else None,
-            sender=sender,
-            topics=list(topics),
-            decided_at=recorded_at,
-            reject_reason=reject_reason,
-        ))
+        item = _log_record(record, record_mail_id, record_prop_id, cutoff, seen)
+        if item is not None:
+            results.append(item)
 
     return results
 
 
-def evaluate_proposals(
-    store: JsonStore,
-    days: int = 0,
-    now: datetime | None = None,
-    topics_map: dict[str, str] | None = None,
-) -> ProposalEvaluationReport:
-    """Evaluate decided proposals and generate the evaluation report."""
-    now = now or datetime.now(UTC)
-    cutoff = now - timedelta(days=days) if days > 0 else None
-    proposals = collect_decided_proposals(store, cutoff, now=now)
-
+def _summary(proposals: list[DecidedProposalRecord]) -> ProposalEvaluationSummary:
     # 1. Summary
     total_decided = len(proposals)
     total_accepted = sum(1 for p in proposals if p.is_accepted)
@@ -314,7 +322,10 @@ def evaluate_proposals(
         events_removed=events_removed,
         events_quote=events_quote,
     )
+    return summary
 
+
+def _weeks(proposals: list[DecidedProposalRecord]) -> list[WeeklyEvaluation]:
     # 2. Weekly breakdown
     weekly_groups: dict[str, tuple[str, list[DecidedProposalRecord]]] = {}
     for p in proposals:
@@ -339,7 +350,10 @@ def evaluate_proposals(
             removed=rem,
             quote=(acc / dec * 100) if dec else 0.0,
         ))
+    return weeks
 
+
+def _topics(proposals: list[DecidedProposalRecord], topics_map: dict[str, str] | None) -> list[TopicEvaluation]:
     # 3. Topic breakdown
     topics_map = topics_map or {}
     topic_groups: dict[str, list[DecidedProposalRecord]] = {}
@@ -365,7 +379,10 @@ def evaluate_proposals(
             quote=(acc / dec * 100) if dec else 0.0,
         ))
     topics.sort(key=lambda t: (t.decided, t.quote), reverse=True)
+    return topics
 
+
+def _senders(proposals: list[DecidedProposalRecord]) -> list[SenderEvaluation]:
     # 4. Sender breakdown
     sender_groups: dict[str, list[DecidedProposalRecord]] = {}
     for p in proposals:
@@ -384,7 +401,10 @@ def evaluate_proposals(
             quote=(acc / dec * 100) if dec else 0.0,
         ))
     senders.sort(key=lambda s: (s.rejected, s.decided), reverse=True)
+    return senders
 
+
+def _reasons(proposals: list[DecidedProposalRecord], total_rejected: int) -> list[RejectReasonCount]:
     # 5. Reject reasons breakdown
     reason_counts: dict[str, int] = {}
     for p in proposals:
@@ -402,14 +422,28 @@ def evaluate_proposals(
             count=count,
             percentage=pct,
         ))
+    return reasons
 
+
+def evaluate_proposals(
+    store: JsonStore,
+    days: int = 0,
+    now: datetime | None = None,
+    topics_map: dict[str, str] | None = None,
+) -> ProposalEvaluationReport:
+    """Evaluate decided proposals and generate the evaluation report."""
+    now = now or datetime.now(UTC)
+    cutoff = now - timedelta(days=days) if days > 0 else None
+    proposals = collect_decided_proposals(store, cutoff, now=now)
+
+    summary = _summary(proposals)
     return ProposalEvaluationReport(
         days=days,
         summary=summary,
-        weeks=weeks,
-        topics=topics,
-        senders=senders,
-        reasons=reasons,
+        weeks=_weeks(proposals),
+        topics=_topics(proposals, topics_map),
+        senders=_senders(proposals),
+        reasons=_reasons(proposals, summary.total_rejected),
     )
 
 

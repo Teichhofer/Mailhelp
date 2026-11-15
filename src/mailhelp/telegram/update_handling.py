@@ -17,6 +17,7 @@ from ..review.errors import StaleCommand
 from ..review.service import proposal_creation_time
 from ..state_names import clarification
 from .callbacks import (
+    Decision,
     DecisionAction,
     RelevanceDecision,
     reject_reason_markup,
@@ -298,22 +299,7 @@ class TelegramUpdateHandler:
             if callback.data.startswith("series:"):
                 return execute_callback(self.o, callback.data), None
             if callback.data.startswith("relevance:"):
-                try:
-                    relevance = self.o.validator.relevance_decision(callback.data)
-                except (ValueError, ValidationError):
-                    self.o.telegram.send(
-                        self.o.chat_id,
-                        "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
-                    )
-                    return None
-                confirmation = self.o.review.execute(ReviewCommand(
-                    kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
-                    actor=actor, mail_id=relevance.mail_id, version=relevance.version,
-                    # The callback pattern only admits these two values.
-                    decision=cast(Literal["relevant", "irrelevant"], relevance.decision), idempotency_key=key,
-                    replay_offset=update.update_id + 1,
-                ), raise_errors=True).message
-                return confirmation, None
+                return self._relevance_answer(update, callback, actor, key)
             else:
                 try:
                     decision = self.o.validator.decision(callback.data)
@@ -324,52 +310,12 @@ class TelegramUpdateHandler:
                     )
                     return None
                 if decision.action == DecisionAction.REMOVE_ASK:
-                    current = self.o.repository.load_current(decision.mail_id, decision.proposal_id)
-                    if current is None or current.version != decision.version or current.status != ProposalStatus.CREATED:
-                        self.o.telegram.send(self.o.chat_id, "Dieser Eintrag wurde inzwischen geändert oder bereits entfernt.")
-                        return None
-                    created = proposal_creation_time(self.o.store, current)
-                    if created is not None:
-                        now = datetime.now(UTC)
-                        window = self.o.review._removal_window_minutes()
-                        if now > created + timedelta(minutes=window):
-                            self.o.telegram.send(self.o.chat_id, "Die Frist zum Entfernen des Eintrags ist abgelaufen.")
-                            return None
-                    markup = remove_confirmation_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
-                    self.o.telegram.send(self.o.chat_id, f"Wirklich entfernen: „{current.title}“?", markup)
+                    self._ask_removal(decision)
                     return None
                 if decision.action == DecisionAction.REMOVE_CANCEL:
                     self.o.telegram.send(self.o.chat_id, "Entfernen abgebrochen; der Eintrag bleibt erhalten.")
                     return None
-                association = decision.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
-                extra: dict[str, Any] = {}
-                if decision.action == DecisionAction.RETARGET:
-                    extra = {"target_profile": decision.target_profile, "proposal_hash": decision.profile_hash}
-                if decision.action == DecisionAction.CHOOSE_EVENT:
-                    extra = {"candidate": decision.candidate}
-                if decision.action == DecisionAction.CHOOSE_VARIANT:
-                    extra = {"conflict_id": decision.conflict_id, "variant": decision.variant}
-                if decision.action == DecisionAction.REJECT_REASON:
-                    extra = {"reason": decision.reason}
-                identity = decision.mail_id, decision.proposal_id, decision.version
-                if association:
-                    assert decision.additional_ref is not None and decision.additional_version is not None
-                    identity = (decision.additional_ref.mail_id, decision.additional_ref.proposal_id,
-                                decision.additional_version)
-                    extra = {"target_ref": {"mail_id": decision.mail_id, "proposal_id": decision.proposal_id},
-                             "target_version": decision.version}
-                confirmation = self.o.review.execute(ReviewCommand(
-                    kind=(CommandKind.MERGE if decision.action == DecisionAction.MERGE_SOURCE else CommandKind.SEPARATE)
-                         if association else _COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
-                    actor=actor, mail_id=identity[0],
-                    proposal_id=identity[1], version=identity[2],
-                    idempotency_key=key,
-                    **extra,
-                ), raise_errors=True).message
-                markup = None
-                if decision.action == DecisionAction.REJECT:
-                    markup = reject_reason_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
-                return confirmation, markup
+                return self._execute_decision(decision, actor, key)
         except StaleCommand:
             # Typically decided in the web interface after this card was sent.
             self.o.logger.event("INFO", "telegram.dialog", "stale_button",
@@ -392,7 +338,74 @@ class TelegramUpdateHandler:
                 "❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen.",
             )
             return None
+
+    def _relevance_answer(self, update: TelegramUpdate, callback: TelegramCallbackQuery, actor: str,
+                          key: str) -> tuple[str | None, dict[str, Any] | None] | None:
+        try:
+            relevance = self.o.validator.relevance_decision(callback.data)
+        except (ValueError, ValidationError):
+            self.o.telegram.send(
+                self.o.chat_id,
+                "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
+            )
+            return None
+        confirmation = self.o.review.execute(ReviewCommand(
+            kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
+            actor=actor, mail_id=relevance.mail_id, version=relevance.version,
+            # The callback pattern only admits these two values.
+            decision=cast(Literal["relevant", "irrelevant"], relevance.decision), idempotency_key=key,
+            replay_offset=update.update_id + 1,
+        ), raise_errors=True).message
         return confirmation, None
+
+    def _ask_removal(self, decision: Decision) -> None:
+        """Ask once more before removing a created entry, while the removal window is open."""
+        current = self.o.repository.load_current(decision.mail_id, decision.proposal_id)
+        if current is None or current.version != decision.version or current.status != ProposalStatus.CREATED:
+            self.o.telegram.send(self.o.chat_id, "Dieser Eintrag wurde inzwischen geändert oder bereits entfernt.")
+            return
+        created = proposal_creation_time(self.o.store, current)
+        if created is not None:
+            now = datetime.now(UTC)
+            window = self.o.review._removal_window_minutes()
+            if now > created + timedelta(minutes=window):
+                self.o.telegram.send(self.o.chat_id, "Die Frist zum Entfernen des Eintrags ist abgelaufen.")
+                return
+        markup = remove_confirmation_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
+        self.o.telegram.send(self.o.chat_id, f"Wirklich entfernen: „{current.title}“?", markup)
+        return
+
+    def _execute_decision(self, decision: Decision, actor: str,
+                          key: str) -> tuple[str | None, dict[str, Any] | None]:
+        association = decision.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
+        extra: dict[str, Any] = {}
+        if decision.action == DecisionAction.RETARGET:
+            extra = {"target_profile": decision.target_profile, "proposal_hash": decision.profile_hash}
+        if decision.action == DecisionAction.CHOOSE_EVENT:
+            extra = {"candidate": decision.candidate}
+        if decision.action == DecisionAction.CHOOSE_VARIANT:
+            extra = {"conflict_id": decision.conflict_id, "variant": decision.variant}
+        if decision.action == DecisionAction.REJECT_REASON:
+            extra = {"reason": decision.reason}
+        identity = decision.mail_id, decision.proposal_id, decision.version
+        if association:
+            assert decision.additional_ref is not None and decision.additional_version is not None
+            identity = (decision.additional_ref.mail_id, decision.additional_ref.proposal_id,
+                        decision.additional_version)
+            extra = {"target_ref": {"mail_id": decision.mail_id, "proposal_id": decision.proposal_id},
+                     "target_version": decision.version}
+        confirmation = self.o.review.execute(ReviewCommand(
+            kind=(CommandKind.MERGE if decision.action == DecisionAction.MERGE_SOURCE else CommandKind.SEPARATE)
+                 if association else _COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
+            actor=actor, mail_id=identity[0],
+            proposal_id=identity[1], version=identity[2],
+            idempotency_key=key,
+            **extra,
+        ), raise_errors=True).message
+        markup = None
+        if decision.action == DecisionAction.REJECT:
+            markup = reject_reason_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
+        return confirmation, markup
 
     def reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""
