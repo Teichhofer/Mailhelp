@@ -24,10 +24,15 @@ class NotificationRuntime:
             site.commands = app.dialog.commands
         app.dialog.review.completed = self.completed
         app.telegram.route_background = True
+        from datetime import UTC, datetime
+
+        from .push_events import PushDecisionEvents
+        self.push_events = PushDecisionEvents(app.store, lambda: datetime.now(UTC), self.decisions())
         self.stop_event, self.thread = Event(), None
         self.queue = NotificationService(app.store, lambda: app.settings, self.destinations,
                                          self.relevant, self.send, logger=app.logger,
-                                         settings_for_mailbox=self.settings_for_mailbox)
+                                         settings_for_mailbox=self.settings_for_mailbox,
+                                         eligible=self.push_eligible)
         self.briefing = DailyBriefingService(app.store, app.settings.daily_briefing, app.settings.timezone,
             app.calendar, app.todoist, site.views, {"local": lambda text: None})
         from ..mailbox.mailbox_briefing import configure
@@ -96,6 +101,11 @@ class NotificationRuntime:
         if "web_push" in channels and cfg.push.enabled and push is not None:
             result.extend(("web_push", device) for device in push.destinations())
         return result
+
+    def push_eligible(self, category, reference, version, channel, device):
+        if channel != "web_push" or category != "decisions":
+            return True
+        return self.push_events.eligible(reference, version, self.site.experience.push, device)
 
     def relevant(self, item):
         if item.category == "decisions":
@@ -264,6 +274,7 @@ class NotificationRuntime:
                                    mailbox_id=self.mailbox_of(mail_id))
 
     def enqueue_decision(self, reference, version):
+        self.push_events.observe(reference, version)
         try:
             self.queue.enqueue("decisions", reference, version, mailbox_id=self.mailbox_of(reference))
         finally:

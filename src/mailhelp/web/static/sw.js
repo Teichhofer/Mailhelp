@@ -47,16 +47,27 @@ self.addEventListener("fetch", function (event) {
 // Texts and targets are fixed here: a push payload only selects one of these kinds,
 // so lock screens never show mail content and no injected link can be opened.
 var NOTIFICATIONS = {
-  decisions: { body: "Neue Entscheidungen warten in Mailhelp.", url: "/offen" },
-  briefing: { body: "Dein Tagesüberblick ist verfügbar.", url: "/briefing" }
+  decisions: { body: "Neue Aufgaben oder Termine zur Entscheidung.", url: "/offen" },
+  daily_briefing: { body: "Dein Tagesüberblick ist verfügbar.", url: "/briefing" },
+  briefing: { body: "Dein Tagesüberblick ist verfügbar.", url: "/briefing" },
+  action_results: { body: "Ein Aktionsergebnis ist in Mailhelp verfügbar.", url: "/verlauf" },
+  system_errors: { body: "Ein Betriebsproblem benötigt deine Aufmerksamkeit.", url: "/status" },
+  test: { body: "Test: Web-Push funktioniert auf diesem Gerät.", url: "/einstellungen?bereich=benachrichtigungen" },
+  information: { body: "Neue Informationen in Mailhelp.", url: "/" }
 };
+
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "mailhelp-worker-status" && event.source) {
+    event.source.postMessage({type: "mailhelp-worker-status", version: CACHE});
+  }
+});
 
 function notificationKind(event) {
   try {
     var tag = event.data.json().tag;
-    return Object.prototype.hasOwnProperty.call(NOTIFICATIONS, tag) ? tag : "decisions";
+    return Object.prototype.hasOwnProperty.call(NOTIFICATIONS, tag) ? tag : "information";
   } catch (error) {
-    return "decisions";
+    return "information";
   }
 }
 
@@ -64,12 +75,16 @@ self.addEventListener("push", function (event) {
   var kind = notificationKind(event);
   event.waitUntil(self.registration.showNotification("Mailhelp", {
     body: NOTIFICATIONS[kind].body, icon: "/static/icon-192.png", tag: "mailhelp-" + kind, data: { kind: kind }
+  }).then(function () {
+    return self.clients.matchAll({type: "window", includeUncontrolled: true}).then(function (clients) {
+      clients.forEach(function (client) { client.postMessage({type: "mailhelp-push-received", kind: kind}); });
+    });
   }));
 });
 
 self.addEventListener("notificationclick", function (event) {
   var kind = (event.notification.data || {}).kind;
-  var target = (Object.prototype.hasOwnProperty.call(NOTIFICATIONS, kind) ? NOTIFICATIONS[kind] : NOTIFICATIONS.decisions).url;
+  var target = (Object.prototype.hasOwnProperty.call(NOTIFICATIONS, kind) ? NOTIFICATIONS[kind] : NOTIFICATIONS.information).url;
   event.notification.close();
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clients) {
     var client = clients.find(function (item) { return new URL(item.url).origin === self.location.origin; });

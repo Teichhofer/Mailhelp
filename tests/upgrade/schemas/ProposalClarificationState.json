@@ -29,7 +29,6 @@
     }
   },
   "additionalProperties": false,
-  "description": "Durable trust boundary between a Telegram answer and proposal revision.",
   "properties": {
     "answer_status": {
       "$ref": "#/$defs/AnswerStatus",
@@ -134,6 +133,15 @@
       "default": 4,
       "title": "Schema Version",
       "type": "integer"
+    },
+    "source": {
+      "default": "telegram",
+      "enum": [
+        "web",
+        "telegram"
+      ],
+      "title": "Source",
+      "type": "string"
     },
     "version": {
       "minimum": 1,

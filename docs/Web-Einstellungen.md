@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 11. November 2026, Anwendungsversion 5.8.2; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 14. November 2026, Anwendungsversion 6.8.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 ## Themenübersicht
 
@@ -574,7 +574,7 @@ mitgelieferte `config.example.yaml` enthält ihn. Werte ohne Angabe gelten mit i
 | `imap.historical_start` | Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf. | Ersteinrichtung |
 | `telegram.enabled` | Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche. | Ersteinrichtung |
 | `push.enabled` | Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost. | Ersteinrichtung |
-| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`. | Datei |
+| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid` (Beispielwert; vor dem Einsatz ersetzen). | Ersteinrichtung |
 | `daily_briefing.enabled` | Täglicher Tagesüberblick per Telegram; Standard aus. | Ersteinrichtung, Benachrichtigungen |
 | `daily_briefing.time` | Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30. | Ersteinrichtung, Benachrichtigungen |
 

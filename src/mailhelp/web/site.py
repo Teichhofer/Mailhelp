@@ -181,6 +181,8 @@ class MailhelpSite:
             authenticate = self.auth.authenticate_fast if fast else self.auth.authenticate
             session = authenticate(request.cookies().get(SESSION_COOKIE))
             if session is None:
+                if request.path.startswith("/api/push/"):
+                    return Response.json(401, {"code": "session_expired"})
                 if request.wants_json():
                     return Response.json(401, {"error": "nicht angemeldet"})
                 if request.method == "GET":
@@ -195,6 +197,8 @@ class MailhelpSite:
                     return form
                 if not self.auth.csrf_valid(session.id, form.get("csrf")):
                     self.logger.event("WARNING", "web", "csrf_rejected", path=request.path)
+                    if request.path.startswith("/api/push/"):
+                        return Response.json(403, {"code": "csrf_rejected"})
                     return self._forbidden()
                 return self._counted(handler, request, session, form, **arguments)
             return self._counted(handler, request, session, **arguments)
@@ -245,7 +249,8 @@ class MailhelpSite:
             version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
             address=self.link_base(), devices=len(self.auth.sessions()),
             llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts(),
-            command_latencies=self.commands.latencies(), acceptance_latencies=self.commands.acceptance_latencies())
+            command_latencies=self.commands.latencies(), acceptance_latencies=self.commands.acceptance_latencies(),
+            push_warnings=self.experience.push_page.warnings())
         system = self.views.system(now)
         metrics = self.archive.metrics
         runtime = metrics.runtime() if metrics is not None else None

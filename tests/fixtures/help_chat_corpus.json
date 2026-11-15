@@ -26,7 +26,7 @@
     {"group": "fehler", "question": "Wie starte ich Mailhelp neu?", "sources": ["betrieb/speichern-aktivieren-neuladen-und-neustart", "betrieb/starten-pruefen-beenden"]},
     {"group": "fehler", "question": "Was passiert bei unklarem Schreiberfolg?", "sources": ["fehlerbehebung/fehler-beheben"]},
     {"group": "fehler", "question": "Was bedeutet Eintragung noch nicht bestätigt?", "sources": ["bedienung/nach-dem-anlegen", "fehlerbehebung/fehler-beheben"]},
-    {"group": "fehler", "question": "Wie setze ich das Web-Passwort zurück?", "sources": ["fehlerbehebung/fehler-beheben", "ersteinrichtung/wenn-etwas-nicht-klappt"]},
+    {"group": "fehler", "question": "Wie setze ich das Web-Passwort zurück?", "sources": ["fehlerbehebung/web-passwort-zuruecksetzen"]},
     {"group": "fehler", "question": "Wie sichere ich meine Daten?", "sources": ["betrieb/sicherung"]},
     {"group": "fehler", "question": "Wie kehre ich zu einer älteren Version zurück?", "sources": ["betrieb/rueckkehr-zur-vorversion"]},
     {"group": "fehler", "question": "Wie mache ich ein Update?", "sources": ["betrieb/update", "betrieb/betrieb-und-update"]},

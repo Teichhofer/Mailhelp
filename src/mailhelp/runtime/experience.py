@@ -55,7 +55,7 @@ class ExperienceRuntime:
         settings = app.settings
         feature = self.site.experience
         if settings.push.enabled:
-            feature.push = PushService(app.store, components.auth, settings.push.subject)
+            feature.push = PushService(app.store, components.auth, settings.push.subject, logger=app.logger)
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
         from ..mailbox.mailbox_settings import effective_settings
@@ -118,7 +118,7 @@ class ExperienceRuntime:
         if settings.telegram.enabled:
             channels["telegram"] = lambda text: app.telegram.send(settings.telegram.chat_id, text)
         if feature.push is not None:
-            channels["push"] = lambda _text: feature.push.notify("briefing")
+            channels["push"] = lambda _text: feature.push.notify("daily_briefing")
         self.briefing = DailyBriefingService(app.store, settings.daily_briefing, settings.timezone,
             app.calendar, app.todoist, self.site.views, channels)
         from ..mailbox.mailbox_briefing import configure

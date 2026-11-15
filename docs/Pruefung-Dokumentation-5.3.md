@@ -179,6 +179,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
 | `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |
+| `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](Release-6.8.md) |
 | `/benachrichtigungen` | Benachrichtigungen dieses Geräts | Web-Einstellungen (notifications) |
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
 | `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
@@ -352,7 +353,7 @@ Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243**
 | `poll_interval_seconds` | int | Pflicht | ≥ 5, ≤ 86400 | Weboberfläche | ja |
 | `proposal_reconciliation.max_semantic_candidates` | int | 8 | ≥ 1, ≤ 50 | Weboberfläche | ja |
 | `push.enabled` | bool | False |  | Einrichtung | ja |
-| `push.subject` | str | 'mailto:admin@example.invalid' |  | Datei | ja |
+| `push.subject` | str | 'mailto:admin@example.invalid' |  | Einrichtung | ja |
 | `reanalysis.enabled` | bool | True |  | Datei | ja |
 | `reanalysis.max_attempts` | int | 2 | ≥ 1, ≤ 5 | Datei | ja |
 | `reanalysis.max_jobs_per_day` | int | 20 | ≥ 1, ≤ 500 | Datei | ja |

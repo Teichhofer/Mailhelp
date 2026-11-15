@@ -5,6 +5,8 @@ import base64
 import hashlib
 import json
 import re
+from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any, Protocol, cast
 from urllib.parse import urlsplit
 
@@ -15,6 +17,7 @@ from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
 from ..llm.adapter import PermanentError, RetryableError
+from ..logging import NullLogger
 from ..storage import StateStore
 
 
@@ -61,8 +64,10 @@ class NoRedirectSession(requests.Session):
 
 
 class PushService:
-    def __init__(self, store: StateStore, auth: AuthSessionManager, subject: str, sender: Any = webpush) -> None:
+    def __init__(self, store: StateStore, auth: AuthSessionManager, subject: str, sender: Any = webpush,
+                 *, logger: Any = None, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self.store, self.auth, self.subject, self.sender = store, auth, subject, sender
+        self.logger, self.clock = logger or NullLogger(), clock
         # Subscription changes are serialized with the store's own lock: notification
         # delivery asks for destinations while holding it, so a separate push lock
         # taken before the store deadlocked with it.
@@ -79,6 +84,19 @@ class PushService:
             key = Vapid.from_string(self.private).public_key
             self.public_key = b64(key.public_bytes(serialization.Encoding.X962,
                                                   serialization.PublicFormat.UncompressedPoint))
+            self.fingerprint = hashlib.sha256(self.public_key.encode()).hexdigest()
+            health = store.load("push-key-status", {})
+            self.key_changed = bool(health and health.get("fingerprint") != self.fingerprint)
+            store.save("push-key-status", {"fingerprint": self.fingerprint, "changed": self.key_changed,
+                                          "checked_at": clock().isoformat()})
+            state = self._state()
+            for actor in state["devices"]:
+                state["metadata"].setdefault(actor, self._activation())
+            store.save("push-subscriptions", state)
+
+    def _activation(self) -> dict[str, Any]:
+        return {"activated_at": self.clock().isoformat(), "fingerprint": self.fingerprint,
+                "rejected": False, "last_code": "not_tested", "last_at": None}
 
     def change(self, actor: str, key: str, value: dict[str, Any] | None = None) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
@@ -96,7 +114,12 @@ class PushService:
                 return
             if checked is None:
                 state["devices"].pop(actor, None)
+                state["metadata"].pop(actor, None)
             else:
+                old = state["metadata"].get(actor, {})
+                if (state["devices"].get(actor) != checked or old.get("rejected")
+                        or old.get("fingerprint") != self.fingerprint):
+                    state["metadata"][actor] = self._activation()
                 state["devices"][actor] = checked
             state["operations"][operation] = digest
             # Replays are only expected shortly after a request; old keys are dropped,
@@ -107,78 +130,88 @@ class PushService:
             self.store.save("push-subscriptions", state)
 
     def _state(self) -> dict[str, Any]:
-        return cast(dict[str, Any], self.store.load("push-subscriptions", {"devices": {}, "operations": {}}))
+        state = cast(dict[str, Any], self.store.load("push-subscriptions", {"devices": {}, "operations": {}}))
+        state.setdefault("metadata", {})
+        return state
+
+    def _revision(self, state: dict[str, Any], actor: str) -> str:
+        material = [state["devices"].get(actor), state["metadata"].get(actor, {}).get("activated_at"),
+                    self.fingerprint]
+        return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
+
+    def status(self, actor: str) -> dict[str, Any]:
+        """Only safe state of this device; never expose its endpoint or encryption keys."""
+        with self.store.locked():
+            state = self._state()
+            meta = state["metadata"].get(actor, {})
+            return {"registered": actor in state["devices"],
+                    "activated_at": meta.get("activated_at"), "last_at": meta.get("last_at"),
+                    "last_code": meta.get("last_code", "not_tested"),
+                    "rejected": bool(meta.get("rejected")),
+                    "key_matches": meta.get("fingerprint") == self.fingerprint}
 
     def destinations(self) -> list[str]:
         """Opaque subscription revisions keep provider addresses out of the queue."""
         with self.store.locked():
-            return [f"{actor}:{hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest()}"
-                    for actor, item in self._state()["devices"].items() if self.auth.active(actor)]
+            state = self._state()
+            return [f"{actor}:{self._revision(state, actor)}" for actor in state["devices"]
+                    if self.auth.active(actor) and not state["metadata"].get(actor, {}).get("rejected")
+                    and state["metadata"].get(actor, {}).get("fingerprint") == self.fingerprint]
+
+    def _result(self, device: str, code: str, status: int, provider: str) -> None:
+        actor = device.partition(":")[0]
+        with self.store.locked():
+            state = self._state()
+            if actor in state["devices"] and device == f"{actor}:{self._revision(state, actor)}":
+                meta = state["metadata"][actor]
+                meta.update(last_code=code, last_at=self.clock().isoformat())
+                if status in (401, 403):
+                    meta["rejected"] = True
+                if status in (404, 410):
+                    del state["devices"][actor]
+                self.store.save("push-subscriptions", state)
+        self.logger.event("INFO" if code == "accepted" else "WARNING", "push", "delivery_result",
+                          stage="provider", result_code=code, status_class=status // 100, provider=provider)
 
     def deliver(self, device: str, tag: str) -> None:
-        actor, _, revision = device.partition(":")
+        actor = device.partition(":")[0]
         with self.store.locked():
-            item = self._state()["devices"].get(actor)
-            if (item is None or not self.auth.active(actor)
-                    or hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest() != revision):
-                raise PermanentError("Geräteabonnement nicht mehr gültig")
+            state = self._state()
+            item = state["devices"].get(actor)
+            if item is None or device not in self.destinations():
+                raise PermanentError("Geraeteabonnement nicht mehr gueltig")
+        host = urlsplit(item["endpoint"]).hostname
+        provider = {"fcm.googleapis.com": "fcm", "web.push.apple.com": "apple",
+                    "updates.push.services.mozilla.com": "mozilla"}.get(host, "windows")
         try:
             with NoRedirectSession() as transport:
-                self.sender(subscription_info=item,
-                    data=json.dumps({"title": "Mailhelp", "body": "Neue Informationen in Mailhelp.",
-                                     "url": "/offen", "tag": tag}),
+                self.sender(subscription_info=item, data=json.dumps({"tag": tag}),
                     vapid_private_key=self.private, vapid_claims={"sub": self.subject},
                     content_encoding="aes128gcm", ttl=3600, timeout=10, requests_session=transport)
         except WebPushException as exc:
-            if exc.response is None:
-                raise
-            status = exc.response.status_code
-            if status in (404, 410):
-                with self.store.locked():
-                    state = self._state()
-                    if state["devices"].get(actor) == item:
-                        del state["devices"][actor]
-                        self.store.save("push-subscriptions", state)
-                raise PermanentError("Push-Abonnement abgelaufen") from exc
-            if status == 429:
-                raise RetryableError("Push-Dienst begrenzt Anfragen") from exc
-            if 400 <= status < 500:
-                raise PermanentError("Push-Dienst hat die Zustellung abgelehnt") from exc
-            raise
+            status = exc.response.status_code if exc.response is not None else 0
+            code = ("expired" if status in (404, 410) else "provider_rejected" if status in (401, 403)
+                    else "provider_refused" if 400 <= status < 500 and status != 429 else "retryable")
+            self._result(device, code, status, provider)
+            if code in {"expired", "provider_rejected", "provider_refused"}:
+                raise PermanentError("Push-Dienst hat das Abonnement abgelehnt") from exc
+            raise RetryableError("Push-Dienst voruebergehend nicht erreichbar") from exc
+        except requests.RequestException as exc:
+            self._result(device, "retryable", 0, provider)
+            raise RetryableError("Push-Dienst voruebergehend nicht erreichbar") from exc
+        self._result(device, "accepted", 201, provider)
 
     def notify(self, tag: str = "decisions") -> None:
-        """Never put subjects, mail text, calendar titles or tokens on lock screens.
-
-        Delivery runs without any lock; a device is only removed afterwards if its
-        subscription did not change in the meantime.
-        """
+        """Compatibility path uses precisely the same validation and safe result logging."""
         with self.store.locked():
             state = self._state()
-            stale = [actor for actor in state["devices"] if not self.auth.active(actor)]
-            for actor in stale:
-                del state["devices"][actor]
-            if stale:
-                self.store.save("push-subscriptions", state)
-            devices = dict(state["devices"])
-        gone = []
-        for actor, item in devices.items():
+            for actor in list(state["devices"]):
+                if not self.auth.active(actor):
+                    del state["devices"][actor]
+                    state["metadata"].pop(actor, None)
+            self.store.save("push-subscriptions", state)
+        for device in self.destinations():
             try:
-                with NoRedirectSession() as transport:
-                    self.sender(subscription_info=item,
-                        data=json.dumps({"title": "Mailhelp", "body": "Neue Informationen in Mailhelp.",
-                                         "url": "/offen", "tag": tag}),
-                        vapid_private_key=self.private, vapid_claims={"sub": self.subject},
-                        content_encoding="aes128gcm", ttl=3600, timeout=10,
-                        requests_session=transport)
-            except WebPushException as exc:
-                if exc.response is not None and exc.response.status_code in (404, 410):
-                    gone.append(actor)
-            except requests.RequestException:
+                self.deliver(device, tag)
+            except (PermanentError, RetryableError):
                 pass
-        if gone:
-            with self.store.locked():
-                state = self._state()
-                for actor in gone:
-                    if state["devices"].get(actor) == devices[actor]:
-                        del state["devices"][actor]
-                self.store.save("push-subscriptions", state)

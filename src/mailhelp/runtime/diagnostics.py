@@ -20,6 +20,9 @@ from ..llm.adapter import PermanentError
 STATES = {"unchecked": "nicht geprüft", "running": "wird geprüft", "ready": "bereit",
           "limited": "eingeschränkt", "failed": "fehlgeschlagen", "disabled": "deaktiviert"}
 HELP = {"": "Keine weitere Maßnahme erforderlich.",
+        "vapid_subject": "VAPID-Absender ist ein Beispielwert. Gültige Kontaktadresse unter Einrichtung eintragen.",
+        "vapid_changed": "Serverschlüssel wurde geändert. Geräte neu aktivieren.",
+        "push_rejected": "Vom Push-Anbieter abgelehnt. Gerät neu aktivieren und VAPID-Kontaktadresse prüfen.",
         "network": "Verbindung und Erreichbarkeit prüfen; andere Dienste bleiben nutzbar.",
         "tls": "TLS-Zertifikat und Systemzeit prüfen.",
         "auth": "Zugangsdaten oder App-Passwort in .env beziehungsweise Prozessumgebung prüfen.",
@@ -40,7 +43,8 @@ class DiagnosticResult(BaseModel):
     duration_ms: int = Field(default=0, ge=0)
     config_revision: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
     code: Literal["", "network", "tls", "auth", "permission", "configuration", "service", "timeout",
-                  "interrupted", "draft_readonly", "browser", "unauthorized"] = ""
+                  "interrupted", "draft_readonly", "browser", "unauthorized", "vapid_subject",
+                  "vapid_changed", "push_rejected"] = ""
 
 
 class DiagnosticsState(BaseModel):

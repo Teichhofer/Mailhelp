@@ -127,8 +127,9 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
                         lambda route: route.fulfill(body=HARNESS, content_type="text/html"))
         page.page.goto(f"{mailhelp.url}/__sw")
         result = page.evaluate("""async () => {
-          const shown = [], opened = [], navigated = [];
-          self.registration = { showNotification: (title, options) => { shown.push([title, options]); } };
+          const shown = [], opened = [], navigated = [], messages = [];
+          clients.matchAll = () => Promise.resolve([{postMessage: (data) => messages.push(data)}]);
+          self.registration = { showNotification: (title, options) => { shown.push([title, options]); return Promise.resolve(); } };
           const push = async (data) => { const waits = [];
             handlers.push({ data, waitUntil: (promise) => waits.push(promise) }); await Promise.all(waits); };
           const json = (value) => ({ json: () => value });
@@ -136,6 +137,13 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
           await push(json({ tag: "constructor" }));
           await push(json({ tag: "unbekannt" }));
           await push(null);
+          for (const tag of ["decisions", "daily_briefing", "action_results", "system_errors", "test"]) await push(json({tag}));
+          const source = {postMessage: data => messages.push(data)};
+          if (handlers.message) {
+            handlers.message({}); handlers.message({data:{}});
+            handlers.message({data:{type:"mailhelp-worker-status"}});
+            handlers.message({data:{type:"mailhelp-worker-status"},source});
+          }
           let windows = [];
           clients.matchAll = () => Promise.resolve(windows);
           clients.openWindow = (url) => { opened.push(url); return Promise.resolve(null); };
@@ -151,17 +159,22 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
           windows = [{ url: location.origin + "/", focus: () => Promise.resolve({
                        navigate: () => Promise.reject(new TypeError("uncontrolled")) }) }];
           await click({ kind: "__proto__" });
-          return { shown, opened, navigated, closed };
+          return { shown, opened, navigated, closed, messages };
         }""")
         bodies = [(title, options["body"], options["tag"], options["data"]["kind"])
                   for title, options in result["shown"]]
-        assert bodies == [
-            ("Mailhelp", "Dein Tagesüberblick ist verfügbar.", "mailhelp-briefing", "briefing"),
-            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions"),
-            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions"),
-            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions")]
-        assert result["closed"] and result["navigated"] == ["/offen"]
-        assert result["opened"] == ["/briefing", "/offen"]
+        expected = [
+            ("briefing", "Dein Tagesüberblick ist verfügbar."),
+            *( [("information", "Neue Informationen in Mailhelp.")] * 3 ),
+            ("decisions", "Neue Aufgaben oder Termine zur Entscheidung."),
+            ("daily_briefing", "Dein Tagesüberblick ist verfügbar."),
+            ("action_results", "Ein Aktionsergebnis ist in Mailhelp verfügbar."),
+            ("system_errors", "Ein Betriebsproblem benötigt deine Aufmerksamkeit."),
+            ("test", "Test: Web-Push funktioniert auf diesem Gerät.")]
+        assert bodies == [("Mailhelp", text, "mailhelp-" + kind, kind) for kind, text in expected]
+        assert result["messages"][-1]["type"] == "mailhelp-worker-status"
+        assert result["closed"] and result["navigated"] == ["/"]
+        assert result["opened"] == ["/briefing", "/"]
         assert page.errors == []
     finally:
         page.context.close()

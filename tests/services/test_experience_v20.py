@@ -383,7 +383,7 @@ def test_push_device_ownership_replay_cleanup_and_neutral_payload(tmp_path):
     push.change("second", "key-0001", sub())
     active.remove("second")
     push.notify()
-    assert len(sent) == 1 and json.loads(sent[0]["data"])["url"] == "/offen"
+    assert len(sent) == 1 and json.loads(sent[0]["data"]) == {"tag": "decisions"}
     assert set(store.load("push-subscriptions")["devices"]) == {"first"}
     push.change("first", "key-0002")
     assert store.load("push-subscriptions")["devices"] == {}
@@ -493,7 +493,7 @@ def test_web_push_auth_csrf_and_error_paths(web):
     assert not web.store.load("push-subscriptions")["devices"]
     web.auth.revoke_all()
     assert web.browser.request("GET", "/api/push/public-key", accept="application/json").status == 401
-    assert web.browser.request("POST", "/api/push/subscribe", payload).status == 403
+    assert web.browser.request("POST", "/api/push/subscribe", payload).status == 401
 
 
 def test_web_reply_buttons_generate_edit_save_and_error_paths(web):
@@ -649,7 +649,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
     web.site.experience.push.notify = lambda *a: pushes.append(a)
     runtime.tick()
     runtime.tick()
-    assert pushes == [(), ("briefing",)] and len(sent) == 1 and sent[0].startswith("Guten Morgen!")
+    assert pushes == [(), ("daily_briefing",)] and len(sent) == 1 and sent[0].startswith("Guten Morgen!")
     session = web.auth.sessions()[0]
     assert web.store.load(f"draft-{MAIL1}") is None  # Drafts are generated only on request.
     # The draft belongs to the configured mailbox the mail came from (3.1).

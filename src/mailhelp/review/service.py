@@ -85,6 +85,8 @@ class ReviewService:
         self.recheck: Callable[[str, int], RecheckOutcome] | None = None
 
     def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
+        from .revision_origin import ORIGIN
+        origin = ORIGIN.set(command.source.value)
         token = web_reply.set(command.source == CommandSource.WEB)
         try:
             result = self._execute_command(command, raise_errors=raise_errors)
@@ -92,6 +94,7 @@ class ReviewService:
                 self.completed(command, result)
             return result
         finally:
+            ORIGIN.reset(origin)
             web_reply.reset(token)
 
     def _execute_command(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:

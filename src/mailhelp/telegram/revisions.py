@@ -23,6 +23,7 @@ from ..models import (
     QuestionStatus,
     TelegramDialogState,
 )
+from ..notifications.notification_context import web_reply
 from ..persistence.proposals import clarification_name, proposal_name, proposal_version_name
 from ..storage import JsonStore
 from .answer_interpretation import AuthorizedAnswerInterpreter
@@ -125,6 +126,7 @@ class ProposalRevisionProcessor:
         # atomically before the first fallible interpretation call.  The raw
         # answer exists only in this state file and is never added to logs.
         pending = ProposalClarificationState(
+            source="web" if web_reply.get() else "telegram",
             mail_id=mail_id,
             proposal_id=proposal_id,
             version=version,
@@ -279,7 +281,9 @@ class ProposalRevisionProcessor:
                 previous_version=original.version,
                 new_version=revised.version,
             )
-        self.persistence.send_proposal(revised)
+        from ..review.revision_origin import revision_origin
+        with revision_origin(state.source):
+            self.persistence.send_proposal(revised)
         self.store.save(
             name,
             state.model_copy(

@@ -1,5 +1,21 @@
 # Änderungen
 
+## 6.8.1 – Web-Push prüfen und wiederherstellen
+
+- Neun Prüfstufen pro angemeldetem Gerät, konkrete Fehlerhinweise und neutraler
+  Test-Push mit Anbieterergebnis, Geräterückmeldung und Wartezeitbegrenzung.
+- Abonnements mit abweichendem VAPID-Schlüssel werden ersetzt. 401/403 sperren
+  bis zur Neuaktivierung; 404/410 entfernen abgelaufene Geräte. Sichere Ergebnislogs
+  gelten auch für den älteren Versandweg.
+- Feste Texte und Ziele für jede Push-Art; Nachrichten übertragen nur die Art.
+- Ungültige Aktivierungsdaten können ein bestehendes Abonnement nicht mehr abmelden.
+- Neue Vorlagen aktivieren den Kanal für Entscheidungen und Tagesüberblick.
+  Bestehende Postfachprofile werden ausschließlich nach bestätigter Vorschau geändert.
+- Dauerhafte Aktivierungszeit und Versionsherkunft verhindern Meldungen für alte
+  offene Vorschläge und eigene Änderungen aus Web oder Telegram.
+- Produktivbefund vor dem Update: Push ausgeschaltet, kein Gerät registriert.
+  Reale Geräteabnahme bleibt offen; Details und Prüfstand in `docs/Release-6.8.md`.
+
 ## 6.7.5 – Schnelle Ergebnisanzeigen bei vielen gespeicherten Mails
 
 - Lernhinweise verwenden die vorhandenen Dateisignaturen und validierten Projektionen

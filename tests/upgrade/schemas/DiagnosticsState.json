@@ -30,7 +30,10 @@
             "interrupted",
             "draft_readonly",
             "browser",
-            "unauthorized"
+            "unauthorized",
+            "vapid_subject",
+            "vapid_changed",
+            "push_rejected"
           ],
           "title": "Code",
           "type": "string"

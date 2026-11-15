@@ -6,7 +6,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Stand: 11. November 2026, Anwendungsversion 5.8.2; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).",
+  "text": "Stand: 14. November 2026, Anwendungsversion 6.8.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).",
   "title": "Einstellungen der Weboberfläche"
  },
  {
@@ -558,7 +558,7 @@
    "telegram.enabled"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `imap.host` | Mailserver des ersten Postfachs im älteren Einzelformat, z. B. `imap.example.org`; 1–253 Zeichen. Ohne `imap.mailboxes` beschreibt dieser Block Postfach 1. | Ersteinrichtung |\n| `imap.port` | Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS). | Ersteinrichtung |\n| `imap.connection_mode` | Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`. | Ersteinrichtung |\n| `imap.folders` | Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang. | Ersteinrichtung |\n| `imap.primary_folder` | Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`. | Ersteinrichtung |\n| `imap.drafts_folder` | Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`. | Ersteinrichtung |\n| `imap.historical_start` | Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf. | Ersteinrichtung |\n| `telegram.enabled` | Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche. | Ersteinrichtung |\n| `push.enabled` | Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost. | Ersteinrichtung |\n| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`. | Datei |\n| `daily_briefing.enabled` | Täglicher Tagesüberblick per Telegram; Standard aus. | Ersteinrichtung, Benachrichtigungen |\n| `daily_briefing.time` | Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30. | Ersteinrichtung, Benachrichtigungen |",
+  "text": "| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `imap.host` | Mailserver des ersten Postfachs im älteren Einzelformat, z. B. `imap.example.org`; 1–253 Zeichen. Ohne `imap.mailboxes` beschreibt dieser Block Postfach 1. | Ersteinrichtung |\n| `imap.port` | Port des Mailservers, 1–65535; üblich 993 (SSL/TLS) oder 143 (STARTTLS). | Ersteinrichtung |\n| `imap.connection_mode` | Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`. | Ersteinrichtung |\n| `imap.folders` | Ordner, die gelesen werden, 1–100 Einträge; der erste ist der Posteingang. | Ersteinrichtung |\n| `imap.primary_folder` | Ordner, der als Posteingang gilt und in `imap.folders` stehen muss; ohne Angabe der erste Eintrag von `imap.folders`. | Ersteinrichtung |\n| `imap.drafts_folder` | Ordner für Antwort- und Briefing-Entwürfe; ohne Angabe `Drafts`. | Ersteinrichtung |\n| `imap.historical_start` | Startgrenze: ältere Mails werden nicht verarbeitet (Datum mit Uhrzeit und Zeitzone). Leer bedeutet alle vorhandenen Mails. `mailhelp --ignore-historical-start` hebt sie für einen Abruf auf. | Ersteinrichtung |\n| `telegram.enabled` | Telegram-Bot für Rückfragen, Bestätigungen und Meldungen; Standard an. Aus: Bedienung nur über die Weboberfläche. | Ersteinrichtung |\n| `push.enabled` | Web-Push (inhaltsneutrale Hinweise) serverseitig anbieten; Standard aus. Jedes Gerät schaltet Push zusätzlich selbst ein. Nur über HTTPS oder localhost. | Ersteinrichtung |\n| `push.subject` | Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid` (Beispielwert; vor dem Einsatz ersetzen). | Ersteinrichtung |\n| `daily_briefing.enabled` | Täglicher Tagesüberblick per Telegram; Standard aus. | Ersteinrichtung, Benachrichtigungen |\n| `daily_briefing.time` | Uhrzeit des Tagesüberblicks im Format HH:MM in der konfigurierten Zeitzone; Standard 07:30. | Ersteinrichtung, Benachrichtigungen |",
   "title": "Ersteinrichtung und Postfach 1 (älteres Einzelformat)"
  },
  {
@@ -1298,6 +1298,17 @@
   "title": "Auswertung"
  },
  {
+  "id": "bedienung/web-push-ab-681",
+  "path": [
+   "Alltagsbedienung",
+   "Web-Push ab 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Die Einstellungen zeigen neun Prüfstufen für das angemeldete Gerät. Unter iOS\nMailhelp vom Home-Bildschirm als installierte Web-App über HTTPS öffnen.\nServer-Push unter Einrichtung einschalten, gültigen VAPID-Kontakt eintragen und\nneu starten. Anschließend das Gerät aktivieren. Fehlende Postfachkanäle lassen\nsich nach einer ausdrücklichen, versionsgeprüften Vorschau ergänzen.\n\nEin Test-Push überträgt ausschließlich einen festen neutralen Typ. Anbieterannahme\nund Geräterückmeldung sind getrennte Zustände; die sichtbare Systemmeldung muss\nam Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.\n429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der\nAktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,\nAktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.\nEinzelheiten: [Release 6.8](Release-6.8.md).",
+  "title": "Web-Push ab 6.8.1"
+ },
+ {
   "id": "fehlerbehebung/fehler-beheben",
   "path": [
    "Fehler beheben"
@@ -1365,6 +1376,17 @@
   "source": "docs/Fehlerbehebung.md",
   "text": "Das Fenster bleibt bei Suche und Speichern geöffnet. Ist es im Weg, den Kopf ziehen oder den\nTitel fokussieren und die Pfeiltasten verwenden. Nur **Hilfschat schließen** blendet es aus;\n**Chat leeren** entfernt den Verlauf. Erscheint eine Antwort nicht, die Seite neu laden.\nKeine Frage wegen eines Seitenwechsels erneut senden: Mailhelp zeigt den vorhandenen Auftrag.\n\nIst Browserspeicher gesperrt, sichert Mailhelp den Fensterstand vor Navigation auf dem lokalen\nServer. Bei einem Fehler bleibt die Seite mit dem Entwurf erhalten; Verbindung prüfen und\nerneut versuchen. Ohne JavaScript bleibt eine ungesendete Frage beim Seitenwechsel nicht erhalten.\nErscheint „crypto.randomUUID is not a function“ (Mailhelp über `http://` im Heimnetz vor 5.5),\nauf 5.5 aktualisieren; seither erzeugt Mailhelp die Schlüssel auch ohne sicheren Kontext.\nNach Abmeldung oder Sitzungsablauf erneut anmelden; alte private Chatdaten werden nicht aus\ndem Browserzustand einer neuen Sitzung übernommen.",
   "title": "Hilfschat im Einstellungsfenster"
+ },
+ {
+  "id": "fehlerbehebung/web-push-ab-681",
+  "path": [
+   "Fehler beheben",
+   "Web-Push ab 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/Fehlerbehebung.md",
+  "text": "Die Einstellungen zeigen neun Prüfstufen für das angemeldete Gerät. Unter iOS\nMailhelp vom Home-Bildschirm als installierte Web-App über HTTPS öffnen.\nServer-Push unter Einrichtung einschalten, gültigen VAPID-Kontakt eintragen und\nneu starten. Anschließend das Gerät aktivieren. Fehlende Postfachkanäle lassen\nsich nach einer ausdrücklichen, versionsgeprüften Vorschau ergänzen.\n\nEin Test-Push überträgt ausschließlich einen festen neutralen Typ. Anbieterannahme\nund Geräterückmeldung sind getrennte Zustände; die sichtbare Systemmeldung muss\nam Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.\n429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der\nAktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,\nAktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.\nEinzelheiten: [Release 6.8](Release-6.8.md).",
+  "title": "Web-Push ab 6.8.1"
  },
  {
   "id": "betrieb/betrieb-und-update",
@@ -1454,5 +1476,16 @@
   "source": "docs/Betrieb.md",
   "text": "Vor der Rückkehr zu einer Version vor 5.2.0 bei beendetem Dienst\n`mailhelp --prepare-rollback --config-directory .` ausführen. Einzelheiten stehen im\nRelease-Bericht der jeweiligen Version.",
   "title": "Rückkehr zur Vorversion"
+ },
+ {
+  "id": "betrieb/web-push-ab-681",
+  "path": [
+   "Betrieb und Update",
+   "Web-Push ab 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Die Einstellungen zeigen neun Prüfstufen für das angemeldete Gerät. Unter iOS\nMailhelp vom Home-Bildschirm als installierte Web-App über HTTPS öffnen.\nServer-Push unter Einrichtung einschalten, gültigen VAPID-Kontakt eintragen und\nneu starten. Anschließend das Gerät aktivieren. Fehlende Postfachkanäle lassen\nsich nach einer ausdrücklichen, versionsgeprüften Vorschau ergänzen.\n\nEin Test-Push überträgt ausschließlich einen festen neutralen Typ. Anbieterannahme\nund Geräterückmeldung sind getrennte Zustände; die sichtbare Systemmeldung muss\nam Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.\n429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der\nAktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,\nAktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.\nEinzelheiten: [Release 6.8](Release-6.8.md).",
+  "title": "Web-Push ab 6.8.1"
  }
 ]

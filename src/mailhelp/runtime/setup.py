@@ -14,7 +14,7 @@ from ..notifications.notification_config import effective_profile
 from .diagnostics import DiagnosticsState
 
 
-def profile_patch(settings):
+def profile_patch(settings: Settings) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for section, value in effective_profile(settings).model_dump().items():
         if isinstance(value, dict):

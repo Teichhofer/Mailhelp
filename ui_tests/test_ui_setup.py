@@ -74,7 +74,7 @@ def test_setup_pages_are_accessible_and_touch_controls_have_48_pixels(page, setu
                         ("/benachrichtigungen", "Zustellhistorie")):
         page.goto(setup_server.url + path)
         expect(page.get_by_role("heading", name=title, exact=True)).to_be_visible()
-        assert audit(page, "setup-" + title + "-" + page.device, page.mobile) == []
+        assert audit(page, "setup-" + title + "-" + page.device, page.mobile) == [], page.locator('a').evaluate_all("elements => elements.filter(a=>a.getBoundingClientRect().height>0 && a.getBoundingClientRect().height<44 && !a.matches('p a,li a,.meta a,code a')).map(a=>a.outerHTML)")
         assert page.locator(".setup-page .button").evaluate_all(
             "elements => elements.every(element => element.getBoundingClientRect().height >= 48)")
 

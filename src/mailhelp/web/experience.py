@@ -15,7 +15,6 @@ from .actions import new_key
 from .auth import WebSession
 from .http import Request, Response
 from .pages import e, layout
-from .setting_help import EXTRA_HELP, help_bubble
 
 if TYPE_CHECKING:
     from ..notifications.drafts import DraftService
@@ -29,6 +28,8 @@ class ExperienceSite:
         # Attached by the experience runtime when Web-Push or reply drafts are available.
         self.push: PushService | None = None
         self.drafts: DraftService | None = None
+        from .push_site import PushSite
+        self.push_page = PushSite(self)
         route = site.app.route
         route("GET", "/briefing", site.signed_in(self.briefing))
         route("GET", "/api/push/public-key", site.signed_in(self.public_key))
@@ -38,7 +39,7 @@ class ExperienceSite:
 
     def public_key(self, request: Request, session: WebSession) -> Response:
         if self.push is None:
-            return Response.json(503, {"error": "Web-Push ist deaktiviert."})
+            return Response.json(503, {"error": "Web-Push ist deaktiviert.", "code": "push_disabled"})
         return Response.json(200, {"public_key": self.push.public_key})
 
     def subscribe(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
@@ -49,26 +50,23 @@ class ExperienceSite:
 
     def _subscription(self, session: WebSession, form: dict[str, str], subscribe: bool) -> Response:
         if self.push is None:
-            return Response.json(503, {"error": "Web-Push ist deaktiviert."})
+            return Response.json(503, {"error": "Web-Push ist deaktiviert.", "code": "push_disabled"})
+        if form.get("public_key") and form["public_key"] != self.push.public_key:
+            return Response.json(409, {"code": "key_conflict"})
         try:
-            value = json.loads(form["subscription"]) if subscribe else None
+            value = {**json.loads(form["subscription"])} if subscribe else None
             self.push.change(session.id, form.get("key", ""), value)
-        except (ValueError, KeyError, TypeError, PermissionError):
-            return Response.json(400, {"error": "Abonnement nicht gespeichert. "
-                                                "Bitte neu anmelden und erneut versuchen."})
+        except PermissionError:
+            return Response.json(401, {"code": "session_expired"})
+        except ValueError as exc:
+            code = "provider_not_allowed" if str(exc) == "Ung\u00fcltiger Push-Anbieter" else "invalid_subscription"
+            return Response.json(400, {"code": code})
+        except (KeyError, TypeError):
+            return Response.json(400, {"code": "invalid_subscription"})
         return Response.json(200, {"ok": True})
 
-    def controls(self, csrf: str) -> str:
-        return ('<section class="card"><div class="setting-row"><h2>Benachrichtigungen</h2>'
-                + help_bubble('push', 'Benachrichtigungen', EXTRA_HELP['push']) + '</div>'
-                +
-                f'<div id="push-controls" data-csrf="{e(csrf)}">'
-                '<div class="actions">'
-                '<button type="button" class="button primary" id="push-enable">Push aktivieren</button>'
-                '<button type="button" class="button" id="push-disable">Push deaktivieren</button></div>'
-                '<p id="push-status" role="status">HTTPS oder localhost erforderlich. '
-                'Auf iOS zuerst zum Home-Bildschirm hinzufügen.</p></div>'
-                '<p><a href="/briefing">Tagesüberblick lesen</a></p></section>')
+    def controls(self, csrf: str, actor: str | None = None) -> str:
+        return self.push_page.controls(csrf, actor)
 
     def inbox_zero(self) -> str:
         """The finished state: today's results and the last processing time."""

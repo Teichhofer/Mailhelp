@@ -951,13 +951,13 @@
  },
  {
   "area": "Weitere Einstellungen",
-  "help": "Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`.",
+  "help": "Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid` (Beispielwert; vor dem Einsatz ersetzen).",
   "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
   "id": "setting:push.subject",
   "key": "push.subject",
   "label": "push.subject",
-  "path": "Datei",
-  "summary": "Datei: Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid`."
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Kontaktadresse des Betreibers für den Push-Dienst (VAPID), Format `mailto:name@domain`; Standard `mailto:admin@example.invalid` (Beispielwert; vor…"
  },
  {
   "area": "Weitere Einstellungen",

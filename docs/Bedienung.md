@@ -388,3 +388,20 @@ auf einen Schritt unter „Langsamste Durchläufe“ zeigt die langsamsten Mails
 **Status** steht beim laufenden Schritt, wie lange er üblicherweise dauert.
 
 Antwortentwürfe legt Mailhelp nur im Entwurfsordner ab; es versendet nie Mails.
+
+
+## Web-Push ab 6.8.1
+
+Die Einstellungen zeigen neun Prüfstufen für das angemeldete Gerät. Unter iOS
+Mailhelp vom Home-Bildschirm als installierte Web-App über HTTPS öffnen.
+Server-Push unter Einrichtung einschalten, gültigen VAPID-Kontakt eintragen und
+neu starten. Anschließend das Gerät aktivieren. Fehlende Postfachkanäle lassen
+sich nach einer ausdrücklichen, versionsgeprüften Vorschau ergänzen.
+
+Ein Test-Push überträgt ausschließlich einen festen neutralen Typ. Anbieterannahme
+und Geräterückmeldung sind getrennte Zustände; die sichtbare Systemmeldung muss
+am Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.
+429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der
+Aktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,
+Aktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.
+Einzelheiten: [Release 6.8](Release-6.8.md).

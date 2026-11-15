@@ -192,10 +192,12 @@ def test_push_destinations_and_per_device_delivery_are_neutral_and_rechecked(run
     web.site.experience.push = push
     cfg.push.enabled = True
     cfg.notifications.categories.decisions = ["web_push"]
+    p = web.dialog.repository.load_current(MAIL1, "elternabend")
+    web.dialog.repository.save_revision(p.model_copy(update={"version": p.version + 1}))
     svc.tick()
     assert len(sent) == 1
     data = json.loads(sent[0]["data"])
-    assert data["body"] == "Neue Informationen in Mailhelp." and "Elternabend" not in sent[0]["data"]
+    assert data == {"tag": "decisions"} and "Elternabend" not in sent[0]["data"]
     device = push.destinations()[0]
     push.change(sid, "push-0002", None)
     with pytest.raises(PermanentError):
@@ -203,7 +205,7 @@ def test_push_destinations_and_per_device_delivery_are_neutral_and_rechecked(run
 
 
 @pytest.mark.parametrize("status,expected", [(410, PermanentError), (429, RetryableError), (403, PermanentError),
-                                             (500, WebPushException), (None, WebPushException)])
+                                             (500, RetryableError), (None, RetryableError)])
 def test_push_failure_propagates_to_durable_delivery_status(runtime, status, expected):
     from tests.fakes.push_fakes import sub
     web = runtime.web
@@ -218,7 +220,7 @@ def test_push_failure_propagates_to_durable_delivery_status(runtime, status, exp
     device = push.destinations()[0]
     with pytest.raises(expected):
         push.deliver(device, "decisions")
-    assert bool(push.destinations()) == (status != 410)
+    assert bool(push.destinations()) == (status not in {401, 403, 404, 410})
 
 
 def test_revoked_device_and_subscription_revision_are_checked_before_push(runtime):
@@ -280,7 +282,7 @@ def test_legacy_push_markers_are_imported_per_device_without_new_push(configured
     svc = NotificationRuntime(app, web.site)
     svc.tick()
     assert sent == []
-    assert {item.status for item in svc.queue.state().entries.values() if item.channel == "web_push"} == {"sent"}
+    assert {item.status for item in svc.queue.state().entries.values() if item.channel == "web_push"} == set()
 
 
 @pytest.mark.slow

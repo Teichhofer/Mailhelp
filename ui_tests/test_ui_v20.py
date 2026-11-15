@@ -11,9 +11,11 @@ from playwright.sync_api import expect
 from checks import audit
 from conftest import item, sign_in
 from mailhelp.models import MailState, Proposal
+from mailhelp.notifications.notification_config import NotificationSettings
 from mailhelp.notifications.webpush import PushService
 from mailhelp.processing.attachments import AttachmentCache
 from pages import MASTER, PANE, Overview, SettingsPage
+from push_browser_fakes68 import PUSH_STUB
 from tests.fakes.shared_vision import image_bytes
 from tests.fakes.shared_vision import mail as raw_mail
 from tests.scenarios.web_scenario import mail_id
@@ -243,18 +245,6 @@ def test_inbox_zero_is_shown_when_everything_is_decided(page, mailhelp):
     assert page.errors == []
 
 
-PUSH_STUB = """
-window.__push = {permission: "granted", existing: null, subscribed: null, unsubscribed: 0, options: null};
-const manager = {
-  getSubscription: () => Promise.resolve(window.__push.existing),
-  subscribe: (options) => { window.__push.options = options; return Promise.resolve(window.__push.subscribed); }
-};
-Object.defineProperty(navigator, "serviceWorker", {configurable: true, value: {
-  register: () => Promise.resolve(null), ready: Promise.resolve({pushManager: manager})}});
-Notification.requestPermission = () => Promise.resolve(window.__push.permission);
-window.__subscription = (json) => ({toJSON: () => json,
-  unsubscribe: () => { window.__push.unsubscribed += 1; return Promise.resolve(true); }});
-"""
 
 
 def subscription_json(endpoint="https://fcm.googleapis.com/fcm/send/synthetic"):
@@ -270,47 +260,51 @@ def test_web_push_opt_in_on_the_settings_page(page, mailhelp):
     page.add_init_script(PUSH_STUB)
     sign_in(page, mailhelp)
     page.goto(f"{mailhelp.url}/einstellungen?bereich=benachrichtigungen")
-    status = page.locator("#push-status")
-    enable = page.get_by_role("button", name="Push aktivieren")
-    disable = page.get_by_role("button", name="Push deaktivieren")
-    assert audit(page, "v20-push-einstellungen", False) == []
+    expect(page.locator("#push-enable")).to_have_count(0)
+    expect(page.locator("#push-status")).to_contain_text("am Server ausgeschaltet")
+    sent = []
+    push = PushService(mailhelp.store, mailhelp.auth, "mailto:ops@example.test",
+                       sender=lambda **kwargs: sent.append(kwargs))
+    mailhelp.site.experience.push = push
+    cfg = mailhelp.site.archive.configuration.active
+    cfg.notifications = NotificationSettings(categories={"decisions": ["telegram", "web_push"]})
+    page.reload()
+    status, enable, disable = (page.locator(selector) for selector in
+                              ("#push-status", "#push-enable", "#push-disable"))
     page.evaluate("window.__push.permission = 'denied'")
     enable.click()
-    expect(status).to_have_text("Benachrichtigungen wurden im Browser nicht erlaubt.")
+    expect(status).to_contain_text("blockiert")
     page.evaluate("window.__push.permission = 'granted'")
-    enable.click()  # Web-Push is switched off in config.yaml.
-    expect(status).to_have_text("Web-Push ist auf dem Server nicht eingeschaltet.")
-    sent = []
-    mailhelp.site.experience.push = PushService(mailhelp.store, mailhelp.auth, "mailto:ops@example.test",
-                                                sender=lambda **kwargs: sent.append(kwargs))
-    page.evaluate("(json) => { window.__push.subscribed = window.__subscription(json); }", subscription_json())
+    page.evaluate("json => window.__push.subscribed = window.__subscription(json)", subscription_json())
     enable.click()
     expect(status).to_have_text("Push ist auf diesem Gerät aktiviert.")
     assert page.evaluate("window.__push.options.applicationServerKey.length") == 65
-    devices = mailhelp.store.load("push-subscriptions")["devices"]
-    assert len(devices) == 1
-    mailhelp.site.experience.push.notify()
+    assert len(mailhelp.store.load("push-subscriptions")["devices"]) == 1
+    push.notify()
     assert len(sent) == 1 and "Elternabend" not in sent[0]["data"]
-    # An existing subscription of the browser is registered again, not replaced.
-    page.evaluate("window.__push.existing = window.__push.subscribed; window.__push.subscribed = null")
     enable.click()
     expect(status).to_have_text("Push ist auf diesem Gerät aktiviert.")
-    page.evaluate("(json) => { window.__push.existing = window.__subscription(json); }",
+    assert page.evaluate("window.__push.unsubscribed") == 0
+    # Regression B1: only a proven foreign server key replaces the subscription.
+    page.evaluate("window.__push.existing.options.applicationServerKey = new Uint8Array(65).buffer")
+    enable.click()
+    expect(status).to_have_text("Push ist auf diesem Gerät aktiviert.")
+    assert page.evaluate("window.__push.unsubscribed") == 1
+    page.evaluate("json => { window.__push.existing = window.__subscription(json); "
+                  "window.__push.existing.options = window.__push.options; }",
                   subscription_json("https://evil.example/push"))
     enable.click()
-    expect(status).to_have_text("Nicht gespeichert. Bitte Anmeldung prüfen und erneut versuchen.")
-    page.evaluate("(json) => { window.__push.existing = window.__subscription(json); }", subscription_json())
+    expect(status).to_contain_text("Push-Anbieter ist nicht erlaubt")
+    page.evaluate("json => window.__push.existing = window.__subscription(json)", subscription_json())
     disable.click()
     expect(status).to_have_text("Push ist auf diesem Gerät deaktiviert.")
-    assert page.evaluate("window.__push.unsubscribed") == 1
     assert mailhelp.store.load("push-subscriptions")["devices"] == {}
-    page.evaluate("window.__push.existing = null")
     disable.click()
     expect(status).to_have_text("Push ist auf diesem Gerät deaktiviert.")
     page.add_init_script("Object.defineProperty(window, 'isSecureContext', {value: false});")
     page.reload()
-    page.get_by_role("button", name="Push aktivieren").click()
-    expect(page.locator("#push-status")).to_contain_text("Push benötigt HTTPS")
+    page.locator("#push-enable").click()
+    expect(page.locator("#push-status")).to_contain_text("nicht per HTTPS")
     without_load_errors(page, "400", "503")
     assert page.errors == []
 

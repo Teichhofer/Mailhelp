@@ -53,6 +53,7 @@ class ProposalRevisionStatus(StrEnum):
 
 
 class ProposalClarificationState(StrictModel):
+    source: Literal["web", "telegram"] = "telegram"
     """Durable trust boundary between a Telegram answer and proposal revision."""
 
     schema_version: Literal[4] = 4

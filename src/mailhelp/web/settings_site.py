@@ -77,7 +77,7 @@ class SettingsSite:
         except (OSError, ValueError):
             credentials = None
         page = settings_page(self.archive.models, raw, active, revision, csrf, credentials, area,
-                             query.get("suche", [""])[0][:80], self.site.experience.controls(csrf))
+                             query.get("suche", [""])[0][:80], self.site.experience.controls(csrf, session.id))
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def credential_service(self) -> CredentialService | None:

@@ -184,7 +184,9 @@ def test_runtime_readonly_probes_and_synthetic_tests(configured, monkeypatch):
     cfg.push.enabled = True
     assert runtime.push(session) == ("limited", "browser")
     assert runtime.push_test(session) == ("disabled", "")
-    configured.web.site.experience.push = NS(destinations=lambda: [], deliver=lambda *args: calls.append(args))
+    configured.web.site.experience.push = NS(destinations=lambda: [], deliver=lambda *args: calls.append(args),
+        subject="mailto:ops@example.test", key_changed=False,
+        status=lambda actor: {"key_matches": True, "rejected": False})
     assert runtime.push_test(session) == ("limited", "browser")
     configured.web.site.experience.push.destinations = lambda: ["a" * 16 + ":" + "b" * 64, session + ":" + "c" * 64]
     assert runtime.push(session) == runtime.push_test(session) == ("ready", "")

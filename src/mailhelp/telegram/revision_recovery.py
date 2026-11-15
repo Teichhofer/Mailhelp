@@ -99,7 +99,9 @@ class RevisionRecovery:
                 error=exc,
             )
             return
-        self.persistence.send_proposal(revised)
+        from ..review.revision_origin import revision_origin
+        with revision_origin("telegram"):
+            self.persistence.send_proposal(revised)
         self.store.save("telegram-dialog", TelegramDialogState().model_dump())
         self.logger.event(
             "INFO",

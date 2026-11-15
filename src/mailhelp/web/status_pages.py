@@ -50,6 +50,7 @@ class ServiceInfo:
     last_polls: tuple[tuple[str, str], ...] = ()
     command_latencies: dict[str, float] | None = None
     acceptance_latencies: dict[str, float] | None = None
+    push_warnings: tuple[str, ...] = ()
 
 
 RUNTIME_STAGES = {
@@ -225,6 +226,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                 system: SystemStatus, info: ServiceInfo) -> str:
     zone = ZoneInfo(configured_timezone)
     parts = [page_head("Status", "Einblicke", "Ob Mailhelp arbeitet und wo etwas zu tun ist.")]
+    parts.extend(notice(text, "warn") for text in info.push_warnings)
     # An unreadable source must remain visible before any technical disclosure.
     parts.append(_imap_error_section(info, zone))
     parts.append(_verdict(overview, system, info))

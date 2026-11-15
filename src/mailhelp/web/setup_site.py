@@ -29,7 +29,7 @@ FIELDS = {
         "targets.outlook_calendar", "targets.task_provider", "targets.todoist_project", "targets.caldav_task_url",
         "targets.microsoft_todo_list", "targets.microsoft_tenant",
         "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes"),
-    4: ("push.enabled",),
+    4: ("push.enabled", "push.subject"),
     5: ("notifications.quiet_hours.enabled", "notifications.quiet_hours.start", "notifications.quiet_hours.end",
         "notifications.quiet_hours.allow_system_errors", "notifications.batching.enabled",
         "notifications.batching.window_seconds", "notifications.telegram_content", "daily_briefing.enabled",
@@ -50,6 +50,7 @@ LABELS = {"event_defaults.video_duration_minutes": "Standarddauer Videokonferenz
           "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)", "targets.outlook_calendar": "Outlook-Kalender",
           "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
           "push.enabled": "Web-Push am Server aktivieren",
+          "push.subject": "VAPID-Kontaktadresse (mailto:name@domain)",
           "notifications.quiet_hours.enabled": "Ruhezeiten aktivieren", "notifications.quiet_hours.start": "Ruhe ab",
           "notifications.quiet_hours.end": "Ruhe bis", "notifications.quiet_hours.allow_system_errors":
           "Betriebsprobleme von Ruhezeiten ausnehmen", "notifications.batching.enabled": "Meldungen bündeln",

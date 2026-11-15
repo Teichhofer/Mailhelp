@@ -49,9 +49,9 @@ notifications:
     enabled: false
     window_seconds: 300
   categories:
-    decisions: [telegram]
+    decisions: [telegram, web_push]
     action_results: [telegram]
-    daily_briefing: [telegram]
+    daily_briefing: [telegram, web_push]
     system_errors: [telegram]
   telegram_content: neutral  # summary übermittelt Betreffzeilen/Tagesüberblick
   delivery:

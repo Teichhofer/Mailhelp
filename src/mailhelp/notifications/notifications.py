@@ -63,7 +63,8 @@ def quiet_now(profile, zone: str, now: datetime, category: str) -> bool:
 
 class NotificationService:
     def __init__(self, store, settings, destinations, relevant, sender,
-                 clock=lambda: datetime.now(UTC), logger=None, settings_for_mailbox=None):
+                 clock=lambda: datetime.now(UTC), logger=None, settings_for_mailbox=None, eligible=None):
+        self.eligible = eligible
         self.store, self.settings, self.destinations = store, settings, destinations
         self.relevant, self.sender, self.clock, self.logger = relevant, sender, clock, logger
         self._runner = Lock()
@@ -93,6 +94,8 @@ class NotificationService:
             additions = []
             for channel, device in self.destination_list(category, mailbox_id):
                 if channel in exclude_channels:
+                    continue
+                if self.eligible is not None and not self.eligible(category, reference, version, channel, device):
                     continue
                 scoped = "" if mailbox_id == 1 else f":mailbox:{mailbox_id}"
                 identity = hashlib.sha256(

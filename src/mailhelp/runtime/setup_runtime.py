@@ -227,6 +227,14 @@ class SetupRuntime:
     def push(self, actor):
         if not self.app.settings.push.enabled:
             return "disabled", ""
+        push = self.site.experience.push
+        if push is not None:
+            if push.subject == "mailto:admin@example.invalid":
+                return "limited", "vapid_subject"
+            if push.key_changed and not push.status(actor)["key_matches"]:
+                return "limited", "vapid_changed"
+            if push.status(actor)["rejected"]:
+                return "limited", "push_rejected"
         if self.site.experience.push is None or not any(
                 device.startswith(actor + ":") for device in self.site.experience.push.destinations()):
             return "limited", "browser"
