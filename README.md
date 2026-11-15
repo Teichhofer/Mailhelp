@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.8.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
-6.8.1 zeigt den Web-Push-Zustand in neun Stufen und bietet einen neutralen Test
+6.8.2 zeigt den Web-Push-Zustand in neun Stufen und bietet einen neutralen Test
 für das angemeldete Gerät. Schlüsselwechsel, Anbieterablehnungen und fehlende
 Postfachkanäle lassen sich gezielt erkennen und beheben. Eigene Änderungen und
 bereits offene Vorschläge erzeugen beim Aktivieren keine neue Meldung.

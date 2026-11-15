@@ -1,5 +1,11 @@
 # Mailhelp 6.8 – Web-Push prüfen und wiederherstellen
 
+## Nachtrag 6.8.2
+
+6.8.2 begrenzt den Releaseumfang auf die beauftragten Dateien. Die versehentlich
+aufgenommene Zukunftsplanung für 7.0 bleibt lokal erhalten und gehört nicht zum
+Versionsbestand. Der geprüfte Funktionsumfang von 6.8.1 bleibt erhalten.
+
 ## Umfang
 
 6.8.1 bündelt die Umsetzung der Arbeitspakete D1 bis D7 aus

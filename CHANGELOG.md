@@ -1,5 +1,11 @@
 # Änderungen
 
+## 6.8.2 – Releaseumfang bereinigen
+
+- Die lokale Planung für 7.0 gehört nicht zur Veröffentlichung von 6.8 und wird
+  aus dem Versionsbestand genommen; die lokale Datei bleibt erhalten.
+- Funktionsstand und geprüfte Push-Korrekturen entsprechen 6.8.1.
+
 ## 6.8.1 – Web-Push prüfen und wiederherstellen
 
 - Neun Prüfstufen pro angemeldetem Gerät, konkrete Fehlerhinweise und neutraler
