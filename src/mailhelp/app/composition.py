@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from threading import Event, Lock
@@ -286,12 +287,12 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
     return orchestrator
 
 
-def _attach_web(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
-                jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore) -> None:
+def _web_components(application: Application, settings: Settings, secrets: Secrets) -> Any:
+    """Web server, authentication and site, wired to the Telegram dialog."""
     store, logger, dialog = application.store, application.logger, application.dialog
     # build_application always creates the dialog and its command inbox before the web interface.
     assert dialog is not None and dialog.commands is not None
-    telegram, stop_event = application.telegram, application.stop_event
+    telegram = application.telegram
     secret = secrets.mailhelp_web_secret
     if settings.telegram.enabled:
         def notify(text):
@@ -309,6 +310,15 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     dialog.web_logout = components.auth.revoke_all
     dialog.web_invite = components.invite
     application.web = components.server
+    return components
+
+
+def _attach_configuration(application: Application, components: Any, settings: Settings, base_directory: Path,
+                          sender_store: JsonStore) -> ConfigurationService:
+    """Confirmed configuration changes and the lifecycle of the running process."""
+    store, logger, dialog = application.store, application.logger, application.dialog
+    stop_event = application.stop_event
+    assert dialog is not None
     configuration = ConfigurationService(base_directory, store, settings, components.authorize,
                                           application.request_settings, application.request_topics,
                                           senders=sender_store)
@@ -320,6 +330,14 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.lifecycle = application.lifecycle = components.site.archive.lifecycle = lifecycle
     dialog.stop_requested = lambda: lifecycle.state != "running" or stop_event.is_set()
     components.site.archive.configuration = configuration
+    return configuration
+
+
+def _attach_views(application: Application, components: Any, configuration: ConfigurationService,
+                  prompts: PromptConfig, jev_prompts: Any, local_llm: LocalLlm | None) -> None:
+    """What the pages show: profiles, mailboxes, metrics and the models in use."""
+    dialog, logger = application.dialog, application.logger
+    assert dialog is not None
     components.site.views.profile_label = dialog.presenter.profile_of
     components.site.views.profile_available = dialog.presenter.profile_available
     components.site.views.removal_window_minutes = lambda: configuration.active.targets.removal_window_minutes
@@ -330,6 +348,13 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.archive.metrics = logger.metrics
     components.site.archive.models = effective_models(
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
+
+
+def _attach_workers(application: Application, components: Any, configuration: ConfigurationService,
+                    settings: Settings, secrets: Secrets, base_directory: Path) -> None:
+    """Setup, learning, rule learning, re-analysis and the help chat, each in its own worker."""
+    store, logger, dialog = application.store, application.logger, application.dialog
+    assert dialog is not None
     application.experience = ExperienceRuntime(application, components, secrets)
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
     application.services.diagnostics = components.site.setup_page.runtime.diagnostics
@@ -357,6 +382,11 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         cleanup_extra=help_site.window.cleanup)
     help_site.chat.recover()
     attach_accounts(application, components.site, base_directory)
+
+
+def _record_service_health(application: Application, components: Any) -> None:
+    """A mailbox that could not connect at start appears as a failed check on the setup page."""
+    store = application.store
     health = store.load("service-health", {"schema_version": 1, "version": 0, "errors": {}})
     failed = [source.reader for source in application.sources if isinstance(source.reader, _FailedAccessAdapter)]
     errors: dict[str, Any] = {"imap": error_code(failed[0].error)} if failed else {}
@@ -369,10 +399,95 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         state.results["imap"] = DiagnosticResult(status="failed", code=errors["imap"], checked_at=service.clock(),
             config_revision=components.site.setup_page.runtime.setup.fingerprint())
         service._save(state)
+
+
+def _attach_web(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
+                jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore) -> None:
+    components = _web_components(application, settings, secrets)
+    configuration = _attach_configuration(application, components, settings, base_directory, sender_store)
+    _attach_views(application, components, configuration, prompts, jev_prompts, local_llm)
+    _attach_workers(application, components, configuration, settings, secrets, base_directory)
+    _record_service_health(application, components)
+    assert application.experience is not None  # set by _attach_workers
     notifications = NotificationRuntime(application, components.site)
     application.experience.notifications = notifications
     components.site.notification_runtime = notifications
     application.notifications = notifications
+
+
+def _record_write_services(logger: JsonlLogger, settings: Settings, secrets: Secrets,
+                           sources: list[MailboxSource]) -> None:
+    """Metrics name the write services and the mailbox number of each account."""
+    assert logger.metrics is not None  # _attach_metrics above always sets the recorder
+    logger.metrics.write_services = provider_services(settings.targets)
+    logger.metrics.mailbox_numbers = {
+        mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
+        for source in sources}
+
+
+def _configure_mail_numbers(orchestrator: Orchestrator, settings: Settings, prompts: PromptConfig, secrets: Secrets,
+                            sources: list[MailboxSource], iserv: list[Any], jev_prompts: Any) -> None:
+    """Each mail is analysed with the settings of the mailbox its account belongs to."""
+    numbers = {mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
+               for source in sources}
+    # IServ letters use the settings of the mailbox their account names.
+    numbers |= {source.reader.account_id: source.account.mailbox for source in iserv}
+    orchestrator.configure_mailboxes(settings, prompts, numbers, jev_prompts)
+    orchestrator.mailbox_usernames = {source.mailbox.id: secrets.imap_credentials(source.mailbox.id).username
+                                      for source in sources}
+
+
+def _attach_mail_runtimes(application: Application, iserv: list[Any], built: Any, web_enabled: bool,
+                          iserv_resources: ExitStack, stack: ExitStack, secrets: Secrets) -> None:
+    """IServ letters and mailboxes activated later run beside the configured mailboxes."""
+    store, logger, stop_event, orchestrator = (application.store, application.logger, application.stop_event,
+                                               application.orchestrator)
+    if iserv:
+        orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)
+        application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
+        application.mailbox.resume_readers = application.iserv.readers()
+    application.profile_writers = built
+    if web_enabled:
+        application.iserv_runtime = IServRuntime(application, iserv_resources)
+        stack.callback(application.iserv_runtime.close)
+        application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)
+
+
+def _wire_profiles(application: Application, dialog: TelegramDialogController, writers: dict[str, Any]) -> None:
+    """Proposals show and offer only target profiles that are configured and reachable."""
+    dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
+        application.settings, writers, proposal)
+    dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)
+    dialog.presenter.profile_available = dialog.decision_service.profile_available
+    dialog.presenter.profiles_status = lambda: profile_binding.summary(application.settings, writers)
+    dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
+
+
+@dataclass(frozen=True)
+class _InterfaceOptions:
+    stack: ExitStack
+    reload_service: Any
+    use_jev_relevance: bool
+    web_enabled: bool
+    access_diagnostics: bool
+
+
+def _attach_interfaces(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
+                       jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore,
+                       options: _InterfaceOptions) -> None:
+    """Web interface with reload, or the notifications of a process without web interface."""
+    stack, reload_service, use_jev_relevance = options.stack, options.reload_service, options.use_jev_relevance
+    web_enabled, access_diagnostics = options.web_enabled, options.access_diagnostics
+    if web_enabled:
+        _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
+        # Late: reload imports the assembly at load time.
+        from .reload import ReloadService
+        application.resources = stack
+        application.reload = reload_service or ReloadService(
+            application, base_directory, secrets, local_llm, use_jev_relevance)
+        ReloadSite(application.web_site, application.reload)
+    elif not access_diagnostics:
+        application.notifications = NotificationRuntime.without_web(application)
 
 
 @contextmanager
@@ -426,11 +541,7 @@ def build_application(
         built = factory(settings, secrets, base_directory, policy=policy, logger=logger,
                         calendar_matcher=analyzer.calendar_duplicate)
         stack.callback(built.close)
-        assert logger.metrics is not None  # _attach_metrics above always sets the recorder
-        logger.metrics.write_services = provider_services(settings.targets)
-        logger.metrics.mailbox_numbers = {
-            mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
-            for source in sources}
+        _record_write_services(logger, settings, secrets, sources)
         todoist, calendar = built.tasks, built.calendar
         writers = built.slots
         web_enabled = settings.web.enabled and not access_diagnostics
@@ -448,36 +559,10 @@ def build_application(
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
                                   orchestrator, stop_event, dialog, sender_store, sources=sources)
-        numbers = {mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
-                   for source in sources}
-        # IServ letters use the settings of the mailbox their account names.
-        numbers |= {source.reader.account_id: source.account.mailbox for source in iserv}
-        orchestrator.configure_mailboxes(settings, prompts, numbers, jev_prompts)
-        orchestrator.mailbox_usernames = {source.mailbox.id: secrets.imap_credentials(source.mailbox.id).username
-                                          for source in sources}
-        if iserv:
-            orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)
-            application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
-            application.mailbox.resume_readers = application.iserv.readers()
-        application.profile_writers = built
-        if web_enabled:
-            application.iserv_runtime = IServRuntime(application, iserv_resources)
-            stack.callback(application.iserv_runtime.close)
-            application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)
-        dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
-            application.settings, writers, proposal)
-        dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)
-        dialog.presenter.profile_available = dialog.decision_service.profile_available
-        dialog.presenter.profiles_status = lambda: profile_binding.summary(application.settings, writers)
-        dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
-        if web_enabled:
-            _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
-            # Late: reload imports the assembly at load time.
-            from .reload import ReloadService
-            application.resources = stack
-            application.reload = reload_service or ReloadService(
-                application, base_directory, secrets, local_llm, use_jev_relevance)
-            ReloadSite(application.web_site, application.reload)
-        elif not access_diagnostics:
-            application.notifications = NotificationRuntime.without_web(application)
+        _configure_mail_numbers(orchestrator, settings, prompts, secrets, sources, iserv, jev_prompts)
+        _attach_mail_runtimes(application, iserv, built, web_enabled, iserv_resources, stack, secrets)
+        _wire_profiles(application, dialog, writers)
+        _attach_interfaces(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory,
+                           sender_store, _InterfaceOptions(stack, reload_service, use_jev_relevance, web_enabled,
+                                                           access_diagnostics))
         yield application

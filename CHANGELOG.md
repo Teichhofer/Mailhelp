@@ -1,5 +1,10 @@
 # Änderungen
 
+## 7.0.6 – Zusammenbau in benannten Schritten
+
+- `build_application` (111 → 77 Zeilen) und `_attach_web` (103 Zeilen) bestehen aus benannten Schritten
+  in unveränderter Reihenfolge; öffentliche Signatur unverändert.
+
 ## 7.0.5 – Laufzeit der Prüfung
 
 - Nur die echten Container-Tests laufen im parallelen Gesamtlauf noch nacheinander; Prozess- und

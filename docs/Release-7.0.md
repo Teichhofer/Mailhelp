@@ -165,3 +165,21 @@ Prüfung zu ändern: Die Einführungsbewegung (6.9, U6) ist wie im benachbarten 
 unterdrückt, und der Test wartet, bis das aufgeklappte Textfeld sichtbar ist.
 
 `AGENTS.md` nennt die gemessenen Aufrufe für Python- und Browserprüfung.
+
+## 7.0.6 – Zusammenbau in benannten Schritten (D5)
+
+`app/composition.py`: `build_application` (vorher 111 Zeilen) ruft jetzt benannte Schritte auf
+(`_record_write_services`, `_configure_mail_numbers`, `_attach_mail_runtimes`, `_wire_profiles`,
+`_attach_interfaces`) und hat 77 Zeilen. `_attach_web` (vorher 103 Zeilen) besteht aus
+`_web_components`, `_attach_configuration`, `_attach_views`, `_attach_workers` und
+`_record_service_health`. Die Anweisungen stehen in derselben Reihenfolge wie vorher; ein Prüfskript
+stellte beim Zerlegen sicher, dass jede Anweisung genau einmal übernommen wurde. Die öffentliche
+Signatur von `build_application` bleibt, weil Tests die Funktion mit Schlüsselwörtern aufrufen;
+intern bündelt eine unveränderliche Datenklasse die Optionen der Oberflächen. Funktionen über
+80 Zeilen im ganzen Paket: 10 statt 16.
+
+Prüfung: 5 322 Python-Tests mit voller Abdeckung, 922 Browsertests. Der Lasttest
+`test_an_action_shows_its_result_within_half_a_second_with_two_thousand_mails` lag im Gesamtlauf mit
+einem Median von 508 ms knapp über der Grenze von 500 ms (direkt nach der parallelen Hauptsuite)
+und bestand in drei Einzelläufen (höchstens 826 ms, Median jeweils unter 500 ms). Der gemessene Weg
+ist durch 7.0.6 nicht verändert. Scheitert er erneut, wird er wie die Gruppierung in 7.0.5 untersucht.
