@@ -183,3 +183,28 @@ Prüfung: 5 322 Python-Tests mit voller Abdeckung, 922 Browsertests. Der Lasttes
 einem Median von 508 ms knapp über der Grenze von 500 ms (direkt nach der parallelen Hauptsuite)
 und bestand in drei Einzelläufen (höchstens 826 ms, Median jeweils unter 500 ms). Der gemessene Weg
 ist durch 7.0.6 nicht verändert. Scheitert er erneut, wird er wie die Gruppierung in 7.0.5 untersucht.
+
+## 7.0.7 – Weboberfläche (D6)
+
+Vor dem Umbau in die eingefrorenen Ausgaben aufgenommen: die Auswertung der Vorschläge
+(`/lernen/vorschlaege`) in sechs Sortierungen und mit Absender-Hinweisen sowie alle fünf Reiter der
+Postfach-Einstellungen. Zerlegt, mit byte-gleicher Ausgabe:
+
+| Funktion | vorher | nachher |
+| :--- | :--- | :--- |
+| `proposal_evaluation_page` | 179 Zeilen | 23 Zeilen und sieben Abschnittsfunktionen |
+| `MailboxSite.mailbox` | 102 Zeilen | 28 Zeilen und eine Methode je Reiterart |
+| `status_page` | 87 Zeilen | 37 Zeilen und drei Abschnittsfunktionen |
+
+Gemeinsame Bausteine: Die vier gleich aufgebauten Tabellenabschnitte der Auswertungsseite nutzen
+`_table_section`. Die Tabellen der übrigen Seiten unterscheiden sich in Tastaturzugang, Klassen und
+Spaltenattributen; ein gemeinsamer Baustein müsste jede Abweichung als Option tragen und bleibt
+deshalb aus. Funktionen über 80 Zeilen im Paket: 7 (keine mehr im Webteil).
+
+Prüfung: 5 334 Python-Tests mit voller Abdeckung, 922 Browsertests. Der Lasttest
+`test_an_action_shows_its_result_within_half_a_second_with_two_thousand_mails` scheiterte erneut
+knapp (Median 500,2 ms bei Grenze 500 ms). Vergleich unter gleichen Bedingungen, je fünf Einzelläufe:
+Stand 7.0.7 Median 454–556 ms (einmal rot), Ausgangsstand 6.9.3 in eigenem Arbeitsverzeichnis
+460–521 ms (einmal rot). Der Umbau hat den Weg nicht verlangsamt; der Test liegt auf diesem Rechner
+schon vor 7.0 an seiner Grenze. Die Grenze ist eine Produktanforderung und bleibt; offener Punkt für
+die Abnahme (7.0.15): auf dem Produktivsystem messen und entscheiden.

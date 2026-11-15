@@ -221,23 +221,9 @@ def _verdict(overview: Overview, system: SystemStatus, info: ServiceInfo) -> str
     return (f'<p class="notice notice-{kind} status-verdict" role="alert"><strong>Handlungsbedarf:</strong> '
             + " · ".join(problems) + "</p>")
 
-def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
-                system: SystemStatus, info: ServiceInfo) -> str:
-    zone = ZoneInfo(configured_timezone)
-    parts = [page_head("Status", "Einblicke", "Ob Mailhelp arbeitet und wo etwas zu tun ist.")]
-    parts.extend(notice(text, "warn") for text in info.push_warnings)
-    # An unreadable source must remain visible before any technical disclosure.
-    parts.append(_imap_error_section(info, zone))
-    parts.append(_verdict(overview, system, info))
-    parts.extend(_error_section(system, zone))
-    parts.append(_status_links(overview, system, info))
-    parts.append(f'<section class="card status-summary"><p>{e(_processed_sentence(system, zone))}</p>'
-                 '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
-                 '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p>'
-                 '<p class="meta">„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
-                 'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p></section>')
-
-    parts.append('<details class="status-details"><summary>Betriebsdetails und Zähler anzeigen</summary>')
+def _service_details(info: ServiceInfo, zone: ZoneInfo) -> list[str]:
+    """Version, mode, runtime, costs, last polls and configured accounts."""
+    parts: list[str] = []
     parts.append("<h2>Mailhelp</h2>")
     parts.append(_facts([
         ("Version", info.version),
@@ -259,8 +245,12 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
         parts.append('<p class="meta">Beobachteter Stand seit Dienststart; diese Seite führt keine '
                      'Verbindungsprüfung aus. Geänderte Verbindungen werden über „Konfiguration neu laden“ aktiviert; '
                      'nicht übernommene Einrichtungsentwürfe sind nicht enthalten.</p>')
-    parts.extend(_run_section(run, system, zone))
+    return parts
 
+
+def _mail_and_proposal_details(system: SystemStatus, zone: ZoneInfo) -> list[str]:
+    """Counters of stored mails and proposals."""
+    parts: list[str] = []
     parts.append("<h2>Mails</h2>")
     parts.append(_facts([
         ("Verarbeitet (abgeschlossen)", german_number(system.mails_processed)),
@@ -278,7 +268,12 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                             + ([(system.already_done, "Schon erledigt")] if system.already_done else [])))
     else:
         parts.append('<p class="meta">Noch keine Vorschläge gespeichert.</p>')
+    return parts
 
+
+def _channel_details(info: ServiceInfo, system: SystemStatus) -> list[str]:
+    """Telegram, web actions and the AI call budget."""
+    parts: list[str] = []
     parts.append("<h2>Telegram, Web und KI</h2>")
     if info.acceptance_latencies:
         values = info.acceptance_latencies
@@ -301,6 +296,31 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
         ("Web-Aktionen (letzte 24 Std.)", commands),
         ("KI-Aufrufe in der letzten Minute", llm),
     ]))
+    return parts
+
+
+def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
+                system: SystemStatus, info: ServiceInfo) -> str:
+    zone = ZoneInfo(configured_timezone)
+    parts = [page_head("Status", "Einblicke", "Ob Mailhelp arbeitet und wo etwas zu tun ist.")]
+    parts.extend(notice(text, "warn") for text in info.push_warnings)
+    # An unreadable source must remain visible before any technical disclosure.
+    parts.append(_imap_error_section(info, zone))
+    parts.append(_verdict(overview, system, info))
+    parts.extend(_error_section(system, zone))
+    parts.append(_status_links(overview, system, info))
+    parts.append(f'<section class="card status-summary"><p>{e(_processed_sentence(system, zone))}</p>'
+                 '<p><a class="button" href="/dienst/selbsttest">Verbindungen lesend prüfen</a> '
+                 '<a class="button" href="/">Offene Entscheidungen bearbeiten</a></p>'
+                 '<p class="meta">„Verbunden“ bezeichnet nur die Verbindung zwischen Browser und Mailhelp. '
+                 'Kalender, Aufgabenanbieter und Mailzugänge sind damit nicht geprüft.</p></section>')
+
+    parts.append('<details class="status-details"><summary>Betriebsdetails und Zähler anzeigen</summary>')
+    parts.extend(_service_details(info, zone))
+    parts.extend(_run_section(run, system, zone))
+
+    parts.extend(_mail_and_proposal_details(system, zone))
+    parts.extend(_channel_details(info, system))
     parts.append('<p class="meta">Die Seite zeigt den gespeicherten Stand dieses PCs und aktualisiert '
                  "sich, sobald sich offene Entscheidungen ändern. Schläft der PC oder läuft Mailhelp "
                  "nicht, ist die Weboberfläche nicht erreichbar.</p>")

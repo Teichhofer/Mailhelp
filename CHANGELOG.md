@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.0.7 – Weboberfläche in kleineren Teilen
+
+- Auswertungsseite (179 Zeilen), Postfachseite (102) und Statusseite (87) aus Abschnittsfunktionen
+  zusammengesetzt; Ausgabe byte-gleich, durch neue eingefrorene Vergleichsseiten abgesichert.
+- Gemeinsamer Baustein für die Tabellenabschnitte der Auswertungsseite.
+
 ## 7.0.6 – Zusammenbau in benannten Schritten
 
 - `build_application` (111 → 77 Zeilen) und `_attach_web` (103 Zeilen) bestehen aus benannten Schritten

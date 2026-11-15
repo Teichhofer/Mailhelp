@@ -332,81 +332,11 @@ class MailboxSite:
         )
         csrf, version = self.site.auth.csrf_token(session.id), self.runtime.setup.state().version
         if tab in FIELDS:
-            effective = effective_settings(cfg, mailbox_number).model_dump(mode="json")
-            for field in FIELDS[tab]:
-                own = lookup(box.model_dump(), field)
-                value = own if own is not None else lookup(effective, field)
-                body += '<section class="card"><h2>' + e(LABELS[field]) + "</h2><p>"
-                body += (
-                    "Erbt global" if own is None or field == "target_profile" and own == 1 else "Eigener Wert"
-                ) + "</p>"
-                body += post_form(
-                    "/einstellungen/postfaecher/speichern",
-                    csrf,
-                    control(field, value),
-                    "Im Entwurf speichern",
-                    number=mailbox_number,
-                    field=field,
-                    version=version,
-                )
-                body += (
-                    post_form(
-                        "/einstellungen/postfaecher/speichern",
-                        csrf,
-                        "",
-                        "Zurücksetzen auf global",
-                        number=mailbox_number,
-                        field=field,
-                        version=version,
-                        action="reset",
-                    )
-                    + "</section>"
-                )
+            body += self._field_sections(cfg, box, mailbox_number, tab, csrf, version)
         elif tab == "topics":
-            for category, filename in (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.yaml")):
-                for data in read_yaml(self.runtime.setup.configuration.directory / filename)["topics"]:
-                    topic = Topic.model_validate(data)
-                    body += '<section class="card"><h2>' + e(topic.name) + "</h2>"
-                    body += (
-                        "<p>"
-                        + ("Gilt global" if topic.mailboxes is None else "Postfächer: " + e(topic.mailboxes))
-                        + "</p>"
-                    )
-                    for scope, title in (
-                        ("own", "Nur dieses Postfach"),
-                        ("all", "Für alle Postfächer"),
-                        ("exclude", "Hier ausschließen"),
-                    ):
-                        body += post_form(
-                            "/einstellungen/postfaecher/thema",
-                            csrf,
-                            "",
-                            title,
-                            number=mailbox_number,
-                            topic=topic.id,
-                            category=category,
-                            scope=scope,
-                            version=version,
-                        )
-                    body += "</section>"
+            body += self._topic_sections(mailbox_number, csrf, version)
         else:
-            blocked = self.runtime.setup.configuration.blocked_senders()
-            rules = blocked.mailboxes.get(str(mailbox_number))
-            body += "<p>Globale Sperren: " + e([*blocked.addresses, *blocked.domains]) + "</p>"
-            body += "<p>Eigene Sperren und Ausnahmen: " + e(rules.model_dump() if rules else {}) + "</p>"
-            body += post_form(
-                "/einstellungen/postfaecher/filter",
-                csrf,
-                control("entry", "")
-                + '<label for="filter-action">Änderung</label><select id="filter-action" name="action">'
-                '<option value="add">Hier ignorieren</option><option value="remove">Eigene Sperre entfernen</option>'
-                '<option value="allow">Globale Sperre hier ausnehmen</option>'
-                '<option value="unallow">Ausnahme entfernen</option>'
-                "</select>",
-                "Filteränderung vormerken",
-                number=mailbox_number,
-                version=version,
-            )
+            body += self._filter_section(mailbox_number, csrf, version)
         body += post_form(
             "/einstellungen/postfaecher/speichern",
             csrf,
@@ -417,6 +347,97 @@ class MailboxSite:
             version=version,
         )
         return self.page(box.label, body + self.preview(session))
+
+
+    def _field_sections(self, cfg: Any, box: Any, mailbox_number: int, tab: str, csrf: str, version: int) -> str:
+        """One card per setting of the tab: own value or inherited, with save and reset."""
+        body = ""
+        effective = effective_settings(cfg, mailbox_number).model_dump(mode="json")
+        for field in FIELDS[tab]:
+            own = lookup(box.model_dump(), field)
+            value = own if own is not None else lookup(effective, field)
+            body += '<section class="card"><h2>' + e(LABELS[field]) + "</h2><p>"
+            body += (
+                "Erbt global" if own is None or field == "target_profile" and own == 1 else "Eigener Wert"
+            ) + "</p>"
+            body += post_form(
+                "/einstellungen/postfaecher/speichern",
+                csrf,
+                control(field, value),
+                "Im Entwurf speichern",
+                number=mailbox_number,
+                field=field,
+                version=version,
+            )
+            body += (
+                post_form(
+                    "/einstellungen/postfaecher/speichern",
+                    csrf,
+                    "",
+                    "Zurücksetzen auf global",
+                    number=mailbox_number,
+                    field=field,
+                    version=version,
+                    action="reset",
+                )
+                + "</section>"
+            )
+        return body
+
+    def _topic_sections(self, mailbox_number: int, csrf: str, version: int) -> str:
+        """Every relevant and excluded topic with its scope for this mailbox."""
+        assert self.runtime is not None
+        body = ""
+        for category, filename in (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.yaml")):
+            for data in read_yaml(self.runtime.setup.configuration.directory / filename)["topics"]:
+                topic = Topic.model_validate(data)
+                body += '<section class="card"><h2>' + e(topic.name) + "</h2>"
+                body += (
+                    "<p>"
+                    + ("Gilt global" if topic.mailboxes is None else "Postfächer: " + e(topic.mailboxes))
+                    + "</p>"
+                )
+                for scope, title in (
+                    ("own", "Nur dieses Postfach"),
+                    ("all", "Für alle Postfächer"),
+                    ("exclude", "Hier ausschließen"),
+                ):
+                    body += post_form(
+                        "/einstellungen/postfaecher/thema",
+                        csrf,
+                        "",
+                        title,
+                        number=mailbox_number,
+                        topic=topic.id,
+                        category=category,
+                        scope=scope,
+                        version=version,
+                    )
+                body += "</section>"
+        return body
+
+    def _filter_section(self, mailbox_number: int, csrf: str, version: int) -> str:
+        """Global and own sender blocks of this mailbox and the form to change them."""
+        assert self.runtime is not None
+        body = ""
+        blocked = self.runtime.setup.configuration.blocked_senders()
+        rules = blocked.mailboxes.get(str(mailbox_number))
+        body += "<p>Globale Sperren: " + e([*blocked.addresses, *blocked.domains]) + "</p>"
+        body += "<p>Eigene Sperren und Ausnahmen: " + e(rules.model_dump() if rules else {}) + "</p>"
+        body += post_form(
+            "/einstellungen/postfaecher/filter",
+            csrf,
+            control("entry", "")
+            + '<label for="filter-action">Änderung</label><select id="filter-action" name="action">'
+            '<option value="add">Hier ignorieren</option><option value="remove">Eigene Sperre entfernen</option>'
+            '<option value="allow">Globale Sperre hier ausnehmen</option>'
+            '<option value="unallow">Ausnahme entfernen</option>'
+            "</select>",
+            "Filteränderung vormerken",
+            number=mailbox_number,
+            version=version,
+        )
+        return body
 
     def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:

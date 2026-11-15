@@ -75,3 +75,37 @@ def test_telegram_messages_are_unchanged(frozen):
         messages[name] = {"parts": list(shown.parts), "markup": shown.reply_markup}
     assert len(messages) > 3
     compare("telegram.json", normalize(json.dumps(messages, ensure_ascii=False, indent=2, sort_keys=True) + "\n"))
+
+
+# 7.0.7: the proposal evaluation page with every sort order, captured before its refactoring.
+EVALUATION = {
+    "vorschlaege-standard": "", "vorschlaege-thema-name": "?days=0&sort_topic=name",
+    "vorschlaege-thema-quote": "?days=30&sort_topic=quote", "vorschlaege-absender-name": "?sort_sender=name",
+    "vorschlaege-absender-quote": "?sort_sender=quote", "vorschlaege-absender-entschieden": "?sort_sender=decided",
+}
+
+
+@pytest.mark.parametrize("name", EVALUATION)
+def test_proposal_evaluation_page_is_unchanged(frozen, name):
+    response = frozen.browser.request("GET", "/lernen/vorschlaege" + EVALUATION[name])
+    assert response.status == 200
+    compare(f"{name}.html", normalize(response.body.decode("utf-8")))
+
+
+def test_proposal_evaluation_hints_and_dismissed_senders_are_unchanged(frozen):
+    from mailhelp.review.proposal_evaluation import SenderHint, evaluate_proposals
+    from mailhelp.web.proposal_evaluation_pages import proposal_evaluation_page
+
+    hint = SenderHint("verein@example.test", 6, 1, 5, 1 / 6, "irrelevant", "filter",
+                      "Von verein@example.test hast du 5 von 6 Vorschlägen verworfen.")
+    report = evaluate_proposals(frozen.store, days=0)
+    page = proposal_evaluation_page(report, {}, hints=[hint], dismissed=["alt@example.test"], csrf="c" * 64)
+    compare("vorschlaege-hinweise.html", normalize(page))
+
+
+# 7.0.7: every tab of the mailbox settings page, captured before its refactoring.
+@pytest.mark.parametrize("tab", ["targets", "filters", "topics", "replies", "notifications"])
+def test_mailbox_settings_page_is_unchanged(profiled, tab):
+    response = profiled.web.browser.request("GET", f"/einstellungen/postfaecher/1?tab={tab}")
+    assert response.status == 200
+    compare(f"postfach-{tab}.html", normalize(response.body.decode("utf-8")))

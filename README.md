@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.7 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.7 zerlegt die längsten Seitenfunktionen der Weboberfläche (Auswertung, Postfach, Status) bei byte-gleicher Ausgabe.
 
 7.0.6 zerlegt den Zusammenbau der Anwendung in benannte Schritte; das Verhalten bleibt gleich.
 

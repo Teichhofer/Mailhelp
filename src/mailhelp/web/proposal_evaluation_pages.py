@@ -18,25 +18,14 @@ def _quote_fmt(val: float) -> str:
     return f"{round(val)} %"
 
 
-def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str, Any],
-                             hints: list[SenderHint] | tuple[SenderHint, ...] = (),
-                             dismissed: list[str] | tuple[str, ...] = (),
-                             csrf: str = "") -> str:
-    """Render the proposal evaluation page under /lernen/vorschlaege."""
-    days_val = str(params.get("days", report.days))
-    form = toolbar(
-        "/lernen/vorschlaege",
-        [select("days", "Zeitraum", days_val, PERIOD_CHOICES)],
-        submit="Auswählen",
-        reset="/lernen/vorschlaege" if days_val != "90" and days_val != "0" else "",
-    )
-    head = page_head(
-        "Vorschläge",
-        "Lernen",
-        "Annahmequote messen: Wie viele Vorschläge nimmst du an, wie viele verwirfst du?",
-        back=("/lernen", "Zurück zu Lernen"),
-    )
+def _table_section(ident: str, title: str, head: str, rows: str) -> str:
+    """A titled, keyboard-scrollable table of the evaluation page."""
+    return (f'<section id="{ident}" class="stack"><h2>{title}</h2>'
+            f'<div class="table-scroll" tabindex="0" role="region" aria-label="{title}">'
+            f'<table><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table></div></section>')
 
+
+def _hints_section(hints: list[SenderHint] | tuple[SenderHint, ...]) -> str:
     hints_html = ""
     if hints:
         hint_cards = "".join(
@@ -47,7 +36,10 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
             for h in hints
         )
         hints_html = f'<section class="stack" id="absender-hinweise"><h2>Hinweise zu Absendern</h2>{hint_cards}</section>'
+    return hints_html
 
+
+def _dismissed_section(dismissed: list[str] | tuple[str, ...], csrf: str) -> str:
     dismissed_html = ""
     if dismissed:
         items = "".join(
@@ -63,10 +55,10 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
             f'<summary>Zuvor verworfene Absender-Hinweise ({len(dismissed)})</summary>'
             f'<ul>{items}</ul></details>'
         )
+    return dismissed_html
 
-    if report.empty:
-        return head + form + hints_html + '<p class="empty">In diesem Zeitraum liegen keine entschiedenen Vorschläge vor.</p>' + dismissed_html
 
+def _summary_tiles(report: ProposalEvaluationReport) -> str:
     s = report.summary
     tiles = (
         '<dl class="kpi-grid">'
@@ -85,7 +77,10 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
            if s.total_removed > 0 else "")
         + '</dl>'
     )
+    return tiles
 
+
+def _weekly_table(report: ProposalEvaluationReport) -> str:
     # Weekly breakdown
     weekly_rows = "".join(
         f'<tr><td>{e(w.week_label)}</td>'
@@ -96,16 +91,14 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         f'<td>{_quote_fmt(w.quote)}</td></tr>'
         for w in report.weeks
     )
-    weekly_table = (
-        '<section id="wochen" class="stack"><h2>Verlauf je Woche</h2>'
-        '<div class="table-scroll" tabindex="0" role="region" aria-label="Verlauf je Woche">'
-        '<table><thead><tr>'
-        '<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>Wieder entfernt</th><th>Annahmequote</th>'
-        '</tr></thead><tbody>'
-        f'{weekly_rows}'
-        '</tbody></table></div></section>'
-    )
+    weekly_table = _table_section(
+        "wochen", "Verlauf je Woche",
+        '<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>Wieder entfernt</th><th>Annahmequote</th>',
+        weekly_rows)
+    return weekly_table
 
+
+def _topics_table(report: ProposalEvaluationReport, params: dict[str, Any], base_query: str) -> str:
     # Topic breakdown
     sort_topic = params.get("sort_topic", "decided")
     sorted_topics = list(report.topics)
@@ -124,20 +117,17 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         f'<td>{_quote_fmt(t.quote)}</td></tr>'
         for t in sorted_topics
     )
-    base_query = f"days={e(days_val)}"
-    topics_table = (
-        '<section id="themen" class="stack"><h2>Nach Thema</h2>'
-        '<div class="table-scroll" tabindex="0" role="region" aria-label="Nach Thema">'
-        '<table><thead><tr>'
+    topics_table = _table_section(
+        "themen", "Nach Thema",
         f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=name">Thema</a></th>'
         f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=decided">Entschieden</a></th>'
         '<th>Angenommen</th><th>Verworfen</th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=quote">Annahmequote</a></th>'
-        '</tr></thead><tbody>'
-        f'{topic_rows}'
-        '</tbody></table></div></section>'
-    )
+        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=quote">Annahmequote</a></th>',
+        topic_rows)
+    return topics_table
 
+
+def _senders_table(report: ProposalEvaluationReport, params: dict[str, Any], base_query: str) -> str:
     # Sender breakdown
     sort_sender = params.get("sort_sender", "rejected")
     sorted_senders = list(report.senders)
@@ -163,20 +153,18 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
             f'<td>{s_item.rejected}</td>'
             f'<td>{_quote_fmt(s_item.quote)}</td></tr>'
         )
-    senders_table = (
-        '<section id="absender" class="stack"><h2>Nach Absender</h2>'
-        '<div class="table-scroll" tabindex="0" role="region" aria-label="Nach Absender">'
-        '<table><thead><tr>'
+    senders_table = _table_section(
+        "absender", "Nach Absender",
         f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=name">Absender</a></th>'
         f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=decided">Entschieden</a></th>'
         '<th>Angenommen</th>'
         f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=rejected">Verworfen</a></th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=quote">Annahmequote</a></th>'
-        '</tr></thead><tbody>'
-        f'{"".join(sender_rows)}'
-        '</tbody></table></div></section>'
-    )
+        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=quote">Annahmequote</a></th>',
+        "".join(sender_rows))
+    return senders_table
 
+
+def _reasons_section(report: ProposalEvaluationReport) -> str:
     # Reasons breakdown (if any rejections)
     reasons_section = ""
     if report.summary.total_rejected > 0:
@@ -186,17 +174,42 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
             f'<td>{_quote_fmt(r.percentage)}</td></tr>'
             for r in report.reasons
         )
-        reasons_section = (
-            '<section id="gruende" class="stack"><h2>Gründe für Ablehnungen</h2>'
-            '<div class="table-scroll" tabindex="0" role="region" aria-label="Gründe für Ablehnungen">'
-            '<table><thead><tr>'
-            '<th>Grund</th><th>Anzahl</th><th>Anteil</th>'
-            '</tr></thead><tbody>'
-            f'{reason_rows}'
-            '</tbody></table></div></section>'
-        )
+        reasons_section = _table_section(
+            "gruende", "Gründe für Ablehnungen",
+            '<th>Grund</th><th>Anzahl</th><th>Anteil</th>',
+            reason_rows)
+    return reasons_section
 
-    return head + form + hints_html + tiles + weekly_table + topics_table + senders_table + reasons_section + dismissed_html
+
+def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str, Any],
+                             hints: list[SenderHint] | tuple[SenderHint, ...] = (),
+                             dismissed: list[str] | tuple[str, ...] = (),
+                             csrf: str = "") -> str:
+    """Render the proposal evaluation page under /lernen/vorschlaege."""
+    days_val = str(params.get("days", report.days))
+    form = toolbar(
+        "/lernen/vorschlaege",
+        [select("days", "Zeitraum", days_val, PERIOD_CHOICES)],
+        submit="Auswählen",
+        reset="/lernen/vorschlaege" if days_val != "90" and days_val != "0" else "",
+    )
+    head = page_head(
+        "Vorschläge",
+        "Lernen",
+        "Annahmequote messen: Wie viele Vorschläge nimmst du an, wie viele verwirfst du?",
+        back=("/lernen", "Zurück zu Lernen"),
+    )
+
+    hints_html = _hints_section(hints)
+    dismissed_html = _dismissed_section(dismissed, csrf)
+
+    if report.empty:
+        return head + form + hints_html + '<p class="empty">In diesem Zeitraum liegen keine entschiedenen Vorschläge vor.</p>' + dismissed_html
+
+    base_query = f"days={e(days_val)}"
+    return (head + form + hints_html + _summary_tiles(report) + _weekly_table(report)
+            + _topics_table(report, params, base_query) + _senders_table(report, params, base_query)
+            + _reasons_section(report) + dismissed_html)
 
 
 def sender_hint_page(hint: SenderHint, mails: list[dict[str, Any]], csrf: str,
