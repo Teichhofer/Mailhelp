@@ -158,4 +158,4 @@ def test_empty_groups_keep_proposal_swipe_hint(web):
     from mailhelp.web.review_pages import overview_page
     overview = web.site.views.overview()
     html = overview_page(overview, sections=[('Empty first', (), ())])
-    assert 'zum Anlegen' in html and 'Empty first' in html
+    assert 'Nach rechts wischen: anlegen' in html and 'Empty first' in html

@@ -52,6 +52,8 @@
   --page-standard: 1100px;
   --page-wide: 1500px;
   --shadow-raised: 0 8px 32px rgba(0, 0, 0, .27);
+  --swipe-progress: 0;
+  --shadow-lift: 0 16px 36px rgba(15, 23, 42, .32);
   --shadow-menu: 0 8px 32px rgba(15, 23, 42, .18);
   --shadow-bar: 0 -2px 12px rgba(15, 23, 42, .06);
   --shadow-fab: 0 4px 14px rgba(15, 23, 42, .25);
@@ -61,6 +63,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  :root { --shadow-lift: 0 16px 36px rgba(0, 0, 0, .65); }
   :root {
     --bg: #0b0f14;
     --surface: #141b22;
@@ -212,6 +215,7 @@ h3 { font-size: var(--text-l); line-height: 1.3; margin: 0; overflow-wrap: anywh
 
 .card-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
 .card-head h3 { margin: 4px 0 8px; line-height: 1.4; }
+.mobile-card-facts { display: none; }
 .kind { font-size: var(--text-s); color: var(--muted); font-weight: 600; margin: 0 0 4px; }
 
 .badge {
@@ -503,13 +507,27 @@ h2 { overflow-wrap: anywhere; }
 /* 6.3: swiping a card on phones and tablets (app.js). Below the moved card the backdrop says what
    letting go does: light before the threshold, strong from it on, neutral with a lock if blocked. */
 @media (max-width: 1023px) {
+  .open-items { position: relative; overflow-x: clip; }
+  .open-items article.card { display: flex; flex-direction: column; }
+  .open-items article.card > .kind { order: -6; }
+  .open-items article.card > :is(.card-head, h3) { order: -5; }
+  .open-items article.card h3 { overflow: hidden; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .open-items article.card > .source { order: -4; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    font-size: var(--text-s); margin: 4px 0; }
+  .open-items article.card .source-subject { display: none; }
+  .open-items article.card .mobile-card-facts { display: inline; }
+  .mobile-card-facts:not(:empty)::before { content: " · "; }
+  .open-items article.card > .actions { order: -3; position: static; }
+  .open-items article.card .facts :is([data-fact="Zeit"], [data-fact="Ort"]) { display: none; }
   .open-items.swipeable article.card { touch-action: pan-y pinch-zoom; }
   .open-items.swipeable article.card a, .open-items.swipeable article.card img {
     -webkit-user-drag: none; -webkit-touch-callout: none;
   }
 }
 .swipe-card { position: relative; z-index: 1; }
-.swipe-card.swiping { transition: none; }
+.swipe-card.swiping { transition: none; will-change: transform; box-shadow: var(--shadow-lift); z-index: 2; }
+.swipe-flying { pointer-events: none; z-index: 2; will-change: transform, opacity; }
 .swipe-backdrop { position: absolute; z-index: 0; display: flex; align-items: flex-start; border-radius: var(--radius);
   font-size: var(--text-m); font-weight: 600; line-height: 1.3; pointer-events: none; user-select: none; }
 .swipe-accept { justify-content: flex-start; background: var(--accent-soft); color: var(--accent); }
@@ -521,8 +539,20 @@ h2 { overflow-wrap: anywhere; }
 .swipe-reject .swipe-label { flex-direction: row-reverse; text-align: right; }
 .swipe-blocked .swipe-label { padding: var(--space-4) var(--space-1); }
 .swipe-symbol { flex: none; }
-.swipe-hint:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3);
-  margin: 0 0 var(--space-4); padding: 10px 12px; border-radius: var(--radius-s); background: var(--accent-soft); }
+.swipe-backdrop::before { content: ""; position: absolute; inset: 0; border-radius: var(--radius);
+  opacity: var(--swipe-progress, 0); background: var(--accent); }
+.swipe-reject::before { background: var(--danger); }
+.swipe-blocked::before { display: none; }
+.swipe-label { color: var(--text); background: var(--surface); border-radius: var(--radius-s); }
+.swipe-symbol { transform: scale(calc(.8 + var(--swipe-progress, 0) * .2)); }
+.swipe-pulsed .swipe-symbol { animation: swipe-pulse .15s ease-out; }
+@keyframes swipe-pulse { 50% { transform: scale(1.15); } }
+.swipe-result { box-sizing: border-box; display: flex; align-items: center; padding: 10px 14px;
+  margin-bottom: 12px; border-radius: var(--radius); overflow: hidden; transition: height 200ms ease;
+  color: var(--text); border: 1px solid var(--border); font-weight: 600; }
+.swipe-hint:not([hidden]) { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--text-s); }
+.swipe-hint button { flex: none; min-width: 44px; min-height: 44px; }
 @media (min-width: 1024px) { .swipe-hint:not([hidden]) { display: none; } }
 .draft-box textarea { display: block; width: 100%; font: inherit; margin: 12px 0; }
 .draft-box .actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -614,6 +644,10 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .card .actions form:has(.primary) { order: 3; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .swipe-card { transition: transform 100ms linear, opacity 100ms linear !important; }
+  .swipe-card.swiping { transition: none !important; }
+  .swipe-result { transition: none !important; }
+  .swipe-symbol { animation: none !important; }
   * { scroll-behavior: auto !important; transition: none !important; }
   .inbox-zero { animation: none; }
 }
@@ -1141,7 +1175,8 @@ main:has(.topic-field) > form { max-width: 760px; gap: 1rem; }
 .rule-final > .card { margin: .8rem 0; }
 .status-summary p { margin: .5rem 0; }
 .status-details > summary, .decision-help > summary { min-height: 44px; padding: .6rem 0; }
-.master-pane .decision-help { display: none; } /* Available on the linked detail page. */
+/* Available on the linked detail page; only the short relevance help stays in the list (6.9 U5). */
+.master-pane .decision-help:not(.relevance-help) { display: none; }
 @media (max-width: 719px) {
   .card { padding: 14px; margin-bottom: 12px; }
   .card .kind, .card .labels, .card .facts { margin-top: 6px; margin-bottom: 6px; }
@@ -1230,6 +1265,7 @@ main.page-wide, main:has(.split-view) { max-width: var(--page-wide); }
   .open-toolbar .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: 1 1 100%;
     margin: 0 calc(-1 * var(--space-4)); padding: 0 var(--space-4); }
   .open-toolbar .filter-chips .button { flex: none; }
+  .open-toolbar .chips-overflow { mask-image: linear-gradient(to right, var(--text) calc(100% - 28px), transparent); }
   .open-more .open-search { margin-top: var(--space-2); }
 }
 

@@ -194,10 +194,15 @@ class Coverage:
                 continue
             source = (STATIC / name).read_bytes().decode("utf-8")
             counts = [0] * len(source)
+            # V8 offsets count UTF-16 code units; Python indexes Unicode characters.
+            positions = [index for index, char in enumerate(source)
+                         for _ in range(2 if ord(char) > 0xffff else 1)] + [len(source)]
             ranges = sorted((item for function in script["functions"] for item in function["ranges"]),
                             key=lambda item: (item["startOffset"], -item["endOffset"]))
             for item in ranges:
-                for offset in range(item["startOffset"], min(item["endOffset"], len(source))):
+                start = positions[min(item["startOffset"], len(positions)-1)]
+                end = positions[min(item["endOffset"], len(positions)-1)]
+                for offset in range(start, end):
                     counts[offset] = item["count"]
             merged = self.counts.setdefault(name, [0] * len(source))
             self.counts[name] = [max(a, b) for a, b in zip(merged, counts, strict=False)]

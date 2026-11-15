@@ -2514,33 +2514,45 @@ frühere 5-Sekunden-Frist entfiel mit den parallelen Webaktionen); die Karte zei
 „Wird verarbeitet …“, danach an derselben Stelle das Ergebnis, und andere Vorgänge
 bleiben bedienbar. Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel.
 
-**Wischen (6.3).** Unter 1024 px Breite lässt sich eine Karte in „Offen“ mit Finger
-oder Stift waagerecht ziehen (nicht mit der Maus, nicht in der geteilten Ansicht).
-Rechts löst das `confirm`-Formular bzw. „Relevant“ aus, links das `reject`-Formular
-bzw. „Irrelevant“; `app.js` ruft dafür `requestSubmit()` auf dem Formular der Karte
-auf, sodass genau dieselbe Anfrage wie per Schaltfläche entsteht. Ausgelöst wird nur
-durch Weg: Loslassen jenseits von 40 % der Kartenbreite, höchstens 160 px; Tempo zählt
-nicht. Ab 6.3.2 beginnt eine Geste nach 12 px waagerecht bei mindestens 1,5-mal so viel
-waagerechtem wie senkrechtem Weg. Diese Prüfung erfolgt zuerst, auch bei großen ersten
-Bewegungen. Überwiegt der senkrechte Weg bei mehr als 8 px, wird die Erkennung beendet.
-Links, Schaltflächen und Zusammenfassungen erlauben den Start einer Geste. Nach erkanntem
-Wischen wird der folgende Touch-Klick abgefangen, ein neuer Tipp funktioniert wieder.
-Keine Geste beginnt in Eingabefeldern, in waagerecht scrollbaren Bereichen, 24 px
-vom Fensterrand, bei markiertem Text, auf Karten in Verarbeitung oder mit Ergebnis
-und auf Karten ohne `reject`- oder Relevanzformular; ein zweiter Finger oder
-`pointercancel` bricht ab. Unter der Karte zeigt ein Hintergrund (`aria-hidden`) den
-Wortlaut der Schaltfläche mit ✓ bzw. ✕: hell vor der Schwelle, kräftig ab der Schwelle
-(mit kurzem Vibrationsimpuls, wo verfügbar). Hat die Karte kein `confirm`-Formular,
-ist rechts gesperrt: Die Karte gibt höchstens 24 px nach, zeigt ein Schloss, und
-beim Loslassen nennt der Hinweis den Grund aus `data-swipe-blocked` an der
-Entscheidungsleiste (Widerspruch, Rückfrage, Vorschlagsabgleich, Dublettenprüfung,
-Terminwahl, sonst „Diese Aktion ist für diesen Vorgang nicht möglich.“). Ungesendeter
-Text in einem Antwortfeld sperrt beide Richtungen. Nach dem Loslassen gleitet die
-Karte an ihren Platz zurück (bei reduzierter Bewegung ohne Übergang). Auf Geräten mit
-grobem Zeiger steht einmalig ein schließbarer Tipp unter der ersten wischbaren Karte
-(nicht darüber, damit die erste Entscheidung im oberen Fensterbereich bleibt); er endet mit
-„Verstanden“ oder dem ersten ausgelösten Wisch und wird in `localStorage` gemerkt.
-Ohne JavaScript bleibt er versteckt, und alles läuft über die Schaltflächen. Tastenkürzel sind in
+**Wischen (6.9).** Unter 1024 px und mit Finger oder Stift beginnt die Geste ab
+10 px waagerechtem Weg, sobald die Bewegung nicht steiler als 45° ist.
+`touch-action: pan-y pinch-zoom` überlässt steileres Scrollen dem Browser; dessen
+`pointercancel` bricht ab. Vor dieser Entscheidung bewegt sich die Karte nicht. Ein zweiter Finger, Eingabefelder,
+seitlich scrollbare Inhalte, Textauswahl, 24 px Randzone sowie laufende oder bereits
+entschiedene Karten bleiben geschützt. Die Karte folgt 1:1 in beiden Achsen, ohne
+Bremse oberhalb der Schwelle. Drehung um den Griffpunkt: höchstens 10 Grad, bei hohen
+Karten um `min(1, 400/Höhe)` reduziert; oberer und unterer Griff drehen gegensinnig.
+Eine `requestAnimationFrame`-Aktualisierung pro Bild nutzt das jüngste Ereignis;
+`getCoalescedEvents()` liefert, soweit verfügbar, Messwerte aus den letzten 100 ms.
+
+Auslösen: 40 % der Kartenbreite, maximal 160 px, oder mindestens die halbe Schwelle
+mit gleichgerichteter waagerechter Geschwindigkeit ab 0,9 px/ms. Der kurze Puls und
+die Vibration kommen höchstens einmal je Geste. Gesperrte Aktionen folgen waagerecht
+als `32 · (1-exp(-|dx|/80))`, senkrecht direkt, ohne Drehung und mit Schloss.
+Ungesendeter Text sperrt beide Seiten. Nicht ausgelöst: Rückkehr in 150–300 ms mit
+leichtem Überschwingen. Ausgelöst: Flug in 180–240 ms, dann genau ein `requestSubmit()`
+des vorhandenen Formulars und ein auf 56 px schließender Ergebnisstreifen. Sitzung,
+CSRF, Vorschlagsversion und Idempotenzschlüssel werden unverändert serverseitig geprüft.
+Eine Ablehnung bringt die bedienbare Karte zurück; eine unklare Antwort bleibt in der
+Statusprüfung, ohne neue Sendung. Die verborgene Karte bleibt bis zum Serverergebnis
+im DOM. `overflow-x: clip` verhindert ein breiter werdendes Dokument.
+
+Bei reduzierter Bewegung bleibt das direkte Ziehen erhalten, ohne Neigung; Rückkehr
+oder Überblenden dauert 100 ms. Die einmalige Einführung wartet 600 ms Ruhe und auf
+eine vollständig sichtbare, in beide Richtungen entscheidbare Karte. Sie bewegt diese
+höchstens 110 px beziehungsweise ein Drittel ihrer Breite und zurück, ohne Aktion.
+Maus, breite Ansicht, reduzierte Bewegung und veraltete Seite erhalten keine Vorführung.
+Die schließbare Zeile und der erste erfolgreiche Wisch verwenden weiter den Schlüssel
+`mailhelp-swipe-hint`; bei Speicherfehlern läuft die Vorführung höchstens einmal je Seite.
+
+Auf dem Telefon stehen Titel (höchstens zwei Zeilen) und Absender/Zeit vor den Aktionen,
+Status und Fristen darunter. Überschriftszahl, Navigationsabzeichen und leerer Zustand
+werden aus derselben frischen, gegebenenfalls gefilterten Übersicht übernommen.
+Filterchips verblassen nur bei rechts verborgenem Inhalt; der aktive Chip wird sichtbar
+gehalten. Relevanzhinweise sind wie Vorschlagshinweise aufklappbar und bleiben als einzige
+Erklärung auch in der Liste sichtbar; die Erklärung der Vorschlagsentscheidungen steht
+weiterhin nur in der Detailansicht. Ohne JavaScript
+bleiben die Formulare vollständig nutzbar. Tastenkürzel sind in
 Eingabefeldern und bei geöffneten Dialogen inaktiv. Seit 5.0.9 bestätigt `A` wie `C` und
 Enter; die Seitenleiste (ab 900 Pixeln, nicht in der Symbolleiste bis 1199 Pixel) enthält den
 von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Ohne JavaScript funktionieren
@@ -3058,7 +3070,9 @@ liegt die Navigation („Schnellnavigation“) fest am unteren Rand mit „Offen
 „Abgleich“ (Vorschlagsabgleich, seit 6.2.8 statt „Status“), „Verlauf“ und „Mehr“; „Mehr“ ist ein
 HTML-Ausklappmenü mit den übrigen Bereichen
 und funktioniert ohne JavaScript. Die Aktionsleisten der Karten und der Rückgängig-Hinweis
-liegen darüber. Der Eintrag „Offen“ zeigt die Zahl offener Entscheidungen (Vorschläge und
+liegen darüber. Seit 6.9 klebt die Aktionsleiste einer Karte in der Liste „Offen“ auf dem
+Telefon nicht mehr am unteren Rand: Sie steht direkt unter Titel und Absender und würde
+sonst beim Hereinscrollen den Titel verdecken. Der Eintrag „Offen“ zeigt die Zahl offener Entscheidungen (Vorschläge und
 Relevanzfragen der veröffentlichten Übersicht) und beschreibt sie für Screenreader; die
 Zahl wird je Anfrage bei der Sitzungsprüfung ermittelt. Ein Tastatur-Link
 führt direkt zum Hauptinhalt. Die Seitenüberschrift steht vor den Filtern.
@@ -4342,11 +4356,11 @@ oder Telegram wieder entfernen.
 - Hervorhebung (`primary=True`): Genau eine Schaltfläche ist hervorgehoben, und nur dann, wenn Mailhelp die Zuordnung selbst zur Prüfung vorgelegt hat (`merge_review_required`).
 - Auch in Telegram (`telegram/presenter.py`) heißen die entsprechenden Texte „Möglicher zweiter Eintrag“ und „Zu diesem Eintrag hinzufügen“.
 
-### Wischgesten-Tipptext (6.7.2, P2, E5)
+### Gesteneinführung (6.9, U6)
 
-- Der Tipp-Text unter der ersten Karte passt sich an den Kartentyp an:
-  - Bei einer Relevanzfrage: „Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant.“
-  - Bei einem Vorschlag: „Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.“
+Die kurze Zeile unterscheidet „anlegen / verwerfen“ und „relevant / irrelevant“.
+Eine rein visuelle Vorführung ersetzt den früheren Textkasten. Einzelheiten stehen
+im Abschnitt Wischen; alte gespeicherte Bestätigungen bleiben gültig.
 
 ### Alltagsbedienung und Hilfeindex (6.7.3, P3, E4)
 

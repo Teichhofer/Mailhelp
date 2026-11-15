@@ -216,8 +216,10 @@ def relevance_actions(csrf: str) -> Callable[[RelevanceView], str]:
             forms.append(f'<form method="post" action="/aktion">{hidden}'
                          f'<button class="button {style}" type="submit">{label}</button></form>')
         return (f'<div class="actions">{"".join(forms)}</div>'
+                # 6.9 U5: collapsed, and unlike the proposal help it stays in the list (app.css).
+                '<details class="decision-help relevance-help"><summary>Was bedeuten diese Entscheidungen?</summary>'
                 '<p class="meta">Relevant: Mail weiter auswerten. Irrelevant: nicht weiter auswerten. '
-                'Die Entscheidung kann später zum Regellernen verwendet werden.</p>')
+                'Die Entscheidung kann später zum Regellernen verwendet werden.</p></details>')
     return render
 
 

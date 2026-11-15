@@ -129,7 +129,8 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
         result = page.evaluate("""async () => {
           const shown = [], opened = [], navigated = [], messages = [];
           clients.matchAll = () => Promise.resolve([{postMessage: (data) => messages.push(data)}]);
-          self.registration = { showNotification: (title, options) => { shown.push([title, options]); return Promise.resolve(); } };
+          self.registration = { showNotification: (title, options) => {
+            shown.push([title, options]); return Promise.resolve(); } };
           const push = async (data) => { const waits = [];
             handlers.push({ data, waitUntil: (promise) => waits.push(promise) }); await Promise.all(waits); };
           const json = (value) => ({ json: () => value });
@@ -137,7 +138,9 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
           await push(json({ tag: "constructor" }));
           await push(json({ tag: "unbekannt" }));
           await push(null);
-          for (const tag of ["decisions", "daily_briefing", "action_results", "system_errors", "test"]) await push(json({tag}));
+          for (const tag of ["decisions", "daily_briefing", "action_results", "system_errors", "test"]) {
+            await push(json({tag}));
+          }
           const source = {postMessage: data => messages.push(data)};
           if (handlers.message) {
             handlers.message({}); handlers.message({data:{}});

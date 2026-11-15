@@ -115,7 +115,12 @@ def test_immediate_phone_actions_keep_the_thumb_zone_and_allow_another_card(page
         return
     sign_in(page, mailhelp)
     first = page.locator(f"#v-{mail_id(1)}-elternabend .actions")
-    assert first.evaluate("(node) => getComputedStyle(node).position") == "sticky"
+    # 6.9 U2: title first. A bar sticking to the bottom edge would slide over the title while the card
+    # scrolls in, so on the list it stands directly below title and sender (the first decision staying in
+    # the upper part of the window is checked in test_ui_open_mobile628).
+    assert first.evaluate("(node) => getComputedStyle(node).position") == "static"
+    card = page.locator(f"#v-{mail_id(1)}-elternabend").bounding_box()
+    assert first.bounding_box()["y"] - card["y"] < 160
     primary = first.get_by_role("button", name="Im Kalender anlegen").bounding_box()
     danger = first.get_by_role("button", name="Verwerfen").bounding_box()
     assert min(primary["height"], danger["height"]) >= 48

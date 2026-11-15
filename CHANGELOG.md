@@ -1,5 +1,27 @@
 # Änderungen
 
+## 6.9.1 – Karten am Finger und aktuelle Übersicht
+
+- Die Karte folgt dem Finger in beiden Achsen ohne Bremse oberhalb der Schwelle.
+  Neigung um den Griffpunkt, begrenzter Schwung, Gummiband bei gesperrten Aktionen,
+  einmaliger Schwellenimpuls und Darstellung einmal pro Animationsbild.
+- Nach dem Auslösen Flug und Ergebnisstreifen; bei Ablehnung Rückkehr zur Karte,
+  bei unterbrochener Antwort weiterhin Statusprüfung ohne erneutes Senden.
+- Reduzierte Bewegung: direktes Folgen ohne Neigung, kurze Rückkehr oder Überblenden.
+- Auf dem Telefon Titel und Absender/Zeit vor den Aktionen; Status und Fristen darunter.
+  Überschrift und Tab-Zähler bleiben nach Entscheidungen aktuell, auch mit Filtern und bei null.
+- Filterchips zeigen verbleibenden Inhalt am Rand; Relevanzerklärung ist aufklappbar.
+  Die Erklärung der Vorschlagsentscheidungen bleibt in der Liste ausgeblendet.
+- Steile Bewegungen über 45° bleiben Scrollen; die Karte zuckt nicht mehr kurz mit.
+- Web-Push (6.8): Ein Vorschlag, der im selben Uhrtakt wie die Aktivierung eines Geräts
+  erscheint, wird dort jetzt gemeldet statt still übergangen.
+- Die Aktionsleiste klebt in der Liste auf dem Telefon nicht mehr am unteren Rand,
+  damit sie den nun oben stehenden Titel nicht verdeckt.
+- Eine einmalige sanfte Bewegung ersetzt den Erklärungskasten; Schließen und der erste
+  erfolgreiche Wisch beenden den Hinweis dauerhaft. Alte gespeicherte Zustände gelten weiter.
+- Unveränderte Befehle, Sitzung, CSRF-, Versions- und Idempotenzprüfung. Umsetzung und
+  noch offene reale Geräteabnahme stehen in `docs/Release-6.9.md`.
+
 ## 6.8.2 – Releaseumfang bereinigen
 
 - Die lokale Planung für 7.0 gehört nicht zur Veröffentlichung von 6.8 und wird

@@ -13,7 +13,14 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 6.9.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+6.9.1 lässt Karten auf dem Telefon dem Finger in beiden Achsen folgen, mit
+begrenzter Neigung und Schwung. Eine ausgelöste Karte fliegt zu einem Ergebnisstreifen;
+Ablehnungen holen sie zurück, unterbrochene Antworten werden weiter geprüft.
+Titel und Absender stehen vor den Schaltflächen, Zähler aktualisieren sich direkt,
+und eine einmalige sanfte Bewegung zeigt die Geste. Die Einstellung „Weniger Bewegung“
+wird berücksichtigt. [Umsetzung und Geräteabnahme 6.9](docs/Release-6.9.md).
 
 6.8.2 zeigt den Web-Push-Zustand in neun Stufen und bietet einen neutralen Test
 für das angemeldete Gerät. Schlüsselwechsel, Anbieterablehnungen und fehlende
@@ -28,7 +35,7 @@ Neue Entscheidungen und außerhalb von Mailhelp geänderte Dateien werden weiter
 
 6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/Release-6.7.md)):
 - Verständlicher Vorschlagsabgleich: Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“, mit klaren Erklärsätzen zum weiteren Ablauf. Nur noch von Mailhelp vorgelegte Zuordnungen heben eine Schaltfläche hervor.
-- Passender Wischgesten-Tipp: Dynamischer Hinweis unter der ersten Karte („relevant / irrelevant“ bei Relevanzfragen, „zum Anlegen / zum Verwerfen“ bei Vorschlägen).
+- Passender Wischgesten-Tipp: Kurzer Hinweis unter der ersten Karte mit einmaligem Anstupsen („relevant / irrelevant“ bei Relevanzfragen, „zum Anlegen / zum Verwerfen“ bei Vorschlägen).
 - Neu gegliederte Alltagsanleitung (`docs/Bedienung.md`): Orientiert am täglichen Arbeitsablauf (Entscheiden, Klären, Abgleich, Kontrolle, Verlauf, Lernen), frei von Versionsfloskeln im Fließtext und mit deterministischem Hilfeindex.
 - Fristzeile in Telegram: Zusammenfassungen enthalten künftige Fristen als kompakte Abschlusszeile (`Fristen: ...`).
 

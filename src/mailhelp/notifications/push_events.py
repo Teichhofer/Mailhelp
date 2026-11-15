@@ -44,4 +44,5 @@ class PushDecisionEvents:
         record = self.observe(reference, version)
         activated = push.status(device.partition(':')[0])['activated_at']
         return (record['version'] == version and record['source'] == 'system' and activated is not None
-                and datetime.fromisoformat(record['appeared_at']) > datetime.fromisoformat(activated))
+                # Same tick counts as after: the Windows clock repeats values, and the backlog is older.
+                and datetime.fromisoformat(record['appeared_at']) >= datetime.fromisoformat(activated))

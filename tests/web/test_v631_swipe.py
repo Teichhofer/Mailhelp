@@ -61,7 +61,7 @@ def test_the_tip_stands_hidden_above_the_cards_and_only_with_cards(web):
     assert html.count("data-swipe-hint") == 2  # the tip and its close button
     # The first item on the overview is a relevance question, so the tip explains relevance decisions
     assert html.index(swipe_hint(True)) < html.index('<div class="open-items">')
-    assert "nach rechts wischen für relevant, nach links für irrelevant" in html
+    assert "Nach rechts wischen: relevant · nach links: irrelevant" in html
     # Regression 6.3.1: as a .notice the hidden tip was taken for the result message of an action.
     assert '<div class="swipe-hint" data-swipe-hint hidden>' in html and "notice" not in SWIPE_HINT
 
@@ -69,7 +69,7 @@ def test_the_tip_stands_hidden_above_the_cards_and_only_with_cards(web):
     overview = ReviewViews(web.store, "Europe/Berlin").overview()
     proposal_only = overview_page(replace(overview, relevance=()))
     assert swipe_hint(False) in proposal_only
-    assert "nach rechts wischen zum Anlegen, nach links zum Verwerfen" in proposal_only
+    assert "Nach rechts wischen: anlegen · nach links: verwerfen" in proposal_only
 
     # When nothing is open, no tip is rendered
     empty = overview_page(replace(overview, open=(), relevance=()))

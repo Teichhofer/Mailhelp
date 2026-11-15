@@ -31,25 +31,41 @@ Neuladen erhalten; „Zurücksetzen“ zeigt wieder alles. Die Leiste ändert nu
 
 ### Wischen auf dem Telefon
 
-Auf Telefon und Tablet entscheidest du auch mit dem Finger: Karte **nach rechts** ziehen
-legt an (bzw. „Relevant“), **nach links** verwirft (bzw. „Irrelevant“). Unter der Karte steht dabei
-genau die Schaltfläche, die ausgelöst würde, etwa „✓ Im Kalender anlegen“. Solange der Streifen hell
-ist, passiert beim Loslassen nichts; erst wenn er kräftig grün bzw. rot wird (bei etwa 40 % der
-Kartenbreite, kurzer Vibrationsimpuls), löst das Loslassen aus. Zurückziehen bricht ab. Danach
-steht die Karte wieder an ihrem Platz mit „Wird verarbeitet …“ und dem Ergebnis.
+Auf dem Smartphone und Tablet wischst du nach rechts, um einen Termin oder eine
+Aufgabe anzulegen, und nach links, um einen Vorschlag zu verwerfen. Die Karte folgt
+deinem Finger auch schräg. **Nach rechts**
+legt an (bzw. „Relevant“), **nach links** verwirft (bzw. „Irrelevant“). Unter der Karte
+stehen Symbol und Wortlaut der Aktion. Ab etwa 40 % der Kartenbreite wird sie beim
+Loslassen ausgelöst. Auch ein kurzer schneller Wisch reicht, wenn er mindestens die
+halbe Strecke zurücklegt und in dieselbe Richtung weitergeht. Steileres Ziehen scrollt
+weiter die Liste; ein Wisch vom Bildschirmrand bleibt der Systemgeste vorbehalten.
 
-Braucht ein Vorschlag erst eine Klärung (Rückfrage, Widerspruch, Vorschlagsabgleich,
-Dublettenprüfung, Terminwahl), lässt er sich nicht nach rechts ziehen: Ein Schloss erscheint, und
-ein Hinweis sagt, was zuerst zu tun ist. Verwerfen bleibt möglich. Hast du in ein Antwortfeld schon
-etwas geschrieben, ist Wischen gesperrt, bis du die Antwort sendest oder das Feld leerst.
+Ohne Auslösung federt die Karte zurück. Mit Auslösung fliegt sie zu einem schmalen
+Ergebnisstreifen. Dieser zeigt „Wird verarbeitet …“ und wird durch das Serverergebnis
+ersetzt. Lehnt der Server ab, kommt die Karte mit der Fehlermeldung zurück. Bei einer
+unterbrochenen Antwort bleibt die Statusprüfung aktiv; Mailhelp sendet nichts erneut.
 
-Ein Wisch kann auch auf Titeln, Links, Schaltflächen und Zusammenfassungen beginnen.
-Ein gewöhnlicher Tipp aktiviert sie. Nach einer erkannten Wischbewegung wird der folgende Klick
-abgefangen. Eingabefelder und seitlich scrollende Inhalte behalten ihre eigene Bedienung.
-Mit der Maus und auf breiten Bildschirmen (ab 1024 px)
-gibt es kein Wischen – dort gelten die Tastenkürzel. Ein Tipp unter der ersten Karte erklärt die
-Geste einmal; „Verstanden“ blendet ihn auf diesem Gerät aus. Bei einer Relevanzfrage nennt der Tipp
-„nach rechts für relevant, nach links für irrelevant“, bei einem Vorschlag „zum Anlegen, nach links zum Verwerfen“.
+Braucht ein Vorschlag erst eine Klärung, erscheint rechts ein Schloss. Die Karte
+bewegt sich dort wie ein Gummiband; beim Loslassen nennt ein Hinweis den Grund.
+Verwerfen bleibt möglich. Ungesendeter Text sperrt beide Richtungen, bis du die
+Antwort sendest oder das Feld leerst. Eingabefelder und seitlich scrollende Bereiche
+behalten ihre Bedienung. Ein gewöhnlicher Tipp auf Titel, Link oder Schaltfläche
+funktioniert weiterhin. Maus und breite Bildschirme ab 1024 px verwenden keine Geste.
+
+Beim ersten Besuch bewegt sich eine vollständig sichtbare, entscheidbare Karte nach
+kurzer Ruhe einmal sanft. Das löst keine Aktion aus. Die Zeile darunter erklärt die
+Richtungen. „×“ (Hinweis schließen) oder der erste erfolgreiche Wisch beendet beides
+auf diesem Gerät; ein bereits früher geschlossener Hinweis bleibt geschlossen.
+Mit „Weniger Bewegung“ im System gibt es keine Vorführung, Neigung oder Fluganimation.
+Die Karte folgt dem Finger trotzdem direkt. Ohne JavaScript bleiben die Formulare
+und Schaltflächen der vollständige Bedienweg.
+
+Auf dem Telefon liest du Titel und Absender/Zeit vor den Aktionen. Die Zahlen bei
+„Offene Entscheidungen“ und „Offen“ aktualisieren sich nach der Entscheidung, auch
+bei gesetzten Filtern. Nach der letzten Entscheidung erscheint „Alles erledigt“.
+Rechts verblassende Filterchips lassen sich seitlich weiterschieben; der aktive
+Filter wird beim Öffnen sichtbar gehalten. Erklärungen zur Relevanz findest du unter
+„Was bedeuten diese Entscheidungen?“.
 
 ## Rückfragen und Widersprüche
 

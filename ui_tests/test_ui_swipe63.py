@@ -5,6 +5,8 @@ The touches are real touch events through the Chrome DevTools protocol, so the b
 """
 from __future__ import annotations
 
+import math
+import re
 from urllib.parse import parse_qsl
 
 import pytest
@@ -48,6 +50,7 @@ class Touch:
             progress = min(1, max(step / steps, 15 / distance)) if distance else 1
             self.x, self.y = start_x + dx * progress, start_y + dy * progress
             self.send("touchMove", [(self.x, self.y)])
+            self.page.wait_for_timeout(280 / steps)
         return self
 
     def end(self):
@@ -192,7 +195,8 @@ def test_v632_vertical_and_ambiguous_movements_do_not_decide(phone, mailhelp, dx
     sign_in(phone, mailhelp)
     sent = actions(phone)
     grab(phone, ELTERNABEND, 90).move(dx, dy, steps=2).end()
-    assert phone.locator(BACKDROP).count() == 0 and sent == []
+    expect(phone.locator(BACKDROP)).to_have_count(0)
+    assert sent == []
 
 
 def test_swipe_right_creates_exactly_what_the_button_would(phone, mailhelp):
@@ -248,7 +252,7 @@ def test_the_backdrop_says_before_letting_go_whether_and_what_happens(phone, mai
     backdrop = page.locator(BACKDROP)
     touch = grab(page, ELTERNABEND, 90).move(60)
     # Before the threshold: light ground, the wording of the button, the card follows the finger exactly.
-    expect(backdrop).to_have_class("swipe-backdrop swipe-accept")
+    expect(backdrop).to_have_class(re.compile("swipe-backdrop swipe-accept(?: swipe-pulsed)?"))
     expect(backdrop.locator(".swipe-text")).to_have_text("Im Kalender anlegen")
     expect(backdrop.locator(".swipe-symbol")).to_have_text("✓")
     at(page, ELTERNABEND, 60)
@@ -258,15 +262,15 @@ def test_the_backdrop_says_before_letting_go_whether_and_what_happens(phone, mai
     width = page.locator(ELTERNABEND).evaluate("(card) => card.offsetWidth")
     limit = min(width * 0.4, 160)
     touch.move(limit - 60 + 40)
-    expect(backdrop).to_have_class("swipe-backdrop swipe-accept swipe-armed")
-    at(page, ELTERNABEND, limit + 40 * 0.25)
+    expect(backdrop).to_have_class(re.compile("swipe-backdrop swipe-accept swipe-armed swipe-pulsed"))
+    at(page, ELTERNABEND, limit + 40)
     shot(page, f"swipe63-karte-kraeftig-{theme}")
     assert audit(page, f"swipe63-kraeftig-{theme}", True) == []
     # Back below the threshold: light again, and letting go sends nothing.
     touch.move(-80)
-    expect(backdrop).to_have_class("swipe-backdrop swipe-accept")
+    expect(backdrop).to_have_class(re.compile("swipe-backdrop swipe-accept(?: swipe-pulsed)?"))
     touch.move(-200)
-    expect(backdrop).to_have_class("swipe-backdrop swipe-reject")
+    expect(backdrop).to_have_class(re.compile("swipe-backdrop swipe-reject(?: swipe-pulsed)?"))
     expect(backdrop.locator(".swipe-text")).to_have_text("Verwerfen")
     expect(backdrop.locator(".swipe-symbol")).to_have_text("✕")
     touch.move(150)
@@ -286,7 +290,7 @@ def test_a_blocked_direction_resists_and_names_the_reason(phone, mailhelp):
     expect(backdrop).to_have_class("swipe-backdrop swipe-accept swipe-blocked")
     expect(backdrop.locator(".swipe-symbol")).to_have_text("🔒")
     expect(backdrop.locator(".swipe-text")).to_have_text("")
-    at(page, ZAHNARZT, 24)
+    at(page, ZAHNARZT, 32 * (1-math.exp(-200/80)))
     shot(page, "swipe63-karte-gesperrt")
     assert audit(page, "swipe63-gesperrt", True) == []
     touch.end()
@@ -392,7 +396,7 @@ def test_a_second_finger_or_a_system_cancel_stops_the_swipe(phone, mailhelp):
     sign_in(page, mailhelp)
     sent = actions(page)
     touch = grab(page, ELTERNABEND, 90).move(200)
-    expect(page.locator(BACKDROP)).to_have_class("swipe-backdrop swipe-accept swipe-armed")
+    expect(page.locator(BACKDROP)).to_have_class(re.compile("swipe-backdrop swipe-accept swipe-armed swipe-pulsed"))
     # Zooming: a second finger lands.
     touch.send("touchStart", [(touch.x, touch.y), (200, touch.y + 40)])
     settled(page, ELTERNABEND)
@@ -413,8 +417,9 @@ def test_a_card_being_processed_cannot_be_swiped_again(phone, mailhelp, monkeypa
     swipe(page, FORMULAR, -200)
     expect(page.locator(f"{FORMULAR} [data-card-command-status]")).to_be_attached()
     expect(page.locator(f"{FORMULAR} [data-card-command-status]")).to_have_text("Wird verarbeitet …")
-    touch = grab(page, FORMULAR, 300).move(-200)
-    assert page.locator(BACKDROP).count() == 0
+    strip = page.locator(".swipe-result").bounding_box()
+    touch = Touch(page, 300, strip["y"] + strip["height"]/2).move(-200)
+    assert page.locator(BACKDROP + ":visible").count() == 0
     touch.end()
     release.set()
     expect(page.locator(f"{FORMULAR} [data-command-result] .notice")).to_contain_text("verworfen", timeout=20000)
@@ -439,8 +444,8 @@ def test_with_reduced_motion_the_card_jumps_back(phone, mailhelp):
     sign_in(page, mailhelp)
     touch = grab(page, ELTERNABEND, 90).move(60)
     touch.end()
-    assert offset(page, ELTERNABEND) == 0  # no glide back
     settled(page, ELTERNABEND)
+    assert offset(page, ELTERNABEND) == 0  # returns within 100 ms
 
 
 def test_wide_windows_keep_the_split_view_without_swiping(phone, mailhelp):
@@ -459,13 +464,13 @@ def test_the_tip_appears_once_and_goes_after_understanding(phone, mailhelp):
     sign_in(page, mailhelp)
     tip = page.locator(".swipe-hint")
     expect(tip).to_be_visible()
-    expect(tip).to_contain_text("nach rechts wischen für relevant, nach links für irrelevant")
+    expect(tip).to_contain_text("Nach rechts wischen: relevant · nach links: irrelevant")
     # Below the first card it explains, so the first decision keeps its place on the first screen.
     assert tip.evaluate("(node) => node.previousElementSibling.id") == RELEVANCE[1:]
     top = "(node) => node.getBoundingClientRect().top"
     assert page.locator(".open-items article.card").first.evaluate(top) < tip.evaluate(top)
     assert audit(page, "swipe63-tipp", True) == []
-    tip.get_by_role("button", name="Verstanden").click()
+    tip.get_by_role("button", name="Hinweis schließen").click()
     expect(tip).to_be_hidden()
     page.reload()
     expect(page.locator(".open-items")).to_be_visible()
@@ -490,7 +495,7 @@ def test_without_storage_the_tip_shows_on_every_visit_and_can_be_closed(phone, m
     page.add_init_script("Object.defineProperty(window, 'localStorage', {get() {throw Error('blocked')}});")
     sign_in(page, mailhelp)
     tip = page.locator(".swipe-hint")
-    tip.get_by_role("button", name="Verstanden").click()
+    tip.get_by_role("button", name="Hinweis schließen").click()
     expect(tip).to_be_hidden()
     page.reload()
     expect(tip).to_be_visible()

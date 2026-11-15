@@ -50,7 +50,7 @@ def https_link(value: str | None) -> str | None:
 
 
 def _fact(icon: str, text: str, label: str) -> str:
-    return (f'<li><span class="icon" aria-hidden="true">{icon}</span>'
+    return (f'<li data-fact="{e(label)}"><span class="icon" aria-hidden="true">{icon}</span>'
             f'<span><span class="visually-hidden">{label}: </span>{text}</span></li>')
 
 
@@ -200,6 +200,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     created_link += original
     version = f" · Version {view.version}" if view.version > 1 else ""
     title = e(card.title)
+    mobile_facts = " · ".join(value for value in (card.when, card.location) if value)
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
     current = " current" if view.current else ""
@@ -209,7 +210,8 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     return f"""<article class="card kind-{kind}{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
 <p class="kind"><span class="kind-label">{KINDS[kind]}</span>{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
-<p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
+<p class="source">✉️ {e(view.sender)}<span class="source-subject"> · {e(view.subject)}</span>
+<span class="mobile-card-facts">{e(mobile_facts)}</span></p>
 <p class="labels">{" ".join(_card_labels(view, metadata=not detail_link))}</p>
 <ul class="facts">{"".join(_card_facts(card))}</ul>
 {_card_warning(view)}{_diff_box(view)}{_card_questions(_plain_questions(view))}{context}{created_link}{details}
@@ -258,12 +260,13 @@ Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
 # Not a .notice: it is no result message. app.js moves it below the first card it explains, so the first
 # decision stays in the upper 60 % of a phone window (6.2.8).
 def swipe_hint(first_is_relevance: bool = False) -> str:
-    text = ("Tipp: Karte nach rechts wischen für relevant, nach links für irrelevant."
+    text = ("Nach rechts wischen: relevant · nach links: irrelevant"
             if first_is_relevance
-            else "Tipp: Karte nach rechts wischen zum Anlegen, nach links zum Verwerfen.")
+            else "Nach rechts wischen: anlegen · nach links: verwerfen")
     return ('<div class="swipe-hint" data-swipe-hint hidden>'
             f'<span>{text}</span>'
-            '<button class="button small" type="button" data-swipe-hint-close>Verstanden</button></div>')
+            '<button class="button small" type="button" data-swipe-hint-close '
+            'aria-label="Hinweis schließen">×</button></div>')
 
 
 SWIPE_HINT = swipe_hint(False)

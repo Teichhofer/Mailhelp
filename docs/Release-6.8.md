@@ -118,3 +118,22 @@ Für B1, B2, B3, B11, B12 und B13 liegen scheiternde Nachweise auf dem
 ursprünglichen Code beziehungsweise der Vorlage von 6.7.4 vor.
 
 Die Geräteabnahme wird erst nach realer Rückmeldung als erfolgreich vermerkt.
+
+
+## Nachtrag 6.9.1: gleicher Uhrtakt
+
+Bei der Abschlussprüfung von 6.9 scheiterte ein Push-Test zeitabhängig. Ursache: Ein Gerät
+erhielt nur Vorschläge, die strikt nach seiner Aktivierung erschienen. Unter Windows liefert
+die Uhr für aufeinanderfolgende Aufrufe oft denselben Wert; ein Vorschlag im selben Takt wie
+die Aktivierung wurde dann nie gemeldet. Seit 6.9.1 zählt der gleiche Zeitpunkt als „danach“.
+Ältere offene Vorschläge bleiben stumm. Ein Regressionstest mit fester Uhr belegt beides.
+
+## Produktivinstallation 6.8.2
+
+Am 15. November 2026 wurde das geprüfte Image `6.8.2-6d52f39597b1` installiert.
+Die vollständige Sicherung liegt unter `/opt/mailhelp/backups/pre-6.8.2-20261115T062537Z`.
+Alle zehn Sitzungen sowie die Prüfsummen der Konfigurations- und Geheimnisdateien
+blieben erhalten. HTTPS, ausgelieferte Skripte und Stylesheets sowie Anmeldungspflicht
+wurden geprüft. Nach 345 Sekunden: keine Neustarts und keine neuen Fehlerereignisse.
+Push war weiterhin deaktiviert und kein Gerät registriert; der freigegebene echte
+Test-Push wartet auf Aktivierung des iOS-Geräts.

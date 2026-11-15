@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 14. November 2026, Anwendungsversion 6.8.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Stand: 15. November 2026, Anwendungsversion 6.9.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 ## Themenübersicht
 

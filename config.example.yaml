@@ -450,6 +450,7 @@ proposal_reconciliation:
   # Mehr mögliche Treffer blockieren die automatische Zuordnung.
   max_semantic_candidates: 8
 web:
+  # Wischgesten benötigen keine Zusatzoption; „Weniger Bewegung“ folgt der Systemeinstellung.
   # Direkte Google-Webanmeldung: exakt als Redirect-URI eines Webanwendungs-Clients registrieren.
   # Bei entferntem Zugriff HTTPS und den Host zusätzlich unter allowed_hosts zulassen.
   # Alternativ Google-Playground-Anleitung in der Einrichtung; CLI verwendet einen Desktop-Client.

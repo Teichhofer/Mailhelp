@@ -51,6 +51,22 @@ def test_activation_existing_cards_own_revision_system_revision_and_restart(tmp_
         assert ORIGIN.get() == "system"
 
 
+def test_regression_proposal_in_the_same_clock_tick_as_activation_is_delivered(tmp_path):
+    # The Windows clock often returns the same value for consecutive calls. A proposal that appeared in the
+    # same tick as the activation counted as "before" it and was never announced on that device.
+    now = datetime(2026, 11, 15, 9, 0, tzinfo=UTC)
+    with JsonStore(tmp_path) as store:
+        push = PushService(store, SimpleNamespace(active=lambda _: True), "mailto:ops@example.test",
+                           lambda **_: None, clock=lambda: now)
+        events = PushDecisionEvents(store, lambda: now, {})
+        push.change("a" * 16, "subscribe-01", subscription())
+        device = push.destinations()[0]
+        assert events.eligible("a" * 24 + ":p1", 1, push, device)
+        # Earlier than the activation stays silent: activating a device never replays the backlog.
+        older = PushDecisionEvents(store, lambda: now - timedelta(microseconds=1), {})
+        assert not older.eligible("b" * 24 + ":p1", 1, push, device)
+
+
 def test_missing_and_damaged_history_defaults_to_system(tmp_path):
     with JsonStore(tmp_path) as store:
         now = datetime.now(UTC)
