@@ -1,5 +1,16 @@
 # Änderungen
 
+## 7.0.1 – Sicherungsnetz für das Aufräumen
+
+- Eingefrorene Ausgaben: elf Kernseiten und die Telegram-Darstellung aller synthetischen Vorschläge
+  werden bei fester Uhr byte-genau verglichen (`tests/golden`).
+- `python -m devtools.code_metrics` misst Funktionslängen, Parameter, Klassengrößen, späte Importe
+  und Importe zwischen den Paketen; Vorher-Werte in `quality-reports/refactoring-7.0-vorher.json`.
+- `python -m devtools.state_roundtrip <Verzeichnis>` prüft auf einer Kopie, dass jede Zustandsdatei
+  mit ihrem Modell gelesen und unverändert geschrieben wird; der Bericht enthält nur Zählwerte und
+  eine Prüfsumme.
+- Mutationswerte des Ausgangsstands in `quality-reports/mutation-7.0-vorher.json`.
+
 ## 6.9.3 – Wischaktionen und feste Navigation auf dem iPhone
 
 - Beim Loslassen zählt der tatsächliche letzte Fingerpunkt auch ohne vorheriges Bewegungsereignis; die Originalformulare mit Sitzung, CSRF, Version und Idempotenz bleiben erhalten.

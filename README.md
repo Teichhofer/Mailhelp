@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 6.9.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.1 beginnt das Aufräumen des Codes ohne Verhaltensänderung: Kernseiten und Telegram-Texte
+sind als Vergleichsausgaben eingefroren, Kennzahlen, Bestandsprüfung und Mutationswerte des
+Ausgangsstands sind festgehalten. [Umsetzung 7.0](docs/Release-7.0.md).
 
 6.9.3 behebt zurückfedernde Wischgesten bei einem fehlenden letzten Bewegungsereignis
 und schützt horizontale Gesten vor der Übernahme durch natives Scrollen. Die untere
