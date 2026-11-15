@@ -231,3 +231,14 @@ learning-config/
 # Rotierter Microsoft-Refresh-Token (mailhelp --microsoft-login)
 microsoft-token.json
 mutants/
+
+# 7.0 (R1): work outside Mailhelp and local leftovers stay on disk, not in the repository.
+/output/
+/tmp/
+/.tools/
+/irrelevant-senders.json
+/irrelevant-senders.json.v1
+/irrelevant-senders.corrupt
+/.coverage-spec-audit
+/coverage-audit.json
+/spec-audit-coverage.json

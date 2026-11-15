@@ -43,3 +43,20 @@ ohne Test (Code 33) ab; die Werte oben sind deshalb direkt aus den Metadaten gez
 **Abweichung vom Plan.** Die Kennzahlen erzeugt ein eigenes Werkzeug `devtools/code_metrics.py`
 statt einer Erweiterung von `devtools/inventory.py`; die Inventur der Einstellungen bleibt davon
 getrennt.
+
+## 7.0.2 – Nur Mailhelp im Repository (R1)
+
+Nach Bestätigung der Liste durch den Betreiber sind 186 Dateien aus der Versionierung genommen
+und in `.gitignore` eingetragen: `output/` (Auswertungen und PDFs anderer Arbeiten), `tmp/`
+(Bildschirmfotos und PDF-Seiten), `.tools/` (OCR- und Instaloader-Werkzeuge samt virtueller
+Umgebung) und im Wurzelverzeichnis `irrelevant-senders.json`, `irrelevant-senders.json.v1`,
+`irrelevant-senders.corrupt`, `.coverage-spec-audit`, `coverage-audit.json` und
+`spec-audit-coverage.json`. Die Dateien liegen weiter auf der Festplatte; die Git-Historie ist
+unverändert. Kein Test, kein Paketbau und keine Konfiguration las eine davon; die CI legt
+`irrelevant-senders.json` für den Containertest weiterhin aus `tests/fixtures` an.
+`tests/release/test_repository_scope70.py` verhindert, dass sie wieder versioniert werden.
+
+**Hinweis Datenschutz.** Die beiden Dateien `irrelevant-senders.json*` enthielten rund 54 echte
+Absenderadressen und liegen in früheren Commits auf GitHub. Entfernen aus der Historie wäre ein
+Umschreiben der Historie und ist nach Plan nicht Teil von 7.0; es bleibt eine Entscheidung des
+Betreibers.

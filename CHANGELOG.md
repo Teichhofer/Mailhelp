@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.0.2 – Nur Mailhelp im Repository
+
+- `output/`, `tmp/`, `.tools/` und sechs lokale Dateien im Wurzelverzeichnis sind nicht mehr versioniert
+  und stehen in `.gitignore`; die Dateien bleiben auf der Festplatte, die Historie ist unverändert.
+- Ein Wächtertest verhindert, dass sie wieder in das Repository gelangen.
+
 ## 7.0.1 – Sicherungsnetz für das Aufräumen
 
 - Eingefrorene Ausgaben: elf Kernseiten und die Telegram-Darstellung aller synthetischen Vorschläge
