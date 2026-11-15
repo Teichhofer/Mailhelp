@@ -11,11 +11,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
-from ..configuration import file_hash
+from ..config.configuration import file_hash
+from ..domain.extraction import LearnedCategory
+from ..domain.relevance import IrrelevantSenders
 from ..llm.learning import _topic_id, topics_document
 from ..mailbox.sender_filter import change_irrelevant_senders
-from ..models import IrrelevantSenders, LearnedCategory
-from ..storage import atomic_replace
+from ..persistence.storage import atomic_replace
 
 FILES = ("config.yaml", "topics.yaml", "irrelevant_topics.yaml", "irrelevant-senders.json")
 

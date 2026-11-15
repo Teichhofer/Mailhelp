@@ -20,29 +20,29 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 
 from .. import state_names
+from ..domain.mail import DisplayHeaders, MailState
 from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..domain.processing import (
     AnswerStatus,
     ProposalClarificationState,
     ProposalRevisionStatus,
+    TelegramDialogState,
     TelegramOutboxState,
 )
-from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR, answerable_questions, reconciliation_only
-from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
-from ..formatting import format_datetime_local
-from ..models import (
-    DisplayHeaders,
-    MailRunState,
-    MailState,
+from ..domain.proposal import (
+    UNVERIFIED_LEGACY_ACTOR,
     Proposal,
     ProposalKind,
     ProposalStatus,
-    RelevanceDialog,
-    RelevanceDialogStatus,
-    TelegramDialogState,
+    answerable_questions,
+    reconciliation_only,
 )
+from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
+from ..domain.run import MailRunState
+from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
+from ..formatting import format_datetime_local
+from ..persistence.storage import CorruptState, JsonStore
 from ..processing.attachments import AttachmentCache, OriginalFile
-from ..storage import CorruptState, JsonStore
 from .calendar_display import candidate_label
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind

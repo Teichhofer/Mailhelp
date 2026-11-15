@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from mailhelp.models import Proposal
+from mailhelp.domain.proposal import Proposal
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.inbox import CommandInbox
-from mailhelp.storage import JsonStore
 from mailhelp.web.auth import WebAuth
 from tests.fakes.safety_harness import PersistentWriter, ProcessHarness, seed
 from tests.fakes.shared_web_auth import SECRET

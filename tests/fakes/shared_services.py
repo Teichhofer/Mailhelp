@@ -4,13 +4,10 @@ from __future__ import annotations
 import httpx
 
 from mailhelp.config import Topic
-from mailhelp.models import (
-    ActionRoute,
-    Relevance,
-    TaskExtraction,
-)
+from mailhelp.domain.mail import ActionRoute, TaskExtraction
+from mailhelp.domain.relevance import Relevance
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import MailState, Orchestrator
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import proposal
 
 
@@ -63,21 +60,21 @@ class AnalyzerStub:
     def relevance(self,m,t):
         return "r",Relevance(decision=self.decision,topic_ids=[],reason="why")
     def summary(self,m):
-        from mailhelp.models import Summary
+        from mailhelp.domain.mail import Summary
         return "s",Summary(sentences=["eins","zwei"])
     def action_route(self,m):
         return "ar",ActionRoute(action_state="task",task_count=1,event_count=0,reason="synthetic")
     def actions(self,m):
-        from mailhelp.models import Actions
+        from mailhelp.domain.proposal import Actions
         return "a",Actions()
     def extract_tasks(self,m, *, expected_count):
-        from mailhelp.models import ExtractedTask
+        from mailhelp.domain.extraction import ExtractedTask
         return "t",TaskExtraction(tasks=[ExtractedTask(title="Aufgabe",description="",evidence="Body",responsibility="user",certainty="certain",classification="new")])
     def extract_events(self,m, *, expected_count):
-        from mailhelp.models import EventExtraction
+        from mailhelp.domain.mail import EventExtraction
         return "e",EventExtraction(events=[])
     def answer_question_from_mail(self, mail, proposal, question):
-        from mailhelp.models import TelegramAnswerInterpretation
+        from mailhelp.domain.extraction import TelegramAnswerInterpretation
         return "mq", TelegramAnswerInterpretation(
             usable=False, reason="Synthetische Mail beantwortet die Frage nicht")
 
@@ -98,7 +95,7 @@ class _MailQuestionAnalyzer(AnalyzerStub):
         self.answers, self.revision, self.revisions = answers, revision, 0
 
     def answer_question_from_mail(self, mail, proposal, question):
-        from mailhelp.models import TelegramAnswerInterpretation
+        from mailhelp.domain.extraction import TelegramAnswerInterpretation
         answer = self.answers.get(question)
         if answer is None:
             return "mq", TelegramAnswerInterpretation(usable=False, reason="Nicht in der Mail")

@@ -7,11 +7,10 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import EventDefaultsSettings
-from ..domain.proposal import invalidate_creation_permissions
-from ..models import Proposal, ProposalStatus
+from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
-from ..temporal_answers import deterministic_temporal_revision
+from ..text.temporal_answers import deterministic_temporal_revision
 from .commands import CommandKind, ReviewCommand, SeriesMember
 from .errors import AnswerRequired, StaleCommand
 from .results import ResultStatus, ReviewResult

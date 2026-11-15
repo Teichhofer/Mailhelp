@@ -7,13 +7,15 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from .. import state_names
-from ..models import AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
+from ..domain.mail import MailState
+from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
+from ..domain.proposal import Proposal, ProposalStatus
 from ..persistence.proposals import clarification_name, proposal_name
 from .formatting import clarification_prompt
 
 if TYPE_CHECKING:
     from ..persistence.proposals import ProposalRepository
-    from ..storage import JsonStore
+    from ..persistence.storage import JsonStore
     from .client import TelegramTransport
     from .outbox import TelegramOutbox
     from .presenter import ProposalPresenter
@@ -84,7 +86,7 @@ class TelegramCommands:
             from ..review.views import count_processed, german_number
             count = count_processed(self.store)
             report.header = f"📊 Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet."
-            from ..storage import mail_state_names
+            from ..state_names import mail_state_names
             abandoned = sum(bool(mail_state.processing_retry and mail_state.processing_retry.abandoned)
                             for name in mail_state_names(self.store)
                             if (mail_state := self.store.load_model(name, MailState)) is not None

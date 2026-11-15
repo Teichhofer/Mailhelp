@@ -11,22 +11,21 @@ import yaml
 from pydantic import ValidationError
 
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
+from mailhelp.domain.mail import ActionRoute, TaskExtraction
+from mailhelp.domain.proposal import (
+    Proposal,
+    ProposalRevisionChanges,
+    ProposalRevisionDelta,
+    ProposalStatus,
+    apply_proposal_revision,
+)
+from mailhelp.domain.relevance import Relevance, RelevanceDialog
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.llm.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mime import MimeLimits
-from mailhelp.models import (
-    ActionRoute,
-    Proposal,
-    ProposalRevisionChanges,
-    ProposalRevisionDelta,
-    ProposalStatus,
-    Relevance,
-    RelevanceDialog,
-    TaskExtraction,
-    apply_proposal_revision,
-)
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import (
     JSON_REPAIR_INSTRUCTION,
     SCHEMA_REPAIR_INSTRUCTION,
@@ -39,7 +38,6 @@ from mailhelp.processing.analysis import (
 )
 from mailhelp.processing.orchestrator import MailState, Orchestrator, ProcessingOutcome
 from mailhelp.proposals.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 from tests.fakes.shared_core import prompt_config, proposal
 from tests.fakes.shared_services import AnalyzerStub as AnalyzerStub
@@ -398,7 +396,7 @@ def test_mail_question_resolution_prompt_requires_one_local_value():
 
 def test_proposal_builder_forwards_time_requirement_to_event_normalization(monkeypatch):
     import mailhelp.proposals.event_defaults as event_defaults
-    from mailhelp.models import ExtractedEvent
+    from mailhelp.domain.extraction import ExtractedEvent
     from mailhelp.proposals.action_normalization import MailDateContext
     from mailhelp.proposals.proposal_builder import ProposalBuilder
 
@@ -940,7 +938,7 @@ def test_revision_context_is_limited_to_the_concrete_question(kind,question,expe
 
 
 def test_local_delta_apply_derives_every_invariant_question():
-    import mailhelp.models as models
+    import mailhelp.domain.proposal as models
     event=proposal(kind="event",open_questions=["Änderung?"],start=None,end=None,
                    responsibility="other",certainty="contradictory",
                    classification="recurring")
@@ -1171,13 +1169,14 @@ def test_all_day_calendar_file_and_validation():
 def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
     class MailAnswerAnalyzer(AnalyzerStub):
         def extract_tasks(self, mail, *, expected_count):
-            from mailhelp.models import ExtractedTask, TaskExtraction
+            from mailhelp.domain.extraction import ExtractedTask
+            from mailhelp.domain.mail import TaskExtraction
             return "t", TaskExtraction(tasks=[ExtractedTask(
                 title="Unterlagen senden", description="", evidence="Bitte senden Sie",
                 responsibility="unclear", certainty="certain", classification="new")])
 
         def answer_question_from_mail(self, mail, proposal, question):
-            from mailhelp.models import TelegramAnswerInterpretation
+            from mailhelp.domain.extraction import TelegramAnswerInterpretation
             assert mail["text"] == "Bitte senden Sie die Unterlagen selbst."
             assert question in proposal.open_questions
             return "mq", TelegramAnswerInterpretation(
@@ -1185,7 +1184,7 @@ def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
                 reason="Die Mail richtet die Bitte ausdrücklich an sie.")
 
         def revise_proposal(self, proposal, question, answer):
-            from mailhelp.models import Proposal
+            from mailhelp.domain.proposal import Proposal
             assert answer == "Die nutzende Person ist zuständig."
             return "rev", Proposal.model_validate({**proposal.model_dump(mode="json"),
                 "version": proposal.version + 1,
@@ -1294,13 +1293,13 @@ def test_transient_provider_failure_during_mail_answer_revision_is_retried_later
 def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
     class CompleteAnalyzer(AnalyzerStub):
         def relevance(self, mail, topics):
-            from mailhelp.models import Relevance
+            from mailhelp.domain.relevance import Relevance
             return "r", Relevance(decision="relevant", topic_ids=["billing"], reason="yes")
         def summary(self, mail):
-            from mailhelp.models import Summary
+            from mailhelp.domain.mail import Summary
             return "s", Summary(sentences=["Satz eins.", "Satz zwei."], deadlines=["31.12.2026"])
         def actions(self, mail):
-            from mailhelp.models import Actions
+            from mailhelp.domain.proposal import Actions
             return "a", Actions(proposals=[proposal(source_mail_id=mail["internal_id"])])
     topic=Topic(id="billing",name="Abrechnung",enabled=True,description="x")
     raw=b"From: Alice <alice@example.test>\nSubject: Rechnung\n\nBody"
@@ -1349,7 +1348,8 @@ def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path)
                                      reason="Der Termin ist erkannt, die Einladung ist unklar.")
 
         def extract_events(self, mail, *, expected_count):
-            from mailhelp.models import EventExtraction, ExtractedEvent
+            from mailhelp.domain.extraction import ExtractedEvent
+            from mailhelp.domain.mail import EventExtraction
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
                 date_text="22.09.2026", time_requirement="required_unknown", responsibility="unclear",
@@ -1416,7 +1416,8 @@ def test_orchestrator_sends_task_candidate_even_when_route_is_unclear(tmp_path):
                                      reason="Die freiwillige Buchung wurde erkannt.")
 
         def extract_tasks(self, mail, *, expected_count):
-            from mailhelp.models import ExtractedTask, TaskExtraction
+            from mailhelp.domain.extraction import ExtractedTask
+            from mailhelp.domain.mail import TaskExtraction
             assert expected_count == 1
             return "t", TaskExtraction(tasks=[ExtractedTask(
                 title="Optional ein Gespräch buchen",
@@ -1453,7 +1454,8 @@ def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
         orchestrator=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000,targets=targets)
         state=MailState(id="a"*24,config_fingerprint="0"*64,
                         imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
-        from mailhelp.models import EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
+        from mailhelp.domain.extraction import ExtractedEvent, ExtractedTask
+        from mailhelp.domain.mail import EventExtraction, TaskExtraction
         state.mail = {"date_context_status":"valid", "date_header_parsed":"2026-01-01T08:00:00Z",
                       "imap_received_at":"2026-01-01T08:00:00Z", "user_timezone":"UTC"}
         state.task_extraction = TaskExtraction(tasks=[ExtractedTask(title="t", description="", evidence="e",
@@ -1483,7 +1485,7 @@ def test_orchestrator(tmp_path):
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
         assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","duplicate_precheck":"skipped","proposal_notification":"skipped","auto_draft":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"blocked") as store:
-        from mailhelp.models import IrrelevantSenders
+        from mailhelp.domain.relevance import IrrelevantSenders
         sender_store = JsonStore(tmp_path / "config")
         sender_store.save("irrelevant-senders", IrrelevantSenders(
             domains=["example.test"]).model_dump())
@@ -1535,7 +1537,7 @@ def test_orchestrator(tmp_path):
 
     class ProposalAnalyzer(AnalyzerStub):
         def actions(self,m):
-            from mailhelp.models import Actions
+            from mailhelp.domain.proposal import Actions
             return "a",Actions(proposals=[proposal(source_mail_id=m["internal_id"])])
     with JsonStore(tmp_path/"g") as store:
         notify=Notify()
@@ -1671,7 +1673,8 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
             self.calls.append("events")
             if self.fail_actions:
                 raise LlmSchemaValidationExceeded("event_extraction")
-            from mailhelp.models import EventExtraction, ExtractedEvent
+            from mailhelp.domain.extraction import ExtractedEvent
+            from mailhelp.domain.mail import EventExtraction
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
                 date_text="22.09.2026", time_text=None, end_time_text=None,
@@ -1736,7 +1739,8 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
             self.calls.append("event-call")
             if self.fail_event:
                 raise LlmSchemaValidationExceeded("event_extraction")
-            from mailhelp.models import EventExtraction, ExtractedEvent
+            from mailhelp.domain.extraction import ExtractedEvent
+            from mailhelp.domain.mail import EventExtraction
             return "event-id", EventExtraction(events=[ExtractedEvent(
                 title="Termin", evidence="Termin", time_requirement="required_unknown", responsibility="other",
                 certainty="certain", classification="new")])
@@ -1774,10 +1778,10 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
                 task_count=1 if kind == "task" else 0,
                 event_count=1 if kind == "event" else 0, reason="Fund")
         def extract_tasks(self, mail, *, expected_count):
-            from mailhelp.models import TaskExtraction
+            from mailhelp.domain.mail import TaskExtraction
             return "t", TaskExtraction(tasks=[])
         def extract_events(self, mail, *, expected_count):
-            from mailhelp.models import EventExtraction
+            from mailhelp.domain.mail import EventExtraction
             return "e", EventExtraction(events=[])
 
     with JsonStore(tmp_path / kind) as store:
@@ -1835,7 +1839,8 @@ def test_resume_after_extractor_and_after_action_aggregation(tmp_path):
         def action_route(self, mail):
             return "ar", ActionRoute(action_state="event", task_count=0, event_count=1, reason="Termin")
         def extract_events(self, mail, *, expected_count):
-            from mailhelp.models import EventExtraction, ExtractedEvent
+            from mailhelp.domain.extraction import ExtractedEvent
+            from mailhelp.domain.mail import EventExtraction
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Termin", evidence="Termin", time_requirement="required_unknown", responsibility="other",
                 certainty="certain", classification="new")])
@@ -1999,7 +2004,7 @@ def test_calendar_duplicate_comparison_updates_only_missing_information():
     decisions=[]
     def matcher(item, existing):
         decisions.append((item, existing))
-        from mailhelp.models import CalendarDuplicateDecision
+        from mailhelp.domain.extraction import CalendarDuplicateDecision
         return "llm-call", CalendarDuplicateDecision(
             same_event=True, missing_fields=["description", "location", "video_link"],
             reason="Titel und Zeitpunkt stimmen überein",
@@ -2036,7 +2041,7 @@ def test_calendar_duplicate_comparison_updates_only_missing_information():
 
 
 def test_calendar_same_event_without_missing_information_is_not_written():
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     methods=[]
     def handler(request):
         methods.append(request.method)
@@ -2055,7 +2060,7 @@ def test_calendar_same_event_without_missing_information_is_not_written():
 
 
 def test_calendar_overlap_that_is_not_same_event_is_created():
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     methods=[]
     def handler(request):
         methods.append(request.method)
@@ -2074,7 +2079,7 @@ def test_calendar_overlap_that_is_not_same_event_is_created():
 
 
 def test_calendar_duplicate_model_and_analyzer_boundary():
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     with pytest.raises(ValidationError, match="gleichen Termin"):
         CalendarDuplicateDecision(same_event=False,missing_fields=["location"],reason="nein")
     with pytest.raises(ValidationError, match="doppelt"):
@@ -2100,7 +2105,7 @@ def test_calendar_overlap_rejects_malformed_provider_responses(response):
 
 
 def test_calendar_duplicate_merge_ignores_fields_without_safe_source_and_validates_patch():
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     writer=HttpWriter("google_calendar","x","primary",calendar_timezone="UTC")
     item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00",description="")

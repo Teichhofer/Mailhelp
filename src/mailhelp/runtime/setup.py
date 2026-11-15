@@ -9,7 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import Settings, read_yaml
-from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, apply_settings, file_hash
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, apply_settings, file_hash
 from ..notifications.notification_config import effective_profile
 from .diagnostics import DiagnosticsState
 
@@ -77,7 +77,7 @@ class SetupService:
             if kind == "topics":
                 self.configuration.candidate(command)
             else:
-                from ..configuration import SenderChange
+                from ..config.configuration import SenderChange
                 SenderChange.model_validate(patch)
             state.kind, state.patch, state.category = kind, patch, category
             state.base_hash, state.step = current, 6

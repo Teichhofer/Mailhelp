@@ -10,7 +10,8 @@ from playwright.sync_api import expect
 
 from checks import audit
 from conftest import item, sign_in
-from mailhelp.models import MailState, Proposal
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal
 from mailhelp.notifications.notification_config import NotificationSettings
 from mailhelp.notifications.webpush import PushService
 from mailhelp.processing.attachments import AttachmentCache

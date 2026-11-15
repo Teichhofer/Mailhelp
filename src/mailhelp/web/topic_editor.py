@@ -10,10 +10,10 @@ import yaml
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
-from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..persistence.storage import CorruptState, JsonStore
 from ..review.inbox import CommandConflict
 from ..rule_learning.models import RuleTopic
-from ..storage import CorruptState, JsonStore
 from .forms import field, post_form
 from .http import Request, Response
 from .pages import e, layout

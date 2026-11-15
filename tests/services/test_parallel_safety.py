@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import pytest
 
-from mailhelp.models import Proposal
+from mailhelp.domain.proposal import Proposal
 from mailhelp.review.inbox import FINISHED
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.telegram.receiver import TelegramInbox

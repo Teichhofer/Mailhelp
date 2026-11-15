@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.models import Proposal
+from mailhelp.domain.proposal import Proposal
 from tests.fakes.shared_telegram_dialog import proposal
 
 
@@ -30,8 +30,8 @@ def test_series_normalization_and_missing_dates_do_not_change_occurrence_identit
 
 
 def test_old_current_snapshot_and_mail_projection_are_backfilled_without_a_revision(tmp_path):
-    from mailhelp.models import MailState
-    from mailhelp.storage import JsonStore
+    from mailhelp.domain.mail import MailState
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.shared_review import mail_state
     original = proposal(kind='event', start='2027-01-23T19:00:00+01:00', end='2027-01-23T22:00:00+01:00')
     record = original.model_dump(mode='json', exclude={'base_title', 'series_key'})
@@ -49,7 +49,7 @@ def test_old_current_snapshot_and_mail_projection_are_backfilled_without_a_revis
 
 @pytest.mark.parametrize('field,value', [('title', []), ('source_mail_id', []), ('base_title', 12)])
 def test_invalid_legacy_metadata_is_quarantined_without_an_unchecked_migration_error(tmp_path, field, value):
-    from mailhelp.storage import CorruptState, JsonStore
+    from mailhelp.persistence.storage import CorruptState, JsonStore
     record = proposal(kind='event', start='2027-01-23T19:00:00+01:00', end='2027-01-23T22:00:00+01:00').model_dump(
         mode='json', exclude={'base_title', 'series_key'})
     record[field] = value

@@ -3,7 +3,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.storage import CorruptState
+from mailhelp.persistence.storage import CorruptState
 from mailhelp.web.topic_drafts import TopicDraft, draft_id, owner, proposed_id
 from tests.fakes.shared_web_actions import web as web  # noqa: F401
 from tests.fakes.shared_web_auth import Browser
@@ -129,7 +129,7 @@ def test_a_changed_file_is_a_conflict_with_a_reload_link(topics):
 
 def test_a_file_changed_during_validation_is_reported(topics, monkeypatch):
     web, _path = topics
-    from mailhelp.configuration import ConfigurationConflict
+    from mailhelp.config.configuration import ConfigurationConflict
     service = web.site.archive.configuration
     monkeypatch.setattr(service, "candidate", lambda command: (_ for _ in ()).throw(ConfigurationConflict("x")))
     response = preview(web, "/themen/relevant/school", name="Schule", description="Neu")

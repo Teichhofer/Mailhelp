@@ -8,8 +8,8 @@ from datetime import UTC
 import pytest
 
 from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from mailhelp.web.review_pages import https_link, overview_page, proposal_card
 from tests.fakes.shared_web_auth import Browser, signed_in, site  # noqa: F401  (fixture)
 from tests.scenarios.web_scenario import mail_id, populate, proposal, save_mail
@@ -87,7 +87,8 @@ def test_status_page_lists_errors_and_operating_figures(tmp_path):
     from datetime import datetime, timedelta
 
     from mailhelp.config import WebSettings
-    from mailhelp.models import MailState, ProcessingError
+    from mailhelp.domain.mail import MailState
+    from mailhelp.domain.processing import ProcessingError
     from mailhelp.review.commands import CommandKind
     from mailhelp.review.inbox import CommandInbox
     from mailhelp.web import WebApp

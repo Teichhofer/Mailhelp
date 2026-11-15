@@ -1,9 +1,9 @@
 """Durable first-open events; device activation never replays the existing backlog."""
 from datetime import UTC, datetime
 
-from ..models import MailState
+from ..domain.mail import MailState
+from ..persistence.storage import CorruptState
 from ..review.archive import HistorySnapshot
-from ..storage import CorruptState
 
 
 class PushDecisionEvents:

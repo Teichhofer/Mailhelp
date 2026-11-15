@@ -15,9 +15,9 @@ from datetime import date, datetime, timedelta
 from email.utils import parseaddr
 from zoneinfo import ZoneInfo
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..external.contracts import proposal_is_writable
 from ..formatting import format_datetime_local
-from ..models import Proposal, ProposalKind
 
 RESPONSIBILITY = {"user": "Du", "other": "Andere Person", "unclear": "Noch unklar"}
 CERTAINTY = {"certain": "Eindeutig", "uncertain": "Unsicher", "contradictory": "Widersprüchlich"}

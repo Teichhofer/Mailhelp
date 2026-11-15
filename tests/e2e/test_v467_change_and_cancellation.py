@@ -10,13 +10,15 @@ import pytest
 import yaml
 
 from mailhelp.config import TargetSettings, Topic
+from mailhelp.domain.extraction import ExtractedEvent
+from mailhelp.domain.mail import ActionRoute, EventExtraction, MailState
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, MailState, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.proposals.calendar_target import AMBIGUOUS
 from mailhelp.proposals.precheck import DuplicatePreCheckService
-from mailhelp.storage import JsonStore
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, google_writer, timed
 from tests.fakes.shared_services import AnalyzerStub, Notify
 

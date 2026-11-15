@@ -166,7 +166,7 @@ def compact(journal: StageJournal) -> None:
     The journal of the operation is written first; after a crash it is applied again instead of
     adding the same lines twice.
     """
-    from ..storage import atomic_replace
+    from ..persistence.storage import atomic_replace
     pending, daily = journal.sibling("compaction"), journal.sibling("daily")
     with journal._lock:
         if pending.exists():

@@ -24,6 +24,7 @@ import httpx
 
 from .. import state_names
 from ..config import WriteVerificationSettings
+from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.verification import (
     FINAL,
     OPERATIONS,
@@ -42,8 +43,7 @@ from ..external.roles import provider_key
 from ..external.verification import EntryReader, How, compare
 from ..llm.adapter import PermanentError, RetryableError
 from ..logging import EventLogger, NullLogger
-from ..models import Proposal, ProposalStatus
-from ..storage import CorruptState, JsonStore
+from ..persistence.storage import CorruptState, JsonStore
 
 # A read that may succeed later; every other failure ends the automatic checks.
 NOT_VISIBLE = "not_visible"

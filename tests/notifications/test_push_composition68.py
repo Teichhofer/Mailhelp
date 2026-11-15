@@ -7,8 +7,10 @@ from types import SimpleNamespace
 import pytest
 
 from mailhelp.config import Settings, read_yaml
+from mailhelp.domain.extraction import ExtractedEvent
+from mailhelp.domain.mail import ActionRoute, EventExtraction
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, ProposalStatus
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.notifications.webpush import PushService
 from mailhelp.processing.orchestrator import Orchestrator

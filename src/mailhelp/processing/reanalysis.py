@@ -20,7 +20,7 @@ from ..domain.mail import MailState
 from ..domain.reanalysis import ACTIVE, ReanalysisError, ReanalysisJob, ReanalysisStatus, adoption_pending
 from ..mailbox.imap import FetchedMail, FolderNotReadable, UIDValidityChanged
 from ..mailbox.mime import prepare
-from ..storage import CorruptState
+from ..persistence.storage import CorruptState
 from .perspective import Perspective, read_perspective
 
 PREFIX = "reanalysis-"

@@ -1,8 +1,9 @@
 """Bound processing retries before fetching a mail or consuming its budget."""
 from datetime import datetime, timedelta
 
+from ..domain.mail import MailState
+from ..domain.processing import ProcessingErrorCode
 from ..domain.retry import ProcessingRetry
-from ..models import MailState, ProcessingErrorCode
 
 DELAYS = (60, 300, 1800, 7200)
 

@@ -6,8 +6,8 @@ from types import SimpleNamespace as NS
 import pytest
 
 from mailhelp.config import MailboxEventDefaults
+from mailhelp.domain.mail import MailState
 from mailhelp.logging import JsonlLogger
-from mailhelp.models import MailState
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.experience import ExperienceRuntime
@@ -37,7 +37,7 @@ def test_default_reapplication_uses_origin_mailbox_and_bound_hash(profiled):
 
 
 def test_duplicate_copy_with_another_target_profile_is_visible_without_an_action(profiled):
-    from mailhelp.models import DuplicateDecision
+    from mailhelp.domain.mail import DuplicateDecision
     app, web = profiled.app, profiled.web
     previous = build_mail_state("a" * 24, sender=None, imap={"account_id": "1" * 24}, proposal_policy={"target_profile": 1})
     copy = previous.model_copy(update={"id": "b" * 24, "proposal_policy": {"target_profile": 2},

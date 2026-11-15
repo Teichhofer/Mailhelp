@@ -8,10 +8,11 @@ from pathlib import Path
 import pytest
 import yaml
 
+from mailhelp.domain.extraction import SummaryAnswer
+from mailhelp.domain.mail import MailState, Summary
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState, Summary, SummaryAnswer
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer, LlmSchemaValidationFailed
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings

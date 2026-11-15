@@ -102,13 +102,13 @@ def test_web_settings_keep_the_comments_of_the_real_example(web, tmp_path):
 
 
 def test_a_file_that_cannot_be_edited_safely_is_left_untouched(web, tmp_path, monkeypatch):
-    from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+    from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
     from mailhelp.review.results import ResultStatus
     from tests.fakes.shared_web_v12 import configure
     service, *_ = configure(web, tmp_path)
     path = tmp_path / "config.yaml"
     before = path.read_text(encoding="utf-8")
-    monkeypatch.setattr("mailhelp.configuration.set_scalars", lambda text, changes: text)
+    monkeypatch.setattr("mailhelp.config.configuration.set_scalars", lambda text, changes: text)
     command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{web.auth.sessions()[0].id}",
                            idempotency_key="key-unsafe-1", expected_hash=file_hash(path),
                            patch={"poll_interval_seconds": 10}, acknowledged=True)

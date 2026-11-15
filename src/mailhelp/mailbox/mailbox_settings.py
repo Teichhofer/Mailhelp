@@ -64,7 +64,7 @@ def effective_topics(topics: list[Topic], mailbox_id: int) -> list[Topic]:
 
 
 def event_defaults_for(settings: Settings, store, proposal, numbers=None):
-    from ..models import MailState
+    from ..domain.mail import MailState
 
     mail = store.peek_model("mail-" + proposal.source_mail_id, MailState)
     number = (

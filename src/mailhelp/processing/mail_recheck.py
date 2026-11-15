@@ -12,10 +12,10 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from .. import state_names
-from ..models import MailState
+from ..domain.mail import MailState
 
 if TYPE_CHECKING:
-    from ..storage import JsonStore
+    from ..persistence.storage import JsonStore
     from .orchestrator import Orchestrator
 
 _MAIL_ID = re.compile(r"[a-f0-9]{24}")

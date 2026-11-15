@@ -8,12 +8,12 @@ import yaml
 from pydantic import ValidationError
 
 from mailhelp.config import IServAccountSettings, Settings, Topic, load_all
+from mailhelp.domain.mail import MailState
 from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import Imap, Orch, Store, Telegram, app
 from tests.fakes.shared_application import settings as app_settings
 from tests.fakes.shared_core import prompt_config
@@ -80,7 +80,7 @@ def test_iserv_accounts_never_change_the_analysis_fingerprint(tmp_path):
 
 
 def test_parent_letters_are_relevant_without_check_or_sender_filter(tmp_path):
-    from mailhelp.models import IrrelevantSenders
+    from mailhelp.domain.relevance import IrrelevantSenders
     letter = FetchedMail("Elternbriefe", 1, 5, b"From: Elternbriefe <elternbriefe@schule.example>\n"
                          b"Subject: Wandertag\n\nAm Freitag ist Wandertag.", ACCOUNT)
     with JsonStore(tmp_path / "state") as store:

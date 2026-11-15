@@ -7,9 +7,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..config import Settings
+from ..persistence.storage import JsonStore
 from ..review.inbox import CommandInbox
 from ..review.views import ReviewViews
-from ..storage import JsonStore
 from .app import WebApp
 from .auth import WebAuth
 from .network import lan_ip

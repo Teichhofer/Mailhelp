@@ -5,8 +5,8 @@ import pytest
 import yaml
 
 from mailhelp.config import TargetSettings
+from mailhelp.domain.mail import EventExtraction, TaskExtraction
 from mailhelp.llm.evaluation import evaluate
-from mailhelp.models import EventExtraction, TaskExtraction
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
 from tests.fakes.prompt_gate_fakes import gated_corpus, repository_prompts, repository_topics

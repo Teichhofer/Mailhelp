@@ -12,15 +12,16 @@ from zoneinfo import ZoneInfo
 
 from .. import state_names
 from ..config import RetentionPeriod, Settings, Topic
+from ..domain.mail import MailState
+from ..domain.run import MailRunState, TelegramOffset
 from ..external.contracts import OAuthTokenError, TargetWriter
 from ..llm.openrouter import OpenRouterClient
 from ..logging import JsonlLogger, NullLogger, log_and_continue
 from ..mailbox.imap import ImapReader
 from ..mailbox.mailbox_run import MailboxRunService, MailboxSource, _RunSummary
-from ..models import MailRunState, MailState, TelegramOffset
+from ..persistence.storage import JsonStore
 from ..processing.analysis import Analyzer
 from ..processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
-from ..storage import JsonStore
 from ..telegram import TelegramChatNotFoundError, TelegramClient, TelegramDialogController
 from ..telegram.commands import STARTUP
 from ..web import WebServer
@@ -28,7 +29,7 @@ from .retention import RetentionService
 from .service_coordinator import ServiceCoordinator
 
 if TYPE_CHECKING:
-    from ..configuration import ConfigurationService
+    from ..config.configuration import ConfigurationService
     from ..external.providers import Writers
     from ..mailbox.imap import FetchedMail
     from ..mailbox.iserv import IServRunService

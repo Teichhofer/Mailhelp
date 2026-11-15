@@ -8,9 +8,10 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
+from mailhelp.domain.extraction import AbstractCategories, LearnedCategory, MailClassification
+from mailhelp.domain.relevance import Relevance
 from mailhelp.llm.learning import LearningMode, _safe_terminal, _topic_id, add_discovered_folders, save_topics
 from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, MailCandidate
-from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.processing.analysis import Analyzer as RealAnalyzer
 from mailhelp.processing.analysis import LlmProviderResponseInvalid
 
@@ -270,8 +271,8 @@ def test_learning_bounds_each_folder_and_orders_ties_deterministically(tmp_path)
 
 
 def test_learning_sender_prefilter_skips_before_relevance(tmp_path):
-    from mailhelp.models import IrrelevantSenders
-    from mailhelp.storage import JsonStore
+    from mailhelp.domain.relevance import IrrelevantSenders
+    from mailhelp.persistence.storage import JsonStore
 
     analyzer = Analyzer([])
     mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Sender <ad@blocked.test>"))
@@ -293,7 +294,7 @@ def test_learning_sender_prefilter_skips_before_relevance(tmp_path):
 )
 def test_learning_recovers_from_corrupt_optional_sender_filter(
         tmp_path, content, quarantine_suffix):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
 
     analyzer = Analyzer([LearnedCategory(name="Einzel", description="Neue Kategorie")])
     output = []
@@ -316,7 +317,7 @@ def test_learning_recovers_from_corrupt_optional_sender_filter(
 
 
 def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
 
     analyzer = Analyzer([LearnedCategory(name="Einzel", description="Einzelbeschreibung")])
     mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Shop <offer@example.test>"))
@@ -353,7 +354,7 @@ def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
 
 
 def test_learning_maps_abstract_rejection_and_contains_mapping_failures(tmp_path):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
 
     mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid), f"s{uid}@example.test"))
              for uid in (1, 2, 3)]
@@ -517,7 +518,7 @@ def test_topic_ids_collision_fallback_and_atomic_cleanup(tmp_path, monkeypatch):
     assert _topic_id("a" * 100, used).endswith("-2")
     assert _safe_terminal("ok\n\x00") == "ok\n�"
     path = tmp_path / "topics.yaml"
-    monkeypatch.setattr("mailhelp.storage.os.replace", lambda *_args: (_ for _ in ()).throw(OSError("disk")))
+    monkeypatch.setattr("mailhelp.persistence.storage.os.replace", lambda *_args: (_ for _ in ()).throw(OSError("disk")))
     with pytest.raises(OSError, match="disk"):
         save_topics(path, [topic()], [LearnedCategory(name="Neu", description="Neu")])
     assert not list(tmp_path.iterdir())

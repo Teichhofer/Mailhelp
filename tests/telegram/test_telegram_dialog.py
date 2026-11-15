@@ -8,27 +8,29 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import OutputTokenRetry, Settings
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import (
+    AnswerStatus,
+    ProposalClarificationState,
+    ProposalNotification,
+    ProposalRevisionStatus,
+    QuestionStatus,
+    TelegramDialogState,
+)
+from mailhelp.domain.proposal import (
+    ActionLedger,
+    ActionLedgerEntry,
+    Proposal,
+    ProposalRevisionDelta,
+    ProposalStatus,
+    apply_proposal_revision,
+)
+from mailhelp.domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.llm.adapter import PermanentError, UncertainWriteError
 from mailhelp.llm.openrouter import ProviderResponseInvalid
-from mailhelp.models import (
-    ActionLedger,
-    ActionLedgerEntry,
-    AnswerStatus,
-    MailState,
-    Proposal,
-    ProposalClarificationState,
-    ProposalNotification,
-    ProposalRevisionDelta,
-    ProposalRevisionStatus,
-    ProposalStatus,
-    QuestionStatus,
-    RelevanceDialog,
-    RelevanceDialogStatus,
-    TelegramDialogState,
-    apply_proposal_revision,
-)
 from mailhelp.persistence.proposals import proposal_version_name
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import (
     Analyzer,
     LlmInvalidJson,
@@ -39,7 +41,6 @@ from mailhelp.processing.analysis import (
 )
 from mailhelp.proposals.integrations import CalendarFileWriter
 from mailhelp.runtime.application import _state_directory
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision,
     DecisionAction,
@@ -882,7 +883,7 @@ def test_callback_token_collision_and_invalid_persisted_record(tmp_path):
                     action=DecisionAction.EDIT)
     with JsonStore(tmp_path) as store:
         store.save("telegram-callback-" + "1" * 32, item.model_dump(mode="json"))
-        with patch("mailhelp.telegram._core.secrets.token_hex", side_effect=["1" * 32, "2" * 32]):
+        with patch("mailhelp.telegram.callbacks.secrets.token_hex", side_effect=["1" * 32, "2" * 32]):
             value = item.encode(store)
         assert value == "decision:" + "2" * 32
         for token, record in (("3" * 32, ["broken"]),

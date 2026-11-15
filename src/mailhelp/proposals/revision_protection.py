@@ -1,7 +1,7 @@
 """Protect human-owned revision facts independently of the channel."""
 from __future__ import annotations
 
-from ..models import Proposal
+from ..domain.proposal import Proposal
 
 
 def protect_revision(original: Proposal, revised: Proposal) -> Proposal:

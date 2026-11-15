@@ -7,9 +7,10 @@ from types import SimpleNamespace
 import pytest
 
 from mailhelp.config import Secrets, Topic
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.run import MailRunCounters, MailRunEntry, MailRunState
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
-from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals.integrations import OAuthTokenError
 from mailhelp.runtime.application import Application, _state_directory, build_application, build_logger
@@ -1772,7 +1773,7 @@ def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
         _checkpoint_name("0"*24,"INBOX"), "mail-same", "telegram-offset",
         "telegram-dialog", "proposal-same", "proposal-same-v1", "llm-budget",
     )
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
         with JsonStore(_state_directory(production_settings,tmp_path)) as production_store:
             for name in state_names:
@@ -1873,7 +1874,7 @@ def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(
 
 @pytest.mark.parametrize('editing', [False, True])
 def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(tmp_path, editing):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from mailhelp.telegram import Decision, DecisionAction
     from tests.fakes.shared_telegram_dialog import controller, proposal
     item = proposal(open_questions=['Welches Datum?'])

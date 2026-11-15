@@ -9,9 +9,9 @@ from collections.abc import Callable
 from typing import Any
 
 from ..config import Settings, Topic, read_yaml
-from ..configuration import ConfigurationService, file_hash
+from ..config.configuration import ConfigurationService, file_hash
+from ..persistence.storage import CorruptState, atomic_replace
 from ..review.learning_log import learning_path
-from ..storage import CorruptState, atomic_replace
 from .changes import assemble, compact_topics, condense
 from .mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL, DecisionRuleMiner
 from .models import RejectedRuleProposal, RuleAnalysis, RuleHistory, RuleState

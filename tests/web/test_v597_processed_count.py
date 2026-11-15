@@ -2,8 +2,8 @@
 from datetime import UTC, datetime
 
 from mailhelp.domain.processing import ProcessingSteps
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews, count_processed, german_number
-from mailhelp.storage import JsonStore
 from mailhelp.web.status_pages import _processed_sentence
 from tests.fakes.shared_telegram_dialog import message
 from tests.scenarios.web_scenario import save_mail

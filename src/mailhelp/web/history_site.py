@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from .. import state_names
-from ..models import Proposal
+from ..domain.proposal import Proposal
 from ..review.filters import matches
 from ..review.queries import ArchiveQuery
 from .archive_pages import MODE_LABELS, history_page, statistics_page, version_diff

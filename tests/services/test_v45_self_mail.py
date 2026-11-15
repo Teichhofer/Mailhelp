@@ -3,11 +3,11 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import Settings
+from mailhelp.domain.mail import MailState
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.identity import NOTE_LIMIT, addresses_in, is_self_mail, sender_addresses, user_note
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
 from tests.fakes.shared_self_mail import orchestrator, own_settings
 from tests.fakes.shared_services import AnalyzerStub, Notify

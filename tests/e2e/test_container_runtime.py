@@ -16,8 +16,8 @@ import pytest
 from mailhelp.cli import main
 from mailhelp.config import Topic
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 
 pytestmark = pytest.mark.e2e
 

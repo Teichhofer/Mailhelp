@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from mailhelp.config import Settings
+from mailhelp.domain.run import MailRunState
 from mailhelp.mailbox.imap import FetchedMail, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService
-from mailhelp.models import MailRunState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.runtime.application import Application
 

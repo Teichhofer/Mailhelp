@@ -12,8 +12,9 @@ import httpx
 from pydantic import Field, ValidationError
 
 from ..domain.event_titles import titles_related
+from ..domain.extraction import CalendarDuplicateDecision
+from ..domain.proposal import Proposal, ProposalKind
 from ..llm.adapter import PermanentError, uncertain_write
-from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import (
     CalendarEventResponse,
     CalendarListResponse,

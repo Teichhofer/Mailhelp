@@ -22,8 +22,8 @@ from pydantic import ValidationError
 
 from .. import __version__
 from ..config import WebSettings
-from ..configuration import AdminCommand, AdminKind, ConfigurationService
-from ..models import ProposalStatus
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationService
+from ..domain.proposal import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
@@ -347,7 +347,7 @@ class MailhelpSite:
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
-            from ..models import MailState
+            from ..domain.mail import MailState
             state = self.views.store.peek_model("mail-" + command.mail_id, MailState)
             if state is None or state.analysis_round != command.version or state.processing_filed:
                 return "Die Mail wurde inzwischen geändert oder verarbeitet."

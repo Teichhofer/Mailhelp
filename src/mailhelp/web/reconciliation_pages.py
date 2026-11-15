@@ -4,8 +4,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from urllib.parse import urlencode
 
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
-from ..models import MailState, Proposal
 from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import display_date, event_time, shorten
 from ..review.views import STATUS_LABELS

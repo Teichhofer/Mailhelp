@@ -7,9 +7,9 @@ from html import unescape
 import pytest
 
 from mailhelp.config import WebSettings
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 from mailhelp.web import WebApp
 from mailhelp.web.auth import WebAuth

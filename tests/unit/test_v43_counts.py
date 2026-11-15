@@ -1,7 +1,8 @@
 """Count estimates are diagnostics; complete extracted facts remain actionable."""
 import pytest
 
-from mailhelp.models import ExtractionCountConflict, ProposalStatus
+from mailhelp.domain.mail import ExtractionCountConflict
+from mailhelp.domain.proposal import ProposalStatus
 from tests.fakes.proposal_builder_fakes import builder, event, task
 
 

@@ -7,6 +7,8 @@ import httpx
 import yaml
 
 from mailhelp.config import Secrets, Settings, Topic
+from mailhelp.domain.mail import ActionRoute, EventExtraction, Summary, TaskExtraction
+from mailhelp.domain.relevance import Relevance
 from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode
 from mailhelp.llm.decision_test import run_decision_test as _run_decision_test
 from mailhelp.llm.decisions import DecisionClient
@@ -14,7 +16,6 @@ from mailhelp.llm.laya import LayaClient
 from mailhelp.llm.ollama import LocalLlm, OllamaClient
 from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate
-from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from tests.fakes.shared_decisions import ROOT, envelope
 
 LOCAL = LocalLlm("ollama.example.test", 11434, "synthetic/local", 8192)

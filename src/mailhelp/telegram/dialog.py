@@ -13,16 +13,18 @@ from ..domain.processing import (
     ProposalRevisionStatus,
     QuestionStatus,
 )
+from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.relevance import RelevanceDialog
+from ..domain.run import TelegramOffset
 from ..external.contracts import ExternalWriter
-from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
+from ..persistence.storage import JsonStore
 from ..processing.write_verification import WriteVerifications
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.learning_log import DecisionLearningLog
 from ..review.results import ResultStatus, ReviewResult
 from ..runtime.lock_metrics import measure_lock_waits, measured_lock
-from ..storage import JsonStore
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport

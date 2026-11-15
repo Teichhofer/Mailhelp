@@ -20,7 +20,7 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..logging import EventLogger
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 
 INBOX = "telegram-inbox"
 ACKNOWLEDGEMENT = "Eingegangen – wird bearbeitet …"

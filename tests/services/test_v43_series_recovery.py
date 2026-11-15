@@ -3,12 +3,12 @@ from dataclasses import replace
 
 import pytest
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.results import ResultStatus
 from mailhelp.review.series import SeriesService
-from mailhelp.storage import JsonStore
 from tests.fakes.series_fakes import batch, series
 from tests.fakes.shared_review import setup, web
 from tests.fakes.shared_telegram_dialog import Writer, proposal
@@ -245,7 +245,7 @@ def test_active_configuration_controls_series_default_duration(tmp_path):
 
 
 def test_shared_end_answer_respects_the_known_start_and_protects_manual_facts(tmp_path):
-    from mailhelp.models import KnownTemporalFacts
+    from mailhelp.domain.proposal import KnownTemporalFacts
     with JsonStore(tmp_path) as store:
         items = [item.model_copy(update={'start': None, 'end': None, 'status': ProposalStatus.NEEDS_CLARIFICATION,
             'known_temporal_facts': KnownTemporalFacts(start=item.start), 'open_questions': ['Wann endet der Termin?']})

@@ -2,10 +2,10 @@
 from datetime import date
 
 from mailhelp import state_names
+from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.domain.verification import VerificationState
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.ical import CalendarFileWriter
-from mailhelp.models import Proposal, ProposalStatus
 from tests.fakes.shared_telegram_dialog import Telegram, callback
 from tests.fakes.shared_web_actions import web as web  # noqa: F401 - the fixture
 from tests.fakes.verifying_writer import SimulatedProvider, VerifyingWriter

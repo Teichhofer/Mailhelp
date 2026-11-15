@@ -8,11 +8,11 @@ import pytest
 
 from mailhelp import state_names
 from mailhelp.config import Topic
+from mailhelp.domain.mail import ActionRoute, MailState
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute, MailState
 from mailhelp.notifications.drafts import DraftService, ReplyDraft
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_services import AnalyzerStub, Notify
 
 pytestmark = pytest.mark.e2e

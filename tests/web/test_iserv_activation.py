@@ -182,7 +182,7 @@ def test_changes_during_connection_check_prevent_activation(activation, monkeypa
 
 
 def test_current_draft_hash_and_matching_process_credentials_are_accepted(activation, monkeypatch):
-    from mailhelp.configuration import file_hash
+    from mailhelp.config.configuration import file_hash
     ctx = activation
     monkeypatch.setenv("ISERV_1_USERNAME", VALUES["username"])
     monkeypatch.setenv("ISERV_1_PASSWORD", VALUES["password"])

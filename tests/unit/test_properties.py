@@ -19,7 +19,6 @@ from mailhelp.domain.extraction import Summary
 from mailhelp.domain.prepared import MailHeaders
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.external.ical import _fold_ical_line, _ical_text
-from mailhelp.german_dates import WEEKDAYS, explicit_years, weekday_contradicts
 from mailhelp.llm.openrouter import OpenRouterClient, OpenRouterResponseError
 from mailhelp.mailbox.mime import MimeLimitExceeded, MimeLimits, extract_display_headers, prepare
 from mailhelp.notifications.drafts import message
@@ -27,7 +26,8 @@ from mailhelp.notifications.webpush import subscription
 from mailhelp.processing.analysis import Analyzer, LlmSchemaValidationFailed
 from mailhelp.processing.calendar_parser import _unescape_text, _unfold_ical
 from mailhelp.proposals.action_normalization import _parse_date
-from mailhelp.temporal_answers import _localize, parse_deterministic_temporal_answer
+from mailhelp.text.german_dates import WEEKDAYS, explicit_years, weekday_contradicts
+from mailhelp.text.temporal_answers import _localize, parse_deterministic_temporal_answer
 from tests.fakes.shared_quality_corpus import prompt_config
 
 RECEIVED = datetime(2026, 10, 12, 8, 0, tzinfo=UTC)

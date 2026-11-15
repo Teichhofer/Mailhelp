@@ -8,9 +8,9 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.proposal_sources import ProposalReference
-from ..models import Proposal, ProposalStatus
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 from .models import InternalTelegramModel
 
 

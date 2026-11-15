@@ -6,9 +6,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..models import Proposal
+from ..domain.proposal import Proposal
+from ..persistence.storage import JsonStore
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
-from ..storage import JsonStore
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .series import OPEN, members
 

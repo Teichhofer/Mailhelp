@@ -8,10 +8,10 @@ import httpx
 import pytest
 import time_machine
 
-from mailhelp.models import CalendarDuplicateDecision
+from mailhelp.domain.extraction import CalendarDuplicateDecision
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.action_normalization import NormalizationReason, normalize_event
 from mailhelp.proposals.integrations import HttpWriter
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.formatting import revision_summary
 from tests.fakes.shared_action_normalization import context
 from tests.fakes.shared_action_normalization import event as extracted

@@ -4,10 +4,10 @@ from types import SimpleNamespace as NS
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.profile_binding import choices, policy_hash
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.telegram.decisions import AnswerRequired
 from tests.fakes.shared_profiles import settings

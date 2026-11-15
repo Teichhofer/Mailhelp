@@ -10,9 +10,9 @@ from urllib.parse import quote
 
 from pydantic import ValidationError
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..domain.verification import FieldDifference
 from ..llm.adapter import uncertain_write
-from ..models import Proposal, ProposalKind
 from .contracts import (
     EntryModifiedError,
     IntegrationModel,

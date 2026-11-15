@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from ..config import MAX_MAILBOXES, MailboxSettings
-from ..configuration import ConfigurationConflict, file_hash
+from ..config.configuration import ConfigurationConflict, file_hash
 from ..mailbox.connection_activation import ActivationProblem
 from ..mailbox.mailbox_activation import MailboxActivation
 from ..runtime.env_file import EnvFileConflict

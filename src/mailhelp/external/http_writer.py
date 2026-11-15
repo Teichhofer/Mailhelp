@@ -10,9 +10,10 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 from pydantic import ValidationError
 
+from ..domain.extraction import CalendarDuplicateDecision
+from ..domain.proposal import Proposal
 from ..llm.adapter import RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from ..models import CalendarDuplicateDecision, Proposal
 from .calendar import CalendarOperations
 from .contracts import (
     AccessTokenProvider,

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
 from ..mailbox.sender_filter import sender_addresses, sender_entry
 from .auth import WebSession
 from .http import Request, Response

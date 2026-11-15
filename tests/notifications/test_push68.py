@@ -8,7 +8,7 @@ from pywebpush import WebPushException
 
 from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.notifications.webpush import PushService
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.push68 import subscription
 

@@ -4,9 +4,9 @@ from threading import RLock
 
 import pytest
 
-from mailhelp.models import TelegramOffset
+from mailhelp.domain.run import TelegramOffset
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.runtime import lock_metrics
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_web_auth import pair
 
 

@@ -17,10 +17,10 @@ from mailhelp.llm.decisions import (
 )
 from mailhelp.llm.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.application import build_application
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import settings
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_decision_test import secrets

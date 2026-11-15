@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from ..models import Proposal
+from ..domain.proposal import Proposal
 from ..review.cards import event_time
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandConflict, CommandInboxFull

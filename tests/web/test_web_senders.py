@@ -5,13 +5,13 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
+from mailhelp.config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.sender_filter import change_irrelevant_senders, sender_entry
-from mailhelp.models import IrrelevantSenders
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.results import ResultStatus
-from mailhelp.storage import JsonStore
 from mailhelp.web.sender_site import LIST_PATH
 from tests.fakes.shared_application import settings
 from tests.fakes.shared_web_actions import MAIL1, web  # noqa: F401  (fixture)

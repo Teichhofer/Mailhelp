@@ -12,7 +12,6 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from mailhelp import storage
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import TelegramDialogState
 from mailhelp.domain.proposal import (
@@ -30,7 +29,8 @@ from mailhelp.domain.temporal import TemporalFact
 from mailhelp.external.confirmed import _with_external_result, execute_confirmed
 from mailhelp.external.contracts import PreparedWrite, TargetWriter
 from mailhelp.llm.adapter import PermanentError, UncertainWriteError
-from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore, atomic_replace
+from mailhelp.persistence import storage
+from mailhelp.persistence.storage import AlreadyRunning, CorruptState, JsonStore, atomic_replace
 from tests.fakes.factories import build_mail_state, build_proposal
 
 

@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from mailhelp import state_names
-from mailhelp.models import Proposal, ProposalStatus
-from mailhelp.storage import JsonStore
+from mailhelp.domain.proposal import Proposal, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram.writes import ConfirmedWriteExecutor
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, google_writer, timed
 

@@ -16,14 +16,14 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.proposal import ProposalKind, ProposalStatus
 from mailhelp.domain.verification import FieldDifference, fingerprint
 from mailhelp.external.contracts import EntryModifiedError
 from mailhelp.llm.adapter import UncertainWriteError
-from mailhelp.models import ProposalKind, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, CommandSource, ResultStatus, ReviewCommand, StaleCommand
 from mailhelp.review.learning_log import DecisionLearningLog
 from mailhelp.review.service import proposal_creation_time
-from mailhelp.storage import JsonStore
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import command, setup, web
 from tests.fakes.shared_telegram_dialog import Writer
@@ -309,8 +309,8 @@ def test_proposal_creation_time_fallbacks(tmp_path):
 
         # 3. Write verification fallback
         store.save("action-ledger", ActionLedger().model_dump(mode="json"))
-        from mailhelp.domain.verification import operation_id
         from mailhelp import state_names
+        from mailhelp.domain.verification import operation_id
         exp = {"kind": "event"}
         rec = WriteVerification(
             id=operation_id(MAIL, "p1", 1, "create"),

@@ -6,8 +6,8 @@ import re
 from datetime import UTC, date, datetime
 from typing import Any
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..logging import EventLogger, NullLogger
-from ..models import Proposal, ProposalKind
 from .contracts import proposal_is_writable
 
 

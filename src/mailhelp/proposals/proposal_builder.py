@@ -9,11 +9,8 @@ from typing import Any
 
 from ..config import EventDefaultsSettings, TargetSettings
 from ..domain.event_series import dated_title
-from ..domain.extraction import ParsedCalendarEvent
-from ..models import (
-    ExtractedEvent,
-    ExtractedTask,
-    ExtractionCountConflict,
+from ..domain.extraction import ExtractedEvent, ExtractedTask, ExtractionCountConflict, ParsedCalendarEvent
+from ..domain.proposal import (
     KnownTemporalFacts,
     Proposal,
     ProposalCertainty,

@@ -8,8 +8,11 @@ from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-from ..models import MailState, Proposal, ProposalStatus, Relevance, Summary
-from ..storage import JsonStore
+from ..domain.extraction import Summary
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.relevance import Relevance
+from ..persistence.storage import JsonStore
 
 
 class AnalysisSnapshot(BaseModel):

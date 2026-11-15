@@ -7,6 +7,8 @@ import json
 import pytest
 
 from mailhelp.config import Topic
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.relevance import RelevanceDialog
 from mailhelp.llm.fingerprints import (
     adopt_legacy_configuration,
     config_fingerprint,
@@ -14,9 +16,8 @@ from mailhelp.llm.fingerprints import (
     legacy_policies,
     topic_policy,
 )
-from mailhelp.models import MailState, RelevanceDialog
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import settings as app_settings
 from tests.fakes.shared_core import prompt_config
 

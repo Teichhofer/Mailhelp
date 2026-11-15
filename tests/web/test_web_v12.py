@@ -6,8 +6,10 @@ import pytest
 import yaml
 
 from mailhelp.config import RetentionSettings, Topic
-from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-from mailhelp.models import MailState, Relevance, Summary
+from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.domain.mail import MailState, Summary
+from mailhelp.domain.relevance import Relevance
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.archive import record_analysis, record_event
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal, local_time
@@ -16,7 +18,6 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.lifecycle import Lifecycle
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import settings
 from tests.fakes.shared_review import command
 from tests.fakes.shared_web_v12 import configure as configure
@@ -300,7 +301,7 @@ def test_configuration_reconcile_failure_and_closed_patch(web, tmp_path, monkeyp
     assert service.execute(original).status == ResultStatus.DONE
     assert service.reconcile(original).status == ResultStatus.DONE
     fresh = cmd()
-    monkeypatch.setattr('mailhelp.configuration.atomic_replace', lambda *args: (_ for _ in ()).throw(OSError('readonly')))
+    monkeypatch.setattr('mailhelp.config.configuration.atomic_replace', lambda *args: (_ for _ in ()).throw(OSError('readonly')))
     assert service.execute(fresh).status == ResultStatus.INVALID
     web.dialog.review.configuration = None
     assert web.dialog.review.execute(fresh).status == ResultStatus.INVALID

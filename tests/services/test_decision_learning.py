@@ -4,10 +4,12 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from mailhelp.config import RetentionSettings
-from mailhelp.models import MailState, RelevanceDialogStatus, TelegramDialogState
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import TelegramDialogState
+from mailhelp.domain.relevance import RelevanceDialogStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.learning_log import DecisionLearningLog, learning_path, prune
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger as Logger
 from tests.fakes.shared_telegram_dialog import (
     RelevanceHandler,

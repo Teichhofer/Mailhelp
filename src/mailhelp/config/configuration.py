@@ -11,7 +11,14 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .config import (
+from ..domain.relevance import IrrelevantSenders
+from ..llm.learning import topics_document
+from ..mailbox.sender_filter import change_irrelevant_senders, save_sender_filter
+from ..persistence.storage import JsonStore, atomic_replace
+from ..review.commands import CommandSource
+from ..review.results import ResultStatus, ReviewResult
+from ..runtime.yaml_edit import YamlEditError, replace_block, set_list, set_scalars
+from . import (
     MAILBOX_FIELDS,
     IrrelevantTopicsConfig,
     PromptConfig,
@@ -20,13 +27,6 @@ from .config import (
     TopicsConfig,
     read_yaml,
 )
-from .domain.relevance import IrrelevantSenders
-from .llm.learning import topics_document
-from .mailbox.sender_filter import change_irrelevant_senders, save_sender_filter
-from .review.commands import CommandSource
-from .review.results import ResultStatus, ReviewResult
-from .runtime.yaml_edit import YamlEditError, replace_block, set_list, set_scalars
-from .storage import JsonStore, atomic_replace
 
 
 class ConfigurationConflict(ValueError):
@@ -351,7 +351,7 @@ class ConfigurationService:
         if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
             candidate = apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
             if "target_profiles" in command.patch:
-                from .proposals.profile_usage import profile_references
+                from ..proposals.profile_usage import profile_references
                 proposed = {item["id"] for item in candidate["target_profiles"]}
                 for profile in raw.get("target_profiles", []):
                     if profile["id"] not in proposed and profile_references(self.store, self.active, profile["id"]):
@@ -464,7 +464,7 @@ class ConfigurationService:
                                 message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def clear_local_draft(self, command: AdminCommand) -> None:
-        from .runtime.setup import SetupState
+        from ..runtime.setup import SetupState
         draft = self.store.load_model("setup-state", SetupState)
         # Setup drafts (mailboxes, IServ accounts, profiles) share kind "settings"; once approved they
         # are part of config.yaml, and a stale draft on the old file would block every later change.

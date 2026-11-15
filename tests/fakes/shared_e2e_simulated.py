@@ -8,12 +8,12 @@ from pathlib import Path
 import httpx
 
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
+from mailhelp.domain.proposal import ActionLedger
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionLedger
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 
 

@@ -9,7 +9,7 @@ import pytest
 
 from devtools import code_metrics, state_roundtrip
 from mailhelp.domain.run import TelegramOffset
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 
 def _package(tmp_path):

@@ -12,7 +12,7 @@ import pytest
 import time_machine
 
 from mailhelp.external.oauth import GoogleOAuthTokenProvider
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.web.auth import PairingRefused, WebAuth
 from tests.fakes.shared_web_auth import SECRET, code_from
 

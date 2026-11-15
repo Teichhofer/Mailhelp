@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.models import CalendarCandidate, ProposalStatus
+from mailhelp.domain.proposal import CalendarCandidate, ProposalStatus
 from mailhelp.proposals.calendar_target import AMBIGUOUS
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.review.calendar_display import candidate_label, change_parts

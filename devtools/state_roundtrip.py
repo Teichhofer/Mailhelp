@@ -39,9 +39,9 @@ from mailhelp.persistence.schemas import (
     TelegramOutboxState,
     WriteVerification,
 )
+from mailhelp.persistence.storage import CorruptState, JsonStore
 from mailhelp.review.archive import AnalysisSnapshot, HistorySnapshot
 from mailhelp.review.inbox import CommandInboxState
-from mailhelp.storage import CorruptState, JsonStore
 
 # Longest prefix first: "mail-run-" files are no mails.
 _MODELS: dict[str, type[BaseModel]] = {

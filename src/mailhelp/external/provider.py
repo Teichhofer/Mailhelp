@@ -7,8 +7,8 @@ from abc import abstractmethod
 from collections.abc import Callable
 from typing import Any
 
+from ..domain.proposal import Proposal
 from ..logging import EventLogger
-from ..models import Proposal
 from .contracts import PreparedWrite, TargetWriter, proposal_is_writable
 
 

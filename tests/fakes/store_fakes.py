@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 
 class DelegatingStore:

@@ -7,9 +7,9 @@ import pytest
 from mailhelp.config import ReanalysisSettings, RetentionSettings
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.reanalysis import ReanalysisJob, ReanalysisStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.reanalysis import ReanalysisJobs
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.reanalysis_fakes import DONE_STEPS
 from tests.scenarios.web_scenario import mail_id, proposal

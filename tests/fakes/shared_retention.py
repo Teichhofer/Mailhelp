@@ -1,7 +1,8 @@
 """Shared synthetic fixtures and doubles; no test-module dependencies."""
 from datetime import UTC, datetime, timedelta
 
-from mailhelp.models import MailState, Proposal, ProposalKind, ProposalStatus, Summary
+from mailhelp.domain.mail import MailState, Summary
+from mailhelp.domain.proposal import Proposal, ProposalKind, ProposalStatus
 from tests.fakes.log_fakes import RecordingLogger as Log
 
 NOW = datetime(2026, 9, 16, tzinfo=UTC)

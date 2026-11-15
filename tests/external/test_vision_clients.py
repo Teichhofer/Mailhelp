@@ -6,8 +6,8 @@ import json
 import httpx
 
 from mailhelp.config import PromptConfig
+from mailhelp.domain.extraction import VisionExtractionResult
 from mailhelp.llm.openrouter import OpenRouterClient
-from mailhelp.models import VisionExtractionResult
 from mailhelp.processing.analysis import Analyzer
 from tests.fakes.shared_core import prompt_config
 

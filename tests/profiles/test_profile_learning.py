@@ -1,10 +1,11 @@
 """Learning proposals retain their origin unless a global scope is explicitly selected."""
 import yaml
 
+from mailhelp.domain.extraction import AbstractCategories, LearnedCategory, MailClassification
+from mailhelp.domain.relevance import IrrelevantSenders, Relevance
 from mailhelp.llm.learning import LearningMode, LearningSource
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import AbstractCategories, IrrelevantSenders, LearnedCategory, MailClassification, Relevance
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO
 
 

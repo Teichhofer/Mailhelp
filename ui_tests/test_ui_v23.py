@@ -8,7 +8,7 @@ from playwright.sync_api import expect
 from checks import audit
 from conftest import sign_in
 from mailhelp.config import OriginalAttachmentSettings
-from mailhelp.models import MailState
+from mailhelp.domain.mail import MailState
 from mailhelp.processing.attachments import AttachmentCache
 from pages import SettingsPage
 from tests.scenarios.web_scenario import mail_id

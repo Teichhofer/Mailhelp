@@ -9,9 +9,9 @@ from urllib.parse import parse_qs, quote
 import yaml
 
 from ..config import Settings
-from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
-from ..storage import CorruptState
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout, notice

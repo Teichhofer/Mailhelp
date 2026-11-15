@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ..models import MailState, RelevanceDialog, RelevanceDialogStatus
+from ..domain.mail import MailState
+from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
+from ..persistence.storage import CorruptState, JsonStore
 from ..state_names import MAIL_PREFIX, is_mail_state
-from ..storage import CorruptState, JsonStore
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport
 

@@ -3,10 +3,10 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind
 from mailhelp.review import inbox as inbox_module
 from mailhelp.review.inbox import MAX_QUEUED, ArrivalClock, CommandInbox
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command
 
 FROZEN = datetime(2026, 11, 13, 7, tzinfo=UTC)

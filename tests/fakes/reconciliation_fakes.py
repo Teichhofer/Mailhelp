@@ -3,14 +3,15 @@ from datetime import UTC, datetime
 
 import pytest
 
+from mailhelp.domain.extraction import ExtractedEvent, ExtractedTask
+from mailhelp.domain.mail import ActionRoute, EventExtraction, TaskExtraction
 from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Proposal, ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
 from mailhelp.persistence.proposals import ProposalRepository
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_services import AnalyzerStub, Notify
 
 

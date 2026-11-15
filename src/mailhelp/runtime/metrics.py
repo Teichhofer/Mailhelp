@@ -488,7 +488,7 @@ class MetricsRecorder:
         Daily aggregates contain no mail/call IDs. The journal is written first;
         recovery replaces both outputs instead of incrementing a sum twice.
         """
-        from ..storage import atomic_replace
+        from ..persistence.storage import atomic_replace
         from .stage_metrics import compact
         compact(self.stages)  # 6.1.7: the step journal is folded the same way
         with self._lock:

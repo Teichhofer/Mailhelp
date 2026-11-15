@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
-from ..configuration import AdminCommand, ConfigurationService
+from ..config.configuration import AdminCommand, ConfigurationService
 from ..review.commands import ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries

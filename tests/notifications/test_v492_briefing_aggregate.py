@@ -3,10 +3,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.models import MailState, RelevanceDialog, Summary
+from mailhelp.domain.mail import MailState, Summary
+from mailhelp.domain.relevance import RelevanceDialog
 from mailhelp.notifications.briefing_aggregate import BriefingAggregator
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 START, END = datetime(2026, 11, 8, 6, tzinfo=UTC), datetime(2026, 11, 8, 12, tzinfo=UTC)

@@ -5,11 +5,12 @@ import types
 import httpx
 import pytest
 
+from mailhelp.domain.extraction import CalendarDuplicateDecision
+from mailhelp.domain.proposal import ProposalRevisionDelta, apply_proposal_revision
 from mailhelp.domain.revision_errors import ContradictoryRevision
-from mailhelp.models import CalendarDuplicateDecision, ProposalRevisionDelta, apply_proposal_revision
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import validate_revision_successor
 from mailhelp.proposals.integrations import HttpWriter
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction
 from tests.fakes.shared_core import proposal
 from tests.fakes.shared_telegram_dialog import callback, controller, message
@@ -286,7 +287,7 @@ def test_posix_storage_lock_and_directory_sync_on_all_platforms(tmp_path, monkey
     """Exercise the POSIX syscall contract on Windows without changing global os.name."""
     import os
 
-    import mailhelp.storage as storage
+    import mailhelp.persistence.storage as storage
     store = JsonStore(tmp_path)
     calls = []
     descriptor = os.open(tmp_path / "lock", os.O_CREAT | os.O_RDWR, 0o600)

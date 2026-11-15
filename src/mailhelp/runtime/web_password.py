@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 
 
 class PasswordState(BaseModel):

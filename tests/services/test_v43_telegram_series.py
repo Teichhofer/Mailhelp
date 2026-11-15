@@ -1,10 +1,11 @@
 """Real Telegram message and opaque callback paths, including restarts and replay."""
 import pytest
 
-from mailhelp.models import ProposalStatus, TelegramDialogState
+from mailhelp.domain.processing import TelegramDialogState
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.series_offers import SeriesOffer, create_offer
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.models import TelegramUpdate
 from mailhelp.telegram.series import execute_callback, offer_answer, offer_confirmation
 from tests.fakes.series_fakes import series
@@ -137,13 +138,13 @@ def test_long_confirmation_lists_are_split_and_tasks_get_no_series_button(tmp_pa
 
 
 def test_an_end_time_is_offered_as_an_end_not_as_a_new_beginning(tmp_path):
-    from mailhelp.models import KnownTemporalFacts
+    from mailhelp.domain.proposal import KnownTemporalFacts
     with JsonStore(tmp_path) as store:
         items = [item.model_copy(update={'start': None, 'end': None, 'status': ProposalStatus.NEEDS_CLARIFICATION,
             'known_temporal_facts': KnownTemporalFacts(start=item.start), 'open_questions': ['Wann endet der Termin?']})
             for item in series(complete=True)]
         # Validate the copied enum value before passing to persistence.
-        from mailhelp.models import Proposal
+        from mailhelp.domain.proposal import Proposal
         items = [Proposal.model_validate(item.model_dump()) for item in items]
         dialog, telegram, _ = setup(store, *items)
         pointer = TelegramDialogState(mail_id=items[0].source_mail_id, proposal_id=items[0].id, version=1)

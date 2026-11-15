@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from ..config import IServAccountSettings, Settings, read_yaml
-from ..configuration import ConfigurationConflict, file_hash
+from ..config.configuration import ConfigurationConflict, file_hash
 from ..mailbox.iserv import IServSignInError
 from ..mailbox.iserv_activation import IServActivation
 from ..runtime.env_file import EnvFileConflict

@@ -7,7 +7,7 @@ import httpx
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, OutlookCalendar
-from mailhelp.storage import atomic_replace
+from mailhelp.persistence.storage import atomic_replace
 
 PROVIDERS=('google_calendar','todoist','outlook_calendar','microsoft_todo','caldav_calendar','caldav_tasks','apple_reminders')
 

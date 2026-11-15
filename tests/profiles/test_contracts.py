@@ -5,6 +5,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from mailhelp.config import Secrets, Settings, Topic, validated_file
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.llm.fingerprints import config_fingerprint, topic_policy
 from mailhelp.mailbox.mailbox_settings import (
     active_profiles,
@@ -15,9 +16,8 @@ from mailhelp.mailbox.mailbox_settings import (
     profile_label,
 )
 from mailhelp.mailbox.sender_filter import change_irrelevant_senders, is_irrelevant_sender, save_sender_filter
-from mailhelp.models import IrrelevantSenders
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.target_profiles import load_profile_secrets, secret_name
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_profiles import TOPICS, settings
 

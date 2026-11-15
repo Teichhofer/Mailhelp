@@ -10,10 +10,11 @@ from email.message import EmailMessage
 
 import pytest
 
+from mailhelp.domain.extraction import ExtractedEvent
+from mailhelp.domain.mail import ActionRoute, EventExtraction, MailState
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.vision import VisionUpdate
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings
 from tests.fakes.shared_services import AnalyzerStub

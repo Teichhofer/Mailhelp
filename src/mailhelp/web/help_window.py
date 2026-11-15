@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..storage import CorruptState
+from ..persistence.storage import CorruptState
 from .actions import new_key
 from .auth import WebSession
 from .pages import e, shows_help_button

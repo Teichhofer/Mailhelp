@@ -20,7 +20,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..configuration import AdminCommand
+from ..config.configuration import AdminCommand
 from .commands import ReviewCommand
 from .inbox import (
     FINISHED,

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import threading
 
-from mailhelp.models import MailState
+from mailhelp.domain.mail import MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command
 from tests.fakes.shared_web_actions import MAIL1, Web, web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_details import with_mail as with_mail

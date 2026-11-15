@@ -7,12 +7,8 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from .. import state_names
-from ..models import (
-    DuplicateDecision,
-    DuplicateIndex,
-    DuplicateIndexEntry,
-    MailState,
-)
+from ..domain.duplicate import DuplicateDecision, DuplicateIndex, DuplicateIndexEntry
+from ..domain.mail import MailState
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator

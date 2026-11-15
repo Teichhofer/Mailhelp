@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from mailhelp.notifications.briefing_scheduler import STATE, BriefingScheduler, BriefingState, target_mailbox
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.shared_application import settings
 
 

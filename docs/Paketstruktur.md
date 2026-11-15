@@ -23,8 +23,10 @@ gebündelten Paketen `activity`, `config`, `domain`, `external`, `persistence`, 
    `src`, `tests` und `ui_tests` an, ebenso Monkeypatch-Pfade in Tests (`"mailhelp.x.Name"`),
    die mypy-Liste in `pyproject.toml`, Einstiegspunkte und Dokumentationsverweise.
 3. **Feste Einstiegspunkte bleiben.** `mailhelp.cli` (Konsolenbefehl `mailhelp`, Neustart per
-   `-c "from mailhelp.cli import main"`, Docker) und `mailhelp.models` (öffentliche Fassade der
-   Fachmodelle) bleiben im Wurzelpaket.
+   `-c "from mailhelp.cli import main"`, Docker) bleibt im Wurzelpaket. Die frühere Fassade
+   `mailhelp.models` ist seit 7.0.3 entfallen; Fachmodelle werden aus ihrem Modul in
+   `mailhelp.domain` importiert. `storage` liegt seit 7.0.3 in `persistence`, `configuration` in
+   `config`, `temporal_answers` und `german_dates` im neuen Paket `text`.
 4. **Ein Zielpaket je Schritt**, jeweils mit grüner Suite (100 % Abdeckung), Browsertests,
    `ruff` und `mypy`; Architekturtests werden auf die neuen Pfade umgestellt, nicht gelockert.
 5. Verschoben wird mit `git mv`, damit der Verlauf je Datei erhalten bleibt.

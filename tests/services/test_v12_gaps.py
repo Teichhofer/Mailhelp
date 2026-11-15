@@ -10,9 +10,11 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
-from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProcessingError
+from mailhelp.domain.relevance import RelevanceDialog
 from mailhelp.llm.decision_test import ComparisonRecorder
-from mailhelp.models import MailState, ProcessingError, RelevanceDialog
 from mailhelp.review.archive import record_event, record_relevance
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
@@ -380,7 +382,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 # --- R4: settings page ---------------------------------------------------------------
 
 def test_effective_models_name_their_source_without_prompt_texts():
-    from mailhelp.configuration import effective_models
+    from mailhelp.config.configuration import effective_models
     from tests.fakes.shared_core import prompt_config
     prompts = prompt_config()
     standard = effective_models(prompts, "typesafe/jev", None)
@@ -432,7 +434,7 @@ def test_live_settings_saved_but_not_yet_taken_over(web, tmp_path):
 
 
 def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path):
-    from mailhelp.configuration import effective_models
+    from mailhelp.config.configuration import effective_models
     from tests.fakes.shared_core import prompt_config
     configure(web, tmp_path)
     assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen?bereich=ki").body.decode()
@@ -535,8 +537,8 @@ def test_after_a_stop_request_web_commands_wait_and_run_after_a_restart(web, tmp
 
 def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
     from mailhelp.config import Topic
+    from mailhelp.domain.extraction import LearnedCategory
     from mailhelp.llm.learning import save_topics
-    from mailhelp.models import LearnedCategory
     from tests.fakes.topic_forms import confirmation, hidden, preview
     configure(web, tmp_path)
     form = hidden(web.browser.request("GET", "/themen/relevant/neu").body.decode(), "/themen/pruefen")
@@ -558,7 +560,7 @@ def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
 @pytest.mark.parametrize("swapped", [False, True])
 def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
     from mailhelp.config import Topic
-    from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+    from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
     from mailhelp.llm.learning import topics_document
     service, *_ = configure(web, tmp_path)
     path = tmp_path / "topics.yaml"
@@ -584,7 +586,7 @@ def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
 # --- R6: mail list readability ---------------------------------------------------------
 
 def test_mail_list_shows_readable_entries_filters_and_paging(web):
-    from mailhelp.models import ProcessingError
+    from mailhelp.domain.processing import ProcessingError
     now = datetime.now(UTC)
     state = web.store.load_model(f"mail-{mail_id(2)}", MailState)
     web.store.save(f"mail-{mail_id(2)}", state.model_copy(update={

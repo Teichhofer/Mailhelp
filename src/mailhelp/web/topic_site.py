@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 import yaml
 
 from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig, read_yaml
-from ..configuration import AdminCommand, AdminKind
+from ..config.configuration import AdminCommand, AdminKind
 from .http import Request, Response
 from .pages import e, layout, page_head
 from .settings_search import normalize

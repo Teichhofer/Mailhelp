@@ -1,25 +1,24 @@
 """Architecture checks for domain and persistence model boundaries."""
+import importlib
+
 import pytest
 
-from mailhelp import models
+from mailhelp import domain
 from mailhelp.activity import models as activity_models
 from mailhelp.domain import duplicate, extraction, mail, processing, proposal, relevance, run, temporal
 from mailhelp.persistence import schemas
 
 
-def test_context_modules_and_legacy_facade_share_model_types():
-    assert models.MailRunState is run.MailRunState
-    assert models.Relevance is relevance.Relevance
-    assert models.TemporalFact is temporal.TemporalFact
-    assert models.ExtractedTask is extraction.ExtractedTask
-    assert models.Proposal is proposal.Proposal
-    assert models.ProcessingError is processing.ProcessingError
-    assert models.DuplicateIndex is duplicate.DuplicateIndex
-    assert models.MailState is mail.MailState
-    assert models.DuplicateSource is proposal.DuplicateSource
-    assert models.DuplicateMatchInfo is proposal.DuplicateMatchInfo
-    assert models.ExtractedAttachment is extraction.ExtractedAttachment
-    assert models.ParsedCalendarEvent is extraction.ParsedCalendarEvent
+def test_the_legacy_model_facade_is_gone():
+    # 7.0.3 (R2): every caller imports from the context module that defines a model.
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("mailhelp.models")
+    assert run.MailRunState.__module__ == "mailhelp.domain.run"
+    assert proposal.Proposal.__module__ == "mailhelp.domain.proposal"
+    assert mail.MailState.__module__ == "mailhelp.domain.mail"
+    defined = {relevance.Relevance: relevance, temporal.TemporalFact: temporal, extraction.ExtractedTask: extraction,
+               processing.ProcessingError: processing, duplicate.DuplicateIndex: duplicate}
+    assert all(model.__module__ == module.__name__ for model, module in defined.items())
 
 
 def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
@@ -43,7 +42,7 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     from mailhelp.review.series import SeriesReceipt
     from mailhelp.review.series_offers import SeriesOffer
     assert schemas.SeriesReceipt is SeriesReceipt and schemas.SeriesOffer is SeriesOffer
-    assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
+    assert all(getattr(schemas, name) is getattr(domain, name) for name in expected)
     assert schemas.ActivityReport is activity_models.ActivityReport
     assert schemas.ReportMail is activity_models.ReportMail
     from mailhelp.runtime.initial_setup import InitialDraft

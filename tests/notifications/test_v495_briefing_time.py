@@ -10,8 +10,8 @@ import time_machine
 from mailhelp.notifications.briefing_drafts import BriefingDraftService
 from mailhelp.notifications.briefing_scheduler import STATE, BriefingScheduler, BriefingState
 from mailhelp.notifications.drafts import DraftTarget
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import settings
 
 

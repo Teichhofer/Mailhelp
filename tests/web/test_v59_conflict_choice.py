@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.domain.proposal_sources import ProposalSource
-from mailhelp.models import ProposalStatus
 from mailhelp.proposals.proposal_merge import merge_facts
 from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.results import ResultStatus

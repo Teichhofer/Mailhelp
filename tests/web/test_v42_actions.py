@@ -1,7 +1,7 @@
 """Authenticated, versioned local closure and minimal status polling."""
 import json
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.review.results import ReviewResult
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser

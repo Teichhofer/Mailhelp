@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from functools import partial
 
+from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProcessingSteps
-from mailhelp.models import MailState
 from mailhelp.processing.mail_recheck import RecheckOutcome, request_recheck
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand

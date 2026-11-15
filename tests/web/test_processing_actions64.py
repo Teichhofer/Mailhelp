@@ -1,13 +1,13 @@
 """Processing controls reuse the live session, CSRF and durable command inbox."""
 import pytest
 
-from mailhelp.models import MailState
+from mailhelp.domain.mail import MailState
 from mailhelp.processing.retry import failed
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.results import ResultStatus
 from mailhelp.review.views import ReviewViews
-from tests.fakes.shared_web_actions import web as web
 from tests.fakes.processing_retry import errored
+from tests.fakes.shared_web_actions import web as web
 
 
 def put(web):

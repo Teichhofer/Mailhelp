@@ -9,8 +9,8 @@ from mailhelp.domain.extraction import ActionRoute, EventExtraction, ExtractedTa
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.reanalysis import ReanalysisError, ReanalysisJob, ReanalysisStatus
 from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, UIDValidityChanged
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.reanalysis import HINT_KEY, ReanalysisJobs, ReanalysisRefused, ReanalysisRunner
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.scenarios.web_scenario import mail_id, proposal
 

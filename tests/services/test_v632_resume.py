@@ -5,13 +5,14 @@ from types import SimpleNamespace
 import pytest
 
 from mailhelp.config import RetentionSettings
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProcessingStage
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_run import _MailBudget
-from mailhelp.models import MailState, ProcessingStage
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.mail_pipeline import AnalysisDataUnavailable, MailPipeline, ProcessingOutcome, ProcessingRun
 from mailhelp.review.views import ReviewViews
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import Imap, Log, Orch, Telegram, app
 
 

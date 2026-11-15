@@ -7,8 +7,8 @@ import pytest
 from PIL import Image
 
 from mailhelp.config import VisionSettings
+from mailhelp.domain.extraction import ExtractedAttachment, VisionExtractionResult
 from mailhelp.llm.openrouter import RateLimitExceeded
-from mailhelp.models import ExtractedAttachment, VisionExtractionResult
 from mailhelp.processing import vision
 from tests.fakes.shared_vision import Reader as Reader
 from tests.fakes.shared_vision import decoded as decoded

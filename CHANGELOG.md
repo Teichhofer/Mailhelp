@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.0.3 – Fassaden entfernt, Module in ihren Paketen
+
+- `mailhelp.models` und `mailhelp.telegram._core` entfallen; Importe zeigen auf das definierende Modul.
+- `storage` liegt in `persistence`, `configuration` in `config`, `temporal_answers` und `german_dates`
+  im neuen Paket `text`.
+- Konfiguration für Mutationsprüfung, mypy und ruff nachgezogen; Tests ändern nur Importpfade.
+
 ## 7.0.2 – Nur Mailhelp im Repository
 
 - `output/`, `tmp/`, `.tools/` und sechs lokale Dateien im Wurzelverzeichnis sind nicht mehr versioniert

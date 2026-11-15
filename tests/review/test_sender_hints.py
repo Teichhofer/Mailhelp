@@ -5,8 +5,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mailhelp import state_names
-from mailhelp.domain.proposal import ProposalKind, ProposalStatus
-from mailhelp.models import MailState, Proposal
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal, ProposalKind, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.proposal_evaluation import (
     dismiss_learning_run_hint,
     dismiss_sender_hint,
@@ -16,7 +17,6 @@ from mailhelp.review.proposal_evaluation import (
     sender_hint_for_sender,
     sender_hints,
 )
-from mailhelp.storage import JsonStore
 
 
 def _save_data(

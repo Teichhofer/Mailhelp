@@ -6,9 +6,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..domain.proposal_sources import ProposalReference
 from ..external.contracts import proposal_is_writable
-from ..models import Proposal, ProposalKind
 from ..proposals import conflicts
 from .callbacks import Decision, DecisionAction, validate_callback_markup
 from .formatting import format_proposal, numbered_message_parts, revision_summary

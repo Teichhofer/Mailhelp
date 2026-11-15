@@ -20,27 +20,19 @@ from ..config import (
     Topic,
 )
 from ..domain.deep_links import mail_link
-from ..domain.mail import next_updated_at
+from ..domain.duplicate import MailImapIdentity
+from ..domain.extraction import ExtractionCountConflict
+from ..domain.mail import MailState, next_updated_at
+from ..domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
+from ..domain.proposal import Proposal
+from ..domain.relevance import IrrelevantSenders, Relevance, RelevanceDialog, RelevanceDialogStatus
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
 from ..mailbox.sender_filter import is_irrelevant_sender
-from ..models import (
-    ExtractionCountConflict,
-    IrrelevantSenders,
-    MailImapIdentity,
-    MailState,
-    ProcessingError,
-    ProcessingErrorCode,
-    ProcessingStage,
-    Proposal,
-    Relevance,
-    RelevanceDialog,
-    RelevanceDialogStatus,
-)
+from ..persistence.storage import JsonStore
 from ..proposals.action_normalization import MailDateContext
 from ..proposals.precheck import DuplicatePreCheckService
 from ..proposals.proposal_builder import ProposalBuilder
-from ..storage import JsonStore
 from ..telegram.formatting import mail_line
 from .analysis import Analyzer
 from .mail_duplicates import DuplicateMailCheck

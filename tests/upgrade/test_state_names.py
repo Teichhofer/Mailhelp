@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from mailhelp import state_names
-from mailhelp.storage import JsonStore, StateStore
+from mailhelp.persistence.storage import JsonStore, StateStore
 from tests.fakes.store_fakes import DelegatingStore, InterruptingStore
 
 MAIL = "a" * 24

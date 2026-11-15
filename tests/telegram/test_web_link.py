@@ -7,8 +7,8 @@ from datetime import timedelta
 import pytest
 
 from mailhelp.config import WebSettings
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web.auth import CODE_ATTEMPTS, CODE_REQUESTS, PairingLimited, PairingRefused
 from mailhelp.web.factory import base_url, create_web

@@ -7,10 +7,10 @@ from pydantic import ValidationError
 from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.domain.proposal_sources import ProposalReference, ProposalSource
 from mailhelp.domain.reconciliation import ProposalMergeJournal
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.proposal_matching import compatible, day, relationship, same_thread
 from mailhelp.proposals.proposal_merge import merge_facts
 from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
-from mailhelp.storage import JsonStore
 
 NOW = datetime(2030, 11, 20, 14, tzinfo=UTC)
 

@@ -25,9 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ui_tests"))
 
 from mailhelp.config import WebSettings  # noqa: E402
+from mailhelp.persistence.storage import JsonStore  # noqa: E402
 from mailhelp.review.inbox import CommandInbox  # noqa: E402
 from mailhelp.review.views import ReviewViews  # noqa: E402
-from mailhelp.storage import JsonStore  # noqa: E402
 from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
@@ -141,7 +141,7 @@ def mailhelp(tmp_path):
         instance.site = site
         import yaml
 
-        from mailhelp.configuration import ConfigurationService
+        from mailhelp.config.configuration import ConfigurationService
         from mailhelp.runtime.lifecycle import Lifecycle
         from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
         from tests.fakes.shared_application import settings as application_settings

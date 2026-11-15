@@ -4,15 +4,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from mailhelp.models import (
-    MailState,
-    ProposalClarificationState,
-    ProposalStatus,
-    RelevanceDialog,
-    TelegramDialogState,
-)
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProposalClarificationState, TelegramDialogState
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.domain.relevance import RelevanceDialog
 from mailhelp.persistence.proposals import clarification_name
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramUpdate
 from mailhelp.telegram.formatting import clarification_prompt, display_date, format_proposal, revision_summary
 from tests.fakes.shared_telegram_dialog import RevisionService, Writer, callback, controller, message, proposal
@@ -268,7 +265,7 @@ def test_event_edit_revision_requires_new_confirmation_and_rejects_old_version(t
 @pytest.mark.parametrize('headers', [None, {'sender': 'Ada', 'subject': 'Frage'}])
 @pytest.mark.parametrize('receipt', ['completed', 'sending'])
 def test_open_redisplays_after_restart_without_changing_delivery_or_authorization(tmp_path, receipt, headers):
-    from mailhelp.models import ProposalNotification
+    from mailhelp.domain.processing import ProposalNotification
     item = proposal(open_questions=['Welches Datum?'], description='synthetisch ' * 330)
     mail = MailState(id=item.source_mail_id, config_fingerprint='f' * 64,
         imap={'account_id': '0' * 24, 'folder': 'INBOX', 'uidvalidity': 1, 'uid': 1},
@@ -379,7 +376,7 @@ def test_open_send_failure_preserves_state_and_explicit_retry_works(tmp_path):
 
 def test_regression_open_after_restart_restores_completed_clarification(tmp_path):
     """A completed delivery used to leave /offen with text and no usable entry."""
-    from mailhelp.models import ProposalNotification
+    from mailhelp.domain.processing import ProposalNotification
     item = proposal(open_questions=['Welches Datum?'])
     with JsonStore(tmp_path) as store:
         c, _, _ = controller(store)

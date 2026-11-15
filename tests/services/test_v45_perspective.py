@@ -1,9 +1,9 @@
 """4.5, steps 16.3/16.4: routing and extraction learn who wrote the mail."""
 import yaml
 
+from mailhelp.domain.mail import ActionRoute
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ActionRoute
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings
 from tests.fakes.shared_services import AnalyzerStub

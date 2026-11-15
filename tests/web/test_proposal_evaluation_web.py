@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mailhelp import state_names
-from mailhelp.domain.proposal import ProposalKind, ProposalStatus
-from mailhelp.models import MailState, Proposal
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal, ProposalKind, ProposalStatus
 from tests.fakes.shared_web_auth import Browser, signed_in, site
 
 
@@ -250,7 +250,7 @@ def test_sender_hints_web_and_actions(site):
     assert r_apply_no_cfg.status == 503
 
     # With configuration service:
-    from mailhelp.configuration import ConfigurationService
+    from mailhelp.config.configuration import ConfigurationService
     from tests.fakes.shared_application import settings
     tmp_path = store.directory.parent
     cfg_service = ConfigurationService(

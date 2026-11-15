@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from mailhelp.domain.proposal import ProposalKind, ProposalStatus
 from mailhelp.domain.verification import VerificationState, WriteVerification, operation_id
-from mailhelp.models import ProposalKind, ProposalStatus
 from tests.scenarios.web_scenario import mail_id
 
 MAIL1 = mail_id(1)

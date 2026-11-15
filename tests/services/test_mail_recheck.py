@@ -5,12 +5,12 @@ from datetime import timedelta
 from threading import Event
 
 from mailhelp.config import Topic
+from mailhelp.domain.mail import MailState
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_run import MailboxRunService
-from mailhelp.models import MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.mail_recheck import RecheckOutcome, filed_as_irrelevant, recheck_round, request_recheck
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.storage import JsonStore
 from tests.fakes.clock_fakes import step_back_wall_clock
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_application import settings as app_settings

@@ -13,11 +13,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from mailhelp.domain.extraction import Summary
-from mailhelp.models import (
-    MailImapIdentity,
-    MailState,
-    Relevance,
-)
+from mailhelp.domain.mail import MailImapIdentity, MailState
+from mailhelp.domain.relevance import Relevance
 from mailhelp.processing.orchestrator import Orchestrator
 from tests.fakes.shared_services import AnalyzerStub, Notify
 

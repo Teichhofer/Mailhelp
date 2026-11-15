@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import Settings
-from mailhelp.configuration import file_hash
+from mailhelp.config.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints
 from mailhelp.web.settings_pages import _input
 from tests.fakes.shared_core import prompt_config

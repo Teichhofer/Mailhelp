@@ -102,7 +102,7 @@ def render(root: Path = ROOT) -> dict[str, str]:
 def search_entries(root: Path, entries: list[dict[str, object]]) -> list[dict[str, str]]:
     """Public metadata from the reviewed reference, also usable without the help reader."""
     from devtools.inventory import settings_rows
-    from mailhelp.configuration import SETTINGS_FIELDS
+    from mailhelp.config.configuration import SETTINGS_FIELDS
     from mailhelp.web.settings_search import _summary
 
     reference = (root / SOURCES[0]).read_text(encoding="utf-8")

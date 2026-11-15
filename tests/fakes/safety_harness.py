@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from threading import Event
 
-from mailhelp.storage import JsonStore, atomic_replace
+from mailhelp.persistence.storage import JsonStore, atomic_replace
 
 MAIL = f"{1:024x}"
 

@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.3 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.3 entfernt die Kompatibilitätsfassaden `mailhelp.models` und `telegram._core` und verschiebt
+`storage`, `configuration` und die Textmodule in ihre Pakete; das Verhalten bleibt gleich.
 
 7.0.2 nimmt Dateien aus der Versionierung, die nicht zu Mailhelp gehören (Auswertungen anderer
 Arbeiten, Werkzeuge, lokale Arbeitsreste); sie bleiben auf der Festplatte.

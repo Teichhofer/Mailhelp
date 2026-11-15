@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, ResultStatus, ReviewResult
 from mailhelp.review.inbox import COMMAND_INBOX, CommandConflict, CommandInbox, CommandInboxFull, CommandStatus
 from mailhelp.review.incoming import IncomingRecord, atomic_json, key_hash, record_payload, replace_file, requires_ack
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command
 
 

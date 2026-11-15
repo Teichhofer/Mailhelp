@@ -475,7 +475,7 @@ def test_cli_learns_from_all_mailboxes(monkeypatch):
 def test_second_instance_reports_the_running_service_without_traceback(tmp_path, monkeypatch, capsys):
     """Regression: a second start on a locked data directory ended with a raw traceback."""
     from mailhelp.cli import main
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
 
     directory = tmp_path / "production"
     with JsonStore(directory):

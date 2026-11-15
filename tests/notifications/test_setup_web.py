@@ -10,7 +10,7 @@ import httpx
 import pytest
 import yaml
 
-from mailhelp.configuration import ConfigurationService
+from mailhelp.config.configuration import ConfigurationService
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.runtime.local_pairing import issue, signature
 from mailhelp.runtime.setup_runtime import SetupRuntime

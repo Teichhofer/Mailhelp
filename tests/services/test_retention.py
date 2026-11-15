@@ -5,17 +5,13 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import RetentionSettings
-from mailhelp.models import (
-    DuplicateIndex,
-    DuplicateIndexEntry,
-    MailRunCounters,
-    MailRunState,
-    MailState,
-    ProposalStatus,
-    RelevanceDialog,
-)
+from mailhelp.domain.duplicate import DuplicateIndex, DuplicateIndexEntry
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.domain.relevance import RelevanceDialog
+from mailhelp.domain.run import MailRunCounters, MailRunState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger as Log
 from tests.fakes.shared_retention import state as state
 

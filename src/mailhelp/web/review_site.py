@@ -153,7 +153,7 @@ class ReviewSite:
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
         from ..domain.proposal_sources import ProposalReference
-        from ..storage import CorruptState
+        from ..persistence.storage import CorruptState
         try:
             proposal = self.site.reconciliation_page.service.resolve(
                 ProposalReference(mail_id=mail_id, proposal_id=proposal_id))

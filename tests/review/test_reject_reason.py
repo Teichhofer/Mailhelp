@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, CommandSource, ResultStatus, ReviewCommand, StaleCommand
 from mailhelp.review.learning_log import DecisionLearningLog
 from mailhelp.review.reject_reasons import REJECT_REASONS, USER_REJECT_REASONS
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import command, setup, web
 

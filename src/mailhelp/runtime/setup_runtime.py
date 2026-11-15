@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..config import LEGACY_IMAP_SECRETS
 from ..external.providers import build_writers
-from ..storage import atomic_replace
+from ..persistence.storage import atomic_replace
 from .diagnostics import DiagnosticsService
 from .experience import _reader
 from .setup import SetupService

@@ -1,6 +1,6 @@
 """Synthetic raw facts and date context for the trusted proposal builder."""
 from mailhelp.config import TargetSettings
-from mailhelp.models import ExtractedEvent, ExtractedTask
+from mailhelp.domain.extraction import ExtractedEvent, ExtractedTask
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .. import state_names
-from ..models import Proposal, ProposalStatus
+from ..domain.proposal import Proposal, ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.editing import ProposalEditPatch
 from .auth import WebSession

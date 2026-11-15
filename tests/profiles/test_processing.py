@@ -5,12 +5,13 @@ from types import SimpleNamespace as NS
 import pytest
 
 from mailhelp.config import Settings, Topic
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_settings import effective_settings
-from mailhelp.models import IrrelevantSenders, MailState
 from mailhelp.notifications.notifications import NotificationService
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
 from tests.fakes.shared_services import AnalyzerStub, Notify

@@ -9,26 +9,25 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import ValidationError
 
-from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
-from ..llm.adapter import RetryableError
-from ..models import (
+from ..domain.processing import (
     AnswerStatus,
-    Proposal,
     ProposalClarificationState,
-    ProposalKind,
     ProposalRevisionStatus,
     QuestionStatus,
     TelegramDialogState,
 )
+from ..domain.proposal import Proposal, ProposalKind
+from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
+from ..llm.adapter import RetryableError
 from ..persistence.proposals import clarification_name, proposal_name
+from ..persistence.storage import JsonStore
 from ..processing.analysis import (
     LlmInvalidJson,
     LlmProviderResponseInvalid,
     LlmSchemaValidationFailed,
     LlmTokenLimitExceeded,
 )
-from ..storage import JsonStore
-from ..temporal_answers import (
+from ..text.temporal_answers import (
     deterministic_classification_revision,
     deterministic_temporal_revision,
     expected_event_date,

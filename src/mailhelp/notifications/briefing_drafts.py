@@ -9,8 +9,8 @@ from hashlib import sha256
 
 from ..config import Settings
 from ..mailbox.draft_writer import ImapDraftWriter
+from ..persistence.storage import JsonStore
 from ..review.views import ReviewViews
-from ..storage import JsonStore
 from .briefing_aggregate import BriefingAggregator
 from .briefing_scheduler import BriefingRun, Outcome, target_mailbox
 from .briefing_template import render_briefing

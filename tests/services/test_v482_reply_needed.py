@@ -4,8 +4,9 @@ from pathlib import Path
 
 import yaml
 
+from mailhelp.domain.extraction import ActionRouteAnswer
+from mailhelp.domain.mail import ActionRoute
 from mailhelp.llm.evaluation import semantic_result
-from mailhelp.models import ActionRoute, ActionRouteAnswer
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.proposals.action_normalization import MailDateContext
 from tests.fakes.shared_core import prompt_config

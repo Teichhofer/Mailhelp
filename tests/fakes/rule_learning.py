@@ -4,12 +4,12 @@ from types import SimpleNamespace
 
 import yaml
 
-from mailhelp.configuration import ConfigurationService
+from mailhelp.config.configuration import ConfigurationService
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.learning_log import learning_path
 from mailhelp.rule_learning.changes import RuleSuggestions
 from mailhelp.rule_learning.models import RuleAnalysis, RuleProposal, RuleTopic
 from mailhelp.rule_learning.service import DecisionRuleLearning
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import settings
 
 

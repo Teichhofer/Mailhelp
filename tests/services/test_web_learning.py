@@ -6,7 +6,7 @@ from threading import Event, Thread
 import pytest
 
 from mailhelp.config import read_yaml
-from mailhelp.models import IrrelevantSenders
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.runtime.learning_jobs import LearningConflict, LearningJobs
 from mailhelp.runtime.learning_worker import LearningCompleter, LearningPaused
 from tests.fakes.learning_harness import learning

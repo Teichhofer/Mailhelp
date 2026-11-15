@@ -14,11 +14,13 @@ from uuid import uuid4
 
 from .. import state_names
 from ..config import MailboxSettings, Settings
+from ..domain.mail import MailState
 from ..domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
+from ..domain.run import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState
 from ..logging import EventLogger
-from ..models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
+from ..persistence.storage import JsonStore
 from ..processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
-from ..storage import JsonStore, mail_state_names
+from ..state_names import mail_state_names
 from .imap import FetchedMail, ListedMailbox, MailCandidate, UIDValidityChanged
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000

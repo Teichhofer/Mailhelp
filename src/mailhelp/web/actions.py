@@ -11,7 +11,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Callable
 
-from ..models import ProposalKind, ProposalStatus
+from ..domain.proposal import ProposalKind, ProposalStatus
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash

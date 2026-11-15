@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlencode
 
-from ..models import ProposalStatus
+from ..domain.proposal import ProposalStatus
 from ..review.commands import CommandKind
 from ..review.filters import FILTERS
 from ..review.views import ProposalView, RelevanceView

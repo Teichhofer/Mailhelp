@@ -9,13 +9,13 @@ from mailhelp.activity.models import FolderProgress, ReportStatus
 from mailhelp.activity.scan import read_mail
 from mailhelp.activity.service import ActivityService
 from mailhelp.activity.store import ActivityReportStore
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import IrrelevantSenders
 from mailhelp.notifications.drafts import DraftService
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.runtime.application import Application
-from mailhelp.storage import JsonStore
 from tests.fakes.activity_fakes import Model, activity_prompts, definition, raw_mail
 from tests.fakes.shared_profiles import ACCOUNT_TWO, settings
 from tests.fakes.shared_retention import state

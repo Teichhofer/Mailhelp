@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .. import state_names
-from ..models import MailState
+from ..domain.mail import MailState
+from ..persistence.storage import CorruptState, JsonStore
 from ..processing.mail_recheck import filed_as_irrelevant
 from ..review.archive import AnalysisSnapshot
 from ..review.cards import shorten
 from ..review.views import ReviewViews
-from ..storage import CorruptState, JsonStore
 
 
 @dataclass(frozen=True)

@@ -13,8 +13,8 @@ import time_machine
 from mailhelp.llm.adapter import PermanentError
 from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.runtime.service_coordinator import ServiceCoordinator
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramClient, TelegramDialogController
 from mailhelp.telegram.receiver import ACKNOWLEDGEMENT, TelegramInbox, TelegramReceiver
 from tests.fakes.shared_application import Imap, Orch, app

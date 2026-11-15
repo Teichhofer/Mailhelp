@@ -1,7 +1,7 @@
 """Recognize exact, locally recorded briefing content, never an untrusted subject or header alone."""
 from hashlib import sha256
 
-from ..storage import CorruptState, JsonStore
+from ..persistence.storage import CorruptState, JsonStore
 from .briefing_scheduler import STATE, BriefingState
 
 

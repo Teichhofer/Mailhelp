@@ -18,6 +18,14 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
+from mailhelp.domain.proposal import (
+    Proposal,
+    ProposalCertainty,
+    ProposalClassification,
+    ProposalKind,
+    ProposalResponsibility,
+    ProposalStatus,
+)
 from mailhelp.domain.verification import FieldDifference
 from mailhelp.external.contracts import (
     AuthenticationError,
@@ -27,14 +35,6 @@ from mailhelp.external.contracts import (
 )
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.llm.adapter import UncertainWriteError
-from mailhelp.models import (
-    Proposal,
-    ProposalCertainty,
-    ProposalClassification,
-    ProposalKind,
-    ProposalResponsibility,
-    ProposalStatus,
-)
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, timed
 
 

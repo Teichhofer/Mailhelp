@@ -10,8 +10,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import load_all
-from ..configuration import file_hash
-from ..models import MailRunState, MailState
+from ..config.configuration import file_hash
+from ..domain.mail import MailState
+from ..domain.run import MailRunState
 from ..state_names import mail_state_names
 
 

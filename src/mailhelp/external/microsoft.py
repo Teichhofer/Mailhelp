@@ -20,10 +20,10 @@ from urllib.parse import quote
 import httpx
 from pydantic import Field, ValidationError
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..llm.adapter import RETRYABLE_STATUS, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from ..models import Proposal, ProposalKind
-from ..storage import atomic_replace
+from ..persistence.storage import atomic_replace
 from .calendar import CalendarOperations
 from .contracts import (
     AccessTokenProvider,

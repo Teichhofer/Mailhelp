@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import Settings
-from ..storage import StateStore
+from ..persistence.storage import StateStore
 
 STATE = "briefing_state"
 Outcome = Literal["saved", "simulated", "skipped_empty", "uncertain", "failed"]

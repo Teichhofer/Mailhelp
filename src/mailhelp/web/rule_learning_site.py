@@ -5,11 +5,11 @@ import json
 import secrets
 from typing import Any
 
+from ..persistence.storage import CorruptState
 from ..rule_learning.mining import MAX_EVIDENCE, MAX_EVIDENCE_ALL
 from ..rule_learning.models import RuleState, RuleTopic
 from ..rule_learning.service import DecisionRuleLearning, hidden_text
 from ..rule_learning.validation import RuleConflict, parse_yaml
-from ..storage import CorruptState
 from . import rule_preview
 from .auth import WebSession
 from .http import Request, Response

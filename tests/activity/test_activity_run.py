@@ -14,8 +14,8 @@ from mailhelp.activity.service import ActivityService, ReportConflict, event_val
 from mailhelp.activity.store import ActivityReportStore
 from mailhelp.domain.prepared import PreparedMail
 from mailhelp.llm.openrouter import ProviderResponseInvalid, RateLimitExceeded
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
-from mailhelp.storage import JsonStore
 from tests.fakes.activity_fakes import Mailbox, Model, activity_prompts, definition, raw_mail
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_application import settings as app_settings

@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.external.contracts import PreparedWrite, TargetWriter
-from mailhelp.models import ProposalStatus
 from mailhelp.review.inbox import CommandStatus
 from tests.fakes.safety_harness import Gate
 from tests.fakes.web_routes import action_id, progress_link
@@ -83,7 +83,7 @@ def test_web_session_revoked_during_provider_preparation_cannot_write(web):
 
 @pytest.mark.parametrize("suffix", ["corrupt", "invalid"])
 def test_quarantined_authority_remains_blocking_on_repeated_reads(tmp_path, suffix):
-    from mailhelp.storage import CorruptState, JsonStore
+    from mailhelp.persistence.storage import CorruptState, JsonStore
     with JsonStore(tmp_path) as store:
         (tmp_path / f"action-ledger.{suffix}").write_text("damaged", encoding="utf-8")
         for _ in range(2):
@@ -164,7 +164,7 @@ def test_legacy_unattributed_confirmation_is_not_a_replacement_for_live_authoriz
 
 
 def test_interrupted_legacy_migration_never_turns_missing_proof_into_telegram_consent(web):
-    from mailhelp.storage import CorruptState
+    from mailhelp.persistence.storage import CorruptState
     original = current(web).model_copy(update={"status": ProposalStatus.CONFIRMED})
     raw = original.model_dump(mode="json")
     raw.update(schema_version=2)
@@ -180,7 +180,7 @@ def test_interrupted_legacy_migration_never_turns_missing_proof_into_telegram_co
 @pytest.mark.parametrize("live", [False, True])
 @pytest.mark.parametrize("receipt", ["matching", "duplicate", "queued", "rejected", "telegram", "telegram_other_actor", "bad_actor", "other_kind", "other_version", "admin"])
 def test_legacy_confirmation_uses_only_an_executed_matching_channel_receipt(web, live, receipt):
-    from mailhelp.configuration import AdminCommand, AdminKind
+    from mailhelp.config.configuration import AdminCommand, AdminKind
     from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
     from mailhelp.review.results import ResultStatus, ReviewResult
     original = current(web).model_copy(update={"status": ProposalStatus.CONFIRMED})

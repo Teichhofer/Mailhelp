@@ -1,7 +1,7 @@
 """Repeated hints reuse unchanged records and refresh after local or external edits."""
-from mailhelp.models import DisplayHeaders
+from mailhelp.domain.mail import DisplayHeaders
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.proposal_evaluation import collect_decided_proposals
-from mailhelp.storage import JsonStore
 from tests.fakes.factories import build_proposal
 from tests.fakes.processing_retry import terminal
 

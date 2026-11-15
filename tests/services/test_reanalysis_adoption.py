@@ -8,10 +8,10 @@ from mailhelp.domain.mail import MailState
 from mailhelp.domain.proposal import DuplicateMatchInfo, ProposalStatus
 from mailhelp.domain.reanalysis import ReanalysisJob, ReanalysisStatus
 from mailhelp.persistence.proposals import ProposalRepository
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.reanalysis import ReanalysisJobs
 from mailhelp.processing.reanalysis_adoption import AdoptionRefused, Change, ReanalysisAdoption, compare
 from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 

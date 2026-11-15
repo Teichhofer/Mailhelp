@@ -3,7 +3,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.configuration import file_hash
+from mailhelp.config.configuration import file_hash
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser
 from tests.fakes.shared_web_v12 import configure

@@ -2,8 +2,8 @@
 import pytest
 
 from mailhelp.config import OriginalAttachmentSettings
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.attachments import AttachmentCache, download_name, original_type
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_vision import mail
 from tests.fakes.shared_web_actions import MAIL1
 from tests.fakes.shared_web_details import with_mail

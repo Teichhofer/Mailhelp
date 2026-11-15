@@ -19,8 +19,8 @@ from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
 from .llm.ollama import LocalLlm, parse_address
 from .paths import runtime_path
+from .persistence.storage import AlreadyRunning, JsonStore
 from .runtime.application import build_application, build_logger
-from .storage import AlreadyRunning, JsonStore
 from .web.server import WebServerError
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"

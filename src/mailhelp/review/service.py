@@ -16,16 +16,19 @@ from typing import Any
 from pydantic import ValidationError
 
 from .. import state_names
-from ..configuration import AdminCommand, ConfigurationService
-from ..domain.processing import ProposalClarificationState
+from ..config.configuration import AdminCommand, ConfigurationService
+from ..domain.mail import MailState
+from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
 from ..domain.proposal import (
     RECONCILIATION_HINT,
     ActionLedger,
+    Proposal,
+    ProposalStatus,
     invalidate_creation_permissions,
     reconciliation_only,
     required_revision_questions,
 )
-from ..models import AnswerStatus, MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
+from ..domain.relevance import RelevanceDialogStatus
 from ..notifications.notification_context import web_reply
 from ..processing.mail_recheck import RecheckOutcome
 from .archive import record_event, record_recheck, record_relevance

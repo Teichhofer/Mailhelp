@@ -11,26 +11,17 @@ from typing import TYPE_CHECKING, Any, cast
 
 from ..config import TargetSettings
 from ..domain.deep_links import resolve_client
+from ..domain.extraction import ActionRoute, Summary
+from ..domain.mail import DisplayHeaders, MailState
 from ..domain.prepared import PreparedMail
-from ..domain.proposal import ProposalStatus
+from ..domain.processing import ProcessingErrorCode, ProcessingStage, ProposalNotification, ValidationIssue
+from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.relevance import Relevance, RelevanceDialog
 from ..llm.adapter import PermanentError
 from ..llm.openrouter import RateLimitExceeded
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
 from ..mailbox.sender_filter import is_irrelevant_sender
-from ..models import (
-    ActionRoute,
-    DisplayHeaders,
-    MailState,
-    ProcessingErrorCode,
-    ProcessingStage,
-    Proposal,
-    ProposalNotification,
-    Relevance,
-    RelevanceDialog,
-    Summary,
-    ValidationIssue,
-)
 from ..notifications.briefing_identity import is_own_briefing
 from .analysis import (
     LlmInvalidJson,

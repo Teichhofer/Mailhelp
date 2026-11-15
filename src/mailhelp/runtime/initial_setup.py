@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import PromptConfig, Settings
 from ..config.loader import _dotenv
-from ..storage import JsonStore, atomic_replace
+from ..persistence.storage import JsonStore, atomic_replace
 from .env_file import file_hash, set_values
 from .setup_checks import SetupChecks
 from .setup_messages import SetupProblem

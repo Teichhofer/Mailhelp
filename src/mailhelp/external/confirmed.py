@@ -7,8 +7,8 @@ from typing import Any
 
 import httpx
 
+from ..domain.proposal import Proposal, ProposalStatus
 from ..llm.adapter import PermanentError, UncertainWriteError
-from ..models import Proposal, ProposalStatus
 from .calendar import CalendarOperations
 from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_writable
 from .roles import provider_key

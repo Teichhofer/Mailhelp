@@ -8,14 +8,14 @@ from urllib.parse import parse_qs
 
 from .. import state_names
 from ..config import EventDefaultsSettings
+from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..domain.proposal_sources import ProposalReference, ProposalRelation
-from ..models import MailState
+from ..persistence.storage import CorruptState
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_matching import compatible, relationship
 from ..proposals.proposal_reconciliation import OPEN, ProposalReconciliationService
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
-from ..storage import CorruptState
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout

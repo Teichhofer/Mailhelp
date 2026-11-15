@@ -22,10 +22,9 @@ import pytest
 from mailhelp.domain.duplicate import DuplicateIndex
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProposalClarificationState, TelegramDialogState, TelegramOutboxState
-from mailhelp.domain.proposal import ActionLedger
+from mailhelp.domain.proposal import ActionLedger, Proposal
 from mailhelp.domain.run import ImapCheckpoint, MailRunState, TelegramOffset
-from mailhelp.models import Proposal
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.shared_application import Imap, Orch, Telegram, app
 from tests.fakes.shared_telegram_dialog import Writer, controller
 

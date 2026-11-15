@@ -30,6 +30,11 @@ from mailhelp.config import (
     load_all,
     read_yaml,
 )
+from mailhelp.domain.extraction import TelegramAnswerInterpretation, TelegramClarification
+from mailhelp.domain.mail import Summary
+from mailhelp.domain.processing import ProcessingErrorCode
+from mailhelp.domain.proposal import Actions, Proposal
+from mailhelp.domain.relevance import Relevance
 from mailhelp.llm.adapter import RetryPolicy
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mailbox.imap import (
@@ -40,17 +45,8 @@ from mailhelp.mailbox.imap import (
     account_id,
 )
 from mailhelp.mailbox.mime import prepare
-from mailhelp.models import (
-    Actions,
-    ProcessingErrorCode,
-    Proposal,
-    Relevance,
-    Summary,
-    TelegramAnswerInterpretation,
-    TelegramClarification,
-)
+from mailhelp.persistence.storage import AlreadyRunning, CorruptState, JsonStore
 from mailhelp.processing.analysis import Analyzer
-from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
 from tests.fakes.shared_core import FakeImap as FakeImap
 from tests.fakes.shared_core import prompt_config as prompt_config
 from tests.fakes.shared_core import proposal as proposal
@@ -851,16 +847,16 @@ def test_storage_windows_directory_sync(tmp_path, monkeypatch):
     from types import SimpleNamespace
     platform_name = os.name
     # Patch only storage's view of the platform; pytest/mutmut/pathlib keep the host OS.
-    monkeypatch.setattr("mailhelp.storage.os", SimpleNamespace(**vars(os)))
+    monkeypatch.setattr("mailhelp.persistence.storage.os", SimpleNamespace(**vars(os)))
     store = JsonStore(tmp_path)
     opened = []
     real_open = os.open
     def recording_open(path, *args, **kwargs):
         opened.append(str(path))
         return real_open(path, *args, **kwargs)
-    monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    monkeypatch.setattr("mailhelp.persistence.storage.os.name", "nt")
     assert os.name == platform_name
-    monkeypatch.setattr("mailhelp.storage.os.open", recording_open)
+    monkeypatch.setattr("mailhelp.persistence.storage.os.open", recording_open)
     store.save("windows", {"ok": True})
     assert store.load("windows") == {"ok": True}
     assert str(tmp_path) not in opened
@@ -886,7 +882,7 @@ def test_storage_stale_file_process_exit_and_mode_isolation(tmp_path):
     code = (
         "import sys,time\n"
         "from pathlib import Path\n"
-        "from mailhelp.storage import JsonStore\n"
+        "from mailhelp.persistence.storage import JsonStore\n"
         "JsonStore(Path(sys.argv[1])).__enter__()\n"
         "print('locked', flush=True)\n"
         "time.sleep(60)\n"
@@ -909,7 +905,7 @@ def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
     import types
 
     platform_name = os.name
-    monkeypatch.setattr("mailhelp.storage.os", types.SimpleNamespace(**vars(os)))
+    monkeypatch.setattr("mailhelp.persistence.storage.os", types.SimpleNamespace(**vars(os)))
     descriptor = os.open(tmp_path / "windows-lock", os.O_CREAT | os.O_RDWR, 0o600)
     calls = []
     def lock_byte(descriptor, mode, count):
@@ -917,7 +913,7 @@ def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
         calls.append((descriptor, mode, count))
     fake_msvcrt = types.SimpleNamespace(LK_NBLCK=7, locking=lock_byte)
     monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
-    monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    monkeypatch.setattr("mailhelp.persistence.storage.os.name", "nt")
     assert os.name == platform_name
     JsonStore._acquire_lock(descriptor)
     assert os.fstat(descriptor).st_size == 1
@@ -927,7 +923,7 @@ def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
     os.close(descriptor)
     assert calls == [(descriptor, 7, 1), (descriptor, 7, 1)]
 
-    monkeypatch.setattr("mailhelp.storage.os.name", platform_name)
+    monkeypatch.setattr("mailhelp.persistence.storage.os.name", platform_name)
     store = JsonStore(tmp_path / "failure")
     monkeypatch.setattr(store, "_acquire_lock", lambda _descriptor: (_ for _ in ()).throw(OSError(errno.EIO, "disk")))
     with pytest.raises(OSError, match="disk"):
@@ -935,7 +931,7 @@ def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
 
     metadata_store = JsonStore(tmp_path / "metadata-failure")
     monkeypatch.setattr(metadata_store, "_acquire_lock", JsonStore._acquire_lock)
-    monkeypatch.setattr("mailhelp.storage.os.fsync", lambda _descriptor: (_ for _ in ()).throw(OSError("sync")))
+    monkeypatch.setattr("mailhelp.persistence.storage.os.fsync", lambda _descriptor: (_ for _ in ()).throw(OSError("sync")))
     with pytest.raises(OSError, match="sync"):
         metadata_store.__enter__()
     assert metadata_store.lock is None

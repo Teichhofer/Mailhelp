@@ -4,9 +4,10 @@ import os
 
 import pytest
 
-from mailhelp.models import Proposal, Relevance
+from mailhelp.domain.proposal import Proposal
+from mailhelp.domain.relevance import Relevance
+from mailhelp.persistence.storage import AlreadyRunning, JsonStore
 from mailhelp.proposals.integrations import execute_confirmed
-from mailhelp.storage import AlreadyRunning, JsonStore
 
 
 @pytest.mark.parametrize("jev", [False, True])

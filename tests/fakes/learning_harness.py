@@ -7,14 +7,14 @@ from types import SimpleNamespace as NS
 import pytest
 
 from mailhelp.config import load_all
-from mailhelp.configuration import ConfigurationService
+from mailhelp.config.configuration import ConfigurationService
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail, ListedMailbox, MailCandidate
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.review.views import ReviewViews
 from mailhelp.runtime.learning_worker import LearningWorker
-from mailhelp.storage import JsonStore
 from mailhelp.web import WebApp
 from mailhelp.web.learning_site import LearningSite
 from mailhelp.web.login_site import SESSION_COOKIE

@@ -5,7 +5,7 @@ import json
 import pytest
 import yaml
 
-from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationConflict, SenderChange, file_hash
+from mailhelp.config.configuration import AdminCommand, AdminKind, ConfigurationConflict, SenderChange, file_hash
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.setup import SetupState
 from mailhelp.runtime.yaml_edit import replace_block

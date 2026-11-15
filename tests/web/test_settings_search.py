@@ -1,7 +1,7 @@
 """5.3 H3: the shared settings catalog, its normalisation, ranking and the form search built on it."""
 from urllib.parse import quote
 
-from mailhelp.configuration import SETTINGS_FIELDS
+from mailhelp.config.configuration import SETTINGS_FIELDS
 from mailhelp.web import settings_search
 from mailhelp.web.settings_pages import AREAS, _names
 from mailhelp.web.settings_search import Entry, anchor, bounded, catalog, normalize, search

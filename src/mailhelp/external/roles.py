@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from .contracts import TargetWriter
 
 if TYPE_CHECKING:
-    from ..models import Proposal
+    from ..domain.proposal import Proposal
 
 CALENDAR_SLOT = "google_calendar"
 TASK_SLOT = "todoist"

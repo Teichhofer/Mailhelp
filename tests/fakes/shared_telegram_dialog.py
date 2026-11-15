@@ -1,12 +1,9 @@
 """Shared synthetic fixtures and doubles; no test-module dependencies."""
 from __future__ import annotations
 
-from mailhelp.models import (
-    MailState,
-    Proposal,
-    RelevanceDialog,
-    RelevanceDialogStatus,
-)
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal
+from mailhelp.domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from mailhelp.telegram import (
     TelegramDialogController,
 )

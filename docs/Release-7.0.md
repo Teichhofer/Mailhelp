@@ -60,3 +60,24 @@ unverändert. Kein Test, kein Paketbau und keine Konfiguration las eine davon; d
 Absenderadressen und liegen in früheren Commits auf GitHub. Entfernen aus der Historie wäre ein
 Umschreiben der Historie und ist nach Plan nicht Teil von 7.0; es bleibt eine Entscheidung des
 Betreibers.
+
+## 7.0.3 – Fassaden entfernt, Module in ihren Paketen (R2)
+
+- `mailhelp/models.py` (Stern-Importe aus `domain`) und `mailhelp/telegram/_core.py` sind entfallen.
+  Alle Importe in Code und Tests zeigen auf das Modul, das den Namen definiert. Die öffentliche
+  Schnittstelle `mailhelp.telegram` bleibt.
+- Verschoben (mit `git mv`): `storage.py` → `persistence/storage.py`, `configuration.py` →
+  `config/configuration.py`, `temporal_answers.py` und `german_dates.py` → neues Paket `text/`.
+  `text/` statt `domain/`, damit der mutationsgeprüfte Kern unverändert bleibt.
+- `pyproject.toml`: tote Ausnahme für `integrations.py` und die Ausnahmen der Fassaden gestrichen,
+  Pfade für Mutationsprüfung und mypy nachgezogen; `devtools/check.py` liest die Mutationsdaten von
+  `persistence/storage.py`.
+- Tests: nur Importpfade und Patch-Ziele geändert. Zwei Architekturtests prüften die gelöschten
+  Fassaden selbst; sie prüfen jetzt, dass die Fassaden fehlen und die öffentlichen Pakete dieselben
+  Objekte liefern.
+- Ruff meldet 41 statt 46 Befunde (das Sortieren der Importblöcke behob fünf alte), mypy weiterhin
+  die 14 Fehler des Ausgangsstands.
+- Mutationswerte nach der Verschiebung (WSL): 1 159 von 1 478 getötet; `domain` 521 / 25 / 135,
+  `persistence/storage.py` 454 / 69 / 0, `external/confirmed.py` 184 / 90 / 0. Kein Wert ist
+  schlechter als vor 7.0.
+- Prüfung: 5 318 Python-Tests mit voller Abdeckung, 922 Browsertests.

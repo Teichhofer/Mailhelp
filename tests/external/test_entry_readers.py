@@ -10,14 +10,14 @@ import httpx
 import pytest
 
 from mailhelp import state_names
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.domain.verification import VerificationState
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, CalendarAccessError
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.llm.adapter import PermanentError
-from mailhelp.models import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.write_verification import WriteVerifications
-from mailhelp.storage import JsonStore
 from tests.scenarios.web_scenario import proposal
 
 BERLIN = ZoneInfo("Europe/Berlin")

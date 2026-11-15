@@ -10,7 +10,7 @@ from ..persistence.proposals import (
     proposal_name,
     proposal_version_name,
 )
-from ..temporal_answers import (
+from ..text.temporal_answers import (
     DeterministicTemporalAnswer,
     deterministic_classification_revision,
     deterministic_temporal_revision,

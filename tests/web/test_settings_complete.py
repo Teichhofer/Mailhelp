@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from mailhelp.configuration import SETTINGS_FIELDS, SETUP_FIELDS, AdminCommand, AdminKind, file_hash
+from mailhelp.config.configuration import SETTINGS_FIELDS, SETUP_FIELDS, AdminCommand, AdminKind, file_hash
 from mailhelp.web.settings_pages import AREAS, SETTING_GROUPS
 from tests.fakes.shared_web_v12 import configure
 
@@ -67,7 +67,7 @@ def test_settings_page_shows_the_new_groups_with_their_controls(web, tmp_path):
 
 def test_historical_start_is_part_of_the_mailbox_setup():
     assert "imap.historical_start" in SETUP_FIELDS
-    from mailhelp.configuration import MAILBOX_SETUP_FIELDS
+    from mailhelp.config.configuration import MAILBOX_SETUP_FIELDS
     from mailhelp.web.setup_site import FIELDS, field_label
     assert "historical_start" in MAILBOX_SETUP_FIELDS and "imap.historical_start" in FIELDS[2]
     raw = {"imap": {"mailboxes": [{"id": 3, "label": "Verein"}]}}

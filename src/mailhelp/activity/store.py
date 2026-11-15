@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import uuid4
 
-from ..storage import StateStore
+from ..persistence.storage import StateStore
 from .models import ActivityReport, ReportDefinition, ReportMail
 
 CHUNK = 500

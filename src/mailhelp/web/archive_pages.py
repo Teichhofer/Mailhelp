@@ -6,8 +6,9 @@ from decimal import Decimal
 from typing import Any, SupportsFloat, get_args
 from urllib.parse import urlencode
 
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..formatting import duration_text, format_datetime_local
-from ..models import MailState, Proposal
 from ..review.consistency import Hint
 from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery

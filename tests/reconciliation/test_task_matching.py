@@ -5,9 +5,9 @@ import pytest
 
 from mailhelp.domain.proposal import Proposal
 from mailhelp.domain.proposal_sources import ProposalSource
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.proposal_matching import relationship
 from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
-from mailhelp.storage import JsonStore
 
 NOW = datetime(2030, 11, 20, 14, tzinfo=UTC)
 

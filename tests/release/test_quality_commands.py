@@ -40,7 +40,7 @@ def test_successful_tasks_and_mutation_threshold(tmp_path, monkeypatch, task):
     (tmp_path / "mutants").mkdir()
     report = tmp_path / "mutants/mutmut-cicd-stats.json"
     report.write_text(json.dumps({"total": 10, "killed": 9, "survived": 1}))
-    for name in ("domain/proposal.py", "storage.py", "external/confirmed.py"):
+    for name in ("domain/proposal.py", "persistence/storage.py", "external/confirmed.py"):
         path = tmp_path / f"mutants/src/mailhelp/{name}.meta"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"exit_code_by_key": {str(index): int(index < 9) for index in range(10)}}))

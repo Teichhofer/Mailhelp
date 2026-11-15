@@ -5,8 +5,9 @@ every mail carries the fingerprint of its own mailbox. Mails of a mailbox with i
 settings therefore waited forever ("configuration_changed" on every poll), and a
 completed mail whose action detection had failed was never retried.
 """
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.relevance import Relevance
 from mailhelp.mailbox.mailbox_run import _checkpoint_name
-from mailhelp.models import MailState, Relevance
 from mailhelp.processing.mail_pipeline import ProcessingOutcome
 from tests.fakes.shared_application import Imap, Orch, Store, Telegram, app
 

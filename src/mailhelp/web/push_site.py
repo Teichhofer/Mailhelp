@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 from ..config import Settings, read_yaml
-from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..mailbox.mailbox_settings import effective_settings
 from ..notifications.notification_config import effective_profile
 from ..runtime.setup import profile_patch

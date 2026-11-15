@@ -1,11 +1,13 @@
 from email.message import EmailMessage
 
 from mailhelp.config import Topic
+from mailhelp.domain.duplicate import DuplicateIndex
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import DuplicateIndex, MailState, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.mail_duplicates import DuplicateMailCheck
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.storage import JsonStore
 
 
 class CountingAnalyzer:
@@ -13,7 +15,7 @@ class CountingAnalyzer:
         self.calls = 0
 
     def relevance(self, mail, topics):
-        from mailhelp.models import Relevance
+        from mailhelp.domain.relevance import Relevance
         self.calls += 1
         return "r", Relevance(decision="irrelevant", topic_ids=[], reason="test")
 

@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import HelpChatSettings
 from ..logging import EventLogger, NullLogger
-from ..storage import CorruptState, JsonStore
+from ..persistence.storage import CorruptState, JsonStore
 from . import HelpBase, HelpUnavailable
 
 PREFIX = "help-chat-"

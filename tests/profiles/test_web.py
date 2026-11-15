@@ -6,8 +6,8 @@ import pytest
 import yaml
 
 from mailhelp.config import Settings, Topic
-from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
-from mailhelp.models import MailState
+from mailhelp.config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from mailhelp.domain.mail import MailState
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.setup import SetupState
 from mailhelp.web.mailbox_site import FIELDS, control, lookup
@@ -72,7 +72,7 @@ def test_overrides_save_repeat_and_reset_without_external_actions(profiled, tab,
 @pytest.mark.slow
 def test_topic_scope_preview_counts_only_affected_running_mailbox(profiled):
     app, web = profiled.app, profiled.web
-    from mailhelp.storage import mail_state_names
+    from mailhelp.persistence.storage import mail_state_names
     for name in mail_state_names(app.store):
         existing = app.store.load_model(name, MailState)
         existing.steps.completion = "completed"
@@ -96,7 +96,7 @@ def test_topic_scope_preview_counts_only_affected_running_mailbox(profiled):
 def test_target_draft_never_holds_current_or_upgraded_pending_mails(profiled, legacy, field):
     """Regression: preview must respect upgrade equivalence as well as target-free hashes."""
     from mailhelp.llm.fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
-    from mailhelp.storage import mail_state_names
+    from mailhelp.persistence.storage import mail_state_names
 
     app, web, setup = profiled.app, profiled.web, profiled.runtime.setup
     cfg, prompts, run = app.settings, app.analyzer.prompts, app.orchestrator

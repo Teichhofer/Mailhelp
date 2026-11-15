@@ -5,12 +5,12 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
+from mailhelp.domain.proposal import ActionLedger, Proposal, ProposalStatus
 from mailhelp.llm.adapter import RetryableError
 from mailhelp.llm.openrouter import RateLimitExceeded
-from mailhelp.models import ActionLedger, Proposal, ProposalStatus
 from mailhelp.persistence.ledger import ActionLedgerService
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import proposal
 from tests.fakes.shared_review_write_safety import reminder as reminder
 from tests.fakes.shared_telegram_dialog import callback, controller
@@ -84,7 +84,7 @@ def test_target_change_survives_restart_and_new_target_needs_new_confirmation(tm
 @pytest.mark.parametrize("failure", ["rate_limit", "invalid_llm", "read_timeout", "http_503", "invalid_page"])
 @pytest.mark.parametrize("operation", ["create", "patch", "skip"])
 def test_calendar_preflight_failure_retries_after_restart_without_false_uncertainty(tmp_path, failure, operation):
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     requests = []
     failing = True
     item = event(status="confirmed", description="Agenda")
@@ -140,7 +140,7 @@ def test_calendar_preflight_failure_retries_after_restart_without_false_uncertai
 @pytest.mark.parametrize("operation", ["POST", "PATCH"])
 @pytest.mark.parametrize("failure", ["timeout", "invalid_response"])
 def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path, operation, failure):
-    from mailhelp.models import CalendarDuplicateDecision
+    from mailhelp.domain.extraction import CalendarDuplicateDecision
     requests, posted = [], {}
     found = False
     item = event(status="confirmed", description="Agenda")

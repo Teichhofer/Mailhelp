@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from mailhelp.config import TargetSettings
-from mailhelp.models import EventExtraction
+from mailhelp.domain.mail import EventExtraction
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
 from tests.fakes.shared_quality_corpus import SimulatedOpenRouter as SimulatedOpenRouter

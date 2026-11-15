@@ -6,14 +6,15 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.proposal import Proposal, ProposalStatus
+from mailhelp.domain.relevance import IrrelevantSenders
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.llm.learning import LearningMode
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import IrrelevantSenders, Proposal, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.review.learning_log import DecisionLearningLog, learning_path, preserves_relevance
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.callbacks import Decision, DecisionAction, apply_decision
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import MAIL, command, setup, web

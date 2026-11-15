@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 
-from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
+from ..config.configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
 from ..notifications.notification_config import CATEGORIES, effective_profile
 from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
 from ..runtime.local_pairing import issue

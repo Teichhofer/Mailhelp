@@ -24,9 +24,10 @@ from ..domain.processing import (
     TelegramOutboxGate,
     TelegramOutboxState,
 )
-from ..models import Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
+from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from ..persistence.proposals import ProposalRepository, clarification_name, proposal_name
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 from .client import TelegramTransport
 from .revision_contracts import EventLogger
 

@@ -8,9 +8,11 @@ from typing import Literal
 
 from .. import state_names
 from ..config import RetentionSettings
+from ..domain.mail import MailState
+from ..domain.proposal import ProposalStatus
 from ..logging import EventLogger
-from ..models import MailState, ProposalStatus
-from ..storage import JsonStore, mail_state_names
+from ..persistence.storage import JsonStore
+from ..state_names import mail_state_names
 
 Period = int | Literal["disabled", "unlimited"]
 _OPEN_PROPOSALS = {

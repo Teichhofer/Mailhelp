@@ -15,7 +15,7 @@ from mailhelp.notifications.notification_config import (
     effective_profile,
 )
 from mailhelp.notifications.notifications import NotificationService, QueueFull, quiet_now
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 
 @pytest.fixture

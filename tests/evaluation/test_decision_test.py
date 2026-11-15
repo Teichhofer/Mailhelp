@@ -12,13 +12,13 @@ import yaml
 
 from mailhelp import cli
 from mailhelp.config import Topic
+from mailhelp.domain.mail import Summary
 from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode, _raw_mail
 from mailhelp.llm.decisions import DecisionClient, jev_mail
 from mailhelp.llm.laya import LayaClient
 from mailhelp.llm.ollama import LocalLlm, OllamaClient
 from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.mailbox.imap import FolderNotReadable
-from mailhelp.models import Summary
 from tests.fakes.shared_decision_test import AnalyzerStub as AnalyzerStub
 from tests.fakes.shared_decision_test import Reader as Reader
 from tests.fakes.shared_decision_test import configure as configure

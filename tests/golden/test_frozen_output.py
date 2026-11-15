@@ -17,7 +17,7 @@ import time_machine
 
 from mailhelp import __version__
 from mailhelp.domain.proposal import Proposal
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.shared_web_actions import MAIL1, Web
 from tests.scenarios.web_scenario import populate
 

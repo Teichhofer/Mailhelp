@@ -36,7 +36,7 @@ import json
 from typing import Any
 
 from ..config import MAILBOX_FIELDS, PromptConfig, Settings, Topic
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info",

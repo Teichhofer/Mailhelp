@@ -28,8 +28,8 @@ from mailhelp.mailbox.iserv import (
     parse_html,
     state_name,
 )
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
-from mailhelp.storage import JsonStore
 
 SERVER = "https://schule.example"
 INDEX = "/iserv/parentletter/parent/index"

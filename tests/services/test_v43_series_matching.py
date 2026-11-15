@@ -4,10 +4,10 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
-from mailhelp.storage import JsonStore
 from tests.fakes.series_fakes import series
 
 

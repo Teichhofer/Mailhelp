@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from mailhelp.config import Topic, VisionSettings
+from mailhelp.domain.extraction import VisionExtractionResult
+from mailhelp.domain.relevance import IrrelevantSenders, Relevance
 from mailhelp.llm.openrouter import RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import IrrelevantSenders, Relevance, VisionExtractionResult
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.processing.vision import VisionExtractor
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_vision import Reader, image_bytes, mail, noise
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]

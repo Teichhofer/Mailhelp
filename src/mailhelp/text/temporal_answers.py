@@ -20,16 +20,15 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict
 
-from .domain.proposal import ProposalRevisionChanges
-from .domain.revision_errors import ContradictoryRevision
-from .domain.temporal import TemporalResolutionStatus, YearSource
-from .models import (
+from ..domain.proposal import (
     Proposal,
     ProposalKind,
+    ProposalRevisionChanges,
     ProposalRevisionDelta,
-    TemporalFact,
     apply_proposal_revision,
 )
+from ..domain.revision_errors import ContradictoryRevision
+from ..domain.temporal import TemporalFact, TemporalResolutionStatus, YearSource
 
 __all__ = [
     "DeterministicTemporalAnswer",

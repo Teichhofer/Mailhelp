@@ -1,7 +1,7 @@
 """Legacy mailbox conversion and invalid topic references are checked before storage."""
 import pytest
 
-from mailhelp.configuration import apply_settings
+from mailhelp.config.configuration import apply_settings
 
 
 def test_legacy_imap_converts_to_numbered_mailbox_without_inheriting_connection_fields(configured):

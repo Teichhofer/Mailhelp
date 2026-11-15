@@ -7,9 +7,10 @@ from typing import Any
 
 import httpx
 
+from ..domain.extraction import CalendarDuplicateDecision
+from ..domain.proposal import Proposal
 from ..llm.adapter import PermanentError, RetryPolicy
 from ..logging import EventLogger
-from ..models import CalendarDuplicateDecision, Proposal
 from .contracts import AccessTokenProvider, AuthenticationError, CalendarAccessError, TargetAccessError
 
 

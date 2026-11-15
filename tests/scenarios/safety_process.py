@@ -4,9 +4,9 @@ from __future__ import annotations
 import traceback
 from pathlib import Path
 
-from mailhelp.models import Proposal
+from mailhelp.domain.proposal import Proposal
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 from mailhelp.web.auth import WebAuth
 from tests.fakes.safety_harness import PersistentWriter

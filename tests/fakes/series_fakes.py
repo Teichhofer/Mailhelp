@@ -1,7 +1,7 @@
 """Synthetic series and version-bound review commands shared by all channels."""
 from datetime import date, datetime
 
-from mailhelp.models import KnownTemporalFacts
+from mailhelp.domain.proposal import KnownTemporalFacts
 from mailhelp.review.series import members
 from tests.fakes.shared_review import EVENT, command
 from tests.fakes.shared_telegram_dialog import proposal

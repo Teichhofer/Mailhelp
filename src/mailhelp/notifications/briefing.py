@@ -15,8 +15,8 @@ from zoneinfo import ZoneInfo
 
 from ..config import DailyBriefingSettings
 from ..external.contracts import CalendarOverlapEvent, TodoistTaskResponse
+from ..persistence.storage import StateStore
 from ..review.views import ReviewViews
-from ..storage import StateStore
 
 
 class CalendarReader(Protocol):

@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from zoneinfo import ZoneInfo
 
-from ..models import Proposal, ProposalKind
+from ..domain.proposal import Proposal, ProposalKind
 from ..proposals import conflicts
 from ..review.calendar_display import candidate_label, change_parts
 from ..review.cards import (

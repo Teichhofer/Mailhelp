@@ -68,7 +68,7 @@ class NotificationRuntime:
                 else self.app.settings)
 
     def mailbox_of(self, reference):
-        from ..models import MailState
+        from ..domain.mail import MailState
         mail = self.app.store.peek_model("mail-" + reference.split(":", 1)[0], MailState)
         if mail is None:
             return 1

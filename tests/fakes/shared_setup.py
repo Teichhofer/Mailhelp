@@ -3,7 +3,7 @@ from types import SimpleNamespace as NS
 import pytest
 import yaml
 
-from mailhelp.configuration import ConfigurationService
+from mailhelp.config.configuration import ConfigurationService
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.runtime.setup_runtime import SetupRuntime
 from tests.fakes.shared_application import settings

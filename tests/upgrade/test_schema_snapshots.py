@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from mailhelp.models import Proposal
+from mailhelp.domain.proposal import Proposal
 from mailhelp.persistence import schemas
 
 SNAPSHOTS = Path(__file__).parent / "schemas"

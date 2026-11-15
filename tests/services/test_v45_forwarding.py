@@ -1,11 +1,10 @@
 """4.5, step 16.2: forwarded mail is recognized; note and original are separated."""
 import pytest
 
-from mailhelp.domain.mail import ForwardedHeaders
+from mailhelp.domain.mail import ForwardedHeaders, MailState
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.forwarding import split_forward
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings
 

@@ -6,13 +6,14 @@ import json
 import re
 from typing import Any
 
-from ..models import Proposal, TelegramDialogState
+from ..domain.processing import TelegramDialogState
+from ..domain.proposal import Proposal
 from ..review.cards import event_time
 from ..review.commands import CommandKind, CommandSource
 from ..review.errors import StaleCommand
 from ..review.results import ResultStatus, ReviewResult
 from ..review.series_offers import SeriesOffer, create_offer, current_series, offer_command
-from ..temporal_answers import parse_deterministic_temporal_answer
+from ..text.temporal_answers import parse_deterministic_temporal_answer
 from .formatting import numbered_message_parts
 
 

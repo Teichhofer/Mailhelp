@@ -14,7 +14,9 @@ from mailhelp.domain.extraction import (
     TaskExtraction,
     TelegramAnswerInterpretation,
 )
+from mailhelp.domain.mail import MailState
 from mailhelp.domain.prepared import PreparedAttachment
+from mailhelp.domain.processing import ProcessingStage
 from mailhelp.domain.proposal import (
     DuplicateMatchInfo,
     DuplicateSource,
@@ -25,16 +27,16 @@ from mailhelp.domain.proposal import (
     ProposalResponsibility,
     ProposalStatus,
 )
+from mailhelp.domain.relevance import Relevance
 from mailhelp.domain.temporal import TimeRequirement
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState, ProcessingStage, Relevance
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import ActionRoute, Analyzer, Summary
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.review.cards import card_content
 from mailhelp.review.views import MailView, ProposalView, ReviewViews
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.formatting import format_proposal
 from mailhelp.telegram.presenter import ProposalPresenter
 from mailhelp.web.review_pages import mail_section, proposal_card

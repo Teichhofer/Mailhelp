@@ -5,8 +5,8 @@ from urllib.parse import urlencode
 import pytest
 import yaml
 
+from mailhelp.persistence.storage import CorruptState
 from mailhelp.rule_learning.models import RuleAnalysis
-from mailhelp.storage import CorruptState
 from mailhelp.web.rule_learning_site import RuleLearningSite
 from mailhelp.web.rule_preview import preview_name
 from mailhelp.web.settings_pages import settings_confirmation

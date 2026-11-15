@@ -9,25 +9,15 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import Settings, validated_file
+from mailhelp.domain.duplicate import DuplicateIndex, DuplicateIndexEntry
+from mailhelp.domain.extraction import ExtractedEvent
+from mailhelp.domain.mail import DuplicateDecision, EventExtraction, ExtractionCountConflict, MailState
+from mailhelp.domain.processing import ProposalNotification, TelegramDialogState, ValidationIssue, WriteAttemptReference
+from mailhelp.domain.run import ImapCheckpoint, TelegramOffset
 from mailhelp.external.confirmed import _with_external_result
 from mailhelp.llm.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
-from mailhelp.models import (
-    DuplicateDecision,
-    DuplicateIndex,
-    DuplicateIndexEntry,
-    EventExtraction,
-    ExtractedEvent,
-    ExtractionCountConflict,
-    ImapCheckpoint,
-    MailState,
-    ProposalNotification,
-    TelegramDialogState,
-    TelegramOffset,
-    ValidationIssue,
-    WriteAttemptReference,
-)
+from mailhelp.persistence.storage import CorruptState, JsonStore
 from mailhelp.proposals.integrations import HttpWriter
-from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, validation_path
 from tests.fakes.shared_core import proposal
 

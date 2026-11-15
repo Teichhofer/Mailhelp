@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.domain.processing import ProposalClarificationState
-from mailhelp.models import TelegramDialogState
+from mailhelp.domain.processing import ProposalClarificationState, TelegramDialogState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, ResultStatus, ReviewResult
 from mailhelp.review.inbox import (
     COMMAND_INBOX,
@@ -17,7 +17,6 @@ from mailhelp.review.inbox import (
     CommandInboxFull,
     CommandStatus,
 )
-from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 from tests.fakes.lock_fakes import ProbedStore, finishes_while_store_lock_held
 from tests.fakes.shared_review import MAIL, OTHER, command, setup

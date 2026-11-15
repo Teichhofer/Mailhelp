@@ -7,29 +7,24 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.mail import DisplayHeaders
 from mailhelp.domain.processing import (
     AnswerStatus,
     ProposalClarificationState,
     ProposalRevisionStatus,
+    TelegramDialogState,
     TelegramOutboxEntry,
     TelegramOutboxGate,
     TelegramOutboxState,
 )
+from mailhelp.domain.proposal import ActionLedger, ActionLedgerEntry
+from mailhelp.domain.run import MailRunCounters, MailRunEntry, MailRunState
 from mailhelp.llm.adapter import PermanentError, UncertainWriteError
-from mailhelp.models import (
-    ActionLedger,
-    ActionLedgerEntry,
-    DisplayHeaders,
-    MailRunCounters,
-    MailRunEntry,
-    MailRunState,
-    TelegramDialogState,
-)
 from mailhelp.persistence.ledger import ActionLedgerService
+from mailhelp.persistence.storage import CorruptState, JsonStore
 from mailhelp.review import CommandKind, CommandSource, ResultStatus, ReviewCommand, StaleCommand
 from mailhelp.review.cards import card_content, yes_no_question
 from mailhelp.review.views import RECENT_LIMIT, ReviewViews
-from mailhelp.storage import CorruptState, JsonStore
 
 action_key = ActionLedgerService.action_key
 from tests.fakes.shared_review import command as command

@@ -16,8 +16,9 @@ from threading import Lock
 from typing import Any
 
 from .. import state_names
-from ..models import MailState, Proposal
-from ..storage import JsonStore, atomic_replace
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal
+from ..persistence.storage import JsonStore, atomic_replace
 
 LEARNING_FILE = Path("learning") / "decisions.jsonl"
 # Bookkeeping fields that change on every transition and say nothing about content.

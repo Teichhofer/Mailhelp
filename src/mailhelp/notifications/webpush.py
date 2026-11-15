@@ -18,7 +18,7 @@ from pywebpush import WebPushException, webpush
 
 from ..llm.adapter import PermanentError, RetryableError
 from ..logging import NullLogger
-from ..storage import StateStore
+from ..persistence.storage import StateStore
 
 
 def b64(value: bytes) -> str:

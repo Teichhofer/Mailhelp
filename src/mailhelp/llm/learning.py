@@ -13,13 +13,14 @@ from typing import Any, cast
 import yaml
 
 from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig
+from ..domain.extraction import LearnedCategory, MailClassification
+from ..domain.relevance import IrrelevantSenders
 from ..mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from ..mailbox.mime import prepare
 from ..mailbox.sender_filter import is_irrelevant_sender
-from ..models import IrrelevantSenders, LearnedCategory, MailClassification
+from ..persistence.storage import CorruptState, JsonStore, atomic_replace
 from ..processing.analysis import Analyzer
 from ..runtime.yaml_edit import set_list
-from ..storage import CorruptState, JsonStore, atomic_replace
 
 
 def _safe_terminal(value: str) -> str:

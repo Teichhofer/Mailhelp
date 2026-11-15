@@ -24,12 +24,12 @@ from ..logging import JsonlLogger
 from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
 from ..mailbox.mailbox_run import MailboxSource
 from ..paths import runtime_path
+from ..persistence.storage import JsonStore
 from ..processing.analysis import Analyzer
 from ..processing.mail_recheck import request_recheck
 from ..processing.orchestrator import Orchestrator
 from ..processing.vision import VisionExtractor
 from ..review.inbox import CommandInbox
-from ..storage import JsonStore
 from ..telegram import TelegramClient, TelegramDialogController
 from ..telegram.receiver import TelegramInbox
 from ..web.factory import create_web
@@ -59,7 +59,7 @@ def _mailbox_labels(store: JsonStore, sources: list[MailboxSource],
                     further: dict[str, str] | None = None) -> Callable[[Any], str]:
     """The label of the mailbox (or IServ account) a proposal's mail came from (3.1)."""
     from .. import state_names
-    from ..models import MailState
+    from ..domain.mail import MailState
     labels = {source.account_id: source.mailbox.label for source in sources} | (further or {})
 
     def label(proposal: Any) -> str:
@@ -315,7 +315,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     dialog.web_logout = components.auth.revoke_all
     dialog.web_invite = components.invite
     application.web = components.server
-    from ..configuration import ConfigurationService
+    from ..config.configuration import ConfigurationService
     from .lifecycle import Lifecycle
     configuration = ConfigurationService(base_directory, store, settings, components.authorize,
                                           application.request_settings, application.request_topics,
@@ -336,7 +336,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}
         components.site.views.mailboxes = components.site.archive.queries.mailboxes = labels
     components.site.archive.metrics = logger.metrics
-    from ..configuration import effective_models
+    from ..config.configuration import effective_models
     components.site.archive.models = effective_models(
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
     from .experience import ExperienceRuntime

@@ -6,12 +6,12 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.external.http_writer import HttpWriter
-from mailhelp.models import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, ResultStatus
 from mailhelp.review.service import ReviewService, proposal_creation_time
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, timed
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import command, setup, web

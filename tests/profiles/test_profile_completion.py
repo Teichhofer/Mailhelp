@@ -5,10 +5,10 @@ from types import SimpleNamespace as NS
 import pytest
 import yaml
 
-from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.domain.mail import MailState
 from mailhelp.external.providers import Writers
 from mailhelp.llm.decisions import load_relevance_prompts
-from mailhelp.models import MailState
 from mailhelp.notifications.drafts import DraftService
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileWriters
@@ -74,7 +74,7 @@ def test_live_configuration_merge_checks_revoked_session_and_safe_yaml_semantics
     assert cfg.active.imap.mailbox(2) is not None
     path = profiled.tmp_path / "config.yaml"
     command = command.model_copy(update={"expected_hash": file_hash(path)})
-    monkeypatch.setattr("mailhelp.configuration.replace_block", lambda text, *args: text)
+    monkeypatch.setattr("mailhelp.config.configuration.replace_block", lambda text, *args: text)
     changed = command.model_copy(update={"patch": {"imap.mailboxes": [dict(boxes[0], label="changed")]}})
     assert cfg.execute(changed).status == ResultStatus.INVALID
     monkeypatch.undo()
@@ -155,8 +155,8 @@ def test_configuration_sender_validation_uses_active_config_if_file_temporarily_
 
 
 def test_decision_comparison_sender_prefilter_calls_no_language_model(tmp_path):
+    from mailhelp.domain.relevance import IrrelevantSenders
     from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode
-    from mailhelp.models import IrrelevantSenders
     from tests.fakes.shared_core import prompt_config
     from tests.fakes.shared_decision_test import RAW, Reader, settings
     output = tmp_path / "comparison.json"

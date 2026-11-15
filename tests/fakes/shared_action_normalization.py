@@ -2,7 +2,7 @@
 
 
 
-from mailhelp.models import ExtractedEvent, ExtractedTask
+from mailhelp.domain.extraction import ExtractedEvent, ExtractedTask
 from mailhelp.proposals.action_normalization import (
     MailDateContext,
 )

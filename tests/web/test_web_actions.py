@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mailhelp.domain.processing import ProposalClarificationState, ProposalRevisionStatus
-from mailhelp.models import ActionLedger, ActionLedgerEntry, Proposal, ProposalStatus, TelegramDialogState
+from mailhelp.domain.processing import ProposalClarificationState, ProposalRevisionStatus, TelegramDialogState
+from mailhelp.domain.proposal import ActionLedger, ActionLedgerEntry, Proposal, ProposalStatus
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.inbox import MAX_QUEUED, CommandStatus

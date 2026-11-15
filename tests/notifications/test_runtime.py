@@ -8,8 +8,9 @@ import pytest
 import requests
 from pywebpush import WebPushException
 
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.llm.adapter import PermanentError, RetryableError
-from mailhelp.models import MailState, ProposalStatus
 from mailhelp.notifications.notification_config import Categories, NotificationSettings
 from mailhelp.notifications.notification_context import web_reply
 from mailhelp.notifications.notification_runtime import NotificationRuntime
@@ -89,7 +90,7 @@ def test_current_revision_and_finished_decisions_are_checked_at_dispatch(runtime
 
 def test_legacy_delivery_markers_seed_sent_and_uncertain_without_replaying(configured):
     app, web = configured.app, configured.web
-    from mailhelp.models import ProposalNotification
+    from mailhelp.domain.processing import ProposalNotification
     state = web.store.load_model("mail-" + MAIL1, MailState)
     state.proposal_notifications = [ProposalNotification(proposal_id=p.id, proposal_version=p.version,
                                                          status="completed" if p.id == "elternabend" else "sending")
@@ -329,7 +330,7 @@ def test_failed_mail_is_queued_by_codes_not_by_german_labels(runtime):
     # Regression: the reference was built from the display labels
     # ("Zusammenfassung:Dienst lehnt dauerhaft ab"), which violate the Delivery
     # pattern; every tick then failed with a ValidationError.
-    from mailhelp.models import ProcessingError
+    from mailhelp.domain.processing import ProcessingError
     svc, web = runtime.runtime, runtime.web
     state = web.store.load_model("mail-" + MAIL1, MailState)
     state.error = ProcessingError(code="permanent_adapter_error", stage="summary",
@@ -480,7 +481,7 @@ def test_completed_records_cannot_be_executed_or_overtake_pending_commands(runti
 
 
 def test_configuration_results_are_not_copied_into_action_result_notifications(runtime):
-    from mailhelp.configuration import AdminCommand, AdminKind
+    from mailhelp.config.configuration import AdminCommand, AdminKind
     web, svc = runtime.web, runtime.runtime
     before = web.store.load("command-inbox")
     command = AdminCommand(kind=AdminKind.SETTINGS, actor="web:" + web.auth.sessions()[0].id,

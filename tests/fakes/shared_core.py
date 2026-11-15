@@ -7,9 +7,7 @@ from mailhelp.config import (
     PromptConfig,
     PromptStep,
 )
-from mailhelp.models import (
-    Proposal,
-)
+from mailhelp.domain.proposal import Proposal
 from tests.fakes.factories import build_proposal
 
 

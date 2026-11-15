@@ -4,7 +4,7 @@
 
 
 from mailhelp.config import TargetSettings
-from mailhelp.models import ExtractedTask
+from mailhelp.domain.extraction import ExtractedTask
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
 

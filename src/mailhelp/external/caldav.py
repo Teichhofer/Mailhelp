@@ -14,9 +14,9 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
+from ..domain.proposal import Proposal, ProposalKind
 from ..llm.adapter import PermanentError, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from ..models import Proposal, ProposalKind
 from .calendar import CalendarOperations
 from .contracts import (
     AuthenticationError,

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 import pytest
 import yaml
 
-from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+from mailhelp.config.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.review.inbox import COMMAND_INBOX, CommandInbox, CommandStatus
 from mailhelp.review.results import ResultStatus
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)

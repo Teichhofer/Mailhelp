@@ -32,8 +32,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..persistence.storage import CorruptState, JsonStore
 from ..runtime.lock_metrics import measured_lock
-from ..storage import CorruptState, JsonStore
 
 SESSIONS = "web-sessions"
 PAIRING = "web-pairing"

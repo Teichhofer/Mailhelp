@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Literal, Protocol, runtime_checkable
 
+from ..domain.proposal import Proposal
 from ..domain.verification import FieldDifference, Operation
-from ..models import Proposal
 
 TEMPORAL = ("due", "start", "end")
 # How the written entry became known: by the write answer, found by its key, or already there.

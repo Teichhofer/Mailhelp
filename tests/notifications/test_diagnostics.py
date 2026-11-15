@@ -9,8 +9,8 @@ import httpx
 import pytest
 
 from mailhelp.llm.adapter import PermanentError
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.runtime.diagnostics import DiagnosticResult, DiagnosticsService, error_code
-from mailhelp.storage import JsonStore
 
 
 @pytest.mark.parametrize("exc,code", [

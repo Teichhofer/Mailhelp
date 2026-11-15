@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..models import Proposal
+from ..domain.proposal import Proposal
 from ..persistence.proposals import ProposalRepository
 from .client import TelegramTransport
 from .outbox import TelegramOutbox

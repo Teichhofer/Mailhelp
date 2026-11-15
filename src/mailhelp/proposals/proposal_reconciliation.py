@@ -15,7 +15,7 @@ from ..domain.proposal import (
 from ..domain.proposal_sources import ProposalMatchDecision, ProposalReference, ProposalRelation
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..persistence.proposals import ProposalRepository
-from ..storage import CorruptState, JsonStore
+from ..persistence.storage import CorruptState, JsonStore
 from .proposal_matching import compatible, reference_key, relationship, same_thread, sources
 from .proposal_merge import merge_facts
 

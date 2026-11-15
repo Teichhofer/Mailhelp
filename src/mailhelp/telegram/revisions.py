@@ -9,23 +9,27 @@ import httpx
 from pydantic import ValidationError
 
 from .. import state_names
-from ..domain.proposal import RECONCILIATION_HINT, answerable_questions, reconciliation_only
-from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
-from ..llm.adapter import RetryableError
-from ..models import (
+from ..domain.mail import MailState
+from ..domain.processing import (
     AnswerStatus,
-    MailState,
-    Proposal,
     ProposalClarificationState,
-    ProposalClassification,
     ProposalRevisionStatus,
-    ProposalStatus,
     QuestionStatus,
     TelegramDialogState,
 )
+from ..domain.proposal import (
+    RECONCILIATION_HINT,
+    Proposal,
+    ProposalClassification,
+    ProposalStatus,
+    answerable_questions,
+    reconciliation_only,
+)
+from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..llm.adapter import RetryableError
 from ..notifications.notification_context import web_reply
 from ..persistence.proposals import clarification_name, proposal_name, proposal_version_name
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 from .answer_interpretation import AuthorizedAnswerInterpreter
 from .client import TelegramTransport
 from .formatting import clarification_prompt

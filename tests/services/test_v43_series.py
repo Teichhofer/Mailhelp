@@ -4,11 +4,11 @@ from datetime import date, datetime
 
 import pytest
 
-from mailhelp.models import KnownTemporalFacts, ProposalStatus
+from mailhelp.domain.proposal import KnownTemporalFacts, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.results import ResultStatus
 from mailhelp.review.series import SeriesService, members
-from mailhelp.storage import JsonStore
 from tests.fakes.proposal_builder_fakes import builder, event
 from tests.fakes.series_fakes import batch, series
 from tests.fakes.shared_review import EVENT, command, setup, web

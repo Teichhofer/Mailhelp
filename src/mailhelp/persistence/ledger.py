@@ -9,8 +9,8 @@ from datetime import date, datetime
 from typing import Any, Protocol
 
 from .. import state_names
-from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
-from ..storage import JsonStore
+from ..domain.proposal import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
+from .storage import JsonStore
 
 
 class ActionLedgerPort(Protocol):

@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 from ..config import Settings, TargetProfileSettings, Topic, read_yaml
-from ..configuration import MAILBOX_POLICY_FIELDS
+from ..config.configuration import MAILBOX_POLICY_FIELDS
+from ..domain.proposal import Proposal
 from ..mailbox.mailbox_settings import effective_settings, mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
-from ..models import Proposal
 from ..proposals.profile_binding import choices
 from ..proposals.profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
@@ -231,9 +231,9 @@ class MailboxSite:
         return text
 
     def affected(self) -> dict[int, int]:
+        from ..domain.mail import MailState
         from ..llm.decisions import relevance_fingerprint
-        from ..models import MailState
-        from ..storage import mail_state_names
+        from ..state_names import mail_state_names
 
         app = self.runtime.app
         cfg = self.runtime.setup.draft_settings()
@@ -456,7 +456,7 @@ class MailboxSite:
                     )
                 else:
                     value = form["value"]
-                from ..configuration import set_dotted
+                from ..config.configuration import set_dotted
 
                 set_dotted(box, field, value)
             self.runtime.setup.save(

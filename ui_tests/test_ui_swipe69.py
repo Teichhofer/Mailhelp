@@ -302,7 +302,7 @@ def test_hint_waits_while_the_card_is_partly_hidden_and_nudges_once_it_is_whole(
 
 @pytest.mark.parametrize("width,height", [(390, 844), (360, 740)])
 def test_title_metadata_then_actions_and_active_filter_fade(phone, mailhelp, width, height):
-    from mailhelp.models import Proposal
+    from mailhelp.domain.proposal import Proposal
     from tests.scenarios.web_scenario import mail_id
 
     item = mailhelp.store.load_model("proposal-" + mail_id(1) + "-elternabend", Proposal)
@@ -351,7 +351,8 @@ def test_filtered_counter_keeps_current_filter_after_decision(phone, mailhelp):
 def test_hint_skips_blocked_cards_or_only_shows_the_line(page, mailhelp, all_blocked):
     if page.device != "mobile":
         return
-    from mailhelp.models import MailState, Proposal, ProposalStatus
+    from mailhelp.domain.mail import MailState
+    from mailhelp.domain.proposal import Proposal, ProposalStatus
     from tests.scenarios.web_scenario import mail_id
 
     state = mailhelp.store.load_model("mail-" + mail_id(7), MailState)

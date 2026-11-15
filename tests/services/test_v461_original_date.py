@@ -6,7 +6,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from mailhelp.models import CalendarCandidate, EventExtraction, Proposal
+from mailhelp.domain.mail import EventExtraction
+from mailhelp.domain.proposal import CalendarCandidate, Proposal
 from mailhelp.proposals.action_normalization import resolve_day
 from tests.fakes.proposal_builder_fakes import builder, context, event
 

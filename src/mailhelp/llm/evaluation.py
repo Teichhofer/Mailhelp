@@ -15,8 +15,8 @@ from typing import Any, Protocol, overload
 import yaml
 
 from ..config import PromptConfig, Topic
+from ..domain.extraction import EventExtraction, TaskExtraction
 from ..mailbox.mime import prepare
-from ..models import EventExtraction, TaskExtraction
 from ..processing.analysis import Analyzer
 from ..processing.identity import addresses_in
 from ..processing.perspective import read_perspective

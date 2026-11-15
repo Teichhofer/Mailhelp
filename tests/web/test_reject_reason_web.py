@@ -1,7 +1,7 @@
 """Web interface tests for rejection reasons (Planung 6.5, D2, 3.2)."""
 from __future__ import annotations
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
 from tests.scenarios.web_scenario import mail_id
 
 MAIL1 = mail_id(1)
@@ -113,6 +113,7 @@ def test_reject_shows_sender_hint_on_detached_card(web):
     # MAIL1 sender has proposal 'elternabend'.
     # Add 4 additional rejected proposals for this sender so total is 5 rejected
     from datetime import UTC, datetime
+
     from mailhelp import state_names
     from mailhelp.domain.proposal import Proposal, ProposalKind
     mail1_view = web.site.views.mail(MAIL1)
@@ -161,7 +162,7 @@ def test_command_cards_detached_without_sender_hint_lookup(web):
 
 
 def test_review_site_sender_hint_edge_cases(web):
-    from mailhelp.configuration import ConfigurationService
+    from mailhelp.config.configuration import ConfigurationService
     from tests.fakes.shared_application import settings
 
     # 1. Non-existent mail -> None

@@ -4,18 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import TargetSettings
-from mailhelp.models import (
-    ExtractedEvent,
-    ExtractedTask,
-    ExtractionCountConflict,
-    KnownTemporalFacts,
-    Proposal,
-    ProposalStatus,
-    TemporalFact,
-)
+from mailhelp.domain.extraction import ExtractedEvent, ExtractedTask
+from mailhelp.domain.mail import ExtractionCountConflict
+from mailhelp.domain.proposal import KnownTemporalFacts, Proposal, ProposalStatus
+from mailhelp.domain.temporal import TemporalFact
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
-from mailhelp.storage import JsonStore
 from tests.fakes.proposal_builder_fakes import builder, context, event, task
 
 

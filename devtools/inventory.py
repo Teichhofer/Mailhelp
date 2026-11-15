@@ -116,7 +116,7 @@ def _path(key: str, web: set[str], setup: set[str]) -> str:
 
 def settings_rows(reference: str) -> list[Row]:
     from mailhelp.config import Settings
-    from mailhelp.configuration import SETTINGS_FIELDS, SETUP_FIELDS
+    from mailhelp.config.configuration import SETTINGS_FIELDS, SETUP_FIELDS
     rows: list[Row] = []
 
     def walk(model: type[BaseModel], prefix: str, seen: frozenset[type[BaseModel]]) -> None:

@@ -1,8 +1,8 @@
 """Web commands must not queue behind Telegram I/O or maintenance work."""
 from threading import Event, Thread
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
-from mailhelp.storage import JsonStore
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import command, setup, web
 

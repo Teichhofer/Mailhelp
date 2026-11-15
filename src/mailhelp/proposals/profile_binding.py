@@ -4,11 +4,11 @@ import hashlib
 import json
 
 from ..config import Settings
+from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
 from ..external.contracts import TargetWriter
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..external.roles import provider_key, writer_for
 from ..mailbox.mailbox_settings import profile_label, target_profiles
-from ..models import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
 from .target_profiles import UnavailableWriter
 
 

@@ -1,8 +1,8 @@
 """Synthetic regression scenarios for the observations in the 2.4 plan."""
 import pytest
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import JsonStore
 from tests.fakes.reconciliation_fakes import Events, Existing, current, process
 
 

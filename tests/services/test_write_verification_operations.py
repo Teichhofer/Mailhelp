@@ -8,12 +8,13 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from mailhelp import state_names
+from mailhelp.domain.extraction import CalendarDuplicateDecision
+from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.domain.verification import VerificationState
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.ical import CalendarFileWriter
-from mailhelp.models import CalendarDuplicateDecision, Proposal, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.write_verification import WriteVerifications
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.writes import ConfirmedWriteExecutor
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, google_writer, timed
 

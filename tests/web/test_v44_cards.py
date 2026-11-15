@@ -3,10 +3,10 @@ import json
 from datetime import UTC, datetime
 
 import mailhelp.review.incoming as incoming
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.inbox import CommandEntry
 from mailhelp.review.results import ResultStatus, ReviewResult
-from mailhelp.storage import JsonStore
 from mailhelp.web.auth import SESSIONS, WebAuth
 from mailhelp.web.command_cards import CommandCards
 from tests.fakes.series_fakes import batch, series

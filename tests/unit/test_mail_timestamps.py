@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from mailhelp.models import MailState, next_updated_at
+from mailhelp.domain.mail import MailState, next_updated_at
 from tests.fakes.clock_fakes import step_back_wall_clock
 
 IDENTITY = {"id": "a" * 24, "config_fingerprint": "f" * 64,

@@ -5,14 +5,21 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from ..domain.proposal import MATCHING_QUESTION, invalidate_creation_permissions
-from ..models import ActionLedgerEntry, Proposal, ProposalKind, ProposalStatus, TelegramDialogState
+from ..domain.processing import TelegramDialogState
+from ..domain.proposal import (
+    MATCHING_QUESTION,
+    ActionLedgerEntry,
+    Proposal,
+    ProposalKind,
+    ProposalStatus,
+    invalidate_creation_permissions,
+)
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.proposals import ProposalRepository
+from ..persistence.storage import JsonStore
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
 from ..review.verification_texts import VERIFYING_MESSAGE
-from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction, apply_decision
 from .client import TelegramTransport
 from .formatting import clarification_prompt

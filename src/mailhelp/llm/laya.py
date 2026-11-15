@@ -22,7 +22,7 @@ import httpx
 from pydantic import Field, model_validator
 
 from ..config import ConfigModel, Topic, read_yaml, validated_file
-from ..models import Relevance
+from ..domain.relevance import Relevance
 from .decisions import DecisionClient, Probability, Question, validate_answers
 from .ollama import LocalLlm, raise_for_ollama_status, require_installed_model
 

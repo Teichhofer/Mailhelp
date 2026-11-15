@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram.formatting import format_proposal
-from mailhelp.temporal_answers import relative_end_answer
+from mailhelp.text.temporal_answers import relative_end_answer
 from tests.fakes.shared_telegram_dialog import callback, controller, message, proposal
 
 MAIL = "a" * 24

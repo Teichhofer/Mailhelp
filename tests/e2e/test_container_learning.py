@@ -9,11 +9,12 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
+from mailhelp.domain.extraction import AbstractCategories, LearnedCategory, MailClassification
+from mailhelp.domain.relevance import Relevance
 from mailhelp.llm.learning import LearningMode
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
-from mailhelp.storage import JsonStore
 
 pytestmark = pytest.mark.e2e
 

@@ -5,8 +5,8 @@ import pytest
 import yaml
 
 from mailhelp.config import _dotenv
+from mailhelp.persistence.storage import CorruptState
 from mailhelp.runtime.credentials import RECEIPTS, CredentialEdits, CredentialUnauthorized
-from mailhelp.storage import CorruptState
 from tests.fakes.shared_setup import configured  # noqa: F401
 
 SAVE = "/einstellungen/zugangsdaten/speichern"

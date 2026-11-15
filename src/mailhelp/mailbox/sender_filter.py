@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from email.utils import getaddresses
 
-from ..models import IrrelevantSenders
+from ..domain.relevance import IrrelevantSenders
 
 
 def sender_addresses(header: object) -> set[str]:
@@ -70,7 +70,7 @@ def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: 
 
 
 def save_sender_filter(store, blocked: IrrelevantSenders) -> None:
-    from ..storage import atomic_replace
+    from ..persistence.storage import atomic_replace
     with store.locked():
         previous = store.load("irrelevant-senders", {})
         path = store.directory / "irrelevant-senders.json"

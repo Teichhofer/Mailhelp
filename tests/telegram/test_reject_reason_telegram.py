@@ -5,10 +5,10 @@ import json
 
 import pytest
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.learning_log import DecisionLearningLog
 from mailhelp.review.reject_reasons import USER_REJECT_REASONS
-from mailhelp.storage import JsonStore
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import setup

@@ -7,11 +7,11 @@ import pytest
 
 from mailhelp import state_names
 from mailhelp.config import PromptStep
-from mailhelp.models import ActionRoute, MailState
+from mailhelp.domain.mail import ActionRoute, MailState
 from mailhelp.notifications.drafts import AUTO_KEY, DraftService, ReplyDraft
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.mail_pipeline import MailPipeline, ProcessingRun
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import prompt_config
 from tests.scenarios.web_scenario import mail_id, save_mail
 

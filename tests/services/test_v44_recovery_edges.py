@@ -7,7 +7,8 @@ import pytest
 from pydantic import ValidationError
 
 import mailhelp.review.incoming as incoming
-from mailhelp.configuration import AdminCommand, AdminKind
+from mailhelp.config.configuration import AdminCommand, AdminKind
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, ResultStatus, ReviewResult
 from mailhelp.review.commands import CommandSource
 from mailhelp.review.inbox import (
@@ -19,7 +20,6 @@ from mailhelp.review.inbox import (
     CommandStatus,
 )
 from mailhelp.review.incoming import IncomingRecord, key_hash, record_payload
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command, setup
 
 NOW = datetime(2026, 11, 7, 12, tzinfo=UTC)

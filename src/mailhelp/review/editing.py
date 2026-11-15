@@ -7,8 +7,13 @@ from zoneinfo import ZoneInfo
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
 
-from ..domain.proposal import required_revision_questions, settled_conflict_questions
-from ..models import Proposal, ProposalKind, ProposalStatus
+from ..domain.proposal import (
+    Proposal,
+    ProposalKind,
+    ProposalStatus,
+    required_revision_questions,
+    settled_conflict_questions,
+)
 
 
 class ProposalEditPatch(BaseModel):

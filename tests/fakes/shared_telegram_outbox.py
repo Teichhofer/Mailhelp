@@ -1,11 +1,8 @@
 """Shared synthetic fixtures and doubles; no test-module dependencies."""
 from __future__ import annotations
 
-from mailhelp.models import (
-    MailState,
-    ProposalNotification,
-    TelegramOutboxState,
-)
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProposalNotification, TelegramOutboxState
 from tests.fakes.shared_telegram_dialog import (
     Telegram,
     proposal,

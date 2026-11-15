@@ -4,12 +4,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .. import state_names
-from ..models import MailState
+from ..domain.mail import MailState
+from ..persistence.storage import CorruptState
 from ..review.archive import AnalysisSnapshot
 from ..review.consistency import hints
 from ..review.explanation import explain
 from ..review.queries import ArchiveQuery
-from ..storage import CorruptState
 from .archive_pages import analysis_section, mail_list_page, processing_path_section, revisions_list
 from .auth import WebSession
 from .http import Request, Response

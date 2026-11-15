@@ -15,11 +15,11 @@ from typing import Any, Protocol, overload, runtime_checkable
 
 from pydantic import BaseModel, ValidationError
 
-from .persistence.migrations import migrate_document
-from .runtime.lock_metrics import measured_lock
+from ..runtime.lock_metrics import measured_lock
 
 # Re-exported for existing callers; the name patterns live in state_names.
-from .state_names import mail_state_names  # noqa: F401
+from ..state_names import mail_state_names  # noqa: F401
+from .migrations import migrate_document
 
 
 class CorruptState(RuntimeError): pass

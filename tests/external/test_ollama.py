@@ -104,7 +104,8 @@ def test_regression_length_limits_are_not_sent_as_ollama_grammar():
     "Failed to initialize samplers: failed to parse grammar" (HTTP 400) for
     long ``maxLength`` limits. Lengths stay enforced by the local validation.
     """
-    from mailhelp.models import ProposalRevisionDelta, TaskExtraction
+    from mailhelp.domain.mail import TaskExtraction
+    from mailhelp.domain.proposal import ProposalRevisionDelta
 
     seen = []
 
@@ -142,7 +143,7 @@ def test_regression_optional_fields_are_required_in_the_ollama_grammar():
     "15.10.2026 um 14:00 Uhr" (see evidence) but omitted both fields. Every
     property is now required in the grammar; null stays allowed.
     """
-    from mailhelp.models import EventExtraction
+    from mailhelp.domain.mail import EventExtraction
 
     sent = OllamaClient._grammar_schema(EventExtraction.model_json_schema())
     event = sent["$defs"]["ExtractedEvent"]
@@ -161,7 +162,7 @@ def test_regression_revision_changes_stay_sparse_in_the_ollama_grammar():
     A missing key in ``changes`` means "unchanged"; with all fields required
     Hy3 wrote every field as null and B1 rejected the delta.
     """
-    from mailhelp.models import ProposalRevisionDelta
+    from mailhelp.domain.proposal import ProposalRevisionDelta
 
     sent = OllamaClient._grammar_schema(ProposalRevisionDelta.model_json_schema())
     changes = sent["$defs"]["ProposalRevisionChanges"]

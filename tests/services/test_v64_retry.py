@@ -2,16 +2,16 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
-from mailhelp.models import MailState, ProcessingErrorCode, ProcessingStage
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProcessingErrorCode, ProcessingStage
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.processing.retry import blocked, failed, succeeded
 from tests.fakes.processing_retry import errored, terminal
 
 
-
 def test_five_attempts_survive_restart_and_never_fetch_during_delay(tmp_path):
     from mailhelp.mailbox.mailbox_run import _MailBudget
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.shared_application import Imap, Orch, Telegram, app
 
     state = errored()
@@ -111,7 +111,7 @@ def test_rate_limit_failure_notification_suppression_and_web_link(tmp_path):
 
 def test_resume_pending_fetch_error_calls_failure(tmp_path):
     from mailhelp.mailbox.mailbox_run import _MailBudget
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.shared_application import Imap, Orch, Telegram, app
 
     state = errored()
@@ -143,7 +143,7 @@ def test_resume_pending_fetch_error_calls_failure(tmp_path):
 
 def test_telegram_status_reports_abandoned_mails(tmp_path):
     from mailhelp.domain.retry import ProcessingRetry
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from mailhelp.telegram.commands import TelegramCommands
     from tests.fakes.shared_application import Imap, Orch, Telegram, app
 

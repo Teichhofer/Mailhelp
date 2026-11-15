@@ -2,13 +2,13 @@
 from datetime import UTC, datetime
 from threading import Event
 
+from mailhelp.domain.run import MailRunState
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
 from mailhelp.external.oauth import GoogleOAuthTokenProvider
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxRunService, MailboxSource
-from mailhelp.models import MailRunState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals import integrations
 from mailhelp.web import review_pages, status_pages
@@ -104,7 +104,7 @@ def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
     import json
     from pathlib import Path
 
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.shared_render_contract import content_contract
     expected = json.loads(Path(__file__).with_name("renderer_content_contract.json").read_text(encoding="utf-8"))
     with JsonStore(tmp_path) as store:

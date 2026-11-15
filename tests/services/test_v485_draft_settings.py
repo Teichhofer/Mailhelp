@@ -7,7 +7,7 @@ import yaml
 from pydantic import ValidationError
 
 from mailhelp.config import ImapSettings, Settings
-from mailhelp.configuration import file_hash
+from mailhelp.config.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.runtime.experience import ExperienceRuntime

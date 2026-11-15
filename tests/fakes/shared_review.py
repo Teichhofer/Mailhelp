@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from mailhelp.models import (
-    MailState,
-)
+from mailhelp.domain.mail import MailState
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review import CommandKind, CommandSource, ReviewCommand
 

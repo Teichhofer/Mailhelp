@@ -3,12 +3,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..domain.revision_errors import TechnicalRevisionError
-from ..models import (
-    MailState,
-    Proposal,
-)
-from ..temporal_answers import deterministic_temporal_revision
+from ..text.temporal_answers import deterministic_temporal_revision
 from .analysis import LlmSchemaValidationExceeded
 
 if TYPE_CHECKING:

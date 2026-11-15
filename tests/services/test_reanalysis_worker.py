@@ -10,9 +10,9 @@ from mailhelp.config import ReanalysisSettings
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.reanalysis import ReanalysisJob, ReanalysisStatus
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.runtime import reanalysis_worker
 from mailhelp.runtime.reanalysis_worker import ReanalysisWorker, mailbox_readers
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.reanalysis_fakes import DONE_STEPS, ReanalysisAnalyzer, ReanalysisEngine
 from tests.scenarios.web_scenario import mail_id

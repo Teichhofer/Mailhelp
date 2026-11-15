@@ -2,7 +2,7 @@
 from html import escape
 from pathlib import Path
 
-from mailhelp.configuration import SETTINGS_FIELDS
+from mailhelp.config.configuration import SETTINGS_FIELDS
 from mailhelp.web.setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 from mailhelp.web.settings_pages import AREAS, setting_label, settings_page
 

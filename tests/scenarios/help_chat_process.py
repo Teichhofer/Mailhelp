@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from mailhelp.config import HelpChatSettings
 from mailhelp.helpdocs import HelpAnswer, load
 from mailhelp.helpdocs.chat import HelpChat
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 QUESTION = "Was bewirkt das Abrufintervall?"
 

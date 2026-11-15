@@ -10,9 +10,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .. import state_names
-from ..models import MailState, Proposal, ProposalKind, ProposalStatus
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal, ProposalKind, ProposalStatus
+from ..persistence.storage import JsonStore
 from ..review.learning_log import _read, learning_path
-from ..storage import JsonStore
 
 ACCEPTED_STATUSES = frozenset({
     ProposalStatus.CREATED,

@@ -7,8 +7,8 @@ import socket
 import pytest
 
 from mailhelp.config import WebSettings
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.inbox import CommandInbox
-from mailhelp.storage import JsonStore
 from mailhelp.web import Request, WebApp, network
 from mailhelp.web.factory import base_url, create_web
 from tests.fakes.shared_web_auth import (  # noqa: F401

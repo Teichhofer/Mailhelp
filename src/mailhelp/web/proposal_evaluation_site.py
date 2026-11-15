@@ -5,9 +5,10 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from .. import state_names
-from ..configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange, file_hash
+from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange, file_hash
+from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..mailbox.sender_filter import sender_addresses
-from ..models import MailState, Proposal
 from ..review.proposal_evaluation import (
     ACCEPTED_STATUSES,
     dismiss_learning_run_hint,

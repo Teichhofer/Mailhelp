@@ -4,18 +4,11 @@ from __future__ import annotations
 from typing import Protocol
 
 from .. import state_names
-from ..domain.mail import next_updated_at
-from ..models import (
-    MailRunCounters,
-    MailRunEntryStatus,
-    MailRunState,
-    MailState,
-    Proposal,
-    ProposalNotification,
-    ProposalStatus,
-    WriteAttemptReference,
-)
-from ..storage import JsonStore
+from ..domain.mail import MailState, next_updated_at
+from ..domain.processing import ProposalNotification, WriteAttemptReference
+from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.run import MailRunCounters, MailRunEntryStatus, MailRunState
+from .storage import JsonStore
 
 
 def proposal_name(mail_id: str, proposal_id: str) -> str:

@@ -56,8 +56,8 @@ def test_caldav_reads_an_event_and_treats_gone_or_cancelled_as_missing():
 
 
 def test_caldav_refuses_an_entry_that_became_a_series_between_check_and_write():
+    from mailhelp.domain.proposal import Proposal, ProposalStatus
     from mailhelp.external.confirmed import execute_confirmed
-    from mailhelp.models import Proposal, ProposalStatus
     server = FakeDav()
     url = COLLECTION + "a.ics"
     plain = vevent("a", "Elternabend", "20261124T183000Z", "20261124T200000Z")

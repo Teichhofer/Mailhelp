@@ -6,17 +6,18 @@ import yaml
 
 from mailhelp import cli, state_names
 from mailhelp.config import RetentionSettings
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.domain.verification import VerificationState, operation_id
 from mailhelp.external.confirmed import execute_confirmed
-from mailhelp.models import MailState, Proposal, ProposalStatus
 from mailhelp.paths import runtime_path
 from mailhelp.persistence.proposals import ProposalRepository
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.write_verification import WriteVerifications, prepare_rollback
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.review.views import ReviewViews
 from mailhelp.runtime.retention import RetentionService
-from mailhelp.storage import JsonStore
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_application import settings as application_settings
 from tests.fakes.verifying_writer import SimulatedProvider, VerifyingWriter

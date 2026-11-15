@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from mailhelp.models import Proposal, ProposalStatus
+from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.proposals.integrations import execute_confirmed
 from tests.fakes.provider_matrix import PROVIDERS, ProviderMemory
 from tests.fakes.shared_core import proposal
@@ -143,7 +143,7 @@ def test_parallel_safety_scenarios_with_actual_adapters(web,tmp_path,provider,sc
 @pytest.mark.parametrize('provider',PROVIDERS)
 @pytest.mark.parametrize('point',['A1','A2','A3','A4'])
 def test_hard_kill_matrix_reconciles_real_adapter_after_two_restarts(tmp_path,provider,point):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.safety_harness import ProcessHarness, seed
     directory=tmp_path/'app'
     memory=ProviderMemory(tmp_path/'external.json',provider)
@@ -166,7 +166,7 @@ def test_hard_kill_matrix_reconciles_real_adapter_after_two_restarts(tmp_path,pr
 @pytest.mark.parametrize('provider',['google_calendar','outlook_calendar','caldav_calendar'])
 @pytest.mark.parametrize('cancel',[False,True])
 def test_supported_calendar_change_and_cancellation_use_existing_resource(tmp_path,provider,cancel):
-    from mailhelp.models import ProposalClassification
+    from mailhelp.domain.proposal import ProposalClassification
     memory=ProviderMemory(tmp_path/'external.json',provider)
     record=item(memory)
     writer=memory.writer()

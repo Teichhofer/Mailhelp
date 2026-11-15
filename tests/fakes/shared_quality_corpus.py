@@ -6,8 +6,9 @@ from copy import deepcopy
 from pathlib import Path
 
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
+from mailhelp.domain.mail import ActionRoute, EventExtraction, Summary, TaskExtraction
+from mailhelp.domain.relevance import Relevance
 from mailhelp.mailbox.mime import prepare
-from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder

@@ -8,9 +8,9 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..domain.proposal import Proposal
 from ..domain.verification import FieldDifference, Operation
 from ..llm.adapter import PermanentError, RetryableError, UncertainWriteError
-from ..models import Proposal
 
 
 class ExternalServiceError(Exception):

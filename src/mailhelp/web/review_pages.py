@@ -12,7 +12,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlsplit
 
-from ..models import ProposalKind, ProposalStatus
+from ..domain.proposal import ProposalKind, ProposalStatus
 from ..review.calendar_display import change_parts
 from ..review.cards import sender_name
 from ..review.views import MailView, Overview, ProposalView, RelevanceView

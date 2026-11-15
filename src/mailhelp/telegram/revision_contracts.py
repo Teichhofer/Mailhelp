@@ -4,8 +4,9 @@ from __future__ import annotations
 from datetime import date as calendar_date
 from typing import Protocol
 
+from ..domain.extraction import TelegramAnswerInterpretation, TelegramClarification
+from ..domain.proposal import Proposal
 from ..logging import EventLogger
-from ..models import Proposal, TelegramAnswerInterpretation, TelegramClarification
 
 
 class ProposalRevisionService(Protocol):

@@ -11,7 +11,7 @@ from typing import Any
 from ..config import Settings, WebSettings
 from ..config.loader import _dotenv
 from ..logging import JsonlLogger
-from ..storage import JsonStore, atomic_replace
+from ..persistence.storage import JsonStore, atomic_replace
 from ..web.app import WebApp
 from ..web.auth import WebAuth
 from ..web.initial_site import InitialSite

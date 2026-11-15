@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS
+from ..config.configuration import LIVE_FIELDS, SETTINGS_FIELDS
 from ..runtime.credentials import CredentialSnapshot
 from .credential_pages import credentials_section
 from .forms import field, post_form, select

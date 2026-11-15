@@ -1,16 +1,16 @@
 """Tests for proposal evaluation and acceptance rate calculation (Planung 6.5, 3.1)."""
-from datetime import UTC, datetime, timedelta
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mailhelp import state_names
-from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, ProposalKind, ProposalStatus
-from mailhelp.models import MailState, Proposal
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Proposal, ProposalKind, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.proposal_evaluation import (
     collect_decided_proposals,
     evaluate_proposals,
 )
-from mailhelp.storage import JsonStore
 
 
 def _make_mail(mid: str, sender: str = "alice@example.com", topic_ids: list[str] | None = None, now: datetime | None = None) -> MailState:
@@ -242,7 +242,7 @@ def test_sender_fallback_when_mail_stripped(tmp_path: Path):
 
 
 def test_collect_decided_proposals_edge_cases(tmp_path: Path):
-    from mailhelp.models import DisplayHeaders, PreparedMail
+    from mailhelp.domain.mail import DisplayHeaders, PreparedMail
     from mailhelp.review.proposal_evaluation import _parse_iso
     store = JsonStore(tmp_path)
     now = datetime(2026, 11, 14, 12, 0, tzinfo=UTC)

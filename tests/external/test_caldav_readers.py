@@ -9,14 +9,14 @@ import httpx
 import pytest
 
 from mailhelp import state_names
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.domain.verification import VerificationState
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import CalendarAccessError
 from mailhelp.external.icalendar_data import resource_uid
-from mailhelp.models import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.write_verification import WriteVerifications
-from mailhelp.storage import JsonStore
 from tests.fakes.dav_fakes import COLLECTION, FakeDav
 from tests.scenarios.web_scenario import mail_id, proposal
 

@@ -17,14 +17,14 @@ from pydantic import SecretStr, ValidationError
 from pywebpush import WebPushException
 
 from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
+from mailhelp.domain.mail import MailState
 from mailhelp.llm.adapter import RetryableError
-from mailhelp.models import MailState
 from mailhelp.notifications.briefing import DailyBriefingService
 from mailhelp.notifications.drafts import DraftService, ReplyDraft, message
 from mailhelp.notifications.webpush import NoRedirectSession, PushService, b64, subscription
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.runtime.standalone import DisabledTelegram
-from mailhelp.storage import JsonStore
 from tests.fakes.lock_fakes import ProbedStore, finishes_while_store_lock_held
 from tests.fakes.shared_vision import image_bytes, mail
 from tests.fakes.shared_web_actions import MAIL1

@@ -3,8 +3,8 @@ import hashlib
 from datetime import UTC, datetime
 
 from .. import state_names
-from ..models import MailState
-from ..storage import JsonStore
+from ..domain.mail import MailState
+from ..persistence.storage import JsonStore
 from .archive import HistoryEvent, append_event
 from .commands import CommandKind, ReviewCommand
 from .errors import StaleCommand

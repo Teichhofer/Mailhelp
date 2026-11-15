@@ -4,8 +4,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from mailhelp.models import MailState, Proposal, ProposalNotification
-from mailhelp.storage import JsonStore
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProposalNotification
+from mailhelp.domain.proposal import Proposal
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram import (
     Decision,
     DecisionAction,

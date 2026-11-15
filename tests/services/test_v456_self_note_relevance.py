@@ -4,10 +4,11 @@ Regression: in the real 4.5 evaluation the forwarded "Elternabend" with "Bitte e
 was filed as irrelevant, so no proposal would have been created at all.
 """
 from mailhelp.config import Topic
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.relevance import Relevance
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState, Relevance
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.perspective import SELF_NOTE_REASON, Perspective
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings
 from tests.fakes.shared_services import AnalyzerStub

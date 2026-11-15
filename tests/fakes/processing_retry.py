@@ -1,7 +1,8 @@
 """Synthetic mail states for processing recovery tests."""
 from datetime import UTC, datetime
 
-from mailhelp.models import MailState, ProcessingError, ProcessingErrorCode, ProcessingStage
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
 
 
 def terminal():

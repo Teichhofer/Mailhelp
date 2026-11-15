@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 import httpx
 import pytest
 
+from mailhelp.domain.proposal import KnownTemporalFacts, ProposalClassification, ProposalStatus
 from mailhelp.external.contracts import CalendarOverlapEvent
-from mailhelp.models import KnownTemporalFacts, ProposalClassification, ProposalStatus
 from mailhelp.proposals.calendar_target import AMBIGUOUS, GONE, NOT_FOUND, CalendarTargetFinder, raw_moment
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, google_writer, timed

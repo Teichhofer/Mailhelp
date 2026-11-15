@@ -1,7 +1,7 @@
 """Status tiles lead to the records counted, without executing an action."""
 import pytest
 
-from mailhelp.configuration import AdminCommand, AdminKind
+from mailhelp.config.configuration import AdminCommand, AdminKind
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.review.results import ResultStatus, ReviewResult
 from tests.fakes.shared_web_actions import web as web
@@ -35,7 +35,7 @@ def test_proposals_and_relevance_are_shown_separately(web):
 
 @pytest.mark.parametrize("path", ["/status/vorschlaege", "/status/relevanzfragen", "/status/web-aktionen"])
 def test_empty_status_pages_stay_useful_after_a_restart(web, tmp_path, path):
-    from mailhelp.storage import JsonStore
+    from mailhelp.persistence.storage import JsonStore
     from tests.fakes.shared_web_actions import Web
     with JsonStore(tmp_path / "empty") as store:
         first = Web(store)
@@ -76,7 +76,8 @@ def test_foreign_queued_actions_are_counted_but_their_private_content_is_not_exp
 def test_failed_mail_tile_shows_only_failed_mails(web):
     from datetime import UTC, datetime
 
-    from mailhelp.models import MailState, ProcessingError
+    from mailhelp.domain.mail import MailState
+    from mailhelp.domain.processing import ProcessingError
     state = web.store.load_model("mail-" + mail_id(7), MailState)
     state.error = ProcessingError(code="llm_rate_limited", stage="summary", retryable=True,
                                   occurred_at=datetime.now(UTC))

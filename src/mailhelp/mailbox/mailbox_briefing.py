@@ -4,7 +4,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 from .. import state_names
-from ..models import MailState
+from ..domain.mail import MailState
 
 
 def sections(app, views):

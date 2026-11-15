@@ -7,19 +7,17 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import TelegramSettings
-from mailhelp.models import (
-    MailState,
-    Proposal,
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.processing import (
     ProposalClarificationState,
-    ProposalStatus,
-    RelevanceDialog,
-    RelevanceDialogStatus,
     TelegramOutboxEntry,
     TelegramOutboxGate,
     TelegramOutboxState,
 )
+from mailhelp.domain.proposal import Proposal, ProposalStatus
+from mailhelp.domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from mailhelp.persistence.proposals import clarification_name, proposal_name
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram import ProposalDeliveryService, TelegramDialogController
 from tests.fakes.shared_telegram_dialog import (
     RevisionService,

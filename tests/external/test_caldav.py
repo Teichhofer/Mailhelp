@@ -4,12 +4,13 @@ from datetime import UTC, date, datetime
 import httpx
 import pytest
 
+from mailhelp.domain.extraction import CalendarDuplicateDecision
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks, _xml
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, CalendarAccessError
 from mailhelp.external.icalendar_data import resource_uid
 from mailhelp.llm.adapter import RetryableError, RetryPolicy
-from mailhelp.models import CalendarDuplicateDecision, ProposalStatus
 from tests.fakes.dav_fakes import COLLECTION, FakeDav, item, multistatus
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_core import proposal

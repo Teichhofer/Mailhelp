@@ -5,7 +5,7 @@ from collections.abc import Callable
 from threading import Event, Thread, current_thread
 from typing import Any
 
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 
 class ProbedStore(JsonStore):

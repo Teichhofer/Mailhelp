@@ -76,7 +76,7 @@ class ActivitySite:
 
     def reports(self, request: Request, session: WebSession) -> Response:
         system = self.site.views.system()
-        from ..models import ProposalStatus
+        from ..domain.proposal import ProposalStatus
         rejected = system.proposals.get(ProposalStatus.REJECTED, 0) - system.already_done
         decisions = (f'<section class="card"><h2>Manuelle Entscheidungen im aktuellen Bestand</h2>'
                      f'<p><span class="badge ok">Schon erledigt: {system.already_done}</span> '

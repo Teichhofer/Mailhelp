@@ -157,7 +157,7 @@ class DecisionTestMode:
         blocked = self.blocked_senders is not None and is_irrelevant_sender(
             mail.get("headers", {}).get("from", ""), self.blocked_senders, number)
         if blocked or not any(topic.enabled for topic in topics):
-            from ..models import Relevance
+            from ..domain.relevance import Relevance
             operation = lambda: ("prefilter", Relevance(decision="irrelevant", topic_ids=[], reason="Postfachfilter"))
         else:
             operation = lambda: classifier.relevance(mail, topics)
@@ -430,7 +430,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                        for mailbox in mailboxes]
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
-            from ..models import IrrelevantSenders
+            from ..domain.relevance import IrrelevantSenders
             sender_file = directory / "irrelevant-senders.json"
             blocked = (IrrelevantSenders.model_validate(json.loads(sender_file.read_text(encoding="utf-8")))
                        if sender_file.exists() else IrrelevantSenders())

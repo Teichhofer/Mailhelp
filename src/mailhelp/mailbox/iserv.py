@@ -32,8 +32,8 @@ from pydantic import Field
 from ..config import ImapCredentials, IServAccountSettings
 from ..domain._base import StrictModel
 from ..logging import EventLogger
+from ..persistence.storage import JsonStore
 from ..processing.orchestrator import ProcessingOutcome, ProcessingResult
-from ..storage import JsonStore
 from .imap import FetchedMail
 
 FOLDER = "Elternbriefe"

@@ -4,20 +4,21 @@ from types import SimpleNamespace as NS
 import httpx
 import pytest
 
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import ExternalUnavailable, PreparedWrite, TargetWriter
 from mailhelp.external.providers import Writers, microsoft_tokens
 from mailhelp.external.roles import writer_for
 from mailhelp.llm.adapter import UncertainWriteError
 from mailhelp.mailbox.mailbox_settings import event_defaults_for, mailbox_topic_policy
-from mailhelp.models import MailState, Proposal
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.persistence.migrations import migrate_document
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.proposals import profile_binding
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.proposals.profile_usage import profile_references
 from mailhelp.proposals.target_profiles import ProfileWriters, UnavailableWriter, build_profile_writers
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_decision_test import secrets
 from tests.fakes.shared_profiles import TOPICS, settings

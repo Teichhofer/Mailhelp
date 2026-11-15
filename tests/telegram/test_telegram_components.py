@@ -1,8 +1,8 @@
 """Contract tests for the components behind the Telegram routing controller."""
 from unittest.mock import Mock
 
-from mailhelp.models import Proposal
-from mailhelp.storage import JsonStore
+from mailhelp.domain.proposal import Proposal
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram import (
     AuthorizedUpdateValidator,
     ConfirmedWriteExecutor,
@@ -71,6 +71,7 @@ def test_persistence_names_are_available_without_the_dialog_controller():
     assert clarification_name(mail_id, "p1", 2) == f"clarification-{mail_id}-p1-v2"
 def test_telegram_implementations_live_in_their_domain_modules():
     """Guard against turning the compatibility module back into a monolith."""
+    import mailhelp.telegram as telegram
     from mailhelp.telegram import (
         AuthorizedUpdateValidator,
         ConfirmedWriteExecutor,
@@ -79,7 +80,6 @@ def test_telegram_implementations_live_in_their_domain_modules():
         RelevanceDialogProcessor,
         TelegramClient,
         TelegramDialogController,
-        _core,
     )
 
     expected_modules = {
@@ -93,4 +93,6 @@ def test_telegram_implementations_live_in_their_domain_modules():
     }
     for implementation, module_name in expected_modules.items():
         assert implementation.__module__ == module_name
-        assert getattr(_core, implementation.__name__) is implementation
+        assert getattr(telegram, implementation.__name__) is implementation
+    # 7.0.3 (R2): the compatibility module that re-exported everything is gone.
+    assert not hasattr(telegram, "_core")

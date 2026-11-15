@@ -8,19 +8,18 @@ from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
 from .. import state_names
-from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
+from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR, Proposal, ProposalKind, ProposalStatus
 from ..domain.verification import VerificationState, WriteVerification
 from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..external.roles import writer_for
 from ..external.verification import EntryReader
-from ..models import Proposal, ProposalKind, ProposalStatus
 from ..persistence.ledger import ActionLedgerPort
+from ..persistence.storage import JsonStore
 from ..processing.write_verification import WriteVerifications
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInboxState, CommandStatus
 from ..review.verification_texts import differences_text, reason_text
-from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction
 from .client import TelegramTransport
 

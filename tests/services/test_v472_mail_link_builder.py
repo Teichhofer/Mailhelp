@@ -2,10 +2,11 @@
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import MailState, Proposal
 from mailhelp.persistence.ledger import ActionLedgerService
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 from tests.fakes.proposal_builder_fakes import builder, event, task
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings

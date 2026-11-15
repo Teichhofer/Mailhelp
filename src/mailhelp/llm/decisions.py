@@ -14,8 +14,9 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from ..config import ConfigModel, Topic, read_yaml, validated_file
+from ..domain.extraction import ActionRoute
+from ..domain.relevance import Relevance
 from ..logging import EventLogger
-from ..models import ActionRoute, Relevance
 from ..processing.analysis import Analyzer
 from .openrouter import OpenRouterClient, RateLimitExceeded
 

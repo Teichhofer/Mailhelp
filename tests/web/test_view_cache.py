@@ -5,10 +5,10 @@ import os
 
 import pytest
 
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.archive import record_event
 from mailhelp.review.queries import ArchiveQueries
 from mailhelp.review.views import OVERVIEW_MAX_AGE_SECONDS, ReviewViews
-from mailhelp.storage import JsonStore
 from tests.scenarios.web_scenario import mail_id, populate, proposal, save_mail
 
 

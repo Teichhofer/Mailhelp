@@ -7,9 +7,10 @@ import os
 
 import pytest
 
-from mailhelp.models import MailState, Proposal, ProposalStatus
+from mailhelp.domain.mail import MailState
+from mailhelp.domain.proposal import Proposal, ProposalStatus
+from mailhelp.persistence.storage import CorruptState, JsonStore
 from mailhelp.review.views import ReviewViews
-from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram.relevance import RelevanceDialogProcessor
 from tests.fakes.shared_telegram_dialog import relevance_state
 from tests.fakes.shared_web_actions import web as web

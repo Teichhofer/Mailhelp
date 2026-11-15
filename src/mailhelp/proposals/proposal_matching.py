@@ -3,10 +3,10 @@ import hashlib
 import re
 from datetime import date, datetime
 
+from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..domain.proposal_sources import ProposalSource
-from ..models import MailState
-from ..storage import JsonStore
+from ..persistence.storage import JsonStore
 
 
 def reference_key(proposal: Proposal):

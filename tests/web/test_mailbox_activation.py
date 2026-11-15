@@ -232,7 +232,7 @@ def test_limit_and_missing_runtime(activation):
     assert "bereits 10 Postfächer" in ctx.web.browser.request("GET", ROUTE).body.decode()
     submitted = {**VALUES, "id": "11", "version": "1", "key": "limit-0001", "csrf": ctx.web.browser.csrf(ROUTE),
                  "revision": "", "env_revision": ""}
-    from mailhelp.configuration import file_hash
+    from mailhelp.config.configuration import file_hash
     from mailhelp.runtime.env_file import file_hash as env_hash
     submitted.update(revision=file_hash(ctx.tmp_path / "config.yaml"), env_revision=env_hash(ctx.tmp_path / ".env"),
                      version=str(ctx.runtime.setup.state().version))

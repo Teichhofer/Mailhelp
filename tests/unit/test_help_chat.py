@@ -11,8 +11,8 @@ from mailhelp.helpdocs import HelpAnswer, HelpUnavailable, load
 from mailhelp.helpdocs.chat import MAX_QUEUED, ChatRefused, HelpChat, chat_name, classify, redactor, secret_values
 from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.llm.openrouter import RateLimitExceeded
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import LlmInvalidJson
-from mailhelp.storage import JsonStore
 
 NOW = datetime(2026, 11, 10, 12, tzinfo=UTC)
 QUESTION = "Was bewirkt das Abrufintervall?"

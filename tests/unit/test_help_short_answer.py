@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from mailhelp.config import HelpChatSettings
 from mailhelp.helpdocs import SHORT_ANSWER, HelpAnswer, concise, derive_short_answer, load
 from mailhelp.helpdocs.chat import ChatState, HelpChat, Turn
-from mailhelp.storage import JsonStore
+from mailhelp.persistence.storage import JsonStore
 
 
 @pytest.mark.parametrize(("text", "expected"), [

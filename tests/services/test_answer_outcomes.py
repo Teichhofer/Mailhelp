@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-from mailhelp.domain.processing import ProposalClarificationState
+from mailhelp.domain.processing import ProposalClarificationState, TelegramDialogState
 from mailhelp.domain.proposal import MATCHING_QUESTION, RECONCILIATION_HINT, SOURCE_QUESTION
 from mailhelp.llm.adapter import RetryableError
-from mailhelp.models import TelegramDialogState
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.review import CommandKind, ResultStatus
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command, mail_state, setup, web
 from tests.fakes.shared_telegram_dialog import (
     InterpretationErrorService,

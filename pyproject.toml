@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "7.0.2"
+version = "7.0.3"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -47,7 +47,7 @@ source_paths = ["src"]
 # Count tests that exercise a core function directly or through a short core call chain.
 # The full suite still verifies the complete application; no source line is excluded here.
 max_stack_depth = 4
-only_mutate = ["src/mailhelp/domain/*", "src/mailhelp/storage.py", "src/mailhelp/external/confirmed.py"]
+only_mutate = ["src/mailhelp/domain/*", "src/mailhelp/persistence/storage.py", "src/mailhelp/external/confirmed.py"]
 # One-line stubs (protocols, overloads) have no behaviour; mutated, a protocol gains
 # attributes that break its isinstance checks.
 do_not_mutate_patterns = ['^\s+def .*: \.\.\.$']
@@ -92,11 +92,8 @@ known-first-party = ["mailhelp", "tests", "devtools"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/mailhelp/web/setting_help.py" = ["E501"]
-"src/mailhelp/telegram/_core.py" = ["F401", "F403"]
 "src/mailhelp/telegram/__init__.py" = ["F401"]
-"src/mailhelp/integrations.py" = ["F401"]
-# Compatibility facades re-export the domain contexts.
-"src/mailhelp/models.py" = ["F401", "F403"]
+# The package exports the domain contexts.
 "src/mailhelp/domain/__init__.py" = ["F401", "F403"]
 "tests/*" = ["F811", "E501", "F401", "F403"]
 
@@ -123,8 +120,8 @@ ignore_missing_imports = true
 module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.notifications.drafts", "mailhelp.notifications.webpush",
           "mailhelp.notifications.briefing", "mailhelp.processing.attachments",
           "mailhelp.persistence.*", "mailhelp.proposals.action_normalization", "mailhelp.proposals.proposal_merge",
-          "mailhelp.proposals.precheck", "mailhelp.german_dates", "mailhelp.temporal_answers",
-          "mailhelp.llm.evaluation", "mailhelp.configuration", "mailhelp.config.*",
+          "mailhelp.proposals.precheck", "mailhelp.text.*",
+          "mailhelp.llm.evaluation", "mailhelp.config.*",
           "mailhelp.mailbox.mailbox_run", "mailhelp.runtime.application", "mailhelp.runtime.service_coordinator",
           "mailhelp.runtime.lifecycle", "mailhelp.proposals.profile_usage", "mailhelp.mailbox.iserv", "mailhelp.telegram.*", "mailhelp.review.*",
           "mailhelp.web.*"]

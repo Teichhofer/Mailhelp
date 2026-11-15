@@ -29,8 +29,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..configuration import AdminCommand
-from ..storage import JsonStore
+from ..config.configuration import AdminCommand
+from ..persistence.storage import JsonStore
 from .commands import ReviewCommand
 from .results import REJECTED_STATUSES, ResultStatus, ReviewResult
 

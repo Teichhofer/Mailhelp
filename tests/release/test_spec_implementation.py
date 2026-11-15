@@ -8,13 +8,13 @@ import pytest
 import yaml
 
 from mailhelp.config import ImapSettings, Topic
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.application import Application
-from mailhelp.storage import JsonStore
 from tests.fakes.shared_application import Imap, Orch, Telegram, app, with_sources
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_quality_corpus import load_corpus
@@ -81,7 +81,7 @@ def test_duplicate_prompt_does_not_disclose_internal_identifiers(tmp_path, has_h
     with JsonStore(tmp_path) as store:
         dialog, telegram, _ = controller(store)
         if has_headers:
-            from mailhelp.models import MailState
+            from mailhelp.domain.mail import MailState
             state = MailState(id=first.source_mail_id, config_fingerprint="0" * 64,
                 imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 7, "uid": 1},
                 display_headers={"sender": "source@example.test", "subject": "Original source"})
@@ -151,8 +151,8 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
 
 @pytest.mark.slow
 def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
+    from mailhelp.domain.run import MailRunState
     from mailhelp.mailbox.imap import MailCandidate
-    from mailhelp.models import MailRunState
     from mailhelp.telegram import TelegramDialogController
     from tests.fakes.shared_e2e_simulated import FakeTelegram
     corpus = load_corpus()
@@ -190,7 +190,7 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
         assert run.run_complete
         assert [entry.analysis_terminal for entry in run.entries] == ["completed", "completed"]
     # A fresh controller can act on every displayed version without reanalysis.
-    from mailhelp.models import Proposal
+    from mailhelp.domain.proposal import Proposal
     from mailhelp.telegram import Decision, DecisionAction
     with JsonStore(tmp_path / "state") as store:
         dialog, telegram, _ = controller(store)
@@ -214,9 +214,10 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
 
 @pytest.mark.parametrize("decision", ["relevant", "irrelevant"])
 def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
+    from mailhelp.domain.mail import MailState
+    from mailhelp.domain.run import ImapCheckpoint, MailRunState
     from mailhelp.mailbox.imap import MailCandidate
     from mailhelp.mailbox.mailbox_run import _checkpoint_name
-    from mailhelp.models import ImapCheckpoint, MailRunState, MailState
     from tests.fakes.shared_telegram_outbox import A, item, shown, stored
     corpus = load_corpus()
     case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
@@ -313,9 +314,11 @@ def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_p
 def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
     from uuid import uuid4
 
+    from mailhelp.domain.mail import MailState
+    from mailhelp.domain.relevance import RelevanceDialog
+    from mailhelp.domain.run import MailRunCounters, MailRunEntry, MailRunState
     from mailhelp.mailbox.imap import MailCandidate
     from mailhelp.mailbox.mailbox_run import _checkpoint_name
-    from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState, RelevanceDialog
     stamp = datetime(2026, 9, 18, tzinfo=UTC)
     class Reader:
         account_id = "0" * 24

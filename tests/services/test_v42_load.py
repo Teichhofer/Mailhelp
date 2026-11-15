@@ -6,8 +6,8 @@ from datetime import timedelta
 from statistics import median
 from threading import Event, Thread
 
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.models import ProposalStatus
 from tests.fakes.shared_application import Imap, Orch, Telegram, app
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser, code_from

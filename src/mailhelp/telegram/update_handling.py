@@ -7,9 +7,11 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import ValidationError
 
-from ..domain.processing import ProposalClarificationState
+from ..domain.processing import ProposalClarificationState, TelegramDialogState
+from ..domain.proposal import ProposalStatus
+from ..domain.relevance import RelevanceDialog
+from ..domain.run import TelegramOffset
 from ..llm.adapter import PermanentError
-from ..models import ProposalStatus, RelevanceDialog, TelegramDialogState, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
 from ..state_names import clarification

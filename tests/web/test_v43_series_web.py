@@ -4,7 +4,7 @@ from html import unescape
 
 import pytest
 
-from mailhelp.models import ProposalStatus
+from mailhelp.domain.proposal import ProposalStatus
 from tests.fakes.series_fakes import series
 from tests.fakes.shared_review import setup
 

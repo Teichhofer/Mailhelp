@@ -45,7 +45,7 @@ def core_mutation_scores(root: Path) -> dict[str, float]:
     scores = {}
     for name, pattern in (
         ("domain", "mutants/src/mailhelp/domain/*.meta"),
-        ("storage", "mutants/src/mailhelp/storage.py.meta"),
+        ("storage", "mutants/src/mailhelp/persistence/storage.py.meta"),
         ("confirmed", "mutants/src/mailhelp/external/confirmed.py.meta"),
     ):
         codes = [code for path in root.glob(pattern)

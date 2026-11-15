@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from mailhelp.models import ProposalKind, ProposalStatus
-from mailhelp.storage import JsonStore
+from mailhelp.domain.proposal import ProposalKind, ProposalStatus
+from mailhelp.persistence.storage import JsonStore
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from tests.fakes.factories import build_proposal
 from tests.fakes.shared_review import setup
