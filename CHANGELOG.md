@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.0.5 – Laufzeit der Prüfung
+
+- Nur die echten Container-Tests laufen im parallelen Gesamtlauf noch nacheinander; Prozess- und
+  Ende-zu-Ende-Tests verteilen sich auf alle Prozesse (10 statt 44 Minuten mit 12 Prozessen).
+- Unzuverlässiger Wischtest gegen die Einführungsbewegung und ein noch nicht fertiges Layout abgesichert.
+- `AGENTS.md` nennt die gemessenen Aufrufe für Python- und Browserprüfung.
+
 ## 7.0.4 – Schichten und späte Importe
 
 - Schichtentest (`tests/unit/test_layers70.py`) mit 23 benannten Ausnahmen; neue Pakete `app`

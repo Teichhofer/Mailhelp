@@ -200,18 +200,20 @@ def test_mutations_run_direct_invariants_first_without_deselecting_any_test(monk
 
 
 @pytest.mark.parametrize("worker", [False, True])
-def test_parallel_full_runs_keep_process_and_e2e_tests_in_one_sequential_group(monkeypatch, worker):
+def test_parallel_full_runs_keep_only_container_tests_in_one_sequential_group(monkeypatch, worker):
+    # 7.0.5 (R9): process and simulated end-to-end tests spread over all workers.
     from types import SimpleNamespace
 
     import conftest
     class Item:
-        def __init__(self, marker): self.marker, self.assigned = marker, []
+        def __init__(self, marker, nodeid): self.marker, self.nodeid, self.assigned = marker, nodeid, []
         def get_closest_marker(self, name): return self.marker == name
         def add_marker(self, marker): self.assigned.append(marker)
-    items = [Item("process"), Item("e2e"), Item("unit")]
+    items = [Item("e2e", "tests/e2e/test_container_runtime.py::test_x"), Item("process", "tests/services/p.py::t"),
+             Item("e2e", "tests/e2e/test_e2e_simulated.py::t"), Item("unit", "tests/unit/u.py::t")]
     monkeypatch.delenv("MUTANT_UNDER_TEST", raising=False)
     config = SimpleNamespace(option=SimpleNamespace(loadgroup=worker, dist="no" if worker else "loadgroup"))
     conftest.pytest_collection_modifyitems(items, config)
-    assert all(len(item.assigned) == 1 and item.assigned[0].name == "xdist_group"
-               and item.assigned[0].args == ("mailhelp_process",) for item in items[:2])
-    assert items[2].assigned == []
+    assert len(items[0].assigned) == 1 and items[0].assigned[0].name == "xdist_group"
+    assert items[0].assigned[0].args == ("mailhelp_container",)
+    assert [item.assigned for item in items[1:]] == [[], [], []]

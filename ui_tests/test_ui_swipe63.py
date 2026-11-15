@@ -351,6 +351,9 @@ def test_scrolling_and_slanted_moves_never_move_a_card(phone, mailhelp):
 
 def test_no_swipe_starts_where_the_touch_means_something_else(phone, mailhelp):
     page = phone
+    # 7.0.5: the first-use nudge (6.9, U6) moves a card by itself after 600 ms of quiet; this test is
+    # about touches only (as the scrolling test above since 6.9.2).
+    page.add_init_script('localStorage.setItem("mailhelp-swipe-hint", "1")')
     sign_in(page, mailhelp)
     sent = actions(page)
 
@@ -361,6 +364,8 @@ def test_no_swipe_starts_where_the_touch_means_something_else(phone, mailhelp):
 
     # In an input, at the screen edges (the browser's back gesture) and outside any card.
     page.locator(f"{FORMULAR} details").last.evaluate("node => node.open = true")
+    # The finger must land on the opened field, not on card text below a layout still settling.
+    expect(page.locator(f"{FORMULAR} textarea").first).to_be_visible()
     untouched(grab(page, FORMULAR, None, 'textarea'))
     untouched(grab(page, FORMULAR, 10))
     untouched(grab(page, FORMULAR, page.viewport_size["width"] - 10))

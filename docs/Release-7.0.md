@@ -134,3 +134,34 @@ Regressionstest scheitert mit der Verdeckung und besteht ohne sie.
 `test_no_swipe_starts_where_the_touch_means_something_else`; der Test ist unabhängig von 7.0.4
 unzuverlässig (allein gestartet einer von drei Läufen rot, `app.js` und Test unverändert) und wird
 in 7.0.5 untersucht. Ruff 41 Befunde, mypy 14 Fehler wie zuvor.
+
+## 7.0.5 – Laufzeit der Prüfung (R9, vorgezogen)
+
+**Messung.** Ohne Abdeckungsmessung lief die ganze Suite mit 12 Prozessen in 3 Minuten 33 Sekunden;
+kein Test dauerte länger als 9 Sekunden (längster: `test_evaluation_matches_production_baseline_numbers`,
+8,9 s). Lange Tests zu teilen ist daher nicht nötig. Der Engpass war `tests/conftest.py`: Im
+parallelen Lauf lagen alle 162 Prozess- und Ende-zu-Ende-Tests in einer Gruppe auf einem einzigen
+Prozess, dort mit Abdeckungsmessung rund 40 Minuten, während die übrigen Prozesse nach etwa
+18 Minuten warteten.
+
+**Änderung.** Nur die beiden Container-Tests (`tests/e2e/test_container_*`, echtes Docker) bleiben
+in einer gemeinsamen Gruppe; alle anderen verteilen sich auf die Prozesse. Der Test der Gruppierung
+prüft die neue Regel.
+
+| Lauf | vorher | nachher |
+| :--- | :--- | :--- |
+| `devtools.check full` seriell | 18 min | – |
+| `devtools.check full --workers 12` | 44 min | 10 min 21 s |
+| Browsersuite | 4 Prozesse, rund 9,5 min | 6 Prozesse, rund 7,5 min |
+
+**Abweichung vom Ziel (6 Minuten).** Die Abdeckungsmessung kostet rund 6 der 10 Minuten. Die
+schnellere Messart `sys.monitoring` kann Branch-Abdeckung erst ab Python 3.14; das Projekt läuft
+auf 3.12.
+
+**Unzuverlässiger Wischtest.** `test_no_swipe_starts_where_the_touch_means_something_else` scheiterte
+in 7.0.4 einmal unter Last beim Antippen des Textfelds. In 34 gezielten Wiederholungen, auch
+parallel, trat der Fehler nicht wieder auf. Abgesichert sind beide möglichen Ursachen, ohne eine
+Prüfung zu ändern: Die Einführungsbewegung (6.9, U6) ist wie im benachbarten Scrolltest
+unterdrückt, und der Test wartet, bis das aufgeklappte Textfeld sichtbar ist.
+
+`AGENTS.md` nennt die gemessenen Aufrufe für Python- und Browserprüfung.

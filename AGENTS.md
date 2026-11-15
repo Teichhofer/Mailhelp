@@ -18,6 +18,11 @@
   reproduziert, vor dem Fix fehlschlägt und nach dem Fix besteht, damit ein erneutes
   Auftreten des Bugs künftig automatisch erkannt wird.
 - Die automatisierte Prüfung muss bei Unterschreitung eines der beiden Werte scheitern.
+- Lokal nutzt die Prüfung die 12 Threads des Entwicklungsrechners: die vollständige
+  Python-Prüfung mit `python -m devtools.check full --workers 12` (rund 10 Minuten; Paketbau und
+  Lasttests trennt das Werkzeug selbst, die Abdeckung bleibt vollständig), die Browsersuite mit
+  `python -m pytest ui_tests -n 6 --dist worksteal --no-cov` (rund 8 Minuten). Python- und
+  Browserprüfung laufen nie gleichzeitig, weil die Zeitmessungen sonst unzuverlässig werden.
 - Umgehe die Vorgabe nicht durch Coverage-Ausschlüsse oder wirkungslose Tests.
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
 - Automatisierte Tests verwenden simulierte externe Dienste und synthetische Daten.

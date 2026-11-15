@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.5 verkürzt die vollständige Prüfung: Prozesstests verteilen sich auf alle Prozessorkerne, die
+Python-Prüfung dauert mit 12 Prozessen rund 10 statt 18 Minuten.
 
 7.0.4 legt die Schichten des Codes fest und prüft sie automatisch: Zusammenbau im neuen Paket
 `app`, Infrastruktur in `support`; Importe innerhalb von Funktionen sind von 328 auf 25 gesunken.

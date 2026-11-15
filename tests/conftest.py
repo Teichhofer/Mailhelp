@@ -108,13 +108,18 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     session.config.stash[_SESSION_PASSED] = exitstatus == 0
 
 
+CONTAINER_TESTS = "tests/e2e/test_container_"
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Config) -> None:
-    # Keep process/container stress sequential even in an otherwise parallel full run.
+    # 7.0.5 (R9): only the real container runs stay sequential in a parallel full run. Process and
+    # simulated end-to-end tests use their own directories; grouped on one worker they made the
+    # parallel run slower than the serial one (44 instead of 18 minutes).
     if getattr(config.option, "loadgroup", False) or getattr(config.option, "dist", "no") == "loadgroup":
         for item in items:
-            if item.get_closest_marker("process") or item.get_closest_marker("e2e"):
-                item.add_marker(pytest.mark.xdist_group("mailhelp_process"))
+            if CONTAINER_TESTS in getattr(item, "nodeid", "") and item.get_closest_marker("e2e"):
+                item.add_marker(pytest.mark.xdist_group("mailhelp_container"))
     # Fail fast at the direct invariant, before exercising every incidental application path.
     # This changes only mutation-test order, never selection or ordinary test order.
     if "MUTANT_UNDER_TEST" in os.environ:

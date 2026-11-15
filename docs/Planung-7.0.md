@@ -201,7 +201,7 @@ Entscheidungen frühere Abschnitte überholt haben (z. B. Wischgeste 6.3 → 6.9
 | D9 | 7.0.9 | `config/models.py` teilen; Grenzen 80 Zeilen / 10 Parameter als Test (R5); `mypy` streng für alles (R8) | Lint und Typprüfung ohne Befund |
 | D10 | 7.0.10 | Frontend teilen und sortieren (R7) | Browsersuite mit 100 % JS-Blockabdeckung; Bildschirmfotos unverändert; Service Worker lädt nach Aktualisierung alle Dateien neu |
 | D11 | 7.0.11 | Tests umbenennen und teilen (R6) | Zahl der gesammelten Tests gleich; Mutationsliste nachgezogen |
-| D11a | 7.0.11 | Laufzeit der Prüfung (R9): Messung, lange Tests teilen, Wartezeiten durch steuerbare Uhren ersetzen, `loadgroup` verkleinern; danach `AGENTS.md` mit den gemessenen Werten | Messbericht vorher/nachher in `docs/Release-7.0.md`; geteilte Tests decken dieselben Fälle ab (Abdeckung und Mutationswerte gleich); Ziel aus R9 erreicht oder Abweichung begründet |
+| D11a | 7.0.5 (vorgezogen, erledigt) | Laufzeit der Prüfung (R9): Messung, lange Tests teilen, Wartezeiten durch steuerbare Uhren ersetzen, `loadgroup` verkleinern; danach `AGENTS.md` mit den gemessenen Werten | Messbericht vorher/nachher in `docs/Release-7.0.md`; geteilte Tests decken dieselben Fälle ab (Abdeckung und Mutationswerte gleich); Ziel aus R9 erreicht oder Abweichung begründet |
 | D12 | 7.0.12 | Dokumentation: Archiv und Inhaltsverzeichnis (K2), `Architektur.md` (K3) | Verweis-Test grün |
 | D13 | 7.0.13 | Dokumentation: Prüfung aller lebenden Dokumente (K4), automatische Prüfungen (K5), Stand-Zeilen und README (K6), Hilfeindex | `Pruefung-Dokumentation-7.0.md` vollständig; neue Tests grün |
 | D14 | 7.0.14 | Abnahme: Nachher-Kennzahlen, Vergleich, Release-Bericht | Abschnitt 7 |
