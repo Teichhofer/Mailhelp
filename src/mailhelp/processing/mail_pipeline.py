@@ -1,11 +1,7 @@
 """Stage sequence of one mail (prepare → relevance → summary → actions → notification)."""
 from __future__ import annotations
 
-import re
-import time
-import traceback
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
@@ -14,20 +10,14 @@ from ..domain.deep_links import resolve_client
 from ..domain.extraction import ActionRoute, Summary
 from ..domain.mail import DisplayHeaders, MailState
 from ..domain.prepared import PreparedMail
-from ..domain.processing import ProcessingErrorCode, ProcessingStage, ProposalNotification, ValidationIssue
-from ..domain.proposal import Proposal, ProposalStatus
+from ..domain.processing import ProcessingStage, ProposalNotification
+from ..domain.proposal import Proposal
 from ..domain.relevance import Relevance, RelevanceDialog
-from ..llm.adapter import PermanentError
-from ..llm.openrouter import RateLimitExceeded
 from ..mailbox.imap import FetchedMail
-from ..mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
+from ..mailbox.mime import extract_display_headers, prepare
 from ..mailbox.sender_filter import is_irrelevant_sender
 from ..notifications.briefing_identity import is_own_briefing
-from .analysis import (
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationExceeded,
-)
+from . import pipeline_failures, pipeline_proposals
 from .perspective import Perspective, read_perspective
 from .stage_timing import StageClock, part
 
@@ -335,238 +325,16 @@ class MailPipeline:
             self.o.save(name, state)
 
     def _detect_actions(self, run: ProcessingRun) -> None:
-        state, name = run.state, run.name
-        run.stage = ProcessingStage.ACTION_DETECTION
-        if state.steps.action_detection not in {"pending", "failed"}:
-            return
-        if state.steps.action_router in {"pending", "failed"}:
-            run.stage = ProcessingStage.ACTION_ROUTER
-            call, route = self.o.analyzer.action_route(_with_perspective(state))
-            state.action_route = route
-            state.action_router_call_id = call
-            state.llm_call_ids.append(call)
-            state.steps.action_router = "completed"
-            self.o.save(name, state)
-        else:
-            assert state.action_route is not None
-            route = state.action_route
-        assert state.action_router_call_id is not None
-        # Extraction is read-only. A candidate counted by an unclear
-        # route should therefore become a reviewable proposal too.
-        wants_tasks = (route.action_state in {"task", "task_and_event"}
-                       or route.task_count > 0)
-        # An event candidate must not disappear merely because the
-        # router is unsure whether the message is an invitation.  The
-        # extractor and proposal boundary preserve that uncertainty,
-        # while Telegram still receives the detected appointment.
-        has_cal_events = bool(_prepared(state).calendar_events)
-        wants_llm_events = (route.action_state in {"event", "task_and_event"}
-                            or route.event_count > 0)
-        wants_events = wants_llm_events or has_cal_events
-        self._extract(run, route, wants_tasks, wants_llm_events)
-        self._build(run, wants_tasks or wants_events)
-        state.proposal_notifications = [
-            ProposalNotification(
-                proposal_id=item.id,
-                proposal_version=item.version,
-                status="completed" if item.status == ProposalStatus.ALREADY_EXISTS else "pending",
-            )
-            for item in state.proposals
-        ]
-        state.steps.action_detection = "completed"
-        self.o.save(name, state)
-        self.o.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
-                          action_state=route.action_state,
-                          proposal_ids=[item.id for item in state.proposals])
+        return pipeline_proposals._detect_actions(self, run)
 
     def _extract(self, run: ProcessingRun, route: ActionRoute, wants_tasks: bool, wants_llm_events: bool) -> None:
-        state, name = run.state, run.name
-        if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
-            run.stage = ProcessingStage.TASK_EXTRACTION
-            call, extraction = self.o.analyzer.extract_tasks(
-                _with_perspective(state), expected_count=route.task_count)
-            state.task_extraction = extraction
-            state.llm_call_ids.append(call)
-            state.steps.task_extraction = "completed"
-            self.o.save(name, state)
-            self.o.record_count_conflict(name, state, "task", route.task_count,
-                                        len(extraction.tasks),
-                                        state.action_router_call_id, call)
-        if not wants_tasks:
-            state.steps.task_extraction = "skipped"
-            self.o.save(name, state)
-        if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
-            run.stage = ProcessingStage.EVENT_EXTRACTION
-            call, events = self.o.analyzer.extract_events(
-                _with_perspective(state), expected_count=route.event_count)
-            state.event_extraction = events
-            state.llm_call_ids.append(call)
-            state.steps.event_extraction = "completed"
-            self.o.save(name, state)
-            self.o.record_count_conflict(name, state, "event", route.event_count,
-                                        len(events.events),
-                                        state.action_router_call_id, call)
-        elif not wants_llm_events:
-            state.steps.event_extraction = "skipped"
-            self.o.save(name, state)
+        return pipeline_proposals._extract(self, run, route, wants_tasks, wants_llm_events)
 
     def _build(self, run: ProcessingRun, wanted: bool) -> None:
-        state, name = run.state, run.name
-        run.stage = ProcessingStage.NORMALIZATION
-        if state.steps.normalization in {"pending", "failed"}:
-            state.normalized_proposals = self.o.build_proposals(state) if wanted else []
-            state.steps.normalization = "completed"
-            self.o.save(name, state)
-        run.stage = ProcessingStage.PROPOSAL_BUILDING
-        if state.steps.proposal_building in {"pending", "failed"}:
-            state.proposals = [Proposal.model_validate(item.model_dump(mode="json"))
-                               for item in state.normalized_proposals]
-            state.steps.proposal_building = "completed"
-            self.o.save(name, state)
-        self.o.questions.resolve(name, state)
-        run.stage = ProcessingStage.DUPLICATE_PRECHECK
-        if state.steps.duplicate_precheck in {"pending", "failed"}:
-            state.proposals = [
-                self.o.precheck.check_proposal(p, mail_context=state.mail)
-                for p in state.proposals
-            ]
-            state.steps.duplicate_precheck = "completed"
-            self.o.save(name, state)
-        limit = (state.proposal_policy["max_semantic_candidates"] if state.proposal_policy is not None else None)
-        state.proposals = [self.o.reconciliation.reconcile(p, limit) for p in state.proposals]
-        state.proposals = [self.o.reconciliation.required(p.source_mail_id, p.id)
-                           for p in state.proposals]
-        self.o.save(name, state)
-        events = [p for p in state.proposals if p.kind == "event"]
-        for task in (p for p in state.proposals if p.kind == "task"):
-            if len(events) == 1 and re.search(r"teilnahme|zurückmeld|anmeld|zusag|absag", task.title.casefold()):
-                self.o.reconciliation.relate(task, events[0])
+        return pipeline_proposals._build(self, run, wanted)
 
     def _notify_proposals(self, run: ProcessingRun) -> None:
-        name = run.name
-        run.stage = ProcessingStage.PROPOSAL_NOTIFICATION
-        if run.state.steps.proposal_notification not in {"pending", "sending"}:
-            return
-        state = run.state
-        first_attempt = state.steps.proposal_notification == "pending"
-        if first_attempt:
-            state.steps.proposal_notification = "sending"
-            self.o.save(name, state)
-        if (first_attempt and state.action_route is not None
-                and state.action_route.action_state == "unclear"):
-            self.o.notifier.send(
-                self.o.chat_id,
-                "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
-                + state.action_route.reason,
-            )
-        for conflict in state.extraction_count_conflicts:
-            if conflict.notification_marked_at is not None or conflict.actual_count > 0:
-                continue
-            # Mark before delivery: an uncertain Telegram result must
-            # never lead to an automatic duplicate after restart.
-            conflict.notification_marked_at = datetime.now(UTC)
-            self.o.save(name, state)
-            self.o.notifier.send(
-                self.o.chat_id,
-                "Die Mail enthält möglicherweise Handlungsbedarf, aber es konnte "
-                "kein Vorschlag gewonnen werden. Bitte die Mail manuell prüfen.",
-            )
-        for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
-            if notification.status != "pending":
-                continue
-            if proposal.status == ProposalStatus.MERGED:
-                # The alias belongs to this mail; delivery belongs to the canonical
-                # revision. Mark first so an uncertain delivery is never repeated.
-                notification.status = "sending"
-                self.o.save(name, state)
-                assert proposal.canonical_ref is not None
-                canonical = self.o.reconciliation.resolve(proposal.canonical_ref)
-                if canonical is None:
-                    raise ValueError("Zusammengeführter Vorschlag fehlt")
-                self.o.notifier.send_proposal(canonical)
-                notification.status = "completed"
-                self.o.save(name, state)
-                continue
-            dedicated_delivery = bool(getattr(
-                self.o.notifier, "manages_proposal_delivery", False))
-            if not dedicated_delivery:
-                notification.status = "sending"
-                self.o.save(name, state)
-            self.o.notifier.send_proposal(proposal)
-            # ProposalDeliveryService owns the sending/completed
-            # transition.  Reload its authoritative projection so a
-            # later orchestrator save cannot overwrite that state.
-            state = run.state = MailState.model_validate(self.o.store.load(name))
-            current = next(item for item in state.proposal_notifications
-                           if (item.proposal_id, item.proposal_version) ==
-                           (proposal.id, proposal.version))
-            # Compatibility for simple notifier ports: the
-            # dedicated delivery service has already completed its
-            # own transition, while a synchronous legacy notifier
-            # reports success by returning normally.
-            if current.status == "pending" or (
-                    not dedicated_delivery and current.status == "sending"):
-                current.status = "completed"
-                self.o.save(name, state)
-        state.steps.proposal_notification = "completed"
-        self.o.save(name, state)
+        return pipeline_proposals._notify_proposals(self, run)
 
     def handle_failure(self, run: ProcessingRun, exc: Exception) -> ProcessingOutcome:
-        """Record a failed step; called inside ``except`` so the traceback is current."""
-        name, state, stage, started = run.name, run.state, run.stage, run.started
-        if isinstance(exc, AnalysisDataUnavailable):
-            self.o.failure(name, state, ProcessingErrorCode.ANALYSIS_DATA_REMOVED, stage,
-                           "Analyse-Daten fehlen. Bitte bei Bedarf eine bewusste Neuprüfung starten.", False)
-            self.o.logger.event("ERROR", "orchestrator", "analysis_data_unavailable", mail_id=state.id,
-                                stage=stage.value)
-            return ProcessingOutcome.FAILED
-        if isinstance(exc, RateLimitExceeded):
-            state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, UTC)
-            retry_at = state.deferred_until.isoformat()
-            self.o.failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
-                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {retry_at}.", True)
-            self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id,
-                              next_allowed_at=retry_at, duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                              error=exc, stacktrace=traceback.format_exc())
-            return ProcessingOutcome.WAITING
-        if isinstance(exc, MimeLimitExceeded):
-            self.o.failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
-                          "Die Nachricht überschreitet ein Sicherheitslimit. "
-                          "Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
-            self.o.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
-                              limit=exc.limit, error=exc, stacktrace=traceback.format_exc())
-            return ProcessingOutcome.FAILED
-        if isinstance(exc, LlmProviderResponseInvalid):
-            self.o.failure(name, state, ProcessingErrorCode.PROVIDER_RESPONSE_INVALID, stage,
-                          "Der LLM-Anbieter hat keine verwendbare Antwort geliefert.", True)
-            self.o.logger.event("ERROR", "orchestrator", "provider_response_invalid", mail_id=state.id,
-                              stage=stage.value, reason=exc.reason, error=exc, stacktrace=traceback.format_exc())
-        elif isinstance(exc, LlmInvalidJson):
-            self.o.failure(name, state, ProcessingErrorCode.INVALID_JSON, stage,
-                          "Die LLM-Antwort enthielt kein gültiges JSON.", True)
-            self.o.logger.event("ERROR", "orchestrator", "invalid_json", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
-        elif isinstance(exc, LlmSchemaValidationExceeded):
-            state.validation_errors.append(ValidationIssue(
-                stage=stage, code="schema_validation_failed", occurred_at=datetime.now(UTC)
-            ))
-            self.o.failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
-                          "Die automatische Auswertung war nicht zuverlässig. "
-                          "Bitte die Nachricht manuell prüfen.", True)
-            self.o.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id,
-                              stage=stage.value, error=exc, stacktrace=traceback.format_exc())
-        elif isinstance(exc, PermanentError):
-            detail = getattr(exc, "safe_detail", None)
-            suffix = f" {detail}" if detail else ""
-            self.o.failure(name, state, ProcessingErrorCode.PERMANENT_ADAPTER_ERROR, stage,
-                          ("Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. "
-                           f"Bitte dessen Konfiguration prüfen.{suffix}"), False)
-            self.o.logger.event("ERROR", "orchestrator", "permanent_adapter_error", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
-        else:
-            self.o.failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
-                          "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
-            self.o.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value,
-                              error=exc, duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                              stacktrace=traceback.format_exc())
-        return self.o.failure_outcome(name, state, stage)
+        return pipeline_failures.handle_failure(self, run, exc)

@@ -7,7 +7,6 @@ from urllib.parse import parse_qs
 from .. import state_names
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange, file_hash
 from ..domain.mail import MailState
-from ..domain.proposal import Proposal
 from ..mailbox.sender_filter import sender_addresses
 from ..review.proposal_evaluation import (
     ACCEPTED_STATUSES,

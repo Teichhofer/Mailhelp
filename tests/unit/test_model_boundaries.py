@@ -102,7 +102,9 @@ def test_helpers_are_imported_through_their_package_only():
 
 
 # Planung 3.3, pillar 1: modules outside the Telegram package that may use it (channel integration).
-TELEGRAM_CLIENTS = {"app/application.py", "app/composition.py", "processing/orchestrator.py", "review/service.py",
+# 7.0.9: the bodies of Application and Orchestrator methods live in modules next to their classes.
+TELEGRAM_CLIENTS = {"app/application.py", "app/access_checks.py", "app/run_loop.py", "app/composition.py",
+                    "processing/orchestrator_failures.py", "processing/orchestrator_proposals.py", "review/service.py",
                     "app/service_coordinator.py"}
 
 

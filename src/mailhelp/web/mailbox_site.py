@@ -6,17 +6,10 @@ import json
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
-from ..config import Settings, TargetProfileSettings, Topic, read_yaml
-from ..config.configuration import MAILBOX_POLICY_FIELDS, set_dotted
-from ..domain.mail import MailState
+from ..config import Settings, Topic, read_yaml
 from ..domain.proposal import Proposal
-from ..llm.decisions import relevance_fingerprint
-from ..mailbox.mailbox_settings import effective_settings, mailbox_fingerprint
-from ..mailbox.sender_filter import sender_entry
-from ..proposals.profile_binding import choices
-from ..proposals.profile_usage import profile_references
-from ..review.commands import CommandKind, CommandSource, ReviewCommand
-from ..state_names import mail_state_names
+from ..mailbox.mailbox_settings import effective_settings
+from . import mailbox_draft, mailbox_profiles
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
@@ -160,106 +153,11 @@ class MailboxSite:
         return Response.text(503, "Einrichtungsdienst nicht verfügbar.")
 
     def preview(self, session: WebSession) -> str:
-        state = self.runtime.setup.state()
-        text = (
-            "<p>Speichern ändert den Entwurf. Übernehmen erteilt keine externe Anlagefreigabe. "
-            "Verbindungs- und Zieländerungen wirken nach dem nächsten Dienststart.</p>"
-        )
-        if state.patch:
-            text += '<section class="card"><h2>Entwurf prüfen</h2><dl>'
-            if state.kind == "topics":
-                text += "<dt>Thema</dt><dd>" + e(state.patch["name"]) + "</dd><dt>Geltungsbereich</dt><dd>"
-                text += (
-                    e(state.patch.get("mailboxes") if state.patch.get("mailboxes") is not None else "Alle Postfächer")
-                    + "</dd>"
-                )
-            elif state.kind == "senders":
-                text += f"<dt>Postfach</dt><dd>{state.patch['mailbox_id']}</dd>"
-                text += "<dt>Filteränderung</dt><dd>" + e(state.patch) + "</dd>"
-            else:
-                cfg = self.runtime.setup.draft_settings()
-                if "imap.mailboxes" in state.patch:
-                    for box in cfg.imap.configured_mailboxes():
-                        text += f"<dt>Postfach {box.id} ({e(box.label)})</dt><dd>"
-                        text += (
-                            e(
-                                {
-                                    LABELS.get(name, name): value
-                                    for name, value in box.model_dump(exclude_none=True).items()
-                                    if name in MAILBOX_POLICY_FIELDS
-                                }
-                            )
-                            + "</dd>"
-                        )
-                if "iserv.accounts" in state.patch:
-                    for account in cfg.iserv.accounts:
-                        text += f"<dt>IServ-Konto {account.id} ({e(account.label)})</dt><dd>"
-                        text += e(f"{account.server} · Postfach {account.mailbox} · "
-                                  + ("aktiv" if account.enabled else "deaktiviert")) + "</dd>"
-                    if not cfg.iserv.accounts:
-                        text += "<dt>IServ-Konten</dt><dd>keine</dd>"
-                if "target_profiles" in state.patch:
-                    for profile in cfg.target_profiles:
-                        text += f"<dt>Zielprofil {profile.id} ({e(profile.label)})</dt><dd>"
-                        text += (
-                            e(
-                                profile.calendar_provider
-                                + " → "
-                                + profile.calendar_target
-                                + " · "
-                                + profile.task_provider
-                                + " → "
-                                + profile.task_target
-                            )
-                            + "</dd>"
-                        )
-            for number, count in self.affected().items():
-                text += (f"<dt>Laufende Mails in Postfach {number}</dt><dd>{count} werden mit "
-                         "configuration_changed zurückgehalten.</dd>")
-            text += '</dl><p><a href="/diagnose">Zugriffe prüfen</a></p>'
-            csrf = self.site.auth.csrf_token(session.id)
-            text += post_form(
-                "/einrichtung/uebernehmen",
-                csrf,
-                '<label><input type="checkbox" name="confirm" value="yes" required> '
-                'Änderungen ausdrücklich übernehmen</label>',
-                "Entwurf übernehmen",
-                version=state.version,
-                expected_hash=state.base_hash,
-            )
-            text += post_form(
-                "/einstellungen/postfaecher/verwerfen", csrf, "", "Entwurf verwerfen", version=state.version
-            )
-            text += "</section>"
-        return text
+        return mailbox_draft.preview(self, session)
 
     def affected(self) -> dict[int, int]:
 
-        app = self.runtime.app
-        cfg = self.runtime.setup.draft_settings()
-        topics = app.orchestrator.topics
-        state = self.runtime.setup.state()
-        if state.kind == "topics" and state.category == "relevant":
-            edited = Topic.model_validate(state.patch)
-            topics = [edited if topic.id == edited.id else topic for topic in topics]
-        result: dict[int, int] = {}
-        for name in mail_state_names(app.store):
-            mail = app.store.peek_model(name, MailState)
-            if mail is None or mail.steps.completion == "completed":
-                continue
-            number = app.orchestrator.mailbox_number(mail.imap.account_id)
-            if cfg.imap.mailbox(number) is None:
-                changed = True
-            else:
-                value = mailbox_fingerprint(cfg, app.analyzer.prompts, topics, number)
-                if app.orchestrator.mailbox_jev is not None:
-                    value = relevance_fingerprint(value, app.orchestrator.mailbox_jev)
-                changed = value != mail.config_fingerprint
-                if changed and value == app.orchestrator.fingerprint_for(mail.imap.account_id):
-                    changed = not app.orchestrator.accepts_configuration(mail.config_fingerprint, mail.imap.account_id)
-            if changed:
-                result[number] = result.get(number, 0) + 1
-        return result
+        return mailbox_draft.affected(self)
 
     def index(self, request: Request, session: WebSession, problem: str = "",
               values: dict[str, str] | None = None) -> Response:
@@ -440,246 +338,25 @@ class MailboxSite:
         return body
 
     def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        try:
-            cfg = self.runtime.setup.draft_settings()
-            boxes = [box.model_dump(mode="json") for box in cfg.imap.configured_mailboxes()]
-            if form.get("action") == "add":
-                boxes.append(
-                    {
-                        "id": int(form["id"]),
-                        "label": form["label"],
-                        "host": form["host"],
-                        "port": int(form["port"]),
-                        "folders": [value.strip() for value in form["folders"].split(",")],
-                    }
-                )
-            elif form.get("action") == "remove":
-                boxes = [box for box in boxes if box["id"] != int(form["number"])]
-            else:
-                number, field = int(form["number"]), form["field"]
-                if field not in MAILBOX_POLICY_FIELDS:
-                    raise ValueError("Unbekannte Einstellung")
-                box = next(box for box in boxes if box["id"] == number)
-                if form.get("action") == "reset":
-                    value: Any = {"target_profile": 1, "daily_briefing": True, "mail_client": "auto"}.get(field)
-                    field = "retention" if field == "retention.full_mail_days" else field
-                elif (
-                    field.endswith(("minutes", "days"))
-                    or field == "target_profile"
-                    or field.startswith("notifications.categories.")
-                    or field in {"smart_reply", "auto_draft", "daily_briefing"}
-                    or field.endswith((".enabled", ".allow_system_errors"))
-                ):
-                    value = (
-                        json.loads(form["value"]) if form["value"] not in {"disabled", "unlimited"} else form["value"]
-                    )
-                else:
-                    value = form["value"]
-
-                set_dotted(box, field, value)
-            self.runtime.setup.save(
-                f"web:{session.id}",
-                int(form["version"]),
-                form["key"],
-                6,
-                {"imap.mailboxes": boxes},
-                request_signature={name: value for name, value in form.items() if name not in {"csrf", "key"}},
-            )
-        except (ValueError, KeyError, StopIteration, PermissionError):
-            return Response.text(409, "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen.")
-        return Response.redirect("/einstellungen/postfaecher")
+        return mailbox_draft.save(self, request, session, form)
 
     def topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        try:
-            number, category = int(form["number"]), form["category"]
-            if category not in {"relevant", "irrelevant"}:
-                raise ValueError("Unbekannte Themenliste")
-            filename = "topics.yaml" if category == "relevant" else "irrelevant_topics.yaml"
-            cfg = self.runtime.setup.draft_settings()
-            topic = next(
-                Topic.model_validate(value)
-                for value in read_yaml(self.runtime.setup.configuration.directory / filename)["topics"]
-                if value["id"] == form["topic"]
-            )
-            if form["scope"] == "own":
-                scope = [number]
-            elif form["scope"] == "all":
-                scope = None
-            elif form["scope"] == "exclude":
-                scope = sorted(
-                    set(
-                        topic.mailboxes
-                        if topic.mailboxes is not None
-                        else [box.id for box in cfg.imap.configured_mailboxes()]
-                    )
-                    - {number}
-                )
-            else:
-                raise ValueError("Ungültige Zuordnung")
-            patch = topic.model_copy(update={"mailboxes": scope}).model_dump(mode="json")
-            self.runtime.setup.save_local(
-                f"web:{session.id}", int(form["version"]), form["key"], "topics", patch, category
-            )
-        except (ValueError, KeyError, StopIteration, PermissionError):
-            return Response.text(409, "Themenentwurf nicht gespeichert.")
-        return Response.redirect("/einstellungen/postfaecher")
+        return mailbox_draft.topic(self, request, session, form)
 
     def filter(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        try:
-            kind, entry = sender_entry(form["value"])
-            patch = {
-                "action": form["action"],
-                "mailbox_id": int(form["number"]),
-                "addresses" if kind == "address" else "domains": [entry],
-            }
-            self.runtime.setup.save_local(f"web:{session.id}", int(form["version"]), form["key"], "senders", patch)
-        except (ValueError, KeyError, PermissionError):
-            return Response.text(409, "Filterentwurf nicht gespeichert.")
-        return Response.redirect("/einstellungen/postfaecher")
+        return mailbox_draft.filter(self, request, session, form)
 
     def discard(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        try:
-            self.runtime.setup.discard(f"web:{session.id}", int(form["version"]), form["key"])
-        except (ValueError, KeyError, PermissionError):
-            return Response.text(409, "Entwurf nicht verworfen; Version und Sitzung prüfen.")
-        return Response.redirect("/einstellungen/postfaecher")
+        return mailbox_draft.discard(self, request, session, form)
 
     def profiles(self, request: Request, session: WebSession) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        cfg = self.runtime.setup.draft_settings()
-        body = (
-            '<p><a href="/einstellungen/postfaecher">Postfächer</a> · '
-            '<a href="/diagnose">Diagnose je Profil</a> · <a href="/einrichtung">Standardprofil 1 bearbeiten</a></p>'
-            '<p><a href="/hilfe/google-playground">Google: OAuth-Playground-Anleitung</a> · '
-            '<a href="/auth/google/start?profile=1">Google für Profil 1 verbinden</a> · '
-            '<a href="/auth/microsoft?profile=1">Microsoft für Profil 1 verbinden</a> · '
-            '<a href="/auth/google/kalender?profile=1">Google-Kalender für Profil 1 auswählen</a></p>'
-        )
-        for profile in cfg.target_profiles:
-            references = profile_references(self.site.views.store, cfg, profile.id)
-            body += '<section class="card"><h2>' + e(profile.label) + f" · {profile.id}</h2>"
-            body += (f'<p><a href="/auth/google/start?profile={profile.id}">Google verbinden</a> · '
-                     f'<a href="/auth/microsoft?profile={profile.id}">Microsoft verbinden</a> · '
-                     f'<a href="/auth/google/kalender?profile={profile.id}">Google-Kalender auswählen</a></p>')
-            for field, value in profile.model_dump().items():
-                if field == "id":
-                    continue
-                body += post_form(
-                    "/einstellungen/zielprofile/speichern",
-                    self.site.auth.csrf_token(session.id),
-                    control(field, value, prefix=f"profile-{profile.id}"),
-                    "Profiländerung vormerken",
-                    number=profile.id,
-                    field=field,
-                    version=self.runtime.setup.state().version,
-                )
-            body += "<p>Verwendet von: " + e(references) + "</p>"
-            if not references:
-                body += post_form(
-                    "/einstellungen/zielprofile/speichern",
-                    self.site.auth.csrf_token(session.id),
-                    "",
-                    "Profil entfernen",
-                    number=profile.id,
-                    action="remove",
-                    version=self.runtime.setup.state().version,
-                )
-            body += "</section>"
-        body += '<section class="card"><h2>Zielprofil hinzufügen</h2>'
-        fields = "".join(
-            control(name, value, prefix="new-profile").replace('name="value"', f'name="{name}"')
-            for name, value in (
-                ("id", ""),
-                ("label", ""),
-                ("calendar_provider", "google"),
-                ("google_calendar", "primary"),
-                ("task_provider", "todoist"),
-                ("todoist_project", ""),
-            )
-        )
-        body += post_form(
-            "/einstellungen/zielprofile/speichern",
-            self.site.auth.csrf_token(session.id),
-            fields,
-            "Neues Profil vormerken",
-            action="add",
-            version=self.runtime.setup.state().version,
-        )
-        return self.page("Zielprofile", body + "</section>" + self.preview(session))
+        return mailbox_profiles.profiles(self, request, session)
 
     def save_profile(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        if self.runtime is None:
-            return self.unavailable()
-        try:
-            cfg = self.runtime.setup.draft_settings()
-            profiles = [profile.model_dump() for profile in cfg.target_profiles]
-            if form.get("action") == "add":
-                profile: dict[str, Any] = {
-                    name: form[name]
-                    for name in ("label", "calendar_provider", "google_calendar", "task_provider", "todoist_project")
-                }
-                profile["id"] = int(form["id"])
-                profiles.append(TargetProfileSettings.model_validate(profile).model_dump())
-            elif form.get("action") == "remove":
-                profiles = [value for value in profiles if value["id"] != int(form["number"])]
-            else:
-                value = next(profile for profile in profiles if profile["id"] == int(form["number"]))
-                if form["field"] not in TargetProfileSettings.model_fields or form["field"] == "id":
-                    raise ValueError("Profilnummern bleiben stabil")
-                value[form["field"]] = form["value"]
-            self.runtime.setup.save(
-                f"web:{session.id}",
-                int(form["version"]),
-                form["key"],
-                6,
-                {"target_profiles": profiles},
-                request_signature={name: value for name, value in form.items() if name not in {"csrf", "key"}},
-            )
-        except (ValueError, KeyError, StopIteration, PermissionError):
-            return Response.text(409, "Profilentwurf nicht gespeichert; Verweise, Angaben und Version prüfen.")
-        return Response.redirect("/einstellungen/zielprofile")
+        return mailbox_profiles.save_profile(self, request, session, form)
 
     def target_forms(self, proposal: Proposal, session: WebSession) -> str:
-        if self.runtime is None:
-            return ""
-        cfg = self.runtime.app.settings
-        body = ""
-        for number, name, digest in choices(cfg, proposal):
-            body += post_form(
-                "/einstellungen/zielprofile/umstellen",
-                self.site.auth.csrf_token(session.id),
-                "",
-                f"Auf Zielprofil {name} umstellen",
-                mail_id=proposal.source_mail_id,
-                proposal_id=proposal.id,
-                version=proposal.version,
-                number=number,
-                digest=digest,
-            )
-        return body
+        return mailbox_profiles.target_forms(self, proposal, session)
 
     def retarget(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        try:
-            command = ReviewCommand(
-                kind=CommandKind.RETARGET,
-                source=CommandSource.WEB,
-                actor=f"web:{session.id}",
-                mail_id=form["mail_id"],
-                proposal_id=form["proposal_id"],
-                version=int(form["version"]),
-                idempotency_key=form["key"],
-                target_profile=int(form["number"]),
-                proposal_hash=form["digest"],
-            )
-        except (ValueError, KeyError):
-            return Response.text(422, "Ungültige Zielwahl.")
-        return self.site.archive.queue(request, command)
+        return mailbox_profiles.retarget(self, request, session, form)

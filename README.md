@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.8 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.9 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.9 verteilt die sechs größten Klassen (Anwendung, Verarbeitung, Postfachlauf, Prüfdienst, Postfachseite, Pipeline) nach Aufgaben auf Module; die Schnittstellen bleiben gleich.
 
 7.0.8 zerlegt die längsten Funktionen von Prüfdienst und Telegram-Dialog in benannte Schritte; das Verhalten bleibt gleich.
 

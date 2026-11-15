@@ -9,17 +9,14 @@ in the serialized operator thread; commits also compare the authoritative state.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
-from typing import Any
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
 from .. import state_names
-from ..config import EventDefaultsSettings
 from ..config.configuration import AdminCommand, ConfigurationService
 from ..domain.mail import MailState
 from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
@@ -32,20 +29,15 @@ from ..domain.proposal import (
     reconciliation_only,
     required_revision_questions,
 )
-from ..domain.relevance import RelevanceDialogStatus
 from ..domain.verification import OPERATIONS, WriteVerification, operation_id
-from ..external.contracts import EntryModifiedError
-from ..external.roles import writer_for
-from ..llm.adapter import UncertainWriteError
-from ..mailbox.mailbox_settings import event_defaults_for
 from ..notifications.notification_context import web_reply
 from ..persistence.archive import record_event, record_recheck, record_relevance
 from ..persistence.revision_origin import ORIGIN
 from ..processing.mail_recheck import RecheckOutcome
 from ..proposals.conflicts import ConflictChoiceError, button_text, choose, label
-from ..proposals.event_defaults import reapply_defaults
 from ..proposals.profile_binding import retarget
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
+from . import command_reconciliation, removal
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
@@ -54,6 +46,9 @@ from .reject_reasons import REJECT_REASONS
 from .results import ResultStatus, ReviewResult
 from .series import SeriesService
 from .verification_texts import VERIFYING_MESSAGE
+
+if TYPE_CHECKING:
+    from ..external.contracts import TargetWriter
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"
@@ -175,86 +170,13 @@ class ReviewService:
                                        command.source.value, command.idempotency_key, command.text)
 
     def reconcile(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
-        """Result of a command interrupted by a restart, judged from the current state.
-
-        The command is never executed again: if its effect is visible it
-        counts as done, otherwise the user is asked to trigger it again.
-        """
-        if (isinstance(command, ReviewCommand)
-                and command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}):
-            return self.execute(command)
-        if isinstance(command, AdminCommand):
-            if self.configuration is None:
-                return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
-            return self.configuration.reconcile(command)
-        ProposalReconciliationService(self.controller.store).recover()
-        if self._took_effect(command):
-            self._record(command)
-            return ReviewResult(status=ResultStatus.DONE,
-                                message="Nach einem Neustart abgeglichen; der aktuelle Stand wird angezeigt.")
-        return ReviewResult(status=ResultStatus.FAILED,
-                            message="Durch einen Neustart unterbrochen – bitte prüfen und erneut auslösen.")
+        return command_reconciliation.reconcile(self, command)
 
     def resume_admitted(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
-        """Resume a committed receipt if execution had not reached its durable effect."""
-        if isinstance(command, AdminCommand):
-            return self.reconcile(command)
-        ProposalReconciliationService(self.controller.store).recover()
-        if self._took_effect(command):
-            return self.reconcile(command)
-        # execute rechecks the original live session and authoritative version.
-        # Confirmed/writing proposals have already taken effect and reach reconcile,
-        # then ConfirmedWriteExecutor reconciles ambiguous writes before any retry.
-        return self.execute(command)
+        return command_reconciliation.resume_admitted(self, command)
 
     def _took_effect(self, command: ReviewCommand) -> bool:
-        store = self.controller.store
-        if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
-            mail = store.load_model(state_names.mail(command.mail_id), MailState)
-            return mail is not None and mail.processing_operation == command.idempotency_key
-        if command.kind == CommandKind.RECHECK_MAIL:
-            mail = store.load_model(state_names.mail(command.mail_id), MailState)
-            return isinstance(mail, MailState) and mail.analysis_round > command.version
-        if command.kind == CommandKind.RELEVANCE:
-            mail = store.load_model(state_names.mail(command.mail_id), MailState)
-            dialog = mail.relevance_dialog if isinstance(mail, MailState) else None
-            return dialog is not None and dialog.status == RelevanceDialogStatus.DECIDED
-        assert command.proposal_id is not None
-        current: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
-        if current is None:
-            return False
-        if command.kind == CommandKind.ALREADY_DONE:
-            return current.version == command.version and current.resolution == "already_done"
-        if command.kind == CommandKind.REJECT_REASON:
-            return current.version == command.version and current.reject_reason == command.reason
-        if command.kind == CommandKind.REMOVE_CREATED:
-            if current.version == command.version and current.status == ProposalStatus.REMOVED:
-                return True
-            writer = self._writer_for(current)
-            if writer is not None:
-                found = writer.reconcile_remove(current, command.idempotency_key)
-                if found is not None:
-                    removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
-                    self.controller.persist(removed)
-                    return True
-            return False
-        if command.kind == CommandKind.RESTORE:
-            return True
-        if current.version != command.version or current.status not in _OPEN:
-            return True
-        pointer = self._pointer()
-        on_target = (pointer.mail_id, pointer.proposal_id, pointer.version) == (
-            command.mail_id, command.proposal_id, command.version)
-        if command.kind == CommandKind.START_CLARIFICATION:
-            return on_target
-        if command.kind == CommandKind.CANCEL_CLARIFICATION:
-            return not on_target
-        if command.kind == CommandKind.ANSWER:
-            answer = store.load_model(
-                state_names.clarification(command.mail_id, command.proposal_id, command.version),
-                ProposalClarificationState)
-            return isinstance(answer, ProposalClarificationState) and answer.authorized_answer is not None
-        return False
+        return command_reconciliation._took_effect(self, command)
 
     def _authorized(self, command: ReviewCommand) -> bool:
         if command.source == CommandSource.TELEGRAM:
@@ -323,99 +245,18 @@ class ReviewService:
                     CommandKind.REMOVE_CREATED: self._remove_created}
         return handlers.get(command.kind, self._decide)(command)
 
-    def _writer_for(self, proposal: Proposal) -> ExternalWriter | None:
-        write_executor = getattr(self.controller, "write_executor", None)
-        if write_executor is not None:
-            return write_executor.writer_for(proposal)
-        writers = getattr(self.controller, "writers", None)
-        if writers:
-            return writer_for(writers, proposal)
-        return None
+    def _writer_for(self, proposal: Proposal) -> TargetWriter | None:
+        return removal._writer_for(self, proposal)
 
     def _removal_window_minutes(self) -> int:
-        if self.configuration is not None:
-            return self.configuration.active.targets.removal_window_minutes
-        handler = getattr(self.controller, "relevance_handler", None)
-        targets = getattr(handler, "targets", None)
-        if targets is not None:
-            return getattr(targets, "removal_window_minutes", 10)
-        return 10
+        return removal._removal_window_minutes(self)
 
     def _is_within_removal_window(self, proposal: Proposal) -> bool:
-        created = proposal_creation_time(self.controller.store, proposal)
-        if created is None:
-            return True
-        now = datetime.now(UTC)
-        window = timedelta(minutes=self._removal_window_minutes())
-        return now <= created + window
+        return removal._is_within_removal_window(self, proposal)
 
     def _remove_created(self, command: ReviewCommand) -> ReviewResult:
 
-        assert command.proposal_id is not None
-        with self.controller.store.locked():
-            current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
-            if current is None or current.version != command.version:
-                raise StaleCommand("Vorschlag inzwischen geändert oder nicht gefunden")
-            if current.status == ProposalStatus.REMOVED:
-                return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
-            if current.status == ProposalStatus.SIMULATED:
-                raise ReviewError("Simulierte Vorschläge können nicht extern entfernt werden.")
-            if current.status != ProposalStatus.CREATED:
-                raise ReviewError("Nur angelegte Einträge können wieder entfernt werden.")
-            if current.external_id is None:
-                raise ReviewError("Keine externe ID vorhanden.")
-            if not self._is_within_removal_window(current):
-                raise ReviewError(
-                    "Die Frist zum Entfernen des Eintrags ist abgelaufen (maximal 10 Minuten nach dem Anlegen)."
-                )
-
-            writer = self._writer_for(current)
-            if writer is None:
-                raise ReviewError("Kein Schreibdienst für diesen Vorschlag konfiguriert.")
-
-            try:
-                prepared = writer.prepare_remove(current, command.idempotency_key)
-            except EntryModifiedError:
-                return ReviewResult(
-                    status=ResultStatus.INVALID,
-                    message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
-                )
-
-            if not prepared.requires_write:
-                removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
-                self.controller.persist(removed)
-                record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-                return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
-
-            # Live authorization check at the write boundary
-            if not self._authorized(command):
-                return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
-
-            try:
-                result = prepared.operation()
-            except UncertainWriteError:
-                rec = writer.reconcile_remove(current, command.idempotency_key)
-                if rec is not None:
-                    removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
-                    self.controller.persist(removed)
-                    record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-                    return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
-                return ReviewResult(
-                    status=ResultStatus.WRITE_UNCERTAIN,
-                    message="Entfernen noch nicht bestätigt; Abgleich läuft.",
-                )
-            except EntryModifiedError:
-                return ReviewResult(
-                    status=ResultStatus.INVALID,
-                    message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
-                )
-            except Exception:
-                return ReviewResult(status=ResultStatus.FAILED, message="Entfernen fehlgeschlagen.")
-
-            removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
-            self.controller.persist(removed)
-            record_event(self.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-            return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
+        return removal._remove_created(self, command)
 
     def _reject_reason(self, command: ReviewCommand) -> ReviewResult:
         assert command.proposal_id is not None
@@ -476,53 +317,7 @@ class ReviewService:
 
     def _reconcile_proposal(self, command: ReviewCommand) -> ReviewResult:
 
-        service = ProposalReconciliationService(self.controller.store)
-        with self.controller.store.locked():
-            if command.kind == CommandKind.RESTORE:
-                state = self.controller.repository.load_mail(command.mail_id)
-                item = next((p for p in state.proposals if p.id == command.proposal_id), None) if state else None
-                if item is None or item.version != command.version or item.source_mail_id != command.mail_id:
-                    raise StaleCommand("Mailbefund inzwischen geändert")
-                digest = hashlib.sha256(json.dumps(item.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()
-                if digest != command.proposal_hash or self.controller.repository.load_current(command.mail_id, item.id):
-                    raise StaleCommand("Mailbefund inzwischen geändert oder wiederhergestellt")
-                # Preserve the original action key; a projection cannot prove
-                # whether a confirmed request already reached the provider.
-                if item.status == ProposalStatus.CONFIRMED:
-                    item = item.model_copy(update={"status": ProposalStatus.UNCERTAIN})
-                self.controller.repository.save_revision(item)
-                return ReviewResult(status=ResultStatus.DONE, message="Gespeicherten Befund wiederhergestellt.")
-            source = service.required(command.mail_id, command.proposal_id)
-            if source.version != command.version:
-                raise StaleCommand("Quellversion inzwischen geändert")
-            if command.kind == CommandKind.DEFAULTS:
-                if source.status not in _OPEN:
-                    raise StaleCommand("Vorschlag nicht mehr offen")
-                if self.configuration is not None:
-                    handler = self.controller.relevance_handler
-                    defaults = event_defaults_for(self.configuration.active, self.controller.store, source,
-                                                  getattr(handler, "mailbox_numbers", {}))
-                else:
-                    defaults = EventDefaultsSettings()
-                digest = hashlib.sha256(json.dumps(defaults.model_dump(), sort_keys=True).encode()).hexdigest()
-                if digest != command.proposal_hash:
-                    raise StaleCommand("Standarddauer inzwischen geändert")
-                changed = reapply_defaults(source, defaults)
-                self.controller.repository.save_revision(changed)
-                notifications = [changed] if changed.version != source.version else []
-            else:
-                assert command.target_ref is not None
-                target = service.required(command.target_ref.mail_id, command.target_ref.proposal_id)
-                if target.version != command.target_version:
-                    raise StaleCommand("Zielversion inzwischen geändert")
-                changed = service.manual(source, target, separate=command.kind == CommandKind.SEPARATE)
-                target_current = service.required(target.source_mail_id, target.id)
-                notifications = [target_current] if target_current.status in _OPEN else []
-                if changed.status in _OPEN:
-                    notifications.append(changed)
-        for proposal in notifications:
-            self.controller.send_proposal(proposal)
-        return ReviewResult(status=ResultStatus.DONE, message="Vorschlagsversion gespeichert; separat bestätigen.")
+        return command_reconciliation._reconcile_proposal(self, command)
 
     def _decide(self, command: ReviewCommand) -> ReviewResult:
         # Late: against the layer direction, named in tests/unit/test_layers70.py.

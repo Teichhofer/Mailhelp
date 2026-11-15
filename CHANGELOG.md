@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.0.9 – Große Klassen nach Aufgaben
+
+- Methodenrümpfe von `Application`, `Orchestrator`, `MailboxRunService`, `ReviewService`, `MailboxSite`
+  und `MailPipeline` in je zwei Aufgabenmodule; die Klassen leiten weiter (156–366 statt 465–578 Zeilen).
+- Typangabe von `_writer_for` korrigiert (`TargetWriter`).
+
 ## 7.0.8 – Prüfdienst und Telegram in kleineren Teilen
 
 - Auswertung der Vorschläge, Bestätigungsablauf und Darstellung in Telegram sowie die Kartenansicht

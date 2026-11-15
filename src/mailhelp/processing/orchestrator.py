@@ -3,12 +3,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import time
 from datetime import UTC, datetime
 from threading import Event
-from typing import Any, Literal, Protocol, cast
-from zoneinfo import ZoneInfo
+from typing import Any, Literal, Protocol
 
 from .. import state_names
 from ..config import (
@@ -19,32 +17,26 @@ from ..config import (
     TargetSettings,
     Topic,
 )
-from ..domain.deep_links import mail_link
 from ..domain.duplicate import MailImapIdentity
-from ..domain.extraction import ExtractionCountConflict
 from ..domain.mail import MailState, next_updated_at
-from ..domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
+from ..domain.processing import ProcessingErrorCode, ProcessingStage
 from ..domain.proposal import Proposal
-from ..domain.relevance import IrrelevantSenders, Relevance, RelevanceDialog, RelevanceDialogStatus
+from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..llm.decisions import relevance_fingerprint
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mailbox_settings import effective_settings, effective_topics, mailbox_fingerprint, mailbox_topic_policy
-from ..mailbox.sender_filter import is_irrelevant_sender
 from ..persistence.archive import record_analysis
 from ..persistence.storage import JsonStore
-from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, MailDateContext, resolve_day
 from ..proposals.precheck import DuplicatePreCheckService
-from ..proposals.proposal_builder import ProposalBuilder
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
-from ..telegram.formatting import mail_line
+from . import orchestrator_failures, orchestrator_proposals
 from .analysis import Analyzer
-from .attachments import AttachmentCache
 from .identity import addresses_in
 from .mail_duplicates import DuplicateMailCheck
 from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
 from .mail_questions import MailQuestions
-from .retry import blocked, failed, succeeded
+from .retry import blocked, succeeded
 from .stage_timing import StageClock
 from .vision import VisionExtractor
 
@@ -135,62 +127,12 @@ class Orchestrator:
         return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
-        """Cross from untrusted extracted facts into application-owned proposals."""
-        mail = state.prepared
-        assert mail is not None
-        context = MailDateContext(
-            date_context_status=mail.date_context_status,
-            date_header_parsed=mail.date_header_parsed,
-            imap_received_at=mail.imap_received_at,
-            user_timezone=mail.user_timezone or self.user_timezone,
-        )
-        headers = state.display_headers
-        return ProposalBuilder(
-            state.id,
-            (
-                TargetSettings.model_validate(state.proposal_policy["targets"])
-                if state.proposal_policy is not None and "targets" in state.proposal_policy
-                else self.targets
-            ),
-            context,
-            source_sender=headers.sender if headers else "—",
-            source_subject=headers.subject if headers else "—",
-            event_defaults=(
-                EventDefaultsSettings.model_validate(state.proposal_policy["event_defaults"])
-                if state.proposal_policy is not None
-                else None
-            ),
-            target_profile=(state.proposal_policy.get("target_profile", 1) if state.proposal_policy is not None else 1),
-            # 4.7: mails prepared before 4.7 have no link kind and keep their descriptions.
-            mail_link=mail_link(mail.headers.message_id,
-                                (state.proposal_policy or {}).get("mail_link_kind", "none")),
-        ).build(
-            state.task_extraction.tasks if state.task_extraction else [],
-            state.event_extraction.events if state.event_extraction else [],
-            state.extraction_count_conflicts,
-            calendar_events=mail.calendar_events,
-        )
+        return orchestrator_proposals.build_proposals(self, state)
 
     def record_count_conflict(self, name: str, state: MailState, category: Literal["task", "event"],
                                expected: int, actual: int, router_call_id: str | None,
                                extractor_call_id: str) -> None:
-        if expected == actual:
-            return
-        assert router_call_id is not None  # a count comes from the router's own call
-        key = (category, router_call_id, extractor_call_id)
-        if any((item.category, item.router_call_id, item.extractor_call_id) == key
-               for item in state.extraction_count_conflicts):
-            return
-        conflict = ExtractionCountConflict(
-            category=category, expected_count=expected, actual_count=actual,
-            router_call_id=router_call_id, extractor_call_id=extractor_call_id,
-        )
-        state.extraction_count_conflicts.append(conflict)
-        self.save(name, state)
-        self.logger.event("WARNING", "orchestrator", "extraction_count_conflict",
-                          mail_id=state.id, category=category, expected_count=expected,
-                          actual_count=actual, router_call_id=router_call_id,
-                          extractor_call_id=extractor_call_id)
+        return orchestrator_proposals.record_count_conflict(self, name, state, category, expected, actual, router_call_id, extractor_call_id)
 
     # Original documents for download (2.3); composition applies ``attachments`` from config.yaml.
     original_attachments: OriginalAttachmentSettings = OriginalAttachmentSettings()
@@ -201,14 +143,7 @@ class Orchestrator:
         return self.store.load_model(name, model, default)
 
     def cache_previews(self, state: MailState, raw: bytes) -> None:
-        """Image previews are optional; a failure never stops the analysis."""
-        assert state.mail is not None  # previews are cached while the mail is prepared
-        try:
-            AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"],
-                                                self.original_attachments)
-        except (OSError, ValueError) as exc:
-            self.logger.event("WARNING", "orchestrator", "preview_failed", mail_id=state.id,
-                              error_class=type(exc).__name__)
+        return orchestrator_proposals.cache_previews(self, state, raw)
 
     def blocked_senders(self) -> IrrelevantSenders:
         blocked = (
@@ -220,84 +155,13 @@ class Orchestrator:
         return blocked
 
     def read_images(self, name: str, state: MailState, raw: bytes) -> None:
-        """Vision OCR before relevance; progress is saved per attachment.
-
-        It runs at most once per mail, never for a blocked sender and only while
-        the original message is available (a resumed mail has no raw bytes).
-        """
-        assert state.mail is not None and state.prepared is not None and self.vision is not None
-        metadata = state.mail["metadata"]
-        if "vision" in metadata:
-            return
-        if not raw:
-            metadata["vision"] = "unavailable"
-        elif is_irrelevant_sender(state.prepared.headers.sender, self.blocked_senders(),
-                                  self.mailbox_number(state.imap.account_id)):
-            metadata["vision"] = "skipped_sender"
-        else:
-            attachments = state.mail.get("extracted_attachments", [])
-            for update in self.vision.extract(raw, attachments):
-                attachments[update.index] = update.attachment
-                if update.call_id is not None:
-                    state.llm_call_ids.append(update.call_id)
-                self.save(name, state)
-                self.logger.event("WARNING" if update.error else "INFO", "orchestrator",
-                                  "vision_attachment", mail_id=state.id, attachment=update.index,
-                                  outcome=update.attachment["vision"], call_id=update.call_id,
-                                  error_type=update.error,
-                                  characters=update.attachment.get("character_count", 0))
-            metadata["vision"] = "completed"
-        self.save(name, state)
+        return orchestrator_proposals.read_images(self, name, state, raw)
 
     def _future_deadlines(self, state: MailState) -> list[str]:
-        if state.summary is None:
-            return []
-        raw = getattr(state.summary, "deadlines", []) or []
-        if not raw:
-            return []
-        context = (
-            MailDateContext(
-                date_context_status=state.prepared.date_context_status,
-                date_header_parsed=state.prepared.date_header_parsed,
-                imap_received_at=state.prepared.imap_received_at,
-                user_timezone=state.prepared.user_timezone or self.user_timezone,
-            )
-            if state.prepared is not None
-            else None
-        )
-        try:
-            today = datetime.fromtimestamp(self.clock(), UTC).astimezone(ZoneInfo(self.user_timezone)).date()
-        except Exception:
-            today = datetime.now(UTC).date()
-        token_re = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")
-        future: list[str] = []
-        for item in raw:
-            match = token_re.search(item)
-            if match is not None:
-                token = match.group(0)
-                day = resolve_day(token, context) if context is not None else None
-                if day is None:
-                    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-                        try:
-                            day = datetime.strptime(token, fmt).date()
-                            break
-                        except ValueError:
-                            pass
-                if day is not None and day < today:
-                    continue
-            future.append(item)
-            if len(future) == 3:
-                break
-        return future
+        return orchestrator_proposals._future_deadlines(self, state)
 
     def notification_text(self, state: MailState) -> str:
-        """Format the compact mail notification from validated display values."""
-        assert state.prepared is not None and state.relevance is not None and state.summary is not None
-        headers = state.prepared.headers
-        sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
-        deadlines = self._future_deadlines(state)
-        deadline_line = f"\nFristen: {'; '.join(deadlines)}" if deadlines else ""
-        return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}{deadline_line}"
+        return orchestrator_proposals.notification_text(self, state)
 
     def accepts_configuration(self, fingerprint: str, account_id: str | None = None) -> bool:
         current = self.fingerprint_for(account_id) if account_id is not None else self.config_fingerprint
@@ -347,74 +211,10 @@ class Orchestrator:
 
     def failure(self, name: str, state: MailState, code: ProcessingErrorCode,
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
-        """Mark before sending, and retain a matching generation across restarts."""
-        now = datetime.now(UTC)
-        error = state.error
-        if error is None or error.code != code or error.stage != stage:
-            error = state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
-        failed(state, self.fingerprint_for(state.imap.account_id), now)
-        retry = state.processing_retry
-        if retry is not None and not retry.abandoned:
-            self.save(name, state)
-            return
-        if retry is not None:
-            if retry.notification_marked_at is not None:
-                self.save(name, state)
-                return
-            retry.notification_marked_at = now
-            text = "Mail wird nicht weiter versucht. " + text
-            settings = getattr(self, "mailbox_settings", None)
-            if settings is not None and settings.web.enabled:
-                # Late: against the layer direction, named in tests/unit/test_layers70.py.
-                from ..web.factory import base_url
-                text += "\n" + base_url(settings) + "/mail/" + state.id
-            error.notification_marked_at = None
-        if error.notification_marked_at is not None:
-            self.save(name, state)
-            return
-        error.notification_marked_at = now
-        self.save(name, state)
-        if state.prepared is not None:
-            sender, subject = state.prepared.headers.sender, state.prepared.headers.subject
-        else:
-            display = state.display_headers
-            sender, subject = (display.sender, display.subject) if display else ("—", "—")
-        self.notifier.send(
-            self.chat_id,
-            "\n".join([
-                mail_line(sender or "—", subject or "—"),
-                f"⚠️ Schritt {stage.value}: {text}",
-            ]),
-        )
+        return orchestrator_failures.failure(self, name, state, code, stage, text, retryable)
 
     def resolve_relevance(self, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
-        name = state_names.mail(mail_id)
-        state = self.store.load_model(name, MailState)
-        if not isinstance(state, MailState) or state.relevance_dialog is None:
-            raise ValueError("Relevanzfrage wurde nicht gefunden")
-        dialog = state.relevance_dialog
-        if dialog.mail_id != mail_id or dialog.version != version or dialog.status != RelevanceDialogStatus.OPEN:
-            raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
-        if decision not in {"relevant", "irrelevant"}:
-            raise ValueError("Ungültige Relevanzentscheidung")
-        state.relevance = Relevance(
-            decision=cast(Literal["relevant", "irrelevant"], decision), topic_ids=[], reason="Telegram-Entscheidung"
-        )
-        state.awaiting_relevance = False
-        state.relevance_dialog = dialog.model_copy(update={
-            "status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
-        if decision == "irrelevant":
-            state.steps.summary = state.steps.action_detection = "skipped"
-            state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
-            state.steps.normalization = state.steps.proposal_building = "skipped"
-            state.steps.duplicate_precheck = "skipped"
-            state.steps.summary_notification = state.steps.proposal_notification = "skipped"
-            state.steps.auto_draft = "skipped"
-            state.steps.completion = "completed"
-        else:
-            state.steps.summary_notification = "pending"
-        self.save(name, state)
-        return state
+        return orchestrator_failures.resolve_relevance(self, mail_id, version, decision, telegram_offset)
 
     def resume_mail(self, state: MailState) -> ProcessingResult:
         return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b"",
@@ -511,26 +311,7 @@ class Orchestrator:
 
     def failure_outcome(self, name: str, state: MailState,
                          stage: ProcessingStage) -> ProcessingOutcome:
-        """Complete the mail while retaining a retryable action-only failure."""
-        action_stages = {ProcessingStage.ACTION_ROUTER, ProcessingStage.TASK_EXTRACTION,
-                         ProcessingStage.EVENT_EXTRACTION, ProcessingStage.NORMALIZATION,
-                         ProcessingStage.PROPOSAL_BUILDING, ProcessingStage.DUPLICATE_PRECHECK}
-        if stage not in action_stages:
-            return ProcessingOutcome.FAILED
-        step_name = {
-            ProcessingStage.ACTION_ROUTER: "action_router",
-            ProcessingStage.TASK_EXTRACTION: "task_extraction",
-            ProcessingStage.EVENT_EXTRACTION: "event_extraction",
-            ProcessingStage.NORMALIZATION: "normalization",
-            ProcessingStage.PROPOSAL_BUILDING: "proposal_building",
-            ProcessingStage.DUPLICATE_PRECHECK: "duplicate_precheck",
-        }[stage]
-        setattr(state.steps, step_name, "failed")
-        state.steps.action_detection = "failed"
-        state.steps.proposal_notification = "pending"
-        state.steps.completion = "completed"
-        self.save(name, state)
-        return ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
+        return orchestrator_failures.failure_outcome(self, name, state, stage)
 
     def run(self, poll: Any, interval: float, wait: Any = None) -> None:
         waiter = wait or self.stop_event.wait

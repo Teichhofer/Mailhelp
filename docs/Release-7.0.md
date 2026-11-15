@@ -227,3 +227,40 @@ Nebenbei verschwinden zwei Befunde des Ausgangsstands: die Verzweigungstiefe von
 Funktionen über 80 Zeilen im Paket: 2 (`cli._parser`, `llm/evaluation.evaluate`).
 
 Prüfung: 5 334 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests.
+
+## 7.0.9 – Große Klassen nach Aufgaben (D8)
+
+Die Rümpfe von Methoden ziehen als Funktionen in Module neben ihrer Klasse; statt `self` erhalten sie
+das Objekt als ersten Parameter. Die Klasse behält jede Methode als einzeilige Weiterleitung. Aufrufe
+zwischen den Methoden laufen weiter über das Objekt, sodass Tests, die Methoden ersetzen, unverändert
+wirken. Namen aus dem Klassenmodul erreichen die neuen Module über das Modul selbst; so entstehen
+keine Ladezyklen.
+
+| Klasse | vorher | nachher | neue Module |
+| :--- | :--- | :--- | :--- |
+| `app.application.Application` | 532 Zeilen | 218 | `access_checks`, `run_loop` |
+| `processing.orchestrator.Orchestrator` | 483 | 272 | `orchestrator_proposals`, `orchestrator_failures` |
+| `mailbox.mailbox_run.MailboxRunService` | 578 | 156 | `run_polling`, `run_resume` |
+| `review.service.ReviewService` | 566 | 366 | `removal`, `command_reconciliation` |
+| `web.mailbox_site.MailboxSite` | 550 | 234 | `mailbox_profiles`, `mailbox_draft` |
+| `processing.mail_pipeline.MailPipeline` | 465 | 243 | `pipeline_proposals`, `pipeline_failures` |
+
+**Abweichung vom Plan.** Vorgesehen waren Mitarbeiterklassen. Tests rufen viele interne Methoden der
+Klassen direkt auf oder ersetzen sie; eigene Mitarbeiterobjekte hätten Teständerungen über
+Importpfade hinaus verlangt. Mixin-Klassen schieden aus, weil mypy in einem Mixin die Attribute der
+eigentlichen Klasse nicht kennt.
+
+**Beim Umbau gefunden und vor dem Commit behoben.**
+- In `_reconcile_proposal` hieß eine lokale Variable wie der neue Parameter (`service`); die
+  Zuweisung hätte das Objekt überschrieben. Mypy meldete die Typverletzung, eine Prüfung aller
+  verschobenen Rümpfe fand keinen weiteren Fall. Der Parameter heißt dort `review`.
+- `access_checks` ruft `_check_telegram_access` wie das Original bewusst über die Klasse auf.
+- Die Typangabe von `_writer_for` zeigte auf einen nirgends importierten Namen (`ExternalWriter`,
+  Befund seit 6.6); richtig ist `TargetWriter`, das als einziges `prepare_remove` kennt. Mypy meldet
+  jetzt 12 statt 13 Fehler.
+
+Schichtentest und Telegram-Grenze nennen die neuen Module; die Ausnahmen sind dieselben, nur unter
+den neuen Modulnamen.
+
+Prüfung: 5 334 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests. Nebenbei
+entfernte ruff einen ungenutzten Import in `web/proposal_evaluation_site.py` (Befund seit 6.5).
