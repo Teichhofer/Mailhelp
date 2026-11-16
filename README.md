@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.15 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.16 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.0.15 prüft alle lebenden Dokumente gegen Code und Oberfläche (Protokoll in `docs/Pruefung-Dokumentation-7.0.md`), korrigiert 25 veraltete Abschnitte, ergänzt dauerhafte automatische Dokumentationsprüfungen und kürzt dieses README auf Einstieg und Verweise.
+7.0.16 schließt den Umbau von 7.0 mit der Abnahme ab: gleiches Verhalten und Zustandsformat wie 6.9, kürzere Funktionen, Schichten- und Typprüfung für das ganze Paket, geprüfte Dokumentation.
 
 Alle Änderungen früherer Versionen stehen im [CHANGELOG](CHANGELOG.md).
 

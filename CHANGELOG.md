@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.0.16 – Abnahme von 7.0
+
+- Abnahme gegen die Kriterien der Planung 7.0: Zustandsdateien unverändert (gleiche Prüfsumme über
+  4 840 Dateien), Mutationswerte im Kern nicht schlechter (1 158 → 1 163 getötet), 100 % Abdeckung.
+- Abweichungen mit Begründung im Release-Bericht: Parameterlisten der Konstruktoren, 25 statt 20
+  späte Importe, Prüfdauer 9,5 statt 6 Minuten.
+
 ## 7.0.15 – Prüfung der lebenden Dokumente
 
 - Alle lebenden Dokumente Abschnitt für Abschnitt gegen Code und Oberfläche geprüft; 25 veraltete

@@ -497,6 +497,56 @@ gemessen liegen 7.0.13 und 7.0.15 gleich (Median 229 bzw. 228 ms, 95. Perzentil 
 Verlangsamung, sondern die Last der parallel laufenden Browser. Die Grenze von 300 ms bleibt; die
 Frage, ob dieser Messtest seriell laufen soll, gehört zur Abnahme (7.0.16).
 
-Prüfung: 5 457 Python-Tests mit voller Abdeckung, 922 Browsertests (ein Lastfehlschlag wie oben),
+Prüfung: 5 458 Python-Tests mit voller Abdeckung, 922 Browsertests (ein Lastfehlschlag wie oben),
 JavaScript-Abdeckung 100 %.
+
+## 7.0.16 – Abnahme
+
+Gemessen an den Abnahmekriterien aus Abschnitt 7 der [Planung](Planung-7.0.md); Vorher-Werte aus
+7.0.1, Nachher-Werte vom Stand 7.0.15.
+
+| Kriterium | Grenzwert | Ergebnis | Erfüllt |
+| :--- | :--- | :--- | :--- |
+| Eingefrorene Ausgaben | Byte für Byte gleich 7.0.1 | Telegram unverändert; Webseiten bis auf die Skript- und Stylesheet-Zeilen mit ihren Hashes gleich (7.0.12, beabsichtigt) | mit Abweichung |
+| Bestandsprüfung | jede Zustandsdatei nach Laden und Speichern identisch | Prüfsumme über 4 840 Dateien vorher und nachher `66a76398…2d6aba` | ja |
+| Tests | Zahl nicht gesunken; keine geänderte Prüfung in Umbau-Patches | 5 318 (7.0.3) → 5 458 Python-Tests, 1 136 → 1 138 gesammelte Browsertests; Umbenennen und Teilen eins zu eins nachgewiesen (7.0.13) | ja |
+| Abdeckung | 100 % Zeilen und Branches; 100 % JS-Blöcke | 34 688 Anweisungen, 10 014 Branches, alle JS-Dateien 100 % | ja |
+| Mutationswerte des Kerns | nicht schlechter als vor 7.0 | 1 158 → 1 163 getötet (78,35 % → 78,69 %); `domain` 520 → 524, `storage` 454 → 455, `confirmed` 184 → 184 | ja |
+| Längste Funktion | ≤ 80 Zeilen (vorher 179) | 80 Zeilen; über 80: 16 → 0, über 60: 46 → 35 | ja |
+| Meiste Parameter | ≤ 10 (vorher 32) | weiterhin 32 (`JsonlLogger.__init__`); 19 Funktionen über 10 als benannte Ausnahmen in `test_limits.py` | nein |
+| Importe in Funktionen | ≤ 20, jeder begründet (vorher 328) | 25, jeder mit Begründung im Code | nein (25 statt 20) |
+| Schichten | kein Import gegen die Richtung außer benannten Ausnahmen | `test_layers.py` grün, 26 benannte Ausnahmen | ja |
+| `mypy` | streng für das ganze Paket, ohne Befund | 0 Befunde; Zusatzschalter weiter nur für den Kern (7.0.11) | ja |
+| Laufzeit des Dienstes | Abrufzyklus und Start im Lasttest nicht schlechter (5 %) | Lasttests bestanden; Live-Suche allein unverändert (Median 228 ms) | ja |
+| Laufzeit der Prüfung | volle Prüfung ≤ 6 Minuten, kein Test über 30 s | 9:33 Minuten mit `--workers 12` (vorher 44 Minuten) | nein |
+| Lebende Dokumente | alle geprüft, Protokoll vollständig, Stand-Zeile | geprüft und protokolliert; Satz-für-Satz-Prüfung der fachlichen Regeln der Spezifikation offen | mit Abweichung |
+| Betrieb | Produktivserver ohne manuelle Schritte von 6.9 auf 7.0; Rückweg möglich | Zustandsformat unverändert (Bestandsprüfung), Rückweg damit möglich; die Aktualisierung des Servers führt der Betreiber aus | offen (Betreiber) |
+
+**Begründung der Abweichungen.**
+
+- *Parameter:* Die verbleibenden langen Parameterlisten gehören zu Konstruktoren, denen der
+  Zusammenbau jede Abhängigkeit einzeln übergibt, und zu Einstiegspunkten, die Tests mit
+  Schlüsselwörtern aufrufen. Sie in Parameterobjekte zu bündeln, hätte jeden dieser Aufrufe
+  geändert, ohne Verhalten oder Lesbarkeit zu verbessern. Sie stehen als Ausnahmen mit Grund im
+  Test, neue kommen nicht unbemerkt hinzu.
+- *Späte Importe:* 18 sind benannte Importe gegen die Schichtrichtung, zwei laden plattformabhängige
+  Module (`msvcrt`, `fcntl`), fünf lösen echte Paarzyklen auf (siehe 7.0.4). Jeder trägt im Code eine
+  Zeile `# Late: …` mit dem Grund.
+- *Prüfdauer:* Die Abdeckungsmessung kostet bei 12 Prozessen den größten Teil der Zeit (siehe
+  7.0.5). Ohne Abdeckung laufen die Tests in unter zwei Minuten. Die Python-Prüfung ist trotzdem
+  rund viermal schneller als vor 7.0.
+- *Eingefrorene Ausgaben:* Die Teilung von `app.js` ändert die Script-Zeilen jeder Seite. Der
+  Unterschied wurde auf genau diese Zeilen geprüft, und die Bildschirmfotos wurden pixelweise
+  verglichen (7.0.12).
+
+**Mutation.** Gemessen in WSL mit dem Stand 7.0.15, gespeichert in
+`quality-reports/mutation-7.0-nachher.json`. Die Schwelle von 90 % des wöchentlichen Laufs erreicht
+Mailhelp wie vor 7.0 nicht; das ist kein Ziel von 7.0 gewesen.
+
+Prüfung: 5 458 Python-Tests mit voller Abdeckung (9:25 Minuten). Browser: 921 bestanden; die Live-Suche
+(siehe 7.0.15) und einmal `test_overview_refreshes_itself_but_never_discards_typed_text[mobile]`
+scheiterten unter Last und bestanden einzeln (fünfmal je drei Ansichten).
+
+**Offen für den Betreiber.** Aktualisierung des Produktivservers auf 7.0 und die Frage, ob die
+Messtests (Live-Suche, Latenz v441) im parallelen Browserlauf seriell laufen sollen.
 

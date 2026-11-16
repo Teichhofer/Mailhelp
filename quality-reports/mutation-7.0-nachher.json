@@ -1,0 +1,14 @@
+{
+  "version": "7.0.15",
+  "commit": "ba686f6",
+  "total": 1478,
+  "killed": 1163,
+  "survived": 180,
+  "no_tests": 135,
+  "score_percent": 78.69,
+  "core": {
+    "domain": {"killed": 524, "survived": 22, "no_tests": 135},
+    "storage": {"killed": 455, "survived": 68, "no_tests": 0},
+    "confirmed": {"killed": 184, "survived": 90, "no_tests": 0}
+  }
+}

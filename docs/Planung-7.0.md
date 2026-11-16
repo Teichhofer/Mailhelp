@@ -7,8 +7,7 @@
 **Status:** Entschieden am 15. November 2026: R1 bis R8 (Code) und K1 bis K6 (Dokumentation)
 übernommen, darunter **R1** (projektfremde Dateien aus der Versionierung nehmen), **R6**
 (Testdateien nach Thema statt nach Version benennen) und **K2** (abgeschlossene Pläne und
-Release-Berichte in ein Archiv verschieben). Umsetzung läuft; Stand und Nachweise je Patch in
-[Release 7.0](Release-7.0.md). Die Liste zu R1 hat der Betreiber am 15. November 2026 bestätigt.
+Release-Berichte in ein Archiv verschieben). Umgesetzt in 7.0.1 bis 7.0.16; Stand, Nachweise und Abweichungen in [Release 7.0](Release-7.0.md).
 
 **Ausgangsstand:** der Stand nach Abschluss von 6.8 und 6.9. Die Zahlen unten wurden am
 15. November 2026 am Arbeitsstand 6.8.1 gemessen und werden in Schritt 7.0.1 neu erhoben.

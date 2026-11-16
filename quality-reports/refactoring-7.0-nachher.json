@@ -1,0 +1,466 @@
+{
+  "files": 325,
+  "lines": 55445,
+  "functions": 3146,
+  "functions_over_60_lines": 35,
+  "functions_over_80_lines": 0,
+  "functions_over_100_lines": 0,
+  "functions_over_10_parameters": 19,
+  "longest_functions": [
+    {
+      "file": "src/mailhelp/runtime/learning_worker.py",
+      "name": "tick",
+      "lines": 80,
+      "parameters": 1
+    },
+    {
+      "file": "src/mailhelp/telegram/client.py",
+      "name": "poll",
+      "lines": 80,
+      "parameters": 3
+    },
+    {
+      "file": "src/mailhelp/runtime/experience.py",
+      "name": "__init__",
+      "lines": 79,
+      "parameters": 4
+    },
+    {
+      "file": "src/mailhelp/external/confirmed.py",
+      "name": "execute_confirmed",
+      "lines": 78,
+      "parameters": 6
+    },
+    {
+      "file": "src/mailhelp/llm/openrouter.py",
+      "name": "complete",
+      "lines": 78,
+      "parameters": 17
+    },
+    {
+      "file": "src/mailhelp/telegram/dialog.py",
+      "name": "_compose",
+      "lines": 77,
+      "parameters": 2
+    },
+    {
+      "file": "src/mailhelp/app/composition.py",
+      "name": "build_application",
+      "lines": 75,
+      "parameters": 13
+    },
+    {
+      "file": "src/mailhelp/runtime/retention.py",
+      "name": "run",
+      "lines": 75,
+      "parameters": 1
+    },
+    {
+      "file": "src/mailhelp/telegram/decisions.py",
+      "name": "decide_with_status",
+      "lines": 75,
+      "parameters": 6
+    },
+    {
+      "file": "src/mailhelp/proposals/precheck.py",
+      "name": "check_proposal",
+      "lines": 74,
+      "parameters": 3
+    },
+    {
+      "file": "src/mailhelp/mailbox/run_resume.py",
+      "name": "resume_pending",
+      "lines": 73,
+      "parameters": 2
+    },
+    {
+      "file": "src/mailhelp/review/proposal_evaluation.py",
+      "name": "sender_hints",
+      "lines": 73,
+      "parameters": 7
+    },
+    {
+      "file": "src/mailhelp/web/mailbox_draft.py",
+      "name": "preview",
+      "lines": 73,
+      "parameters": 2
+    },
+    {
+      "file": "src/mailhelp/web/review_pages.py",
+      "name": "mail_section",
+      "lines": 72,
+      "parameters": 2
+    },
+    {
+      "file": "src/mailhelp/processing/mail_duplicates.py",
+      "name": "check",
+      "lines": 70,
+      "parameters": 3
+    }
+  ],
+  "most_parameters": [
+    {
+      "file": "src/mailhelp/logging.py",
+      "name": "__init__",
+      "lines": 68,
+      "parameters": 32
+    },
+    {
+      "file": "src/mailhelp/llm/learning.py",
+      "name": "__init__",
+      "lines": 26,
+      "parameters": 20
+    },
+    {
+      "file": "src/mailhelp/processing/orchestrator.py",
+      "name": "__init__",
+      "lines": 42,
+      "parameters": 19
+    },
+    {
+      "file": "src/mailhelp/telegram/dialog.py",
+      "name": "__init__",
+      "lines": 46,
+      "parameters": 18
+    },
+    {
+      "file": "src/mailhelp/llm/openrouter.py",
+      "name": "complete",
+      "lines": 78,
+      "parameters": 17
+    },
+    {
+      "file": "src/mailhelp/llm/decision_test.py",
+      "name": "__init__",
+      "lines": 19,
+      "parameters": 16
+    },
+    {
+      "file": "src/mailhelp/processing/analysis.py",
+      "name": "complete",
+      "lines": 12,
+      "parameters": 16
+    },
+    {
+      "file": "src/mailhelp/llm/openrouter.py",
+      "name": "__init__",
+      "lines": 20,
+      "parameters": 15
+    },
+    {
+      "file": "src/mailhelp/web/site.py",
+      "name": "__init__",
+      "lines": 69,
+      "parameters": 15
+    },
+    {
+      "file": "src/mailhelp/llm/decision_test.py",
+      "name": "run_decision_test",
+      "lines": 50,
+      "parameters": 14
+    },
+    {
+      "file": "src/mailhelp/app/composition.py",
+      "name": "build_application",
+      "lines": 75,
+      "parameters": 13
+    },
+    {
+      "file": "src/mailhelp/llm/decision_test.py",
+      "name": "_initial_report",
+      "lines": 32,
+      "parameters": 12
+    },
+    {
+      "file": "src/mailhelp/telegram/revisions.py",
+      "name": "__init__",
+      "lines": 22,
+      "parameters": 12
+    },
+    {
+      "file": "src/mailhelp/cli.py",
+      "name": "_run",
+      "lines": 55,
+      "parameters": 11
+    },
+    {
+      "file": "src/mailhelp/helpdocs/chat.py",
+      "name": "__init__",
+      "lines": 15,
+      "parameters": 11
+    }
+  ],
+  "largest_classes": [
+    {
+      "file": "src/mailhelp/external/calendar.py",
+      "name": "CalendarOperations",
+      "lines": 414,
+      "methods": 23
+    },
+    {
+      "file": "src/mailhelp/telegram/revisions.py",
+      "name": "ProposalRevisionProcessor",
+      "lines": 402,
+      "methods": 12
+    },
+    {
+      "file": "src/mailhelp/processing/analysis.py",
+      "name": "Analyzer",
+      "lines": 399,
+      "methods": 23
+    },
+    {
+      "file": "src/mailhelp/telegram/client.py",
+      "name": "TelegramClient",
+      "lines": 395,
+      "methods": 18
+    },
+    {
+      "file": "src/mailhelp/web/site.py",
+      "name": "MailhelpSite",
+      "lines": 387,
+      "methods": 18
+    },
+    {
+      "file": "src/mailhelp/review/service.py",
+      "name": "ReviewService",
+      "lines": 366,
+      "methods": 27
+    },
+    {
+      "file": "src/mailhelp/telegram/update_handling.py",
+      "name": "TelegramUpdateHandler",
+      "lines": 342,
+      "methods": 12
+    },
+    {
+      "file": "src/mailhelp/support/metrics.py",
+      "name": "MetricsRecorder",
+      "lines": 335,
+      "methods": 18
+    },
+    {
+      "file": "src/mailhelp/telegram/dialog.py",
+      "name": "TelegramDialogController",
+      "lines": 328,
+      "methods": 21
+    },
+    {
+      "file": "src/mailhelp/mailbox/imap.py",
+      "name": "ImapReader",
+      "lines": 327,
+      "methods": 23
+    }
+  ],
+  "late_imports": 25,
+  "late_imports_by_file": {
+    "src/mailhelp/config/loader.py": 6,
+    "src/mailhelp/review/service.py": 3,
+    "src/mailhelp/config/configuration.py": 2,
+    "src/mailhelp/config/models.py": 2,
+    "src/mailhelp/persistence/storage.py": 2,
+    "src/mailhelp/review/inbox.py": 2,
+    "src/mailhelp/app/composition.py": 1,
+    "src/mailhelp/config/runtime_settings.py": 1,
+    "src/mailhelp/mailbox/mailbox_activation.py": 1,
+    "src/mailhelp/mailbox/run_resume.py": 1,
+    "src/mailhelp/processing/analysis.py": 1,
+    "src/mailhelp/processing/orchestrator_failures.py": 1,
+    "src/mailhelp/web/charts.py": 1,
+    "src/mailhelp/web/settings_search.py": 1,
+    "src/mailhelp/activity/budget.py": 0
+  },
+  "imports_between_areas": {
+    "activity -> __version__": 1,
+    "activity -> domain": 5,
+    "activity -> llm": 1,
+    "activity -> logging": 1,
+    "activity -> mailbox": 4,
+    "activity -> persistence": 1,
+    "activity -> processing": 2,
+    "activity -> proposals": 1,
+    "activity -> support": 1,
+    "app -> config": 11,
+    "app -> domain": 5,
+    "app -> external": 6,
+    "app -> helpdocs": 1,
+    "app -> llm": 7,
+    "app -> logging": 6,
+    "app -> mailbox": 21,
+    "app -> notifications": 3,
+    "app -> paths": 1,
+    "app -> persistence": 4,
+    "app -> processing": 7,
+    "app -> proposals": 7,
+    "app -> review": 2,
+    "app -> rule_learning": 1,
+    "app -> runtime": 24,
+    "app -> state_names": 2,
+    "app -> support": 1,
+    "app -> telegram": 6,
+    "app -> web": 12,
+    "cli -> app": 2,
+    "cli -> config": 2,
+    "cli -> external": 2,
+    "cli -> llm": 4,
+    "cli -> logging": 1,
+    "cli -> mailbox": 1,
+    "cli -> paths": 1,
+    "cli -> persistence": 1,
+    "cli -> processing": 1,
+    "cli -> runtime": 2,
+    "cli -> web": 2,
+    "config -> domain": 1,
+    "config -> llm": 3,
+    "config -> mailbox": 4,
+    "config -> persistence": 2,
+    "config -> proposals": 5,
+    "config -> review": 2,
+    "config -> runtime": 1,
+    "config -> support": 2,
+    "external -> config": 1,
+    "external -> domain": 19,
+    "external -> llm": 9,
+    "external -> logging": 8,
+    "external -> persistence": 1,
+    "external -> text": 1,
+    "helpdocs -> __version__": 1,
+    "helpdocs -> config": 1,
+    "helpdocs -> llm": 2,
+    "helpdocs -> logging": 1,
+    "helpdocs -> persistence": 1,
+    "helpdocs -> processing": 1,
+    "helpdocs -> web": 2,
+    "llm -> config": 7,
+    "llm -> domain": 8,
+    "llm -> logging": 3,
+    "llm -> mailbox": 9,
+    "llm -> paths": 1,
+    "llm -> persistence": 2,
+    "llm -> processing": 6,
+    "llm -> proposals": 1,
+    "llm -> review": 1,
+    "llm -> support": 3,
+    "logging -> log_reduction": 1,
+    "logging -> support": 1,
+    "mailbox -> config": 15,
+    "mailbox -> domain": 12,
+    "mailbox -> llm": 3,
+    "mailbox -> logging": 3,
+    "mailbox -> persistence": 5,
+    "mailbox -> processing": 5,
+    "mailbox -> proposals": 1,
+    "mailbox -> review": 1,
+    "mailbox -> runtime": 1,
+    "mailbox -> state_names": 6,
+    "mailbox -> text": 2,
+    "notifications -> config": 7,
+    "notifications -> domain": 5,
+    "notifications -> external": 1,
+    "notifications -> formatting": 1,
+    "notifications -> llm": 2,
+    "notifications -> logging": 1,
+    "notifications -> mailbox": 4,
+    "notifications -> persistence": 11,
+    "notifications -> processing": 1,
+    "notifications -> review": 8,
+    "notifications -> state_names": 2,
+    "persistence -> activity": 1,
+    "persistence -> app": 1,
+    "persistence -> domain": 20,
+    "persistence -> notifications": 1,
+    "persistence -> review": 3,
+    "persistence -> runtime": 6,
+    "persistence -> state_names": 3,
+    "persistence -> support": 1,
+    "processing -> config": 8,
+    "processing -> domain": 51,
+    "processing -> external": 3,
+    "processing -> helpdocs": 1,
+    "processing -> llm": 7,
+    "processing -> logging": 2,
+    "processing -> mailbox": 11,
+    "processing -> notifications": 2,
+    "processing -> persistence": 8,
+    "processing -> proposals": 4,
+    "processing -> review": 2,
+    "processing -> rule_learning": 1,
+    "processing -> state_names": 7,
+    "processing -> telegram": 2,
+    "processing -> text": 3,
+    "processing -> web": 1,
+    "proposals -> config": 5,
+    "proposals -> domain": 23,
+    "proposals -> external": 16,
+    "proposals -> logging": 3,
+    "proposals -> mailbox": 2,
+    "proposals -> persistence": 5,
+    "proposals -> text": 1,
+    "review -> config": 6,
+    "review -> domain": 36,
+    "review -> external": 5,
+    "review -> formatting": 2,
+    "review -> llm": 1,
+    "review -> mailbox": 3,
+    "review -> notifications": 1,
+    "review -> persistence": 13,
+    "review -> processing": 4,
+    "review -> proposals": 10,
+    "review -> state_names": 7,
+    "review -> telegram": 3,
+    "review -> text": 1,
+    "rule_learning -> config": 4,
+    "rule_learning -> persistence": 1,
+    "rule_learning -> processing": 1,
+    "rule_learning -> review": 1,
+    "runtime -> __version__": 1,
+    "runtime -> activity": 5,
+    "runtime -> config": 23,
+    "runtime -> domain": 4,
+    "runtime -> external": 5,
+    "runtime -> llm": 4,
+    "runtime -> logging": 1,
+    "runtime -> mailbox": 11,
+    "runtime -> notifications": 6,
+    "runtime -> persistence": 8,
+    "runtime -> processing": 6,
+    "runtime -> proposals": 5,
+    "runtime -> review": 1,
+    "runtime -> state_names": 2,
+    "support -> persistence": 2,
+    "telegram -> config": 1,
+    "telegram -> domain": 40,
+    "telegram -> external": 6,
+    "telegram -> llm": 4,
+    "telegram -> logging": 3,
+    "telegram -> notifications": 2,
+    "telegram -> persistence": 28,
+    "telegram -> processing": 5,
+    "telegram -> proposals": 6,
+    "telegram -> review": 23,
+    "telegram -> runtime": 1,
+    "telegram -> state_names": 9,
+    "telegram -> support": 1,
+    "telegram -> text": 4,
+    "telegram -> web": 1,
+    "text -> domain": 5,
+    "web -> __version__": 1,
+    "web -> activity": 8,
+    "web -> config": 38,
+    "web -> domain": 27,
+    "web -> external": 2,
+    "web -> formatting": 10,
+    "web -> helpdocs": 3,
+    "web -> llm": 1,
+    "web -> mailbox": 13,
+    "web -> notifications": 4,
+    "web -> persistence": 10,
+    "web -> processing": 4,
+    "web -> proposals": 7,
+    "web -> review": 67,
+    "web -> rule_learning": 9,
+    "web -> runtime": 19,
+    "web -> state_names": 7,
+    "web -> support": 5
+  }
+}
