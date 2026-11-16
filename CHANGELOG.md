@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.3.2 – Fehlgeschlagene Mails: Fehlerbericht und Fehlerkarte
+
+- Die Mailseite zeigt einen Fehler ganz oben mit Ursache, Empfehlung und Aktionen; der vollständige
+  Fehlerbericht klappt auf und lässt sich kopieren.
+- „Details“ in der Fehlerliste öffnet den Bericht als Dialog; ohne JavaScript führt der Link zur Mailseite.
+
 ## 7.3.1 – Fehlgeschlagene Mails: Ursache und Aktionen in der Liste
 
 - Die Fehlerliste (`/mails?state=failed`) nennt je Mail Ursache, Stufe und Fehlversuche und bietet

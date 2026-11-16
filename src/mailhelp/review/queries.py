@@ -106,8 +106,7 @@ class ArchiveQueries:
                           "error_code": state.error.code.value if state.error else None,
                           "error_stage": state.error.stage.value if state.error else None,
                           "error_attempts": state.processing_retry.attempts if state.processing_retry else None,
-                          "retry_pending": (state.error is not None and not state.processing_filed
-                                            and state.processing_retry is None),
+                          "retry_pending": state.retry_requested,
                           "retryable": not state.missing_analysis_steps,
                           "analysis_round": state.analysis_round,
                           "waiting": state.awaiting_relevance,

@@ -326,8 +326,14 @@ versucht wird oder aufgegeben wurde. **Mails mit Fehler** öffnet die Fehlerlist
 und bietet **Erneut versuchen**, **Ignorieren** und **Details** direkt an; nach der Aktion kehrst du
 zur Liste zurück und siehst das Ergebnis. **Erneut versuchen** startet die Fortsetzung beim
 nächsten Abruf und setzt die bisherigen Versuche zurück; bis dahin steht die Mail als „Erneuter
-Versuch angefordert“ in der Liste. **Ignorieren** (bis 7.3 „Ablegen“) beendet sie als nicht
+Versuch angefordert“ in der Liste. **Ignorieren** (bis 7.3 Ablegen genannt) beendet sie als nicht
 verarbeitet und legt sie ab; die Mail bleibt im Archiv und verschwindet aus der Fehlerliste.
+
+Auf der Mailseite steht ein Fehler ganz oben im Abschnitt „Verarbeitungsfehler“ mit Stufe, Ursache,
+Empfehlung, Stand der Wiederholung und denselben Knöpfen. **Fehlerbericht anzeigen** klappt alle
+Angaben auf: Zeitpunkte, Feldpfade und Modellaufruf-IDs. **Bericht kopieren** legt den Bericht als
+Text in die Zwischenablage, etwa für die Fehlersuche; er enthält keinen Mailtext, keine Adressen und
+keine Zugangsdaten. In der Fehlerliste öffnet **Details** denselben Bericht als Dialog.
 Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
 Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
 

@@ -20,6 +20,8 @@ def fail(web, number, *, attempts=5, abandoned=True, code="llm_schema_validation
     state.processing_retry = (ProcessingRetry(fingerprint="f", attempts=attempts, first_failed_at=NOW,
                                               last_failed_at=NOW + timedelta(hours=2), abandoned=abandoned)
                               if retry else None)
+    # A requested retry clears the counter and leaves its command key (see MailState.retry_requested).
+    state.processing_operation = None if retry else "manual-retry-key"
     web.store.save("mail-" + mail_id(number), state.model_dump(mode="json"))
     return state
 
@@ -29,7 +31,7 @@ def test_a_failed_mail_shows_cause_stage_attempts_and_its_actions(web):
     html = web.browser.request("GET", "/mails?state=failed").body.decode()
     assert "Fehler: KI-Antwort wiederholt ungültig (Stufe: Aktionszuordnung, 5 Fehlversuche)" in html
     assert ">Erneut versuchen</button>" in html and ">Ignorieren</button>" in html
-    assert f'href="/mail/{mail_id(7)}#fehlerbericht">Details</a>' in html
+    assert f'href="/mail/{mail_id(7)}#fehlerbericht" data-error-report>Details</a>' in html
     assert 'name="zurueck" value="fehlerliste"' in html
 
 
@@ -103,6 +105,8 @@ def test_summary_report_and_retry_texts():
     assert "pausiert" in retry_text(state) and error_report(state, "B", "UTC").attempts == "5/5 (pausiert)".replace(
         "5/5", "2/5")
     state.processing_retry = None
+    assert not retry_pending(state)  # an old error without counter or command is no request
+    state.processing_operation = "manual-retry-key"
     pending = error_report(state, "B", "UTC")
     assert pending.attempts == "angefordert" and pending.first_failed == "–" and retry_pending(state)
     assert "LLM-Calls" in pending.text()
@@ -112,3 +116,67 @@ def test_summary_report_and_retry_texts():
     assert error_report(state, "B", "UTC") is None and retry_text(state) == "Keine automatischen Versuche."
     state.processing_filed, state.error = False, None
     assert error_report(state, "B", "UTC") is None
+
+
+def test_the_mail_page_shows_the_error_card_at_the_top_with_the_full_report(web):
+    fail(web, 7)
+    page = web.browser.request("GET", f"/mail/{mail_id(7)}").body.decode()
+    card = page[page.index('id="fehlerbericht"'):]
+    assert page.index('id="fehlerbericht"') < page.index('class="mail-text"') if 'class="mail-text"' in page else True
+    assert "Verarbeitungsfehler</h2>" in card and "Aktionszuordnung" in card
+    assert "Später erneut versuchen" in card and "5 von 5 automatischen Versuchen" in card
+    assert "Fehlerbericht anzeigen</summary>" in card and "=== Mailhelp Fehlerbericht ===" in card
+    assert "data-copy-report" in card and ">Erneut versuchen</button>" in card and ">Ignorieren</button>" in card
+    assert "Ursache und Aktionen stehen oben im Fehlerbericht" in page
+    # The form posts from the mail page and leads back to it.
+    form = web.form(f"/mail/{mail_id(7)}", kind="file_mail", mail_id=mail_id(7))
+    assert "zurueck" not in form
+
+
+def test_a_requested_retry_offers_no_second_retry_and_a_filed_mail_no_card(web):
+    fail(web, 7, retry=False)
+    page = web.browser.request("GET", f"/mail/{mail_id(7)}").body.decode()
+    assert "Erneuter Versuch angefordert" in page and ">Erneut versuchen</button>" not in page
+    state = web.store.load_model("mail-" + mail_id(7), MailState)
+    state.processing_filed = True
+    web.store.save("mail-" + mail_id(7), state.model_dump(mode="json"))
+    assert 'id="fehlerbericht"' not in web.browser.request("GET", f"/mail/{mail_id(7)}").body.decode()
+    assert 'id="fehlerbericht"' not in web.browser.request("GET", f"/mail/{mail_id(1)}").body.decode()
+
+
+def test_the_card_names_validation_paths_and_model_calls(web):
+    state = fail(web, 7)
+    state.validation_errors = [ValidationIssue(stage=ProcessingStage.ACTION_ROUTER, code="missing",
+                                               path=["events", 0, "time"], occurred_at=NOW)]
+    state.llm_call_ids = ["call-1"]
+    web.store.save("mail-" + mail_id(7), state.model_dump(mode="json"))
+    page = web.browser.request("GET", f"/mail/{mail_id(7)}").body.decode()
+    assert "<dt>Feldpfade</dt><dd>events.0.time</dd>" in page and "<dt>Modellaufrufe</dt><dd>call-1</dd>" in page
+
+
+def test_a_damaged_state_never_breaks_the_error_card(web, monkeypatch):
+    from mailhelp.persistence.storage import CorruptState
+    fail(web, 7)
+    original = web.store.peek_model
+
+    def damaged(name, model, *args, **kwargs):
+        if name == "mail-" + mail_id(7) and model is MailState:
+            raise CorruptState(name)
+        return original(name, model, *args, **kwargs)
+    monkeypatch.setattr(web.store, "peek_model", damaged)
+    # The mail view itself answers 404 then; the card on its own must not fail either.
+    assert web.site.archive.mail_archive.failure_card(mail_id(7), "Betreff", "csrf") == ""
+
+
+def test_an_old_error_without_counter_or_command_still_offers_a_retry(web):
+    state = fail(web, 7, retry=False)
+    state.processing_operation = None
+    web.store.save("mail-" + mail_id(7), state.model_dump(mode="json"))
+    assert ">Erneut versuchen</button>" in web.browser.request("GET", f"/mail/{mail_id(7)}").body.decode()
+    assert not state.retry_requested
+    state.error = state.error.model_copy(update={"code": "llm_rate_limited"})
+    assert state.retry_requested  # waits for the rate limit by itself
+
+
+def test_an_unknown_mail_has_no_error_card(web):
+    assert web.site.archive.mail_archive.failure_card("f" * 24, "Betreff", "csrf") == ""

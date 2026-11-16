@@ -10,7 +10,9 @@ je Mail Ursache, Stufe und Fehlversuche (`review/error_reporting.py`) und bietet
 (`RETRY_MAIL`, nur mit vorhandenen Analyse-Daten), „Ignorieren“ (`FILE_MAIL`) und „Details“. Die
 Aktionen sind versionsgebunden (`analysis_round`), CSRF-geschützt und idempotent; aus der Liste
 führt das Ergebnis zurück zur Liste. Eine Mail mit angefordertem Versuch bleibt bis zur Verarbeitung
-gekennzeichnet in der Liste. Berichte enthalten keine Mailinhalte oder Geheimnisse.
+gekennzeichnet in der Liste. Berichte enthalten keine Mailinhalte oder Geheimnisse. Seit 7.3.2 steht
+der Fehler als Karte oben auf der Mailseite mit aufklappbarem, kopierbarem Bericht; „Details“ in der
+Liste öffnet ihn als Dialog und führt ohne JavaScript zur Mailseite.
 
 ## Ergänzung 7.2: Google Tasks und Notion als Aufgabenziele
 

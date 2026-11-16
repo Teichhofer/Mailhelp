@@ -555,6 +555,10 @@ h2 { overflow-wrap: anywhere; }
 .swipe-hint button { flex: none; min-width: 44px; min-height: 44px; }
 @media (min-width: 1024px) { .swipe-hint:not([hidden]) { display: none; } }
 .draft-box textarea { display: block; width: 100%; font: inherit; margin: 12px 0; }
+/* 7.3.2: failed mails – the report card at the top of the mail page and in the list dialog. */
+.error-card { border-left: 4px solid var(--danger); }
+.error-card h2 { color: var(--danger); }
+.report-box textarea { display: block; width: 100%; font: 1rem/1.4 ui-monospace, monospace; margin: 12px 0; }
 .draft-box .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .draft-box textarea[readonly] { opacity: .75; }
 .inbox-zero { text-align: center; }

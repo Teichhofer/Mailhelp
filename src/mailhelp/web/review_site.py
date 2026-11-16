@@ -114,6 +114,7 @@ class ReviewSite:
                    f'geprüft werden; das Ergebnis erscheint nach dem nächsten Abruf.</p>'
                    f'{recheck_form(csrf, mail_id, analysis_round)}</section>'
                    if analysis_round is not None else "")
+        recheck += self.site.archive.mail_archive.failure_card(mail_id, view.subject, csrf)
         page = mail_page(view, question, relevance_actions(csrf), recheck=recheck,
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
@@ -122,8 +123,7 @@ class ReviewSite:
                          + (self.site.reanalysis_page.section(mail_id, csrf)
                             if self.site.reanalysis_page is not None else "")
                          + self.site.experience.editor(mail_id, csrf)
-                         + self.site.archive.mail_archive.analysis(mail_id)
-                         + self.site.archive.mail_archive.analysis_actions(mail_id, csrf))
+                         + self.site.archive.mail_archive.analysis(mail_id))
         return Response.html(200, page)
 
     def attachment(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:

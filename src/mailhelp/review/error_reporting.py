@@ -40,7 +40,7 @@ ADVICE = {
 
 def retry_pending(state: MailState) -> bool:
     """A failed mail whose next attempt is already due: retried by hand, or waiting for the rate limit."""
-    return state.error is not None and not state.processing_filed and state.processing_retry is None
+    return state.retry_requested
 
 
 def retry_text(state: MailState) -> str:

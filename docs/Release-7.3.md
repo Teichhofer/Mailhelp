@@ -32,3 +32,31 @@ Prüfung 7.3.1: 5 656 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; danac
 Bedienungsanleitung die frühere Bezeichnung „Ablegen“ mit, damit die Hilfesuche die Frage nach dem
 Ablegen weiter beantwortet (Hilfetests bestehen). Browser 941 bestanden; der Zeitmesstest der
 Live-Suche scheiterte unter Last und bestand danach einzeln.
+
+## 7.3.2 – Fehlerbericht, Kopieren und Fehlerkarte (F3, F4)
+
+- **Fehlerkarte** oben auf der Mailseite (`id="fehlerbericht"`): Stufe, Ursache mit Erklärung,
+  Empfehlung, Stand der Wiederholung und die Knöpfe **Erneut versuchen** und **Ignorieren**; die
+  Knöpfe am Seitenende entfallen. Ist ein Versuch schon angefordert, fehlt der zweite Knopf.
+- **Fehlerbericht** zum Aufklappen (ohne JavaScript nutzbar): Zeitpunkte, erster und letzter
+  Fehlversuch, Feldpfade der Prüfung, die letzten fünf Modellaufruf-IDs und der Bericht als Text.
+  **Bericht kopieren** nutzt die Zwischenablage; fehlt sie oder ist sie gesperrt, erklärt die Seite,
+  wie man von Hand kopiert.
+- **Dialog in der Fehlerliste:** **Details** öffnet den Bericht der Mailseite als zugänglichen Dialog
+  (natives `<dialog>`, Schließen mit Knopf oder Escape, Fokus zurück). Ohne JavaScript, bei einem
+  Lesefehler oder einer unerwarteten Antwort führt derselbe Link zum Bericht auf der Mailseite.
+- Ein beschädigter Mailzustand lässt die Karte weg, statt die Seite abzubrechen.
+- **Angeforderter Versuch** (`MailState.retry_requested`): Ein Fehlschlag legt immer einen
+  Wiederholungszähler an, außer beim Ratenlimit; ein manueller Versuch löscht ihn und hinterlässt
+  seinen Befehlsschlüssel. Nur dann (oder beim Ratenlimit) gilt ein Versuch als angefordert. Ein
+  älterer Fehler ohne Zähler und ohne Befehl bietet weiter **Erneut versuchen** an; das fiel im
+  Browsertest ohne JavaScript auf und ist dort und in `tests/web/test_failure_list.py` abgesichert.
+- Die Golden-Seiten wurden neu geschrieben; geändert haben sich ausschließlich die Versionskennungen
+  von `app.css` und `dialogs.js`.
+
+Prüfung 7.3.2: 5 663 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; JavaScript vollständig
+abgedeckt. Browser 947 bestanden. Der Push-Test wartete seit 7.2.6 mit `wait_for_function` auf
+einen Ausdruck; das braucht `eval`, das die Content-Security-Policy der Seite verbietet, und fiel nur
+unter Last auf. Er fragt jetzt in einer kurzen Schleife ab. Zwei weitere Ausfälle unter Last
+(Hilfefenster bei gesperrtem Speicher, Wischen einer laufenden Karte) bestanden danach zweimal
+einzeln.

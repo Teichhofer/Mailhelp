@@ -88,6 +88,13 @@ class MailState(StrictModel):
         return data
 
     @property
+    def retry_requested(self) -> bool:
+        """7.3: a failed mail whose next attempt is already due – retried by hand or waiting for the
+        rate limit; a failure records its retry counter, a manual retry clears it."""
+        return (self.error is not None and not self.processing_filed and self.processing_retry is None
+                and (self.processing_operation is not None or self.error.code == "llm_rate_limited"))
+
+    @property
     def missing_analysis_steps(self) -> tuple[str, ...]:
         """Completed prerequisites whose retained result is no longer available."""
         return tuple(step for step, result in (

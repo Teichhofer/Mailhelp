@@ -233,7 +233,9 @@ def _failure(item: dict[str, Any], csrf: str) -> str:
     summary = error_summary(item["error_code"], item["error_stage"], item["error_attempts"])
     line = f'<p class="row-detail">{e(summary)}</p>'
     forms = failure_forms(csrf, item["id"], item["analysis_round"], retryable=item["retryable"], back_to_list=True)
-    return line + forms + f'<p><a class="button small" href="/mail/{e(item["id"])}#fehlerbericht">Details</a></p>'
+    # Without JavaScript the link jumps to the report on the mail page; with it, a dialog opens.
+    return line + forms + (f'<p><a class="button small" href="/mail/{e(item["id"])}#fehlerbericht" '
+                           f'data-error-report>Details</a></p>')
 
 
 

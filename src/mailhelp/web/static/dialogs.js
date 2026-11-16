@@ -192,6 +192,39 @@
   enhance();
   openSource(document);
 
+  // 7.3.2: the error report of a failed mail as a dialog in the failure list; the link itself
+  // leads to the report on the mail page, so nothing is lost without JavaScript or on a failed read.
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest("[data-error-report]");
+    if (!link) return;
+    event.preventDefault();
+    fetch(link.getAttribute("href").split("#")[0], {credentials: "same-origin"}).then(function (answer) {
+      if (!answer.ok) throw new Error("status");
+      return answer.text();
+    }).then(function (text) {
+      var card = new DOMParser().parseFromString(text, "text/html").getElementById("fehlerbericht");
+      if (!card) throw new Error("missing");
+      card.removeAttribute("id");
+      card.querySelector("details").open = true;
+      modal("Fehlerbericht", [card]);
+    }).catch(function () { location.href = link.href; });
+  });
+
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-copy-report]");
+    if (!button) return;
+    var box = button.closest(".report-box"), status = box.querySelector("[data-copy-status]");
+    if (!navigator.clipboard) {
+      status.textContent = "Bitte den Bericht markieren und manuell kopieren.";
+      return;
+    }
+    navigator.clipboard.writeText(box.querySelector("textarea").value).then(function () {
+      status.textContent = "Bericht kopiert.";
+    }).catch(function () {
+      status.textContent = "Kopieren nicht erlaubt. Bitte den Bericht manuell kopieren.";
+    });
+  });
+
   document.addEventListener("click", function (event) {
     var button = event.target.closest("[data-copy-draft]");
     if (!button) return;

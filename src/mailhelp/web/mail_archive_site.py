@@ -9,13 +9,14 @@ from ..domain.mail import MailState
 from ..persistence.archive import AnalysisSnapshot
 from ..persistence.storage import CorruptState
 from ..review.consistency import hints
+from ..review.error_reporting import error_report, retry_pending
 from ..review.explanation import explain
 from ..review.queries import ArchiveQuery
 from .actions import failure_forms, result_kind
 from .archive_pages import analysis_section, mail_list_page, processing_path_section, revisions_list
 from .auth import WebSession
 from .http import Request, Response
-from .pages import layout, notice
+from .pages import e, layout, notice
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
@@ -61,14 +62,37 @@ class MailArchiveSite:
         if state.processing_filed:
             controls = notice("Nicht verarbeitet – bewusst abgelegt.", "info")
         elif state.error is not None:
-            controls = '<p>Diese Mail hat einen Verarbeitungsfehler.</p>'
+            controls = ('<p>Diese Mail hat einen Verarbeitungsfehler; Ursache und Aktionen stehen oben im '
+                        'Fehlerbericht.</p>')
         return controls + analysis_section(mail_id, state, record)
 
-    def analysis_actions(self, mail_id: str, csrf: str) -> str:
-        state = self.site.views.store.peek_model(state_names.mail(mail_id), MailState)
-        if state is None or state.error is None or state.processing_filed:
+    def failure_card(self, mail_id: str, subject: str, csrf: str) -> str:
+        """7.3.2: cause, advice and actions of a failed mail at the top of its page; the full report
+        opens below and can be copied. Works without JavaScript; the list's "Details" opens it as a dialog."""
+        try:
+            state = self.site.views.store.peek_model(state_names.mail(mail_id), MailState)
+        except CorruptState:
+            return ""  # the analysis section below names the damaged state
+        report = error_report(state, subject, self.site.configured_timezone) if state is not None else None
+        if state is None or report is None:
             return ""
-        return failure_forms(csrf, state.id, state.analysis_round, retryable=not state.missing_analysis_steps)
+        facts = [("Betroffener Schritt", report.stage_label),
+                 ("Fehlerursache", f"{report.label}. {report.explanation}"),
+                 ("Empfehlung", report.advice), ("Wiederholung", report.retry), ("Fehler aufgetreten", report.occurred),
+                 ("Erster Fehlversuch", report.first_failed), ("Letzter Versuch", report.last_failed)]
+        facts += [("Feldpfade", ", ".join(report.paths))] if report.paths else []
+        facts += [("Modellaufrufe", ", ".join(report.call_ids))] if report.call_ids else []
+        rows = "".join(f"<dt>{e(name)}</dt><dd>{e(value)}</dd>" for name, value in facts)
+        actions = failure_forms(csrf, state.id, state.analysis_round,
+                                retryable=not state.missing_analysis_steps and not retry_pending(state))
+        return (f'<section class="card error-card" id="fehlerbericht" aria-labelledby="fehlerbericht-titel">'
+                f'<h2 id="fehlerbericht-titel">Verarbeitungsfehler</h2>'
+                f'<p>{e(report.label)} – Stufe: {e(report.stage_label)}. {e(report.retry)}</p>{actions}'
+                f'<details class="error-report"><summary>Fehlerbericht anzeigen</summary>'
+                f'<dl class="facts">{rows}</dl><div class="report-box">'
+                f'<textarea readonly rows="8" aria-label="Fehlerbericht als Text">{e(report.text())}</textarea>'
+                f'<button class="button small" type="button" data-copy-report>Bericht kopieren</button>'
+                f'<p class="meta" role="status" data-copy-status></p></div></details></section>')
 
     def processing_path(self, mail_id: str) -> str:
         """5.1.1: the stored processing path of a mail, explained without a model call."""

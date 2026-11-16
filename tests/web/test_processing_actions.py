@@ -86,7 +86,7 @@ def test_unavailable_retained_data_and_missing_mail_cannot_be_retried(web):
     with pytest.raises(StaleCommand,match='nicht mehr vorhanden'):
         apply(web.store,command)
     assert not web.dialog.review._took_effect(command)
-    assert web.site.archive.mail_archive.analysis_actions(ident,'csrf')==''
+    assert web.site.archive.mail_archive.failure_card(ident,'Betreff','csrf')==''
 
 
 def test_queued_control_resumes_after_restart_and_checks_authoritative_state(web):
