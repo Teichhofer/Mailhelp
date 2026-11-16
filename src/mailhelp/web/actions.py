@@ -207,6 +207,18 @@ def recheck_form(csrf: str, mail_id: str, analysis_round: int, *, small: bool = 
             f'<button class="button{size}" type="submit">Erneut prüfen</button></form>')
 
 
+def failure_forms(csrf: str, mail_id: str, analysis_round: int, *, retryable: bool,
+                  back_to_list: bool = False) -> str:
+    """7.3: retry or file a failed mail, from the failure list or its mail page; works without JavaScript."""
+    extra = {"zurueck": "fehlerliste"} if back_to_list else {}
+    kinds = [(CommandKind.RETRY_MAIL, "Erneut versuchen", "primary")] if retryable else []
+    kinds.append((CommandKind.FILE_MAIL, "Ignorieren", ""))
+    return '<div class="actions">' + "".join(
+        f'<form method="post" action="/aktion">{_hidden(csrf, kind, mail_id, analysis_round, **extra)}'
+        f'<button class="button small {style}" type="submit">{label}</button></form>'
+        for kind, label, style in kinds) + "</div>"
+
+
 def relevance_actions(csrf: str) -> Callable[[RelevanceView], str]:
     def render(view: RelevanceView) -> str:
         forms = []

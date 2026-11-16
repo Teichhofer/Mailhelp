@@ -102,6 +102,14 @@ class ArchiveQueries:
                           "topics": relevance.get("topic_ids", []),
                           "summary": summary_text,
                           "failed": state.error is not None and not state.processing_filed,
+                          # 7.3: what the failure list shows and acts on, without reading the state again.
+                          "error_code": state.error.code.value if state.error else None,
+                          "error_stage": state.error.stage.value if state.error else None,
+                          "error_attempts": state.processing_retry.attempts if state.processing_retry else None,
+                          "retry_pending": (state.error is not None and not state.processing_filed
+                                            and state.processing_retry is None),
+                          "retryable": not state.missing_analysis_steps,
+                          "analysis_round": state.analysis_round,
                           "waiting": state.awaiting_relevance,
                           "completed": state.steps.completion == "completed",
                           "statuses": [p.status.value for p in state.proposals],

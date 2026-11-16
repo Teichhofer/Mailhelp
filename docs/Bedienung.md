@@ -321,9 +321,13 @@ Auf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wisc
 ## Fehlgeschlagene Mails
 
 Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut
-versucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.
-**Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen
-Versuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.
+versucht wird oder aufgegeben wurde. **Mails mit Fehler** öffnet die Fehlerliste
+(`/mails?state=failed`): Jede Zeile nennt Ursache, Verarbeitungsstufe und Zahl der Fehlversuche
+und bietet **Erneut versuchen**, **Ignorieren** und **Details** direkt an; nach der Aktion kehrst du
+zur Liste zurück und siehst das Ergebnis. **Erneut versuchen** startet die Fortsetzung beim
+nächsten Abruf und setzt die bisherigen Versuche zurück; bis dahin steht die Mail als „Erneuter
+Versuch angefordert“ in der Liste. **Ignorieren** (bis 7.3 „Ablegen“) beendet sie als nicht
+verarbeitet und legt sie ab; die Mail bleibt im Archiv und verschwindet aus der Fehlerliste.
 Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
 Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
 

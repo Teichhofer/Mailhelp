@@ -1324,7 +1324,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
-  "text": "Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut\nversucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.\n**Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen\nVersuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.\nBeide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine\nAufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.",
+  "text": "Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut\nversucht wird oder aufgegeben wurde. **Mails mit Fehler** öffnet die Fehlerliste\n(`/mails?state=failed`): Jede Zeile nennt Ursache, Verarbeitungsstufe und Zahl der Fehlversuche\nund bietet **Erneut versuchen**, **Ignorieren** und **Details** direkt an; nach der Aktion kehrst du\nzur Liste zurück und siehst das Ergebnis. **Erneut versuchen** startet die Fortsetzung beim\nnächsten Abruf und setzt die bisherigen Versuche zurück; bis dahin steht die Mail als „Erneuter\nVersuch angefordert“ in der Liste. **Ignorieren** (bis 7.3 „Ablegen“) beendet sie als nicht\nverarbeitet und legt sie ab; die Mail bleibt im Archiv und verschwindet aus der Fehlerliste.\nBeide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine\nAufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.",
   "title": "Fehlgeschlagene Mails"
  },
  {
@@ -1394,7 +1394,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Fehlerbehebung.md",
-  "text": "Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und\nnächstem Versuch. „aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung\naus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und\nWartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv\nals nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.\nBereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist\nnur Ablegen möglich. Diese Aktionen legen weder Termine noch Aufgaben an.",
+  "text": "Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und\nnächstem Versuch. „aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung\naus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und\nWartezeit zurück. „Ignorieren“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv\nals nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.\nBereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist\nnur Ignorieren möglich. Beides geht auch direkt in der Fehlerliste\n(`/mails?state=failed`). Diese Aktionen legen weder Termine noch Aufgaben an.",
   "title": "Mail wird wiederholt nicht verarbeitet"
  },
  {

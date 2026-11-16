@@ -26,10 +26,11 @@ gleicht sie zuerst mit dem Anbieter ab.
 Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und
 nächstem Versuch. „aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung
 aus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und
-Wartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv
+Wartezeit zurück. „Ignorieren“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv
 als nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.
 Bereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist
-nur Ablegen möglich. Diese Aktionen legen weder Termine noch Aufgaben an.
+nur Ignorieren möglich. Beides geht auch direkt in der Fehlerliste
+(`/mails?state=failed`). Diese Aktionen legen weder Termine noch Aufgaben an.
 
 ## Analyse-Daten nach Aufbewahrung entfernt
 

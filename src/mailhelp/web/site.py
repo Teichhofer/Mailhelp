@@ -340,7 +340,9 @@ class MailhelpSite:
             return response
         anchor = f"v-{command.mail_id}-{command.proposal_id}" if command.proposal_id else f"r-{command.mail_id}"
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
-            return Response.redirect(location)
+            # 7.3: from the failure list, the result leads back to it (a fixed value, never a path).
+            back = "?zurueck=fehlerliste" if form.get("zurueck") == "fehlerliste" else ""
+            return Response.redirect(location + back)
         return Response.redirect(f"/?aktion={entry.id}#{anchor}")
 
     def _stale(self, command: ReviewCommand) -> str | None:
@@ -416,6 +418,8 @@ class MailhelpSite:
             )
         if entry.result is not None and command.kind in {CommandKind.RECHECK_MAIL, CommandKind.RETRY_MAIL,
                                                         CommandKind.FILE_MAIL}:
+            if "zurueck=fehlerliste" in request.query.split("&"):
+                return Response.redirect(f"/mails?state=failed&ergebnis={entry.id}")
             return Response.redirect(f"/mail/{command.mail_id}?ergebnis={entry.id}")
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)

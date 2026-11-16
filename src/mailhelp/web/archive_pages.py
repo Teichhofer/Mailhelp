@@ -11,11 +11,12 @@ from ..domain.proposal import Proposal
 from ..formatting import duration_text, format_datetime_local
 from ..review.cards import sender_name
 from ..review.consistency import Hint
+from ..review.error_reporting import error_summary
 from ..review.explanation import OUTCOME_LABELS, Explanation, Outcome, Step
 from ..review.queries import ArchiveQuery
 from ..review.search import Hit
 from ..review.views import STATUS_LABELS
-from .actions import recheck_form
+from .actions import failure_forms, recheck_form
 from .calls_page import filters, metric_link
 from .charts import statistics_charts
 from .filters import chips
@@ -220,13 +221,25 @@ def _archive_row(item: dict[str, Any], zone: str, mailboxes: dict[str, tuple[int
                if csrf and item.get("recheck_round") is not None else "")
     return row(f'/mail/{item["id"]}', item["subject"],
                f'{sender_name(item["sender"])} · {_local_time(item["received"], zone)}', " ".join(badges),
-               summary + _hit(item.get("hit")) + recheck)
+               summary + _hit(item.get("hit")) + recheck + _failure(item, csrf))
+
+
+def _failure(item: dict[str, Any], csrf: str) -> str:
+    """7.3: cause, stage and attempts of a failed mail, with its actions and the report link."""
+    if not item["failed"]:
+        return ""
+    if item["retry_pending"]:
+        return '<p class="row-detail">Erneuter Versuch angefordert; die Mail wird beim nächsten Abruf verarbeitet.</p>'
+    summary = error_summary(item["error_code"], item["error_stage"], item["error_attempts"])
+    line = f'<p class="row-detail">{e(summary)}</p>'
+    forms = failure_forms(csrf, item["id"], item["analysis_round"], retryable=item["retryable"], back_to_list=True)
+    return line + forms + f'<p><a class="button small" href="/mail/{e(item["id"])}#fehlerbericht">Details</a></p>'
 
 
 
 def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int, damaged: int,
                    topics: list[str], zone: str, mailboxes: dict[str, tuple[int, str]] | None = None,
-                   csrf: str = "") -> str:
+                   csrf: str = "", *, result: str = "") -> str:
     """Search and filters for stored mails; works without JavaScript."""
     mailboxes = mailboxes or {}
     active = sum(1 for value in (query.relevance, query.topic, query.state, query.status is not None, query.since,
@@ -240,6 +253,7 @@ def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int,
                       below='<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ '
                             'in Anführungszeichen. Groß-/Kleinschreibung und ä/ae, ö/oe, ü/ue, ß/ss sind '
                             'gleichwertig.</p>'))
+    body += result
     body += f'<p class="meta">{count_text(total, "gespeicherte Mail", "gespeicherte Mails")} · Seite {query.page}</p>'
     if not items:
         body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'

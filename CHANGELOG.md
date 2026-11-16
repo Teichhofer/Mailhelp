@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.3.1 – Fehlgeschlagene Mails: Ursache und Aktionen in der Liste
+
+- Die Fehlerliste (`/mails?state=failed`) nennt je Mail Ursache, Stufe und Fehlversuche und bietet
+  „Erneut versuchen“, „Ignorieren“ und „Details“ direkt an; danach geht es zurück zur Liste.
+- „Ablegen“ heißt auf der Mailseite jetzt einheitlich „Ignorieren“.
+
 ## 7.2.6 – Abschluss von 7.2
 
 - Fehlerkorrektur: Nach der Auswahl eines Google-Kalenders, einer Google-Tasks-Liste oder einer

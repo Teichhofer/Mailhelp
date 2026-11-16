@@ -3,6 +3,15 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.3: Fehlgeschlagene Mails verwalten
+
+Plan: [docs/Planung-7.3.md](docs/Planung-7.3.md). Seit 7.3.1 zeigt die Fehlerliste `/mails?state=failed`
+je Mail Ursache, Stufe und Fehlversuche (`review/error_reporting.py`) und bietet „Erneut versuchen“
+(`RETRY_MAIL`, nur mit vorhandenen Analyse-Daten), „Ignorieren“ (`FILE_MAIL`) und „Details“. Die
+Aktionen sind versionsgebunden (`analysis_round`), CSRF-geschützt und idempotent; aus der Liste
+führt das Ergebnis zurück zur Liste. Eine Mail mit angefordertem Versuch bleibt bis zur Verarbeitung
+gekennzeichnet in der Liste. Berichte enthalten keine Mailinhalte oder Geheimnisse.
+
 ## Ergänzung 7.2: Google Tasks und Notion als Aufgabenziele
 
 Plan: [docs/Planung-7.2.md](docs/Planung-7.2.md). Seit 7.2.1 ist `google_tasks` ein Aufgabendienst
