@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.2.1 – Google Tasks als Aufgabenziel
+
+- Neuer Aufgabendienst `google_tasks` (`targets.google_tasks_list`, Standard `@default`): Anlage
+  nach Bestätigung, Abgleich über alle Seiten, unklare Schreibresultate werden nie blind wiederholt.
+- Google Tasks übernimmt nur den Tag; eine genaue Frist steht im Text.
+- Die Google-Anmeldung fordert je Profil genau die genutzten Rechte an und behält frühere.
+- Fehlerkorrektur: „Wieder entfernen“ erscheint nur noch bei Zielen, die sicher entfernen können;
+  bei Microsoft To Do, CalDAV-Aufgaben und Apple Erinnerungen scheiterte es bisher intern.
+
 ## 7.1.5 – Demo-Modus: Docker-Betrieb und Abschluss von 7.1
 
 - `compose.demo.yaml` startet die Demo mit eigenem Volume, ohne `.env` und Produktionsdateien, in

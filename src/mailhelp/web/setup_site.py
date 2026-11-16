@@ -28,7 +28,7 @@ FIELDS = {
         "imap.historical_start"),
     3: ("targets.calendar_provider", "targets.google_calendar", "targets.caldav_calendar_url",
         "targets.outlook_calendar", "targets.task_provider", "targets.todoist_project", "targets.caldav_task_url",
-        "targets.microsoft_todo_list", "targets.microsoft_tenant",
+        "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
         "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes"),
     4: ("push.enabled", "push.subject"),
     5: ("notifications.quiet_hours.enabled", "notifications.quiet_hours.start", "notifications.quiet_hours.end",
@@ -50,6 +50,7 @@ LABELS = {"event_defaults.video_duration_minutes": "Standarddauer Videokonferenz
           "targets.task_provider": "Aufgabendienst", "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
           "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)", "targets.outlook_calendar": "Outlook-Kalender",
           "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
+          "targets.google_tasks_list": "Google-Tasks-Liste",
           "push.enabled": "Web-Push am Server aktivieren",
           "push.subject": "VAPID-Kontaktadresse (mailto:name@domain)",
           "notifications.quiet_hours.enabled": "Ruhezeiten aktivieren", "notifications.quiet_hours.start": "Ruhe ab",
@@ -62,7 +63,7 @@ CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "fals
            "imap.connection_mode": ("ssl", "starttls", "plain"),
            "notifications.telegram_content": ("neutral", "summary"),
            "targets.calendar_provider": ("google", "caldav", "outlook"),
-           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders")}
+           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks")}
 
 
 def lookup(raw: Any, dotted: str) -> Any:

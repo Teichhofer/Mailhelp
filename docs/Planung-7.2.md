@@ -2,7 +2,8 @@
 
 **Zielversion:** 7.2, Umsetzung in Patchversionen ab 7.2.1  
 **Stand:** 16. November 2026  
-**Status:** Geplant; noch nicht implementiert.  
+**Status:** In Umsetzung ab 7.2.1 (16. November 2026): Google Tasks umgesetzt, Notion offen; Stand in
+[Release 7.2](Release-7.2.md).  
 **Ausgangsstand:** 7.0.12; nach Umsetzung von 7.1 erneut gegen den dann aktuellen Code prüfen.
 
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md),

@@ -1,12 +1,12 @@
 {
- "app_version": "7.1.5",
- "revision": "50f4baaba1a2e278b77067c26df63ea11b88f2300c25af58863ba0fcdbdb278c",
+ "app_version": "7.2.1",
+ "revision": "ff1c0f101b7c53fa5f06c1d460b7e7fdf53cacd9574f4c2d1195b08128eda00e",
  "schema_version": 1,
- "sections": 109,
+ "sections": 110,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
-   "sha256": "74d1e3608f0c3f536f45d575c19c4712b059538f2a4440e6af1a94a8e9642957"
+   "sha256": "02f64e5d94d64f4e9b1ce6aa75549f676bf90037b9142d5750fe7d0cf2e474a4"
   },
   {
    "path": "docs/Ersteinrichtung.md",
@@ -18,7 +18,7 @@
   },
   {
    "path": "docs/Ziele-einrichten.md",
-   "sha256": "e84706356a5aabc333192c332ea87c6c5e4ed5b2d7024ea97d639359ada17d97"
+   "sha256": "b43b7118dd62f94745dc9a6aa8988018728185480a7e70ac9b937821c9fb778b"
   },
   {
    "path": "docs/Bedienung.md",

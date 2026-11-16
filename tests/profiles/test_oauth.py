@@ -14,11 +14,12 @@ from tests.fakes.shared_decision_test import secrets
 def test_google_profiles_get_distinct_refresh_tokens_and_keep_other_env(tmp_path):
     path = tmp_path / ".env"
     path.write_text('# retained\nGOOGLE_OAUTH_2_REFRESH_TOKEN="old"\nOTHER=value\n', encoding="utf-8")
-    requests = []
+    requests, scopes = [], []
     def receiver(builder):
         query = parse_qs(urlsplit(builder("http://127.0.0.1:1234/oauth/callback", "state", "challenge")).query)
         assert query["code_challenge_method"] == ["S256"] and query["state"] == ["state"]
-        assert query["access_type"] == ["offline"]
+        assert query["access_type"] == ["offline"] and query["include_granted_scopes"] == ["true"]
+        scopes.append(query["scope"][0])
         return "synthetic-code", "http://127.0.0.1:1234/oauth/callback", "verifier"
     def transport(request):
         requests.append(parse_qs(request.content.decode()))
@@ -27,8 +28,12 @@ def test_google_profiles_get_distinct_refresh_tokens_and_keep_other_env(tmp_path
     text = path.read_text()
     assert text.startswith("# retained\nOTHER=value\n") and text.count("GOOGLE_OAUTH_2_REFRESH_TOKEN") == 1
     assert requests[0]["code_verifier"] == ["verifier"]
-    login(secrets(), tmp_path, receiver=receiver, transport=httpx.MockTransport(transport))
+    login(secrets(), tmp_path, receiver=receiver, transport=httpx.MockTransport(transport),
+          scopes="https://www.googleapis.com/auth/tasks")
     assert "GOOGLE_OAUTH_REFRESH_TOKEN=" in path.read_text()
+    assert scopes == ["https://www.googleapis.com/auth/calendar.events "
+                      "https://www.googleapis.com/auth/calendar.calendars.readonly",
+                      "https://www.googleapis.com/auth/tasks"]
 
 
 @pytest.mark.parametrize("response", [httpx.Response(400), httpx.Response(200, text="bad"),

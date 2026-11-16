@@ -12,6 +12,7 @@ from typing import Any
 from ..config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from ..config.configuration import ConfigurationService, effective_models
 from ..external.providers import build_writers, provider_services
+from ..external.roles import writer_for
 from ..helpdocs.chat import HelpChat, redactor, secret_values
 from ..llm.adapter import RetryPolicy
 from ..llm.decisions import (
@@ -352,6 +353,8 @@ def _attach_views(application: Application, components: Any, configuration: Conf
     components.site.views.profile_label = dialog.presenter.profile_of
     components.site.views.profile_available = dialog.presenter.profile_available
     components.site.views.removal_window_minutes = lambda: configuration.active.targets.removal_window_minutes
+    components.site.views.removable = lambda proposal: getattr(
+        writer_for(dialog.writers, proposal), "supports_remove", True)
     if len(application.sources) > 1:
         # Labels and the mailbox filter appear only with several mailboxes (3.1).
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}

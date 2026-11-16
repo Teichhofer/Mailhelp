@@ -168,7 +168,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **249 Einstellungen**, davon **249** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -344,23 +344,25 @@ Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243**
 | `target_profiles[].caldav_task_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
 | `target_profiles[].calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Zielprofilseite | ja |
 | `target_profiles[].google_calendar` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].id` | int | Pflicht | ≥ 2, ≤ 99 | Zielprofilseite | ja |
 | `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Zielprofilseite | ja |
 | `target_profiles[].microsoft_tenant` | str | 'common' |  | Zielprofilseite | ja |
 | `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Zielprofilseite | ja |
-| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Zielprofilseite | ja |
+| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks | 'todoist' |  | Zielprofilseite | ja |
 | `target_profiles[].todoist_project` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
 | `targets.caldav_calendar_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Weboberfläche | ja |
 | `targets.google_calendar` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
+| `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Datei | ja |
-| `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders | 'todoist' |  | Weboberfläche | ja |
+| `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks | 'todoist' |  | Weboberfläche | ja |
 | `targets.todoist_project` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `telegram.chat_id` | int | 1 |  | Weboberfläche | ja |
 | `telegram.enabled` | bool | True |  | Einrichtung | ja |
@@ -375,6 +377,10 @@ Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243**
 | `timeouts.google_calendar.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.google_calendar.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
 | `timeouts.google_calendar.timeout_seconds` | float | Pflicht | ≥ 1, ≤ 300 | Weboberfläche | ja |
+| `timeouts.google_tasks.initial_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 30 | Weboberfläche | ja |
+| `timeouts.google_tasks.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
+| `timeouts.google_tasks.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
+| `timeouts.google_tasks.timeout_seconds` | float | Pflicht | ≥ 1, ≤ 300 | Weboberfläche | ja |
 | `timeouts.imap.initial_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 30 | Weboberfläche | ja |
 | `timeouts.imap.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.imap.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |

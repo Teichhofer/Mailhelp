@@ -174,6 +174,16 @@ def test_remove_created_unsupported_calendar_file_and_simulation(web):
     web.site.views.test_mode = False
 
 
+def test_a_target_without_safe_removal_offers_no_remove_action(web):
+    """7.2: the page asks the target's capability, never its provider name."""
+    prop = web.dialog.repository.load_current(MAIL1, "elternabend")
+    web.dialog.persist(prop.model_copy(update={"status": ProposalStatus.CREATED, "external_id": "ext-1",
+                                               "created_at": datetime.now(UTC)}))
+    assert web.site.views.proposal(MAIL1, "elternabend").can_remove
+    web.site.views.removable = lambda proposal: False
+    assert not web.site.views.proposal(MAIL1, "elternabend").can_remove
+
+
 def test_remove_created_csrf_and_auth_checks(web):
     prop = web.dialog.repository.load_current(MAIL1, "elternabend")
     created_prop = prop.model_copy(update={

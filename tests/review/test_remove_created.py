@@ -454,3 +454,17 @@ def test_took_effect_without_writer(tmp_path):
         cmd = command(CommandKind.REMOVE_CREATED)
         # _took_effect should return False since current is CREATED and writer is None
         assert not service._took_effect(cmd)
+
+
+def test_a_task_list_without_safe_removal_refuses_also_a_direct_command(tmp_path):
+    """7.2: the action is missing for such targets, and a forged command never reaches a deletion."""
+    prop = _created_proposal(minutes_ago=1)
+    writer = Writer()
+    writer.supports_remove = False
+    writer.label = "Google Tasks"
+    with JsonStore(tmp_path) as store:
+        dialog, _, _ = setup(store, prop, writers={"google_calendar": writer})
+        result = web(dialog).execute(command(CommandKind.REMOVE_CREATED))
+        assert result.status == ResultStatus.INVALID and "nicht wieder entfernen" in result.message
+        assert writer.removed == 0
+        assert dialog.repository.load_current(MAIL, "p1").status == ProposalStatus.CREATED

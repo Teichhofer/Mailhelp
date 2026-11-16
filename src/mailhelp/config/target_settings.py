@@ -26,7 +26,7 @@ class ProposalReconciliationSettings(ConfigModel):
 
 CALENDAR_PROVIDERS = ("google", "caldav", "outlook")
 
-TASK_PROVIDERS = ("todoist", "microsoft_todo", "caldav", "apple_reminders")
+TASK_PROVIDERS = ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks")
 
 # iCloud serves collections on caldav.icloud.com and on numbered partition hosts (p52-caldav…).
 ICLOUD_CALDAV = re.compile(r"https://(p\d{1,3}-)?caldav\.icloud\.com/")
@@ -42,13 +42,15 @@ class TargetSettings(ConfigModel):
     """One calendar and one task target; each provider needs its own target field."""
 
     calendar_provider: Literal["google", "caldav", "outlook"] = "google"
-    task_provider: Literal["todoist", "microsoft_todo", "caldav", "apple_reminders"] = "todoist"
+    task_provider: Literal["todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks"] = "todoist"
     todoist_project: str = Field(default="", max_length=500)
     google_calendar: str = Field(default="", max_length=500)
     caldav_calendar_url: str = Field(default="", max_length=2000)
     caldav_task_url: str = Field(default="", max_length=2000)
     outlook_calendar: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
     microsoft_todo_list: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
+    # 7.2: a Google Tasks list id or ``@default`` for the account's first list.
+    google_tasks_list: str = Field(default="@default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9@_-]+$")
     microsoft_tenant: str = Field(default="common", pattern=r"^[A-Za-z0-9.-]{1,100}$")
     removal_window_minutes: int = Field(default=10, ge=1, le=1440)
 
@@ -75,12 +77,17 @@ class TargetSettings(ConfigModel):
     @property
     def task_target(self) -> str:
         """The project or list each task proposal is confirmed against."""
-        return {"todoist": self.todoist_project, "microsoft_todo": self.microsoft_todo_list}.get(
-            self.task_provider, self.caldav_task_url)
+        return {"todoist": self.todoist_project, "microsoft_todo": self.microsoft_todo_list,
+                "google_tasks": self.google_tasks_list}.get(self.task_provider, self.caldav_task_url)
 
     @property
     def uses_microsoft(self) -> bool:
         return self.calendar_provider == "outlook" or self.task_provider == "microsoft_todo"
+
+    @property
+    def uses_google(self) -> bool:
+        """7.2: one Google sign-in serves the calendar and Google Tasks of a profile."""
+        return self.calendar_provider == "google" or self.task_provider == "google_tasks"
 
     @property
     def uses_caldav(self) -> bool:

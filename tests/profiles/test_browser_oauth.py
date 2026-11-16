@@ -1,5 +1,6 @@
 """Durable browser OAuth using only synthetic provider responses."""
 import json
+from dataclasses import replace
 import os
 from urllib.parse import parse_qs
 
@@ -46,7 +47,9 @@ def test_google_state_pkce_callback_replay_and_private_credentials(oauth):
     job=start(h)
     query=parse_qs(job.uri.split('?',1)[1])
     assert query['state']==[job.id] and query['code_challenge_method']==['S256']
-    assert 'calendar.calendarlist.readonly' in query['scope'][0]
+    assert 'calendar.calendarlist.readonly' in query['scope'][0] and 'auth/tasks' not in query['scope'][0]
+    # 7.2: a new sign-in keeps the rights granted before.
+    assert query['include_granted_scopes']==['true']
     assert h.oauth.start('google',h.actor,1,job.key,'stale-repeat')==job
     with pytest.raises(ValueError): h.oauth.start('microsoft',h.actor,1,job.key,h.oauth.revision(1,'microsoft'))
     with pytest.raises(PermissionError):h.oauth.google_callback(job.id,'web:wrong','code')
@@ -91,6 +94,18 @@ def test_google_unrelated_env_change_during_exchange_fails_safely(oauth):
     path.write_text(path.read_text()+'\nOTHER_VALUE=changed\n')
     assert h.oauth.google_callback(job.id,h.actor,'code').status=='failed'
     assert 'new-refresh' not in path.read_text()
+
+
+def test_a_target_change_during_the_sign_in_invalidates_it(oauth):
+    """7.2: the rights belong to the binding; Google Tasks added meanwhile needs a new consent."""
+    h=oauth
+    job=start(h)
+    original=h.oauth.config
+    h.oauth.config=lambda profile,provider:replace(
+        original(profile,provider),scopes=original(profile,provider).scopes+' https://www.googleapis.com/auth/tasks')
+    with pytest.raises(PermissionError,match='OAuth-Konfiguration'):
+        h.oauth.google_callback(job.id,h.actor,'code')
+    assert 'new-refresh' not in (h.directory/'.env').read_text() and h.calls==[]
 
 
 def test_completed_oauth_receipt_survives_another_start(oauth):

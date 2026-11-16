@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.1.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.2.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.2.1 bringt Google Tasks als Aufgabenziel: Aufgaben werden nach Bestätigung in eine Google-Tasks-Liste eingetragen, mit dem Tag als Fälligkeit und einer genauen Frist im Text.
 
 Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, Rückfragen lassen sich mit vorbereiteten Beispielantworten beantworten, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
 
@@ -49,7 +51,7 @@ Antwortentwürfe werden nur im IMAP-Entwurfsordner abgelegt. Mailhelp versendet 
 | E-Mail | IMAP-Postfächer |
 | Schule | IServ-Elternbriefe (Lesezugriff über die Weboberfläche, keine offizielle API) |
 | Kalender | Google Kalender, Outlook / Microsoft 365, CalDAV |
-| Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten, Apple Erinnerungen über iCloud-CalDAV |
+| Aufgaben | Todoist, Microsoft To Do, Google Tasks, CalDAV-Aufgabenlisten, Apple Erinnerungen über iCloud-CalDAV |
 | KI-Auswertung | OpenRouter; experimentell Ollama |
 | Bedienung | Telegram, lokale Weboberfläche und PWA |
 

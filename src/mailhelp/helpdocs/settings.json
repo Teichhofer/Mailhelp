@@ -1071,6 +1071,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].google_tasks_list",
+  "key": "target_profiles[].google_tasks_list",
+  "label": "target_profiles[].google_tasks_list",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos)."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Nummer 2–99 (Pflicht).",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].id",
@@ -1131,13 +1141,13 @@
  },
  {
   "area": "Weitere Einstellungen",
-  "help": "`todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`.",
+  "help": "`todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders` oder `google_tasks` (7.2).",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].task_provider",
   "key": "target_profiles[].task_provider",
   "label": "target_profiles[].task_provider",
   "path": "Zielprofilseite",
-  "summary": "Zielprofilseite: `todoist` (Standard), `microsoft_todo`, `caldav` oder `apple_reminders`."
+  "summary": "Zielprofilseite: `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders` oder `google_tasks` (7.2)."
  },
  {
   "area": "Weitere Einstellungen",

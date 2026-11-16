@@ -94,7 +94,7 @@ SETTINGS_FIELDS = {
     "proposal_reconciliation.max_semantic_candidates",
     "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
     "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
-    "targets.microsoft_todo_list", "targets.microsoft_tenant",
+    "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
     "attachments.store_originals", "attachments.max_original_bytes", "attachments.max_total_bytes",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_attachment_bytes",
     "limits.max_llm_payload_bytes",
@@ -103,7 +103,8 @@ SETTINGS_FIELDS = {
     "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date",
     "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
 }
-for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft"):
+for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft",
+                "google_tasks"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
 # 3.3.12 (Planung 3.4): further operational settings; not data_directory, log paths, web host/port/hosts.
@@ -159,7 +160,7 @@ SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "i
                 "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider",
                 "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",
                 "targets.outlook_calendar", "targets.microsoft_todo_list", "targets.microsoft_tenant",
-                "daily_briefing.enabled", "daily_briefing.time"}
+                "targets.google_tasks_list", "daily_briefing.enabled", "daily_briefing.time"}
 for section, fields in {
     "quiet_hours": ("enabled", "start", "end", "allow_system_errors"),
     "batching": ("enabled", "window_seconds"),

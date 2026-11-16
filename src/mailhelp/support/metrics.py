@@ -135,7 +135,7 @@ def server_electricity(records: list[dict]) -> Decimal:
 _WRITE_SERVICES = (("todoist", "Todoist"), ("google_calendar", "Google Kalender"),
                    ("caldav_calendar", "CalDAV-Kalender"), ("caldav_tasks", "CalDAV-Aufgaben"),
                    ("apple_reminders", "Apple Erinnerungen"), ("outlook_calendar", "Outlook-Kalender"),
-                   ("microsoft_todo", "Microsoft To Do"))
+                   ("microsoft_todo", "Microsoft To Do"), ("google_tasks", "Google Tasks"))
 CONTACT_EVENTS = {
     ("imap", "request_completed"): "IMAP-Postfach",
     ("imap", "message_fetched"): "IMAP-Postfach",

@@ -7,8 +7,28 @@ from collections.abc import Callable
 import httpx
 from pydantic import Field, ValidationError
 
+from ..config import TargetSettings
 from ..logging import EventLogger, NullLogger
 from .contracts import IntegrationModel, OAuthTokenError
+
+CALENDAR_SCOPES = ("https://www.googleapis.com/auth/calendar.events",
+                   "https://www.googleapis.com/auth/calendar.calendars.readonly")
+CALENDAR_LIST_SCOPE = "https://www.googleapis.com/auth/calendar.calendarlist.readonly"
+TASKS_SCOPE = "https://www.googleapis.com/auth/tasks"
+
+
+def google_scopes(targets: TargetSettings, *, calendar_list: bool = True) -> str:
+    """7.2: the rights a profile's Google sign-in needs – calendar, Google Tasks or both.
+
+    A calendar-only profile asks exactly what it asked before. With ``include_granted_scopes``
+    a later sign-in keeps rights granted earlier; it never trades one right for another.
+    """
+    scopes: list[str] = []
+    if targets.calendar_provider == "google":
+        scopes += [*CALENDAR_SCOPES, *([CALENDAR_LIST_SCOPE] if calendar_list else [])]
+    if targets.task_provider == "google_tasks":
+        scopes.append(TASKS_SCOPE)
+    return " ".join(scopes)
 
 
 class OAuthTokenResponse(IntegrationModel):

@@ -28,6 +28,11 @@ class ProviderWriter(TargetWriter):
                           proposal_id=proposal.id)
         return self._prepare(proposal, key)
 
+    @property
+    def supports_remove(self) -> bool:
+        """Only the calendars of these providers can remove an entry safely; their task lists cannot."""
+        return isinstance(self, CalendarOperations)
+
     def prepare_remove(self, proposal: Proposal, key: str) -> PreparedWrite:
         if proposal.external_id is None:
             raise ValueError("Vorschlag hat keine externe ID")

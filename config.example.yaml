@@ -317,7 +317,8 @@ targets:
   # Kalenderdienst: google | caldav (Nextcloud, iCloud, mailbox.org, …) | outlook (Microsoft 365).
   calendar_provider: google
   # Aufgabendienst: todoist | microsoft_todo | caldav (VTODO) | apple_reminders (iCloud-CalDAV;
-  # auf die neuen iCloud-Erinnerungen aktualisierte Listen sind über CalDAV nicht erreichbar).
+  # auf die neuen iCloud-Erinnerungen aktualisierte Listen sind über CalDAV nicht erreichbar)
+  # | google_tasks (7.2; übernimmt nur das Datum, die genaue Frist steht im Text).
   task_provider: todoist
   todoist_project: example-project
   google_calendar: primary
@@ -330,6 +331,9 @@ targets:
   outlook_calendar: default
   microsoft_todo_list: default
   microsoft_tenant: common
+  # Nur bei google_tasks: Listen-ID oder @default (erste Liste des Kontos). Die Google-Anmeldung
+  # ("mailhelp --google-auth" oder Einstellungen → Zugangsdaten) braucht dann das Google-Tasks-Recht.
+  google_tasks_list: "@default"
   # Frist in Minuten nach dem Anlegen, in der ein Eintrag im Kalender oder in der Aufgabenliste
   # über die Weboberfläche oder Telegram wieder entfernt werden kann (1–1440; Standard 10).
   removal_window_minutes: 10
@@ -392,6 +396,11 @@ timeouts:
     initial_backoff_seconds: 1
     max_backoff_seconds: 10
   microsoft:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 10
+  google_tasks:
     timeout_seconds: 30
     retries: 2
     initial_backoff_seconds: 1

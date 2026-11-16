@@ -42,9 +42,7 @@ def _remove_created(service: ReviewService, command: ReviewCommand) -> ReviewRes
                 "Die Frist zum Entfernen des Eintrags ist abgelaufen (maximal 10 Minuten nach dem Anlegen)."
             )
 
-        writer = service._writer_for(current)
-        if writer is None:
-            raise ReviewError("Kein Schreibdienst für diesen Vorschlag konfiguriert.")
+        writer = _removing_writer(service, current)
 
         try:
             prepared = writer.prepare_remove(current, command.idempotency_key)
@@ -108,6 +106,17 @@ def _is_within_removal_window(service: ReviewService, proposal: Proposal) -> boo
     now = datetime.now(UTC)
     window = timedelta(minutes=service._removal_window_minutes())
     return now <= created + window
+
+
+def _removing_writer(service: ReviewService, proposal: Proposal) -> TargetWriter:
+    writer = service._writer_for(proposal)
+    if writer is None:
+        raise ReviewError("Kein Schreibdienst für diesen Vorschlag konfiguriert.")
+    if not getattr(writer, "supports_remove", True):
+        # 7.2: also a direct command must not reach an unprotected deletion.
+        raise ReviewError(f"{writer.label}: Einträge lassen sich in Mailhelp nicht wieder entfernen; "
+                          "bitte direkt beim Anbieter bearbeiten.")
+    return writer
 
 
 def _writer_for(service: ReviewService, proposal: Proposal) -> TargetWriter | None:

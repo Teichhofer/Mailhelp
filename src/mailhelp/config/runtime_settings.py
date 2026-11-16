@@ -72,6 +72,8 @@ class TimeoutSettings(ConfigModel):
         timeout_seconds=30, retries=2, initial_backoff_seconds=1, max_backoff_seconds=10))
     microsoft: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
         timeout_seconds=30, retries=2, initial_backoff_seconds=1, max_backoff_seconds=10))
+    google_tasks: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
+        timeout_seconds=30, retries=2, initial_backoff_seconds=1, max_backoff_seconds=10))
     telegram_poll_seconds: int = Field(ge=1, le=50)
     # Only used in the experimental local mode (--ollama). Local models are
     # much slower than hosted ones, hence the generous default and limit.

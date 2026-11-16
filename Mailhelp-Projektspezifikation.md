@@ -3,6 +3,18 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.2: Google Tasks und Notion als Aufgabenziele
+
+Plan: [docs/Planung-7.2.md](docs/Planung-7.2.md). Seit 7.2.1 ist `google_tasks` ein Aufgabendienst
+(`targets.google_tasks_list`, Standard `@default`). Der Schreibvertrag gilt unverändert: Anlage nur
+nach versionsbezogener Bestätigung, Vorgangsschlüssel in den Notizen, Abgleich über alle Seiten
+einschließlich erledigter und gelöschter Aufgaben, mehrfacher Treffer oder unvollständige Liste
+bleiben unklar, kein blinder zweiter POST. Google Tasks erhält nur den bestätigten Tag in der
+konfigurierten Zeitzone; eine genaue Frist steht im Text. Ob ein Ziel „Wieder entfernen“ anbietet,
+sagt `TargetWriter.supports_remove`; nur Kalender und Todoist entfernen. Ohne diese Fähigkeit fehlt
+die Aktion, und der Server lehnt direkte Befehle ab. Die Google-Anmeldung eines Profils fordert genau
+die genutzten Rechte an (Kalender, Google Tasks oder beides) und behält früher erteilte.
+
 ## Ergänzung 7.1: Demo-Modus
 
 `mailhelp --demo` (gleichwertig `-demo`) startet eine Demo-Instanz; Plan: [docs/Planung-7.1.md](docs/Planung-7.1.md).

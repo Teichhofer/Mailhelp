@@ -186,7 +186,8 @@ class ConfirmedWriteExecutor:
             return False
         if proposal.external_id is None:
             return False
-        return True
+        writer = self.writer_for(proposal)
+        return writer is None or getattr(writer, "supports_remove", True)
 
     def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
         if record.state == VerificationState.MISMATCH:

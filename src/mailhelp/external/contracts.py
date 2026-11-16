@@ -133,6 +133,11 @@ class TargetWriter(ABC):
     target: str
     label: str
 
+    @property
+    def supports_remove(self) -> bool:
+        """7.2: whether "Wieder entfernen" is offered; pages and commands ask this, never a provider name."""
+        return True
+
     @abstractmethod
     def check_access(self) -> None: ...
 

@@ -178,7 +178,7 @@ class SetupService:
                                    "targets.caldav_calendar_url", "targets.outlook_calendar",
                                    "targets.microsoft_tenant"),
                       "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
-                                  "targets.microsoft_todo_list"),
+                                  "targets.microsoft_todo_list", "targets.google_tasks_list"),
                       "iserv": ("iserv.",)}
             diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
             for name, prefixes in checks.items():

@@ -9,8 +9,10 @@ from mailhelp import cli
 from mailhelp.config import Secrets, TargetSettings, load_all, provider_secret_names
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.contracts import OAuthTokenError
+from mailhelp.external.google_tasks import GoogleTasks
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar
+from mailhelp.external.oauth import google_scopes
 from mailhelp.external.providers import Writers, build_writers, provider_services
 from mailhelp.external.roles import CALENDAR_SLOT, TASK_SLOT, slot
 from tests.fakes.shared_application import settings
@@ -77,6 +79,56 @@ def test_apple_reminders_with_google_calendar(tmp_path):
     built = build_writers(cfg, SECRETS, tmp_path)
     assert isinstance(built.tasks, AppleReminders) and built.tasks.target == url == cfg.targets.task_target
     assert provider_services(cfg.targets) == ["Apple Erinnerungen", "Google Kalender", "Google-Anmeldung"]
+    built.close()
+
+
+def test_google_tasks_and_the_google_calendar_share_one_sign_in(tmp_path):
+    """7.2: one Google sign-in per profile; its rights decide what the profile can do."""
+    cfg = configured(tmp_path, task_provider="google_tasks", google_tasks_list="L-7")
+    policies = []
+    built = build_writers(cfg, SECRETS, tmp_path, policy=lambda name: policies.append(name) or None)
+    assert isinstance(built.tasks, GoogleTasks) and built.tasks.target == "L-7" == cfg.targets.task_target
+    assert built.tasks.token is built.calendar._token_provider and built.resources == [built.tasks.token]
+    assert policies == ["google_tasks", "google_calendar"]
+    assert provider_services(cfg.targets) == ["Google Tasks", "Google Kalender", "Google-Anmeldung"]
+    assert built.tasks.supports_remove is False and built.calendar.supports_remove is True
+    assert str(built.tasks.zone) == cfg.timezone
+    built.close()
+
+
+def test_google_tasks_alone_needs_the_google_sign_in(tmp_path):
+    cfg = configured(tmp_path, calendar_provider="caldav", caldav_calendar_url=DAV + "p/", task_provider="google_tasks")
+    built = build_writers(cfg, SECRETS, tmp_path, timeout_cap=4)
+    assert isinstance(built.tasks, GoogleTasks) and built.tasks.target == "@default"
+    assert built.tasks.token._client.timeout.read == 4 and isinstance(built.calendar, CalDavCalendar)
+    assert provider_services(cfg.targets) == ["Google Tasks", "CalDAV-Kalender", "Google-Anmeldung"]
+    assert provider_secret_names(cfg.targets) == ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET",
+                                                  "GOOGLE_OAUTH_REFRESH_TOKEN", "CALDAV_USERNAME", "CALDAV_PASSWORD"]
+    assert cfg.targets.uses_google and not configured(tmp_path, calendar_provider="outlook",
+                                                      task_provider="microsoft_todo").targets.uses_google
+    built.close()
+
+
+@pytest.mark.parametrize(("calendar", "tasks", "expected"), [
+    ("google", "todoist", "calendar.events calendar.calendars.readonly calendar.calendarlist.readonly"),
+    ("google", "google_tasks", "calendar.events calendar.calendars.readonly calendar.calendarlist.readonly tasks"),
+    ("caldav", "google_tasks", "tasks"),
+    ("outlook", "microsoft_todo", ""),
+])
+def test_a_profile_asks_exactly_the_google_rights_it_uses(calendar, tasks, expected):
+    targets = TargetSettings.model_validate({"todoist_project": "p", "google_calendar": "c",
+                                             "caldav_calendar_url": DAV, "calendar_provider": calendar,
+                                             "task_provider": tasks})
+    prefix = "https://www.googleapis.com/auth/"
+    assert google_scopes(targets) == " ".join(prefix + name for name in expected.split())
+    assert "calendarlist" not in google_scopes(targets, calendar_list=False)
+
+
+def test_ms_todo_and_caldav_task_lists_offer_no_removal(tmp_path):
+    """Regression 7.2: their remove raised NotImplementedError inside the command; now it is not offered."""
+    built = build_writers(configured(tmp_path, calendar_provider="outlook", task_provider="microsoft_todo"),
+                          SECRETS, tmp_path)
+    assert built.tasks.supports_remove is False and built.calendar.supports_remove is True
     built.close()
 
 

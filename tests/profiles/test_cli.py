@@ -26,18 +26,35 @@ def test_google_login_dispatch_never_prints_tokens_or_builds_application(tmp_pat
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--google-auth", "--profile", "2"])
     calls = []
     creds = secrets().model_copy(update={"profiles": {2: {"google_oauth_refresh_token": secrets().google_oauth_refresh_token}}})
+    cfg = settings(tmp_path)
+    cfg.target_profiles[0] = cfg.target_profiles[0].model_copy(update={
+        "calendar_provider": "google", "google_calendar": "primary", "task_provider": "google_tasks"})
     def load(*args, **kwargs):
         assert kwargs == {"oauth_profile": 2}
-        return settings(tmp_path), creds, TOPICS, [], prompt_config(), "f" * 64
+        return cfg, creds, TOPICS, [], prompt_config(), "f" * 64
     monkeypatch.setattr(cli, "load_all", load)
-    def login(credentials, directory, number):
+    def login(credentials, directory, number, *, scopes):
         calls.append(number)
+        # 7.2: the profile's own rights – here its Google calendar and Google Tasks.
+        assert scopes == ("https://www.googleapis.com/auth/calendar.events "
+                          "https://www.googleapis.com/auth/calendar.calendars.readonly "
+                          "https://www.googleapis.com/auth/tasks")
         assert credentials.todoist_token.get_secret_value() == ""
         if failed:
             raise OAuthTokenError("Synthetisch fehlgeschlagen")
     monkeypatch.setattr("mailhelp.runtime.google_login.login", login)
     assert cli.main() == int(failed) and calls == [2]
     assert "synthetic" not in capsys.readouterr().out
+
+
+def test_google_login_refuses_a_profile_without_google(tmp_path, monkeypatch, capsys):
+    """7.2: a sign-in without a Google target would ask for rights nothing uses."""
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--google-auth", "--profile", "2"])
+    monkeypatch.setattr(cli, "load_all", lambda *args, **kwargs: (settings(tmp_path), secrets(), TOPICS, [],
+                                                                   prompt_config(), "f" * 64))
+    monkeypatch.setattr("mailhelp.runtime.google_login.login", lambda *args, **kwargs: pytest.fail("angemeldet"))
+    assert cli.main() == 2
+    assert "weder Google Kalender noch Google Tasks" in capsys.readouterr().err
 
 
 def test_microsoft_cli_uses_selected_profile_vault(tmp_path, monkeypatch):

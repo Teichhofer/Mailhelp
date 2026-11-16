@@ -18,13 +18,14 @@ LABELS = {
     "targets.todoist_project": "Todoist-Projekt-ID", "targets.caldav_calendar_url": "CalDAV-Kalenderadresse",
     "targets.caldav_task_url": "CalDAV-Aufgabenadresse", "targets.outlook_calendar": "Outlook-Kalender-ID",
     "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
+    "targets.google_tasks_list": "Google-Tasks-Liste",
     "web.google_redirect_uri": "Google-Rückleitungsadresse (Webanwendungs-Client)",
     # 6.1: names in the links of the check result.
     "password": "Web-Passwort", "model": "Ollama-Modell",
 }
 CHOICES = {"imap.connection_mode": ("ssl", "starttls", "plain"), "llm.provider": ("openrouter", "ollama"),
            "targets.calendar_provider": ("google", "caldav", "outlook"),
-           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders")}
+           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks")}
 
 
 def _found(check: CheckResult | None) -> dict[str, Any] | None:

@@ -140,6 +140,10 @@ def test_verified_notification_omits_button_for_calendar_file():
                                                   event(external_id=None), {})
     assert not ConfirmedWriteExecutor._can_remove(SimpleNamespace(test_mode=True), proposal, {})
     assert not ConfirmedWriteExecutor._can_remove(SimpleNamespace(test_mode=False), proposal, {'simulation': True})
+    # 7.2: a target without safe removal gets no button; an unknown writer keeps the former behaviour.
+    unsafe = SimpleNamespace(test_mode=False, writer_for=lambda p: SimpleNamespace(supports_remove=False))
+    assert not ConfirmedWriteExecutor._can_remove(unsafe, proposal, {})
+    assert ConfirmedWriteExecutor._can_remove(SimpleNamespace(test_mode=False, writer_for=lambda p: None), proposal, {})
 
 
 def test_detached_confirmation_has_no_remove_link_if_proposal_disappeared():

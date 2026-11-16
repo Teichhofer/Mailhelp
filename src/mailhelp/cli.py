@@ -19,6 +19,7 @@ from .config import LOCAL_NUM_CTX, MailboxSettings, PromptConfig, Secrets, Setti
 from .config.loader import MissingConfiguration
 from .external import providers
 from .external.contracts import OAuthTokenError
+from .external.oauth import google_scopes
 from .llm.decision_test import run_decision_test
 from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
@@ -578,8 +579,12 @@ def _main() -> int:
         if number not in target_profiles(settings):
             parser.error("Zielprofil ist nicht konfiguriert")
     if args.google_auth:
+        scopes = google_scopes(target_profiles(settings)[number], calendar_list=False)
+        if not scopes:
+            print(f"FEHLER: Profil {number} verwendet weder Google Kalender noch Google Tasks.", file=sys.stderr)
+            return 2
         try:
-            google_login.login(secrets.for_profile(number), args.config_directory, number)
+            google_login.login(secrets.for_profile(number), args.config_directory, number, scopes=scopes)
         except OAuthTokenError as exc:
             print(f"FEHLER: {exc}", file=sys.stderr)
             return 1

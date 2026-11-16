@@ -84,7 +84,7 @@ def provider_secret_names(targets: TargetSettings) -> list[str]:
     names = []
     if targets.task_provider == "todoist":
         names += ["TODOIST_TOKEN"]
-    if targets.calendar_provider == "google":
+    if targets.uses_google:
         names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     if targets.uses_caldav:
         names += ["CALDAV_USERNAME", "CALDAV_PASSWORD"]

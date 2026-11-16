@@ -356,6 +356,8 @@ class ReviewViews:
         self.profile_label: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
         self.removal_window_minutes: Callable[[], int] = lambda: 10
+        # 7.2: whether the target of a proposal can remove an entry (``TargetWriter.supports_remove``).
+        self.removable: Callable[[Proposal], bool] = lambda proposal: True
         # (cache key, monotonic time, overview): reading every state took up to seconds per page view.
         self._overview: tuple[tuple[Any, ...], float, Overview] | None = None
         self.clock: Callable[[], float] = time.monotonic
@@ -662,6 +664,7 @@ class ReviewViews:
             and not self.test_mode
             and proposal.external_id is not None
             and (verification is None or verification.state != VerificationState.UNSUPPORTED)
+            and self.removable(proposal)
             and self._is_within_removal_window(proposal)
         )
 

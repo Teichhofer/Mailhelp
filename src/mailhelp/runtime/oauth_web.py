@@ -27,13 +27,10 @@ from ..external.microsoft import (
     TokenFile,
     _error_code,
 )
+from ..external.oauth import google_scopes
 from ..mailbox.mailbox_settings import target_profiles
 from ..persistence.storage import JsonStore, atomic_replace
 from ..proposals.target_profiles import secret_name
-
-GOOGLE_SCOPES = ("https://www.googleapis.com/auth/calendar.events "
-                 "https://www.googleapis.com/auth/calendar.calendars.readonly "
-                 "https://www.googleapis.com/auth/calendar.calendarlist.readonly")
 
 
 @dataclass(frozen=True)
@@ -42,6 +39,8 @@ class OAuthConfig:
     client_secret: str
     tenant: str
     redirect: str
+    # 7.2: the Google rights this profile needs (calendar, Google Tasks or both).
+    scopes: str = ""
 
 
 def oauth_config(settings: Settings, env: dict[str, str], profile: int, provider: str) -> OAuthConfig:
@@ -53,7 +52,7 @@ def oauth_config(settings: Settings, env: dict[str, str], profile: int, provider
         return env.get(secret_name(base, profile), env.get(base, "")) if profile != 1 else env.get(base, "")
 
     return OAuthConfig(value("CLIENT_ID"), value("CLIENT_SECRET"), target.microsoft_tenant,
-                       settings.web.google_redirect_uri)
+                       settings.web.google_redirect_uri, google_scopes(target))
 
 
 class OAuthJob(BaseModel):
@@ -102,7 +101,7 @@ class BrowserOAuth:
         atomic_replace(self.store.directory / "web-oauth.json", state.model_dump_json(indent=2) + "\n")
 
     def _binding(self, cfg: OAuthConfig) -> str:
-        return self.sign(json.dumps([cfg.client_id, cfg.client_secret, cfg.tenant, cfg.redirect]))
+        return self.sign(json.dumps([cfg.client_id, cfg.client_secret, cfg.tenant, cfg.redirect, cfg.scopes]))
 
     def _authorized(self, job: OAuthJob) -> OAuthConfig:
         cfg = self.config(job.profile, job.provider)
@@ -149,7 +148,8 @@ class BrowserOAuth:
                     hashlib.sha256(job.verifier.encode()).digest()).decode().rstrip("=")
                 job.uri = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
                     "client_id": cfg.client_id, "redirect_uri": cfg.redirect, "response_type": "code",
-                    "scope": GOOGLE_SCOPES, "access_type": "offline", "prompt": "consent", "state": job.id,
+                    "scope": cfg.scopes, "access_type": "offline", "prompt": "consent", "state": job.id,
+                    "include_granted_scopes": "true",
                     "code_challenge": challenge, "code_challenge_method": "S256"})
             state.jobs.append(job)
             self._save(state)

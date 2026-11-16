@@ -21,6 +21,7 @@ from ..external.contracts import OAuthTokenError
 from ..persistence.storage import atomic_replace
 from ..proposals.target_profiles import secret_name
 
+# The rights of a calendar-only profile; 7.2 passes the profile's own rights (``google_scopes``).
 SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendars.readonly"
 
 
@@ -67,7 +68,8 @@ def receive_code(url_builder: Callable[[str, str, str], str], *, opener: Callabl
 
 
 def login(credentials: Secrets, directory: Path, profile: int = 1, *,
-          receiver: Callable[..., tuple[str, str, str]] = receive_code, transport: Any = None) -> None:
+          receiver: Callable[..., tuple[str, str, str]] = receive_code, transport: Any = None,
+          scopes: str = SCOPES) -> None:
     client_id = credentials.google_oauth_client_id.get_secret_value()
     client_secret = credentials.google_oauth_client_secret.get_secret_value()
     if not client_id or not client_secret:
@@ -79,7 +81,8 @@ def login(credentials: Secrets, directory: Path, profile: int = 1, *,
                 "client_id": client_id,
                 "redirect_uri": redirect,
                 "response_type": "code",
-                "scope": SCOPES,
+                "scope": scopes,
+                "include_granted_scopes": "true",
                 "access_type": "offline",
                 "prompt": "consent",
                 "state": state,

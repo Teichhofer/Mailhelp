@@ -51,7 +51,7 @@ SETTING_GROUPS = (
 )
 SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
                   "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
-                  "microsoft": "Microsoft 365"}
+                  "microsoft": "Microsoft 365", "google_tasks": "Google Tasks"}
 TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
                   "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
 EXTRA_LABELS = {
@@ -63,7 +63,7 @@ EXTRA_LABELS = {
     "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
     "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)",
     "targets.outlook_calendar": "Outlook-Kalender", "targets.microsoft_todo_list": "Microsoft-To-Do-Liste",
-    "targets.microsoft_tenant": "Microsoft-Mandant",
+    "targets.microsoft_tenant": "Microsoft-Mandant", "targets.google_tasks_list": "Google-Tasks-Liste",
     "attachments.store_originals": "Originale speichern",
     "attachments.max_original_bytes": "Höchstgröße je Datei (Bytes)",
     "attachments.max_total_bytes": "Höchstgröße je Mail (Bytes)",
@@ -126,7 +126,8 @@ PROVIDER_CHOICES = {
                                   ("outlook", "Outlook / Microsoft 365")),
     "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),
                               ("caldav", "CalDAV-Aufgaben (VTODO)"),
-                              ("apple_reminders", "Apple Erinnerungen (iCloud)")),
+                              ("apple_reminders", "Apple Erinnerungen (iCloud)"),
+                              ("google_tasks", "Google Tasks")),
 }
 
 

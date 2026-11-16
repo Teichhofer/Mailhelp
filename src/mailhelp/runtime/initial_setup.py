@@ -28,7 +28,8 @@ FIELDS = {
     3: ("llm.provider", "llm.ollama_address"),
     4: ("targets.calendar_provider", "targets.task_provider", "targets.google_calendar", "targets.todoist_project",
         "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
-        "targets.microsoft_todo_list", "targets.microsoft_tenant", "web.google_redirect_uri"),
+        "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
+        "web.google_redirect_uri"),
 }
 SECRET_FIELDS = {
     1: (), 2: ("IMAP_USERNAME", "IMAP_PASSWORD"), 3: ("OPENROUTER_API_KEY",),
