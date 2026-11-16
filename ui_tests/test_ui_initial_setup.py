@@ -112,3 +112,33 @@ def test_initial_microsoft_code_copy_and_playground_help(page,initial_server):
     expect(page.get_by_text('Use your own OAuth credentials',exact=False)).to_be_visible()
     page.collect()
     # The session gate checks complete script coverage after merging all workers.
+
+
+def test_google_task_list_selection_saves_only_a_draft(page, initial_server):
+    h = initial_server
+    login(page, h)
+    h.advance()
+    calls = []
+
+    def provider(request):
+        calls.append(request)
+        if request.url.host == "oauth2.googleapis.com":
+            return httpx.Response(200, json={"access_token": "synthetic-access", "expires_in": 3600,
+                                            "token_type": "Bearer"})
+        assert request.method == "GET" and request.url.path == "/tasks/v1/users/@me/lists"
+        if not request.url.params["pageToken"]:
+            return httpx.Response(200, json={"items": [{"id": "first", "title": "Erste Liste"}],
+                                            "nextPageToken": "second"})
+        return httpx.Response(200, json={"items": [{"id": "selected", "title": "Familienaufgaben"}]})
+
+    h.oauth.transport = httpx.MockTransport(provider)
+    page.goto(h.url + "/einrichtung/schritt/4")
+    page.get_by_role("link", name="Google-Tasks-Liste auswählen", exact=True).click()
+    expect(page.get_by_role("heading", name="Google-Tasks-Liste auswählen", exact=True)).to_be_visible()
+    page.get_by_role("combobox", name="Google-Tasks-Liste", exact=True).select_option("selected")
+    assert audit(page, "google-task-lists-" + page.device, page.mobile) == []
+    page.get_by_role("button", name="Als Entwurf speichern", exact=True).click()
+    expect(page.get_by_role("heading", name="Mailhelp einrichten: Abschluss", exact=True)).to_be_visible()
+    assert h.setup.state().config["targets"]["google_tasks_list"] == "selected"
+    assert not (h.directory / "config.yaml").exists()
+    assert len([r for r in calls if r.url.host == "tasks.googleapis.com"]) == 4

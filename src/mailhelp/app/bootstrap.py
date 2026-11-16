@@ -51,15 +51,16 @@ def create_initial(directory: Path, store: JsonStore, settings: WebSettings, sto
                                                 profile, provider), sign, stopped=stopped,
         changed=setup.credentials_changed)
 
-    def calendar_context(profile: int) -> tuple[str, int]:
+    def calendar_context(profile: int, field: str = "google_calendar") -> tuple[str, int]:
         if profile != 1:
             raise ValueError("Ersteinrichtung verwendet Zielprofil 1.")
         state = setup.state()
-        return str(state.config["targets"]["google_calendar"]), state.version
+        return str(state.config["targets"].get(field, "@default")), state.version
 
-    def save_calendar(actor: str, profile: int, calendar: str, version: int, key: str) -> None:
-        calendar_context(profile)
-        setup.save(actor, {"step": "4", "version": str(version), "key": key, "targets.google_calendar": calendar})
+    def save_calendar(actor: str, profile: int, calendar: str, version: int, key: str,
+                      field: str = "google_calendar") -> None:
+        calendar_context(profile, field)
+        setup.save(actor, {"step": "4", "version": str(version), "key": key, "targets." + field: calendar})
 
     OAuthSite(site, oauth, calendar_context, save_calendar)
     return WebServer(settings.host, settings.port, app, logger), auth, setup, oauth

@@ -28,14 +28,16 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
         '<p><a href="/hilfe/google-playground">Google: OAuth-Playground-Anleitung</a> · '
         '<a href="/auth/google/start?profile=1">Google für Profil 1 verbinden</a> · '
         '<a href="/auth/microsoft?profile=1">Microsoft für Profil 1 verbinden</a> · '
-        '<a href="/auth/google/kalender?profile=1">Google-Kalender für Profil 1 auswählen</a></p>'
+        '<a href="/auth/google/kalender?profile=1">Google-Kalender für Profil 1 auswählen</a> · '
+        '<a href="/auth/google/aufgabenlisten?profile=1">Google-Tasks-Liste für Profil 1 auswählen</a></p>'
     )
     for profile in cfg.target_profiles:
         references = profile_references(site.site.views.store, cfg, profile.id)
         body += '<section class="card"><h2>' + e(profile.label) + f" · {profile.id}</h2>"
         body += (f'<p><a href="/auth/google/start?profile={profile.id}">Google verbinden</a> · '
                  f'<a href="/auth/microsoft?profile={profile.id}">Microsoft verbinden</a> · '
-                 f'<a href="/auth/google/kalender?profile={profile.id}">Google-Kalender auswählen</a></p>')
+                 f'<a href="/auth/google/kalender?profile={profile.id}">Google-Kalender auswählen</a> · '
+                 f'<a href="/auth/google/aufgabenlisten?profile={profile.id}">Google-Tasks-Liste auswählen</a></p>')
         for field, value in profile.model_dump().items():
             if field == "id":
                 continue

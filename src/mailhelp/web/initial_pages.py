@@ -137,7 +137,8 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
                  '<p>Zuerst Clientdaten speichern; dann bei Bedarf direkt verbinden:</p>'
                  '<p><a href="/auth/google/start">Google verbinden</a> · '
                  '<a href="/auth/microsoft">Microsoft verbinden</a> · '
-                 '<a href="/auth/google/kalender">Google-Kalender auswählen</a></p>')
+                 '<a href="/auth/google/kalender">Google-Kalender auswählen</a> · '
+                 '<a href="/auth/google/aufgabenlisten">Google-Tasks-Liste auswählen</a></p>')
     return layout("Ersteinrichtung", '<section class="card">' + body + '</section>', signed_in=False,
                   after='<script src="/static/setup.js" defer></script>')
 

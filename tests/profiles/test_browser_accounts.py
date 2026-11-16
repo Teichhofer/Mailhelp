@@ -10,7 +10,8 @@ from mailhelp.config import TargetProfileSettings
 from mailhelp.web import oauth_site
 
 
-def test_account_routes_use_current_credentials_and_versioned_profile_drafts(configured,monkeypatch):
+@pytest.mark.parametrize("resource, field", [("kalender", "google_calendar"), ("aufgabenlisten", "google_tasks_list")])
+def test_account_routes_use_current_credentials_and_versioned_profile_drafts(configured,monkeypatch,resource,field):
     c=configured
     web=c.web
     c.cfg.target_profiles=[TargetProfileSettings(id=2,label='Work',google_calendar='primary',todoist_project='inbox')]
@@ -21,17 +22,17 @@ def test_account_routes_use_current_credentials_and_versioned_profile_drafts(con
     service=c.app.services.oauth
     assert service.config(2,'google').client_id=='synthetic-client'
     assert not service.authorize('telegram:1:2')
-    monkeypatch.setattr(oauth_site,'google_calendars',lambda *a:[('chosen','Chosen calendar')])
+    monkeypatch.setattr(oauth_site,'google_calendars',lambda *a, **kw:[('chosen','Chosen calendar')])
     for number in [1,2]:
-        response=web.browser.request('GET',f'/auth/google/kalender?profile={number}')
+        response=web.browser.request('GET',f'/auth/google/{resource}?profile={number}')
         assert response.status==200
-        form=web.form(f'/auth/google/kalender?profile={number}',action='/auth/google/kalender')
+        form=web.form(f'/auth/google/{resource}?profile={number}',action=f'/auth/google/{resource}')
         form['calendar']='chosen'
-        assert web.browser.request('POST','/auth/google/kalender',form).status==303
+        assert web.browser.request('POST',f'/auth/google/{resource}',form).status==303
         state=c.runtime.setup.state()
-        assert ('targets.google_calendar' in state.patch) if number==1 else state.patch['target_profiles'][0]['google_calendar']=='chosen'
+        assert ('targets.'+field in state.patch) if number==1 else state.patch['target_profiles'][0][field]=='chosen'
         c.runtime.setup.discard('web:'+web.auth.sessions()[0].id,state.version,'discard-key-'+str(number))
-    assert web.browser.request('GET','/auth/google/kalender?profile=99').status==409
+    assert web.browser.request('GET',f'/auth/google/{resource}?profile=99').status==409
 
 
 def test_password_settings_are_versioned_and_authorized(web):

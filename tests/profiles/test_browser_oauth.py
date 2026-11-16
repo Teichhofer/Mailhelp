@@ -1,7 +1,7 @@
 """Durable browser OAuth using only synthetic provider responses."""
 import json
-from dataclasses import replace
 import os
+from dataclasses import replace
 from urllib.parse import parse_qs
 
 import httpx
@@ -294,3 +294,39 @@ def test_calendar_choices_use_read_only_requests_and_validate_pages(oauth,mode):
     else:
         with pytest.raises((ValueError,httpx.HTTPError)):
             google_calendars(h.directory,1,h.oauth.config(1,'google'),transport)
+
+
+@pytest.mark.parametrize("mode", ["pages", "empty", "loop", "limit", "bad-id", "bad-title", "invalid-page", "http-error"])
+def test_task_lists_are_complete_read_only_and_profile_bound(oauth, mode):
+    h = oauth
+    calls = []
+
+    def provider(req):
+        calls.append(req)
+        if req.url.host == "oauth2.googleapis.com":
+            return httpx.Response(200, json=TOKEN)
+        assert req.method == "GET"
+        assert req.url == req.url.copy_with(path="/tasks/v1/users/@me/lists")
+        if mode == "http-error":
+            return httpx.Response(403)
+        item = {"id": "list-1", "title": "My tasks"}
+        if mode == "bad-id":
+            item["id"] = 1
+        if mode == "bad-title":
+            item["title"] = 1
+        body = {} if mode == "empty" else {"items": [item]}
+        if mode in {"loop", "limit", "invalid-page"}:
+            body["nextPageToken"] = {"loop": "same", "limit": str(len(calls)), "invalid-page": 1}[mode]
+        elif mode == "pages" and not req.url.params["pageToken"]:
+            body["nextPageToken"] = "second"
+        return httpx.Response(200, json=body)
+
+    transport = httpx.MockTransport(provider)
+    if mode in {"pages", "empty"}:
+        result = google_calendars(h.directory, 2, h.oauth.config(1, "google"), transport, tasks=True)
+        assert result == ([("list-1", "My tasks")] * 2 if mode == "pages" else [])
+        # Profile 2 must never use the saved refresh token of profile 1.
+        assert b"synthetic-refresh" not in calls[0].content
+    else:
+        with pytest.raises((ValueError, httpx.HTTPError)):
+            google_calendars(h.directory, 1, h.oauth.config(1, "google"), transport, tasks=True)

@@ -319,6 +319,7 @@ targets:
   # Aufgabendienst: todoist | microsoft_todo | caldav (VTODO) | apple_reminders (iCloud-CalDAV;
   # auf die neuen iCloud-Erinnerungen aktualisierte Listen sind über CalDAV nicht erreichbar)
   # | google_tasks (7.2; übernimmt nur das Datum, die genaue Frist steht im Text).
+  # Bestehende Google-Tasks-Listen in der Web-Einrichtung oder im Zielprofil auswählen.
   task_provider: todoist
   todoist_project: example-project
   google_calendar: primary

@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 from ..domain.proposal import Proposal, ProposalKind
 from ..external.contracts import proposal_is_writable
+from ..external.google_tasks import DUE_NOTE
 from ..formatting import format_datetime_local
 
 RESPONSIBILITY = {"user": "Du", "other": "Andere Person", "unclear": "Noch unklar"}
@@ -163,6 +164,7 @@ class CardContent:
     evidence_full: str
     profile_label: str | None = None
     target: str | None = None
+    target_hint: str | None = None
 
 
 def card_content(proposal: Proposal, configured_timezone: str,
@@ -192,6 +194,7 @@ def card_content(proposal: Proposal, configured_timezone: str,
         description_full=description,
         evidence=shorten(proposal.evidence, EVIDENCE_LIMIT),
         evidence_full=proposal.evidence,
+        target_hint=DUE_NOTE if not event and proposal.target_provider == "google_tasks" else None,
     )
 
 

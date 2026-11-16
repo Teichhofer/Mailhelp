@@ -1,6 +1,6 @@
 {
- "app_version": "7.2.1",
- "revision": "ff1c0f101b7c53fa5f06c1d460b7e7fdf53cacd9574f4c2d1195b08128eda00e",
+ "app_version": "7.2.2",
+ "revision": "0629239d5364c7acf355463a6c6db0fe4d42b3bd308c74323607d19e414de056",
  "schema_version": 1,
  "sections": 110,
  "sources": [
@@ -14,11 +14,11 @@
   },
   {
    "path": "docs/Konten-verwalten.md",
-   "sha256": "e2e7ef7e0dc2ffde7539d6a2f7f947e834a9f482cb64e53f1bc7f0b2395e762c"
+   "sha256": "a0dd0209d46845b3d02533826ddc57f5ea474e6b83166ce32cef45b14761c839"
   },
   {
    "path": "docs/Ziele-einrichten.md",
-   "sha256": "b43b7118dd62f94745dc9a6aa8988018728185480a7e70ac9b937821c9fb778b"
+   "sha256": "7bc985548a9bfd319d0ef8050766b5accde9a663acdeecd518e7caa8b69ebdf5"
   },
   {
    "path": "docs/Bedienung.md",

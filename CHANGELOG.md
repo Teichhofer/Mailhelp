@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.2.2 – Google-Tasks-Listenauswahl und Fristvorschau
+
+- Bestehende Google-Tasks-Listen lassen sich in der Ersteinrichtung und je Zielprofil
+  auswählen. Die Auswahl liest alle Seiten und speichert einen versionierten Entwurf.
+- Die Auswahl prüft Sitzung, CSRF, Zugangsdatenrevision, verfügbare Listen und Entwurfsversion.
+- Webkarten und Telegram zeigen die Einschränkung auf Datumsgenauigkeit vor der Bestätigung.
+
 ## 7.2.1 – Google Tasks als Aufgabenziel
 
 - Neuer Aufgabendienst `google_tasks` (`targets.google_tasks_list`, Standard `@default`): Anlage

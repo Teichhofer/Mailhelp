@@ -69,6 +69,8 @@ def _card_facts(card: Any) -> list[str]:
         facts.append(_fact("🕒", e(card.when), "Zeit"))
     if card.due:
         facts.append(_fact("🕒", f"Fällig: {e(card.due)}", "Frist"))
+    if card.target_hint:
+        facts.append(_fact("ℹ️", e(card.target_hint), "Aufgabenziel"))
     if card.location:
         facts.append(_fact("📍", e(card.location), "Ort"))
     if card.video_link:

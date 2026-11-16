@@ -53,13 +53,26 @@ Anmeldung früher erteilte Rechte. Die Rechte gehören zur Bindung der Web-Anmel
 Ziel währenddessen, wird die Anmeldung abgelehnt. `mailhelp --google-auth` lehnt ein Profil ohne
 Google-Ziel ab, statt Rechte anzufordern, die nichts nutzt.
 
-**Offen für die nächsten Patches.** Hinweis „Google Tasks übernimmt das Datum; die genaue Frist
-steht im Text.“ in Vorschau, Bestätigung und Telegram sowie Listenauswahl in der Oberfläche (7.2.2);
-Notion (7.2.3, 7.2.4); Abnahme mit echtem Testkonto (7.2.5). Bis dahin ist Google Tasks über die
-Konfiguration nutzbar; die Liste wird als ID eingetragen.
+**Offen für die nächsten Patches.** Notion (7.2.3, 7.2.4); Abnahme mit echtem Testkonto (7.2.5).
 
 Prüfung 7.2.1: 5 579 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung (ein Dokumentationszitat
 danach korrigiert, die betroffenen Prüfungen bestehen). Browser 928 bestanden; die Auswahl des
 Aufgabendienstes zeigt jetzt fünf Einträge (Test nennt sie namentlich). Einmal scheiterte unter Last
 `test_charts_zoom_and_show_details_with_pointer_keyboard_and_touch[desktop]`; er bestand danach
 dreimal einzeln.
+
+## 7.2.2 – Google-Tasks-Listenauswahl und Fristdarstellung
+
+Die Ersteinrichtung und die Zielprofilverwaltung verlinken die authentifizierte Auswahl unter
+`/auth/google/aufgabenlisten?profile=…`. Sie liest alle Seiten mit den gespeicherten Zugangsdaten
+des jeweiligen Profils. Fehlende Leserechte, ungültige Antworten, wiederholte Seitentokens oder
+mehr als 20 Seiten führen zu einem Fehler. Eine unvollständige Auswahl wird verworfen.
+
+Die Auswahl speichert einen Einrichtungsentwurf mit Sitzung, CSRF, Zugangsdatenrevision,
+Entwurfsversion und Idempotenzschlüssel. Beim Speichern wird die Verfügbarkeit der Liste erneut
+gelesen. Webkarten und Telegram zeigen vor der Bestätigung den Hinweis zur Datumsgenauigkeit.
+
+Automatisierte Prüfungen laufen mit simulierten Google-Antworten und synthetischen Zugangsdaten.
+Prüfung 7.2.2: 5 593 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 935 bestanden
+ohne Fehler.
+Notion und die Folgeversionen 7.3 bis 7.6 sind weiterhin offen.

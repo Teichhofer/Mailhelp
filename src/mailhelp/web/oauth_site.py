@@ -18,8 +18,8 @@ from .pages import e, error_page, layout
 
 class OAuthSite:
     def __init__(self, site: Any, service: BrowserOAuth,
-                 calendar_context: Callable[[int], tuple[str, int]],
-                 save_calendar: Callable[[str, int, str, int, str], None]) -> None:
+                 calendar_context: Callable[[int, str], tuple[str, int]],
+                 save_calendar: Callable[[str, int, str, int, str, str], None]) -> None:
         self.site, self.service = site, service
         self.calendar_context, self.save_calendar = calendar_context, save_calendar
         for method, path, handler in (
@@ -31,7 +31,9 @@ class OAuthSite:
             ("GET", "/auth/microsoft/poll", self.progress),
             ("GET", r"/auth/status/(?P<identity>[a-f0-9]{64})", self.progress),
             ("GET", "/auth/google/kalender", self.calendars),
-            ("POST", "/auth/google/kalender", self.choose_calendar)):
+            ("POST", "/auth/google/kalender", self.choose_calendar),
+            ("GET", "/auth/google/aufgabenlisten", self.task_lists),
+            ("POST", "/auth/google/aufgabenlisten", self.choose_task_list)):
             site.app.route(method, path, site.signed_in(handler))
         site.app.route("GET", "/auth/google/callback", self.google_callback)
 
@@ -132,34 +134,52 @@ class OAuthSite:
         if job.status == "done":
             body += ('<p>Anmeldung gespeichert. Nach dem nächsten Neustart nutzt der Mailabruf die neuen Daten.</p>'
                      '<p><a href="/einrichtung/start">Zur Einrichtung</a> · '
-                     f'<a href="/auth/google/kalender?profile={job.profile}">Google-Kalender auswählen</a></p>')
+                     f'<a href="/auth/google/kalender?profile={job.profile}">Google-Kalender auswählen</a> · '
+                     f'<a href="/auth/google/aufgabenlisten?profile={job.profile}">'
+                     'Google-Tasks-Liste auswählen</a></p>')
         return Response.html(200, layout("Anmeldestatus", body, refresh=2 if pending else None,
             after='<script src="/static/setup.js" defer></script>'))
 
     def calendars(self, request: Request, session: WebSession) -> Response:
+        return self._targets(request, session, tasks=False)
+
+    def task_lists(self, request: Request, session: WebSession) -> Response:
+        return self._targets(request, session, tasks=True)
+
+    def _targets(self, request: Request, session: WebSession, *, tasks: bool) -> Response:
+        field = "google_tasks_list" if tasks else "google_calendar"
+        label = "Google-Tasks-Liste" if tasks else "Google-Kalender"
+        path = "/auth/google/aufgabenlisten" if tasks else "/auth/google/kalender"
         try:
             profile = self._profile(request)
             choices = google_calendars(self.service.directory, profile, self.service.config(profile, "google"),
-                                       self.service.transport)
-            current, version = self.calendar_context(profile)
+                                       self.service.transport, tasks=tasks)
+            current, version = self.calendar_context(profile, field)
         except Exception:
             return self.failed()
-        body = '<h1>Google-Kalender auswählen</h1>' + post_form("/auth/google/kalender",
-            self.site.auth.csrf_token(session.id), select("calendar", "Kalender mit Schreibrecht", current, choices),
+        body = f'<h1>{label} auswählen</h1>' + post_form(path,
+            self.site.auth.csrf_token(session.id), select("calendar", label, current, choices),
             "Als Entwurf speichern", profile=profile, version=version,
             revision=self.service.revision(profile, "google"))
-        return Response.html(200, layout("Kalenderauswahl", body))
+        return Response.html(200, layout(label, body))
 
     def choose_calendar(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self._choose_target(session, form, tasks=False)
+
+    def choose_task_list(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self._choose_target(session, form, tasks=True)
+
+    def _choose_target(self, session: WebSession, form: dict[str, str], *, tasks: bool) -> Response:
         try:
             profile = int(form["profile"])
             if self.service.revision(profile, "google") != form["revision"]:
                 raise ValueError("Zugangsdaten geändert.")
             choices = google_calendars(self.service.directory, profile, self.service.config(profile, "google"),
-                                       self.service.transport)
+                                       self.service.transport, tasks=tasks)
             if form["calendar"] not in dict(choices):
                 raise ValueError("Kalender nicht verfügbar.")
-            self.save_calendar("web:" + session.id, profile, form["calendar"], int(form["version"]), form["key"])
+            self.save_calendar("web:" + session.id, profile, form["calendar"], int(form["version"]), form["key"],
+                               "google_tasks_list" if tasks else "google_calendar")
         except Exception:
             return self.failed()
         return Response.redirect("/einrichtung/start")

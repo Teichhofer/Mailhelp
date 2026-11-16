@@ -14,6 +14,7 @@ from mailhelp.web.http import Request
 from mailhelp.web.local_pairing import signature
 from mailhelp.web.login_site import PAIR_COOKIE
 from tests.fakes.initial_harness import initial
+from tests.fakes.initial_harness import request as initial_request
 from tests.fakes.shared_web_auth import Browser
 
 
@@ -112,7 +113,7 @@ def test_calendar_choice_is_read_only_versioned_and_uses_profile(initial,monkeyp
     h=initial
     h.advance()
     b=browser(h)
-    monkeypatch.setattr(module,'google_calendars',lambda *a:[('selected','Chosen calendar')])
+    monkeypatch.setattr(module,'google_calendars',lambda *a, **kw:[('selected','Chosen calendar')])
     page=b.request('GET','/auth/google/kalender')
     assert page.status==200 and b'Chosen calendar' in page.body
     form={'csrf':h.auth.csrf_token(h.session.id),'profile':'1','calendar':'selected','key':'f'*32,
@@ -122,5 +123,23 @@ def test_calendar_choice_is_read_only_versioned_and_uses_profile(initial,monkeyp
     assert b.request('POST','/auth/google/kalender',form).status==303
     assert h.setup.state().config['targets']['google_calendar']=='selected'
     assert b.request('GET','/auth/google/kalender?profile=2').status==409
-    monkeypatch.setattr(module,'google_calendars',lambda *a:(_ for _ in ()).throw(RuntimeError('private-body')))
+    monkeypatch.setattr(module,'google_calendars',lambda *a, **kw:(_ for _ in ()).throw(RuntimeError('private-body')))
     assert b'private-body' not in b.request('GET','/auth/google/kalender').body
+
+
+def test_initial_task_selection_is_versioned_and_does_not_write_externally(initial, monkeypatch):
+    h = initial
+    h.advance()
+    monkeypatch.setattr(module, "google_calendars", lambda *a, **kw: [("selected", "My tasks")])
+    path = "/auth/google/aufgabenlisten"
+    assert initial_request(h, "GET", path).status == 200
+    form = {"csrf": h.auth.csrf_token(h.session.id), "profile": "1", "calendar": "selected",
+            "key": "e" * 32, "version": str(h.setup.state().version), "revision": h.oauth.revision(1, "google")}
+    assert initial_request(h, "POST", path, {**form, "csrf": "wrong"}).status == 403
+    assert initial_request(h, "POST", path, form, token=False).status in {401, 403}
+    assert initial_request(h, "POST", path, {**form, "revision": "stale"}).status == 409
+    assert initial_request(h, "POST", path, {**form, "calendar": "foreign"}).status == 409
+    assert initial_request(h, "POST", path, form).status == 303
+    assert h.setup.state().config["targets"]["google_tasks_list"] == "selected"
+    assert initial_request(h, "POST", path, form).status == 303  # Same idempotency key.
+    assert initial_request(h, "GET", path + "?profile=2").status == 409

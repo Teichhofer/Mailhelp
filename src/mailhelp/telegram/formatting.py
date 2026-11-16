@@ -118,6 +118,8 @@ def format_proposal(
         lines.append(f"🔗 {card.video_link}")
     if card.due:
         lines.append(f"🕒 Fällig: {card.due}")
+    if card.target_hint:
+        lines.append(f"ℹ️ {card.target_hint}")
     if card.responsibility:
         lines.append(f"Zuständig: {card.responsibility}")
     if card.certainty:

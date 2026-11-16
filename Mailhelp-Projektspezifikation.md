@@ -15,6 +15,12 @@ sagt `TargetWriter.supports_remove`; nur Kalender und Todoist entfernen. Ohne di
 die Aktion, und der Server lehnt direkte Befehle ab. Die Google-Anmeldung eines Profils fordert genau
 die genutzten Rechte an (Kalender, Google Tasks oder beides) und behält früher erteilte.
 
+Seit 7.2.2 bietet `/auth/google/aufgabenlisten` die vollständig paginierte Auswahl bestehender
+Listen mit den gespeicherten Google-Zugangsdaten des gewählten Profils. Die Auswahl speichert
+einen versionierten Einrichtungsentwurf. Sitzung, CSRF, Zugangsdatenrevision, verfügbare Liste,
+Entwurfsversion und Idempotenzschlüssel werden geprüft. Vorschau und Telegram zeigen vor der
+Freigabe „Google Tasks übernimmt das Datum; die genaue Frist steht im Text.“.
+
 ## Ergänzung 7.1: Demo-Modus
 
 `mailhelp --demo` (gleichwertig `-demo`) startet eine Demo-Instanz; Plan: [docs/Planung-7.1.md](docs/Planung-7.1.md).

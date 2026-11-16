@@ -74,7 +74,8 @@ Profil 1 ist das Ziel aus der Ersteinrichtung (**Standardprofil 1 bearbeiten**).
 1. **Zielprofil hinzufügen**, Bezeichnung, Kalenderdienst (Google, CalDAV, Outlook) und
    Aufgabendienst (Todoist, Microsoft To Do, CalDAV, Apple Erinnerungen) wählen.
 2. Die Kennungen eintragen; bei Google bzw. Microsoft über **Google verbinden** bzw.
-   **Microsoft verbinden** anmelden und bei Google **Google-Kalender auswählen**.
+   **Microsoft verbinden** anmelden und bei Google **Google-Kalender auswählen** beziehungsweise
+   **Google-Tasks-Liste auswählen**. Die Zielauswahl wird als Einrichtungsentwurf gespeichert.
 3. **Zugriffe prüfen**: Die Diagnose liest nur und legt nichts an.
 4. Den Entwurf prüfen und übernehmen.
 

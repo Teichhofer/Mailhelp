@@ -51,7 +51,14 @@ nach sieben Tagen ablaufen. Dann die Anmeldung erneuern und den Projektstatus pr
    Google Tasks ab (`https://www.googleapis.com/auth/tasks`). Bereits erteilte Kalenderrechte bleiben
    erhalten. Am Rechner geht das auch mit `mailhelp --google-auth --config-directory .`; die
    Anmeldung fragt genau die Rechte ab, die das Profil nutzt.
-4. **Zugriffe prüfen**.
+4. **Google-Tasks-Liste auswählen** in der Einrichtung oder beim Zielprofil öffnen, die gewünschte
+   bestehende Liste wählen und **Als Entwurf speichern**. Mailhelp liest alle verfügbaren Seiten.
+   Bei einem Lesefehler wird die Auswahl abgebrochen.
+5. Den Einrichtungsentwurf prüfen, **Zugriffe prüfen** und die Einstellungen übernehmen.
+
+Die Listenauswahl legt einen versionierten Entwurf an. Die erste Aufgabe benötigt anschließend
+die ausdrückliche Bestätigung ihrer Vorschlagsversion. Vorschau und Telegram zeigen dabei
+„Google Tasks übernimmt das Datum; die genaue Frist steht im Text.“.
 
 Google Tasks speichert zu einer Aufgabe nur einen Tag, keine Uhrzeit. Mailhelp trägt den
 bestätigten Tag in der konfigurierten Zeitzone ein und schreibt eine genaue Frist zusätzlich in den
@@ -97,7 +104,8 @@ Unterlagen; es wurden keine echten Konten verbunden oder externen Einträge ange
 - Google: [Kalenderberechtigungen](https://developers.google.com/workspace/calendar/api/auth)
   und [OAuth einschließlich Refresh-Token-Ablauf](https://developers.google.com/identity/protocols/oauth2).
 - Google Tasks (16. November 2026): [Aufgabenressource mit Datumsgrenze und Feldlängen](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks)
-  und [Auflisten mit Seiten und erledigten Aufgaben](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/list).
+  sowie [Auflisten mit Seiten und erledigten Aufgaben](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/list)
+  und [bestehende Aufgabenlisten lesen](https://developers.google.com/workspace/tasks/reference/rest/v1/tasklists/list).
 - Todoist: [persönlicher API-Token und API](https://developer.todoist.com/).
 - Microsoft: [Gerätecode-Anmeldung](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code)
   und [Graph-Berechtigungen](https://learn.microsoft.com/en-us/graph/permissions-reference).

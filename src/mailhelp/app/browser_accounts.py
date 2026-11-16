@@ -25,20 +25,21 @@ def attach_accounts(app: Any, site: Any, directory: Path) -> None:
     service = BrowserOAuth(directory, app.store, authorize, config,
                            lambda value: site.auth._mac("oauth", value))
 
-    def calendar_context(profile: int) -> tuple[str, int]:
+    def calendar_context(profile: int, field: str = "google_calendar") -> tuple[str, int]:
         setup = site.setup_page.runtime.setup
-        return target_profiles(setup.draft_settings())[profile].google_calendar, setup.state().version
+        return getattr(target_profiles(setup.draft_settings())[profile], field), setup.state().version
 
-    def save_calendar(actor: str, profile: int, calendar: str, version: int, key: str) -> None:
+    def save_calendar(actor: str, profile: int, calendar: str, version: int, key: str,
+                      field: str = "google_calendar") -> None:
         setup = site.setup_page.runtime.setup
         cfg = setup.draft_settings()
         patch: dict[str, Any]
         if profile == 1:
-            patch = {"targets.google_calendar": calendar}
+            patch = {"targets." + field: calendar}
         else:
             target_profiles(cfg)[profile]  # Reject unconfigured profile numbers before creating a draft.
             entries = [p.model_dump(mode="json") for p in cfg.target_profiles]
-            patch = {"target_profiles": [{**p, "google_calendar": calendar} if p["id"] == profile else p
+            patch = {"target_profiles": [{**p, field: calendar} if p["id"] == profile else p
                                           for p in entries]}
         setup.save(actor, version, key, 3, patch)
 

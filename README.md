@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.2.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.2.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.2.1 bringt Google Tasks als Aufgabenziel: Aufgaben werden nach Bestätigung in eine Google-Tasks-Liste eingetragen, mit dem Tag als Fälligkeit und einer genauen Frist im Text.
+7.2.2 ergänzt die Auswahl der Google-Tasks-Liste in der Einrichtung und je Zielprofil. Vorschau und Telegram zeigen vor der Freigabe, dass Google Tasks das Datum übernimmt und die genaue Frist im Text steht.
 
 Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, Rückfragen lassen sich mit vorbereiteten Beispielantworten beantworten, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
 
