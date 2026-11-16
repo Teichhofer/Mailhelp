@@ -24,7 +24,7 @@ def matches(topic: Topic, query: str, status: str) -> bool:
 
 
 class TopicSite:
-    def __init__(self, settings: Any):
+    def __init__(self, settings: Any) -> None:
         self.settings, self.archive = settings, settings.archive
         self.site: MailhelpSite = settings.site
         self.site.app.route("GET", "/themen", self.site.signed_in(self.home))

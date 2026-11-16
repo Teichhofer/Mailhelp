@@ -27,7 +27,7 @@ class LoginHost(Protocol):
 
 
 class LoginSite:
-    def __init__(self, site: LoginHost):
+    def __init__(self, site: LoginHost) -> None:
         self.site = site
 
     def _cookie(self, request: Request, name: str, value: str, max_age: int) -> str:

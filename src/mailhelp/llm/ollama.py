@@ -74,7 +74,7 @@ class OllamaClient(OpenRouterClient):
     endpoint = "/api/chat"
 
     def __init__(self, local: LocalLlm, timeout: float, retries: int,
-                 calls_per_minute: int, **kwargs: Any):
+                 calls_per_minute: int, **kwargs: Any) -> None:
         super().__init__("", timeout, retries, calls_per_minute,
                          base_url=local.base_url, **kwargs)
         self.model, self.num_ctx = local.model, local.num_ctx

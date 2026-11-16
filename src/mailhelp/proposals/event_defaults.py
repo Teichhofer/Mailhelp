@@ -1,15 +1,24 @@
 """Application-owned duration assumptions; raw mail extraction remains unchanged."""
 import re
 from dataclasses import replace
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from ..config import EventDefaultsSettings
 from ..domain.extraction import ExtractedEvent
-from ..domain.proposal import ProposalStatus, required_revision_questions
-from .action_normalization import MailDateContext, NormalizationReason, TemporalValue, normalize_event
+from ..domain.proposal import Proposal, ProposalStatus, required_revision_questions
+from .action_normalization import (
+    MailDateContext,
+    NormalizationReason,
+    NormalizationResult,
+    TemporalValue,
+    normalize_event,
+)
+
+MeetingMode = Literal["video", "in_person", "hybrid", "unknown"]
 
 
-def meeting_mode(event: ExtractedEvent) -> str:
+def meeting_mode(event: ExtractedEvent) -> MeetingMode:
     text = " ".join((event.title, event.description or "", event.evidence, event.location or "")).casefold()
     video = bool(event.video_link or re.search(
         r"\b(?:online|videokonferenz|videomeeting|skype|teams|zoom|webex|jitsi)\b", text))
@@ -21,7 +30,8 @@ def meeting_mode(event: ExtractedEvent) -> str:
     return "in_person" if presence else "unknown"
 
 
-def normalized_event(event: ExtractedEvent, context: MailDateContext, defaults: EventDefaultsSettings | None):
+def normalized_event(event: ExtractedEvent, context: MailDateContext, defaults: EventDefaultsSettings | None
+                     ) -> tuple[NormalizationResult, MeetingMode, str, int | None]:
     result = normalize_event(event, context)
     mode = meeting_mode(event)
     origin = ("mail_end" if event.end_time_text is not None else
@@ -39,7 +49,7 @@ def normalized_event(event: ExtractedEvent, context: MailDateContext, defaults: 
     return result, mode, origin, applied
 
 
-def reapply_defaults(proposal, defaults: EventDefaultsSettings):
+def reapply_defaults(proposal: Proposal, defaults: EventDefaultsSettings) -> Proposal:
     start = proposal.start or (proposal.known_temporal_facts.start if proposal.known_temporal_facts else None)
     if (proposal.kind != "event" or proposal.end is not None and proposal.end_origin != "standard" or start is None or
             proposal.duration_minutes is not None or proposal.all_day):
@@ -54,6 +64,7 @@ def reapply_defaults(proposal, defaults: EventDefaultsSettings):
     if mode not in {"video", "in_person"}:
         return proposal
     duration = defaults.video_duration_minutes if mode == "video" else defaults.in_person_duration_minutes
+    assert isinstance(start, datetime)  # all-day proposals returned above; a timed start is a datetime
     end = (start.astimezone(UTC) + timedelta(minutes=duration)).astimezone(start.tzinfo)
     if proposal.end == end and proposal.default_duration_minutes == duration:
         return proposal

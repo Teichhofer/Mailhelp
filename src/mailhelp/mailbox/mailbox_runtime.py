@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
+from typing import Any
 
-from ..config import ImapSettings
+from ..config import ImapSettings, Secrets
 from ..llm.adapter import RetryPolicy
 from . import imap as imap_module
-from .connection_runtime import PendingConnections
+from .connection_runtime import Pending, PendingConnections
 from .imap import mailbox_account_id, reader_arguments
 from .mailbox_run import MailboxSource
 from .sources import mailbox_labels
@@ -15,12 +16,12 @@ from .sources import mailbox_labels
 class MailboxRuntime(PendingConnections):
     area = "imap"
 
-    def __init__(self, app, resources, secrets):
+    def __init__(self, app: Any, resources: ExitStack, secrets: Secrets) -> None:
         super().__init__(app, resources)
         # The credentials shared with diagnostics, drafts and activity reports of this process.
         self.secrets = secrets
 
-    def _apply(self, pending):
+    def _apply(self, pending: Pending) -> None:
         configured, secrets = pending
         app = self.app
         running = {source.mailbox.id for source in app.sources}

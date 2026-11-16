@@ -1,6 +1,7 @@
 """Validate both complete topic files before preparing any file replacement."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import yaml
@@ -17,7 +18,9 @@ class RuleLoader(yaml.SafeLoader):
 
 
 def unique_mapping(loader: RuleLoader, node: yaml.MappingNode) -> dict[str, Any]:
-    keys = [loader.construct_object(key) for key, _ in node.value]
+    # PyYAML ships no annotations for construct_object; the typed alias keeps the call checked.
+    construct: Callable[[yaml.Node], object] = loader.construct_object
+    keys = [construct(key) for key, _ in node.value]
     if any(not isinstance(key, str) for key in keys) or len(keys) != len(set(keys)):
         raise yaml.YAMLError("Doppelte oder nicht textuelle YAML-Schlüssel")
     return {str(key): value for key, value in yaml.SafeLoader.construct_mapping(loader, node).items()}

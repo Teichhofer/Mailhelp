@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from threading import Event, Thread
 from typing import Any, cast
 
-from ..config import IrrelevantTopicsConfig, read_yaml
+from ..config import IrrelevantTopicsConfig, Secrets, read_yaml
 from ..llm.learning import LearningMode, LearningSource
+from ..mailbox.imap import ImapReader
 from ..mailbox.sender_filter import sender_addresses
 from ..processing.analysis import Analyzer
 from . import experience
-from .learning_jobs import LearningCard, LearningConflict, LearningJobs
+from .learning_jobs import LearningCard, LearningConflict, LearningJob, LearningJobs, LearningSelection
 
 # Two relevance groups, classification and abstraction per mail.
 CALLS_PER_MAIL = 4
@@ -25,11 +27,11 @@ class LearningPaused(BaseException):
 
 
 class LearningCompleter:
-    def __init__(self, worker, client, generation=None):
+    def __init__(self, worker: LearningWorker, client: Any, generation: int | None = None) -> None:
         self.worker, self.client = worker, client
         self.generation = worker.jobs.state().generation if generation is None else generation
 
-    def complete(self, model, parameters, system, payload, **kwargs):
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: Any, **kwargs: Any) -> Any:
         # UTF-8 bytes overestimate textual input tokens; include the schema and request envelope.
         # The request already contains the (limited) mail; the payload limit is not added again.
         size = len(json.dumps([system, payload, str(kwargs.get("response_schema"))], ensure_ascii=False).encode())
@@ -78,16 +80,17 @@ class LearningCompleter:
             state.reserved_tokens = max(0, state.reserved_tokens - reserved + min(total, reserved))
             service.save(state)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.client, name)
 
 
 class LearningWorker:
-    def __init__(self, app, site, secrets, open_reader=None):
-
+    # app and site are the assembled application and web site; lower layers do not know their classes.
+    def __init__(self, app: Any, site: Any, secrets: Secrets, open_reader: Callable[..., Any] | None = None) -> None:
         self.app, self.secrets = app, secrets
         self.open_reader = open_reader or experience._reader
-        self.stopped, self.thread = Event(), None
+        self.stopped = Event()
+        self.thread: Thread | None = None
         self.rules: Any = None
         self.jobs = LearningJobs(
             app.configuration,
@@ -95,7 +98,7 @@ class LearningWorker:
             self.estimate,
         )
 
-    def estimate(self, selection):
+    def estimate(self, selection: LearningSelection) -> int:
         """Typical tokens of the run; the start needs the budget for this amount.
 
         Real calls of comparable steps (relevance with mail and topic list) took about
@@ -104,7 +107,7 @@ class LearningWorker:
         """
         return selection.count * CALLS_PER_MAIL * TYPICAL_CALL_TOKENS
 
-    def maximum(self, selection):
+    def maximum(self, selection: LearningSelection) -> int:
         """Upper bound if every call used the payload limit, the output limit and every repair."""
         prompts = self.app.analyzer.prompts
         stages = ("relevance", "learning_classification", "learning_abstraction")
@@ -137,7 +140,7 @@ class LearningWorker:
         if self.thread is not None:
             self.thread.join()
 
-    def run(self):
+    def run(self) -> None:
         while not self.stopped.is_set():
             generation = self.jobs.state().generation
             try:
@@ -153,7 +156,7 @@ class LearningWorker:
             if not worked:
                 self.stopped.wait(1)
 
-    def tick(self):
+    def tick(self) -> bool:
         if self.rules is not None and self.rules.tick():
             return True
         state = self.jobs.state()
@@ -234,7 +237,7 @@ class LearningWorker:
             self.jobs.save(current)
         return True
 
-    def discover(self, state, reader):
+    def discover(self, state: LearningJob, reader: ImapReader) -> bool:
         assert state.selection is not None
         listed = reader.list_folders()
         entries = [

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class ArchiveSite:
     def __init__(self, site: MailhelpSite, configuration: ConfigurationService | None = None,
                  metrics: MetricsRecorder | None = None, lifecycle: Lifecycle | None = None,
-                 models: list[tuple[str, str, str, str]] | None = None):
+                 models: list[tuple[str, str, str, str]] | None = None) -> None:
         self.site, self.configuration, self.metrics, self.lifecycle = site, configuration, metrics, lifecycle
         self.models = models or []
         self.queries = ArchiveQueries(site.views.store, site.configured_timezone)

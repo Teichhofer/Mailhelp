@@ -30,7 +30,7 @@ def signal(record: dict[str, Any]) -> str | None:
 
 
 class DecisionRuleMiner:
-    def __init__(self, path: Path, redact: Callable[[str], str] = lambda text: text):
+    def __init__(self, path: Path, redact: Callable[[str], str] = lambda text: text) -> None:
         self.path, self.redact = path, redact
 
     def mine(self, exclude: frozenset[str] | set[str] = frozenset(),

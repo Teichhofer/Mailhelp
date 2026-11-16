@@ -36,7 +36,7 @@ class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport, TargetWri
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
                  logger: EventLogger | None = None, calendar_timezone: str | None = None,
                  calendar_matcher: Callable[[Proposal, dict[str, Any]],
-                                            tuple[str, CalendarDuplicateDecision]] | None = None):
+                                            tuple[str, CalendarDuplicateDecision]] | None = None) -> None:
         if service not in {"todoist", "google_calendar"}: raise ValueError("Unbekannter Dienst")
         if service == "google_calendar":
             if calendar_timezone is None: raise ValueError("Google Kalender benötigt die konfigurierte IANA-Zeitzone")

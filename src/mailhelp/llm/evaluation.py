@@ -57,7 +57,7 @@ class EvaluationBudgetExceeded(RuntimeError):
 
 
 class BoundedCompleter:
-    def __init__(self, client: LlmCompleter, max_calls: int):
+    def __init__(self, client: LlmCompleter, max_calls: int) -> None:
         if max_calls < 1:
             raise ValueError("max_calls muss positiv sein")
         self.client, self.max_calls, self.calls = client, max_calls, 0
@@ -118,7 +118,7 @@ class UsageRecorder:
 class BoundedDecider:
     """Jev and its generative fallback consume the same explicit call budget."""
 
-    def __init__(self, client: DecisionClient, budget: BoundedCompleter):
+    def __init__(self, client: DecisionClient, budget: BoundedCompleter) -> None:
         self.client, self.budget, self.logger = client, budget, client.logger
 
     def decide(self, *args: Any, **kwargs: Any) -> Any:

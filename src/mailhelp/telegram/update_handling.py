@@ -93,7 +93,7 @@ def send_relevance_question(telegram: TelegramTransport, chat_id: int, dialog: R
 class TelegramUpdateHandler:
     """Owned by the dialog controller; reads its services through ``o``."""
 
-    def __init__(self, owner: TelegramDialogController):
+    def __init__(self, owner: TelegramDialogController) -> None:
         self.o = owner
 
     def process(self, updates: list[Any], acknowledged: set[int], offset: int) -> None:

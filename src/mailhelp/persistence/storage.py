@@ -25,7 +25,7 @@ class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError):
     """Another process holds the lock of this data directory."""
 
-    def __init__(self, directory: Path):
+    def __init__(self, directory: Path) -> None:
         super().__init__(f"Datenverzeichnis wird bereits verwendet: {directory}")
         self.directory = directory
 
@@ -80,7 +80,7 @@ class JsonStore:
     another thread holds the target file open.
     """
 
-    def __init__(self, directory: Path):
+    def __init__(self, directory: Path) -> None:
         self.directory = directory
         self.lock: int | None = None
         self._thread_lock = RLock()

@@ -21,7 +21,7 @@ IDLE_SECONDS = 5.0
 class ReanalysisWorker:
     def __init__(self, store: Any, settings: Any, engine: Any, logger: Any,
                  open_reader: Callable[[str], AbstractContextManager[Any] | None],
-                 send_proposal: Callable[[Any], None], authorized: Callable[[str], bool]):
+                 send_proposal: Callable[[Any], None], authorized: Callable[[str], bool]) -> None:
         self.jobs = ReanalysisJobs(store, settings, logger)
         self.engine, self.open_reader, self.authorized = engine, open_reader, authorized
         self.adoption = ReanalysisAdoption(self.jobs, engine, send_proposal)

@@ -56,7 +56,7 @@ MESSAGES = {
 class ChatRefused(ValueError):
     """A question that is not accepted; *code* names the reason."""
 
-    def __init__(self, code: str, message: str = ""):
+    def __init__(self, code: str, message: str = "") -> None:
         super().__init__(message or code)
         self.code = code
 
@@ -111,7 +111,7 @@ class HelpChat:
                  analyzer: Callable[[], Any], authorized: Callable[[str], bool],
                  redact: Callable[[str], str] = lambda text: text, now: Callable[[], datetime] | None = None,
                  logger: EventLogger | None = None, sessions: Callable[[], list[str]] = lambda: [],
-                 cleanup_extra: Callable[[], None] = lambda: None):
+                 cleanup_extra: Callable[[], None] = lambda: None) -> None:
         self.store, self.settings, self.base, self.analyzer = store, settings, base, analyzer
         self.authorized, self.redact, self.active_sessions = authorized, redact, sessions
         self.cleanup_extra = cleanup_extra

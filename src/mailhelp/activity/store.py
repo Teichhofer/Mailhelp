@@ -22,7 +22,7 @@ def mails_name(report_id: str, block: int) -> str:
 
 
 class ActivityReportStore:
-    def __init__(self, store: StateStore):
+    def __init__(self, store: StateStore) -> None:
         self.store = store
 
     def create(self, definition: ReportDefinition, addresses: list[str], domains: list[str],

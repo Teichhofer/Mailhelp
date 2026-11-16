@@ -54,7 +54,7 @@ from .writes import ConfirmedWriteExecutor, WriteExecution
 class _DialogResponsePersistence:
     """Revisions answer the user directly and therefore bypass the outbox."""
 
-    def __init__(self, controller: TelegramDialogController):
+    def __init__(self, controller: TelegramDialogController) -> None:
         self.controller = controller
 
     def persist(self, proposal: Proposal) -> None:
@@ -95,7 +95,7 @@ class TelegramDialogController:
         inbox: TelegramInbox | None = None,
         commands: CommandInbox | None = None,
         write_verification: WriteVerificationSettings | None = None,
-    ):
+    ) -> None:
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = (
             store, telegram, user_id, chat_id, logger)
         # With an inbox, a receiver thread fetches updates; this controller

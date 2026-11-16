@@ -349,7 +349,7 @@ def _confirm_target(proposal: Proposal) -> str:
 class ReviewViews:
     """Build read models from the persisted state without changing it."""
 
-    def __init__(self, store: JsonStore, configured_timezone: str, test_mode: bool = False):
+    def __init__(self, store: JsonStore, configured_timezone: str, test_mode: bool = False) -> None:
         self.store, self.configured_timezone, self.test_mode = store, configured_timezone, test_mode
         # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
         self.mailboxes: dict[str, tuple[int, str]] = {}

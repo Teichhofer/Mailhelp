@@ -66,7 +66,7 @@ FIELD_NAMES = {"kind": "Art", "title": "Titel", "description": "Beschreibung", "
 
 
 class ReanalysisSite:
-    def __init__(self, site: MailhelpSite, worker: Any):
+    def __init__(self, site: MailhelpSite, worker: Any) -> None:
         self.site, self.worker = site, worker
         route = site.app.route
         route("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/nachanalyse", site.signed_in(self.start))

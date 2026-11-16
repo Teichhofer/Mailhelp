@@ -11,10 +11,11 @@ import sys
 from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
+from typing import Any
 
 from .app import bootstrap
 from .app.composition import build_application, build_logger
-from .config import LOCAL_NUM_CTX, Settings, load_all, read_yaml
+from .config import LOCAL_NUM_CTX, MailboxSettings, PromptConfig, Secrets, Settings, Topic, load_all, read_yaml
 from .config.loader import MissingConfiguration
 from .external import providers
 from .external.contracts import OAuthTokenError
@@ -22,6 +23,7 @@ from .llm.decision_test import run_decision_test
 from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
 from .llm.ollama import LocalLlm, parse_address
+from .logging import JsonlLogger
 from .mailbox.mailbox_settings import target_profiles
 from .paths import runtime_path
 from .persistence.storage import AlreadyRunning, JsonStore
@@ -374,7 +376,8 @@ def _mailbox_choice(value: str) -> int | str:
         raise argparse.ArgumentTypeError("Nummer eines Postfachs oder „alle“ erwartet") from exc
 
 
-def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespace, settings):
+def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespace,
+                       settings: Settings) -> list[MailboxSettings] | None:
     """The mailboxes --learn and --decision-test read; never guessed among several (3.1)."""
     reads_mail = args.learn is not None or args.decision_test is not None
     if args.mailbox is None and not reads_mail:
@@ -394,7 +397,7 @@ def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespac
     return selected
 
 
-def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts) -> LocalLlm | None:
+def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts: PromptConfig) -> LocalLlm | None:
     local_llm = None
     if args.ollama_model is not None and args.ollama is None:
         parser.error("--ollama-model ist nur zusammen mit --ollama zulässig")
@@ -410,7 +413,7 @@ def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompt
     return local_llm
 
 
-def _clear(args: argparse.Namespace, settings) -> int:
+def _clear(args: argparse.Namespace, settings: Settings) -> int:
     if not args.yes:
         answer = input(
             "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
@@ -425,14 +428,14 @@ def _clear(args: argparse.Namespace, settings) -> int:
     return 0
 
 
-def _microsoft_login(settings, secrets, directory: Path, profile_id=1) -> int:
+def _microsoft_login(settings: Settings, secrets: Secrets, directory: Path, profile_id: int = 1) -> int:
     """Device-code sign-in; the terminal shows only the code and address, never a token."""
     settings = settings.model_copy(update={"targets": target_profiles(settings)[profile_id]})
     secrets = secrets.for_profile(profile_id)
     if not secrets.microsoft_client_id.get_secret_value():
         print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
         return 1
-    options = {"profile_id": profile_id} if profile_id != 1 else {}
+    options: dict[str, Any] = {"profile_id": profile_id} if profile_id != 1 else {}
     tokens = providers.microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds,
                                        **options)
     try:
@@ -445,7 +448,7 @@ def _microsoft_login(settings, secrets, directory: Path, profile_id=1) -> int:
     return 0
 
 
-def _log_start(logger, args: argparse.Namespace, local_llm: LocalLlm | None) -> None:
+def _log_start(logger: JsonlLogger, args: argparse.Namespace, local_llm: LocalLlm | None) -> None:
     logger.event("INFO", "application", "application_started", parameters={
         "config_directory": str(args.config_directory),
         "log_directory": str(args.log_directory) if args.log_directory is not None else None,
@@ -461,7 +464,7 @@ def _log_start(logger, args: argparse.Namespace, local_llm: LocalLlm | None) -> 
     })
 
 
-def _show_imap_credentials(secrets) -> None:
+def _show_imap_credentials(secrets: Secrets) -> None:
     # JSON quoting makes control characters visible instead of allowing a
     # secret loaded from the environment to manipulate the terminal.
     print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
@@ -471,8 +474,10 @@ def _show_imap_credentials(secrets) -> None:
         print(f"{prefix}IMAP-Passwort: {json.dumps(credentials.password.get_secret_value(), ensure_ascii=False)}")
 
 
-def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
-         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown, mailboxes=None) -> int:
+def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics: list[Topic],
+         irrelevant_topics: list[Topic], prompts: PromptConfig, fingerprint: str, logger: JsonlLogger,
+         local_llm: LocalLlm | None, shutdown: _SignalShutdown,
+         mailboxes: list[MailboxSettings] | None = None) -> int:
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
@@ -485,6 +490,7 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
         if args.learn is not None:
+            assert mailboxes is not None  # _selected_mailboxes returns the list whenever --learn is set
             readers = {source.mailbox.id: source.reader for source in application.sources}
             configured = settings.imap.configured_mailboxes()
             sources = [LearningSource(readers[mailbox.id], mailbox.folders,

@@ -1,7 +1,10 @@
 """Bind profile labels and deliberate target changes to current trusted configuration."""
+from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
+from typing import Any
 
 from ..config import Settings
 from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
@@ -12,7 +15,7 @@ from ..mailbox.mailbox_settings import profile_label, target_profiles
 from .target_profiles import UnavailableWriter
 
 
-def available(settings, writers, proposal):
+def available(settings: Settings, writers: Mapping[str, Any], proposal: Proposal) -> bool:
     if not settings.target_profiles and proposal.target_profile == 1:
         return True
     writer = writer_for(writers, proposal)
@@ -27,7 +30,7 @@ def available(settings, writers, proposal):
     )
 
 
-def label(settings, proposal):
+def label(settings: Settings, proposal: Proposal) -> str:
     if not settings.target_profiles and proposal.target_profile == 1:
         return ""
     name = profile_label(settings, proposal.target_profile)
@@ -39,7 +42,7 @@ def label(settings, proposal):
     return f"{provider} · {name}"
 
 
-def policy_hash(settings):
+def policy_hash(settings: Settings) -> str:
     return hashlib.sha256(
         json.dumps(
             {number: target.model_dump(mode="json") for number, target in target_profiles(settings).items()},
@@ -95,10 +98,10 @@ def retarget(settings: Settings, proposal: Proposal, number: int, digest: str) -
     return Proposal.model_validate(changed.model_dump())
 
 
-def summary(settings, writers):
+def summary(settings: Settings, writers: Mapping[str, Any]) -> str:
     if not settings.target_profiles:
         return ""
-    lines = []
+    lines: list[str] = []
     for number in target_profiles(settings):
         slot = "google_calendar" if number == 1 else f"google_calendar:{number}"
         writer = writers.get(slot)

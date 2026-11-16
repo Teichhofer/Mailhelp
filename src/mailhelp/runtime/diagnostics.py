@@ -7,15 +7,17 @@ import platform
 import re
 import ssl
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from threading import Event, Lock, Thread
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
 from ..llm.adapter import PermanentError
+from ..persistence.storage import JsonStore
 
 STATES = {"unchecked": "nicht geprüft", "running": "wird geprüft", "ready": "bereit",
           "limited": "eingeschränkt", "failed": "fehlgeschlagen", "disabled": "deaktiviert"}
@@ -76,11 +78,16 @@ def error_code(exc: Exception) -> str:
 
 
 class DiagnosticsService:
-    def __init__(self, store, active, checks, timeout=10, clock=lambda: datetime.now(UTC), revision=lambda: ""):
+    def __init__(self, store: JsonStore, active: Callable[[str], bool],
+                 checks: dict[str, Callable[[str], tuple[str, str]]],
+                 timeout: float = 10, clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+                 revision: Callable[[], str] = lambda: "") -> None:
         self.store, self.active, self.checks, self.timeout, self.clock = store, active, checks, timeout, clock
         self.revision = revision
-        self._lock, self._busy = Lock(), set()
-        self.stopped, self.worker = Event(), None
+        self._lock = Lock()
+        self._busy: set[str] = set()
+        self.stopped = Event()
+        self.worker: Thread | None = None
         state = self.state()
         for result in state.results.values():
             if result.status == "running":
@@ -90,10 +97,10 @@ class DiagnosticsService:
     def state(self) -> DiagnosticsState:
         return self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
 
-    def _save(self, state):
+    def _save(self, state: DiagnosticsState) -> None:
         self.store.save("diagnostics-state", state.model_dump(mode="json"))
 
-    def run(self, actor, name, version, key):
+    def run(self, actor: str, name: str, version: int, key: str) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key) or name not in self.checks:
             raise ValueError("Ungültige Prüfung oder Idempotenzschlüssel")
         with self._lock:
@@ -114,10 +121,11 @@ class DiagnosticsService:
             state.results[name] = DiagnosticResult(status="running")
             self._save(state)
             self._busy.add(name)
-        completed, outcome = Event(), []
+        completed = Event()
+        outcome: list[tuple[str, str]] = []
         started = time.monotonic()
         revision = self.revision()
-        def execute():
+        def execute() -> None:
             try:
                 if not self.active(actor):
                     outcome.append(("failed", "unauthorized"))
@@ -143,18 +151,18 @@ class DiagnosticsService:
         # A timed-out worker keeps this component busy until restart. It cannot
         # accumulate more workers or deliver a late success over the timeout.
 
-    def report(self):
+    def report(self) -> dict[str, Any]:
         """Allowlist export excludes configured targets, paths, identities and secrets."""
         return {"schema_version": 1, "version": __version__,
                 "platform": "Windows" if platform.system() == "Windows" else "Linux",
                 "components": {name: result.model_dump(mode="json", exclude={"config_revision"})
                                for name, result in self.state().results.items()}}
 
-    def run_all(self, actor, version, key):
+    def run_all(self, actor: str, version: int, key: str) -> Thread | None:
         """One bounded background pass; synthetic write/message tests are never included."""
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
             raise ValueError("Ungültiger Idempotenzschlüssel")
-        def execute():
+        def execute() -> None:
             try:
                 for name in tuple(self.checks):
                     if self.stopped.is_set():

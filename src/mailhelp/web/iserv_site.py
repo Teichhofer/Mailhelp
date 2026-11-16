@@ -78,7 +78,7 @@ def _account_fields(account: dict[str, Any], mailboxes: list[tuple[int, str]], s
 
 
 class IServSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         for method, path, handler in (("GET", ROUTE, self.index), ("POST", ROUTE + "/speichern", self.save),
                                       ("POST", ROUTE + "/aktivieren", self.activate)):

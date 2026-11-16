@@ -92,7 +92,7 @@ class DecisionLearningLog:
     """Append one record per manual decision; a repeated decision is recorded once."""
 
     def __init__(self, store: JsonStore, period: int | str, logger: Any, *,
-                 llm_logs: Iterable[Path] = (), clock: Callable[[], datetime] | None = None):
+                 llm_logs: Iterable[Path] = (), clock: Callable[[], datetime] | None = None) -> None:
         self.store, self.period, self.logger = store, period, logger
         # Rotated LLM logs to search for full content; empty unless explicitly enabled.
         self.llm_logs = tuple(llm_logs)

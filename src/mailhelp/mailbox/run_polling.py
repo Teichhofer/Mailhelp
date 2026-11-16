@@ -183,8 +183,8 @@ def poll_global(service: MailboxRunService, budget: _MailBudget, *,
     return results
 
 
-def _discover_folder(service: MailboxRunService, source: MailboxSource, folder: str, resuming: bool, ignore_historical_start: bool,
-                     contexts: _Contexts, candidates: list[MailCandidate]) -> None:
+def _discover_folder(service: MailboxRunService, source: MailboxSource, folder: str, resuming: bool,
+                     ignore_historical_start: bool, contexts: _Contexts, candidates: list[MailCandidate]) -> None:
     """Prepare the folder checkpoint and, for a new batch, list its new mail."""
     checkpoint_name = mailbox_run_module._checkpoint_name(source.account_id, folder)
     try:
@@ -213,7 +213,8 @@ def _discover_folder(service: MailboxRunService, source: MailboxSource, folder: 
         service._remember_generation(source, checkpoint_name, checkpoint)
 
 
-def _new_runs(service: MailboxRunService, candidates: list[MailCandidate], waiting: set[str], budget: _MailBudget) -> list[_Run]:
+def _new_runs(service: MailboxRunService, candidates: list[MailCandidate], waiting: set[str],
+              budget: _MailBudget) -> list[_Run]:
     """The newest candidates of all mailboxes as one durable, deduplicated queue per mailbox.
 
     Equal receive times keep the discovery order: mailbox, then folder configuration order.

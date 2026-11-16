@@ -120,7 +120,7 @@ class JsonlLogger:
         telegram_max_bytes: int = 10_000_000,
         telegram_backup_count: int = 5,
         telegram_retention_days: int = 30,
-    ):
+    ) -> None:
         # The Telegram receiver thread logs concurrently with the main thread;
         # rotation and appends must not interleave.
         self._lock = RLock()

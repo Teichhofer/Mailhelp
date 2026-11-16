@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,6 +13,7 @@ from ..config.configuration import (
     AdminCommand,
     AdminKind,
     ConfigurationConflict,
+    ConfigurationService,
     SenderChange,
     apply_settings,
     file_hash,
@@ -46,13 +47,13 @@ class SetupState(BaseModel):
 
 
 class SetupService:
-    def __init__(self, configuration):
+    def __init__(self, configuration: ConfigurationService) -> None:
         self.configuration, self.store = configuration, configuration.store
 
     def state(self) -> SetupState:
         return self.store.load_model("setup-state", SetupState, SetupState())
 
-    def draft_settings(self):
+    def draft_settings(self) -> Settings:
         state = self.state()
         path = self.configuration.directory / "config.yaml"
         if state.kind != "settings":
@@ -61,12 +62,13 @@ class SetupService:
             raise ConfigurationConflict("Konfiguration inzwischen geändert")
         return Settings.model_validate(apply_settings(read_yaml(path), state.patch, True, setup=True))
 
-    def fingerprint(self):
+    def fingerprint(self) -> str:
         state = self.state()
         return hashlib.sha256(json.dumps([file_hash(self.configuration.directory / "config.yaml"), state.patch],
                                         sort_keys=True).encode()).hexdigest()
 
-    def save_local(self, actor, version, key, kind, patch, category="relevant"):
+    def save_local(self, actor: str, version: int, key: str, kind: str, patch: dict[str, Any],
+                   category: Literal["relevant", "irrelevant"] = "relevant") -> SetupState:
         with self.store.locked():
             state, repeated = self._authorized(actor, version, key, [kind, patch, category])
             if repeated:
@@ -86,14 +88,16 @@ class SetupService:
                 self.configuration.candidate(command)
             else:
                 SenderChange.model_validate(patch)
-            state.kind, state.patch, state.category = kind, patch, category
+            # kind was checked against {"topics", "senders"} above.
+            state.kind = cast(Literal["topics", "senders"], kind)
+            state.patch, state.category = patch, category
             state.base_hash, state.step = current, 6
             state.configuration_hash = file_hash(self.configuration.directory / "config.yaml")
             state.version += 1
             self._save(state)
             return state
 
-    def discard(self, actor, version, key):
+    def discard(self, actor: str, version: int, key: str) -> SetupState:
         with self.store.locked():
             state, repeated = self._authorized(actor, version, key, "discard")
             if not repeated:
@@ -102,10 +106,10 @@ class SetupService:
                 self._save(state)
             return state
 
-    def _save(self, state):
+    def _save(self, state: SetupState) -> None:
         self.store.save("setup-state", state.model_dump(mode="json"))
 
-    def _authorized(self, actor, version, key, signature):
+    def _authorized(self, actor: str, version: int, key: str, signature: Any) -> tuple[SetupState, bool]:
         if not self.configuration.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
@@ -123,7 +127,8 @@ class SetupService:
         state.operations = dict(list(state.operations.items())[-500:])
         return state, False
 
-    def save(self, actor, version, key, step, patch, *, refresh=False, request_signature=None):
+    def save(self, actor: str, version: int, key: str, step: int, patch: dict[str, Any], *, refresh: bool = False,
+             request_signature: Any = None) -> SetupState:
         with self.store.locked():
             signature = patch if request_signature is None else request_signature
             state, repeated = self._authorized(actor, version, key, [step, signature, refresh])
@@ -148,7 +153,7 @@ class SetupService:
             self._save(state)
             return state
 
-    def command(self, actor, version, key, expected_hash):
+    def command(self, actor: str, version: int, key: str, expected_hash: str) -> AdminCommand:
         """Approval exists only in this new, session-bound immutable command."""
         if not self.configuration.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")

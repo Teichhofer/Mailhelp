@@ -28,7 +28,7 @@ class ProposalPresenter:
         configured_timezone: str,
         encode: Callable[[Decision], str],
         test_mode: bool = False,
-    ):
+    ) -> None:
         self.configured_timezone = configured_timezone
         self.encode = encode
         self.test_mode = test_mode

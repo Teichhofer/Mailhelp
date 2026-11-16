@@ -9,7 +9,7 @@ from ..domain.proposal_sources import ProposalSource
 from ..persistence.storage import JsonStore
 
 
-def reference_key(proposal: Proposal):
+def reference_key(proposal: Proposal) -> tuple[str, str]:
     return proposal.source_mail_id, proposal.id
 
 

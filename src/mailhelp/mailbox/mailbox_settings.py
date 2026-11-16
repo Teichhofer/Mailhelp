@@ -9,8 +9,11 @@ from pydantic_core import InitErrorDetails
 
 from ..config import EventDefaultsSettings, RetentionPeriod, Settings, TargetSettings, Topic
 from ..config.notifications import NotificationSettings, effective_profile
+from ..config.prompts import PromptConfig
 from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..llm.fingerprints import _hash, config_fingerprint, topic_policy
+from ..persistence.storage import JsonStore
 
 
 def merge_policy(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
@@ -65,8 +68,8 @@ def effective_topics(topics: list[Topic], mailbox_id: int) -> list[Topic]:
     return [item for item in topics if item.mailboxes is None or mailbox_id in item.mailboxes]
 
 
-def event_defaults_for(settings: Settings, store, proposal, numbers=None):
-
+def event_defaults_for(settings: Settings, store: JsonStore, proposal: Proposal,
+                       numbers: dict[str, Any] | None = None) -> EventDefaultsSettings:
     mail = store.peek_model("mail-" + proposal.source_mail_id, MailState)
     number = (
         (mail.proposal_policy or {}).get("mailbox_id", (numbers or {}).get(mail.imap.account_id, 1))
@@ -82,8 +85,7 @@ def event_defaults_for(settings: Settings, store, proposal, numbers=None):
     )
 
 
-def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbox_id: int) -> str:
-
+def mailbox_fingerprint(settings: Settings, prompts: PromptConfig, topics: list[Topic], mailbox_id: int) -> str:
     effective = effective_settings(settings, mailbox_id)
     selected = [topic.model_copy(update={"mailboxes": None}) for topic in effective_topics(topics, mailbox_id)]
     fingerprint = config_fingerprint(effective, prompts, selected)
@@ -94,8 +96,7 @@ def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbo
     return fingerprint
 
 
-def mailbox_topic_policy(settings: Settings, prompts, mailbox_id: int) -> str:
-
+def mailbox_topic_policy(settings: Settings, prompts: PromptConfig, mailbox_id: int) -> str:
     cfg = effective_settings(settings, mailbox_id)
     value = topic_policy(cfg, prompts)
     mailbox = settings.imap.mailbox(mailbox_id)

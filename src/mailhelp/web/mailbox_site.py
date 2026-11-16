@@ -127,7 +127,7 @@ def control(name: str, value: object, prefix: str = "mailbox") -> str:
 
 
 class MailboxSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         for method, path, handler in (
             ("GET", "/einstellungen/postfaecher", self.index),

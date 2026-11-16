@@ -86,7 +86,7 @@ class BrowserOAuth:
     def __init__(self, directory: Path, store: JsonStore, authorize: Callable[[str], bool],
                  config: Callable[[int, str], OAuthConfig], sign: Callable[[str], str], *,
                  transport: httpx.BaseTransport | None = None, clock: Callable[[], float] = time.time,
-                 stopped: Event | None = None, changed: Callable[[str], None] = lambda actor: None):
+                 stopped: Event | None = None, changed: Callable[[str], None] = lambda actor: None) -> None:
         self.directory, self.store, self.authorize, self.config, self.sign = directory, store, authorize, config, sign
         self.transport, self.clock = transport, clock
         self.changed = changed

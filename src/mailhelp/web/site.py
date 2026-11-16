@@ -81,7 +81,7 @@ class MailhelpSite:
                  llm_calls_per_minute: int | None = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC),
                  configuration: ConfigurationService | None = None, metrics: MetricsRecorder | None = None,
-                 lifecycle: Lifecycle | None = None, models: list[tuple[str, str, str, str]] | None = None):
+                 lifecycle: Lifecycle | None = None, models: list[tuple[str, str, str, str]] | None = None) -> None:
         self.app, self.auth, self.settings = app, auth, settings
         self.views, self.commands = views, commands
         self.lifecycle = lifecycle

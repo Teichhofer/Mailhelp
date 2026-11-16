@@ -42,7 +42,7 @@ def _input(name: str, label: str, value: object, kind: str = "text", **attrs: st
 
 
 class MailboxAddSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         site.app.route("POST", ACTIVATE, site.signed_in(self.activate))
 

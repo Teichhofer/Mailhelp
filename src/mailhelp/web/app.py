@@ -41,7 +41,7 @@ def static_file(name: str) -> bytes:
 class WebApp:
     """Dispatch checked requests to exactly matching routes."""
 
-    def __init__(self, allowed_hosts: list[str], lan_port: int | None = None):
+    def __init__(self, allowed_hosts: list[str], lan_port: int | None = None) -> None:
         self.allowed_hosts, self.lan_port = frozenset(allowed_hosts), lan_port
         # Read once at start: the pages come from the code loaded in this process, so
         # stylesheet and scripts must too, even if the files on disk change meanwhile

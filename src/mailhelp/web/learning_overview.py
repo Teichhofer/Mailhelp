@@ -26,7 +26,7 @@ def run_date(timestamp: float, timezone: str) -> str:
 
 
 class LearningOverviewSite:
-    def __init__(self, site: Any):
+    def __init__(self, site: Any) -> None:
         self.site = site
         self.worker: Any = None
         site.app.route("GET", "/lernen", site.signed_in(self.home))

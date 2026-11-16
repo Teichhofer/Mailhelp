@@ -16,8 +16,9 @@ if TYPE_CHECKING:
     from .mailbox_run import MailboxRunService, MailboxSource, _Contexts, _MailBudget, _Run
 
 
-def _process_queued(service: MailboxRunService, source: MailboxSource, run_name: str, queued: MailRunEntry, waiting: set[str],
-                    budget: _MailBudget, contexts: _Contexts, results: list[ProcessingResult]) -> bool:
+def _process_queued(service: MailboxRunService, source: MailboxSource, run_name: str, queued: MailRunEntry,
+                    waiting: set[str], budget: _MailBudget, contexts: _Contexts,
+                    results: list[ProcessingResult]) -> bool:
     """Process one queue entry; ``False`` halts the batch."""
     # Reload before every transition: repeated invocations must observe
     # another worker/restart having completed this identity already.
@@ -184,7 +185,8 @@ def resume_pending(service: MailboxRunService, budget: _MailBudget | None = None
                 continue
             # Late: against the layer direction, named in tests/unit/test_layers70.py.
             from ..processing.retry import blocked
-            active = getattr(service.orchestrator, "fingerprint_for", lambda _, fp=state.config_fingerprint: fp)(
+            fingerprint = state.config_fingerprint
+            active = getattr(service.orchestrator, "fingerprint_for", lambda _, fp=fingerprint: fp)(
                 state.imap.account_id)
             if blocked(state, active, now):
                 continue

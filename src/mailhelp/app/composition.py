@@ -72,14 +72,14 @@ from .setup_runtime import SetupRuntime
 class _FailedAccessAdapter:
     """Expose an adapter construction failure to the aggregated access check."""
 
-    def __init__(self, error: Exception, mailbox_id: str = "0" * 24):
+    def __init__(self, error: Exception, mailbox_id: str = "0" * 24) -> None:
         self.error = error
         self.account_id, self.last_uidvalidity = mailbox_id, None
 
     def check_access(self, *_args: object) -> None:
         raise self.error
 
-    def discover_since(self, *_args, **_kwargs):
+    def discover_since(self, *_args: object, **_kwargs: object) -> None:
         raise RuntimeError("IMAP nicht bereit; Zugang unter /diagnose prüfen und Mailhelp neu starten.")
 
     fetch_uid = discover_since
@@ -306,11 +306,11 @@ def _web_components(application: Application, settings: Settings, secrets: Secre
     telegram = application.telegram
     secret = secrets.mailhelp_web_secret
     if settings.telegram.enabled:
-        def notify(text):
+        def notify(text: str) -> None:
             telegram.send(settings.telegram.chat_id, text)
     else:
         # Standalone: pairing codes appear only in the console of the PC, never in a log file.
-        def notify(text):
+        def notify(text: str) -> None:
             print(text, flush=True)
     components = create_web(
         settings, secret.get_secret_value() if secret is not None else None, store,

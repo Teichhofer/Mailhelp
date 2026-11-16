@@ -59,7 +59,7 @@ class InitialDraft(BaseModel):
 
 class InitialSetup:
     def __init__(self, directory: Path, store: JsonStore, authorize: Callable[[str], bool],
-                 sign: Callable[[str], str], checks: SetupChecks, web: dict[str, Any]):
+                 sign: Callable[[str], str], checks: SetupChecks, web: dict[str, Any]) -> None:
         self.directory, self.store, self.authorize, self.sign, self.checks = directory, store, authorize, sign, checks
         self.web = web
 

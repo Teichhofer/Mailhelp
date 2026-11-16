@@ -26,7 +26,7 @@ def _revision_effective(previous: Proposal, revised: Proposal) -> bool:
 class MailQuestions:
     """Owned by the Orchestrator; reads its services through ``o``."""
 
-    def __init__(self, owner: Orchestrator):
+    def __init__(self, owner: Orchestrator) -> None:
         self.o = owner
 
     def resolve(self, name: str, state: MailState) -> None:

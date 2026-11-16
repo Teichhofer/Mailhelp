@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..config.notifications import Category, effective_profile
+from ..config import Settings
+from ..config.notifications import Category, NotificationSettings, effective_profile
 from ..llm.adapter import PermanentError, RetryableError
+from ..persistence.storage import JsonStore
 
 PENDING = {"pending", "deferred", "failed"}
 TERMINAL = {"sent", "uncertain", "cancelled"}
@@ -51,7 +54,7 @@ def waiting(item: Delivery, max_attempts: int) -> bool:
             and item.error not in {"refused", "unknown", "interrupted"})
 
 
-def quiet_now(profile, zone: str, now: datetime, category: str) -> bool:
+def quiet_now(profile: NotificationSettings, zone: str, now: datetime, category: str) -> bool:
     quiet = profile.quiet_hours
     if not quiet.enabled or (category == "system_errors" and quiet.allow_system_errors):
         return False
@@ -62,18 +65,22 @@ def quiet_now(profile, zone: str, now: datetime, category: str) -> bool:
 
 
 class NotificationService:
-    def __init__(self, store, settings, destinations, relevant, sender,
-                 clock=lambda: datetime.now(UTC), logger=None, settings_for_mailbox=None, eligible=None):
+    def __init__(self, store: JsonStore, settings: Callable[[], Settings],
+                 destinations: Callable[..., list[tuple[str, str]]],
+                 relevant: Callable[[Delivery], bool], sender: Callable[[list[Delivery], NotificationSettings], None],
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC), logger: Any = None,
+                 settings_for_mailbox: Callable[[int], Settings] | None = None,
+                 eligible: Callable[[str, str, int, str, str], bool] | None = None) -> None:
         self.eligible = eligible
         self.store, self.settings, self.destinations = store, settings, destinations
         self.relevant, self.sender, self.clock, self.logger = relevant, sender, clock, logger
         self._runner = Lock()
         self.settings_for_mailbox = settings_for_mailbox
 
-    def configuration(self, number):
+    def configuration(self, number: int) -> Settings:
         return self.settings() if self.settings_for_mailbox is None else self.settings_for_mailbox(number)
 
-    def destination_list(self, category, number):
+    def destination_list(self, category: Category, number: int) -> list[tuple[str, str]]:
         return self.destinations(category) if self.settings_for_mailbox is None else self.destinations(category, number)
 
     def state(self) -> NotificationQueue:
@@ -83,7 +90,8 @@ class NotificationService:
         self.store.save(STATE, state.model_dump(mode="json"))
 
     def enqueue(
-        self, category: Category, reference: str, version: int = 0, *, exclude_channels=(), mailbox_id=1
+        self, category: Category, reference: str, version: int = 0, *, exclude_channels: Iterable[str] = (),
+        mailbox_id: int = 1
     ) -> None:
         """No text, endpoints or authorization is copied into a delivery record."""
         settings, now = self.configuration(mailbox_id), self.clock()

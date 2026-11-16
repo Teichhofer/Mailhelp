@@ -77,7 +77,7 @@ class DavResource:
 
     def __init__(self, collection: str, username: str, password: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None):
+                 logger: EventLogger | None = None) -> None:
         self.collection = collection if collection.endswith("/") else collection + "/"
         self.target = collection
         self.client = httpx.Client(timeout=timeout, transport=transport, auth=(username, password),
@@ -180,7 +180,7 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
     def __init__(self, collection: str, username: str, password: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
                  logger: EventLogger | None = None, calendar_timezone: str = "UTC",
-                 calendar_matcher: Any = None):
+                 calendar_matcher: Any = None) -> None:
         super().__init__(collection, username, password, timeout, transport, policy, logger)
         self.calendar_timezone = calendar_timezone
         self.calendar_matcher = calendar_matcher

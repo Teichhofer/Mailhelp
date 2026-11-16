@@ -8,7 +8,7 @@ from typing import Any
 from ..config import Settings, read_yaml
 from ..config.loader import _dotenv
 from ..mailbox.mailbox_settings import target_profiles
-from ..runtime.oauth_web import BrowserOAuth, oauth_config
+from ..runtime.oauth_web import BrowserOAuth, OAuthConfig, oauth_config
 from ..web.oauth_site import OAuthSite
 
 
@@ -16,7 +16,7 @@ def attach_accounts(app: Any, site: Any, directory: Path) -> None:
     def saved() -> Settings:
         return Settings.model_validate(read_yaml(directory / "config.yaml"))
 
-    def config(profile: int, provider: str):
+    def config(profile: int, provider: str) -> OAuthConfig:
         return oauth_config(saved(), {**_dotenv(directory / ".env"), **os.environ}, profile, provider)
 
     def authorize(actor: str) -> bool:

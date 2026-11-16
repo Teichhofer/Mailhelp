@@ -30,7 +30,7 @@ class ActivityRunner:
     def __init__(self, service: ActivityService, analyzer: ActivityAnalyzer,
                  open_reader: Callable[[int], AbstractContextManager[Any]], settings: Any, logger: Any,
                  llm_calls_per_minute: Callable[[], int] = lambda: 60,
-                 clock: Callable[[], float] = time.monotonic):
+                 clock: Callable[[], float] = time.monotonic) -> None:
         self.service, self.analyzer, self.open_reader = service, analyzer, open_reader
         self.settings, self.logger = settings, logger
         self.llm_calls_per_minute, self.clock = llm_calls_per_minute, clock

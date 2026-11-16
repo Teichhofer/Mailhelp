@@ -46,7 +46,7 @@ class ArchiveQuery(BaseModel):
 
 
 class ArchiveQueries:
-    def __init__(self, store: JsonStore, zone: str = "UTC"):
+    def __init__(self, store: JsonStore, zone: str = "UTC") -> None:
         self.store = store
         self.zone = ZoneInfo(zone)
         self._revision = -1

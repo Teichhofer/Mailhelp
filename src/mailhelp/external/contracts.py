@@ -43,7 +43,7 @@ class TargetAccessError(ExternalRefused):
     Der Grund wird strukturiert übergeben, damit Meldungen nie aus Antworttexten abgeleitet werden.
     """
 
-    def __init__(self, message: str, reason: Literal["not_found", "forbidden", "api_disabled"] = "not_found"):
+    def __init__(self, message: str, reason: Literal["not_found", "forbidden", "api_disabled"] = "not_found") -> None:
         super().__init__(message)
         self.reason = reason
 
@@ -56,7 +56,7 @@ class EntryModifiedError(ExternalRefused):
     """6.6 (E5): Eintrag beim Anbieter weicht von den bestätigten Angaben ab."""
 
     def __init__(self, message: str, differences: dict[str, FieldDifference] | None = None,
-                 link: str | None = None):
+                 link: str | None = None) -> None:
         super().__init__(message)
         self.differences = differences or {}
         self.link = link

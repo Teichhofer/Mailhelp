@@ -143,7 +143,8 @@ def _future_deadlines(orchestrator: Orchestrator, state: MailState) -> list[str]
         else None
     )
     try:
-        today = datetime.fromtimestamp(orchestrator.clock(), UTC).astimezone(ZoneInfo(orchestrator.user_timezone)).date()
+        zone = ZoneInfo(orchestrator.user_timezone)
+        today = datetime.fromtimestamp(orchestrator.clock(), UTC).astimezone(zone).date()
     except Exception:
         today = datetime.now(UTC).date()
     token_re = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")

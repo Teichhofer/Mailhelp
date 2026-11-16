@@ -69,7 +69,7 @@ class TelegramOutbox:
         send_relevance: Callable[[RelevanceDialog, str, str], None],
         relevance: RelevanceLookup,
         enabled: bool = True,
-    ):
+    ) -> None:
         self.store, self.telegram, self.chat_id = store, telegram, chat_id
         self.logger, self.repository = logger, repository
         self.send_proposal, self.send_relevance = send_proposal, send_relevance

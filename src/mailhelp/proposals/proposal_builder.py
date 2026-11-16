@@ -51,7 +51,7 @@ class ProposalBuilder:
     def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext,
                  source_sender: str = "—", source_subject: str = "—",
                  event_defaults: EventDefaultsSettings | None = None, target_profile: int = 1,
-                 mail_link: str | None = None):
+                 mail_link: str | None = None) -> None:
         self.source_mail_id = source_mail_id
         self.targets = targets
         self.context = context

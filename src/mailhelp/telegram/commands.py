@@ -60,7 +60,7 @@ class TelegramCommands:
     def __init__(self, store: JsonStore, repository: ProposalRepository, presenter: ProposalPresenter,
                  telegram: TelegramTransport, chat_id: int, relevance: RelevanceDialogProcessor,
                  outbox: TelegramOutbox | None = None, web_logout: Callable[[], int] | None = None,
-                 web_invite: Callable[[], str] | None = None):
+                 web_invite: Callable[[], str] | None = None) -> None:
         self.store, self.repository, self.presenter = store, repository, presenter
         self.telegram, self.chat_id, self.relevance = telegram, chat_id, relevance
         self.outbox, self.web_logout, self.web_invite = outbox, web_logout, web_invite

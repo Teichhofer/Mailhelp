@@ -159,7 +159,7 @@ class SetupProblem(ValueError):
     A ValueError, so callers that reject invalid setup input keep working unchanged.
     """
 
-    def __init__(self, code: str, detail: str = "", field: str | None = None):
+    def __init__(self, code: str, detail: str = "", field: str | None = None) -> None:
         super().__init__(code)
         self.code, self.detail, self.field = code, detail, field
 

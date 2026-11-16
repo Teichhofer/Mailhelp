@@ -117,7 +117,7 @@ def record_payload(record: IncomingRecord) -> dict[str, Any]:
 
 
 class IncomingCommands:
-    def __init__(self, directory: Path, limit: Callable[[], int], clock: Callable[[], datetime]):
+    def __init__(self, directory: Path, limit: Callable[[], int], clock: Callable[[], datetime]) -> None:
         self.directory, self.limit, self.clock = directory / "commands", limit, clock
         self.problems: list[str] = []
         self.legacy: dict[str, tuple[str, str, int]] = {}

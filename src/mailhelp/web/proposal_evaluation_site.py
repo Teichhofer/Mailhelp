@@ -146,11 +146,11 @@ class ProposalEvaluationSite:
 
     def apply_sender_filter(self, request: Request, session: Any, form: dict[str, str]) -> Response:
         if self.configuration is None:
-            return self.site._reply(request, 503, "Absenderverwaltung nicht verfügbar.")
+            return self._reply(request, 503, "Absenderverwaltung nicht verfügbar.")
         sender = form.get("sender", "")
         addresses = sorted(sender_addresses(sender))
         if not addresses:
-            return self.site._reply(request, 422, "Keine gültige E-Mail-Adresse für den Absender gefunden.")
+            return self._reply(request, 422, "Keine gültige E-Mail-Adresse für den Absender gefunden.")
         expected_hash = form.get("expected_hash") or None
         change = SenderChange(action="add", addresses=addresses)
         try:
@@ -159,8 +159,13 @@ class ProposalEvaluationSite:
                                    expected_hash=expected_hash,
                                    patch=change.model_dump(exclude_none=True), acknowledged=True)
         except ValueError:
-            return self.site._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
-        return self.site.archive.queue(request, command)
+            return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
+        queued: Response = self.site.archive.queue(request, command)
+        return queued
+
+    def _reply(self, request: Request, status: int, text: str) -> Response:
+        reply: Response = self.site._reply(request, status, text)
+        return reply
 
     def dismiss_sender(self, request: Request, session: Any, form: dict[str, str]) -> Response:
         sender = form.get("sender", "")

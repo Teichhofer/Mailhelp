@@ -57,7 +57,7 @@ def validation_message(error: ErrorDetails) -> str:
 
 
 class TopicEditor:
-    def __init__(self, catalog: Any):
+    def __init__(self, catalog: Any) -> None:
         self.catalog, self.archive = catalog, catalog.archive
         self.site: MailhelpSite = catalog.site
         self.store: JsonStore = self.site.views.store

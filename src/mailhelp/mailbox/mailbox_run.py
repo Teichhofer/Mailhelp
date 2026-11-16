@@ -277,7 +277,8 @@ class MailboxRunService:
 
     def _discover_folder(self, source: MailboxSource, folder: str, resuming: bool, ignore_historical_start: bool,
                          contexts: _Contexts, candidates: list[MailCandidate]) -> None:
-        return run_polling._discover_folder(self, source, folder, resuming, ignore_historical_start, contexts, candidates)
+        return run_polling._discover_folder(self, source, folder, resuming, ignore_historical_start, contexts,
+                                            candidates)
 
     def _new_runs(self, candidates: list[MailCandidate], waiting: set[str], budget: _MailBudget) -> list[_Run]:
         return run_polling._new_runs(self, candidates, waiting, budget)

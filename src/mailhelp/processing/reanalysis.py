@@ -30,7 +30,7 @@ HINT_KEY = "user_review_hint"
 class ReanalysisRefused(ValueError):
     """A start that is not possible now; ``reason`` names why for the user."""
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
 
@@ -40,7 +40,7 @@ class _Cancelled(Exception):
 
 
 class _Failed(Exception):
-    def __init__(self, error: ReanalysisError):
+    def __init__(self, error: ReanalysisError) -> None:
         super().__init__(str(error))
         self.error = error
 
@@ -69,7 +69,7 @@ class ReanalysisJobs:
     """The durable jobs; at most one active job per mail and analysis round."""
 
     def __init__(self, store: Any, settings: ReanalysisSettings, logger: Any,
-                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)):
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self.store, self.settings, self.logger, self.clock = store, settings, logger, clock
         self.lock = threading.Lock()
 
@@ -198,7 +198,7 @@ class ReanalysisRunner:
     """Executes queued jobs step by step within their call budget and attempt limit."""
 
     def __init__(self, jobs: ReanalysisJobs, engine: Engine, reader_for: Callable[[str], Reader | None],
-                 authorized: Callable[[str], bool] = lambda actor: True):
+                 authorized: Callable[[str], bool] = lambda actor: True) -> None:
         self.jobs, self.engine, self.reader_for, self.authorized = jobs, engine, reader_for, authorized
 
     def run_next(self) -> ReanalysisJob | None:

@@ -17,14 +17,14 @@ from threading import RLock
 class StopRefused(ValueError):
     """A refused stop or restart; *reason* is a fixed code for the log, never request data."""
 
-    def __init__(self, reason: str, message: str):
+    def __init__(self, reason: str, message: str) -> None:
         super().__init__(message)
         self.reason = reason
 
 
 class Lifecycle:
     def __init__(self, stop: Callable[[], None], authorize: Callable[[str], bool],
-                 log: Callable[[str, str], None] = lambda state, process: None):
+                 log: Callable[[str, str], None] = lambda state, process: None) -> None:
         self.process = secrets.token_hex(16)
         self.stop, self.authorize, self.log = stop, authorize, log
         self.state = "running"

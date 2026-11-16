@@ -286,3 +286,29 @@ Einstiegspunkte, die Tests mit Schlüsselwörtern oder allen Argumenten aufrufen
 als eigener Patch 7.0.11; die folgenden Patchnummern verschieben sich um eins.
 
 Prüfung: 5 336 Python-Tests mit voller Abdeckung (Lasttests bestanden), 922 Browsertests.
+
+## 7.0.11 – Vollständige Typangaben (D9, Teil 2; R8)
+
+**Typprüfung.** `disallow_untyped_defs`, `disallow_incomplete_defs` und `disallow_untyped_calls`
+stehen jetzt global unter `[tool.mypy]`. Vorher galten sie nur für eine Modulliste; mit den drei
+Schaltern für alles meldete mypy 362 Fehler, jetzt keinen. Auch die 12 Fehler der bisherigen
+Standardprüfung sind behoben (Ausgang 14).
+
+**Vorgehen.** Fehlende Rückgabetypen und Parameter wurden mit den tatsächlichen Typen ergänzt. Für
+zusammengesetzte Objekte (laufende Anwendung, Webseite, Komponenten) in unteren Schichten steht `Any`
+mit einer Begründung im Code, weil selbst ein reiner Typimport der höheren Schicht eine
+Schichtverletzung wäre. Zugelassene Werte sind benannte Typen (`MeetingMode`, `JobStatus`,
+`Matcher`, `Pending`, `Snapshot`). `ConnectionActivation` ist generisch über die Art der Verbindung.
+Lambdas mit Standardargumenten, deren Typ mypy nicht ableiten kann, sind durch `functools.partial`
+oder kleine Fabrikmethoden ersetzt. Wo der Vertrag eines Modells einen Wert garantiert (Vorschlags-ID
+eines Vorschlagsbefehls, Postfachliste bei `--learn`, Zeitpunkt eines nicht ganztägigen Termins),
+steht ein `assert` mit Verweis auf die Garantie statt einer neuen Verzweigung.
+
+**Abweichung vom Plan.** Die Modulliste in `pyproject.toml` entfällt nicht ganz. Sie verlangt für
+den bisherigen strengen Kern weiterhin zusätzlich `disallow_any_generics`, `warn_return_any`,
+`no_implicit_reexport` und `strict_equality`. Diese Schalter für das ganze Paket ergäben 117 weitere
+Meldungen und sind nicht Teil von R8; sie wegzulassen hätte die Prüfung des Kerns gelockert.
+
+**Nebenbei.** Vier Zeilen über 120 Zeichen aus den Verschiebungen von 7.0.9 umbrochen;
+`ExperienceRuntime.__init__` wieder unter 80 Zeilen. Ruff meldet 27 Befunde (7.0.10: 29).
+

@@ -44,7 +44,7 @@ class TelegramClient:
         poll_timeout: int = 30,
         policy: RetryPolicy | None = None,
         logger: EventLogger | None = None,
-    ):
+    ) -> None:
         self.poll_timeout = poll_timeout
         self.client = httpx.Client(
             base_url=f"https://api.telegram.org/bot{token}",

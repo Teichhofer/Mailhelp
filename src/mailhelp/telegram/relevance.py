@@ -34,7 +34,7 @@ class RelevanceDialogs(Protocol):
 class RelevanceDialogProcessor:
     """Own relevance lookup, replay offsets, and relevance resolution."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, chat_id: int):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, chat_id: int) -> None:
         self.store, self.telegram, self.chat_id = store, telegram, chat_id
         self.handler: RelevanceHandler | None = None
 

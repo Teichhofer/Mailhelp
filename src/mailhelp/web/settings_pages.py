@@ -389,7 +389,7 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str,
         body += notice("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten.", "warn")
     if name == "test_mode" and value is False:
         body += notice("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden.", "warn")
-    hidden = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
+    hidden: dict[str, Any] = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
     old_value = _lookup(raw, name)
     old_text = str(old_value) if name in TEXT_SETTINGS and old_value else _shown(name, old_value)
     new_text = str(value) if name in TEXT_SETTINGS and value else _shown(name, value)

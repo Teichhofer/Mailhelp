@@ -40,7 +40,7 @@ def members(items: list[Proposal]) -> tuple[SeriesMember, ...]:
 
 
 class SeriesService:
-    def __init__(self, review: ReviewService):
+    def __init__(self, review: ReviewService) -> None:
         self.review = review
         self.controller = review.controller
         self.store = self.controller.store

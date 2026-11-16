@@ -61,7 +61,8 @@ def _detect_actions(pipeline: MailPipeline, run: ProcessingRun) -> None:
                       proposal_ids=[item.id for item in state.proposals])
 
 
-def _extract(pipeline: MailPipeline, run: ProcessingRun, route: ActionRoute, wants_tasks: bool, wants_llm_events: bool) -> None:
+def _extract(pipeline: MailPipeline, run: ProcessingRun, route: ActionRoute, wants_tasks: bool,
+             wants_llm_events: bool) -> None:
     state, name = run.state, run.name
     if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
         run.stage = ProcessingStage.TASK_EXTRACTION

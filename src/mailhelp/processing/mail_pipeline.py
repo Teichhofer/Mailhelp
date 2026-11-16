@@ -98,7 +98,7 @@ class AnalysisDataUnavailable(ValueError):
 class MailPipeline:
     """Owned by the Orchestrator; reads its services through ``o``."""
 
-    def __init__(self, owner: Orchestrator):
+    def __init__(self, owner: Orchestrator) -> None:
         self.o = owner
 
     def advance(self, run: ProcessingRun, fetched: FetchedMail) -> ProcessingResult | None:

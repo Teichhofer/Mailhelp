@@ -12,6 +12,7 @@ from .. import state_names
 from ..config import (
     EventDefaultsSettings,
     OriginalAttachmentSettings,
+    PromptConfig,
     ProposalReconciliationSettings,
     Settings,
     TargetSettings,
@@ -22,14 +23,14 @@ from ..domain.mail import MailState, next_updated_at
 from ..domain.processing import ProcessingErrorCode, ProcessingStage
 from ..domain.proposal import Proposal
 from ..domain.relevance import IrrelevantSenders, RelevanceDialog
-from ..llm.decisions import relevance_fingerprint
+from ..llm.decisions import DecisionPrompts, relevance_fingerprint
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mailbox_settings import effective_settings, effective_topics, mailbox_fingerprint, mailbox_topic_policy
 from ..persistence.archive import record_analysis
 from ..persistence.storage import JsonStore
 from ..proposals.precheck import DuplicatePreCheckService
-from ..proposals.proposal_reconciliation import ProposalReconciliationService
+from ..proposals.proposal_reconciliation import Matcher, ProposalReconciliationService
 from . import orchestrator_failures, orchestrator_proposals
 from .analysis import Analyzer
 from .identity import addresses_in
@@ -55,7 +56,8 @@ class Orchestrator:
                  targets: TargetSettings | None = None, user_timezone: str = "UTC",
                  sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None,
                  vision: VisionExtractor | None = None, event_defaults: EventDefaultsSettings | None = None,
-                 reconciliation_settings: ProposalReconciliationSettings | None = None, proposal_matcher=None):
+                 reconciliation_settings: ProposalReconciliationSettings | None = None,
+                 proposal_matcher: Matcher | None = None) -> None:
         self.analyzer, self.store, self.notifier, self.chat_id = analyzer, store, notifier, chat_id
         self.topics, self.max_bytes = topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
@@ -88,9 +90,11 @@ class Orchestrator:
         self.mailbox_usernames: dict[int, str] = {}
         # Accounts whose mail is relevant without a check: IServ parent letters (3.3.7).
         self.always_relevant: frozenset[str] = frozenset()
-        self.mailbox_prompts = self.mailbox_jev = None
+        self.mailbox_prompts: PromptConfig | None = None
+        self.mailbox_jev: DecisionPrompts | None = None
 
-    def configure_mailboxes(self, settings, prompts, numbers, jev=None):
+    def configure_mailboxes(self, settings: Settings, prompts: PromptConfig, numbers: dict[str, int],
+                            jev: DecisionPrompts | None = None) -> None:
         self.mailbox_settings, self.mailbox_prompts = settings, prompts
         self.mailbox_numbers, self.mailbox_jev = numbers, jev
 
@@ -110,13 +114,14 @@ class Orchestrator:
         personal = self.effective_settings(account_id).personal_info if mailbox is not None else ""
         return addresses_in([self.mailbox_usernames.get(number), *aliases, personal])
 
-    def effective_settings(self, account_id: str):
+    def effective_settings(self, account_id: str) -> Settings:
         assert self.mailbox_settings is not None
         return effective_settings(self.mailbox_settings, self.mailbox_number(account_id))
 
     def fingerprint_for(self, account_id: str) -> str:
         if self.mailbox_settings is None:
             return self.config_fingerprint
+        assert self.mailbox_prompts is not None  # configure_mailboxes sets both together
         value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
                                     self.mailbox_number(account_id))
         return relevance_fingerprint(value, self.mailbox_jev) if self.mailbox_jev is not None else value
@@ -124,6 +129,7 @@ class Orchestrator:
     def policy_for(self, account_id: str) -> str | None:
         if self.mailbox_settings is None:
             return self.topic_policy
+        assert self.mailbox_prompts is not None  # configure_mailboxes sets both together
         return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
@@ -132,7 +138,8 @@ class Orchestrator:
     def record_count_conflict(self, name: str, state: MailState, category: Literal["task", "event"],
                                expected: int, actual: int, router_call_id: str | None,
                                extractor_call_id: str) -> None:
-        return orchestrator_proposals.record_count_conflict(self, name, state, category, expected, actual, router_call_id, extractor_call_id)
+        return orchestrator_proposals.record_count_conflict(self, name, state, category, expected, actual,
+                                                            router_call_id, extractor_call_id)
 
     # Original documents for download (2.3); composition applies ``attachments`` from config.yaml.
     original_attachments: OriginalAttachmentSettings = OriginalAttachmentSettings()

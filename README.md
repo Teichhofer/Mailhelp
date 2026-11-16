@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.11 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.11 verlangt für jede Funktion des Pakets vollständige Typangaben und prüft sie mit mypy ohne Befund.
 
 7.0.10 teilt die Konfigurationsmodelle nach Bereichen und sichert die Grenzwerte (80 Zeilen je Funktion, 10 Parameter) mit einem Test.
 

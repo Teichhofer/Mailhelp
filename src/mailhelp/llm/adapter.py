@@ -17,7 +17,7 @@ RETRYABLE_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
 class PermanentError(RuntimeError):
     """Die identische Anfrage darf nicht erneut gesendet werden."""
 
-    def __init__(self, message: str, *, safe_detail: str | None = None):
+    def __init__(self, message: str, *, safe_detail: str | None = None) -> None:
         self.safe_detail = safe_detail
         super().__init__(f"{message}: {safe_detail}" if safe_detail else message)
 

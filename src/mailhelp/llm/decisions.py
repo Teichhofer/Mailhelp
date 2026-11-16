@@ -33,7 +33,7 @@ class NoulQuestion(ConfigModel):
     criteria: dict[Literal["true", "false"], str]
 
     @model_validator(mode="after")
-    def both_criteria(self):
+    def both_criteria(self) -> NoulQuestion:
         if set(self.criteria) != {"true", "false"}:
             raise ValueError("noul benötigt true und false")
         return self
@@ -160,7 +160,7 @@ class DecisionPrompts(ConfigModel):
     prompts: dict[str, dict[str, Question]]
 
     @model_validator(mode="after")
-    def required_templates(self):
+    def required_templates(self) -> DecisionPrompts:
         required = {"relevance": {"decision", "topic_match"},
                     "action_router": {"action_state", "task_count", "event_count"}}
         if set(self.prompts) != set(required):
@@ -220,7 +220,7 @@ class DecisionAnalyzer:
     """Only classification/routing; generative stages stay with Analyzer."""
 
     def __init__(self, client: Decider, prompts: DecisionPrompts,
-                 max_payload_bytes: int):
+                 max_payload_bytes: int) -> None:
         self.client, self.prompts, self.max_payload_bytes = client, prompts, max_payload_bytes
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
@@ -296,7 +296,7 @@ def relevance_fingerprint(previous: str, prompts: DecisionPrompts) -> str:
 class JevRelevanceAnalyzer(Analyzer):
     """Override relevance only; inherit every subsequent LLM stage unchanged."""
 
-    def __init__(self, *args: Any, decisions: DecisionAnalyzer, **kwargs: Any):
+    def __init__(self, *args: Any, decisions: DecisionAnalyzer, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.decisions = decisions
 

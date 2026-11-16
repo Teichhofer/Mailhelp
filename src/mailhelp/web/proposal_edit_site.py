@@ -22,7 +22,7 @@ EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel"
 
 
 class ProposalEditSite:
-    def __init__(self, archive: ArchiveSite):
+    def __init__(self, archive: ArchiveSite) -> None:
         self.archive, self.site = archive, archive.site
         for method, handler in (("GET", self.edit), ("POST", self.save_edit)):
             self.site.app.route(method, PROPOSAL_PATH + "/bearbeiten", self.site.signed_in(handler))

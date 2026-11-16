@@ -40,6 +40,6 @@ class TopicDraft(BaseModel):
 
 
 class TopicFieldError(ValueError):
-    def __init__(self, field: str, message: str, status: int = 422):
+    def __init__(self, field: str, message: str, status: int = 422) -> None:
         super().__init__(message)
         self.field, self.status = field, status

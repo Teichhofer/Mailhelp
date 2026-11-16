@@ -129,6 +129,7 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
                 item = item.model_copy(update={"status": ProposalStatus.UNCERTAIN})
             review.controller.repository.save_revision(item)
             return ReviewResult(status=ResultStatus.DONE, message="Gespeicherten Befund wiederhergestellt.")
+        assert command.proposal_id is not None  # ReviewCommand requires it for proposal kinds
         source = service.required(command.mail_id, command.proposal_id)
         if source.version != command.version:
             raise StaleCommand("Quellversion inzwischen geändert")

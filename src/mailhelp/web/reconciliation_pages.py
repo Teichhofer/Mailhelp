@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlencode
 
 from ..domain.mail import MailState
@@ -117,7 +118,7 @@ def compare_side(this: bool, proposal: Proposal, origin: str, zone: str) -> str:
 
 def comparison(item: Proposal, target: Proposal, zone: str, csrf: str,
                origin: Callable[[Proposal], str]) -> str:
-    fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
+    fields: dict[str, Any] = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
                   target_mail_id=target.source_mail_id, target_proposal_id=target.id,
                   target_version=target.version)
     body = ('<div class="compare">' + compare_side(True, item, origin(item), zone)

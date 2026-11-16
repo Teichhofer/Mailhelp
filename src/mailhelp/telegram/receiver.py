@@ -59,7 +59,7 @@ def update_id(raw: Any) -> int | None:
 class TelegramInbox:
     """Durable, ordered and thread-safe queue of received Telegram updates."""
 
-    def __init__(self, store: JsonStore):
+    def __init__(self, store: JsonStore) -> None:
         self.store = store
         self._lock = Lock()
         self._arrived = Event()
@@ -132,7 +132,7 @@ class TelegramReceiver(Thread):
     """Long-poll Telegram, acknowledge button presses and fill the inbox."""
 
     def __init__(self, telegram: UpdateSource, inbox: TelegramInbox, offset: int,
-                 logger: EventLogger, error_backoff_seconds: float):
+                 logger: EventLogger, error_backoff_seconds: float) -> None:
         # Daemon: a long-poll in flight must not keep a stopping process alive.
         super().__init__(name="telegram-receiver", daemon=True)
         self.telegram, self.inbox, self.offset = telegram, inbox, offset

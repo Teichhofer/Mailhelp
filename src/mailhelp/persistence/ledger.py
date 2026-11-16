@@ -21,7 +21,7 @@ class ActionLedgerPort(Protocol):
 class ActionLedgerService:
     """Record externally created actions and detect semantic duplicates."""
 
-    def __init__(self, store: JsonStore):
+    def __init__(self, store: JsonStore) -> None:
         self.store = store
 
     @staticmethod

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, NoReturn
 
 from pydantic import SecretStr
 
 from ..config import Secrets, Settings, provider_secret_names
+from ..domain.proposal import Proposal
 from ..external.contracts import ExternalUnavailable, TargetWriter
 from ..external.providers import Writers, build_writers
 from ..external.roles import profile_slot
@@ -32,11 +35,11 @@ PROVIDER_FIELDS = (
 class ProfileLogger:
     """Provider events contain identifiers and error codes, never target URLs or addresses."""
 
-    def __init__(self, logger, secrets, number):
+    def __init__(self, logger: Any, secrets: Secrets, number: int) -> None:
         self.logger, self.secrets, self.number = logger, secrets.known_values(), number
 
-    def event(self, level, module, event, **context):
-        def clean(value):
+    def event(self, level: str, module: str, event: str, **context: Any) -> None:
+        def clean(value: Any) -> Any:
             if isinstance(value, dict):
                 return {key: clean(item) for key, item in value.items()}
             if isinstance(value, list):
@@ -53,14 +56,15 @@ def secret_name(name: str, number: int) -> str:
     return f"{prefix}_{number}{name[len(prefix) :]}"
 
 
-def load_profile_secrets(settings: Settings, env: dict[str, str]):
-    profiles, missing = {}, []
+def load_profile_secrets(settings: Settings, env: dict[str, str]) -> tuple[dict[int, dict[str, str]], list[str]]:
+    profiles: dict[int, dict[str, str]] = {}
+    missing: list[str] = []
     required_profiles = set(active_profiles(settings))
     for number, targets in target_profiles(settings).items():
         if number == 1:
             continue
         required = provider_secret_names(targets)
-        values = {}
+        values: dict[str, str] = {}
         for name in (field.upper() for field in PROVIDER_FIELDS):
             key = secret_name(name, number)
             value = env.get(key, "")
@@ -85,26 +89,26 @@ def profile_secrets(secrets: Secrets, number: int) -> Secrets:
 
 
 class UnavailableWriter(TargetWriter):
-    def __init__(self, role, target, number):
+    def __init__(self, role: str, target: str, number: int) -> None:
         self.role, self.target, self.target_profile = role, target, number
         self.service, self.label = "unavailable", "Zielprofil nicht verfügbar"
 
-    def check_access(self):
+    def check_access(self) -> NoReturn:
         raise ExternalUnavailable("Zielprofil nicht verfügbar")
 
-    def reconcile(self, key):
+    def reconcile(self, key: str) -> NoReturn:
         self.check_access()
 
-    def prepare(self, proposal, key):
+    def prepare(self, proposal: Proposal, key: str) -> NoReturn:
         self.check_access()
 
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def fetch_events_in_window(self, start, end, *, strict=False):
+    def fetch_events_in_window(self, start: Any, end: Any, *, strict: bool = False) -> NoReturn:
         self.check_access()
 
-    def fetch_active_tasks(self, *, strict=False):
+    def fetch_active_tasks(self, *, strict: bool = False) -> NoReturn:
         self.check_access()
 
 
@@ -114,7 +118,7 @@ class ProfileWriters:
     default_profile: int = 1
 
     @property
-    def slots(self):
+    def slots(self) -> dict[str, TargetWriter]:
         return {
             profile_slot(role, number): writer
             for number, pair in self.profiles.items()
@@ -122,24 +126,24 @@ class ProfileWriters:
         }
 
     @property
-    def first(self):
+    def first(self) -> Writers:
         return self.profiles[self.default_profile]
 
     @property
-    def calendar(self):
+    def calendar(self) -> TargetWriter:
         return self.first.calendar
 
     @property
-    def tasks(self):
+    def tasks(self) -> TargetWriter:
         return self.first.tasks
 
-    def close(self):
+    def close(self) -> None:
         for pair in self.profiles.values():
             pair.close()
 
 
-def build_profile_writers(settings, secrets, directory, **kwargs):
-    pairs = {}
+def build_profile_writers(settings: Settings, secrets: Secrets, directory: Path, **kwargs: Any) -> ProfileWriters:
+    pairs: dict[int, Writers] = {}
     configured = target_profiles(settings)
     numbers = set(active_profiles(settings)) | {item.id for item in settings.target_profiles}
     for number, targets in configured.items():

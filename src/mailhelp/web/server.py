@@ -40,7 +40,7 @@ class _Server(ThreadingHTTPServer):
     exclusive_bind: int | None = _EXCLUSIVE_BIND
     allow_reuse_address = _EXCLUSIVE_BIND is None
 
-    def __init__(self, address: tuple[str, int], handler: Handler, logger: EventLogger):
+    def __init__(self, address: tuple[str, int], handler: Handler, logger: EventLogger) -> None:
         self.app, self.logger = handler, logger
         super().__init__(address, _RequestHandler)
 
@@ -129,7 +129,7 @@ class _RequestHandler(BaseHTTPRequestHandler):
 class WebServer:
     """Owns the listening socket and its thread."""
 
-    def __init__(self, host: str, port: int, handler: Handler, logger: EventLogger):
+    def __init__(self, host: str, port: int, handler: Handler, logger: EventLogger) -> None:
         self.host, self.port, self.handler, self.logger = host, port, handler, logger
         self._server: _Server | None = None
         self._thread: Thread | None = None

@@ -65,7 +65,7 @@ class Comparison:
 
 
 class AdoptionRefused(ValueError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
 
@@ -116,7 +116,7 @@ class ReanalysisAdoption:
     """Adopts a completed re-analysis once, after checking round and versions again."""
 
     def __init__(self, jobs: ReanalysisJobs, engine: Any, send_proposal: Callable[[Proposal], None],
-                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)):
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self.jobs, self.engine, self.send_proposal, self.clock = jobs, engine, send_proposal, clock
         self.repository = ProposalRepository(jobs.store)
 

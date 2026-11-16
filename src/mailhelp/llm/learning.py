@@ -120,7 +120,7 @@ class LearningMode:
                  global_newest_first: bool = False,
                  config_path: Path | None = None, folders_path: str = "imap.folders",
                  sources: list[LearningSource] | None = None, scoped_learning: bool = False,
-                 decision_store: JsonStore | None = None):
+                 decision_store: JsonStore | None = None) -> None:
         # Several mailboxes form one selection of the newest mail (3.1); otherwise just this one.
         self.sources = sources or [LearningSource(imap, folders, folders_path)]
         self.analyzer = analyzer

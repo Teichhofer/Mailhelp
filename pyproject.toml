@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "7.0.10"
+version = "7.0.11"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -107,6 +107,10 @@ warn_unused_configs = true
 warn_redundant_casts = true
 # Planung 3.3: bodies of untyped functions are checked as well (0 findings since 3.2.3).
 check_untyped_defs = true
+# Planung 7.0, R8: every function of the whole package is fully annotated.
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
 
 [[tool.mypy.overrides]]
 # Third-party packages without type information.
@@ -114,9 +118,8 @@ module = ["pywebpush.*", "py_vapid.*", "http_ece.*", "pypdf.*", "openpyxl.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# Strict core (Planung 2.1, A1); extended step by step.
-# Planung 3.3, Phase 5: persistence, normalisation, merge, precheck, evaluation, configuration
-# and the run loop with its service coordination.
+# Stricter core (Planung 2.1, A1; Planung 3.3, Phase 5): beyond the package-wide annotations
+# these modules also forbid bare generics and returning Any (Planung 7.0, R8).
 module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.notifications.drafts", "mailhelp.notifications.webpush",
           "mailhelp.notifications.briefing", "mailhelp.processing.attachments",
           "mailhelp.persistence.*", "mailhelp.proposals.action_normalization", "mailhelp.proposals.proposal_merge",
@@ -125,9 +128,6 @@ module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.notifica
           "mailhelp.mailbox.mailbox_run", "mailhelp.app.application", "mailhelp.app.service_coordinator",
           "mailhelp.runtime.lifecycle", "mailhelp.proposals.profile_usage", "mailhelp.mailbox.iserv", "mailhelp.telegram.*", "mailhelp.review.*",
           "mailhelp.web.*"]
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_calls = true
 disallow_any_generics = true
 check_untyped_defs = true
 warn_return_any = true

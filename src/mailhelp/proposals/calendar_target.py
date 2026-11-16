@@ -52,7 +52,7 @@ def _midnight(day: date) -> datetime:
 class CalendarTargetFinder:
     """Resolve ``target_event_id`` for one change or cancellation proposal."""
 
-    def __init__(self, writer: CalendarOperations, logger: EventLogger):
+    def __init__(self, writer: CalendarOperations, logger: EventLogger) -> None:
         self.writer, self.logger = writer, logger
         self.zone = ZoneInfo(writer.calendar_timezone or "UTC")
 

@@ -36,7 +36,7 @@ def invalid_findings(error: ValidationError) -> list[Finding]:
 
 
 class InitialChecks:
-    def __init__(self, setup: InitialSetup, clock: Callable[[], float] = time.monotonic):
+    def __init__(self, setup: InitialSetup, clock: Callable[[], float] = time.monotonic) -> None:
         self.setup, self.clock = setup, clock
         self._recent: dict[str, deque[float]] = {}
 

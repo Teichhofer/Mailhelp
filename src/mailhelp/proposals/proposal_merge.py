@@ -27,7 +27,7 @@ _NON_BINDING_QUESTION = "Soll der nicht bindende Hinweis dennoch als neuer Eintr
 class _Merge:
     """The changes and open questions that one additional source causes."""
 
-    def __init__(self, previous: Proposal, incoming: Proposal):
+    def __init__(self, previous: Proposal, incoming: Proposal) -> None:
         self.previous, self.incoming = previous, incoming
         self.changes: dict[str, Any] = {
             "sources": list(previous.sources), "explicit_create_fallback_confirmed": False,

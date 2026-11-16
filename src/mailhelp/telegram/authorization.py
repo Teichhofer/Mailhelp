@@ -17,7 +17,7 @@ class UpdateValidation(Protocol):
 class AuthorizedUpdateValidator:
     """Validate Telegram identities and decode untrusted callback payloads."""
 
-    def __init__(self, store: JsonStore, user_id: int, chat_id: int):
+    def __init__(self, store: JsonStore, user_id: int, chat_id: int) -> None:
         self.store, self.user_id, self.chat_id = store, user_id, chat_id
 
     def authorized(self, user_id: int, chat_id: int) -> bool:

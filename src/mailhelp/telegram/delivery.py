@@ -18,7 +18,7 @@ class ProposalDeliveryService:
         presenter: ProposalPresenter,
         telegram: TelegramTransport,
         chat_id: int,
-    ):
+    ) -> None:
         self.repository = repository
         self.presenter = presenter
         self.telegram = telegram

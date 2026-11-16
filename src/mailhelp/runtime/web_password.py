@@ -25,7 +25,7 @@ def password_digest(password: str, salt: str) -> str:
 
 
 class WebPassword:
-    def __init__(self, store: JsonStore):
+    def __init__(self, store: JsonStore) -> None:
         self.store = store
 
     def state(self) -> PasswordState:

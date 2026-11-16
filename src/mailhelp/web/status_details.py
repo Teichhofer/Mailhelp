@@ -18,7 +18,7 @@ TITLES = {"vorschlaege": "Offene Vorschläge", "relevanzfragen": "Relevanzfragen
 
 
 class StatusDetails:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         site.app.route("GET", r"/status/(?P<section>vorschlaege|relevanzfragen|web-aktionen)",
                        site.signed_in(self.show))

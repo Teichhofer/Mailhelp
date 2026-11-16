@@ -118,7 +118,7 @@ class WebAuth:
     """Pairing, sessions and CSRF for exactly one authorized person."""
 
     def __init__(self, store: JsonStore, secret: str, session_days: int,
-                 notify: Callable[[str], None], clock: Callable[[], datetime] = _now):
+                 notify: Callable[[str], None], clock: Callable[[], datetime] = _now) -> None:
         self.store, self.notify, self.clock = store, notify, clock
         # "telegram", or "console" when Mailhelp runs without Telegram (standalone, 2.0).
         self.channel = "telegram"

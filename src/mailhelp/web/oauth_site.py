@@ -19,7 +19,7 @@ from .pages import e, error_page, layout
 class OAuthSite:
     def __init__(self, site: Any, service: BrowserOAuth,
                  calendar_context: Callable[[int], tuple[str, int]],
-                 save_calendar: Callable[[str, int, str, int, str], None]):
+                 save_calendar: Callable[[str, int, str, int, str], None]) -> None:
         self.site, self.service = site, service
         self.calendar_context, self.save_calendar = calendar_context, save_calendar
         for method, path, handler in (

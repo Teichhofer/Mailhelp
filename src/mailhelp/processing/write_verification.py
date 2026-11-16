@@ -94,7 +94,7 @@ def _read_error(error: Exception) -> tuple[str, bool]:
 
 class WriteVerifications:
     def __init__(self, store: JsonStore, settings: WriteVerificationSettings | None = None,
-                 now: Callable[[], datetime] = lambda: datetime.now(UTC), logger: EventLogger | None = None):
+                 now: Callable[[], datetime] = lambda: datetime.now(UTC), logger: EventLogger | None = None) -> None:
         self.store, self.settings = store, settings or WriteVerificationSettings()
         self.now, self.logger = now, logger or NullLogger()
         # At most one running check per operation, even if a reload or a second caller asks again.

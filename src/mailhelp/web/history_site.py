@@ -27,7 +27,7 @@ PROPOSAL_PATH = r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-
 
 
 class HistorySite:
-    def __init__(self, archive: ArchiveSite):
+    def __init__(self, archive: ArchiveSite) -> None:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/verlauf", self.history), ("GET", "/auswertung", self.statistics),

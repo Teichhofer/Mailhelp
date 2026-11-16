@@ -16,7 +16,7 @@ Outcome = Literal["completed", "failed", "deferred"]
 
 class StageClock:
     def __init__(self, emit: Callable[[dict[str, Any]], None], mail_id: str, analysis_round: int, resumed: bool,
-                 monotonic: Callable[[], float] = time.monotonic, wall: Callable[[], float] = time.time):
+                 monotonic: Callable[[], float] = time.monotonic, wall: Callable[[], float] = time.time) -> None:
         self.emit, self.mail_id, self.analysis_round, self.resumed = emit, mail_id, analysis_round, resumed
         self.monotonic, self.wall = monotonic, wall
         self.current: str | None = None

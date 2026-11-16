@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.0.11 – Vollständige Typangaben im ganzen Paket
+
+- `disallow_untyped_defs`, `disallow_incomplete_defs` und `disallow_untyped_calls` gelten in
+  `pyproject.toml` für das ganze Paket; mypy meldet 0 statt 12 Fehler.
+- Zugelassene Werte als benannte Typen (`MeetingMode`, `JobStatus`, `Matcher`); Lambdas mit
+  Standardargumenten durch `functools.partial` oder kleine Fabrikmethoden ersetzt.
+- `ExperienceRuntime.__init__` bleibt unter 80 Zeilen; Ruff meldet 27 statt 29 Befunde.
+
 ## 7.0.10 – Konfigurationsmodelle geteilt, Grenzwerte als Test
 
 - `config/models.py` in sechs Bereichsmodule geteilt; `mailhelp.config` exportiert dieselben Namen.

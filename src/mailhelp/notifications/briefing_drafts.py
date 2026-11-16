@@ -35,7 +35,7 @@ def briefing_message(snapshot: dict[str, str], sender: str, run: BriefingRun) ->
 
 class BriefingDraftService:
     def __init__(self, store: JsonStore, settings: Callable[[], Settings], views: ReviewViews,
-                 target: Callable[[int], tuple[str, DraftTarget] | None], base_url: Callable[[], str]):
+                 target: Callable[[int], tuple[str, DraftTarget] | None], base_url: Callable[[], str]) -> None:
         self.settings, self.target, self.base_url = settings, target, base_url
         self.aggregate = BriefingAggregator(store, views)
         self.writer = ImapDraftWriter()

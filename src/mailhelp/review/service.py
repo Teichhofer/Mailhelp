@@ -33,6 +33,7 @@ from ..domain.verification import OPERATIONS, WriteVerification, operation_id
 from ..notifications.notification_context import web_reply
 from ..persistence.archive import record_event, record_recheck, record_relevance
 from ..persistence.revision_origin import ORIGIN
+from ..persistence.storage import JsonStore
 from ..processing.mail_recheck import RecheckOutcome
 from ..proposals.conflicts import ConflictChoiceError, button_text, choose, label
 from ..proposals.profile_binding import retarget
@@ -89,7 +90,7 @@ class ReviewService:
     """Authorize, check and apply one review command at a time."""
 
     def __init__(self, controller: Any,
-                 web_authorizer: Callable[[str], bool] | None = None):
+                 web_authorizer: Callable[[str], bool] | None = None) -> None:
         self.controller = controller
         # Confirms that a web session is still valid when the command runs,
         # so a session revoked after submitting cannot act any more.
@@ -477,7 +478,7 @@ def _error_message(exc: Exception) -> str:
     return "Die Eingabe ist ungültig."
 
 
-def proposal_creation_time(store: Any, proposal: Proposal) -> datetime | None:
+def proposal_creation_time(store: JsonStore, proposal: Proposal) -> datetime | None:
     if proposal.created_at is not None:
         return proposal.created_at
     ledger = store.load_model("action-ledger", ActionLedger)

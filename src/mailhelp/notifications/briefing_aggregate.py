@@ -50,7 +50,7 @@ class BriefingContent:
 
 
 class BriefingAggregator:
-    def __init__(self, store: JsonStore, views: ReviewViews):
+    def __init__(self, store: JsonStore, views: ReviewViews) -> None:
         self.store, self.views = store, views
 
     def collect(self, start: datetime, end: datetime) -> BriefingContent:

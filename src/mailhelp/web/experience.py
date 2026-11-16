@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class ExperienceSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         # Attached by the experience runtime when Web-Push or reply drafts are available.
         self.push: PushService | None = None

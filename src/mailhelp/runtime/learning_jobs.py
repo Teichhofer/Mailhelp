@@ -6,13 +6,15 @@ import hashlib
 import json
 import re
 import time
-from typing import Literal
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
-from ..config.configuration import file_hash
+from ..config.configuration import ConfigurationService, file_hash
 from ..domain.extraction import LearnedCategory
 from ..domain.relevance import IrrelevantSenders
 from ..llm.learning import _topic_id, topics_document
@@ -20,6 +22,9 @@ from ..mailbox.sender_filter import change_irrelevant_senders
 from ..persistence.storage import atomic_replace
 
 FILES = ("config.yaml", "topics.yaml", "irrelevant_topics.yaml", "irrelevant-senders.json")
+
+
+JobStatus = Literal["empty", "running", "paused", "cancelled", "review", "committing", "done"]
 
 
 class LearningSelection(BaseModel):
@@ -45,7 +50,7 @@ class LearningJob(BaseModel):
     version: int = 0
     generation: int = Field(default=0, ge=0)
     started_at: float = 0
-    status: Literal["empty", "running", "paused", "cancelled", "review", "committing", "done"] = "empty"
+    status: JobStatus = "empty"
     actor: str = ""
     selection: LearningSelection | None = None
     revision: str = ""
@@ -67,13 +72,14 @@ class LearningConflict(ValueError):
 
 
 class LearningJobs:
-    def __init__(self, configuration, active, estimate):
+    def __init__(self, configuration: ConfigurationService, active: Callable[[str], bool],
+                 estimate: Callable[[LearningSelection], int]) -> None:
         self.configuration, self.active, self.estimate = configuration, active, estimate
         self.store = configuration.store
         self.lock = self.store._thread_lock
 
     @property
-    def directory(self):
+    def directory(self) -> Path:
         return self.configuration.directory
 
     def state(self) -> LearningJob:
@@ -129,7 +135,7 @@ class LearningJobs:
                 self.finish_commit(state)
             return state
 
-    def _action(self, state, actor, action, payload):
+    def _action(self, state: LearningJob, actor: str, action: str, payload: dict[str, Any]) -> None:
         if action == "start":
             # A paused run whose configuration changed can never resume; a new run replaces it.
             if state.status in {"running", "committing"} or (
@@ -162,7 +168,8 @@ class LearningJobs:
                 raise LearningConflict("Aktion passt nicht zum Lernstand.")
             if action == "resume" and state.revision != self.revision():
                 raise LearningConflict("Konfiguration geändert; neuen Lernlauf starten.")
-            state.status = {"pause": "paused", "resume": "running", "cancel": "cancelled"}[action]
+            transitions: dict[str, JobStatus] = {"pause": "paused", "resume": "running", "cancel": "cancelled"}
+            state.status = transitions[action]
             state.actor, state.message = actor, ""
         elif action == "edit" and state.status == "review":
             index = payload["index"]

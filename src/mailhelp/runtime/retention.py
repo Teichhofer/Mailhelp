@@ -9,6 +9,7 @@ from typing import Literal
 from .. import state_names
 from ..activity.store import ActivityReportStore
 from ..config import ReanalysisSettings, RetentionSettings
+from ..config.runtime_settings import RetentionPeriod
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
 from ..logging import EventLogger
@@ -47,7 +48,8 @@ class RetentionService:
     """Scrub content without deleting restart and duplicate-protection records."""
 
     def __init__(self, store: JsonStore, settings: RetentionSettings,
-                 logger: EventLogger, clock: Callable[[], datetime] | None = None, full_mail_period=None):
+                 logger: EventLogger, clock: Callable[[], datetime] | None = None,
+                 full_mail_period: Callable[[MailState], RetentionPeriod] | None = None) -> None:
         self.store = store
         self.settings = settings
         self.logger = logger

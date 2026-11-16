@@ -171,7 +171,7 @@ class IServReader:
     """Sign in to one IServ account and read its parent letters."""
 
     def __init__(self, account: IServAccountSettings, credentials: ImapCredentials, timezone: str, max_bytes: int,
-                 *, transport: httpx.BaseTransport | None = None, max_attachment_bytes: int = 5_000_000):
+                 *, transport: httpx.BaseTransport | None = None, max_attachment_bytes: int = 5_000_000) -> None:
         self.account, self.timezone, self.max_bytes = account, ZoneInfo(timezone), max_bytes
         self.max_attachment_bytes = max_attachment_bytes
         self._username, self._password = credentials.username, credentials.password
@@ -371,7 +371,7 @@ class IServRunService:
     """Process new parent letters of every IServ account, oldest first."""
 
     def __init__(self, store: JsonStore, logger: EventLogger, sources: list[IServSource],
-                 process_mail: Callable[[FetchedMail], ProcessingResult], stop_event: Event):
+                 process_mail: Callable[[FetchedMail], ProcessingResult], stop_event: Event) -> None:
         self.store, self.logger, self.sources = store, logger, sources
         self.process_mail, self.stop_event = process_mail, stop_event
 

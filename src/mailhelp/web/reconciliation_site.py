@@ -56,7 +56,7 @@ def grouped(parts: list[str]) -> str:
     return body + (f'<ul class="row-list">{rows}</ul>' if rows else "")
 
 class ReconciliationSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         self.service = ProposalReconciliationService(site.views.store)
         for method, path, handler in (("GET", "/abgleich", self.preview), ("POST", "/abgleich", self.apply)):

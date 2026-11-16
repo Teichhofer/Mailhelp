@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from contextlib import contextmanager
+import imaplib
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from threading import Event, Thread
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..activity.llm import ActivityAnalyzer
 from ..activity.runner import ActivityRunner, available_report_folders, default_report_folders
 from ..activity.service import ActivityService
 from ..activity.store import ActivityReportStore
+from ..config import MailboxSettings, Secrets, Settings
 from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
 from ..mailbox.mailbox_briefing import configure
 from ..mailbox.mailbox_settings import effective_settings
@@ -26,7 +28,7 @@ if TYPE_CHECKING:
 
 
 @contextmanager
-def _reader(settings, secrets, mailbox):
+def _reader(settings: Settings, secrets: Secrets, mailbox: MailboxSettings) -> Iterator[ImapReader]:
     """One IMAP session of *mailbox*; closed again on every exit."""
     address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
@@ -36,11 +38,11 @@ def _reader(settings, secrets, mailbox):
         reader.close()
 
 
-def _draft_targets(settings, secrets):
+def _draft_targets(settings: Settings, secrets: Secrets) -> dict[str, DraftTarget]:
     """Drafts go to the mailbox the mail came from, keyed by its account id (3.1)."""
-    def target(mailbox):
+    def target(mailbox: MailboxSettings) -> DraftTarget:
         @contextmanager
-        def connection():
+        def connection() -> Iterator[imaplib.IMAP4]:
             with _reader(settings, secrets, mailbox) as reader:
                 yield reader.connection
         return DraftTarget(connection, secrets.imap_credentials(mailbox.id).username, mailbox.drafts_folder)
@@ -49,7 +51,11 @@ def _draft_targets(settings, secrets):
 
 
 class ExperienceRuntime:
-    def __init__(self, app, components, secrets):
+    thread: Thread | None
+    mailbox_numbers: dict[str, int]
+
+    # app and components are the assembled application and web components; lower layers do not know their classes.
+    def __init__(self, app: Any, components: Any, secrets: Secrets) -> None:
         self.app, self.site = app, components.site
         self.secrets = secrets
         self.notifications: NotificationRuntime | None = None
@@ -61,7 +67,7 @@ class ExperienceRuntime:
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
 
-        self.draft_targets: dict | None = None
+        self.draft_targets: dict[str, DraftTarget] | None = None
         if (
             any(effective_settings(settings, box.id).smart_reply for box in settings.imap.enabled_mailboxes())
             and "draft_reply" in app.analyzer.prompts.prompts
@@ -81,7 +87,7 @@ class ExperienceRuntime:
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
         if settings.activity_report.enabled and ACTIVITY_PROMPTS <= set(app.analyzer.prompts.prompts):
-            def open_reader(mailbox):
+            def open_reader(mailbox: int) -> AbstractContextManager[ImapReader]:
                 configured = app.settings.imap.mailbox(mailbox)
                 if configured is None or not configured.enabled:
                     raise LookupError("Postfach des Berichts ist nicht mehr eingerichtet")
@@ -107,7 +113,7 @@ class ExperienceRuntime:
             pages = self.site.activity
             pages.service = service
             pages.mailboxes = lambda: [(item.id, item.label) for item in app.settings.imap.enabled_mailboxes()]
-            def suggested(mailbox):
+            def suggested(mailbox: int) -> list[str]:
                 configured = app.settings.imap.mailbox(mailbox)
                 if configured.activity_report_folder is not None:
                     return [configured.activity_report_folder]
@@ -129,19 +135,19 @@ class ExperienceRuntime:
             report=lambda identity, status: app.logger.event("INFO", "briefings", "run_finished",
                                                              run_id=identity, status=status))
 
-    def briefing_target(self, number):
+    def briefing_target(self, number: int) -> tuple[str, DraftTarget] | None:
         mailbox = self.app.settings.imap.mailbox(number)
         if mailbox is None or not mailbox.enabled:
             return None
         credentials = self.secrets.imap_credentials(number)
         @contextmanager
-        def connection():
+        def connection() -> Iterator[imaplib.IMAP4]:
             with _reader(self.app.settings, self.secrets, mailbox) as reader:
                 yield reader.connection
         folder = self.app.settings.drafts.folder or mailbox.drafts_folder
         return (mailbox_account_id(mailbox, credentials), DraftTarget(connection, credentials.username, folder))
 
-    def add_mailboxes(self, settings, secrets):
+    def add_mailboxes(self, settings: Settings, secrets: Secrets) -> None:
         """Mailboxes activated while running (3.5): reply drafts and the mailbox filter include them."""
         if self.draft_targets is not None:
             self.mailbox_numbers.update({mailbox_account_id(box, secrets.imap_credentials(box.id)): box.id
@@ -151,7 +157,7 @@ class ExperienceRuntime:
             labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in self.app.sources}
             self.site.views.mailboxes = self.site.archive.queries.mailboxes = labels
 
-    def draft_target(self, account):
+    def draft_target(self, account: str) -> DraftTarget | None:
         """Resolve the current folder only when saving; live overrides never move old drafts."""
         number = self.mailbox_numbers.get(account)
         mailbox = self.app.settings.imap.mailbox(number) if number is not None else None
@@ -160,7 +166,7 @@ class ExperienceRuntime:
         target = self.draft_targets[account]
         return target._replace(folder=self.app.settings.drafts.folder or mailbox.drafts_folder)
 
-    def draft_policy(self, account):
+    def draft_policy(self, account: str) -> tuple[bool, str]:
         number = self.mailbox_numbers.get(account)
         if number is None:
             # Mail of no configured IMAP mailbox (IServ letters) has no account to reply from.
@@ -168,7 +174,7 @@ class ExperienceRuntime:
         cfg = effective_settings(self.app.settings, number)
         return cfg.smart_reply and cfg.drafts.enabled, cfg.personal_info
 
-    def auto_draft_policy(self, account) -> bool:
+    def auto_draft_policy(self, account: str) -> bool:
         """4.8: drafts without a click need smart_reply and auto_draft of the mail's mailbox."""
         number = self.mailbox_numbers.get(account)
         if number is None:
@@ -176,14 +182,14 @@ class ExperienceRuntime:
         cfg = effective_settings(self.app.settings, number)
         return cfg.smart_reply and cfg.drafts.enabled and cfg.auto_draft
 
-    def _section(self, name, step):
+    def _section(self, name: str, step: Callable[[], object]) -> None:
         """Push and briefing fail independently of each other."""
         try:
             step()
         except Exception as exc:
             self.app.logger.event("WARNING", "experience", f"{name}_failed", error_class=type(exc).__name__)
 
-    def _push(self):
+    def _push(self) -> None:
         overview = self.site.views.overview()
         identities = sorted([f"{v.mail_id}:{v.proposal_id}:{v.version}" for v in overview.open]
                             + [f"{v.mail_id}:relevance:{v.version}" for v in overview.relevance])
@@ -192,7 +198,7 @@ class ExperienceRuntime:
         if set(identities) - set(previous):
             self.site.experience.push.notify()
 
-    def tick(self):
+    def tick(self) -> None:
         feature = self.site.experience
         self._section("mailbox_briefings", self.mailbox_briefings.tick)
         if self.notifications is not None:
@@ -207,7 +213,7 @@ class ExperienceRuntime:
         if self.notifications is None:
             self._section("briefing", self.briefing.tick)
 
-    def run(self):
+    def run(self) -> None:
         while not self.stop_event.is_set():
             try:
                 self.tick()

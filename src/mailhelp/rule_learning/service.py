@@ -76,7 +76,7 @@ class DecisionRuleLearning:
     def __init__(self, configuration: ConfigurationService, analyzer: Callable[[], Any],
                  active: Callable[[str], bool], redact: Callable[[str], str] = lambda text: text,
                  payload_limit: Callable[[], int] = lambda: 100_000,
-                 clock: Callable[[], float] = time.time, logger: Any = None):
+                 clock: Callable[[], float] = time.time, logger: Any = None) -> None:
         self.configuration, self.analyzer, self.active = configuration, analyzer, active
         self.redact, self.payload_limit, self.clock = redact, payload_limit, clock
         self.logger = logger

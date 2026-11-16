@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 
-from .connection_runtime import PendingConnections
+from .connection_runtime import Pending, PendingConnections
 from .iserv import IServRunService
 from .sources import build_iserv_sources, mailbox_labels
 
@@ -11,7 +11,7 @@ from .sources import build_iserv_sources, mailbox_labels
 class IServRuntime(PendingConnections):
     area = "iserv"
 
-    def _apply(self, pending):
+    def _apply(self, pending: Pending) -> None:
         configured, secrets = pending
         app = self.app
         settings = app.settings.model_copy(update={"iserv": configured.iserv})

@@ -2,18 +2,25 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import ExitStack
 from threading import Lock
+from typing import Any
+
+from ..config import Secrets, Settings
+
+Pending = tuple[Settings, Secrets]
 
 
 class PendingConnections(ABC):
     area = ""
 
-    def __init__(self, app, resources):
+    # app is the running Application; lower layers do not know its class.
+    def __init__(self, app: Any, resources: ExitStack) -> None:
         self.app, self.resources = app, resources
         self.lock = Lock()
-        self.pending = None
+        self.pending: Pending | None = None
 
-    def request(self, settings, secrets):
+    def request(self, settings: Settings, secrets: Secrets) -> None:
         with self.lock:
             self.pending = settings, secrets
 
@@ -31,10 +38,10 @@ class PendingConnections(ABC):
             self.app.logger.event("ERROR", self.area, "activation_failed")
 
     @abstractmethod
-    def _apply(self, pending):
+    def _apply(self, pending: Pending) -> None:
         """Build the new adapters and install them; on failure nothing is installed."""
 
-    def close(self):
+    def close(self) -> None:
         self.resources.close()
 
 

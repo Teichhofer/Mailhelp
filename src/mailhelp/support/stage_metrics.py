@@ -41,7 +41,7 @@ class StageRecord(BaseModel):
 
 
 class StageJournal:
-    def __init__(self, path: Path, retention_days: Callable[[], int]):
+    def __init__(self, path: Path, retention_days: Callable[[], int]) -> None:
         self.path, self.retention_days = path, retention_days
         self._lock = RLock()
         self._cache: list[dict[str, Any]] | None = None

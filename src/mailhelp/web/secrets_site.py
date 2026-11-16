@@ -28,7 +28,7 @@ MAX_OPERATIONS = 100
 
 
 class SecretsSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         # SettingsSite owns the shared POST route and dispatches by form version.
         site.app.route("GET", ROUTE, site.signed_in(self.index))

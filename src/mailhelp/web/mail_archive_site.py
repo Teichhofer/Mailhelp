@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class MailArchiveSite:
-    def __init__(self, archive: ArchiveSite):
+    def __init__(self, archive: ArchiveSite) -> None:
         self.archive, self.site = archive, archive.site
         self.site.app.route("GET", "/mails", self.site.signed_in(self.mails))
 

@@ -1,23 +1,29 @@
 """Durable first-open events; device activation never replays the existing backlog."""
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
+from typing import Any
 
 from ..domain.mail import MailState
 from ..persistence.archive import HistorySnapshot
-from ..persistence.storage import CorruptState
+from ..persistence.storage import CorruptState, JsonStore
+from .webpush import PushService
 
 
 class PushDecisionEvents:
-    def __init__(self, store, clock, current):
+    def __init__(self, store: JsonStore, clock: Callable[[], datetime],
+                 current: Iterable[tuple[str, int]]) -> None:
         self.store, self.clock = store, clock
         saved = store.load('push-decision-events')
-        self.records = saved if saved is not None else {
+        self.records: dict[str, dict[str, Any]] = saved if saved is not None else {
             reference: {'version': version, 'source': 'system',
                         'appeared_at': datetime.min.replace(tzinfo=UTC).isoformat()}
             for reference, version in current}
         if saved is None:
             store.save('push-decision-events', self.records)
 
-    def observe(self, reference, version):
+    def observe(self, reference: str, version: int) -> dict[str, Any]:
         with self.store.locked():
             old = self.records.get(reference)
             if old is not None and old['version'] >= version:
@@ -40,7 +46,7 @@ class PushDecisionEvents:
             self.store.save('push-decision-events', self.records)
             return record
 
-    def eligible(self, reference, version, push, device):
+    def eligible(self, reference: str, version: int, push: PushService, device: str) -> bool:
         record = self.observe(reference, version)
         activated = push.status(device.partition(':')[0])['activated_at']
         return (record['version'] == version and record['source'] == 'system' and activated is not None

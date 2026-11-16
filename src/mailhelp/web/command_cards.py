@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import partial
+from typing import Any
 from urllib.parse import quote
 
 from ..review.commands import CommandKind, ReviewCommand
@@ -44,7 +46,7 @@ def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
 class CommandCards:
     def __init__(self, entries: list[CommandEntry], csrf: str, refresh: str,
                  sender_hint_lookup: Callable[[str], Any] | None = None,
-                 views: Any | None = None):
+                 views: Any | None = None) -> None:
         self.entries = [entry for entry in entries if isinstance(entry.command, ReviewCommand)
                         and entry.command.source.value == "web" and not entry.acknowledged]
         self.csrf, self.refresh = csrf, refresh
@@ -133,6 +135,6 @@ class CommandCards:
             link = (f'/vorschlag/{command.mail_id}/{command.proposal_id}' if command.proposal_id
                     else f'/mail/{command.mail_id}')
             parts.append(f'<article class="card" id="{anchor(entry)}"><h2>Deine Aktion</h2>'
-                         + self.render(entries, lambda e=entry: self._detached_actions(e))
+                         + self.render(entries, partial(self._detached_actions, entry))
                          + f'<p class="card-links"><a data-detail href="{link}">Details</a></p></article>')
         return ''.join(parts)

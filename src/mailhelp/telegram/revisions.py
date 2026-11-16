@@ -62,7 +62,7 @@ class ProposalRevisionProcessor:
         interpretation_backoff_seconds: int,
         revision_attempts: int,
         revision_backoff_seconds: int,
-    ):
+    ) -> None:
         self.store, self.revision_service = store, revision_service
         self.persistence, self.telegram, self.chat_id = persistence, telegram, chat_id
         self.logger, self.configured_timezone = logger, configured_timezone

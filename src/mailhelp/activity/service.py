@@ -34,7 +34,7 @@ class ReportConflict(ValueError):
 
 
 class ActivityService:
-    def __init__(self, store: ActivityReportStore, clock: Callable[[], datetime] = lambda: datetime.now(UTC)):
+    def __init__(self, store: ActivityReportStore, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self.store, self.clock = store, clock
         self.lock = RLock()
         self.actor: ContextVar[str | None] = ContextVar("activity_actor", default=None)

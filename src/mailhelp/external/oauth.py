@@ -22,7 +22,7 @@ class GoogleOAuthTokenProvider:
 
     def __init__(self, client_id: str, client_secret: str, refresh_token: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, clock: Callable[[], float] = time.time,
-                 refresh_margin_seconds: float = 60, logger: EventLogger | None = None):
+                 refresh_margin_seconds: float = 60, logger: EventLogger | None = None) -> None:
         self._client_id, self._client_secret, self._refresh_token = client_id, client_secret, refresh_token
         self._clock, self._margin = clock, refresh_margin_seconds
         self._token: str | None = None

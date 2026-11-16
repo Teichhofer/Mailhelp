@@ -48,7 +48,7 @@ class ProposalRepository:
     records without modifying an existing snapshot.
     """
 
-    def __init__(self, store: JsonStore):
+    def __init__(self, store: JsonStore) -> None:
         self.store = store
 
     def load_current(self, mail_id: str, proposal_id: str) -> Proposal | None:

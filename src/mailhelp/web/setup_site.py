@@ -103,7 +103,7 @@ def input_field(name: str, value: object, choices: Sequence[str] | None = None, 
 
 
 class SetupSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         # The SetupRuntime, attached once the services exist.
         self.site, self.runtime = site, cast(Any, None)
         for method, path, handler in (

@@ -59,13 +59,13 @@ SCHEMA_REPAIR_INSTRUCTION = (
 class LlmSchemaValidationExceeded(TechnicalRevisionError):
     """Die begrenzten Schema-Validierungsversuche sind ausgeschöpft."""
 
-    def __init__(self, step: str):
+    def __init__(self, step: str) -> None:
         self.step = step
         super().__init__(f"LLM-Schemavalidierung für {step} ausgeschöpft")
 
 
 class LlmProviderResponseInvalid(TechnicalRevisionError):
-    def __init__(self, step: str, reason: str):
+    def __init__(self, step: str, reason: str) -> None:
         self.step, self.reason = step, reason
         super().__init__(f"Ungültige Provider-Antwort für {step}: {reason}")
 
@@ -75,7 +75,7 @@ class LlmTokenLimitExceeded(LlmProviderResponseInvalid):
 
 
 class LlmInvalidJson(TechnicalRevisionError):
-    def __init__(self, step: str):
+    def __init__(self, step: str) -> None:
         self.step = step
         super().__init__(f"Ungültiges JSON für {step}")
 
@@ -164,7 +164,7 @@ class ClassifiedRun:
     def __init__(self, analyzer: Analyzer, step: str, payload: dict[str, Any],
                  validator: Callable[[Any], Any], schema: type[BaseModel] | None,
                  token_retry_payload: dict[str, Any] | None, images: list[str] | None,
-                 before_call: Callable[[], None] = lambda: None):
+                 before_call: Callable[[], None] = lambda: None) -> None:
         self.client, self.prompts = analyzer.client, analyzer.prompts
         self.before_call = before_call
         self.step, self.payload, self.validator, self.schema = step, payload, validator, schema
@@ -310,7 +310,7 @@ class Analyzer:
     def __init__(self, client: Completer, prompts: PromptConfig,
                  validation_retries: int = 1, *, provider_retries: int | None = None,
                  json_repair_retries: int | None = None,
-                 schema_repair_retries: int | None = None):
+                 schema_repair_retries: int | None = None) -> None:
         """Create an analyzer with separately bounded retry categories.
 
         ``validation_retries`` remains as a compatibility default. Explicit category
@@ -426,7 +426,7 @@ class Analyzer:
                                     token_retry_payload=retry_payload if retry is not None else None)
 
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
-                    reason: str | None = None):
+                    reason: str | None = None) -> tuple[str, ReplyDraft]:
         """Reply draft for one requested intent (``accept``, ``decline``, ``question``).
 
         The model sees the mail, every recognized attachment text (including OCR)
@@ -494,7 +494,7 @@ class Analyzer:
             CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
         )
 
-    def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]):
+    def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]) -> tuple[str, ProposalMatchDecision]:
         fields = {"kind", "title", "description", "start", "end", "due", "known_temporal_facts", "evidence"}
         payload = {"incoming": proposal.model_dump(mode="json", include=fields),
                    "candidates": [item.model_dump(mode="json", include=fields) for item in candidates]}

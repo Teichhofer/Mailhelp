@@ -57,7 +57,7 @@ class ConfirmedWriteExecutor:
         ledger: ActionLedgerPort,
         configured_timezone: str = "UTC",
         verification: WriteVerifications | None = None,
-    ):
+    ) -> None:
         self.store, self.writers, self.persistence = store, writers, persistence
         self.telegram, self.chat_id, self.test_mode, self.ledger = (
             telegram,

@@ -46,7 +46,7 @@ def return_path(value: str) -> str:
 
 
 class HelpWindow:
-    def __init__(self, help_site: HelpSite):
+    def __init__(self, help_site: HelpSite) -> None:
         self.help, self.site = help_site, help_site.site
 
     def target(self, value: str) -> str:

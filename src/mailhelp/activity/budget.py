@@ -21,7 +21,7 @@ class ReportPaused(Exception):
 
 
 class BudgetedCompleter:
-    def __init__(self, client: Completer):
+    def __init__(self, client: Completer) -> None:
         self.client = client
         self.guard: ContextVar[Callable[[], None]] = ContextVar("activity_guard", default=lambda: None)
 
@@ -46,7 +46,7 @@ class ReportCalls:
     """A report's share of the per-minute budget and its hard limit, checked before every provider call."""
 
     def __init__(self, service: ActivityService, client: BudgetedCompleter, stop_event: Event,
-                 settings: Callable[[], Any], per_minute: Callable[[], int], clock: Callable[[], float]):
+                 settings: Callable[[], Any], per_minute: Callable[[], int], clock: Callable[[], float]) -> None:
         self.service, self.client, self.stop_event = service, client, stop_event
         # Read on every call: changed settings apply to the next model call.
         self.settings, self.per_minute, self.clock = settings, per_minute, clock

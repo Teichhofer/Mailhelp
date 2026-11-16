@@ -47,7 +47,7 @@ UNAVAILABLE = "Regeln aus den protokollierten Entscheidungen verbessern."
 
 
 class RuleLearningSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         self.service: DecisionRuleLearning | None = None
         site.app.route("GET", "/lernen/entscheidungen", site.signed_in(self.home))

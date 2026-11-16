@@ -20,7 +20,7 @@ from .adapter import RetryPolicy
 
 
 class RateLimitExceeded(RuntimeError):
-    def __init__(self, next_allowed_at: float):
+    def __init__(self, next_allowed_at: float) -> None:
         self.next_allowed_at = next_allowed_at
         moment = datetime.fromtimestamp(next_allowed_at, UTC).isoformat()
         super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {moment}")
@@ -33,7 +33,7 @@ class OpenRouterResponseError(ValueError):
 class ProviderResponseInvalid(OpenRouterResponseError):
     """The provider envelope is incomplete or structurally invalid."""
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"OpenRouter chat/completions: provider_response_invalid ({reason})")
 
@@ -41,7 +41,7 @@ class ProviderResponseInvalid(OpenRouterResponseError):
 class InvalidJson(OpenRouterResponseError):
     """The provider supplied content, but it is not syntactically valid JSON."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("OpenRouter chat/completions: invalid_json")
 
 
@@ -88,7 +88,7 @@ class OpenRouterClient:
                  load_calls: Callable[[], list[float]] | None = None,
                  save_calls: Callable[[list[float]], None] | None = None,
                  stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None,
-                 base_url: str = "https://openrouter.ai/api/v1"):
+                 base_url: str = "https://openrouter.ai/api/v1") -> None:
         self.calls: list[float] = []
         self.key, self.limit, self.clock = key, calls_per_minute, clock
         self.load_calls = load_calls or (lambda: self.calls)

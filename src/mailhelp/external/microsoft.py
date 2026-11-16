@@ -67,7 +67,7 @@ class DeviceCodeResponse(IntegrationModel):
 class TokenFile:
     """The newest Microsoft refresh token as readable JSON, readable only by the owner."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> None:
         self.path = path
 
     def load(self) -> str | None:
@@ -88,7 +88,7 @@ class MicrosoftTokenProvider(AccessTokenProvider):
 
     def __init__(self, client_id: str, client_secret: str, seed: str, tenant: str, tokens: TokenFile,
                  timeout: float = 30, transport: httpx.BaseTransport | None = None,
-                 clock: Callable[[], float] = time.time, logger: EventLogger | None = None):
+                 clock: Callable[[], float] = time.time, logger: EventLogger | None = None) -> None:
         self._client_id, self._client_secret, self._seed, self._tokens = client_id, client_secret, seed, tokens
         self._clock = clock
         self._token: str | None = None
@@ -222,7 +222,7 @@ class GraphResource:
 
     def __init__(self, token: AccessTokenProvider, target: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None):
+                 logger: EventLogger | None = None) -> None:
         self.token, self.target = token, target
         self.client = httpx.Client(base_url=GRAPH, timeout=timeout, transport=transport, follow_redirects=False)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
@@ -319,7 +319,7 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
 
     def __init__(self, token: AccessTokenProvider, target: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None, calendar_timezone: str = "UTC", calendar_matcher: Any = None):
+                 logger: EventLogger | None = None, calendar_timezone: str = "UTC", calendar_matcher: Any = None) -> None:
         super().__init__(token, target, timeout, transport, policy, logger)
         self.calendar_timezone = calendar_timezone
         self.calendar_matcher = calendar_matcher

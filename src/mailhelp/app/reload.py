@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from contextlib import ExitStack
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..config import load_all
+from ..config import Secrets, load_all
 from ..config.configuration import file_hash
 from ..domain.mail import MailState
 from ..domain.run import MailRunState
@@ -30,22 +32,23 @@ class ReloadState(BaseModel):
 
 
 class ReloadService:
-    def __init__(self, app, directory, secrets, local_llm=None, use_jev=True):
+    # app is the running Application; the reload replaces parts of it, so it is handled without its class here.
+    def __init__(self, app: Any, directory: Path, secrets: Secrets, local_llm: LocalLlm | None = None,
+                 use_jev: bool = True) -> None:
         self.current, self.directory, self.secrets = app, directory, secrets
         self.store = app.store
-        self.active = lambda actor: actor.startswith("web:") and self.current.web_site.auth.active(
-            actor.removeprefix("web:")
-        )
+        self.active: Callable[[str], bool] = lambda actor: (
+            actor.startswith("web:") and self.current.web_site.auth.active(actor.removeprefix("web:")))
         self.local_llm, self.use_jev = local_llm, use_jev
         self.resources = ExitStack()
 
-    def state(self):
+    def state(self) -> ReloadState:
         return self.store.load_model("runtime-reload", ReloadState, ReloadState())
 
-    def save(self, state):
+    def save(self, state: ReloadState) -> None:
         self.store.save("runtime-reload", state.model_dump(mode="json"))
 
-    def revision(self):
+    def revision(self) -> str:
         names = (
             "config.yaml",
             "prompts.yaml",
@@ -60,7 +63,7 @@ class ReloadService:
             ).encode()
         ).hexdigest()
 
-    def request(self, actor, version, key, revision):
+    def request(self, actor: str, version: int, key: str, revision: str) -> None:
         with self.store._thread_lock:
             if not self.active(actor) or not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
                 raise ValueError("Ungültige Sitzung oder Anforderung")
@@ -79,12 +82,12 @@ class ReloadService:
             state.message = "Wartet auf den nächsten sicheren Mailzyklus."
             self.save(state)
 
-    def _guard(self, state):
+    def _guard(self, state: ReloadState) -> None:
         if not self.active(state.actor) or state.revision != self.revision():
             raise ValueError("Sitzung oder Konfiguration inzwischen geändert")
 
     @staticmethod
-    def helpers(app, start):
+    def helpers(app: Any, start: bool) -> None:
         if start:
             app._start_receiver()
             app._start_operator()
@@ -107,8 +110,7 @@ class ReloadService:
                 app.experience.stop()
                 app.experience.wait_stopped()
 
-    def _build(self, old, stack):
-
+    def _build(self, old: Any, stack: ExitStack) -> tuple[Any, Secrets]:
         settings, secrets, topics, _, prompts, fingerprint = load_all(self.directory)
         # A changed persistence namespace or listening/authentication boundary needs a process restart.
         if (
@@ -145,7 +147,7 @@ class ReloadService:
             client.check_access()
         return new, secrets
 
-    def advance(self):
+    def advance(self) -> None:
         state = self.state()
         if state.status not in {"pending", "running"}:
             return
@@ -202,5 +204,5 @@ class ReloadService:
             if self.current is old and suspended:
                 self.helpers(old, True)
 
-    def close(self):
+    def close(self) -> None:
         self.resources.close()

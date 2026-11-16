@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class SeriesSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         site.app.route("GET", r"/serie/(?P<mail_id>[a-f0-9]{24})/(?P<key>[a-f0-9]{64})", site.signed_in(self.show))
         site.app.route("POST", r"/serie/(?P<token>[a-f0-9]{32})", site.signed_in(self.act))

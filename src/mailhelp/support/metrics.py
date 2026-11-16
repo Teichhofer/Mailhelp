@@ -32,7 +32,7 @@ class MetricsSettings(BaseModel):
     exchange_rate_date: date | None = None
 
     @model_validator(mode="after")
-    def exchange_rate_pair(self):
+    def exchange_rate_pair(self) -> MetricsSettings:
         if self.exchange_rate_date is not None and self.usd_per_eur is None:
             raise ValueError("Ein Bezugsdatum erfordert einen konfigurierten Wechselkurs")
         return self
@@ -98,7 +98,7 @@ class AttemptRecord(BaseModel):
     electricity_price: FiniteFloat = Field(ge=0)
 
 
-def electricity(intervals: list[tuple[float, float]], watts, price) -> Decimal:
+def electricity(intervals: list[tuple[float, float]], watts: float, price: float) -> Decimal:
     """Merge occupied server intervals to avoid charging concurrency twice."""
     seconds = 0.0
     end = float("-inf")
@@ -189,7 +189,7 @@ def sibling(path: Path, kind: str) -> Path:
 
 
 class MetricsRecorder:
-    def __init__(self, path: Path, settings: MetricsSettings, mode: str = "standard"):
+    def __init__(self, path: Path, settings: MetricsSettings, mode: str = "standard") -> None:
         self.path, self.settings, self.mode = path, settings, mode
         self._lock = RLock()
         self._pending: dict[str, dict] = {}

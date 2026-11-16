@@ -20,7 +20,7 @@ from .topics import IrrelevantTopicsConfig, Topic, TopicsConfig
 class MissingConfiguration(FileNotFoundError):
     """A required configuration file is absent; the CLI reports it without a traceback."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> None:
         super().__init__(f"{path} fehlt")
         self.path = path
 

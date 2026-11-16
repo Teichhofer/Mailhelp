@@ -130,7 +130,7 @@ class CommandInbox:
     """Thread-safe, durable and ordered queue of review commands."""
 
     def __init__(self, store: JsonStore, wake: Callable[[], None] | None = None,
-                 clock: Callable[[], datetime] | None = None):
+                 clock: Callable[[], datetime] | None = None) -> None:
         # Serialized with the store's own re-entrant lock, never a second one: the
         # notification thread reads the inbox while holding the store lock, and a web
         # page holding a separate inbox lock and waiting for the store deadlocked with it.

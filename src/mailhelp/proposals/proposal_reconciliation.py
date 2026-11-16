@@ -1,8 +1,12 @@
 """Restart-safe local reconciliation before any decision notification or external write."""
+from __future__ import annotations
+
 import hashlib
 import json
 import os
 import re
+from collections.abc import Callable
+from typing import Any
 
 from ..domain.proposal import (
     MATCHING_QUESTION,
@@ -20,6 +24,8 @@ from .proposal_matching import compatible, reference_key, relationship, same_thr
 from .proposal_merge import merge_facts
 
 OPEN = {ProposalStatus.NEEDS_CLARIFICATION, ProposalStatus.PENDING_CONFIRMATION}
+Snapshot = list[tuple[str, str, int, ProposalStatus]]
+Matcher = Callable[[Proposal, list[Proposal]], tuple[str, Any]]
 PROTECTED = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED,
              ProposalStatus.VERIFYING}
 
@@ -29,12 +35,13 @@ def _journal_reference(proposal: Proposal) -> tuple[str, str | None]:
 
 
 class ProposalReconciliationService:
-    def __init__(self, store: JsonStore, matcher=None, max_candidates=8, policy=""):
+    def __init__(self, store: JsonStore, matcher: Matcher | None = None,
+                 max_candidates: int = 8, policy: str = "") -> None:
         self.store, self.matcher, self.max_candidates = store, matcher, max_candidates
         self.policy = policy
         self.repository = ProposalRepository(store)
 
-    def compare(self, proposal, candidates):
+    def compare(self, proposal: Proposal, candidates: list[Proposal]) -> ProposalMatchDecision:
         proposal = proposal.model_copy(update={"title": proposal.base_title or proposal.title})
         candidates = [item.model_copy(update={"title": item.base_title or item.title}) for item in candidates]
         payload = [self.policy, proposal.model_dump(mode="json"),
@@ -43,6 +50,7 @@ class ProposalReconciliationService:
         name = f"reconciliation-cache-{key}"
         cached = self.store.load_model(name, ProposalMatchCache)
         if cached is None:
+            assert self.matcher is not None  # compare runs only with a configured matcher
             call, raw = self.matcher(proposal, candidates)
             cached = ProposalMatchCache(call_id=call, decision=ProposalMatchDecision.model_validate(raw))
             if cached.decision.candidate is not None and cached.decision.candidate >= len(candidates):
@@ -62,7 +70,7 @@ class ProposalReconciliationService:
             result.append(proposal)
         return result
 
-    def required(self, mail_id, proposal_id) -> Proposal:
+    def required(self, mail_id: str, proposal_id: str) -> Proposal:
         proposal = self.repository.load_current(mail_id, proposal_id)
         if proposal is None:
             raise ValueError("Vorschlag fehlt; erneut prüfen")
@@ -77,7 +85,7 @@ class ProposalReconciliationService:
             protected = list(dict.fromkeys([*protected, *[f for f in fields if getattr(proposal, f)]]))
         return proposal.model_copy(update={"sources": sources(self.store, proposal), "protected_fields": protected})
 
-    def _snapshot(self, proposal):
+    def _snapshot(self, proposal: Proposal) -> Snapshot:
         return sorted((p.source_mail_id, p.id, p.version, p.status) for p in self.current()
                       if compatible(proposal, p) and p.status in OPEN | PROTECTED
                       and relationship(self.store, proposal, p) != "different")
@@ -136,7 +144,8 @@ class ProposalReconciliationService:
         journal.status, journal.revision, journal.alias = "completed", None, None
         self.store.save(name, journal.model_dump(mode="json"))
 
-    def merge(self, incoming: Proposal, target: Proposal, *, uncertain=False, expected_revision=None) -> Proposal:
+    def merge(self, incoming: Proposal, target: Proposal, *, uncertain: bool = False,
+              expected_revision: Snapshot | None = None) -> Proposal:
         with self.store.locked():
             if expected_revision is not None and self._snapshot(incoming) != expected_revision:
                 raise ValueError("Abgleichstand wurde inzwischen geändert; erneut prüfen")
@@ -153,7 +162,7 @@ class ProposalReconciliationService:
             alias = Proposal.model_validate(alias.model_dump())
             return self._commit(incoming, latest, revision, alias)
 
-    def _commit(self, source, target, revision, alias):
+    def _commit(self, source: Proposal, target: Proposal, revision: Proposal, alias: Proposal) -> Proposal:
         revision, alias = invalidate_creation_permissions(revision), invalidate_creation_permissions(alias)
         key = hashlib.sha256(json.dumps([reference_key(source), source.version,
                               reference_key(target), target.version, alias.status, self.policy]).encode()).hexdigest()
@@ -169,7 +178,7 @@ class ProposalReconciliationService:
         self._finish(name, journal)
         return alias
 
-    def manual(self, source: Proposal, target: Proposal, *, separate=False) -> Proposal:
+    def manual(self, source: Proposal, target: Proposal, *, separate: bool = False) -> Proposal:
         with self.store.locked():
             self.recover()
             actual = self.required(source.source_mail_id, source.id)
@@ -235,7 +244,7 @@ class ProposalReconciliationService:
                 "merge_review_required": False, "matching_candidates": []})
             return self._commit(source, latest, revision, Proposal.model_validate(alias.model_dump()))
 
-    def reconcile(self, proposal: Proposal, max_candidates=None) -> Proposal:
+    def reconcile(self, proposal: Proposal, max_candidates: int | None = None) -> Proposal:
         self.recover()
         with self.store.locked():
             prior = self.repository.load_current(proposal.source_mail_id, proposal.id)
@@ -283,7 +292,7 @@ class ProposalReconciliationService:
                 "open_questions": list(dict.fromkeys([*proposal.open_questions, MATCHING_QUESTION]))})
         return self.save(proposal, revision)
 
-    def save(self, proposal: Proposal, expected_revision=None) -> Proposal:
+    def save(self, proposal: Proposal, expected_revision: Snapshot | None = None) -> Proposal:
         with self.store.locked():
             if expected_revision is not None and self._snapshot(proposal) != expected_revision:
                 raise ValueError("Abgleichstand wurde inzwischen geändert; erneut prüfen")
@@ -311,7 +320,7 @@ class ProposalReconciliationService:
                 return proposal
             reference = proposal.canonical_ref
 
-    def relate(self, source: Proposal, target: Proposal, kind="rsvp_for") -> None:
+    def relate(self, source: Proposal, target: Proposal, kind: str = "rsvp_for") -> None:
         relation = ProposalRelation(source=ProposalReference(mail_id=source.source_mail_id, proposal_id=source.id),
             target=ProposalReference(mail_id=target.source_mail_id, proposal_id=target.id), kind=kind)
         key = hashlib.sha256(json.dumps(relation.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()

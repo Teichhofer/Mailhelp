@@ -34,7 +34,7 @@ XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 class ActivitySite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         # Set by the runtime when activity_report.enabled and both prompts exist.
         self.service: ActivityService | None = None

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class ShutdownSite:
-    def __init__(self, archive: ArchiveSite):
+    def __init__(self, archive: ArchiveSite) -> None:
         self.archive, self.site = archive, archive.site
         for method, handler in (("GET", self.stop_page), ("POST", self.stop)):
             self.site.app.route(method, "/einstellungen/beenden", self.site.signed_in(handler))

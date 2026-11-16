@@ -5,24 +5,28 @@ import hashlib
 from datetime import UTC, datetime
 from threading import Event, Thread
 from types import SimpleNamespace
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from ..config.notifications import effective_profile
+from ..config import Settings
+from ..config.notifications import Category, NotificationSettings, effective_profile
 from ..domain.mail import MailState
 from ..mailbox.mailbox_briefing import configure
 from ..mailbox.mailbox_settings import effective_settings
 from ..review.commands import CommandSource, ReviewCommand
 from ..review.inbox import COMMAND_INBOX, CommandInbox, CommandInboxState
+from ..review.results import ReviewResult
 from ..review.views import ProposalView, ReviewViews
 from .briefing import DailyBriefingService
 from .draft_preview import summary as draft_summary
 from .draft_preview import visible as draft_visible
-from .notifications import NotificationService, QueueFull
+from .notifications import Delivery, NotificationService, QueueFull
 from .push_events import PushDecisionEvents
 
 
 class NotificationRuntime:
-    def __init__(self, app, site):
+    # app and site are the assembled application and web site; lower layers do not know their classes.
+    def __init__(self, app: Any, site: Any) -> None:
         self.app, self.site = app, site
         if app.dialog.commands is None:
             app.dialog.commands = CommandInbox(app.store)
@@ -31,7 +35,8 @@ class NotificationRuntime:
         app.telegram.route_background = True
 
         self.push_events = PushDecisionEvents(app.store, lambda: datetime.now(UTC), self.decisions())
-        self.stop_event, self.thread = Event(), None
+        self.stop_event = Event()
+        self.thread: Thread | None = None
         self.queue = NotificationService(app.store, lambda: app.settings, self.destinations,
                                          self.relevant, self.send, logger=app.logger,
                                          settings_for_mailbox=self.settings_for_mailbox,
@@ -54,28 +59,28 @@ class NotificationRuntime:
         app.store.save("telegram-outbox", old.model_dump(mode="json"))
 
     @classmethod
-    def without_web(cls, app):
+    def without_web(cls, app: Any) -> NotificationRuntime:
         site = SimpleNamespace(views=ReviewViews(app.store, app.settings.timezone, app.settings.test_mode),
                                commands=app.dialog.commands, experience=SimpleNamespace(push=None))
         return cls(app, site)
 
-    def decisions(self):
+    def decisions(self) -> dict[tuple[str, int], Any]:
         overview = self.site.views.overview()
         return {(f"{row.mail_id}:{row.proposal_id}", row.version): row for row in overview.open} | {
             (f"{row.mail_id}:relevance", row.version): row for row in overview.relevance}
 
-    def settings_for_mailbox(self, number):
+    def settings_for_mailbox(self, number: int) -> Settings:
         return (effective_settings(self.app.settings, number) if self.app.settings.imap.mailbox(number) is not None
                 else self.app.settings)
 
-    def mailbox_of(self, reference):
+    def mailbox_of(self, reference: str) -> int:
         mail = self.app.store.peek_model("mail-" + reference.split(":", 1)[0], MailState)
         if mail is None:
             return 1
         return ((mail.proposal_policy or {}).get("mailbox_id")
                 or self.app.orchestrator.mailbox_number(mail.imap.account_id))
 
-    def _migrate_mailboxes(self):
+    def _migrate_mailboxes(self) -> None:
         if self.app.store.load("notifications-mailboxes") is not None:
             return
         with self.app.store.locked():
@@ -91,10 +96,10 @@ class NotificationRuntime:
             self.app.store.save("notification-queue", state.model_dump(mode="json"))
             self.app.store.save("notifications-mailboxes", {"schema_version": 1})
 
-    def destinations(self, category, mailbox_id=1):
+    def destinations(self, category: Category, mailbox_id: int = 1) -> list[tuple[str, str]]:
         cfg = self.settings_for_mailbox(mailbox_id)
         channels = getattr(effective_profile(cfg).categories, category)
-        result = []
+        result: list[tuple[str, str]] = []
         if "telegram" in channels and cfg.telegram.enabled:
             result.append(("telegram", ""))
         push = self.site.experience.push
@@ -102,12 +107,12 @@ class NotificationRuntime:
             result.extend(("web_push", device) for device in push.destinations())
         return result
 
-    def push_eligible(self, category, reference, version, channel, device):
+    def push_eligible(self, category: str, reference: str, version: int, channel: str, device: str) -> bool:
         if channel != "web_push" or category != "decisions":
             return True
         return self.push_events.eligible(reference, version, self.site.experience.push, device)
 
-    def relevant(self, item):
+    def relevant(self, item: Delivery) -> bool:
         if item.category == "decisions":
             return (item.reference, item.version) in self.decisions()
         if item.category == "daily_briefing":
@@ -132,7 +137,7 @@ class NotificationRuntime:
             return item.reference.removeprefix("service:") in health["errors"] and item.version == health["version"]
         return any(row.reference == item.reference for row in self.site.views.system(self.queue.clock()).errors)
 
-    def send(self, items, profile):
+    def send(self, items: list[Delivery], profile: NotificationSettings) -> None:
         first = items[0]
         if first.channel == "web_push":
             self.site.experience.push.deliver(first.device, first.category)
@@ -153,13 +158,13 @@ class NotificationRuntime:
                 text = "\n".join(self._result_text(item) for item in items)[:3500]
         self.app.telegram.send(self.app.settings.telegram.chat_id, text)
 
-    def _result_text(self, item):
+    def _result_text(self, item: Delivery) -> str:
         if item.reference.startswith("draft:"):
             draft = self.app.store.load("draft-" + item.reference.removeprefix("draft:"), {})
             return draft_summary(draft)
         return self.site.commands.get(item.reference).result.message
 
-    def background(self, reference):
+    def background(self, reference: dict[str, Any]) -> str:
         kind = reference["kind"]
         if kind != "message":
             proposal = reference.get("proposal_id") or "relevance"
@@ -168,11 +173,11 @@ class NotificationRuntime:
         # they never gain a second identity beside their decisions.
         return hashlib.sha256(str(reference).encode()).hexdigest()[:32]
 
-    def completed(self, command, result):
+    def completed(self, command: Any, result: ReviewResult) -> None:
         if isinstance(command, ReviewCommand) and command.source == CommandSource.TELEGRAM:
             self.site.commands.record_completed(command, result)
 
-    def _migrate(self):
+    def _migrate(self) -> None:
         if self.app.store.load("notifications-migration") is not None:
             return
         if self.app.store.load("notifications-backup") is None:
@@ -207,7 +212,7 @@ class NotificationRuntime:
         self.app.store.save("notification-results", [entry.id for entry in commands.entries
                                                       if entry.result is not None])
 
-    def tick(self):
+    def tick(self) -> None:
         try:
             self._produce()
         except QueueFull:
@@ -216,7 +221,7 @@ class NotificationRuntime:
         finally:
             self.queue.tick()
 
-    def _produce(self):
+    def _produce(self) -> None:
         for reference, version in self.decisions():
             try:
                 self.enqueue_decision(reference, version)
@@ -265,7 +270,7 @@ class NotificationRuntime:
                         item.status = previous["channels"][old]
                 self.app.store.save("notification-queue", state.model_dump(mode="json"))
 
-    def _draft_results(self):
+    def _draft_results(self) -> None:
         for name in self.app.store.names("draft-"):
             draft = self.app.store.load(name, {})
             if draft_visible(draft):
@@ -273,7 +278,7 @@ class NotificationRuntime:
                 self.queue.enqueue("action_results", "draft:" + mail_id, draft["version"],
                                    mailbox_id=self.mailbox_of(mail_id))
 
-    def enqueue_decision(self, reference, version):
+    def enqueue_decision(self, reference: str, version: int) -> None:
         self.push_events.observe(reference, version)
         try:
             self.queue.enqueue("decisions", reference, version, mailbox_id=self.mailbox_of(reference))
@@ -288,7 +293,7 @@ class NotificationRuntime:
                         item.status = statuses[item.channel]
                 self.app.store.save("notification-queue", state.model_dump(mode="json"))
 
-    def run(self):
+    def run(self) -> None:
         while not self.stop_event.is_set():
             try:
                 self.tick()

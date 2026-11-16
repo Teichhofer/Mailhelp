@@ -83,7 +83,8 @@ def failure_outcome(orchestrator: Orchestrator, name: str, state: MailState,
     return ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
 
 
-def resolve_relevance(orchestrator: Orchestrator, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
+def resolve_relevance(orchestrator: Orchestrator, mail_id: str, version: int, decision: str,
+                      telegram_offset: int) -> MailState:
     name = state_names.mail(mail_id)
     state = orchestrator.store.load_model(name, MailState)
     if not isinstance(state, MailState) or state.relevance_dialog is None:

@@ -21,7 +21,7 @@ from .server import EventLogger
 
 class InitialSite:
     def __init__(self, app: WebApp, auth: WebAuth, settings: WebSettings, logger: EventLogger,
-                 setup: InitialSetup, stop: Callable[[], None]):
+                 setup: InitialSetup, stop: Callable[[], None]) -> None:
         self.app, self.auth, self.settings, self.logger = app, auth, settings, logger
         self.setup, self.stop = setup, stop
         self.checks = InitialChecks(setup)

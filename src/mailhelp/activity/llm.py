@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from copy import copy
 from datetime import date
 from typing import Any, Literal
@@ -51,7 +52,8 @@ def _clean(text: str | None, limit: int) -> str | None:
 class ActivityAnalyzer:
     """Relevance and date extraction for one report mail; nothing is written anywhere."""
 
-    def __init__(self, analyzer: Analyzer, personal_info: Any = lambda: "", *, mailbox_personal_info=None):
+    def __init__(self, analyzer: Analyzer, personal_info: Any = lambda: "", *,
+                 mailbox_personal_info: Callable[[int], str] | None = None) -> None:
         self.analyzer = copy(analyzer)
         self.client = BudgetedCompleter(analyzer.client)
         self.analyzer.client = self.client

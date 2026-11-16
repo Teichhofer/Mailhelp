@@ -14,7 +14,7 @@ from .contracts import proposal_is_writable
 class CalendarFileWriter:
     """Create a standards-based iCalendar attachment and deliver it via Telegram."""
 
-    def __init__(self, telegram: Any, chat_id: int, logger: EventLogger | None = None):
+    def __init__(self, telegram: Any, chat_id: int, logger: EventLogger | None = None) -> None:
         self.telegram, self.chat_id = telegram, chat_id
         self.logger = logger or NullLogger()
 

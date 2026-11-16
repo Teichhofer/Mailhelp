@@ -38,7 +38,7 @@ TOPIC_FILES = (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.ya
 
 
 class SettingsSite:
-    def __init__(self, archive: ArchiveSite):
+    def __init__(self, archive: ArchiveSite) -> None:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/einstellungen", self.settings), ("POST", "/einstellungen/speichern", self.save_settings),

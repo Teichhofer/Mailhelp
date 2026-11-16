@@ -279,7 +279,7 @@ class ConfigurationService:
     def __init__(self, directory: Path, store: JsonStore, active: Settings,
                  authorize: Callable[[str], bool], activate: Callable[[Settings], None],
                  activate_topics: Callable[[list[Topic]], None] = lambda topics: None,
-                 senders: JsonStore | None = None):
+                 senders: JsonStore | None = None) -> None:
         self.directory, self.store, self.active = directory, store, active
         self.authorize, self.activate = authorize, activate
         self.activate_topics = activate_topics

@@ -29,7 +29,7 @@ class DuplicatePreCheckService:
         ledger: ActionLedgerPort | None = None,
         logger: EventLogger | None = None,
         writers: dict[str, ExternalWriter] | None = None,
-    ):
+    ) -> None:
         self.writer = writer
         self.writers: dict[str, ExternalWriter] = dict(writers) if writers is not None else {}
         if isinstance(writer, TargetWriter):

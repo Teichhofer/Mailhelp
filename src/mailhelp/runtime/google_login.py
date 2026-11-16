@@ -8,11 +8,15 @@ import json
 import secrets
 import time
 import webbrowser
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 import httpx
 
+from ..config import Secrets
 from ..external.contracts import OAuthTokenError
 from ..persistence.storage import atomic_replace
 from ..proposals.target_profiles import secret_name
@@ -20,15 +24,17 @@ from ..proposals.target_profiles import secret_name
 SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendars.readonly"
 
 
-def receive_code(url_builder, *, opener=webbrowser.open, server_factory=HTTPServer, clock=time.monotonic):
+def receive_code(url_builder: Callable[[str, str, str], str], *, opener: Callable[[str], bool] = webbrowser.open,
+                 server_factory: Callable[..., HTTPServer] = HTTPServer,
+                 clock: Callable[[], float] = time.monotonic) -> tuple[str, str, str]:
     state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(64)
-    result = {}
+    result: dict[str, str] = {}
 
     class Callback(BaseHTTPRequestHandler):
-        def log_message(self, *args):
+        def log_message(self, *args: Any) -> None:
             pass
 
-        def do_GET(self):
+        def do_GET(self) -> None:
             parsed = urlsplit(self.path)
             query = parse_qs(parsed.query)
             accepted = (
@@ -60,13 +66,14 @@ def receive_code(url_builder, *, opener=webbrowser.open, server_factory=HTTPServ
     return result["code"], redirect, verifier
 
 
-def login(credentials, directory, profile=1, *, receiver=receive_code, transport=None):
+def login(credentials: Secrets, directory: Path, profile: int = 1, *,
+          receiver: Callable[..., tuple[str, str, str]] = receive_code, transport: Any = None) -> None:
     client_id = credentials.google_oauth_client_id.get_secret_value()
     client_secret = credentials.google_oauth_client_secret.get_secret_value()
     if not client_id or not client_secret:
         raise OAuthTokenError("Google OAuth Client-ID oder Client-Secret fehlt.")
 
-    def authorize(redirect, state, challenge):
+    def authorize(redirect: str, state: str, challenge: str) -> str:
         return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(
             {
                 "client_id": client_id,

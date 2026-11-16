@@ -12,7 +12,7 @@ from threading import Event, Thread
 
 class OperatorThread(Thread):
     def __init__(self, serve: Callable[[], bool], wait: Callable[[float], bool], wake: Callable[[], None],
-                 retry_seconds: float, idle_seconds: float):
+                 retry_seconds: float, idle_seconds: float) -> None:
         super().__init__(name="mailhelp-operator", daemon=True)
         # serve() handles pending input and reports whether Telegram answered normally;
         # wait() returns early when input or a web command arrives.

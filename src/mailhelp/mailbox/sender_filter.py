@@ -4,7 +4,7 @@ from __future__ import annotations
 from email.utils import getaddresses
 
 from ..domain.relevance import IrrelevantSenders, SenderRules
-from ..persistence.storage import atomic_replace
+from ..persistence.storage import JsonStore, atomic_replace
 
 
 def sender_addresses(header: object) -> set[str]:
@@ -54,7 +54,8 @@ def sender_entry(text: str) -> tuple[str, str]:
 
 
 def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: list[str],
-                              domains: list[str], mailbox_id: int | None = None, *, allow=False) -> IrrelevantSenders:
+                              domains: list[str], mailbox_id: int | None = None, *,
+                              allow: bool = False) -> IrrelevantSenders:
     """Add or remove entries idempotently; the result is validated and sorted."""
     def changed(current: list[str], entries: list[str]) -> list[str]:
         return sorted(set(current) | set(entries) if add else set(current) - set(entries))
@@ -69,7 +70,7 @@ def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: 
     return blocked.model_copy(update={"mailboxes": {**blocked.mailboxes, str(mailbox_id): updated}})
 
 
-def save_sender_filter(store, blocked: IrrelevantSenders) -> None:
+def save_sender_filter(store: JsonStore, blocked: IrrelevantSenders) -> None:
     with store.locked():
         previous = store.load("irrelevant-senders", {})
         path = store.directory / "irrelevant-senders.json"

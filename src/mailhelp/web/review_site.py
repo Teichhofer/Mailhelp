@@ -39,7 +39,7 @@ def refresh_target(request: Request) -> str:
 
 
 class ReviewSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
 
     def home(self, request: Request, session: WebSession) -> Response:

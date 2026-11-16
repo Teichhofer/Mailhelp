@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class HelpSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         self._base: HelpBase | None = None
         # The help chat (H9); without it the documentation stays readable.

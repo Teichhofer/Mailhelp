@@ -63,7 +63,7 @@ _SPECIAL_USE_ROLES = {
 class UIDValidityChanged(RuntimeError):
     """Report a new UID generation before any message body is fetched."""
 
-    def __init__(self, folder: str, previous: int, current: int):
+    def __init__(self, folder: str, previous: int, current: int) -> None:
         super().__init__(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
         self.previous = previous
         self.current = current
@@ -80,7 +80,7 @@ class StartTlsFailed(RuntimeError):
 class FolderNotReadable(RuntimeError):
     """Identify a configured mailbox that the server cannot select read-only."""
 
-    def __init__(self, folder: str):
+    def __init__(self, folder: str) -> None:
         super().__init__(f"IMAP-Ordner nicht lesbar: {folder}")
         self.folder = folder
 
@@ -238,7 +238,7 @@ def mailbox_account_id(mailbox: MailboxSettings, credentials: ImapCredentials) -
 class ImapReader:
     def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30,
                  factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25):
+                 logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25) -> None:
         # Connection material deliberately remains in memory only.  In
         # particular it is never included in events or persistent state.
         self._host, self._port = host, port

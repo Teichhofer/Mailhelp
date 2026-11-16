@@ -71,7 +71,7 @@ class CredentialUnauthorized(PermissionError):
 
 class CredentialService:
     def __init__(self, directory: Path, store: JsonStore, authorize: Callable[[str], bool],
-                 sign: Callable[[str], str]):
+                 sign: Callable[[str], str]) -> None:
         self.directory, self.store, self.authorize, self.sign = directory, store, authorize, sign
 
     def _content(self) -> str:

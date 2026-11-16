@@ -1,7 +1,9 @@
 """Add an IMAP mailbox from one authenticated form: check, save and start it without restart (3.5)."""
 from __future__ import annotations
 
-from ..config import Settings, imap_secret_names
+from typing import Any
+
+from ..config import ImapCredentials, MailboxSettings, Secrets, Settings, imap_secret_names
 from .connection_activation import ActivationProblem, ConnectionActivation
 from .imap import FolderNotReadable, account_id
 
@@ -9,10 +11,10 @@ from .imap import FolderNotReadable, account_id
 SHOWN_FOLDERS = 30
 
 
-class MailboxActivation(ConnectionActivation):
+class MailboxActivation(ConnectionActivation[MailboxSettings]):
     prefix, patch_key, area = "mailbox-activation", "imap.mailboxes", "imap"
 
-    def merged(self, saved, item):
+    def merged(self, saved: Settings, item: MailboxSettings) -> Settings:
         if saved.imap.mailbox(item.id) is not None:
             raise ActivationProblem(f"Postfach {item.id} ist bereits eingerichtet.")
         boxes = [box.model_dump(mode="json") for box in saved.imap.configured_mailboxes()]
@@ -20,13 +22,13 @@ class MailboxActivation(ConnectionActivation):
                 "mailboxes": [*boxes, item.model_dump(mode="json")]}
         return Settings.model_validate({**saved.model_dump(), "imap": imap})
 
-    def entries(self, cfg):
+    def entries(self, cfg: Settings) -> list[dict[str, Any]]:
         return [box.model_dump(mode="json") for box in cfg.imap.configured_mailboxes()]
 
-    def credentials(self, keys):
+    def credentials(self, keys: Secrets) -> dict[int, ImapCredentials]:
         return keys.imap
 
-    def probe(self, cfg, item, keys):
+    def probe(self, cfg: Settings, item: MailboxSettings, keys: Secrets) -> None:
         # Late: against the layer direction, named in tests/unit/test_layers70.py.
         from ..runtime.experience import _reader
         own = account_id(item.host, item.port, keys.imap[item.id].username)
@@ -59,7 +61,7 @@ class MailboxActivation(ConnectionActivation):
                                     "und Passwort oder App-Passwort prüfen; IMAP muss beim Anbieter "
                                     "freigeschaltet sein.") from None
 
-    def request(self, cfg, keys):
+    def request(self, cfg: Settings, keys: Secrets) -> None:
         self.runtime.app.mailbox_runtime.request(cfg, keys)
 
 

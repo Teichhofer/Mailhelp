@@ -5,10 +5,12 @@ import base64
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from contextlib import ExitStack
 from copy import copy
 from dataclasses import asdict
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, cast
@@ -40,7 +42,7 @@ if TYPE_CHECKING:
 class ComparisonRecorder(NullLogger):
     """Retain content only inside this explicitly selected comparison run."""
 
-    def __init__(self, log_path: Path, secrets: tuple[str, ...]):
+    def __init__(self, log_path: Path, secrets: tuple[str, ...]) -> None:
         self.path, self.secrets = log_path, secrets
         self.entries: list[dict[str, Any]] = []
         self.metrics: MetricsRecorder | None = None
@@ -85,7 +87,7 @@ def _raw_mail(raw: bytes, secrets: tuple[str, ...]) -> str:
 class LocalPipeline:
     """Ollama path whose relevance check runs on Laya, a local decision model."""
 
-    def __init__(self, main: Analyzer, relevance: Any):
+    def __init__(self, main: Analyzer, relevance: Any) -> None:
         self.main, self.relevance_analyzer = main, relevance
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> Any:
@@ -106,9 +108,10 @@ class DecisionTestMode:
                  settings: Settings, topics: list[Topic], report: dict[str, Any],
                  output: Path, recorder: ComparisonRecorder,
                  *, ignore_historical_start: bool = False, relevance_only: bool = False,
-                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic,
+                 save_interval: float = SAVE_INTERVAL_SECONDS, clock: Callable[[], float] = time.monotonic,
                  mailbox: MailboxSettings | None = None,
-                 sources: list[tuple[MailboxSettings, Any]] | None = None, blocked_senders=None):
+                 sources: list[tuple[MailboxSettings, Any]] | None = None,
+                 blocked_senders: IrrelevantSenders | None = None) -> None:
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
         self.mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
@@ -128,7 +131,7 @@ class DecisionTestMode:
         write_report(self.output, redact(self.report, self.recorder.secrets))
         self.saved_at = now
 
-    def _stage(self, result: dict, name: str, operation) -> Any:
+    def _stage(self, result: dict[str, Any], name: str, operation: Callable[[], Any]) -> Any:
         stage: dict[str, Any] = {"status": "running", "events": []}
         result["stages"][name] = stage
         start = len(self.recorder.entries)
@@ -144,7 +147,8 @@ class DecisionTestMode:
             stage["events"] = self.recorder.entries[start:]
             self._save()
 
-    def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
+    def _pipeline(self, record: dict[str, Any], name: str, mail: dict[str, Any],
+                  classifier: Analyzer | LocalPipeline) -> None:
         result: dict[str, Any] = {"status": "running", "stages": {}}
         record["paths"][name] = result
         if self.recorder.metrics is not None:
@@ -189,7 +193,7 @@ class DecisionTestMode:
                 elif count == 0:
                     result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
                 else:
-                    self._stage(result, stage, lambda extract=extract, count=count: extract(mail, expected_count=count))
+                    self._stage(result, stage, partial(extract, mail, expected_count=count))
         result["status"] = ("failed" if any(stage["status"] == "failed"
                                              for stage in result["stages"].values()) else "completed")
         self._save()
@@ -346,7 +350,7 @@ def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptC
     cfg = settings.timeouts.openrouter
     # Both clients share one isolated in-memory rate budget. No production checkpoint is loaded.
     calls: list[float] = []
-    def save_calls(values):
+    def save_calls(values: list[float]) -> None:
         calls[:] = values
     clients = []
     shared_lock = Lock()

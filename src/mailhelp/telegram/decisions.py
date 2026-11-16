@@ -44,7 +44,7 @@ class ProposalDecisionService:
         allowed_user: int,
         allowed_chat: int,
         configured_timezone: str = "UTC",
-    ):
+    ) -> None:
         self.store, self.repository, self.persistence = store, repository, persistence
         self.ledger, self.writes, self.telegram = ledger, writes, telegram
         self.allowed_user, self.allowed_chat = allowed_user, allowed_chat

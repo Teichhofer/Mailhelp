@@ -39,7 +39,7 @@ OTHER = "other"
 class LayaStateTooLong(ValueError):
     """Laya rejected the mail text as longer than its token window."""
 
-    def __init__(self, tokens: int, limit: int):
+    def __init__(self, tokens: int, limit: int) -> None:
         super().__init__(f"Laya: Mailtext hat {tokens} Token, erlaubt sind {limit}")
         self.tokens, self.limit = tokens, limit
 
@@ -81,7 +81,7 @@ class LayaClient(DecisionClient):
     endpoint = "/v1/systemone"
 
     def __init__(self, host: str, port: int, model: str, timeout: float, retries: int,
-                 calls_per_minute: int, **kwargs: Any):
+                 calls_per_minute: int, **kwargs: Any) -> None:
         super().__init__("", timeout, retries, calls_per_minute,
                          base_url=LocalLlm(host, port, model).base_url, **kwargs)
         self.model = model
@@ -118,7 +118,7 @@ class LayaRelevanceAnalyzer:
     """Relevance and topics from one rotated topic choice built from the relevance criteria."""
 
     def __init__(self, client: LayaClient, prompts: LayaPrompts, max_payload_bytes: int,
-                 irrelevant_topics: list[Topic]):
+                 irrelevant_topics: list[Topic]) -> None:
         self.client, self.prompts, self.max_payload_bytes = client, prompts, max_payload_bytes
         self.irrelevant = [topic for topic in irrelevant_topics if topic.enabled]
 

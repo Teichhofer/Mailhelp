@@ -58,7 +58,7 @@ class BriefingScheduler:
     def __init__(self, store: StateStore, settings: Callable[[], Settings],
                  deliver: Callable[[BriefingRun, Callable[[], None]], Outcome],
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC),
-                 report: Callable[[str, str], None] = lambda identity, status: None):
+                 report: Callable[[str, str], None] = lambda identity, status: None) -> None:
         self.store, self.settings, self.deliver = store, settings, deliver
         self.clock, self.report = clock, report
         self._lock = Lock()

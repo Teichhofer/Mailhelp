@@ -90,7 +90,7 @@ def _status(response: httpx.Response, codes: dict[int, str], default: str = "llm
 
 class SetupChecks:
     def __init__(self, directory: Path, transport: httpx.BaseTransport | None = None,
-                 reader: Callable[..., ImapReader] | None = None):
+                 reader: Callable[..., ImapReader] | None = None) -> None:
         self.directory, self.transport, self.reader = directory, transport, reader
 
     def imap(self, settings: Settings, env: dict[str, str]) -> dict[str, Any]:
