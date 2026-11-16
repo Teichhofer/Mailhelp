@@ -334,6 +334,12 @@ Empfehlung, Stand der Wiederholung und denselben Knöpfen. **Fehlerbericht anzei
 Angaben auf: Zeitpunkte, Feldpfade und Modellaufruf-IDs. **Bericht kopieren** legt den Bericht als
 Text in die Zwischenablage, etwa für die Fehlersuche; er enthält keinen Mailtext, keine Adressen und
 keine Zugangsdaten. In der Fehlerliste öffnet **Details** denselben Bericht als Dialog.
+
+Über der Fehlerliste stehen **Alle erneut versuchen** und **Alle ignorieren**. Eine
+Bestätigungsseite nennt vorher die Zahl der betroffenen Mails; erst dort wird die Aktion
+ausgelöst. Danach meldet die Liste, wie viele Mails eingereiht wurden. Mails, die sich inzwischen
+geändert haben oder schon eingereiht sind, werden übersprungen. „Alle erneut versuchen“ lässt
+Mails ohne Analyse-Daten und bereits angeforderte Versuche aus.
 Beide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine
 Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
 

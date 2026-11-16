@@ -1,6 +1,7 @@
 """7.3.2: failed mails in real browsers – report dialog in the list, copying, fallbacks without JavaScript."""
 from __future__ import annotations
 
+import threading
 from datetime import UTC, datetime
 
 import pytest
@@ -11,6 +12,7 @@ from conftest import Page, sign_in
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProcessingError
 from mailhelp.domain.retry import ProcessingRetry
+from mailhelp.web.http import Response
 from tests.scenarios.web_scenario import mail_id
 
 NOW = datetime(2026, 11, 9, 15, 15, 20, tzinfo=UTC)
@@ -66,28 +68,46 @@ def test_copying_explains_itself_when_the_clipboard_is_missing_or_refused(page, 
     expect(page.get_by_role("status").filter(has_text=message)).to_be_visible()
 
 
-@pytest.mark.parametrize("answer", [{"status": 500, "body": "Fehler"},
-                                    {"status": 200, "content_type": "text/html", "body": "<main>ohne</main>"}])
+@pytest.mark.parametrize("answer", [Response.text(500, "Fehler"),
+                                    Response.html(200, "<!doctype html><main>ohne Bericht</main>")])
 def test_a_failed_read_falls_back_to_the_mail_page(page, mailhelp, answer):
+    """The first read answers an error or a page without report; the link then navigates itself.
+
+    The answer comes from the server, not from page.route: the fallback navigates at once, and the
+    second request is held until the script coverage of the list page is taken.
+    """
     if page.device != "desktop":
         pytest.skip("Der Rückfall ist geräteunabhängig")
     fail(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/mails?state=failed")
-    target = f"{mailhelp.url}/mail/{mail_id(7)}"
-    calls = []
+    routes = mailhelp.site.app._routes
+    path = f"/mail/{mail_id(7)}"
+    index, (method, pattern, handler) = next(
+        (index, route) for index, route in enumerate(routes) if route[0] == "GET" and route[1].fullmatch(path))
+    calls, entered, release = [], threading.Event(), threading.Event()
 
-    def once(route):
-        calls.append(route.request.url)
+    def staged(*args, **kwargs):
+        calls.append(1)
         if len(calls) == 1:
-            route.fulfill(**answer)
-        else:
-            route.continue_()
-    page.route(target, once)
-    page.get_by_role("link", name="Details", exact=True).first.click()
-    page.wait_for_url(target + "#fehlerbericht")
+            return answer
+        entered.set()
+        release.wait(10)
+        return handler(*args, **kwargs)
+    routes[index] = (method, pattern, staged)
+    try:
+        page.get_by_role("link", name="Details", exact=True).first.click(no_wait_after=True)
+        for _ in range(200):
+            if entered.is_set():
+                break
+            page.wait_for_timeout(50)
+        assert entered.is_set() and len(calls) == 2
+        page.collect()
+    finally:
+        routes[index] = (method, pattern, handler)
+        release.set()
+    page.wait_for_url(mailhelp.url + path + "#fehlerbericht")
     expect(page.get_by_role("heading", name="Verarbeitungsfehler")).to_be_visible()
-    assert len(calls) == 2
 
 
 def test_without_javascript_the_details_link_leads_to_the_report(browser, mailhelp):
@@ -103,3 +123,24 @@ def test_without_javascript_the_details_link_leads_to_the_report(browser, mailhe
         expect(page.get_by_role("heading", name="Verarbeitungsfehler")).to_have_count(0)
     finally:
         context.close()
+
+
+def test_all_failed_mails_are_ignored_after_a_confirmation(page, mailhelp):
+    """7.3.3: the batch names the count before anything happens and returns to the list."""
+    fail(mailhelp, 7)
+    fail(mailhelp, 2)
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + "/mails?state=failed")
+    page.get_by_role("link", name="Alle ignorieren", exact=True).click()
+    expect(page.get_by_text("Möchtest du alle 2 fehlgeschlagenen Mails als nicht verarbeitet ablegen?")).to_be_visible()
+    assert audit(page, "sammelaktion-" + page.device, page.mobile) == []
+    page.get_by_role("button", name="Alle ignorieren", exact=True).click()
+    expect(page.get_by_text("2 Mails eingereiht.")).to_be_visible()
+    # The operator thread executes the queued commands; reload until both left the list.
+    for _ in range(50):
+        page.reload()
+        if page.get_by_role("link", name="Details", exact=True).count() == 0:
+            break
+        page.wait_for_timeout(200)
+    expect(page.get_by_role("link", name="Details", exact=True)).to_have_count(0)
+    assert page.errors == []

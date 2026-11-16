@@ -2,7 +2,7 @@
 
 **Zielversion:** 7.3, Umsetzung in Patchversionen ab 7.3.1  
 **Stand:** 16. November 2026  
-**Status:** In Umsetzung ab 7.3.1 (16. November 2026); Stand in [Release 7.3](Release-7.3.md).  
+**Status:** Umgesetzt in 7.3.1 bis 7.3.3 (16. November 2026); Abnahme und Abweichungen in [Release 7.3](Release-7.3.md).  
 **Ausgangsstand:** 7.0 / 7.1; nach Abschluss von 7.1 und 7.2 gegen den aktuellen Stand abgleichen.  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 7.1](Planung-7.1.md), [Planung 7.2](Planung-7.2.md).
 

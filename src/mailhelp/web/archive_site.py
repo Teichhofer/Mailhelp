@@ -15,6 +15,7 @@ from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries
 from ..runtime.lifecycle import Lifecycle
 from ..support.metrics import MetricsRecorder
+from .failure_batch import FailureBatchSite
 from .help_site import HelpSite
 from .history_site import HistorySite
 from .http import Request, Response
@@ -35,6 +36,7 @@ class ArchiveSite:
         self.models = models or []
         self.queries = ArchiveQueries(site.views.store, site.configured_timezone)
         self.mail_archive = MailArchiveSite(self)
+        self.failure_batch = FailureBatchSite(self)
         self.history = HistorySite(self)
         self.proposal_edit = ProposalEditSite(self)
         self.settings = SettingsSite(self)

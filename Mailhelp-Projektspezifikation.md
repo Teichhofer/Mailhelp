@@ -12,7 +12,9 @@ Aktionen sind versionsgebunden (`analysis_round`), CSRF-geschützt und idempoten
 führt das Ergebnis zurück zur Liste. Eine Mail mit angefordertem Versuch bleibt bis zur Verarbeitung
 gekennzeichnet in der Liste. Berichte enthalten keine Mailinhalte oder Geheimnisse. Seit 7.3.2 steht
 der Fehler als Karte oben auf der Mailseite mit aufklappbarem, kopierbarem Bericht; „Details“ in der
-Liste öffnet ihn als Dialog und führt ohne JavaScript zur Mailseite.
+Liste öffnet ihn als Dialog und führt ohne JavaScript zur Mailseite. Seit 7.3.3 wirken „Alle erneut
+versuchen“ und „Alle ignorieren“ nach einer Bestätigungsseite auf alle angezeigten fehlgeschlagenen
+Mails (höchstens 200), je Mail als eigener versionsgebundener Befehl über die normale Warteschlange.
 
 ## Ergänzung 7.2: Google Tasks und Notion als Aufgabenziele
 

@@ -180,3 +180,78 @@ def test_an_old_error_without_counter_or_command_still_offers_a_retry(web):
 
 def test_an_unknown_mail_has_no_error_card(web):
     assert web.site.archive.mail_archive.failure_card("f" * 24, "Betreff", "csrf") == ""
+
+
+def batch_form(web, action):
+    import re
+    page = web.browser.request("GET", f"/mails/fehler/alle?aktion={action}").body.decode()
+    block = re.search(r'<form method="post" action="/mails/fehler/alle"[^>]*>(.*?)</form>', page, re.S).group(1)
+    return page, dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', block))
+
+
+@pytest.mark.parametrize(("action", "kind"), [("retry", "retry_mail"), ("ignore", "file_mail")])
+def test_a_batch_action_confirms_the_count_and_queues_one_command_per_mail(web, action, kind):
+    """7.3.3: bound to the mails and rounds the user saw; executed through the normal queue."""
+    fail(web, 7)
+    fail(web, 2)
+    listing = web.browser.request("GET", "/mails?state=failed").body.decode()
+    assert f'href="/mails/fehler/alle?aktion={action}"' in listing
+    page, form = batch_form(web, action)
+    assert "alle 2 fehlgeschlagenen Mails" in page and form["aktion"] == action
+    queued = web.browser.request("POST", "/mails/fehler/alle", form)
+    assert queued.status == 303 and queued.headers["Location"] == "/mails?state=failed&eingereiht=2&von=2"
+    assert web.browser.request("POST", "/mails/fehler/alle", form).headers["Location"].endswith("eingereiht=0&von=2")
+    web.run()
+    entries = [entry for entry in web.commands._entries() if entry.command.kind.value == kind]
+    assert len(entries) == 2 and all(entry.result.status.value == "done" for entry in entries)
+    notice_page = web.browser.request("GET", queued.headers["Location"]).body.decode()
+    assert "2 Mails eingereiht." in notice_page
+
+
+def test_a_mail_changed_after_the_confirmation_is_skipped(web):
+    fail(web, 7)
+    fail(web, 2)
+    _page, form = batch_form(web, "ignore")
+    state = web.store.load_model("mail-" + mail_id(2), MailState)
+    state.analysis_round += 1
+    web.store.save("mail-" + mail_id(2), state.model_dump(mode="json"))
+    location = web.browser.request("POST", "/mails/fehler/alle", form).headers["Location"]
+    assert location.endswith("eingereiht=1&von=2")
+    assert "1 übersprungen (bereits eingereiht oder inzwischen geändert)." in         web.browser.request("GET", location).body.decode()
+
+
+def test_retrying_all_skips_requested_and_non_retryable_mails(web, monkeypatch):
+    fail(web, 7, retry=False)  # already requested
+    page = web.browser.request("GET", "/mails/fehler/alle?aktion=retry").body.decode()
+    assert "Keine fehlgeschlagene Mail ist für diese Aktion offen." in page
+    assert 'action="/mails/fehler/alle"' not in page
+    listing = web.browser.request("GET", "/mails?state=failed").body.decode()
+    assert "aktion=retry" in listing  # the links stay; the confirmation explains there is nothing to do
+    assert "alle 1 fehlgeschlagenen Mails" in web.browser.request("GET", "/mails/fehler/alle?aktion=ignore").body.decode()
+
+
+@pytest.mark.parametrize("change", [{"aktion": "loeschen"}, {"key": "x"}, {"mails": ""},
+                                    {"mails": "kaputt"}, {"mails": ",".join(["a" * 24 + ":1"] * 201)}])
+def test_forged_batch_requests_are_refused(web, change):
+    fail(web, 7)
+    _page, form = batch_form(web, "ignore")
+    assert web.browser.request("POST", "/mails/fehler/alle", {**form, **change}).status == 422
+
+
+def test_an_unknown_batch_action_and_odd_result_parameters(web):
+    assert web.browser.request("GET", "/mails/fehler/alle?aktion=loeschen").status == 422
+    page = web.browser.request("GET", "/mails?state=failed&eingereiht=x&von=2").body.decode()
+    assert "eingereiht." not in page
+    assert "batch" not in web.browser.request("GET", "/mails").body.decode()
+
+
+def test_a_full_queue_stops_the_batch(web, monkeypatch):
+    from mailhelp.review.inbox import CommandInboxFull
+    fail(web, 7)
+    fail(web, 2)
+    _page, form = batch_form(web, "ignore")
+
+    def full(command):
+        raise CommandInboxFull("voll")
+    monkeypatch.setattr(web.site.commands, "submit", full)
+    assert web.browser.request("POST", "/mails/fehler/alle", form).headers["Location"].endswith("eingereiht=0&von=2")

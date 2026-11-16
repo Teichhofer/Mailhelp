@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.3.3 – Fehlgeschlagene Mails: Sammelaktionen
+
+- „Alle erneut versuchen“ und „Alle ignorieren“ über der Fehlerliste, mit Bestätigung der Anzahl;
+  jede Mail erhält einen eigenen, versionsgebundenen Befehl, geänderte Mails werden übersprungen.
+- Abnahme von 7.3.
+
 ## 7.3.2 – Fehlgeschlagene Mails: Fehlerbericht und Fehlerkarte
 
 - Die Mailseite zeigt einen Fehler ganz oben mit Ursache, Empfehlung und Aktionen; der vollständige

@@ -123,6 +123,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/serie/…` | Termine einer Serie gemeinsam bestätigen | [Bedienung](Bedienung.md) |
 | `/aktion/…` | Fortschritt einer Aktion | [Bedienung](Bedienung.md) |
 | `/mails` | Mailarchiv | [Bedienung](Bedienung.md) |
+| `/mails/fehler/alle` | Sammelaktion für fehlgeschlagene Mails (7.3.3) | [Bedienung](Bedienung.md) |
 | `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | [Bedienung](Bedienung.md) |
 | `/abgleich` | Vorschlagsabgleich | [Bedienung](Bedienung.md) |
 | `/verlauf` | Verlauf und Revisionen | [Bedienung](Bedienung.md) |

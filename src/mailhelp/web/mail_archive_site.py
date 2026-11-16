@@ -15,11 +15,22 @@ from ..review.queries import ArchiveQuery
 from .actions import failure_forms, result_kind
 from .archive_pages import analysis_section, mail_list_page, processing_path_section, revisions_list
 from .auth import WebSession
+from .failure_batch import batch_links
 from .http import Request, Response
 from .pages import e, layout, notice
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
+
+
+def _batch_result(queued: str, total: str) -> str:
+    """7.3.3: how many mails a batch action queued; the rest had changed or were handled meanwhile."""
+    if not (queued.isdigit() and total.isdigit()):
+        return ""
+    skipped = int(total) - int(queued)
+    text = f"{queued} Mails eingereiht." + (
+        f" {skipped} übersprungen (bereits eingereiht oder inzwischen geändert)." if skipped > 0 else "")
+    return notice(text, "ok" if skipped <= 0 else "info")
 
 
 class MailArchiveSite:
@@ -31,12 +42,15 @@ class MailArchiveSite:
         queries = self.archive.queries
         try:
             parameters = self.archive.parameters(request)
-            result = self._result(parameters.pop("ergebnis", ""), session)
+            result = self._result(parameters.pop("ergebnis", ""), session) + _batch_result(
+                parameters.pop("eingereiht", ""), parameters.pop("von", ""))
             query = ArchiveQuery.model_validate(parameters)
         except ValueError:
             return self.site._reply(request, 422, "Ungültige Suche oder Filter.")
         items, total = queries.search(query)
         topics = sorted({topic for item in queries.items() for topic in item["topics"]})
+        if query.state == "failed":
+            result += batch_links(items)
         page = mail_list_page(query, items, total, queries.damaged, topics, self.site.configured_timezone,
                               queries.mailboxes, self.site.auth.csrf_token(session.id), result=result)
         return Response.html(200, layout("Mails", page, active="/mails"))
