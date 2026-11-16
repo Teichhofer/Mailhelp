@@ -29,8 +29,9 @@ Save = Callable[[str, int, dict[str, Any], int, str], None]
 
 class NotionSite:
     def __init__(self, site: Any, directory: Path, context: Context, save: Save,
-                 transport: httpx.BaseTransport | None = None) -> None:
+                 transport: httpx.BaseTransport | None = None, setup_path: str = "/einrichtung") -> None:
         self.site, self.directory, self.context, self.save, self.transport = site, directory, context, save, transport
+        self.setup_path = setup_path
         for method, path, handler in (("GET", "/notion/datenquelle", self.sources),
                                       ("POST", "/notion/datenquelle", self.choose_source),
                                       ("GET", "/notion/zuordnung", self.mapping),
@@ -132,4 +133,4 @@ class NotionSite:
                       int(form["version"]), form["key"])
         except Exception:
             return self.failed()
-        return Response.redirect("/einrichtung/start")
+        return Response.redirect(self.setup_path)

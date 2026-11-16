@@ -169,3 +169,54 @@ Prüfung 7.2.5: Der erste Lauf fand eine nicht abgedeckte Zeile (Erneuerung nach
 OAuth-Anmeldung); mit dem ergänzten Test 5 649 Python-Tests und 100 % Zeilen- und Branch-Abdeckung.
 Browser 931 bestanden; die bekannten Polling-Tests nach abgelaufener Sitzung und ein Push-Test
 scheiterten unter Last und bestanden danach zweimal einzeln.
+
+## 7.2.6 – Browserprüfung, Korrekturen und Abnahme (P5)
+
+- **Fehlerkorrektur:** Nach einer Auswahl (Google-Kalender, Google-Tasks-Liste, Notion) leitete
+  die eingerichtete Anwendung auf `/einrichtung/start` weiter. Diese Adresse gibt es nur in der
+  Ersteinrichtung; man landete auf einer 404-Seite. Jetzt führt die Auswahl im Betrieb zum Entwurf
+  unter `/einrichtung`, in der Ersteinrichtung weiter zu `/einrichtung/start`; ebenso der Verweis
+  „Zur Einrichtung“ der Anmeldestatusseite. Regressionstests in
+  `tests/profiles/test_browser_accounts.py`, `tests/profiles/test_notion_selection.py` und
+  `tests/web/test_initial_web.py`.
+- **Browserprüfung Notion** (`ui_tests/test_ui_notion.py`): Datenquelle wählen, Eigenschaften
+  zuordnen und als Entwurf speichern auf Desktop, Telefon und schmaler Ansicht in Chrome und auf
+  einem iPhone-Profil in WebKit; nur passende Eigenschaftstypen werden angeboten, ein manipulierter
+  Wert wird vom Server abgelehnt; Barrierefreiheitsprüfung der Zuordnungsseite.
+- **Wacklige Browsertests behoben:** Die Polling-Tests nach abgelaufener Sitzung warteten beim
+  Seitenaufruf auf `DOMContentLoaded` bzw. `load`, obwohl die Seite sofort zu `/anmelden`
+  weiterleitet; unter Last kam die Weiterleitung zuerst, und der Aufruf lief in sein Zeitlimit.
+  Sie warten jetzt nur auf die Antwort (`commit`) und dann auf die Weiterleitung. Der Push-Test
+  wartete nach dem dritten Klick auf einen Text, der schon vom vorherigen Klick dastand; er wartet
+  jetzt auf die Wirkung des Klicks. Die Anwendung war in keinem Fall betroffen.
+
+### Abnahme 7.2
+
+| Schritt | Nachweis | Ergebnis |
+| :--- | :--- | :--- |
+| P1 | Verträge, Fähigkeiten, neutrales Lesemodell, Konfiguration ohne Migration | erfüllt (7.2.1) |
+| P2 | Google Tasks: Adapter, Rechte, Listenwahl, Datum, Aufträge, Abgleich | erfüllt (7.2.1, 7.2.2) |
+| P3 | Notion: Adapter, interne Verbindung, Datenquelle, Zuordnung, Anlage, Abgleich | erfüllt (7.2.3, 7.2.4) |
+| P4 | Notion-OAuth mit Erneuerung und Arbeitsbereichsbindung; Web, Telegram, Meldungen | erfüllt (7.2.5) |
+| P5 | Übersichten, Dublettenprüfung, Demo, Migration, Dokumentation, Abnahme | erfüllt bis auf die reale Abnahme |
+
+**Abweichungen und offene Punkte.**
+
+1. *Reale Abnahme je Anbieter* (Plan 10): Es gibt kein freigegebenes Testkonto für Google Tasks
+   oder Notion. Alle Prüfungen laufen gegen simulierte Dienste nach den am 16. November 2026
+   abgeglichenen Unterlagen. Vor dem produktiven Einsatz ist je Anbieter eine Anlage mit einem
+   eigenen Testziel und versionsbezogener Freigabe nötig; das ist ausdrücklich nicht erledigt.
+2. *Hinweis auf fehlendes Notion-Statusfeld in der Vorschau:* Die Einschränkung steht auf der
+   Zuordnungsseite, in der Anleitung und im Adapter (`limitation`), aber nicht auf jeder Karte, weil
+   die Karte die Zuordnung des Profils nicht kennt.
+3. *Notion in der Ersteinrichtung:* Dort ist keine Zuordnung möglich; Notion wird nach der
+   Ersteinrichtung unter Zielprofile eingerichtet.
+4. *Demo:* Die Demo baut keine Schreibziele und bietet keine Anbieterwahl; Google Tasks und Notion
+   sind dort weder erreichbar noch nötig. Die Netzwerkfalle aus 7.1.5 gilt unverändert.
+5. *Rückkehr zu 7.1:* Vorher Aufgabendienst auf einen bisherigen Anbieter stellen und offene oder
+   unklare Google-Tasks- bzw. Notion-Aufträge klären. 7.1 kennt die Werte `google_tasks` und
+   `notion` nicht und startet mit ihnen nicht; `notion-token.json` bleibt unberührt liegen.
+
+Prüfung 7.2.6: 5 650 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung. Browser 941 bestanden;
+die drei behobenen Tests bestanden im Gesamtlauf. Einmal scheiterte unter Last nur der
+Zeitmesstest der Live-Suche (300 ms in 95 % von 100 Suchen); er bestand danach einzeln.

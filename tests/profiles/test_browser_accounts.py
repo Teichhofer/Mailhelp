@@ -28,7 +28,11 @@ def test_account_routes_use_current_credentials_and_versioned_profile_drafts(con
         assert response.status==200
         form=web.form(f'/auth/google/{resource}?profile={number}',action=f'/auth/google/{resource}')
         form['calendar']='chosen'
-        assert web.browser.request('POST',f'/auth/google/{resource}',form).status==303
+        saved=web.browser.request('POST',f'/auth/google/{resource}',form)
+        # Regression 7.2.6: the configured app shows its draft at /einrichtung; /einrichtung/start
+        # exists only in the initial setup and answered 404 after every selection.
+        assert saved.status==303 and saved.headers['Location']=='/einrichtung'
+        assert web.browser.request('GET',saved.headers['Location']).status==200
         state=c.runtime.setup.state()
         assert ('targets.'+field in state.patch) if number==1 else state.patch['target_profiles'][0][field]=='chosen'
         c.runtime.setup.discard('web:'+web.auth.sessions()[0].id,state.version,'discard-key-'+str(number))

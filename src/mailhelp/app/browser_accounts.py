@@ -50,6 +50,6 @@ def attach_accounts(app: Any, site: Any, directory: Path) -> None:
         setup = site.setup_page.runtime.setup
         return target_profiles(setup.draft_settings())[profile], setup.state().version
 
-    OAuthSite(site, service, calendar_context, save_calendar)
+    OAuthSite(site, service, calendar_context, save_calendar, "/einrichtung")
     NotionSite(site, directory, targets_context, save_targets)
     app.services.oauth = service

@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.2.6 – Abschluss von 7.2
+
+- Fehlerkorrektur: Nach der Auswahl eines Google-Kalenders, einer Google-Tasks-Liste oder einer
+  Notion-Zuordnung führt die laufende Anwendung zum Entwurf statt auf eine 404-Seite.
+- Browserprüfung der Notion-Auswahl in Chrome und WebKit; drei wacklige Browsertests behoben.
+- Abnahmebericht 7.2; reale Abnahme mit Testkonten bleibt offen.
+
 ## 7.2.5 – Notion-Anmeldung mit OAuth
 
 - „Notion verbinden“ meldet eine öffentliche Notion-Verbindung an; die rotierenden Tokens liegen

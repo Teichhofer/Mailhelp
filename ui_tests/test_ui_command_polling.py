@@ -88,8 +88,10 @@ def test_expired_status_poll_redirects_without_reposting(page, mailhelp, navigat
         status=200, content_type="text/html", body=layout("Aktion läuft",
             '<div data-command-status="/api/aktion/' + "a" * 32 + '"></div>')))
     target = mailhelp.url + "/aktion/" + "a" * 32
+    # The page polls at once and leaves for /anmelden, possibly before DOMContentLoaded of this
+    # document; waiting for that event raced with the redirect and timed out under load.
     with page.expect_request(mailhelp.url + "/anmelden"):
-        page.goto(target, wait_until="domcontentloaded")
+        page.goto(target, wait_until="commit")
     if navigation_fails:
         page.wait_for_timeout(1100)
         expect(page.page).to_have_url(target)

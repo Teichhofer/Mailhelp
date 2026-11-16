@@ -169,3 +169,18 @@ def test_notion_sign_in_through_the_browser(initial):
     assert callback.status==303 and b'Notion-Anmeldung gespeichert' in status and b'/notion/datenquelle?profile=1' in status
     assert (h.directory/'notion-token.json').exists()
     assert b.request('GET',f'/auth/notion/callback?state={state}&error=access_denied').status==409
+
+
+def test_the_status_page_links_to_the_draft_of_the_running_mode(initial):
+    """Regression 7.2.6: the link is a real address, in the initial setup /einrichtung/start."""
+    h=initial
+    h.advance()
+    with (h.directory/'.env').open('a') as stream:
+        stream.write('NOTION_CLIENT_ID=c\nNOTION_CLIENT_SECRET=s\n')
+    h.oauth.transport=httpx.MockTransport(lambda req:httpx.Response(200,json={
+        'access_token':'na','refresh_token':'nr','workspace_id':'w','bot_id':'b'}))
+    b=browser(h)
+    job=h.oauth.start('notion',h.actor,1,'status-link-key-1',h.oauth.revision(1,'notion'))
+    h.oauth.notion_callback(job.id,h.actor,'code')
+    page=b.request('GET','/auth/status/'+job.id).body.decode()
+    assert 'href="/einrichtung/start"' in page and 'setup_path' not in page

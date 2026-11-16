@@ -72,8 +72,9 @@ def test_an_expired_session_while_a_card_polls_returns_to_sign_in(page, mailhelp
         submit(mailhelp, "synthetic-expired-1")
         page.route("**/api/aktion/*", lambda route: route.fulfill(status=401, body="{}"))
         abort_documents(page, "**/anmelden")
+        # The redirect may start before "load"; waiting for it raced with the navigation under load.
         with page.expect_request(documents("/anmelden"), timeout=10000):
-            page.goto(f"{mailhelp.url}/")
+            page.goto(f"{mailhelp.url}/", wait_until="commit")
         page.collect()
     finally:
         release.set()
@@ -88,7 +89,7 @@ def test_a_card_polled_on_its_detail_page_returns_to_the_overview(page, mailhelp
         entry = submit(mailhelp, "synthetic-detail-1")
         abort_documents(page, f"{mailhelp.url}/?aktion=*")
         with page.expect_request(documents(f"/?aktion={entry.id}"), timeout=10000):
-            page.goto(f"{mailhelp.url}/vorschlag/{MAIL}/formular")
+            page.goto(f"{mailhelp.url}/vorschlag/{MAIL}/formular", wait_until="commit")
         page.collect()
     finally:
         release.set()

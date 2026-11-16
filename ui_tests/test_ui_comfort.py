@@ -294,8 +294,9 @@ def test_web_push_opt_in_on_the_settings_page(page, mailhelp):
     # Regression B1: only a proven foreign server key replaces the subscription.
     page.evaluate("window.__push.existing.options.applicationServerKey = new Uint8Array(65).buffer")
     enable.click()
+    # The status already shows the text of the previous click; wait for this click's effect itself.
+    page.wait_for_function("window.__push.unsubscribed === 1")
     expect(status).to_have_text("Push ist auf diesem Gerät aktiviert.")
-    assert page.evaluate("window.__push.unsubscribed") == 1
     page.evaluate("json => { window.__push.existing = window.__subscription(json); "
                   "window.__push.existing.options = window.__push.options; }",
                   subscription_json("https://evil.example/push"))

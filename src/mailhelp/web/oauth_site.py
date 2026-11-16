@@ -19,8 +19,10 @@ from .pages import e, error_page, layout
 class OAuthSite:
     def __init__(self, site: Any, service: BrowserOAuth,
                  calendar_context: Callable[[int, str], tuple[str, int]],
-                 save_calendar: Callable[[str, int, str, int, str, str], None]) -> None:
-        self.site, self.service = site, service
+                 save_calendar: Callable[[str, int, str, int, str, str], None],
+                 setup_path: str = "/einrichtung/start") -> None:
+        # Where the draft is shown: the initial setup or, in a configured app, /einrichtung.
+        self.site, self.service, self.setup_path = site, service, setup_path
         self.calendar_context, self.save_calendar = calendar_context, save_calendar
         for method, path, handler in (
             ("GET", "/hilfe/google-playground", self.guide),
@@ -149,11 +151,11 @@ class OAuthSite:
                      f'<p><a href="{e(job.uri)}" target="_blank" rel="noreferrer">'
                      'Bei Microsoft anmelden</a></p></section>')
         if job.status == "done" and job.provider == "notion":
-            body += ('<p>Notion-Anmeldung gespeichert.</p><p><a href="/einrichtung/start">Zur Einrichtung</a> · '
+            body += (f'<p>Notion-Anmeldung gespeichert.</p><p><a href="{e(self.setup_path)}">Zur Einrichtung</a> · '
                      f'<a href="/notion/datenquelle?profile={job.profile}">Notion-Datenquelle auswählen</a></p>')
         elif job.status == "done":
             body += ('<p>Anmeldung gespeichert. Nach dem nächsten Neustart nutzt der Mailabruf die neuen Daten.</p>'
-                     '<p><a href="/einrichtung/start">Zur Einrichtung</a> · '
+                     f'<p><a href="{e(self.setup_path)}">Zur Einrichtung</a> · '
                      f'<a href="/auth/google/kalender?profile={job.profile}">Google-Kalender auswählen</a> · '
                      f'<a href="/auth/google/aufgabenlisten?profile={job.profile}">'
                      'Google-Tasks-Liste auswählen</a></p>')
@@ -202,4 +204,4 @@ class OAuthSite:
                                "google_tasks_list" if tasks else "google_calendar")
         except Exception:
             return self.failed()
-        return Response.redirect("/einrichtung/start")
+        return Response.redirect(self.setup_path)

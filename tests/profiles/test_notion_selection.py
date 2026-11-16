@@ -77,7 +77,8 @@ def test_a_data_source_and_its_mapping_become_a_settings_draft(notion, number):
     assert "Aufgabe (title)" in page and "Status: Fertig" in page and "Frist (date)" in page
     response = submit(c, f"/notion/zuordnung?profile={number}",
                       {**MAPPING, "status": "s1", "open": "o1", "done_o2": "1"})
-    assert response.status == 303
+    assert response.status == 303 and response.headers["Location"] == "/einrichtung"
+    assert c.web.browser.request("GET", "/einrichtung").status == 200
     patch = c.runtime.setup.state().patch
     values = ({key.removeprefix("targets."): value for key, value in patch.items()} if number == 1
               else patch["target_profiles"][0])
