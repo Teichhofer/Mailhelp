@@ -17,6 +17,14 @@ PAIR_COOKIE = "mh_pair"
 PAIR_COOKIE_SECONDS = 15 * 60
 
 
+def cookie(request: Request, name: str, value: str, max_age: int) -> str:
+    # Only a host name (Tailscale Serve) is reached over HTTPS; the local
+    # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
+    hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
+    secure = "; Secure" if not _ip_or_localhost(hostname) else ""
+    return f"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
+
+
 class LoginHost(Protocol):
     auth: WebAuth
     settings: WebSettings
@@ -31,11 +39,7 @@ class LoginSite:
         self.site = site
 
     def _cookie(self, request: Request, name: str, value: str, max_age: int) -> str:
-        # Only a host name (Tailscale Serve) is reached over HTTPS; the local
-        # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
-        hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
-        secure = "; Secure" if not _ip_or_localhost(hostname) else ""
-        return f"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
+        return cookie(request, name, value, max_age)
 
     def _signed_out(self, request: Request, location: str = "/anmelden") -> Response:
         response = Response.redirect(location)

@@ -105,7 +105,9 @@ def test_helpers_are_imported_through_their_package_only():
 # 7.0.9: the bodies of Application and Orchestrator methods live in modules next to their classes.
 TELEGRAM_CLIENTS = {"app/application.py", "app/access_checks.py", "app/run_loop.py", "app/composition.py",
                     "processing/orchestrator_failures.py", "processing/orchestrator_proposals.py", "review/service.py",
-                    "app/service_coordinator.py"}
+                    "app/service_coordinator.py",
+                    # 7.1: the demo assembles the same dialog (test mode, no Telegram, local targets).
+                    "app/demo.py"}
 
 
 def telegram_importers() -> set[str]:

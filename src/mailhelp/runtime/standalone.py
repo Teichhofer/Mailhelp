@@ -23,6 +23,9 @@ class DisabledTelegram:
         self.stopped.wait(30 if timeout is None else timeout)
         return []
 
+    def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None:
+        return None
+
     def answer_callback(self, callback_id: str, text: str) -> None:
         # Without Telegram no button can be pressed; the receiver contract still holds.
         return None

@@ -143,3 +143,32 @@ def test_a_failed_windows_restart_is_reported(monkeypatch, capsys):
     monkeypatch.setattr(cli.subprocess, "Popen", unavailable)
     assert cli.main() == 1
     assert "Neustart fehlgeschlagen" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("flag", ["--demo", "-demo"])
+@pytest.mark.parametrize("windows", [False, True])
+def test_a_restart_keeps_every_start_parameter_also_in_the_demo_mode(monkeypatch, flag, windows):
+    """7.1: a restart from the web interface starts the same mode again, e.g. the demo."""
+    arguments = ["mailhelp", flag, "--config-directory", "C:/Demo mit Leerzeichen"]
+    monkeypatch.setattr(sys, "argv", arguments)
+    monkeypatch.setattr(cli, "_WINDOWS", windows)
+    monkeypatch.delenv(cli.RESTART_CHILD, raising=False)
+    monkeypatch.setattr(cli, "_main", lambda: cli.RESTART_EXIT_CODE)
+    started = []
+
+    def execute(executable, argv):
+        started.append(argv)
+        raise SystemExit(0)
+
+    def popen(command, env):
+        started.append(command)
+        return Child(0)
+
+    monkeypatch.setattr(cli.os, "execv", execute)
+    monkeypatch.setattr(cli.subprocess, "Popen", popen)
+    if windows:
+        assert cli.main() == 0
+    else:
+        with pytest.raises(SystemExit):
+            cli.main()
+    assert started == [[sys.executable, "-c", CODE, flag, "--config-directory", "C:/Demo mit Leerzeichen"]]

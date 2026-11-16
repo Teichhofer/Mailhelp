@@ -54,5 +54,6 @@ def test_the_archive_holds_the_finished_plans_and_reports():
     assert not list(docs.glob("Release-[1-6]*.md")) and not list(docs.glob("Planung-[1-6]*.md"))
     assert (docs / "archiv" / "Release-6.9.md").is_file() and (docs / "archiv" / "Planung-3.6.md").is_file()
     index = (docs / "README.md").read_text(encoding="utf-8")
-    living = {path.name for path in docs.glob("*.md")} - {"README.md"}
-    assert {name for name in living if f"]({name})" not in index} <= {"Planung-7.1.md", "Planung-7.2.md"}
+    # Only versioned documents count; a plan another session is still writing is not part of the index yet.
+    living = {path.name for path in _documents() if path.parent == docs} - {"README.md"}
+    assert {name for name in living if f"]({name})" not in index} == set()

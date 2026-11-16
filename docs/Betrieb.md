@@ -48,6 +48,14 @@ ohne Prozessneustart.
 Speichern oder Aktivieren legt nie Aufgaben oder Termine an; dafür ist immer die ausdrückliche
 Bestätigung eines Vorschlags nötig.
 
+## Demo-Instanz
+
+`mailhelp --demo --config-directory <leeres Verzeichnis>` startet eine Demo mit 30 vorbereiteten
+Beispielmails, ohne Postfach, Telegram, KI oder echte Ziele. Jede Besucherin und jeder Besucher
+erhält über „Demo starten“ eine eigene Kopie für zwei Stunden; Bestätigungen werden nur simuliert.
+Port und Hostnamen: `MAILHELP_DEMO_PORT`, `MAILHELP_DEMO_HOST`, `MAILHELP_DEMO_ALLOWED_HOSTS`.
+Ein Verzeichnis einer normalen Installation lehnt die Demo ab und umgekehrt.
+
 ## Sicherung
 
 Für eine konsistente Sicherung zuerst den Dienst kontrolliert beenden. Erst nach dem

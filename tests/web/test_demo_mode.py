@@ -2,19 +2,13 @@
 from __future__ import annotations
 
 import json
+from threading import Event
 from types import SimpleNamespace
 
 import pytest
 
 from mailhelp import cli
 from mailhelp.app import demo
-from mailhelp.persistence.storage import JsonStore
-from mailhelp.web.app import WebApp
-from mailhelp.web.demo_site import DEMO_NOTICE, DemoSite
-from mailhelp.web.http import Request
-
-HOST = "localhost:8765"
-
 
 def test_an_empty_directory_becomes_a_demo_directory_and_stays_one(tmp_path):
     runtime = tmp_path / "neu" / "demo"
@@ -59,17 +53,6 @@ def test_settings_come_from_the_environment_and_default_to_local_access():
     assert custom.allowed_hosts == ["localhost:9000", "127.0.0.1:9000", "demo.example.org", "www.example.org"]
 
 
-def test_the_demo_login_page_offers_no_code_telegram_or_password(tmp_path):
-    with JsonStore(tmp_path / "data") as store:
-        app = WebApp([HOST])
-        DemoSite(app, store, "s" * 40, SimpleNamespace(event=lambda *args, **kwargs: None))
-        root = app(Request("GET", "/", {"host": HOST}))
-        page = app(Request("GET", "/anmelden", {"host": HOST})).body.decode("utf-8")
-    assert root.status == 303 and root.headers["Location"] == "/anmelden"
-    assert "Gerät koppeln" in page and DEMO_NOTICE in page
-    assert "Telegram senden" not in page and "--pair" not in page and 'type="password"' not in page
-
-
 def test_run_demo_serves_until_stopped_and_refuses_a_foreign_directory(tmp_path, monkeypatch):
     started = []
 
@@ -95,6 +78,13 @@ def test_run_demo_serves_until_stopped_and_refuses_a_foreign_directory(tmp_path,
     messages.clear()
     assert demo.run_demo(tmp_path / "normal", shutdown, emit=messages.append) == 2
     assert messages[0].startswith("Demo nicht gestartet:")
+
+
+def test_the_worker_executes_actions_until_the_instance_stops():
+    stopped, calls = Event(), []
+    runtimes = SimpleNamespace(work=lambda: (calls.append(1), stopped.set()))
+    demo._work(runtimes, stopped)
+    assert calls == [1]
 
 
 @pytest.mark.parametrize("flag", ["--demo", "-demo"])

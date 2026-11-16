@@ -76,3 +76,39 @@ stimmten nicht mehr.
 
 Prüfung: 5 482 Python-Tests mit voller Abdeckung; Browser 921 bestanden, zwei Lastfehler
 (Live-Suche und ein weiterer) bestanden im Wiederholungslauf.
+
+## 7.1.3 – Besucherbereiche, Demo-Start und lokale Ziele (D3, D4, Teile von D5)
+
+- **Bestand prüfen und kopieren** (`runtime/demo_dataset.py`): Das Manifest wird streng geprüft
+  (Version, genau 30 eindeutige Mails, nur relative `.json`-Pfade, SHA-256 jeder Datei). Die
+  Zustandsdateien werden in einen Zwischenordner kopiert, dort erneut geprüft und erst dann
+  umbenannt; ein Abbruch hinterlässt keinen halben Bereich.
+- **Besucherbereiche** (`runtime/demo_visitors.py`): Die Sitzung bestimmt den Bereich, nie ein
+  Pfad, Cookie oder Formularfeld. Derselbe Startschlüssel ergibt denselben Bereich; ein fremder
+  Schlüssel wird abgelehnt. Höchstens 50 Bereiche; ist alles belegt, erklärt die Seite das, und kein
+  fremder Bereich wird gelöscht. „Zurücksetzen“ und die Bereinigung abgelaufener Sitzungen sind
+  vorbereitet (Oberfläche folgt).
+- **Demo starten** (`web/demo_site.py`): Die Anmeldeseite bietet nur „Demo starten“; der POST prüft
+  CSRF und Idempotenzschlüssel und öffnet eine Sitzung von zwei Stunden. `WebAuth.demo_session` gibt
+  es nur hierfür; die Sitzungsgrenze ist dafür ein Attribut (`max_sessions`, sonst unverändert 20).
+- **Normale Oberfläche je Besucher** (`app/demo.py`): je Bereich Store, Befehlseingang, Dialog im
+  Testmodus und `MailhelpSite`; ein Arbeitsfaden führt Web-Aktionen aus wie der Hauptthread einer
+  normalen Instanz. Der Dialog erhält einen Telegram-Eingang, damit er nie auf Telegram wartet.
+- **Gesperrte Wege**: Einrichtung, Zugangsdaten, Postfächer, IServ, Zielprofile, Geräte, Push,
+  Diagnose, Hilfschat, Tätigkeitsberichte, Regel- und Postfachlernen, Antwortentwürfe, Neustart und
+  Beenden antworten mit 403 „In der Demo nicht verfügbar“, auch bei direktem Aufruf.
+- **Lokale Ziele**: Kalender und Aufgabenliste sind ein Demo-Ziel, das jeden echten Schreibversuch
+  ablehnt; im Testmodus endet eine Bestätigung als „simuliert“ im eigenen Bereich.
+
+- **Neustart** (Vorgabe vom 16. November 2026): Ein Neustart über die Weboberfläche startet Mailhelp
+  mit denselben Startparametern, im Demo-Modus also wieder die Demo. Das galt schon (`cli._restart`
+  übergibt `sys.argv`); `test_a_restart_keeps_every_start_parameter_also_in_the_demo_mode` sichert es
+  für `--demo` und `-demo` auf beiden Neustartwegen ab. In der Demo selbst ist der Neustart über die
+  Oberfläche für Besucher gesperrt.
+
+Tests: `tests/unit/test_demo_visitors.py`, `tests/web/test_demo_site.py` (Start, Wiederholung, zwei
+Besucher, falsche Anfragen, volle Demo, gesperrte Wege, Bestätigung nur im eigenen Bereich).
+Offen für die nächsten Patches: Beschriftung „In der Demo angelegt“, vorbereitete Rückfrage-Antworten,
+„Demo neu starten“, Ablauf und Bereinigung im Betrieb, Startgrenzen je Client, Demozeit,
+Browsertests und Docker.
+

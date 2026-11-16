@@ -13,7 +13,22 @@ der normale Start lehnt ein Demo-Verzeichnis ebenso ab. Der Web-Schlüssel entst
 in `demo-secret` (nur für den Eigentümer lesbar). Port, Adresse und zusätzliche Hostnamen kommen aus
 `MAILHELP_DEMO_PORT` (Standard 8765), `MAILHELP_DEMO_HOST` (Standard `127.0.0.1`) und
 `MAILHELP_DEMO_ALLOWED_HOSTS`. Die Demo erzeugt keine Clients für Postfach, Telegram, KI oder echte
-Ziele. Stand 7.1.1: Die Anmeldeseite zeigt den Demo-Hinweis; der Beispielbestand folgt.
+Ziele.
+
+Seit 7.1.3: „Demo starten“ (POST `/demo/starten`, CSRF an das Browser-Nonce gebunden,
+Idempotenzschlüssel) öffnet eine Websitzung ohne Code oder Passwort (Dauer zwei Stunden, höchstens
+50 gleichzeitig) und kopiert den geprüften Bestand `defaults/demo/standard-v1` (Manifest mit
+SHA-256 je Datei, genau 30 Mails) atomar in einen eigenen Besucherbereich `data/visitors/<id>`.
+Die Zuordnung Sitzung → Bereich steht nur serverseitig in `demo-visitors.json` (Sitzungs-IDs als
+SHA-256). Angemeldete Anfragen laufen über die normale Oberfläche auf diesem Bereich; Einrichtung,
+Zugangsdaten, Postfächer, IServ, Zielprofile, Geräte, Push, Diagnose, Hilfschat, Tätigkeitsberichte,
+Regel- und Postfachlernen, Antwortentwürfe, Neustart und Beenden antworten mit 403. Bestätigungen
+laufen im Testmodus gegen ein lokales Demo-Ziel, das jeden echten Schreibversuch ablehnt; der Vorschlag
+endet als simuliert. Ein beschädigter Bestand wird abgelehnt, es gibt keinen Rückfall auf eine Analyse.
+
+Ein Neustart über die Weboberfläche startet Mailhelp mit genau denselben Startparametern
+(`sys.argv`), ein Neustart im Demo-Modus also wieder die Demo. In der öffentlichen Demo ist der
+Neustart über die Oberfläche für Besucher gesperrt; neu starten kann sie nur der Betreiber.
 
 ## Ergänzung 7.0: Schichten, Typen und Skriptdateien
 

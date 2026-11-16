@@ -124,6 +124,8 @@ class WebAuth:
         self.channel = "telegram"
         self._key = secret.encode("utf-8")
         self.session_lifetime = timedelta(days=session_days)
+        # 7.1: the demo admits more parallel visitors than one person has devices.
+        self.max_sessions = MAX_SESSIONS
         # One reentrant lock also orders session revocation against guarded local commits.
         self._lock = store._thread_lock
         self._session_snapshot: tuple[WebSession, ...] = ()
@@ -256,9 +258,14 @@ class WebAuth:
         sessions.sessions.append(WebSession(
             id=secrets.token_hex(8), token_hash=_sha256(token), device=device,
             created_at=now, last_used_at=now, expires_at=now + self.session_lifetime))
-        sessions.sessions = sorted(sessions.sessions, key=lambda item: item.last_used_at)[-MAX_SESSIONS:]
+        sessions.sessions = sorted(sessions.sessions, key=lambda item: item.last_used_at)[-self.max_sessions:]
         self.store.save(SESSIONS, sessions.model_dump(mode="json"))
         return token
+
+    def demo_session(self, device: str) -> str:
+        """7.1: a session without code or password; only the demo instance offers this."""
+        with measured_lock(self._lock, "store"):
+            return self._new_session(device)
 
     def password_login(self, password: str, device: str) -> str:
         with measured_lock(self._lock, "store"):

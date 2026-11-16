@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.1.3 – Demo-Modus: eigene Kopie je Besucher
+
+- „Demo starten“ öffnet eine Sitzung ohne Code und kopiert den geprüften Beispielbestand atomar in
+  einen eigenen Bereich; derselbe Startauftrag erzeugt keine zweite Kopie, höchstens 50 Bereiche.
+- Normale Oberfläche je Besucher; Bestätigungen laufen im Testmodus gegen ein lokales Demo-Ziel.
+- Einrichtung, Zugangsdaten, Konten, Geräte, Push, Diagnose, Hilfschat, Berichte und Lernläufe sind
+  in der Demo serverseitig gesperrt.
+
 ## 7.1.2 – Demo-Modus: Beispielbestand
 
 - `devtools.demo.dataset` verarbeitet 30 synthetische Mails (10 Abläufe, 20 nicht relevant) über den

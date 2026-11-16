@@ -1432,6 +1432,17 @@
   "title": "Speichern, Aktivieren, Neuladen und Neustart"
  },
  {
+  "id": "betrieb/demo-instanz",
+  "path": [
+   "Betrieb und Update",
+   "Demo-Instanz"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "`mailhelp --demo --config-directory <leeres Verzeichnis>` startet eine Demo mit 30 vorbereiteten\nBeispielmails, ohne Postfach, Telegram, KI oder echte Ziele. Jede Besucherin und jeder Besucher\nerhält über „Demo starten“ eine eigene Kopie für zwei Stunden; Bestätigungen werden nur simuliert.\nPort und Hostnamen: `MAILHELP_DEMO_PORT`, `MAILHELP_DEMO_HOST`, `MAILHELP_DEMO_ALLOWED_HOSTS`.\nEin Verzeichnis einer normalen Installation lehnt die Demo ab und umgekehrt.",
+  "title": "Demo-Instanz"
+ },
+ {
   "id": "betrieb/sicherung",
   "path": [
    "Betrieb und Update",
