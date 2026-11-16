@@ -1,6 +1,6 @@
 {
- "app_version": "7.1.3",
- "revision": "4aa582e38d28029208f759ad179855e7025da3e8389199776124c5774cdb42df",
+ "app_version": "7.1.4",
+ "revision": "fd30a0a22301d43e1756ce9131ef08f4c51d283bf24b08161ae598c558b616a7",
  "schema_version": 1,
  "sections": 108,
  "sources": [
@@ -30,7 +30,7 @@
   },
   {
    "path": "docs/Betrieb.md",
-   "sha256": "25c4a355b424c271d51ab2152d2e4d17aaa3ed78e2feaf9ff00a680b78842410"
+   "sha256": "13136c7ca43d50cbc82126eac8d6edffaffffdc41b306450749e4da373d2e5bb"
   }
  ]
 }

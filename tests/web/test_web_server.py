@@ -357,3 +357,14 @@ def test_regression_a_changed_stylesheet_renews_the_service_worker_cache(monkeyp
     monkeypatch.setattr("mailhelp.web.app.static_file", lambda name: changed.get(name) or static_file(name))
     renewed = re.search(rb'"mailhelp-shell-([0-9a-f]{16})"', get(WebApp([HOST]), "/sw.js").body)
     assert renewed is not None and renewed.group(1) != first.group(1)
+
+
+def test_a_request_knows_the_address_of_its_client(running):
+    seen = []
+
+    def remember(request):
+        seen.append(request.client)
+        return Response.text(200, "ok")
+
+    server, _ = running(remember)
+    assert call(server, "GET", "/")[0] == 200 and seen == ["127.0.0.1"]

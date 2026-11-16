@@ -1,8 +1,11 @@
 """7.1 (D3, D4): "Demo starten" opens a private copy of the prepared dataset in the normal interface."""
 from __future__ import annotations
 
+import html
+import json
 import re
 import shutil
+from threading import Event
 from types import SimpleNamespace
 from urllib.parse import urlencode
 
@@ -199,3 +202,166 @@ def test_the_visitor_app_is_built_once_per_area(instance):
 def test_the_demo_target_refuses_every_real_write(call):
     with pytest.raises(RuntimeError, match="schreibt nie"):
         call(demo.DemoTarget())
+
+
+def test_pages_use_demo_wording_and_carry_the_notice_with_a_restart_link(instance):
+    _response, jar = start(instance.site)
+    page = instance.site(request("GET", "/status", jar)).body.decode("utf-8")
+    assert DEMO_NOTICE in page and 'href="/demo/neu-starten"' in page
+    assert "Demo – Einträge werden nur in der Demo angelegt" in page and "Testmodus" not in page
+    overview = instance.site(request("GET", "/", jar)).body.decode("utf-8")
+    assert ">In der Demo anlegen<" in overview and ">Simulieren<" not in overview
+    stylesheet = instance.site(request("GET", "/static/app.css", jar))
+    assert stylesheet.body.startswith(b"/*")  # files other than pages and JSON pass unchanged
+
+
+def test_every_replaced_test_mode_text_still_exists_in_the_code():
+    """A changed wording in the normal interface must not silently escape the demo replacement."""
+    from pathlib import Path
+
+    import mailhelp
+    from mailhelp.web.demo_site import DEMO_LABELS, DEMO_TEXTS
+    code = "\n".join(path.read_text(encoding="utf-8") for path in Path(mailhelp.__file__).parent.rglob("*.py")
+                     if path.name != "demo_site.py")
+    assert [text for text in [*DEMO_TEXTS, *DEMO_LABELS] if text not in code] == []
+
+
+def _answer_forms(page):
+    return [form for form in re.findall(r'<form method="post" action="/aktion" class="stack">.*?</form>', page, re.S)
+            if 'value="answer"' in form]
+
+
+def test_a_prepared_answer_is_offered_and_replays_the_recorded_result(instance):
+    _response, jar = start(instance.site)
+    page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
+    prepared = [form for form in _answer_forms(page) if "In der Demo vorbereitet" in form]
+    assert len(prepared) == 3
+    form = next(item for item in prepared if "16:00 Uhr" in item)
+    fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', form))
+    fields["text"] = html.unescape(re.search(r"<textarea[^>]*>(.*?)</textarea>", form, re.S).group(1))
+    instance.site(request("POST", "/aktion", jar, fields))
+    for _ in range(6):
+        instance.runtimes.work()
+    area = instance.runtimes.visitors.area(instance.runtimes.auth.authenticate(jar["mh_session"]).id)
+    revised = json.loads((area / f"proposal-{fields['mail_id']}-{fields['proposal_id']}.json").read_text("utf-8"))
+    assert revised["version"] == 2 and "Wann beginnt der Termin?" not in revised["open_questions"]
+
+
+def test_a_free_answer_meets_the_demo_limit_instead_of_a_model(instance):
+    _response, jar = start(instance.site)
+    page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
+    form = next(item for item in _answer_forms(page) if "Kuchen" in item)
+    fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', form))
+    fields["text"] = "Vielleicht, mal sehen."
+    instance.site(request("POST", "/aktion", jar, fields))
+    for _ in range(6):
+        instance.runtimes.work()
+    area = instance.runtimes.visitors.area(instance.runtimes.auth.authenticate(jar["mh_session"]).id)
+    current = json.loads((area / f"proposal-{fields['mail_id']}-{fields['proposal_id']}.json").read_text("utf-8"))
+    assert current["version"] == int(fields["version"])  # nothing invented, the question stays open
+
+
+def test_the_restart_confirms_and_replaces_only_the_own_area(instance):
+    _response, jar = start(instance.site)
+    _other, other = start(instance.site)
+    auth, visitors = instance.runtimes.auth, instance.runtimes.visitors
+    own, foreign = (visitors.area(auth.authenticate(item["mh_session"]).id) for item in (jar, other))
+    instance.site(request("GET", "/", jar))  # builds the runtime of the own area
+    confirm = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode("utf-8")
+    assert "Demo jetzt neu starten" in confirm and DEMO_NOTICE in confirm
+    csrf = re.search(r'name="csrf" value="([^"]+)"', confirm).group(1)
+    key = re.search(r'name="key" value="([^"]+)"', confirm).group(1)
+    broken = Request("POST", "/demo/neu-starten", {"host": HOST, "content-type": FORM,
+                                                    "cookie": f"mh_session={jar['mh_session']}"}, body=b"\xff")
+    assert instance.site(broken).status == 400
+    assert instance.site(request("POST", "/demo/neu-starten", jar, {"csrf": "falsch", "key": key})).status == 403
+    done = instance.site(request("POST", "/demo/neu-starten", jar, {"csrf": csrf, "key": key}))
+    fresh = visitors.area(auth.authenticate(jar["mh_session"]).id)
+    assert done.headers["Location"] == "/" and fresh != own and not own.exists() and foreign.is_dir()
+    assert "visitor_reset" in instance.logger.events and own not in instance.runtimes.runtimes
+
+
+def test_starts_are_limited_per_client_and_in_total(monkeypatch):
+    from mailhelp.web import demo_site
+    now = [0.0]
+    limits = demo_site.StartLimits(clock=lambda: now[0])
+    assert all(limits.allow("a") for _ in range(demo_site.STARTS_PER_CLIENT)) and not limits.allow("a")
+    assert limits.allow("b")
+    monkeypatch.setattr(demo_site, "STARTS_TOTAL", 6)
+    assert not limits.allow("c")
+    now[0] = demo_site.START_WINDOW
+    assert limits.allow("a") and limits.allow("c")
+
+
+def test_too_many_starts_are_refused_and_a_proxy_is_trusted_only_when_configured(instance, monkeypatch):
+    site = instance.site
+    assert site.client(Request("GET", "/", {"x-forwarded-for": "203.0.113.9, 10.0.0.1"}, client="10.0.0.1")) == \
+        "10.0.0.1"
+    monkeypatch.setattr(site, "trust_proxy", True)
+    assert site.client(Request("GET", "/", {"x-forwarded-for": "203.0.113.9"}, client="10.0.0.1")) == "203.0.113.9"
+    # The proxy appends the address it saw; earlier entries come from the visitor, who could otherwise
+    # pass the start limit with a new invented address on every request.
+    assert site.client(Request("GET", "/", {"x-forwarded-for": "198.51.100.7, 203.0.113.9"},
+                               client="10.0.0.1")) == "203.0.113.9"
+    assert site.client(Request("GET", "/", {}, client="10.0.0.1")) == "10.0.0.1"
+    monkeypatch.setattr(site.limits, "allow", lambda client: False)
+    refused, _ = start(site)
+    assert refused.status == 429 and "Zu viele Demo-Starts" in refused.body.decode("utf-8")
+
+
+def test_cleanup_removes_expired_visitors_and_closes_their_runtimes(instance):
+    _response, jar = start(instance.site)
+    _other, other = start(instance.site)
+    instance.site(request("GET", "/", jar))
+    auth = instance.runtimes.auth
+    expired = auth.authenticate(jar["mh_session"]).id
+    area = instance.runtimes.visitors.area(expired)
+    auth.revoke(expired)
+    assert instance.runtimes.cleanup() == 1
+    assert not area.exists() and area not in instance.runtimes.runtimes
+    assert instance.runtimes.visitors.area(auth.authenticate(other["mh_session"]).id).is_dir()
+
+
+def test_the_worker_cleans_up_once_a_minute(monkeypatch):
+    stopped, calls, now = Event(), [], [0.0]
+
+    def work():
+        calls.append("work")
+        now[0] += 30
+        if now[0] >= 120:
+            stopped.set()
+    runtimes = SimpleNamespace(work=work, cleanup=lambda: calls.append("cleanup"))
+    demo._work(runtimes, stopped, clock=lambda: now[0])
+    assert calls == ["work", "work", "cleanup", "work", "work", "cleanup"]
+
+
+def test_the_demo_revisions_replay_only_recorded_calls():
+    from mailhelp.domain.proposal import Proposal
+    from mailhelp.domain.revision_errors import TechnicalRevisionError
+    from mailhelp.runtime.demo_answers import DEMO_ONLY, DemoRevisions
+    base = json.loads(next((packaged() / "state").glob("proposal-*-p_*[0-9a-f].json")).read_text("utf-8"))
+    item = Proposal.model_validate(base)
+    revised = {**base, "version": item.version + 1}
+    revisions = DemoRevisions([
+        {"method": "interpret_telegram_answer", "proposal": [item.source_mail_id, item.id, item.version],
+         "arguments": ["Frage?", "Antwort"], "result": {"usable": True, "normalized_answer": "Antwort", "reason": "ok"}},
+        {"method": "revise_proposal", "proposal": [item.source_mail_id, item.id, item.version],
+         "arguments": ["Frage?", "Antwort"], "result": revised},
+        {"method": "clarify_telegram_answer", "proposal": None, "arguments": ["Frage?", "x", "y"],
+         "result": {"message": "egal"}}])
+    assert revisions.prepared() == {(item.source_mail_id, item.id, item.version): "Antwort"}
+    assert revisions.interpret_telegram_answer(item, "Frage?", "Antwort")[1].usable
+    assert revisions.interpret_telegram_answer(item, "Frage?", "anders")[1].reason == DEMO_ONLY
+    assert revisions.revise_proposal(item, "Frage?", "Antwort")[1].version == item.version + 1
+    with pytest.raises(TechnicalRevisionError, match="vorbereiteten"):
+        revisions.revise_proposal(item, "Frage?", "anders")
+    assert "vorbereitete Beispielantwort" in revisions.clarify_telegram_answer("Frage?", "x", DEMO_ONLY)[1].message
+
+
+def test_json_answers_get_demo_wording_and_odd_forms_stay_unchanged():
+    from mailhelp.web.demo_site import _prefill, demo_response
+    answer = Response(200, b'{"message": "Simuliert (Testmodus)"}', "application/json")
+    assert demo_response(answer).body == b'{"message": "In der Demo angelegt"}'
+    odd = ('<form method="post" action="/aktion" class="stack"><input type="hidden" name="kind" value="answer">'
+           '<input type="hidden" name="version" value="x"><textarea name="text"></textarea></form>')
+    assert _prefill(odd, {("a", "b", 1): "Antwort"}) == odd

@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:16.208411Z",
+  "created_at": "2026-11-16T13:37:08.349775Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Frischkiste <hallo@frischkiste.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "a72d88cb-9a59-4d41-a4a4-076ef1f863e4"
+    "b15a46e6-5d79-4b97-a807-3332ecb0e0ef"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:16.488792Z",
+  "updated_at": "2026-11-16T13:37:08.663703Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

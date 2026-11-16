@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:48.588845Z",
+  "created_at": "2026-11-16T13:40:35.098191Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Office Suite Pro <lizenz@officesuite.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "c63ef250-10dc-474f-a060-5b463c1c152b"
+    "8ab12c0d-294a-40a0-b364-b8389efc789c"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:48.862854Z",
+  "updated_at": "2026-11-16T13:40:35.373057Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

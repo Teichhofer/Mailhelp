@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:35.399416Z",
+  "created_at": "2026-11-16T13:37:28.499868Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Gewinnzentrale <gewinn@gewinnzentrale.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "c2489750-f248-4332-b3d9-af303458528e"
+    "13479e66-67a6-4707-b316-b6f15f11c452"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:35.703245Z",
+  "updated_at": "2026-11-16T13:37:28.796792Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

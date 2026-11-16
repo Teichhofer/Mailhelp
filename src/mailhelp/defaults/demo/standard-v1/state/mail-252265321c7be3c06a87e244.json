@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:49.222926Z",
+  "created_at": "2026-11-16T13:40:35.755606Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "MegaMarkt Online <angebote@megamarkt.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "4e5ce390-abd7-4aa0-822a-a4e900b164eb"
+    "a07bcc0e-9309-46cc-a857-336a00db17b0"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:49.568532Z",
+  "updated_at": "2026-11-16T13:40:36.080698Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

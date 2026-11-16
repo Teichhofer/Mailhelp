@@ -8,7 +8,7 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Die unterschriebene Erklärung Ihrem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
+  "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
   "due": "2026-11-20",
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -23,7 +23,7 @@
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_c5542204e638b1310a210419",
+  "id": "p_d12ad8fba3156f6f61539c67",
   "is_cancellation": false,
   "kind": "task",
   "known_temporal_facts": null,
@@ -51,7 +51,7 @@
         "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
       ],
       "mail_id": "fcd2160ce611f1d255b9cac5",
-      "proposal_id": "p_c5542204e638b1310a210419",
+      "proposal_id": "p_d12ad8fba3156f6f61539c67",
       "sent_at": "2026-11-10T07:48:00+01:00",
       "subject": "ausflug ins planetarium – einverständniserklärung"
     }
@@ -69,7 +69,7 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Einverständniserklärung unterschreiben und zurückgeben",
+  "title": "Einverständniserklärung unterschrieben zurückgeben",
   "uncertain_notified": false,
   "version": 1,
   "video_link": null

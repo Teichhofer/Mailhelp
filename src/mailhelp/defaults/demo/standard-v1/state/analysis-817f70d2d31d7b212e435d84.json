@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "817f70d2d31d7b212e435d84",
-  "recorded_at": "2026-11-16T09:01:55.491355+00:00",
+  "recorded_at": "2026-11-16T13:39:27.609096+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,12 +13,12 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "am 4. Dezember",
-      "bis Freitag, 20. November"
+      "4. Dezember",
+      "Freitag, 20. November"
     ],
     "sentences": [
-      "Die Schule erinnert die Eltern der Klasse 4b an die Einverständniserklärung für den Planetariumsausflug am 4. Dezember.",
-      "Sie sollen das unterschriebene Formular bis Freitag, 20. November abgeben, falls noch nicht geschehen."
+      "Das Sekretariat der Grundschule am Lindenpark erinnert die Eltern der Klasse 4b an die Einverständniserklärung für den Planetariumsausflug am 4. Dezember.",
+      "Sie bittet, das unterschriebene Formular bis Freitag, 20. November abzugeben, falls noch nicht geschehen."
     ]
   },
   "topics": {

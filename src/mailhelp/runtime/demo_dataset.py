@@ -44,6 +44,8 @@ class DemoManifest(BaseModel):
     model: str
     mails: list[DemoMailEntry]
     files: dict[str, str]
+    # The recorded results of the prepared answers (answers.json).
+    answers: str = Field(pattern=_DIGEST)
 
     @model_validator(mode="after")
     def complete_and_contained(self) -> DemoManifest:
@@ -76,6 +78,7 @@ def verify(directory: Path) -> DemoManifest:
         raise DemoDatasetError(f"Der Beispielbestand in {directory} ist nicht lesbar oder unvollständig.") from exc
     expected = {f"mails/{mail.name}.eml": mail.sha256 for mail in manifest.mails}
     expected.update({f"state/{name}": digest for name, digest in manifest.files.items()})
+    expected["answers.json"] = manifest.answers
     for name, digest in expected.items():
         path = directory / name
         if not path.is_file() or _digest(path) != digest:

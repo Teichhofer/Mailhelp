@@ -1,6 +1,6 @@
 {
   "all_day": false,
-  "base_title": "Adventsbasar des Fördervereins",
+  "base_title": "Adventsbasar",
   "calendar_candidates": [],
   "canonical_ref": null,
   "certainty": "certain",
@@ -8,22 +8,22 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Der Förderverein lädt Eltern zum Basar in die Aula der Grundschule ein.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
+  "description": "Der Förderverein lädt Eltern zum Adventsbasar in die Aula der Grundschule ein.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
   "due": null,
   "duplicate_check_failed": false,
   "duplicate_match": null,
   "duration_is_upper_bound": false,
-  "duration_minutes": 180,
+  "duration_minutes": null,
   "end": "2026-12-05T17:00:00+01:00",
   "end_origin": "mail_end",
-  "evidence": "der Förderverein lädt herzlich zum Adventsbasar ein:\nSamstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
+  "evidence": "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
   "explicit_create_fallback_confirmed": false,
   "explicit_duplicate_create_confirmed_version": null,
   "explicit_non_binding_create_confirmed": false,
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_589a045c3d7cd3b627c07d04",
+  "id": "p_c4d92d28e945a09cbeff57a3",
   "is_cancellation": false,
   "kind": "event",
   "known_temporal_facts": null,
@@ -42,7 +42,7 @@
   "responsibility": "user",
   "schema_version": 3,
   "separated_from": [],
-  "series_key": "8c2d324afa0751e4550944b967d718d36c6351b7b239fd8e50e33817940b1566",
+  "series_key": "6c7a036de696db733c4e893915572c6df46c86323be2cb889319803b0ed1c57f",
   "simulation_notified": false,
   "source_mail_id": "67252f5317b5c5a3a8501e05",
   "sources": [
@@ -51,7 +51,7 @@
         "41bf4b6e8bd64eba753248c2df10b329dfc3018bf4780845093d3a05048d9264"
       ],
       "mail_id": "67252f5317b5c5a3a8501e05",
-      "proposal_id": "p_589a045c3d7cd3b627c07d04",
+      "proposal_id": "p_c4d92d28e945a09cbeff57a3",
       "sent_at": "2026-11-11T12:30:00+01:00",
       "subject": "einladung zum adventsbasar – kuchenspenden gesucht"
     }
@@ -69,7 +69,7 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Adventsbasar des Fördervereins",
+  "title": "Adventsbasar",
   "uncertain_notified": false,
   "version": 1,
   "video_link": null

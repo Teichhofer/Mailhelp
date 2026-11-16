@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:22.829236Z",
+  "created_at": "2026-11-16T13:40:12.490118Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Leserservice Gartenfreude <abo@gartenfreude.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "cf373034-e003-4d23-8012-614466590586"
+    "ac234930-fc4d-42d3-822d-000661ceca2d"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:23.134958Z",
+  "updated_at": "2026-11-16T13:40:12.857129Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

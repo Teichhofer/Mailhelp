@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:04.042224Z",
+  "created_at": "2026-11-16T13:36:55.329838Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Fernweh Reisen <newsletter@fernweh-reisen.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "04bf137c-0f95-4f9d-9065-970498d2dea7"
+    "5fce6824-ee44-4373-8319-00def69d2b61"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:04.326525Z",
+  "updated_at": "2026-11-16T13:36:55.597344Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

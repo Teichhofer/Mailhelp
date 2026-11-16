@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:01:48.034844Z",
+  "created_at": "2026-11-16T13:39:22.527219Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "FitPoint <angebot@fitpoint.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "5c51237f-adf2-42c2-a2d5-10d8fcccf54e"
+    "c02f96c6-b471-46a4-bd55-1795eeba4e36"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:01:48.277585Z",
+  "updated_at": "2026-11-16T13:39:22.819735Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

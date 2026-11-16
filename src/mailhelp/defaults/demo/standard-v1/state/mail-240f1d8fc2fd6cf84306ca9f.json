@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:00:39.979550Z",
+  "created_at": "2026-11-16T13:38:12.517167Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Freundeskreis Online <benachrichtigung@freundeskreis.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "2110e240-76d4-41ee-8598-1ce1fb769888"
+    "3f00d7e3-36ea-402c-aba3-4a103183a163"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:00:40.325434Z",
+  "updated_at": "2026-11-16T13:38:12.828033Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

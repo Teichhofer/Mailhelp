@@ -1,14 +1,14 @@
 {
   "all_day": false,
-  "base_title": "Ausflug der Klasse 4b ins Planetarium",
+  "base_title": "Ausflug ins Planetarium",
   "calendar_candidates": [],
   "canonical_ref": null,
   "certainty": "certain",
   "classification": "new",
-  "confirmed_web_actor": "web:unverified-legacy",
+  "confirmed_web_actor": null,
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Die Klasse 4b besucht das Planetarium; eine unterschriebene Einverständniserklärung ist erforderlich.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
+  "description": "Die Klasse 4b besucht das Planetarium; Eltern müssen die Einverständniserklärung unterschrieben zurückgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E\n\nErgänzung: Die Klasse 4b besucht das Planetarium; Eltern werden an die Einverständniserklärung erinnert.",
   "due": null,
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -23,7 +23,7 @@
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_eb4c911240c372abda6d2770",
+  "id": "p_b9e428b080850e29997083c4",
   "is_cancellation": false,
   "kind": "event",
   "known_temporal_facts": {
@@ -38,18 +38,19 @@
   "merge_review_required": false,
   "open_questions": [
     "Wann beginnt der Termin?",
-    "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
+    "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
+    "Wann endet der Termin?"
   ],
   "original_date": null,
   "pending_sources": [],
   "protected_fields": [],
-  "reconciliation_journal": null,
+  "reconciliation_journal": "reconciliation-merge-7ca467a779a893a5209b6db8e8dc21be0dddb0be7d8b5058c980b622f9674a7b",
   "reject_reason": null,
   "resolution": null,
   "responsibility": "other",
   "schema_version": 3,
   "separated_from": [],
-  "series_key": "b4bea010a3dd0ba7602d80ebfd31d649f234759d4585dad24cf1bf67144415b7",
+  "series_key": "dfef56551bfba69bc041a69829c175f813cf68318de68d9a1ed00aaa0bc08bce",
   "simulation_notified": false,
   "source_mail_id": "fcd2160ce611f1d255b9cac5",
   "sources": [
@@ -58,9 +59,18 @@
         "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
       ],
       "mail_id": "fcd2160ce611f1d255b9cac5",
-      "proposal_id": "p_eb4c911240c372abda6d2770",
+      "proposal_id": "p_b9e428b080850e29997083c4",
       "sent_at": "2026-11-10T07:48:00+01:00",
       "subject": "ausflug ins planetarium – einverständniserklärung"
+    },
+    {
+      "anchors": [
+        "9f0e4cc57b6fa842f43db08479c97f0f9294c3fbf12c94375d87bbf4f3789a29"
+      ],
+      "mail_id": "817f70d2d31d7b212e435d84",
+      "proposal_id": "p_8716aa81279deda3db58618e",
+      "sent_at": "2026-11-13T08:15:00+01:00",
+      "subject": "erinnerung: einverständniserklärung planetarium"
     }
   ],
   "start": null,
@@ -76,8 +86,8 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Ausflug der Klasse 4b ins Planetarium",
+  "title": "Ausflug ins Planetarium",
   "uncertain_notified": false,
-  "version": 1,
+  "version": 2,
   "video_link": null
 }

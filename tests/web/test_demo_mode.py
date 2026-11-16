@@ -10,6 +10,7 @@ import pytest
 from mailhelp import cli
 from mailhelp.app import demo
 
+
 def test_an_empty_directory_becomes_a_demo_directory_and_stays_one(tmp_path):
     runtime = tmp_path / "neu" / "demo"
     demo.prepare_directory(runtime)

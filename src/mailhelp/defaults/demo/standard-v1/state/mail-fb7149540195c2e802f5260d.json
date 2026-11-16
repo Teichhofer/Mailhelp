@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:01:16.010138Z",
+  "created_at": "2026-11-16T13:38:45.742705Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Bank Beispiel <angebote@bank-beispiel.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "8fa72950-9ae0-4dc5-9098-0d8cb0c85b73"
+    "3e5983cf-902f-4b59-8e93-97be36106171"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:01:16.251148Z",
+  "updated_at": "2026-11-16T13:38:46.033515Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

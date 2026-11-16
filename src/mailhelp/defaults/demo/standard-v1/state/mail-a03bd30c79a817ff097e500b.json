@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:15.939350Z",
+  "created_at": "2026-11-16T13:37:08.042333Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Modehaus Seidel <news@modehaus-seidel.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "984c2118-706f-4548-a876-0616f6d5114e"
+    "b86815b5-b415-4f50-9769-9b070f1ab97d"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:16.188193Z",
+  "updated_at": "2026-11-16T13:37:08.329873Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

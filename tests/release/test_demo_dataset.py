@@ -45,27 +45,75 @@ def test_mails_arrive_in_date_order_at_the_mailbox_entry_point():
     assert {mail.account_id for mail in fetched} == {"a" * 24} and fetched[0].folder == "INBOX"
 
 
-def _application(store_directory: Path, calls: list):
+class Result:
+    def __init__(self, **fields):
+        self.fields = fields
+
+    def model_dump(self, mode):
+        return self.fields
+
+
+class Analyzer:
+    """Stands in for the model-backed revision service; the tool wraps these methods to record them."""
+
+    def interpret_telegram_answer(self, proposal, question, answer):
+        return "c1", Result(usable=True, normalized_answer=answer, reason="ok")
+
+    def clarify_telegram_answer(self, question, answer, reason, *, current_date=None):
+        return "c2", Result(message="genauer")
+
+    def revise_proposal(self, proposal, question, answer):
+        return "c3", Result(id=proposal.id, version=proposal.version + 1)
+
+
+def _application(store_directory: Path, calls: list, submitted: list | None = None):
+    submitted = [] if submitted is None else submitted
+
     @contextmanager
     def application(settings, secrets, topics, prompts, fingerprint, directory):
         def process(mail):
             calls.append(mail.uid)
-            (store_directory / f"mail-{mail.uid:024d}.json").write_text("{}", encoding="utf-8")
+            message_id = message_from_bytes(mail.raw, policy=default)["Message-ID"]
+            proposals = [{"id": "p1", "status": "needs_clarification"}, {"id": "p2", "status": "pending_confirmation"}]
+            (store_directory / f"mail-{mail.uid:024d}.json").write_text(json.dumps(
+                {"id": f"{mail.uid:024d}", "mail": {"headers": {"message_id": message_id}}, "proposals": proposals}),
+                encoding="utf-8")
         orchestrator = SimpleNamespace(precheck=SimpleNamespace(writers={"tasks": object()}), process=process,
                                        config_fingerprint="f" * 64)
+        analyzer = Analyzer()
+
+        def poll_once():
+            if submitted and submitted[-1].text:
+                command = submitted[-1]
+                item = SimpleNamespace(source_mail_id=command.mail_id, id=command.proposal_id, version=command.version)
+                analyzer.interpret_telegram_answer(item, "Frage?", command.text)
+                analyzer.clarify_telegram_answer("Frage?", command.text, "unklar")
+                analyzer.revise_proposal(item, "Frage?", command.text)
+                submitted.append(SimpleNamespace(text=None))
+        dialog = SimpleNamespace(review=SimpleNamespace(web_authorizer=None), poll_once=poll_once,
+                                 repository=SimpleNamespace(load_current=lambda mail_id, proposal_id:
+                                                            SimpleNamespace(version=1)),
+                                 commands=SimpleNamespace(submit=submitted.append))
         store_directory.mkdir(parents=True, exist_ok=True)
         (store_directory / "llm-budget.json").write_text("{}", encoding="utf-8")
+        (store_directory / "mail-ohne-kopf.json").write_text('{"id": "x", "proposals": []}', encoding="utf-8")
         yield SimpleNamespace(orchestrator=orchestrator, store=SimpleNamespace(directory=store_directory),
+                              analyzer=analyzer, dialog=dialog,
                               sources=[SimpleNamespace(reader=SimpleNamespace(account_id="b" * 24))])
-        assert orchestrator.precheck.writers == {}
+        assert orchestrator.precheck.writers == {} and dialog.review.web_authorizer("web:x")
     return application
 
 
-def test_process_uses_the_normal_entry_point_and_never_a_write_target(tmp_path):
+def test_process_uses_the_normal_entry_point_and_answers_through_the_dialog(tmp_path):
     dataset.configuration(tmp_path, "sk-synthetic")
-    calls = []
-    store, fingerprint = dataset.process(tmp_path, _application(tmp_path / "data", calls))
-    assert store == tmp_path / "data" and fingerprint == "f" * 64 and calls == list(range(1, 31))
+    calls, submitted = [], []
+    store, fingerprint, recorded = dataset.process(tmp_path, _application(tmp_path / "data", calls, submitted))
+    assert store == tmp_path / "basis" and fingerprint == "f" * 64 and calls == list(range(1, 31))
+    answers = [command.text for command in submitted if command.text]
+    assert sorted(answers) == sorted(text for texts in dataset.ANSWERS.values() for text in texts)
+    assert {item["method"] for item in recorded} == set(dataset.REVISION_METHODS)
+    assert next(item for item in recorded if item["method"] == "clarify_telegram_answer")["proposal"] is None
+    assert all(item["proposal"][2] == 1 for item in recorded if item["proposal"])
 
 
 def test_export_writes_messages_states_and_a_verifiable_manifest(tmp_path):
@@ -77,12 +125,13 @@ def test_export_writes_messages_states_and_a_verifiable_manifest(tmp_path):
     output = tmp_path / "out" / "standard-v1"
     output.mkdir(parents=True)
     (output / "veraltet.txt").write_text("alt", encoding="utf-8")
-    manifest = dataset.export(store, output, "f" * 64, "abc1234", "model/x")
+    manifest = dataset.export(store, output, "f" * 64, "abc1234", "model/x", [{"method": "x"}])
     assert not (output / "veraltet.txt").exists() and not output.with_name("standard-v1.neu").exists()
     assert sorted(manifest["files"]) == ["history/h.json", "mail-1.json"]
     assert len(manifest["mails"]) == 30 and (output / "mails" / f"{MAILS[0].name}.eml").read_bytes() == message(MAILS[0])
     stored = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert stored == manifest and stored["source_commit"] == "abc1234" and stored["dataset"] == "standard-v1"
+    assert json.loads((output / "answers.json").read_text(encoding="utf-8")) == [{"method": "x"}]
 
 
 def test_main_refuses_a_missing_key_and_builds_with_a_replaced_application(tmp_path, monkeypatch, capsys):

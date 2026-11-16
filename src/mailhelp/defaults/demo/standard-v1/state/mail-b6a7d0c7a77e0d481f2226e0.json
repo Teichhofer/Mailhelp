@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:01:15.671841Z",
+  "created_at": "2026-11-16T13:38:45.459542Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Kundenservice Möbelland <umfrage@moebelland.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "46a94576-b2fc-4d90-ab60-a6c796be8edb"
+    "df947249-47d8-4571-95c0-fd63e8b6ea11"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:01:15.990649Z",
+  "updated_at": "2026-11-16T13:38:45.715706Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

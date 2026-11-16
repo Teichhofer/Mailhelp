@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:49.593993Z",
+  "created_at": "2026-11-16T13:40:36.106638Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Versicherung Sicherheim <service@sicherheim.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "9698c775-9be3-4af3-bb72-67a83edcbded"
+    "11bf00a7-bdba-4a34-a5b8-ab3b3a9d23b8"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:49.885079Z",
+  "updated_at": "2026-11-16T13:40:36.405873Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

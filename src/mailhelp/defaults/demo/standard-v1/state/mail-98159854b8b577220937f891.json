@@ -2,9 +2,9 @@
   "action_route": null,
   "action_router_call_id": null,
   "analysis_round": 1,
-  "awaiting_relevance": false,
+  "awaiting_relevance": true,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:37.524557Z",
+  "created_at": "2026-11-16T13:40:23.123745Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "\"Sandra K.\" <sandra.k@post.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "cb148720-0edd-4cee-a339-cca4de0f1690"
+    "12d2862f-71bb-4650-939a-45da4c087c26"
   ],
   "mail": {
     "calendar_events": [],
@@ -90,32 +90,39 @@
   },
   "proposals": [],
   "relevance": {
-    "decision": "irrelevant",
-    "reason": "Private Absprache über einen Stand am Samstag; kein eindeutiger Bezug zu Schule, Sportverein, Musikschule oder Förderverein erkennbar.",
+    "decision": "unclear",
+    "reason": "Die Nachricht betrifft eine persönliche Absprache für Samstag, aber der genannte Stand lässt sich keinem der übergebenen Themen eindeutig zuordnen.",
     "topic_ids": []
   },
-  "relevance_dialog": null,
+  "relevance_dialog": {
+    "decision": null,
+    "mail_id": "98159854b8b577220937f891",
+    "schema_version": 1,
+    "status": "open",
+    "telegram_offset": null,
+    "version": 1
+  },
   "schema_version": 9,
   "self_mail": false,
   "steps": {
-    "action_detection": "skipped",
-    "action_router": "skipped",
-    "auto_draft": "skipped",
-    "completion": "completed",
-    "duplicate_precheck": "skipped",
-    "event_extraction": "skipped",
-    "normalization": "skipped",
+    "action_detection": "pending",
+    "action_router": "pending",
+    "auto_draft": "pending",
+    "completion": "pending",
+    "duplicate_precheck": "pending",
+    "event_extraction": "pending",
+    "normalization": "pending",
     "preparation": "completed",
-    "proposal_building": "skipped",
+    "proposal_building": "pending",
     "proposal_notification": "skipped",
     "relevance": "completed",
-    "summary": "skipped",
-    "summary_notification": "skipped",
-    "task_extraction": "skipped"
+    "summary": "pending",
+    "summary_notification": "completed",
+    "task_extraction": "pending"
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:43.040897Z",
+  "updated_at": "2026-11-16T13:40:27.660256Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

@@ -2,16 +2,16 @@
   "action_route": {
     "action_state": "event",
     "event_count": 1,
-    "reason": "Die Mail nennt ausdrücklich einen künftigen Termin (Vorspielnachmittag am Mittwoch, 9. Dezember 2026 im Kammermusiksaal); es wird keine Handlung wie Anmeldung oder Rückmeldung verlangt.",
+    "reason": "Die Mail nennt ausdrücklich einen künftigen Termin (Vorspielnachmittag am Mittwoch, 9. Dezember 2026 im Kammermusiksaal); es wird keine Handlung wie Anmeldung, Zu- oder Absage verlangt.",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 0
   },
-  "action_router_call_id": "0b6ceb44-3eb5-43da-9188-7c50fe942e47",
+  "action_router_call_id": "8c3ee7f9-864b-40ca-99a3-f077049b9cc2",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:23.154586Z",
+  "created_at": "2026-11-16T13:40:12.873815Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Musikschule Beispielstadt <info@musikschule-beispielstadt.example>",
@@ -57,11 +57,11 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "e4b59917-d153-4fa5-ac3e-6d0cc15633a5",
-    "50fdc625-6c8c-44ea-85ee-f60100d4e005",
-    "0b6ceb44-3eb5-43da-9188-7c50fe942e47",
-    "2c7ba840-d7ab-4c7e-9992-737269f74f17",
-    "6c50861c-9038-4b04-8471-f016618bc1c3"
+    "4482a75d-d8d5-4a22-8e17-c40fe40cf08e",
+    "c2c01a36-5826-4ca5-80db-bb641bc716cd",
+    "8c3ee7f9-864b-40ca-99a3-f077049b9cc2",
+    "582e7e1c-3993-4b21-94d6-37482b73ecfe",
+    "d386038c-4b74-47aa-b595-ea53e1bbedbb"
   ],
   "mail": {
     "calendar_events": [],
@@ -315,12 +315,12 @@
       "Mittwoch, 9. Dezember 2026"
     ],
     "sentences": [
-      "Die Musikschule lädt zum Vorspielnachmittag der Geigenklasse am 9. Dezember 2026 in den Kammermusiksaal ein.",
-      "Mia spielt dort ihr erstes Solostück, die genaue Uhrzeit wird noch abgestimmt."
+      "Die Musikschule informiert die Eltern, dass der Vorspielnachmittag der Geigenklasse am Mittwoch, 9. Dezember 2026 im Kammermusiksaal stattfindet.",
+      "Mia spielt dort ihr erstes Solostück; die genaue Uhrzeit wird noch abgestimmt."
     ]
   },
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:37.131870Z",
+  "updated_at": "2026-11-16T13:40:22.790200Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

@@ -26,6 +26,14 @@ Regel- und Postfachlernen, Antwortentwürfe, Neustart und Beenden antworten mit 
 laufen im Testmodus gegen ein lokales Demo-Ziel, das jeden echten Schreibversuch ablehnt; der Vorschlag
 endet als simuliert. Ein beschädigter Bestand wird abgelehnt, es gibt keinen Rückfall auf eine Analyse.
 
+Seit 7.1.4: Rückfragen beantwortet die Demo nur mit den im Bestand aufgezeichneten Ergebnissen
+(`answers.json`, Schlüssel Mail, Vorschlag, Version, Frage und Antwort); andere Antworten werden mit
+einem Hinweis abgelehnt, ein Modell wird nie aufgerufen. „Demo neu starten“ (GET/POST
+`/demo/neu-starten`, CSRF, Idempotenzschlüssel) kopiert nur den eigenen Bereich neu. Starts sind auf
+5 je Client und 60 insgesamt pro Stunde begrenzt; `X-Forwarded-For` zählt nur mit
+`MAILHELP_DEMO_TRUST_PROXY=1`. Abgelaufene Bereiche werden jede Minute entfernt. Die Demo läuft in
+der echten Zeit (keine verschobene Demozeit).
+
 Ein Neustart über die Weboberfläche startet Mailhelp mit genau denselben Startparametern
 (`sys.argv`), ein Neustart im Demo-Modus also wieder die Demo. In der öffentlichen Demo ist der
 Neustart über die Oberfläche für Besucher gesperrt; neu starten kann sie nur der Betreiber.

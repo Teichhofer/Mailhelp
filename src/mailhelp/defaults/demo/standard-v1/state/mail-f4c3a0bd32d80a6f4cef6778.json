@@ -2,16 +2,16 @@
   "action_route": {
     "action_state": "none",
     "event_count": 0,
-    "reason": "Reine Information der Schulleitung: Der Speiseplan ist online, es wird ausdrücklich nichts verlangt („Sie müssen nichts tun“). Kein Termin, keine Aufgabe, keine Jimdo-Anfrage.",
+    "reason": "Reine Information der Schule: Der Speiseplan ist online, es wird ausdrücklich nichts verlangt („Sie müssen nichts tun“). Kein Termin, keine Aufgabe, keine persönliche Anfrage über ein Kontaktformular.",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 0
   },
-  "action_router_call_id": "f06c6876-97dc-435e-8f1e-092a039c8b8a",
+  "action_router_call_id": "836b41de-9d54-46a0-8f50-4253bce7566d",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:43.828390Z",
+  "created_at": "2026-11-16T13:40:28.242579Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Grundschule am Lindenpark <info@grundschule-lindenpark.example>",
@@ -35,9 +35,9 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "eadfa667-5763-4d6e-bdd4-9c005b6d8210",
-    "9c6269b8-f4c6-4972-b031-b48f558e9525",
-    "f06c6876-97dc-435e-8f1e-092a039c8b8a"
+    "a5a2e3ae-ba4c-4dc0-afaf-40e2a2cb804e",
+    "de17914b-76ee-490c-85a6-9c1560f4fef7",
+    "836b41de-9d54-46a0-8f50-4253bce7566d"
   ],
   "mail": {
     "calendar_events": [],
@@ -127,11 +127,12 @@
   "summary": {
     "deadlines": [],
     "sentences": [
-      "Die Schulleitung informiert die Eltern, dass der Speiseplan der Mensa für Dezember online ist und die Bestellungen unverändert weiterlaufen."
+      "Die Schulleitung informiert die Eltern, dass der Mensa-Speiseplan für Dezember auf der Schulwebsite veröffentlicht ist.",
+      "Die Bestellungen laufen wie gewohnt weiter, und die Eltern müssen nichts tun."
     ]
   },
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:48.573987Z",
+  "updated_at": "2026-11-16T13:40:35.084847Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

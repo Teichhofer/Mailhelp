@@ -2,16 +2,16 @@
   "action_route": {
     "action_state": "task_and_event",
     "event_count": 1,
-    "reason": "Der aktuelle Text bittet Alex konkret, Bastelkleber und Fotokarton zu besorgen und zum Workshop mitzubringen – eine persönliche Handlungsbitte (Aufgabenkandidat, da nicht eindeutig sicher der nutzenden Person zuweisbar, aber als Kandidat gezählt). Zusätzlich wird der Workshop am Samstag, 21. November, als konkreter Termin mit Bezug zur nutzenden Person genannt (Material soll bis dahin da sein), daher ein Terminkandidat.",
+    "reason": "Die Mail bittet Alex, Bastelkleber und Fotokarton zu besorgen und zum Workshop mitzubringen (Aufgabe). Der Workshop am Samstag, 21. November ist ein konkret genannter Termin (Event).",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 1
   },
-  "action_router_call_id": "0d6e3090-5fe4-4021-a262-f63d2f743118",
+  "action_router_call_id": "d52f7ff1-6b46-4e01-a51f-d4ba51015d2b",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:35.975230Z",
+  "created_at": "2026-11-16T13:37:29.098517Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Tom Weber <jugend@tsv-beispielstadt.example>",
@@ -29,7 +29,7 @@
         "certainty": "certain",
         "classification": "new",
         "date_text": "Samstag, 21. November",
-        "description": "Für den Workshop wird noch Bastelmaterial benötigt; Alex soll Kleber und Fotokarton mitbringen.",
+        "description": "Workshop der Jugendabteilung, für den noch Bastelmaterial besorgt werden soll.",
         "duration_is_upper_bound": false,
         "duration_minutes": null,
         "end_time_text": null,
@@ -57,15 +57,15 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "ff7e250a-3eef-4687-a5e5-3dbaa43982b0",
-    "4f4e98b5-4f46-42f8-b490-4837cbcfda40",
-    "0d6e3090-5fe4-4021-a262-f63d2f743118",
-    "434f8f8e-03c4-4e9e-a6c3-1c396bcfebf3",
-    "8e853969-9eba-43ad-b84f-35984a6cda13",
-    "6461e613-466b-4122-b3de-6feb4408faba",
-    "db85f3c8-0284-4295-8047-7f7a4d56bede",
-    "27079ba6-d8db-4621-a246-1da63c7be370",
-    "f1449438-a546-495c-976a-60c46b182fa1"
+    "c1daa24d-983f-46c3-a00b-51f025923529",
+    "e161554c-bc2e-4fb5-8ac7-49a595ce48f7",
+    "d52f7ff1-6b46-4e01-a51f-d4ba51015d2b",
+    "dd243602-df98-4b8e-aae0-319e6c048457",
+    "9d316d4f-463b-471f-b7f8-4bb7850395df",
+    "2d3fc186-3f84-4c26-9617-684ff9725a52",
+    "e03169f0-e6f1-41f2-baf2-1399b3a042ed",
+    "b174c62a-7abc-403c-b2be-07c47c762fed",
+    "e7021c6c-cb8e-4874-8b8f-4d8547e63d19"
   ],
   "mail": {
     "calendar_events": [],
@@ -121,7 +121,7 @@
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_d8142d3eff0f04827c2129a8",
+      "id": "p_2a6ade23d43e97668bb8b8dd",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -154,7 +154,7 @@
       "target_provider": "todoist",
       "temporal_fact": null,
       "time_changes": [],
-      "title": "Material für Bastel-Workshop besorgen",
+      "title": "Bastelkleber und Fotokarton besorgen",
       "uncertain_notified": false,
       "version": 1,
       "video_link": null
@@ -169,7 +169,7 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Für den Workshop wird noch Bastelmaterial benötigt; Alex soll Kleber und Fotokarton mitbringen.\n\nAbsender: Tom Weber <jugend@tsv-beispielstadt.example>\nBetreff: Bastel-Workshop der Jugendabteilung – bitte Material mitbringen\nMail-Datum: 2026-11-10T19:05:00+01:00\n📧 Original-E-Mail öffnen: message://%3C03-workshop-material@demo.mailhelp.example%3E",
+      "description": "Workshop der Jugendabteilung, für den noch Bastelmaterial besorgt werden soll.\n\nAbsender: Tom Weber <jugend@tsv-beispielstadt.example>\nBetreff: Bastel-Workshop der Jugendabteilung – bitte Material mitbringen\nMail-Datum: 2026-11-10T19:05:00+01:00\n📧 Original-E-Mail öffnen: message://%3C03-workshop-material@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
@@ -184,7 +184,7 @@
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_028c379cd907459c95bb4de1",
+      "id": "p_dc79805a03ddb2b7f7572541",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -233,12 +233,12 @@
   "processing_retry": null,
   "proposal_notifications": [
     {
-      "proposal_id": "p_d8142d3eff0f04827c2129a8",
+      "proposal_id": "p_2a6ade23d43e97668bb8b8dd",
       "proposal_version": 2,
       "status": "queued"
     },
     {
-      "proposal_id": "p_028c379cd907459c95bb4de1",
+      "proposal_id": "p_dc79805a03ddb2b7f7572541",
       "proposal_version": 2,
       "status": "queued"
     }
@@ -294,7 +294,7 @@
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_d8142d3eff0f04827c2129a8",
+      "id": "p_2a6ade23d43e97668bb8b8dd",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -322,7 +322,7 @@
             "36b1d15894fdd0d93248959854c92a699738765cd4dec83b7b1980ac2d9ce7e6"
           ],
           "mail_id": "dcaf6e9b05b988f119ff6bc4",
-          "proposal_id": "p_d8142d3eff0f04827c2129a8",
+          "proposal_id": "p_2a6ade23d43e97668bb8b8dd",
           "sent_at": "2026-11-10T19:05:00+01:00",
           "subject": "bastel-workshop der jugendabteilung – bitte material mitbringen"
         }
@@ -335,7 +335,7 @@
       "target_provider": "todoist",
       "temporal_fact": null,
       "time_changes": [],
-      "title": "Material für Bastel-Workshop besorgen",
+      "title": "Bastelkleber und Fotokarton besorgen",
       "uncertain_notified": false,
       "version": 2,
       "video_link": null
@@ -350,7 +350,7 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Für den Workshop wird noch Bastelmaterial benötigt; Alex soll Kleber und Fotokarton mitbringen.\n\nAbsender: Tom Weber <jugend@tsv-beispielstadt.example>\nBetreff: Bastel-Workshop der Jugendabteilung – bitte Material mitbringen\nMail-Datum: 2026-11-10T19:05:00+01:00\n📧 Original-E-Mail öffnen: message://%3C03-workshop-material@demo.mailhelp.example%3E",
+      "description": "Workshop der Jugendabteilung, für den noch Bastelmaterial besorgt werden soll.\n\nAbsender: Tom Weber <jugend@tsv-beispielstadt.example>\nBetreff: Bastel-Workshop der Jugendabteilung – bitte Material mitbringen\nMail-Datum: 2026-11-10T19:05:00+01:00\n📧 Original-E-Mail öffnen: message://%3C03-workshop-material@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
@@ -365,7 +365,7 @@
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_028c379cd907459c95bb4de1",
+      "id": "p_dc79805a03ddb2b7f7572541",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -396,7 +396,7 @@
             "36b1d15894fdd0d93248959854c92a699738765cd4dec83b7b1980ac2d9ce7e6"
           ],
           "mail_id": "dcaf6e9b05b988f119ff6bc4",
-          "proposal_id": "p_028c379cd907459c95bb4de1",
+          "proposal_id": "p_dc79805a03ddb2b7f7572541",
           "sent_at": "2026-11-10T19:05:00+01:00",
           "subject": "bastel-workshop der jugendabteilung – bitte material mitbringen"
         }
@@ -451,8 +451,7 @@
       "Samstag, 21. November"
     ],
     "sentences": [
-      "Tom bittet für den Bastel-Workshop der Jugendabteilung, dass Alex zwei Packungen Bastelkleber und einen Block bunten DIN-A4-Fotokarton besorgt und mitbringt.",
-      "Das Material muss bis zum Workshop am Samstag, 21. November, vorhanden sein."
+      "Tom bittet Alex, für den Bastel-Workshop der Jugendabteilung Bastelkleber und bunten Fotokarton zu besorgen und bis Samstag, 21. November, mitzubringen."
     ]
   },
   "task_extraction": {
@@ -465,11 +464,11 @@
         "due_text": "Samstag, 21. November",
         "evidence": "Alex, könntest du bitte zwei Packungen Bastelkleber und einen Block Fotokarton (DIN A4, bunt) besorgen und zum Workshop mitbringen?",
         "responsibility": "user",
-        "title": "Material für Bastel-Workshop besorgen"
+        "title": "Bastelkleber und Fotokarton besorgen"
       }
     ]
   },
-  "updated_at": "2026-11-16T09:00:39.963677Z",
+  "updated_at": "2026-11-16T13:38:12.494193Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

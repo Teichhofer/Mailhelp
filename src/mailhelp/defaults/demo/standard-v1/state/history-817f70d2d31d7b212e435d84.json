@@ -2,12 +2,22 @@
   "events": [
     {
       "actor": null,
-      "at": "2026-11-16T09:02:22.723566Z",
-      "id": "69828f656f69290bb553bca40888e074",
+      "at": "2026-11-16T13:40:08.910519Z",
+      "id": "937cb5e569d1a630004d9039fa24fb08",
       "kind": "state",
-      "proposal_id": "p_d2475844e5dae551d48330fc",
+      "proposal_id": "p_7b829eb5ac13dc0a39cec21b",
       "source": "system",
-      "status": "pending_confirmation",
+      "status": "needs_clarification",
+      "version": 2
+    },
+    {
+      "actor": null,
+      "at": "2026-11-16T13:40:12.323478Z",
+      "id": "b7eab0136e12ebbfd02db29010e823cd",
+      "kind": "state",
+      "proposal_id": "p_8716aa81279deda3db58618e",
+      "source": "system",
+      "status": "merged",
       "version": 2
     }
   ],

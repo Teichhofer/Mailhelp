@@ -56,6 +56,13 @@ erhält über „Demo starten“ eine eigene Kopie für zwei Stunden; Bestätigu
 Port und Hostnamen: `MAILHELP_DEMO_PORT`, `MAILHELP_DEMO_HOST`, `MAILHELP_DEMO_ALLOWED_HOSTS`.
 Ein Verzeichnis einer normalen Installation lehnt die Demo ab und umgekehrt.
 
+Starts sind auf 5 je Client und 60 insgesamt pro Stunde begrenzt. Hinter dem eigenen Reverse Proxy
+`MAILHELP_DEMO_TRUST_PROXY=1` setzen, damit der Client aus `X-Forwarded-For` stammt (letzter Eintrag;
+der Proxy muss seine Gegenstelle anhängen, wie nginx, Caddy und Traefik es tun); ohne Proxy die
+Variable nicht setzen, sonst kann ein Besucher die Grenze mit einem erfundenen Kopf umgehen.
+Besucher beantworten Rückfragen nur mit den vorbereiteten Beispielantworten und setzen über
+„Demo neu starten“ ihre eigene Kopie zurück. Abgelaufene Kopien entfernt die Demo selbst.
+
 ## Sicherung
 
 Für eine konsistente Sicherung zuerst den Dienst kontrolliert beenden. Erst nach dem

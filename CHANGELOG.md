@@ -1,5 +1,16 @@
 # Änderungen
 
+## 7.1.4 – Demo-Modus: vorbereitete Antworten und Neustart
+
+- Rückfragen lassen sich in der Demo mit vorbereiteten Beispielantworten beantworten; das Ergebnis
+  stammt aus dem aufgezeichneten echten Antwortlauf, andere Antworten werden ohne KI abgelehnt.
+- „Demo neu starten“ setzt nach Bestätigung nur die eigene Kopie zurück; Knöpfe und Ergebnisse
+  heißen „In der Demo anlegen“ und „In der Demo angelegt“.
+- Höchstens 5 Starts je Client und 60 insgesamt pro Stunde (`MAILHELP_DEMO_TRUST_PROXY` hinter
+  einem Reverse Proxy); abgelaufene Kopien werden jede Minute entfernt.
+- Beispielbestand neu erzeugt: alle zehn Abläufe einschließlich der offenen Relevanzentscheidung.
+- Browserprüfung der Demo in Chrome und WebKit.
+
 ## 7.1.3 – Demo-Modus: eigene Kopie je Besucher
 
 - „Demo starten“ öffnet eine Sitzung ohne Code und kopiert den geprüften Beispielbestand atomar in

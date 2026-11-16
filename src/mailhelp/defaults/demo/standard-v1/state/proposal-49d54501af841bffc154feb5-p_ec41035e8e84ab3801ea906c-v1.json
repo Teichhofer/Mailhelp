@@ -1,6 +1,6 @@
 {
   "all_day": false,
-  "base_title": "Elternabend der Klasse 4b",
+  "base_title": "Elternabend Klasse 4b",
   "calendar_candidates": [],
   "canonical_ref": null,
   "certainty": "certain",
@@ -8,7 +8,7 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": 180,
-  "description": "Der ursprünglich für den 26. November geplante Elternabend wird auf einen neuen Termin verlegt; die Tagesordnung bleibt unverändert.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Re: Einladung zum Elternabend der Klasse 4b – neuer Termin\nMail-Datum: 2026-11-12T14:20:00+01:00\n📧 Original-E-Mail öffnen: message://%3C05-elternabend-verschoben@demo.mailhelp.example%3E",
+  "description": "Der Elternabend der Klasse 4b wird auf einen neuen Termin verschoben; die Tagesordnung bleibt gleich.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Re: Einladung zum Elternabend der Klasse 4b – neuer Termin\nMail-Datum: 2026-11-12T14:20:00+01:00\n📧 Original-E-Mail öffnen: message://%3C05-elternabend-verschoben@demo.mailhelp.example%3E",
   "due": null,
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -23,7 +23,7 @@
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_f4f10db625caf6b4b58e4d5a",
+  "id": "p_ec41035e8e84ab3801ea906c",
   "is_cancellation": false,
   "kind": "event",
   "known_temporal_facts": null,
@@ -44,7 +44,7 @@
   "responsibility": "user",
   "schema_version": 3,
   "separated_from": [],
-  "series_key": "aefc3eb8c2cd49fc958d6c36f790c1bee888e3f2b542222b137a5c985cb90fac",
+  "series_key": "48ffa47709ae81499270d139fb31c990aeba1eb1e0f2b60d60f4d6736a583e0d",
   "simulation_notified": false,
   "source_mail_id": "49d54501af841bffc154feb5",
   "sources": [
@@ -53,7 +53,7 @@
         "d5fd7b2f2a2ba3e46ff9df762c8e4a15ef913c4ecb07eaad9d9f42a60f07b5a4"
       ],
       "mail_id": "49d54501af841bffc154feb5",
-      "proposal_id": "p_f4f10db625caf6b4b58e4d5a",
+      "proposal_id": "p_ec41035e8e84ab3801ea906c",
       "sent_at": "2026-11-12T14:20:00+01:00",
       "subject": "einladung zum elternabend der klasse 4b – neuer termin"
     }
@@ -71,7 +71,7 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Elternabend der Klasse 4b",
+  "title": "Elternabend Klasse 4b",
   "uncertain_notified": false,
   "version": 1,
   "video_link": null

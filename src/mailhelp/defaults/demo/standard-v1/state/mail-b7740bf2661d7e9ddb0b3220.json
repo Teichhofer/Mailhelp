@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:43.483785Z",
+  "created_at": "2026-11-16T13:40:27.972964Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Gartencenter Grünzeug <news@gruenzeug.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "d7965c94-decc-4cd4-9f3c-8b4acaa229dd"
+    "2acfad6d-6926-4b84-b0b5-f4b6df94031f"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:43.807830Z",
+  "updated_at": "2026-11-16T13:40:28.226207Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

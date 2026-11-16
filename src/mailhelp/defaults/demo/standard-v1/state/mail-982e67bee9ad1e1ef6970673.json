@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:43.061224Z",
+  "created_at": "2026-11-16T13:40:27.673591Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Möbelland <prospekt@moebelland.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "03ef67a1-c9d6-4e1b-9017-83160e5892a8"
+    "24bc9253-c6e5-4192-bea9-82bdd1106e5e"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:43.462581Z",
+  "updated_at": "2026-11-16T13:40:27.955901Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

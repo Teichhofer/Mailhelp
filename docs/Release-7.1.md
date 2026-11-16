@@ -112,3 +112,47 @@ Offen für die nächsten Patches: Beschriftung „In der Demo angelegt“, vorbe
 „Demo neu starten“, Ablauf und Bereinigung im Betrieb, Startgrenzen je Client, Demozeit,
 Browsertests und Docker.
 
+## 7.1.4 – Vorbereitete Antworten, Neustart der Demo, Grenzen und Browserprüfung (D5, D6)
+
+- **Vorbereitete Rückfrage-Antworten** (`runtime/demo_answers.py`): Der Erzeugungslauf beantwortet
+  drei Rückfragen über den normalen Antwortweg (Web-Befehl „Antwort“, echter Dialog, echtes Modell)
+  und zeichnet die Aufrufe des Antwortdienstes in `answers.json` auf (im Manifest mit Prüfsumme).
+  Zur Laufzeit liefert die Demo für dieselbe Frage, Antwort und Vorschlagsversion genau das
+  aufgezeichnete Ergebnis. Jede andere Antwort lehnt sie mit einem Hinweis auf die Demo-Grenze ab,
+  ohne Modell und ohne erfundenes Ergebnis. Das Antwortfeld ist mit der vorbereiteten Antwort
+  vorbelegt („In der Demo vorbereitet“). Zeitangaben, die Mailhelp ohne KI auswertet, funktionieren
+  wie sonst.
+- **Beschriftungen**: „Simulieren“ heißt in der Demo „In der Demo anlegen“, simulierte Ergebnisse
+  „In der Demo angelegt“; die Ersetzungen gelten nur für Texte, die im Code vorkommen (Test).
+- **Demo neu starten**: Jede Seite trägt den Demo-Hinweis mit dem Verweis „Demo neu starten“. Nach
+  einer Bestätigungsseite (CSRF an die Sitzung gebunden, Idempotenzschlüssel) wird nur der eigene
+  Bereich neu aus dem Bestand kopiert; andere Besucher bleiben unberührt.
+- **Grenzen**: höchstens 5 Starts je Client und 60 insgesamt pro Stunde. Der Client ist die
+  Socket-Adresse; `X-Forwarded-For` gilt nur mit `MAILHELP_DEMO_TRUST_PROXY=1` (hinter dem eigenen
+  Reverse Proxy), und dann nur der letzte Eintrag, den der Proxy anhängt. Frühere Einträge kann der
+  Besucher frei setzen; mit ihnen ließe sich die Grenze umgehen (Regressionstest). Die Werte sind im Code festgelegt, weil die Demo keine `config.yaml` besitzt
+  (Abweichung vom Plan, der sie dort vorsah).
+- **Ablauf und Bereinigung**: Der Arbeitsfaden entfernt jede Minute die Bereiche abgelaufener
+  Sitzungen und verwaiste Verzeichnisse. Eine abgelaufene Sitzung führt keinen Befehl mehr aus.
+- **Neuer Bestand**: Mit der Antwortphase wurde der Bestand neu erzeugt (30 Mails,
+  109 Zustandsdateien, vier aufgezeichnete Aufrufe). Jetzt entsteht auch Nr. 8: Die private Nachricht
+  „wegen Samstag“ wird als „unklar“ eingestuft und zeigt die offene Relevanzentscheidung. Damit
+  sind alle zehn Fälle des Plans erreicht: acht relevante Mails, eine unklare, 21 irrelevante. Nr. 3
+  ergibt jetzt die Aufgabe „Bastelkleber und Fotokarton besorgen“ und den Workshop-Termin mit
+  Rückfrage; die übrigen Zeilen der Tabelle in 7.1.2 gelten unverändert.
+
+**Abweichung Demozeit.** Der Plan (6.3) lässt die fachliche Zeit an der Referenzzeit beginnen. Die
+Oberfläche und die Fristen lesen die Zeit an 17 Stellen direkt; eine gemeinsame Uhr dafür wäre ein
+eigener Umbau. Die Demo läuft deshalb in der echten Zeit. Die Beispieltermine liegen nach der
+Referenzzeit (16. November 2026) im November und Dezember 2026; nach diesen Daten muss der Bestand
+neu erzeugt werden.
+
+Tests: `tests/web/test_demo_site.py` (vorbereitete Antworten, Beschriftungen, Neustart, Grenzen,
+Bereinigung, Arbeitsfaden), `tests/release/test_demo_dataset.py` (Antwortphase und Export) und die
+Browserprüfung `ui_tests/test_ui_demo.py`: Demo starten ohne Telegram, in der eigenen Kopie
+bestätigen (Desktop, Telefon, schmal), vorbereitete Antwort und Neustart, gesperrte Wege, zwei
+getrennte Browserkontexte, WebKit auf einem iPhone-Profil.
+
+Prüfung: 5 541 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 932 bestanden ohne
+Fehler.
+

@@ -8,7 +8,7 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Wer einen Kuchen beisteuern möchte, soll sich über das Formular auf der Schulwebsite anmelden.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
+  "description": "Bei Interesse über das Formular auf der Schulwebsite anmelden.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
   "due": "2026-11-30",
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -23,7 +23,7 @@
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_9507bb37af43443ede5ac412",
+  "id": "p_e07cbc1ff92396fd51f0d615",
   "is_cancellation": false,
   "kind": "task",
   "known_temporal_facts": null,
@@ -55,7 +55,7 @@
         "41bf4b6e8bd64eba753248c2df10b329dfc3018bf4780845093d3a05048d9264"
       ],
       "mail_id": "67252f5317b5c5a3a8501e05",
-      "proposal_id": "p_9507bb37af43443ede5ac412",
+      "proposal_id": "p_e07cbc1ff92396fd51f0d615",
       "sent_at": "2026-11-11T12:30:00+01:00",
       "subject": "einladung zum adventsbasar – kuchenspenden gesucht"
     }
@@ -73,7 +73,7 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Kuchenspende für Adventsbasar anmelden",
+  "title": "Kuchenspende anmelden",
   "uncertain_notified": false,
   "version": 1,
   "video_link": null

@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T09:02:37.147036Z",
+  "created_at": "2026-11-16T13:40:22.806154Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Stromwerk Süd <tarife@stromwerk-sued.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "6236e780-41f9-45a8-8ab2-7e4717e74d9f"
+    "65576090-3e60-452e-91d7-ac4a026090f2"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T09:02:37.504563Z",
+  "updated_at": "2026-11-16T13:40:23.108081Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

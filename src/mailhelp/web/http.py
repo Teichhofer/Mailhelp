@@ -48,6 +48,8 @@ class Request:
     headers: dict[str, str] = field(default_factory=dict)
     query: str = ""
     body: bytes = b""
+    # 7.1: the socket address of the client; behind a reverse proxy this is the proxy.
+    client: str = ""
 
     def header(self, name: str) -> str | None:
         return self.headers.get(name.lower())

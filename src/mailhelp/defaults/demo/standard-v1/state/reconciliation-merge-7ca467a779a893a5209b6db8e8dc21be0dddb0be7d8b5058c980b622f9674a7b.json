@@ -1,0 +1,18 @@
+{
+  "alias": null,
+  "policy": "00560f21b0cfa74b79e7d02212ea5e7d27310caa726b4be2f80b05bf3a6028f9",
+  "revision": null,
+  "schema_version": 1,
+  "source": {
+    "mail_id": "817f70d2d31d7b212e435d84",
+    "proposal_id": "p_8716aa81279deda3db58618e"
+  },
+  "source_version": 1,
+  "source_was_present": false,
+  "status": "completed",
+  "target": {
+    "mail_id": "fcd2160ce611f1d255b9cac5",
+    "proposal_id": "p_b9e428b080850e29997083c4"
+  },
+  "target_version": 1
+}

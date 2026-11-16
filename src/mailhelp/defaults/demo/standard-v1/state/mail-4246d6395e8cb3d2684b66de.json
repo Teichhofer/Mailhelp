@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:35.721817Z",
+  "created_at": "2026-11-16T13:37:28.816849Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Fotobuch-App <service@fotobuch-app.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "7dc8ba10-fc9e-47b7-a05a-3d518cbb3594"
+    "91827dd8-67af-4079-a159-41a85e3c6a9f"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:35.956077Z",
+  "updated_at": "2026-11-16T13:37:29.080952Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

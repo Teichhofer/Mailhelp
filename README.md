@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.1.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.1.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.1.3 macht den Demo-Modus nutzbar: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie der 30 Beispielmails in der normalen Oberfläche. Bestätigungen werden nur simuliert, Einrichtung, Konten und KI-Funktionen sind gesperrt.
+Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, Rückfragen lassen sich mit vorbereiteten Beispielantworten beantworten, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
 
 Alle Änderungen früherer Versionen stehen im [CHANGELOG](CHANGELOG.md).
 

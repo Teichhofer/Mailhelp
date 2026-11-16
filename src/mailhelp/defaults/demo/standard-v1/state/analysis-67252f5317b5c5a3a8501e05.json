@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "67252f5317b5c5a3a8501e05",
-  "recorded_at": "2026-11-16T09:00:45.454261+00:00",
+  "recorded_at": "2026-11-16T13:38:16.668263+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -18,7 +18,7 @@
     ],
     "sentences": [
       "Der Förderverein lädt zum Adventsbasar am 5. Dezember 2026 von 14:00 bis 17:00 Uhr in die Schulaula ein.",
-      "Für Kuchenspenden bittet er um Anmeldung über das Schulformular bis Montag, 30. November 2026."
+      "Für Kuchenspenden bittet er um Anmeldung bis 30. November 2026 über das Formular der Schulwebsite."
     ]
   },
   "topics": {

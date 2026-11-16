@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T08:59:04.344895Z",
+  "created_at": "2026-11-16T13:36:55.631848Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Technikwelt <info@technikwelt.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "631ac24c-7f65-4b85-a8a4-5299face5e24"
+    "e32910a4-fb52-4f38-aba0-489618a42ebc"
   ],
   "mail": {
     "calendar_events": [],
@@ -115,7 +115,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T08:59:04.751368Z",
+  "updated_at": "2026-11-16T13:36:55.889147Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

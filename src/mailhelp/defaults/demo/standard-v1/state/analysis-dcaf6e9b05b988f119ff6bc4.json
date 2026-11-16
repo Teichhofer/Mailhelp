@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "dcaf6e9b05b988f119ff6bc4",
-  "recorded_at": "2026-11-16T08:59:42.125024+00:00",
+  "recorded_at": "2026-11-16T13:37:32.879955+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -16,8 +16,7 @@
       "Samstag, 21. November"
     ],
     "sentences": [
-      "Tom bittet für den Bastel-Workshop der Jugendabteilung, dass Alex zwei Packungen Bastelkleber und einen Block bunten DIN-A4-Fotokarton besorgt und mitbringt.",
-      "Das Material muss bis zum Workshop am Samstag, 21. November, vorhanden sein."
+      "Tom bittet Alex, für den Bastel-Workshop der Jugendabteilung Bastelkleber und bunten Fotokarton zu besorgen und bis Samstag, 21. November, mitzubringen."
     ]
   },
   "topics": {

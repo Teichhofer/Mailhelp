@@ -89,7 +89,7 @@ class _RequestHandler(BaseHTTPRequestHandler):
         response = self._read_body(headers)
         if response is None:
             body = self.rfile.read(int(headers.get("content-length") or 0))
-            request = Request(self.command, path, headers, query, body)
+            request = Request(self.command, path, headers, query, body, str(self.client_address[0]))
             try:
                 response = self.server.app(request)
             except Exception as exc:

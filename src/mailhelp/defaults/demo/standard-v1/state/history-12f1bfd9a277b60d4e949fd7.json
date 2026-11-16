@@ -2,10 +2,10 @@
   "events": [
     {
       "actor": null,
-      "at": "2026-11-16T08:59:15.849293Z",
-      "id": "6bf29ce011943b7d20ba3e11354f9f7c",
+      "at": "2026-11-16T13:37:07.946318Z",
+      "id": "ecf09352bbe4f0e96712a359d9185626",
       "kind": "state",
-      "proposal_id": "p_066967ce0c1e84efc778fa60",
+      "proposal_id": "p_c4cccbc381d621a336ee7159",
       "source": "system",
       "status": "pending_confirmation",
       "version": 1

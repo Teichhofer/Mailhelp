@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import time
 from collections.abc import Callable, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
 from ..review.inbox import CommandInbox
 from ..review.views import ReviewViews
+from ..runtime.demo_answers import DemoRevisions
 from ..runtime.demo_dataset import packaged
 from ..runtime.demo_visitors import MAX_VISITORS, DemoVisitors
 from ..runtime.standalone import DisabledTelegram
@@ -31,7 +33,7 @@ from ..telegram import TelegramDialogController
 from ..telegram.receiver import TelegramInbox
 from ..web.app import WebApp
 from ..web.auth import WebAuth
-from ..web.demo_site import SESSION_SECONDS, DemoSite, VisitorApp
+from ..web.demo_site import SESSION_SECONDS, DemoHooks, DemoSite, VisitorApp
 from ..web.server import WebServer
 from ..web.site import MailhelpSite
 from .bootstrap import console
@@ -120,34 +122,37 @@ class VisitorRuntime:
     commands: CommandInbox
     dialog: TelegramDialogController
     app: WebApp
+    resources: ExitStack
 
 
 class DemoRuntimes:
     """One runtime per visitor area, created on first use and closed with the instance."""
 
-    def __init__(self, visitors: DemoVisitors, auth: WebAuth, settings: WebSettings, logger: Any) -> None:
+    def __init__(self, visitors: DemoVisitors, auth: WebAuth, settings: WebSettings, logger: Any,
+                 revisions: DemoRevisions) -> None:
         self.visitors, self.auth, self.settings, self.logger = visitors, auth, settings, logger
+        self.revisions = revisions
         self.runtimes: dict[Path, VisitorRuntime] = {}
-        self.resources = ExitStack()
         self.lock = Lock()
 
     def _authorized(self, actor: str) -> bool:
         return actor.startswith("web:") and self.auth.active(actor.removeprefix("web:"))
 
     def _build(self, area: Path) -> VisitorRuntime:
-        store = self.resources.enter_context(JsonStore(area))
+        resources = ExitStack()
+        store = resources.enter_context(JsonStore(area))
         commands = CommandInbox(store)
         # With an inbox poll_once never waits for Telegram; the demo has no Telegram at all.
         target = DemoTarget()
         dialog = TelegramDialogController(store, DisabledTelegram(), 0, 0, self.logger,
                                           {CALENDAR_SLOT: target, TASK_SLOT: target}, True, TIMEZONE,
-                                          inbox=TelegramInbox(store), commands=commands)
+                                          self.revisions, inbox=TelegramInbox(store), commands=commands)
         dialog.review.web_authorizer = self._authorized
         app = WebApp(self.settings.allowed_hosts)
         MailhelpSite(app, self.auth, self.settings, TIMEZONE, self.logger,
                      ReviewViews(store, TIMEZONE, test_mode=True), commands)
         dialog.poll_once()
-        return VisitorRuntime(store, commands, dialog, app)
+        return VisitorRuntime(store, commands, dialog, app, resources)
 
     def app(self, session_id: str) -> VisitorApp | None:
         area = self.visitors.area(session_id)
@@ -169,22 +174,45 @@ class DemoRuntimes:
             else:
                 runtime.commands.refresh()
 
+    def _drop(self, areas: set[Path]) -> None:
+        with self.lock:
+            dropped = [self.runtimes.pop(area) for area in areas if area in self.runtimes]
+        for runtime in dropped:
+            runtime.resources.close()
+
+    def reset(self, session_id: str, key: str) -> None:
+        """A fresh copy for this visitor; its open store is closed before the area is replaced."""
+        area = self.visitors.area(session_id)
+        self._drop({area} if area is not None else set())
+        self.visitors.reset(session_id, key)
+
+    def cleanup(self) -> int:
+        """Remove the areas of ended or expired sessions and close their runtimes."""
+        active = {session.id for session in self.auth.sessions()}
+        with self.lock:
+            stale = {area for area in self.runtimes if not any(
+                self.visitors.area(session_id) == area for session_id in active)}
+        self._drop(stale)
+        return self.visitors.cleanup(active)
+
     def close(self) -> None:
-        self.resources.close()
+        self._drop(set(self.runtimes))
 
 
 def create_demo(directory: Path, store: JsonStore, settings: WebSettings, secret: str,
-                logger: Any) -> tuple[WebServer, DemoRuntimes]:
+                logger: Any, *, trust_proxy: bool = False) -> tuple[WebServer, DemoRuntimes]:
     auth = WebAuth(store, secret, 1, lambda text: None)
     auth.session_lifetime = timedelta(seconds=SESSION_SECONDS)
     auth.max_sessions = MAX_VISITORS
     visitors = DemoVisitors(store, directory / "data" / "visitors", packaged())
-    runtimes = DemoRuntimes(visitors, auth, settings, logger)
+    revisions = DemoRevisions.load(packaged())
+    runtimes = DemoRuntimes(visitors, auth, settings, logger, revisions)
 
     def start(session_id: str, key: str) -> None:
         visitors.start(session_id, key)
 
-    site = DemoSite(WebApp(settings.allowed_hosts), auth, logger, start, runtimes.app, visitors.full)
+    hooks = DemoHooks(start, runtimes.app, visitors.full, runtimes.reset)
+    site = DemoSite(WebApp(settings.allowed_hosts), auth, logger, hooks, revisions.prepared(), trust_proxy=trust_proxy)
     return WebServer(settings.host, settings.port, site, logger), runtimes
 
 
@@ -200,7 +228,8 @@ def run_demo(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = co
     shutdown.stop = stopped.set
     with JsonStore(directory / "data" / "demo") as store:
         logger = JsonlLogger(directory / "logs", console_enabled=False)
-        server, runtimes = create_demo(directory, store, settings, demo_secret(directory), logger)
+        server, runtimes = create_demo(directory, store, settings, demo_secret(directory), logger,
+                                       trust_proxy=environ.get("MAILHELP_DEMO_TRUST_PROXY") == "1")
         worker = Thread(target=_work, args=(runtimes, stopped), name="demo-actions", daemon=True)
         server.start()
         worker.start()
@@ -214,6 +243,13 @@ def run_demo(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = co
     return 0
 
 
-def _work(runtimes: DemoRuntimes, stopped: Event) -> None:
+CLEANUP_SECONDS = 60.0
+
+
+def _work(runtimes: DemoRuntimes, stopped: Event, clock: Callable[[], float] = time.monotonic) -> None:
+    last_cleanup = clock()
     while not stopped.wait(0.1):
         runtimes.work()
+        if clock() - last_cleanup >= CLEANUP_SECONDS:
+            last_cleanup = clock()
+            runtimes.cleanup()
