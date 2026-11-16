@@ -127,7 +127,7 @@ PROVIDER_CHOICES = {
     "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),
                               ("caldav", "CalDAV-Aufgaben (VTODO)"),
                               ("apple_reminders", "Apple Erinnerungen (iCloud)"),
-                              ("google_tasks", "Google Tasks")),
+                              ("google_tasks", "Google Tasks"), ("notion", "Notion")),
 }
 
 

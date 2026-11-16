@@ -11,7 +11,7 @@ from ..mailbox.mailbox_settings import active_profiles, profile_label, target_pr
 
 CALENDAR_SERVICES = {"google": "google_calendar", "caldav": "caldav_calendar", "outlook": "outlook_calendar"}
 TASK_SERVICES = {"todoist": "todoist", "caldav": "caldav_tasks", "microsoft_todo": "microsoft_todo",
-                 "apple_reminders": "apple_reminders", "google_tasks": "google_tasks"}
+                 "apple_reminders": "apple_reminders", "google_tasks": "google_tasks", "notion": "notion"}
 
 
 @dataclass(frozen=True)

@@ -369,9 +369,9 @@ Erzeugt mit `python -m devtools.inventory`: **271 Einstellungen**, davon **271**
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
-| `targets.notion_data_source_id` | str | '' | Länge ≤ 36 | Datei | ja |
-| `targets.notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Datei | ja |
-| `targets.notion_open_status` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_data_source_id` | str | '' | Länge ≤ 36 | Einrichtung | ja |
+| `targets.notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Einrichtung | ja |
+| `targets.notion_open_status` | str | '' | Länge ≤ 100 | Einrichtung | ja |
 | `targets.notion_properties.description` | str | '' | Länge ≤ 100 | Datei | ja |
 | `targets.notion_properties.due` | str | '' | Länge ≤ 100 | Datei | ja |
 | `targets.notion_properties.operation_key` | str | '' | Länge ≤ 100 | Datei | ja |

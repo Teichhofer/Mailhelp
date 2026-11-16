@@ -119,3 +119,27 @@ bestanden. Zwei Polling-Tests nach abgelaufener Sitzung
 einem Zeitlimit beim Seitenaufruf. Dasselbe tritt auf dem Stand 7.2.2 ohne die Notion-Änderungen
 auf (einer von vier Läufen); es ist ein bestehendes, lastabhängiges Testverhalten und bleibt als
 offener Punkt vermerkt.
+
+## 7.2.4 – Notion-Datenquelle und Eigenschaften in der Oberfläche
+
+- **Einstellungen → Zielprofile** verlinkt je Profil **Notion-Datenquelle auswählen** und
+  **Notion-Eigenschaften zuordnen** (`/notion/datenquelle`, `/notion/zuordnung`).
+- Die Datenquellenliste kommt aus der Notion-Suche über alle Seiten (höchstens 20); eine
+  unvollständige oder fehlerhafte Liste wird abgelehnt, nicht teilweise angeboten. Ohne Token oder
+  Freigabe erklärt die Seite, was zu prüfen ist.
+- Die Zuordnung bietet je Feld nur Eigenschaften des passenden Typs und die Optionen vorhandener
+  Status- und Auswahlfelder. Beim Speichern liest Mailhelp das Schema neu und prüft mit derselben
+  Regel wie vor jeder Anlage (`check_mapping`): IDs vorhanden, Typen passend, Optionen gehören zum
+  gewählten Statusfeld. Ohne Statusfeld werden Statusoptionen verworfen.
+- Gespeichert wird ein Einstellungsentwurf (Sitzung, CSRF, Entwurfsversion, Idempotenzschlüssel);
+  übernommen wird er wie jede Einstellungsänderung. In Notion wird nichts angelegt oder geändert.
+- Notion erscheint in der Auswahl des Aufgabendienstes unter Einstellungen. Die Ersteinrichtung
+  bietet Notion nicht an, weil dort keine Zuordnung möglich ist.
+
+**Offen.** Notion-OAuth mit rotierenden Tokens (7.2.5); Demo, Hinweise und Abnahme mit echtem
+Testkonto (7.2.6).
+
+Prüfung 7.2.4: 5 632 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung. Browser 930 bestanden;
+die Auswahl des Aufgabendienstes nennt jetzt Notion als sechsten Eintrag (Test angepasst, besteht).
+Unter Last scheiterten der bekannte Polling-Test nach abgelaufener Sitzung und der Zeittest der
+Live-Suche; beide bestanden danach zweimal einzeln.

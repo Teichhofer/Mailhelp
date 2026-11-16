@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.2.4 – Notion-Auswahl in der Oberfläche
+
+- Unter Zielprofile lassen sich die Notion-Datenquelle auswählen und ihre Eigenschaften zuordnen;
+  beim Speichern wird das Schema neu gelesen und geprüft.
+- Notion ist in den Einstellungen als Aufgabendienst wählbar.
+
 ## 7.2.3 – Notion als Aufgabenziel (interne Verbindung)
 
 - Neuer Aufgabendienst `notion`: eine Seite je bestätigter Aufgabe in einer Notion-Datenquelle,

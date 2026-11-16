@@ -1256,8 +1256,8 @@
   "id": "setting:targets.notion_data_source_id",
   "key": "targets.notion_data_source_id",
   "label": "targets.notion_data_source_id",
-  "path": "Datei",
-  "summary": "Datei: ID der Notion-Datenquelle (32 Hex-Zeichen, mit oder ohne Bindestriche), nicht die der Datenbank."
+  "path": "Einrichtung",
+  "summary": "Einrichtung: ID der Notion-Datenquelle (32 Hex-Zeichen, mit oder ohne Bindestriche), nicht die der Datenbank."
  },
  {
   "area": "Weitere Einstellungen",
@@ -1266,8 +1266,8 @@
   "id": "setting:targets.notion_done_statuses",
   "key": "targets.notion_done_statuses",
   "label": "targets.notion_done_statuses",
-  "path": "Datei",
-  "summary": "Datei: Options-IDs, die als erledigt gelten; höchstens 50."
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Options-IDs, die als erledigt gelten; höchstens 50."
  },
  {
   "area": "Weitere Einstellungen",
@@ -1276,8 +1276,8 @@
   "id": "setting:targets.notion_open_status",
   "key": "targets.notion_open_status",
   "label": "targets.notion_open_status",
-  "path": "Datei",
-  "summary": "Datei: Options-ID, die neue Seiten im Statusfeld erhalten; nötig mit Status- oder Auswahlfeld."
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Options-ID, die neue Seiten im Statusfeld erhalten; nötig mit Status- oder Auswahlfeld."
  },
  {
   "area": "Weitere Einstellungen",

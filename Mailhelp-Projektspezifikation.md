@@ -20,7 +20,8 @@ Seit 7.2.3 ist `notion` ein Aufgabendienst: eine Seite je Aufgabe in einer Daten
 internen Verbindung, API-Version `2026-03-11`. Fehlende Eigenschaften oder geänderte Typen sperren
 neue Anlagen; das Schema wird direkt vor jeder Anlage erneut gelesen. Abgleich nach
 Vorgangsschlüssel in offenen und archivierten Seiten; doppelter Treffer oder unvollständige Abfrage
-bleiben unklar. Kein Entfernen.
+bleiben unklar. Kein Entfernen. Seit 7.2.4 wählt **Einstellungen → Zielprofile** die Datenquelle
+und ordnet die Eigenschaften zu; gespeichert wird ein Entwurf nach erneuter Schemaprüfung.
 
 Seit 7.2.2 bietet `/auth/google/aufgabenlisten` die vollständig paginierte Auswahl bestehender
 Listen mit den gespeicherten Google-Zugangsdaten des gewählten Profils. Die Auswahl speichert

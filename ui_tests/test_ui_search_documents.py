@@ -69,6 +69,7 @@ def test_provider_choice_in_the_settings(page, mailhelp):
                                                    "Outlook / Microsoft 365"])
     tasks = settings.expand("Aufgabendienst")
     expect(tasks.get_by_label("Neuer Wert").locator("option")).to_have_text([
-        "Todoist", "Microsoft To Do", "CalDAV-Aufgaben (VTODO)", "Apple Erinnerungen (iCloud)", "Google Tasks"])
+        "Todoist", "Microsoft To Do", "CalDAV-Aufgaben (VTODO)", "Apple Erinnerungen (iCloud)", "Google Tasks",
+        "Notion"])
     assert audit(page, f"v23-anbieter-{page.device}", page.mobile) == []
     assert page.errors == []

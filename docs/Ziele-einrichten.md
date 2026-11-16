@@ -76,10 +76,12 @@ richtest du selbst ein; Mailhelp legt weder Datenquellen noch Eigenschaften an.
 2. In Notion eine interne Verbindung anlegen, mit den Fähigkeiten Inhalte lesen und Inhalte
    einfügen, und die Datenbank für diese Verbindung freigeben.
 3. Den Token als `NOTION_TOKEN` hinterlegen (weitere Profile: `NOTION_2_TOKEN` usw.).
-4. In `config.yaml` unter `targets` `task_provider: notion`, die Datenquellen-ID und die
-   Eigenschafts-IDs eintragen (siehe `config.example.yaml`). Mailhelp nutzt IDs, damit ein
-   umbenanntes Feld weiter passt. Mit Statusfeld zusätzlich die Options-ID für offen
-   (`notion_open_status`) und die Options-IDs für erledigt (`notion_done_statuses`).
+4. Unter **Einstellungen → Zielprofile** **Notion-Datenquelle auswählen**; angezeigt werden die
+   für die Verbindung freigegebenen Datenquellen. Danach **Notion-Eigenschaften zuordnen**: je Feld
+   eine Eigenschaft des passenden Typs und optional das Statusfeld mit der Option für neue Seiten
+   und den Optionen, die als erledigt gelten. Beides wird als Entwurf gespeichert und wie jede
+   Einstellungsänderung übernommen. Dann den Aufgabendienst auf Notion stellen. Alternativ lassen
+   sich die IDs direkt in `config.yaml` eintragen (siehe `config.example.yaml`).
 5. **Zugriffe prüfen**: Mailhelp liest das Schema und meldet eine fehlende Eigenschaft oder einen
    falschen Typ. Eine Testseite legt Mailhelp nicht an.
 

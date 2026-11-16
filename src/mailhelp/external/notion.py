@@ -51,6 +51,7 @@ NO_STATUS_NOTE = ("Ohne Statusfeld kann Mailhelp erledigte Notion-Aufgaben nicht
 
 class SchemaProperty(IntegrationModel):
     id: str = Field(min_length=1)
+    name: str = ""
     type: str
     status: dict[str, Any] | None = None
     select: dict[str, Any] | None = None
@@ -66,6 +67,34 @@ class NotionPage(IntegrationModel):
     url: str | None = None
     in_trash: bool = False
     properties: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+
+def options(item: SchemaProperty) -> list[dict[str, Any]]:
+    """The options of a status or select property; a checkbox has none."""
+    values = (item.status or item.select or {}).get("options", [])
+    return [value for value in values if isinstance(value, dict) and isinstance(value.get("id"), str)]
+
+
+def check_mapping(source: DataSource, fields: NotionProperties, open_status: str,
+                  done_statuses: frozenset[str]) -> dict[str, str]:
+    """The type of every mapped property; a missing one, a wrong type or a lost option is refused."""
+    by_id = {item.id: item for item in source.properties.values()}
+    types: dict[str, str] = {}
+    for field, property_id in fields.model_dump().items():
+        if not property_id:
+            continue
+        found = by_id.get(property_id)
+        if found is None:
+            raise TargetAccessError(f"Notion: Eigenschaft für „{field}“ fehlt in der Datenquelle; "
+                                    "Zuordnung neu festlegen", "not_found")
+        if found.type not in TYPES[field]:
+            raise TargetAccessError(f"Notion: Eigenschaft für „{field}“ hat den Typ {found.type}, "
+                                    f"erwartet {' oder '.join(TYPES[field])}", "forbidden")
+        types[field] = found.type
+        ids = {value["id"] for value in options(found)}
+        if field == "status" and found.type != "checkbox" and (open_status not in ids or not done_statuses <= ids):
+            raise TargetAccessError("Notion: Statusoption nicht mehr vorhanden; Zuordnung neu festlegen", "not_found")
+    return types
 
 
 def _link(value: str | None) -> str | None:
@@ -161,29 +190,9 @@ class NotionTasks(ProviderWriter):
         url = f"/data_sources/{quote(self.target, safe='')}"
         return self._model(DataSource, self._json(self.policy.run(partial(self._send, "GET", url))))
 
-    def _mapped(self) -> dict[str, str]:
-        return {name: value for name, value in self.fields.model_dump().items() if value}
-
     def check_schema(self, source: DataSource) -> dict[str, str]:
         """The type of every mapped property; a missing one or a wrong type stops new writes."""
-        by_id = {item.id: item for item in source.properties.values()}
-        types: dict[str, str] = {}
-        for field, property_id in self._mapped().items():
-            found = by_id.get(property_id)
-            if found is None:
-                raise TargetAccessError(f"{self.label}: Eigenschaft für „{field}“ fehlt in der Datenquelle; "
-                                        "Zuordnung neu festlegen", "not_found")
-            if found.type not in TYPES[field]:
-                raise TargetAccessError(f"{self.label}: Eigenschaft für „{field}“ hat den Typ {found.type}, "
-                                        f"erwartet {' oder '.join(TYPES[field])}", "forbidden")
-            types[field] = found.type
-            options = (found.status or found.select or {}).get("options", []) if field == "status" else []
-            ids = {item.get("id") for item in options if isinstance(item, dict)}
-            if field == "status" and found.type != "checkbox" and (
-                    self.open_status not in ids or not self.done_statuses <= ids):
-                raise TargetAccessError(f"{self.label}: Statusoption nicht mehr vorhanden; Zuordnung neu festlegen",
-                                        "not_found")
-        return types
+        return check_mapping(source, self.fields, self.open_status, self.done_statuses)
 
     def check_access(self) -> None:
         self.check_schema(self._source())
