@@ -57,10 +57,12 @@ def before_2_0(dump: dict, settings) -> dict:
     dump.pop("iserv", None)
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes",
-                 "google_tasks_list"):
+                 "google_tasks_list", "notion_data_source_id", "notion_properties",
+                 "notion_open_status", "notion_done_statuses"):
         dump["targets"].pop(name)
     # 7.2: Google Tasks as a task target and its timeouts.
     dump.get("timeouts", {}).pop("google_tasks", None)
+    dump.get("timeouts", {}).pop("notion", None)
     return dump
 
 
@@ -198,7 +200,8 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
     dump.get("retention", {}).pop("activity_report_days", None)
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes",
-                 "google_tasks_list"):
+                 "google_tasks_list", "notion_data_source_id", "notion_properties",
+                 "notion_open_status", "notion_done_statuses"):
         dump["targets"].pop(name)
     step_prompts = prompts.model_dump(exclude={"prompts": {"vision_ocr", "draft_reply", "activity_relevance",
                                                            "activity_events", "diagnostic_test",

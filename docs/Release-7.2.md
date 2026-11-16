@@ -53,7 +53,7 @@ Anmeldung früher erteilte Rechte. Die Rechte gehören zur Bindung der Web-Anmel
 Ziel währenddessen, wird die Anmeldung abgelehnt. `mailhelp --google-auth` lehnt ein Profil ohne
 Google-Ziel ab, statt Rechte anzufordern, die nichts nutzt.
 
-**Offen für die nächsten Patches.** Notion (7.2.3, 7.2.4); Abnahme mit echtem Testkonto (7.2.5).
+**Offen für die nächsten Patches** (Stand 7.2.1). Notion (7.2.3, 7.2.4); Abnahme mit echtem Testkonto (7.2.5).
 
 Prüfung 7.2.1: 5 579 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung (ein Dokumentationszitat
 danach korrigiert, die betroffenen Prüfungen bestehen). Browser 928 bestanden; die Auswahl des
@@ -75,4 +75,47 @@ gelesen. Webkarten und Telegram zeigen vor der Bestätigung den Hinweis zur Datu
 Automatisierte Prüfungen laufen mit simulierten Google-Antworten und synthetischen Zugangsdaten.
 Prüfung 7.2.2: 5 593 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 935 bestanden
 ohne Fehler.
-Notion und die Folgeversionen 7.3 bis 7.6 sind weiterhin offen.
+
+## 7.2.3 – Notion mit interner Verbindung (P3)
+
+**API-Vertrag** am 16. November 2026 gegen developers.notion.com geprüft: `Notion-Version`
+`2026-03-11` (fest gesetzt), Anlage mit `parent.data_source_id` über `POST /v1/pages`, Abfrage über
+`POST /v1/data_sources/{id}/query` mit `start_cursor`, `has_more` und `request_status`, Fehler mit
+strukturiertem `code`. Eine Zusage zu Idempotenz oder atomaren Änderungsbedingungen gibt es nicht;
+Mailhelp nimmt keine an.
+
+**Konfiguration.** `task_provider: notion` mit `notion_data_source_id`, `notion_properties`
+(Eigenschafts-IDs für Titel, Beschreibung, Frist, Quelle, Vorgang und optional Status),
+`notion_open_status` und `notion_done_statuses`; ebenso je Zielprofil. Geheimnis `NOTION_TOKEN`
+einer internen Verbindung (weitere Profile `NOTION_<n>_TOKEN`). Zeitlimits `timeouts.notion`. Alle
+neuen Felder zählen nicht zur Analyse; die Fingerabdrücke früherer Versionen bleiben gleich.
+
+**Adapter** (`external/notion.py`):
+
+- Eigenschaften über IDs; ein umbenanntes Feld passt weiter. Fehlende Eigenschaft, falscher Typ
+  oder fehlende Statusoption sperren neue Anlagen mit konkreter Meldung. Das Schema wird bei
+  **Zugriffe prüfen** und erneut direkt vor jeder Anlage gelesen.
+- Eine Seite je Aufgabe in einem Aufruf: Titel, Beschreibung (in Stücken zu 2 000 Zeichen),
+  Vorgangsschlüssel, Frist (Datum oder Zeitpunkt mit Versatz), Quelle nur als `https`-Link, Status
+  „offen“ (Status, Auswahl oder Kontrollkästchen aus).
+- Abgleich nach Vorgangsschlüssel in offenen und archivierten Seiten über alle Ergebnisseiten.
+  Doppelter Treffer, unvollständige Abfrage oder mehr als 100 Ergebnisseiten bleiben unklar. Die
+  Antwort 529 (überlastet) gilt wie 503: Lesen wird wiederholt, eine Anlage bleibt unklar und wird
+  nie blind wiederholt.
+- Lesen zur Prüfung: Eine Seite im Papierkorb gilt als entfernt; erledigt nach Statusoption oder
+  Kontrollkästchen. Offene Aufgaben für Dublettenprüfung und Tagesübersicht ohne erledigte und
+  gelöschte Seiten. Ohne Statusfeld sind erledigte Seiten nicht erkennbar (`limitation`).
+- Links nur als `https`-Adresse unter `notion.so`. Kein Entfernen (`supports_remove` falsch).
+
+**Offen.** Auswahl von Datenquelle und Eigenschaften in der Oberfläche, Notion-OAuth mit
+Token-Erneuerung und Hinweis auf das fehlende Statusfeld in der Vorschau (7.2.4); Demo und
+Abnahme mit echtem Testkonto (7.2.5). Bis dahin wird Notion über `config.yaml` eingerichtet.
+
+Prüfung 7.2.3: 5 622 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung (danach drei nicht
+bedienbare Begriffe in der Anleitung entfettet; die betroffenen Prüfungen bestehen). Browser 932
+bestanden. Zwei Polling-Tests nach abgelaufener Sitzung
+(`test_an_expired_session_while_a_card_polls_returns_to_sign_in`,
+`test_expired_status_poll_redirects_without_reposting`) und ein Push-Test scheiterten gelegentlich mit
+einem Zeitlimit beim Seitenaufruf. Dasselbe tritt auf dem Stand 7.2.2 ohne die Notion-Änderungen
+auf (einer von vier Läufen); es ist ein bestehendes, lastabhängiges Testverhalten und bleibt als
+offener Punkt vermerkt.

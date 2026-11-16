@@ -1121,6 +1121,96 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_data_source_id`, für dieses Zielprofil.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_data_source_id",
+  "key": "target_profiles[].notion_data_source_id",
+  "label": "target_profiles[].notion_data_source_id",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_data_source_id`, für dieses Zielprofil."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_done_statuses`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_done_statuses",
+  "key": "target_profiles[].notion_done_statuses",
+  "label": "target_profiles[].notion_done_statuses",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_done_statuses`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_open_status`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_open_status",
+  "key": "target_profiles[].notion_open_status",
+  "label": "target_profiles[].notion_open_status",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_open_status`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.description`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.description",
+  "key": "target_profiles[].notion_properties.description",
+  "label": "target_profiles[].notion_properties.description",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.description`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.due`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.due",
+  "key": "target_profiles[].notion_properties.due",
+  "label": "target_profiles[].notion_properties.due",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.due`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.operation_key`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.operation_key",
+  "key": "target_profiles[].notion_properties.operation_key",
+  "label": "target_profiles[].notion_properties.operation_key",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.operation_key`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.source`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.source",
+  "key": "target_profiles[].notion_properties.source",
+  "label": "target_profiles[].notion_properties.source",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.source`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.status`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.status",
+  "key": "target_profiles[].notion_properties.status",
+  "label": "target_profiles[].notion_properties.status",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.status`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Wie `targets.notion_properties.title`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.title",
+  "key": "target_profiles[].notion_properties.title",
+  "label": "target_profiles[].notion_properties.title",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Wie `targets.notion_properties.title`."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Outlook-Kalender, Standard `default`.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].outlook_calendar",
@@ -1141,13 +1231,13 @@
  },
  {
   "area": "Weitere Einstellungen",
-  "help": "`todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders` oder `google_tasks` (7.2).",
+  "help": "`todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` oder `notion` (7.2).",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].task_provider",
   "key": "target_profiles[].task_provider",
   "label": "target_profiles[].task_provider",
   "path": "Zielprofilseite",
-  "summary": "Zielprofilseite: `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders` oder `google_tasks` (7.2)."
+  "summary": "Zielprofilseite: `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` oder `notion` (7.2)."
  },
  {
   "area": "Weitere Einstellungen",
@@ -1158,6 +1248,96 @@
   "label": "target_profiles[].todoist_project",
   "path": "Zielprofilseite",
   "summary": "Zielprofilseite: Todoist-Projekt-ID, bis 500 Zeichen."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der Notion-Datenquelle (32 Hex-Zeichen, mit oder ohne Bindestriche), nicht die der Datenbank. Pflicht bei `task_provider: notion`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_data_source_id",
+  "key": "targets.notion_data_source_id",
+  "label": "targets.notion_data_source_id",
+  "path": "Datei",
+  "summary": "Datei: ID der Notion-Datenquelle (32 Hex-Zeichen, mit oder ohne Bindestriche), nicht die der Datenbank."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Options-IDs, die als erledigt gelten; höchstens 50.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_done_statuses",
+  "key": "targets.notion_done_statuses",
+  "label": "targets.notion_done_statuses",
+  "path": "Datei",
+  "summary": "Datei: Options-IDs, die als erledigt gelten; höchstens 50."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Options-ID, die neue Seiten im Statusfeld erhalten; nötig mit Status- oder Auswahlfeld.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_open_status",
+  "key": "targets.notion_open_status",
+  "label": "targets.notion_open_status",
+  "path": "Datei",
+  "summary": "Datei: Options-ID, die neue Seiten im Statusfeld erhalten; nötig mit Status- oder Auswahlfeld."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der Texteigenschaft für die Beschreibung (Typ Text). Pflicht bei Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.description",
+  "key": "targets.notion_properties.description",
+  "label": "targets.notion_properties.description",
+  "path": "Datei",
+  "summary": "Datei: ID der Texteigenschaft für die Beschreibung (Typ Text)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der Datumseigenschaft für die Frist (Typ Datum); bleibt ohne Frist leer. Pflicht bei Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.due",
+  "key": "targets.notion_properties.due",
+  "label": "targets.notion_properties.due",
+  "path": "Datei",
+  "summary": "Datei: ID der Datumseigenschaft für die Frist (Typ Datum); bleibt ohne Frist leer."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der Texteigenschaft für den Vorgangsschlüssel, über den Mailhelp eine unklare Anlage wiederfindet. Pflicht bei Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.operation_key",
+  "key": "targets.notion_properties.operation_key",
+  "label": "targets.notion_properties.operation_key",
+  "path": "Datei",
+  "summary": "Datei: ID der Texteigenschaft für den Vorgangsschlüssel, über den Mailhelp eine unklare Anlage wiederfindet."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der URL-Eigenschaft für den Link zur Mail; leer, wenn es keinen https-Link gibt. Pflicht bei Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.source",
+  "key": "targets.notion_properties.source",
+  "label": "targets.notion_properties.source",
+  "path": "Datei",
+  "summary": "Datei: ID der URL-Eigenschaft für den Link zur Mail; leer, wenn es keinen https-Link gibt."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Optional: ID einer Status-, Auswahl- oder Kontrollkästchen-Eigenschaft. Ohne sie erkennt Mailhelp erledigte Notion-Aufgaben nicht.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.status",
+  "key": "targets.notion_properties.status",
+  "label": "targets.notion_properties.status",
+  "path": "Datei",
+  "summary": "Datei: Optional: ID einer Status-, Auswahl- oder Kontrollkästchen-Eigenschaft."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ID der Titeleigenschaft (Typ Titel). Pflicht bei Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.title",
+  "key": "targets.notion_properties.title",
+  "label": "targets.notion_properties.title",
+  "path": "Datei",
+  "summary": "Datei: ID der Titeleigenschaft (Typ Titel)."
  },
  {
   "area": "Weitere Einstellungen",

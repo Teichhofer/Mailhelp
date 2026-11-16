@@ -168,7 +168,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **249 Einstellungen**, davon **249** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **271 Einstellungen**, davon **271** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -349,9 +349,18 @@ Erzeugt mit `python -m devtools.inventory`: **249 Einstellungen**, davon **249**
 | `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Zielprofilseite | ja |
 | `target_profiles[].microsoft_tenant` | str | 'common' |  | Zielprofilseite | ja |
 | `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].notion_data_source_id` | str | '' | Länge ≤ 36 | Zielprofilseite | ja |
+| `target_profiles[].notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Zielprofilseite | ja |
+| `target_profiles[].notion_open_status` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.description` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.due` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.operation_key` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.source` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.status` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
+| `target_profiles[].notion_properties.title` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
 | `target_profiles[].outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Zielprofilseite | ja |
-| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks | 'todoist' |  | Zielprofilseite | ja |
+| `target_profiles[].task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks, notion | 'todoist' |  | Zielprofilseite | ja |
 | `target_profiles[].todoist_project` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
 | `targets.caldav_calendar_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
@@ -360,9 +369,18 @@ Erzeugt mit `python -m devtools.inventory`: **249 Einstellungen**, davon **249**
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
+| `targets.notion_data_source_id` | str | '' | Länge ≤ 36 | Datei | ja |
+| `targets.notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Datei | ja |
+| `targets.notion_open_status` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.description` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.due` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.operation_key` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.source` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.status` | str | '' | Länge ≤ 100 | Datei | ja |
+| `targets.notion_properties.title` | str | '' | Länge ≤ 100 | Datei | ja |
 | `targets.outlook_calendar` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.removal_window_minutes` | int | 10 | ≥ 1, ≤ 1440 | Datei | ja |
-| `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks | 'todoist' |  | Weboberfläche | ja |
+| `targets.task_provider` | Auswahl: todoist, microsoft_todo, caldav, apple_reminders, google_tasks, notion | 'todoist' |  | Weboberfläche | ja |
 | `targets.todoist_project` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `telegram.chat_id` | int | 1 |  | Weboberfläche | ja |
 | `telegram.enabled` | bool | True |  | Einrichtung | ja |
@@ -389,6 +407,10 @@ Erzeugt mit `python -m devtools.inventory`: **249 Einstellungen**, davon **249**
 | `timeouts.microsoft.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.microsoft.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
 | `timeouts.microsoft.timeout_seconds` | float | Pflicht | ≥ 1, ≤ 300 | Weboberfläche | ja |
+| `timeouts.notion.initial_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 30 | Weboberfläche | ja |
+| `timeouts.notion.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
+| `timeouts.notion.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |
+| `timeouts.notion.timeout_seconds` | float | Pflicht | ≥ 1, ≤ 300 | Weboberfläche | ja |
 | `timeouts.ollama.initial_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 30 | Weboberfläche | ja |
 | `timeouts.ollama.max_backoff_seconds` | float | Pflicht | ≥ 0, ≤ 60 | Weboberfläche | ja |
 | `timeouts.ollama.retries` | int | Pflicht | ≥ 0, ≤ 10 | Weboberfläche | ja |

@@ -52,9 +52,11 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                                                       "caldav_task_url", "outlook_calendar", "microsoft_todo_list",
                                                       "microsoft_tenant", "removal_window_minutes",
                                                       # 7.2: Google Tasks as a further task target.
-                                                      "google_tasks_list")),
+                                                      "google_tasks_list", "notion_data_source_id",
+                                                      "notion_properties", "notion_open_status",
+                                                      "notion_done_statuses")),
                      # 7.2: its timeouts; former fingerprints that still contain the section keep their value.
-                     ("timeouts", "google_tasks"))
+                     ("timeouts", "google_tasks"), ("timeouts", "notion"))
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                                     "timeouts", "retries", *EXPERIENCE})
 OPERATIONAL = OPERATIONAL_BEFORE_3_1 | {"imap"}

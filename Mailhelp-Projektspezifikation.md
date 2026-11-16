@@ -15,6 +15,13 @@ sagt `TargetWriter.supports_remove`; nur Kalender und Todoist entfernen. Ohne di
 die Aktion, und der Server lehnt direkte Befehle ab. Die Google-Anmeldung eines Profils fordert genau
 die genutzten Rechte an (Kalender, Google Tasks oder beides) und behält früher erteilte.
 
+Seit 7.2.3 ist `notion` ein Aufgabendienst: eine Seite je Aufgabe in einer Datenquelle
+(`notion_data_source_id`), Eigenschaften über IDs (`notion_properties`), Token `NOTION_TOKEN` einer
+internen Verbindung, API-Version `2026-03-11`. Fehlende Eigenschaften oder geänderte Typen sperren
+neue Anlagen; das Schema wird direkt vor jeder Anlage erneut gelesen. Abgleich nach
+Vorgangsschlüssel in offenen und archivierten Seiten; doppelter Treffer oder unvollständige Abfrage
+bleiben unklar. Kein Entfernen.
+
 Seit 7.2.2 bietet `/auth/google/aufgabenlisten` die vollständig paginierte Auswahl bestehender
 Listen mit den gespeicherten Google-Zugangsdaten des gewählten Profils. Die Auswahl speichert
 einen versionierten Einrichtungsentwurf. Sitzung, CSRF, Zugangsdatenrevision, verfügbare Liste,

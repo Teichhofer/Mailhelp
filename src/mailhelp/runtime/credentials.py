@@ -29,7 +29,7 @@ LABELS = {
     "GOOGLE_OAUTH_REFRESH_TOKEN": "Google OAuth Refresh-Token",
     "CALDAV_USERNAME": "CalDAV-Benutzername", "CALDAV_PASSWORD": "CalDAV-Passwort",
     "MICROSOFT_CLIENT_ID": "Microsoft Client-ID", "MICROSOFT_CLIENT_SECRET": "Microsoft Client-Schlüssel",
-    "MICROSOFT_REFRESH_TOKEN": "Microsoft Refresh-Token",
+    "MICROSOFT_REFRESH_TOKEN": "Microsoft Refresh-Token", "NOTION_TOKEN": "Notion-Verbindungstoken",
 }
 
 

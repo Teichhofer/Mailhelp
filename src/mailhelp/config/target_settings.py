@@ -26,7 +26,7 @@ class ProposalReconciliationSettings(ConfigModel):
 
 CALENDAR_PROVIDERS = ("google", "caldav", "outlook")
 
-TASK_PROVIDERS = ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks")
+TASK_PROVIDERS = ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks", "notion")
 
 # iCloud serves collections on caldav.icloud.com and on numbered partition hosts (p52-caldav…).
 ICLOUD_CALDAV = re.compile(r"https://(p\d{1,3}-)?caldav\.icloud\.com/")
@@ -38,11 +38,28 @@ def _dav_url(value: str) -> bool:
         return False
     return match.group(1) == "https" or match.group(2) in {"localhost", "127.0.0.1"}
 
+class NotionProperties(ConfigModel):
+    """7.2: the property ids of a Notion data source; ids survive a renamed column."""
+
+    title: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    description: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    due: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    source: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    operation_key: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    # Optional: without it Mailhelp cannot tell done pages from open ones.
+    status: str = Field(default="", max_length=100, pattern=r"^\S*$")
+
+
+NOTION_REQUIRED = ("title", "description", "due", "source", "operation_key")
+NOTION_ID = r"^([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})?$"
+
+
 class TargetSettings(ConfigModel):
     """One calendar and one task target; each provider needs its own target field."""
 
     calendar_provider: Literal["google", "caldav", "outlook"] = "google"
-    task_provider: Literal["todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks"] = "todoist"
+    task_provider: Literal["todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks",
+                           "notion"] = "todoist"
     todoist_project: str = Field(default="", max_length=500)
     google_calendar: str = Field(default="", max_length=500)
     caldav_calendar_url: str = Field(default="", max_length=2000)
@@ -51,6 +68,12 @@ class TargetSettings(ConfigModel):
     microsoft_todo_list: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
     # 7.2: a Google Tasks list id or ``@default`` for the account's first list.
     google_tasks_list: str = Field(default="@default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9@_-]+$")
+    # 7.2: a Notion data source (not the database) with the ids of its mapped properties.
+    notion_data_source_id: str = Field(default="", max_length=36, pattern=NOTION_ID)
+    notion_properties: NotionProperties = Field(default_factory=NotionProperties)
+    # Status option ids: the one new pages get and those that count as done.
+    notion_open_status: str = Field(default="", max_length=100, pattern=r"^\S*$")
+    notion_done_statuses: list[str] = Field(default_factory=list, max_length=50)
     microsoft_tenant: str = Field(default="common", pattern=r"^[A-Za-z0-9.-]{1,100}$")
     removal_window_minutes: int = Field(default=10, ge=1, le=1440)
 
@@ -64,6 +87,13 @@ class TargetSettings(ConfigModel):
             raise ValueError("caldav_calendar_url muss eine https-Adresse sein")
         if self.task_provider in {"caldav", "apple_reminders"} and not _dav_url(self.caldav_task_url):
             raise ValueError("caldav_task_url muss eine https-Adresse sein")
+        if self.task_provider == "notion":
+            missing = [name for name in NOTION_REQUIRED if not getattr(self.notion_properties, name)]
+            if not self.notion_data_source_id or missing:
+                raise ValueError("Notion benötigt notion_data_source_id und die Eigenschaften "
+                                 + ", ".join(missing or NOTION_REQUIRED))
+            if self.notion_properties.status and not self.notion_open_status:
+                raise ValueError("Mit einem Notion-Statusfeld wird notion_open_status benötigt")
         if self.task_provider == "apple_reminders" and not ICLOUD_CALDAV.match(self.caldav_task_url):
             raise ValueError("Apple Erinnerungen benötigen eine Listenadresse unter https://caldav.icloud.com")
         return self
@@ -78,7 +108,8 @@ class TargetSettings(ConfigModel):
     def task_target(self) -> str:
         """The project or list each task proposal is confirmed against."""
         return {"todoist": self.todoist_project, "microsoft_todo": self.microsoft_todo_list,
-                "google_tasks": self.google_tasks_list}.get(self.task_provider, self.caldav_task_url)
+                "google_tasks": self.google_tasks_list, "notion": self.notion_data_source_id}.get(
+            self.task_provider, self.caldav_task_url)
 
     @property
     def uses_microsoft(self) -> bool:

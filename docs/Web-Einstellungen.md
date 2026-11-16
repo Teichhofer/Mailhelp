@@ -296,6 +296,10 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 | Google Tasks: längste Wartezeit (s) (`timeouts.google_tasks.max_backoff_seconds`) | Google Tasks: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |
 | Google Tasks: Wiederholungen (`timeouts.google_tasks.retries`) | Google Tasks: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |
 | Google Tasks: Zeitlimit (s) (`timeouts.google_tasks.timeout_seconds`) | Google Tasks: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |
+| Notion: erste Wartezeit (s) (`timeouts.notion.initial_backoff_seconds`) | Notion: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |
+| Notion: längste Wartezeit (s) (`timeouts.notion.max_backoff_seconds`) | Notion: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |
+| Notion: Wiederholungen (`timeouts.notion.retries`) | Notion: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |
+| Notion: Zeitlimit (s) (`timeouts.notion.timeout_seconds`) | Notion: Zeitlimit eines Aufrufversuchs: 1–300 Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten. | Nach Neustart |
 | Ollama: erste Wartezeit (s) (`timeouts.ollama.initial_backoff_seconds`) | Ollama: Erste Wartezeit vor einem Wiederholungsversuch: 0–30 Sekunden. 0 wartet zunächst nicht; größere Werte lassen dem Dienst mehr Erholungszeit. Weitere Wartezeiten steigen bis zur längsten Wartezeit. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |
 | Ollama: längste Wartezeit (s) (`timeouts.ollama.max_backoff_seconds`) | Ollama: Obergrenze der Wartezeit zwischen Wiederholungsversuchen: 0–60 Sekunden und mindestens so groß wie die erste Wartezeit. Größere Werte erlauben längere Pausen, kleinere begrenzen die Verzögerung. Ohne Wiederholungen hat dieser Wert keine Wirkung. | Nach Neustart |
 | Ollama: Wiederholungen (`timeouts.ollama.retries`) | Ollama: Zusätzliche Wiederholungen bei wiederholbaren Dienstfehlern: 0–10. 0 bedeutet nur den ersten Versuch, 2 erlaubt bis zu drei Versuche insgesamt. Mehr Wiederholungen können vorübergehende Fehler überbrücken, erhöhen aber Laufzeit und gegebenenfalls Kosten. Unklare externe Schreibresultate werden vor einer erneuten Anlage abgeglichen. | Nach Neustart |
@@ -649,7 +653,7 @@ Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet
 | `target_profiles[].id` | Nummer 2–99 (Pflicht). | Zielprofilseite |
 | `target_profiles[].label` | Anzeigename, 1–40 Zeichen (Pflicht). | Zielprofilseite |
 | `target_profiles[].calendar_provider` | `google` (Standard), `caldav` oder `outlook`. | Zielprofilseite |
-| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders` oder `google_tasks` (7.2). | Zielprofilseite |
+| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` oder `notion` (7.2). | Zielprofilseite |
 | `target_profiles[].google_calendar` | Kalender-ID bei Google, bis 500 Zeichen. | Zielprofilseite |
 | `target_profiles[].todoist_project` | Todoist-Projekt-ID, bis 500 Zeichen. | Zielprofilseite |
 | `target_profiles[].caldav_calendar_url` | Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen. | Zielprofilseite |
@@ -659,6 +663,33 @@ Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet
 | `target_profiles[].google_tasks_list` | Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos). | Zielprofilseite |
 | `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |
 | `target_profiles[].removal_window_minutes` | Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10. | Zielprofilseite |
+
+### Notion als Aufgabenziel (7.2)
+
+Nur in `config.yaml` (Abschnitt `targets`) und je Zielprofil (`target_profiles[]`, gleiche Namen).
+Mailhelp spricht jede Eigenschaft über ihre ID an, damit ein umbenanntes Feld weiter passt. Fehlt
+eine Eigenschaft oder ändert sich ihr Typ, sperrt Mailhelp neue Anlagen bis zur neuen Zuordnung.
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `targets.notion_data_source_id` | ID der Notion-Datenquelle (32 Hex-Zeichen, mit oder ohne Bindestriche), nicht die der Datenbank. Pflicht bei `task_provider: notion`. | Datei |
+| `targets.notion_properties.title` | ID der Titeleigenschaft (Typ Titel). Pflicht bei Notion. | Datei |
+| `targets.notion_properties.description` | ID der Texteigenschaft für die Beschreibung (Typ Text). Pflicht bei Notion. | Datei |
+| `targets.notion_properties.due` | ID der Datumseigenschaft für die Frist (Typ Datum); bleibt ohne Frist leer. Pflicht bei Notion. | Datei |
+| `targets.notion_properties.source` | ID der URL-Eigenschaft für den Link zur Mail; leer, wenn es keinen https-Link gibt. Pflicht bei Notion. | Datei |
+| `targets.notion_properties.operation_key` | ID der Texteigenschaft für den Vorgangsschlüssel, über den Mailhelp eine unklare Anlage wiederfindet. Pflicht bei Notion. | Datei |
+| `targets.notion_properties.status` | Optional: ID einer Status-, Auswahl- oder Kontrollkästchen-Eigenschaft. Ohne sie erkennt Mailhelp erledigte Notion-Aufgaben nicht. | Datei |
+| `targets.notion_open_status` | Options-ID, die neue Seiten im Statusfeld erhalten; nötig mit Status- oder Auswahlfeld. | Datei |
+| `targets.notion_done_statuses` | Options-IDs, die als erledigt gelten; höchstens 50. | Datei |
+| `target_profiles[].notion_data_source_id` | Wie `targets.notion_data_source_id`, für dieses Zielprofil. | Zielprofilseite |
+| `target_profiles[].notion_properties.title` | Wie `targets.notion_properties.title`. | Zielprofilseite |
+| `target_profiles[].notion_properties.description` | Wie `targets.notion_properties.description`. | Zielprofilseite |
+| `target_profiles[].notion_properties.due` | Wie `targets.notion_properties.due`. | Zielprofilseite |
+| `target_profiles[].notion_properties.source` | Wie `targets.notion_properties.source`. | Zielprofilseite |
+| `target_profiles[].notion_properties.operation_key` | Wie `targets.notion_properties.operation_key`. | Zielprofilseite |
+| `target_profiles[].notion_properties.status` | Wie `targets.notion_properties.status`. | Zielprofilseite |
+| `target_profiles[].notion_open_status` | Wie `targets.notion_open_status`. | Zielprofilseite |
+| `target_profiles[].notion_done_statuses` | Wie `targets.notion_done_statuses`. | Zielprofilseite |
 
 ### Benachrichtigungen (`notifications`)
 

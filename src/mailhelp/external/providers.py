@@ -17,6 +17,7 @@ from .contracts import TargetWriter
 from .google_tasks import GoogleTasks
 from .http_writer import HttpWriter
 from .microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar, TokenFile
+from .notion import NotionTasks
 from .oauth import GoogleOAuthTokenProvider
 from .roles import CALENDAR_SLOT, TASK_SLOT
 
@@ -42,7 +43,7 @@ class Writers:
 
 CALENDAR_LABELS = {"google": "Google Kalender", "caldav": "CalDAV-Kalender", "outlook": "Outlook-Kalender"}
 TASK_LABELS = {"todoist": "Todoist", "microsoft_todo": "Microsoft To Do", "caldav": "CalDAV-Aufgaben",
-               "apple_reminders": "Apple Erinnerungen", "google_tasks": "Google Tasks"}
+               "apple_reminders": "Apple Erinnerungen", "google_tasks": "Google Tasks", "notion": "Notion"}
 
 
 def provider_services(targets: TargetSettings) -> list[str]:
@@ -122,6 +123,10 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         assert google is not None
         tasks = GoogleTasks(google, targets.google_tasks_list, timeout("google_tasks"), transport,
                             retry("google_tasks"), logger, settings.timezone)
+    elif targets.task_provider == "notion":
+        tasks = NotionTasks(secrets.notion_token.get_secret_value(), targets.notion_data_source_id,
+                            targets.notion_properties, targets.notion_open_status,
+                            tuple(targets.notion_done_statuses), timeout("notion"), transport, retry("notion"), logger)
     else:
         kind = AppleReminders if targets.task_provider == "apple_reminders" else CalDavTasks
         tasks = kind(targets.caldav_task_url, *caldav, timeout("caldav"), transport, retry("caldav"), logger)

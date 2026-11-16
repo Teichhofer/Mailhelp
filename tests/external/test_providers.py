@@ -3,13 +3,14 @@ import sys
 
 import httpx
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from mailhelp import cli
 from mailhelp.config import Secrets, TargetSettings, load_all, provider_secret_names
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.contracts import OAuthTokenError
 from mailhelp.external.google_tasks import GoogleTasks
+from mailhelp.external.notion import NotionTasks
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar
 from mailhelp.external.oauth import google_scopes
@@ -122,6 +123,45 @@ def test_a_profile_asks_exactly_the_google_rights_it_uses(calendar, tasks, expec
     prefix = "https://www.googleapis.com/auth/"
     assert google_scopes(targets) == " ".join(prefix + name for name in expected.split())
     assert "calendarlist" not in google_scopes(targets, calendar_list=False)
+
+
+NOTION = {"task_provider": "notion", "notion_data_source_id": "1" * 32,
+          "notion_properties": {"title": "title", "description": "d", "due": "f", "source": "u",
+                                "operation_key": "k", "status": "s"},
+          "notion_open_status": "o", "notion_done_statuses": ["x", "y"]}
+
+
+def test_a_notion_data_source_with_its_own_token(tmp_path):
+    """7.2: Notion needs only its connection token; no Google or Todoist secret."""
+    cfg = configured(tmp_path, **NOTION)
+    policies = []
+    built = build_writers(cfg, SECRETS.model_copy(update={"notion_token": SecretStr("nt")}), tmp_path,
+                          policy=lambda name: policies.append(name) or None)
+    assert isinstance(built.tasks, NotionTasks) and built.tasks.target == "1" * 32 == cfg.targets.task_target
+    assert built.tasks.client.headers["Authorization"] == "Bearer nt"
+    assert (built.tasks.open_status, built.tasks.done_statuses) == ("o", frozenset({"x", "y"}))
+    assert policies == ["notion", "google_calendar"]
+    assert provider_services(cfg.targets)[0] == "Notion"
+    assert provider_secret_names(cfg.targets)[0] == "NOTION_TOKEN" and "TODOIST_TOKEN" not in         provider_secret_names(cfg.targets)
+    built.close()
+
+
+@pytest.mark.parametrize(("changes", "message"), [
+    ({"notion_data_source_id": ""}, "notion_data_source_id"),
+    ({"notion_properties": {"title": "t"}}, "description, due, source, operation_key"),
+    ({"notion_open_status": ""}, "notion_open_status"),
+    ({"notion_data_source_id": "kein-uuid"}, "notion_data_source_id"),
+])
+def test_incomplete_notion_targets_are_rejected(changes, message):
+    with pytest.raises(ValidationError, match=message):
+        TargetSettings.model_validate({"todoist_project": "p", "google_calendar": "c", **NOTION, **changes})
+
+
+def test_notion_without_status_needs_no_status_option():
+    values = {**NOTION, "notion_properties": {**NOTION["notion_properties"], "status": ""}, "notion_open_status": ""}
+    dashed = "12345678-1234-1234-1234-123456789abc"
+    assert TargetSettings.model_validate({"google_calendar": "c", **values,
+                                          "notion_data_source_id": dashed}).task_target == dashed
 
 
 def test_ms_todo_and_caldav_task_lists_offer_no_removal(tmp_path):

@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.2.3 – Notion als Aufgabenziel (interne Verbindung)
+
+- Neuer Aufgabendienst `notion`: eine Seite je bestätigter Aufgabe in einer Notion-Datenquelle,
+  Eigenschaften über IDs, Token `NOTION_TOKEN`.
+- Schemaprüfung bei „Zugriffe prüfen“ und vor jeder Anlage; fehlende Eigenschaften oder geänderte
+  Typen sperren neue Anlagen.
+- Abgleich nach Vorgangsschlüssel; doppelte Treffer und unvollständige Abfragen bleiben unklar.
+
 ## 7.2.2 – Google-Tasks-Listenauswahl und Fristvorschau
 
 - Bestehende Google-Tasks-Listen lassen sich in der Ersteinrichtung und je Zielprofil

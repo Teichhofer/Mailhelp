@@ -51,7 +51,7 @@ SETTING_GROUPS = (
 )
 SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
                   "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
-                  "microsoft": "Microsoft 365", "google_tasks": "Google Tasks"}
+                  "microsoft": "Microsoft 365", "google_tasks": "Google Tasks", "notion": "Notion"}
 TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
                   "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
 EXTRA_LABELS = {

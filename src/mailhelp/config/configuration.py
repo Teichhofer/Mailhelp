@@ -104,7 +104,7 @@ SETTINGS_FIELDS = {
     "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
 }
 for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft",
-                "google_tasks"):
+                "google_tasks", "notion"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
 # 3.3.12 (Planung 3.4): further operational settings; not data_directory, log paths, web host/port/hosts.

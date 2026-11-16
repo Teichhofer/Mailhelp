@@ -22,6 +22,7 @@ abgelehnt. Solche Einträge bitte beim Anbieter bearbeiten.
 | Todoist | Aufgaben | `TODOIST_TOKEN` | Projekt-ID | Titel, Beschreibung, Fälligkeit, Projekt | Änderungen und Absagen nur für Termine |
 | Outlook | Kalender | `MICROSOFT_CLIENT_ID`, optional `MICROSOFT_CLIENT_SECRET`, Anmeldung per Gerätecode | Kalender oder `default` | wie Google | Absagen löschen den Termin |
 | Microsoft To Do | Aufgaben | wie Outlook | Liste oder `default` („Aufgaben“) | Titel, Beschreibung, Fälligkeitstag | nur tagesgenau, keine Uhrzeit |
+| Notion (7.2) | Aufgaben | `NOTION_TOKEN` (interne Verbindung) | Datenquellen-ID und Eigenschafts-IDs | Titel, Beschreibung, Frist | ohne Statusfeld keine Erkennung erledigter Seiten; kein Entfernen |
 | Google Tasks (7.2) | Aufgaben | wie Google Kalender; Anmeldung mit Google-Tasks-Recht | Listen-ID oder `@default` (erste Liste) | Titel, Notizen, Fälligkeitstag | nur tagesgenau; eine genaue Frist steht im Text; kein Entfernen |
 | CalDAV | Kalender und Aufgaben | `CALDAV_USERNAME`, `CALDAV_PASSWORD` (App-Passwort) | Adresse der Sammlung | Ressource mit UID, Feldern, Status | Serientermine werden nie verändert |
 | Apple Erinnerungen | Aufgaben (über CalDAV) | wie CalDAV (iCloud-App-Passwort) | Adresse der Liste | wie CalDAV | auf neue iCloud-Erinnerungen umgestellte Listen sind über CalDAV nicht erreichbar |
@@ -65,6 +66,27 @@ bestätigten Tag in der konfigurierten Zeitzone ein und schreibt eine genaue Fri
 Text, zum Beispiel `Frist: 12.05.2026, 18:00 Uhr (Europe/Berlin)`. Eine zeitgenaue Erinnerung von
 Google gibt es dafür nicht. Ohne Frist bleibt das Datum leer.
 
+## Notion
+
+Mailhelp legt je bestätigter Aufgabe eine Seite in einer Notion-Datenquelle an. Die Tabelle
+richtest du selbst ein; Mailhelp legt weder Datenquellen noch Eigenschaften an.
+
+1. In Notion eine Datenbank mit diesen Eigenschaften anlegen: Titel, Beschreibung (Text), Frist
+   (Datum), Quelle (URL), Vorgang (Text) und optional Status (Status, Auswahl oder Kontrollkästchen).
+2. In Notion eine interne Verbindung anlegen, mit den Fähigkeiten Inhalte lesen und Inhalte
+   einfügen, und die Datenbank für diese Verbindung freigeben.
+3. Den Token als `NOTION_TOKEN` hinterlegen (weitere Profile: `NOTION_2_TOKEN` usw.).
+4. In `config.yaml` unter `targets` `task_provider: notion`, die Datenquellen-ID und die
+   Eigenschafts-IDs eintragen (siehe `config.example.yaml`). Mailhelp nutzt IDs, damit ein
+   umbenanntes Feld weiter passt. Mit Statusfeld zusätzlich die Options-ID für offen
+   (`notion_open_status`) und die Options-IDs für erledigt (`notion_done_statuses`).
+5. **Zugriffe prüfen**: Mailhelp liest das Schema und meldet eine fehlende Eigenschaft oder einen
+   falschen Typ. Eine Testseite legt Mailhelp nicht an.
+
+Fehlt später eine Eigenschaft oder ändert sich ihr Typ, sperrt Mailhelp neue Anlagen, bis die
+Zuordnung wieder stimmt; geprüft wird auch direkt vor jeder Anlage. Ohne Statusfeld kann Mailhelp
+erledigte Notion-Aufgaben nicht erkennen.
+
 ## Todoist
 
 1. Den API-Token aus den Todoist-Einstellungen unter **Einstellungen → Zugangsdaten** als
@@ -106,6 +128,10 @@ Unterlagen; es wurden keine echten Konten verbunden oder externen Einträge ange
 - Google Tasks (16. November 2026): [Aufgabenressource mit Datumsgrenze und Feldlängen](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks)
   sowie [Auflisten mit Seiten und erledigten Aufgaben](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/list)
   und [bestehende Aufgabenlisten lesen](https://developers.google.com/workspace/tasks/reference/rest/v1/tasklists/list).
+- Notion (16. November 2026): [API-Version 2026-03-11](https://developers.notion.com/reference/versioning),
+  [Seite in einer Datenquelle anlegen](https://developers.notion.com/reference/post-page),
+  [Datenquelle abfragen](https://developers.notion.com/reference/query-a-data-source) und
+  [Fehlercodes](https://developers.notion.com/reference/status-codes).
 - Todoist: [persönlicher API-Token und API](https://developer.todoist.com/).
 - Microsoft: [Gerätecode-Anmeldung](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code)
   und [Graph-Berechtigungen](https://learn.microsoft.com/en-us/graph/permissions-reference).

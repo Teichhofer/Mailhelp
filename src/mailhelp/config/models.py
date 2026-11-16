@@ -152,6 +152,8 @@ class Secrets(BaseModel):
     microsoft_client_secret: SecretStr = SecretStr("")
     # Optional seed; a rotated token from ``mailhelp --microsoft-login`` takes precedence.
     microsoft_refresh_token: SecretStr = SecretStr("")
+    # 7.2: token of a Notion internal connection shared with the chosen data source.
+    notion_token: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
     profiles: dict[int, dict[str, SecretStr]] = Field(default_factory=dict)

@@ -112,7 +112,8 @@ SETTING_HELP["retention.activity_report_days"] = "Aufbewahrung gespeicherter Tä
 
 for _service, _label in {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
                          "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
-                         "microsoft": "Microsoft 365", "google_tasks": "Google Tasks"}.items():
+                         "microsoft": "Microsoft 365", "google_tasks": "Google Tasks",
+                         "notion": "Notion"}.items():
     _maximum = 1800 if _service == "ollama" else 300
     for _name, _text in {
         "timeout_seconds": f"Zeitlimit eines Aufrufversuchs: 1–{_maximum} Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten.",

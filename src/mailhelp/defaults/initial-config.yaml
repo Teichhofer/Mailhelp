@@ -258,7 +258,8 @@ targets:
   calendar_provider: google
   # Aufgabendienst: todoist | microsoft_todo | caldav (VTODO) | apple_reminders (iCloud-CalDAV;
   # auf die neuen iCloud-Erinnerungen aktualisierte Listen sind über CalDAV nicht erreichbar)
-  # | google_tasks (7.2; übernimmt nur das Datum, die genaue Frist steht im Text).
+  # | google_tasks (7.2; übernimmt nur das Datum, die genaue Frist steht im Text)
+  # | notion (7.2; eine Seite je Aufgabe in einer Notion-Datenquelle, Token NOTION_TOKEN in .env).
   task_provider: todoist
   todoist_project: example-project
   google_calendar: primary
@@ -274,6 +275,19 @@ targets:
   # Nur bei google_tasks: Listen-ID oder @default (erste Liste des Kontos). Die Google-Anmeldung
   # ("mailhelp --google-auth" oder Einstellungen → Zugangsdaten) braucht dann das Google-Tasks-Recht.
   google_tasks_list: "@default"
+  # Nur bei notion: Datenquellen-ID (nicht die Datenbank) und die IDs der zugeordneten Eigenschaften.
+  # Pflicht: title (Titel), description (Text), due (Datum), source (URL), operation_key (Text);
+  # optional status (Status, Auswahl oder Kontrollkästchen) mit Optionen-IDs für offen und erledigt.
+  notion_data_source_id: ""
+  notion_properties:
+    title: ""
+    description: ""
+    due: ""
+    source: ""
+    operation_key: ""
+    status: ""
+  notion_open_status: ""
+  notion_done_statuses: []
 # Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails
 # zum Herunterladen in der Weboberfläche; gelöscht mit retention.full_mail_days.
 attachments:
@@ -338,6 +352,11 @@ timeouts:
     initial_backoff_seconds: 1
     max_backoff_seconds: 10
   google_tasks:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 10
+  notion:
     timeout_seconds: 30
     retries: 2
     initial_backoff_seconds: 1

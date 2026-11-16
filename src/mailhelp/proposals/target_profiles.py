@@ -29,6 +29,7 @@ PROVIDER_FIELDS = (
     "microsoft_client_id",
     "microsoft_client_secret",
     "microsoft_refresh_token",
+    "notion_token",
 )
 
 
