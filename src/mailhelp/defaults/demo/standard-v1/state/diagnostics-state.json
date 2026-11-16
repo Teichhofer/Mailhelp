@@ -1,0 +1,14 @@
+{
+  "operations": {},
+  "results": {
+    "imap": {
+      "checked_at": "2026-11-16T08:59:03.996492Z",
+      "code": "network",
+      "config_revision": "50b1505f85a9fb4cc3b565461a94b7890f10a6b2ddb54be0d75aba420481e705",
+      "duration_ms": 0,
+      "status": "failed"
+    }
+  },
+  "schema_version": 1,
+  "version": 0
+}

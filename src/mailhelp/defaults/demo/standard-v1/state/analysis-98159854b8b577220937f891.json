@@ -1,0 +1,19 @@
+{
+  "human_decision": null,
+  "mail_id": "98159854b8b577220937f891",
+  "recorded_at": "2026-11-16T09:02:43.033062+00:00",
+  "relevance": {
+    "decision": "irrelevant",
+    "reason": "Private Absprache über einen Stand am Samstag; kein eindeutiger Bezug zu Schule, Sportverein, Musikschule oder Förderverein erkennbar.",
+    "topic_ids": []
+  },
+  "schema_version": 1,
+  "source": "JEV → Standard-LLM-Fallback",
+  "summary": null,
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

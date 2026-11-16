@@ -1,0 +1,26 @@
+{
+  "human_decision": null,
+  "mail_id": "f4c3a0bd32d80a6f4cef6778",
+  "recorded_at": "2026-11-16T09:02:46.990317+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "schule"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Die Schulleitung informiert die Eltern, dass der Speiseplan der Mensa für Dezember online ist und die Bestellungen unverändert weiterlaufen."
+    ]
+  },
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "policy": "683aa8942d46f5642c3566d957fb6be4dfaf01f64715c889d491b34f885a17db",
+  "schema_version": 1,
+  "topics": [
+    {
+      "description": "Nachrichten der Grundschule am Lindenpark, der Klassenleitung und des Sekretariats zu Mias Klasse.",
+      "enabled": true,
+      "examples": [
+        "Elternabend",
+        "Einverständniserklärung",
+        "Ausflug",
+        "Schulinformation"
+      ],
+      "exclusions": [],
+      "id": "schule",
+      "mailboxes": null,
+      "name": "Schule und Klasse 4b"
+    },
+    {
+      "description": "Nachrichten des TSV Beispielstadt und seiner Jugendabteilung.",
+      "enabled": true,
+      "examples": [
+        "Training",
+        "Workshop",
+        "Material mitbringen"
+      ],
+      "exclusions": [
+        "Vereinswerbung Dritter"
+      ],
+      "id": "verein",
+      "mailboxes": null,
+      "name": "Sportverein TSV"
+    },
+    {
+      "description": "Nachrichten der Musikschule Beispielstadt zu Mias Geigenunterricht.",
+      "enabled": true,
+      "examples": [
+        "Vorspiel",
+        "Unterrichtstermin"
+      ],
+      "exclusions": [],
+      "id": "musikschule",
+      "mailboxes": null,
+      "name": "Musikschule"
+    },
+    {
+      "description": "Nachrichten des Fördervereins der Grundschule, etwa zu Basaren und Festen.",
+      "enabled": true,
+      "examples": [
+        "Adventsbasar",
+        "Kuchenspende"
+      ],
+      "exclusions": [],
+      "id": "foerderverein",
+      "mailboxes": null,
+      "name": "Förderverein und Schulfeste"
+    }
+  ]
+}

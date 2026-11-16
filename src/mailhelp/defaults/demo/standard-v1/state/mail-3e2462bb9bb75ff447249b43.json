@@ -1,0 +1,122 @@
+{
+  "action_route": null,
+  "action_router_call_id": null,
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
+  "created_at": "2026-11-16T09:02:49.593993Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Versicherung Sicherheim <service@sicherheim.example>",
+    "subject": "Prüfen Sie jetzt Ihren Hausratschutz"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": null,
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "3e2462bb9bb75ff447249b43",
+  "imap": {
+    "account_id": "fa68dcee64f4721e19df75fa",
+    "folder": "INBOX",
+    "uid": 30,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "llm_call_ids": [
+    "9698c775-9be3-4af3-bb72-67a83edcbded"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Mon, 16 Nov 2026 07:45:00 +0100",
+    "date_header_parsed": "2026-11-16T07:45:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Mon, 16 Nov 2026 07:45:00 +0100",
+      "from": "Versicherung Sicherheim <service@sicherheim.example>",
+      "in_reply_to": "",
+      "message_id": "<30-versicherung@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "Prüfen Sie jetzt Ihren Hausratschutz"
+    },
+    "imap_received_at": "2026-11-16T07:45:00+01:00",
+    "internal_id": "3e2462bb9bb75ff447249b43",
+    "message_ids": [
+      "<30-versicherung@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "Ist Ihr Hausrat ausreichend versichert? Unser Online-Rechner hilft beim Vergleich der Tarife.",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [],
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "00560f21b0cfa74b79e7d02212ea5e7d27310caa726b4be2f80b05bf3a6028f9",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [],
+  "relevance": {
+    "decision": "irrelevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": []
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "skipped",
+    "action_router": "skipped",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "skipped",
+    "event_extraction": "skipped",
+    "normalization": "skipped",
+    "preparation": "completed",
+    "proposal_building": "skipped",
+    "proposal_notification": "skipped",
+    "relevance": "completed",
+    "summary": "skipped",
+    "summary_notification": "skipped",
+    "task_extraction": "skipped"
+  },
+  "summary": null,
+  "task_extraction": null,
+  "updated_at": "2026-11-16T09:02:49.885079Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

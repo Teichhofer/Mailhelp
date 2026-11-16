@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.1.2 – Demo-Modus: Beispielbestand
+
+- `devtools.demo.dataset` verarbeitet 30 synthetische Mails (10 Abläufe, 20 nicht relevant) über den
+  normalen Eingang mit den konfigurierten Modellen, ohne Telegram oder Schreibziele.
+- Ergebnis mit Manifest unter `src/mailhelp/defaults/demo/standard-v1`; fachliche Prüfung und
+  Abweichungen im Release-Bericht 7.1.
+
 ## 7.1.1 – Demo-Modus: Startmodus und Verzeichnisgrenze
 
 - `mailhelp --demo` und `mailhelp -demo` starten eine Demo-Instanz; der Modus lässt sich mit keiner

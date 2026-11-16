@@ -1,0 +1,19 @@
+{
+  "human_decision": null,
+  "mail_id": "d44bfa9c2ee6a06a41bbf25e",
+  "recorded_at": "2026-11-16T09:01:48.000494+00:00",
+  "relevance": {
+    "decision": "irrelevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": []
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": null,
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

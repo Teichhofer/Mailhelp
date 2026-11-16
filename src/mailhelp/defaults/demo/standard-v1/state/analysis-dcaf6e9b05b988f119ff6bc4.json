@@ -1,0 +1,29 @@
+{
+  "human_decision": null,
+  "mail_id": "dcaf6e9b05b988f119ff6bc4",
+  "recorded_at": "2026-11-16T08:59:42.125024+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "verein"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "Samstag, 21. November"
+    ],
+    "sentences": [
+      "Tom bittet für den Bastel-Workshop der Jugendabteilung, dass Alex zwei Packungen Bastelkleber und einen Block bunten DIN-A4-Fotokarton besorgt und mitbringt.",
+      "Das Material muss bis zum Workshop am Samstag, 21. November, vorhanden sein."
+    ]
+  },
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

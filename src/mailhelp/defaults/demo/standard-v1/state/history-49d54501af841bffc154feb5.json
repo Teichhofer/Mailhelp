@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "actor": null,
+      "at": "2026-11-16T09:01:47.549951Z",
+      "id": "e0800d44f7adfa1a35d3c7cf8d1808d4",
+      "kind": "state",
+      "proposal_id": "p_f4f10db625caf6b4b58e4d5a",
+      "source": "system",
+      "status": "needs_clarification",
+      "version": 1
+    }
+  ],
+  "removed": false,
+  "schema_version": 1
+}

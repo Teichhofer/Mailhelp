@@ -1,8 +1,8 @@
 """5.3 (H1): the inventory of every setting and command-line option, generated from the code.
 
 ``python -m devtools.inventory`` rewrites the generated section of
-``docs/Pruefung-Dokumentation-7.0.md`` (until 7.0.14 the 5.3 report); ``--check`` fails when it is outdated. The table is the
-coverage matrix of the documentation review: one row per setting with type, default, limits,
+``docs/Pruefung-Dokumentation-7.0.md`` (until 7.0.14 the 5.3 report); ``--check`` fails when it is
+outdated. The table is the coverage matrix of the documentation review: one row per setting with type, default, limits,
 how it is changed and whether the settings reference documents it.
 """
 from __future__ import annotations

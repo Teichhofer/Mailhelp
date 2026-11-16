@@ -1,0 +1,82 @@
+{
+  "all_day": false,
+  "base_title": "Vorspielnachmittag der Geigenklasse",
+  "calendar_candidates": [],
+  "canonical_ref": null,
+  "certainty": "certain",
+  "classification": "new",
+  "confirmed_web_actor": "web:unverified-legacy",
+  "created_at": null,
+  "default_duration_minutes": null,
+  "description": "Mia spielt ihr erstes Solostück; die genaue Uhrzeit wird noch mit dem Saal abgestimmt.\n\nAbsender: Musikschule Beispielstadt <info@musikschule-beispielstadt.example>\nBetreff: Vorspielnachmittag der Geigenklasse\nMail-Datum: 2026-11-13T17:40:00+01:00\n📧 Original-E-Mail öffnen: message://%3C07-vorspiel-ohne-uhrzeit@demo.mailhelp.example%3E",
+  "due": null,
+  "duplicate_check_failed": false,
+  "duplicate_match": null,
+  "duration_is_upper_bound": false,
+  "duration_minutes": null,
+  "end": null,
+  "end_origin": "unknown",
+  "evidence": "am Mittwoch, 9. Dezember 2026, findet der Vorspielnachmittag der Geigenklasse im Kammermusiksaal der Musikschule statt",
+  "explicit_create_fallback_confirmed": false,
+  "explicit_duplicate_create_confirmed_version": null,
+  "explicit_non_binding_create_confirmed": false,
+  "external_id": null,
+  "external_link": null,
+  "field_conflicts": [],
+  "id": "p_ef1a5cfa5c2e8daebc218e67",
+  "is_cancellation": false,
+  "kind": "event",
+  "known_temporal_facts": {
+    "date": "2026-12-09",
+    "start": null,
+    "start_time": null
+  },
+  "location": "Kammermusiksaal der Musikschule",
+  "mail_link": "message://%3C07-vorspiel-ohne-uhrzeit@demo.mailhelp.example%3E",
+  "matching_candidates": [],
+  "meeting_mode": "unknown",
+  "merge_review_required": false,
+  "open_questions": [
+    "Wann beginnt der Termin?"
+  ],
+  "original_date": null,
+  "pending_sources": [],
+  "protected_fields": [],
+  "reconciliation_journal": null,
+  "reject_reason": null,
+  "resolution": null,
+  "responsibility": "user",
+  "schema_version": 3,
+  "separated_from": [],
+  "series_key": "205b43aee63bf1b97cdec7646b9c10a6c41d26dbcefca8ba0f04334e466d72f7",
+  "simulation_notified": false,
+  "source_mail_id": "79b95d24155d457eb5691ea3",
+  "sources": [
+    {
+      "anchors": [
+        "fae50e3878cf7133e48440fac99ecd01ff0dbe9c2462d2a62fc23484199e928c"
+      ],
+      "mail_id": "79b95d24155d457eb5691ea3",
+      "proposal_id": "p_ef1a5cfa5c2e8daebc218e67",
+      "sent_at": "2026-11-13T17:40:00+01:00",
+      "subject": "vorspielnachmittag der geigenklasse"
+    }
+  ],
+  "start": null,
+  "status": "needs_clarification",
+  "target": "primary",
+  "target_event_id": null,
+  "target_profile": 1,
+  "target_provider": "google",
+  "temporal_fact": {
+    "normalized_date": "2026-12-09",
+    "raw_text": "Mittwoch, 9. Dezember 2026",
+    "status": "resolved",
+    "year_source": "explicit_mail"
+  },
+  "time_changes": [],
+  "title": "Vorspielnachmittag der Geigenklasse",
+  "uncertain_notified": false,
+  "version": 1,
+  "video_link": null
+}

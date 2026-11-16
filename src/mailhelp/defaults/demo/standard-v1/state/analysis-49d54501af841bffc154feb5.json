@@ -1,0 +1,32 @@
+{
+  "human_decision": null,
+  "mail_id": "49d54501af841bffc154feb5",
+  "recorded_at": "2026-11-16T09:01:27.739582+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "schule"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "9. November",
+      "Donnerstag, 26. November",
+      "Dienstag, 1. Dezember 2026",
+      "19:30 Uhr"
+    ],
+    "sentences": [
+      "Klassenlehrerin Lehmann verschiebt den Elternabend der Klasse 4b vom 26. November auf Dienstag, 1. Dezember 2026, 19:30 Uhr in Raum 12.",
+      "Die Tagesordnung bleibt unverändert."
+    ]
+  },
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

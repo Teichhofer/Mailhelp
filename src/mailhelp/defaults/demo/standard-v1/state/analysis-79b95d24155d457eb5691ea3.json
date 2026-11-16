@@ -1,0 +1,29 @@
+{
+  "human_decision": null,
+  "mail_id": "79b95d24155d457eb5691ea3",
+  "recorded_at": "2026-11-16T09:02:25.287245+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "musikschule"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "Mittwoch, 9. Dezember 2026"
+    ],
+    "sentences": [
+      "Die Musikschule lädt zum Vorspielnachmittag der Geigenklasse am 9. Dezember 2026 in den Kammermusiksaal ein.",
+      "Mia spielt dort ihr erstes Solostück, die genaue Uhrzeit wird noch abgestimmt."
+    ]
+  },
+  "topics": {
+    "foerderverein": "Förderverein und Schulfeste",
+    "musikschule": "Musikschule",
+    "schule": "Schule und Klasse 4b",
+    "verein": "Sportverein TSV"
+  }
+}

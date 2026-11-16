@@ -1,0 +1,26 @@
+{
+  "events": [
+    {
+      "actor": null,
+      "at": "2026-11-16T09:01:15.156884Z",
+      "id": "212a82b2fc072008bf443482aa8422fd",
+      "kind": "state",
+      "proposal_id": "p_9507bb37af43443ede5ac412",
+      "source": "system",
+      "status": "needs_clarification",
+      "version": 1
+    },
+    {
+      "actor": null,
+      "at": "2026-11-16T09:01:15.191851Z",
+      "id": "e49b5b92e2208053890a8904bd6f511f",
+      "kind": "state",
+      "proposal_id": "p_589a045c3d7cd3b627c07d04",
+      "source": "system",
+      "status": "pending_confirmation",
+      "version": 1
+    }
+  ],
+  "removed": false,
+  "schema_version": 1
+}

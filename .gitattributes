@@ -1,0 +1,2 @@
+# 7.1.2: the demo dataset is verified byte for byte against its manifest; never convert line endings.
+src/mailhelp/defaults/demo/** -text

@@ -1,0 +1,300 @@
+{
+  "action_route": {
+    "action_state": "task",
+    "event_count": 0,
+    "reason": "Die Mail erinnert an die Abgabe der unterschriebenen Einverständniserklärung bis Freitag, 20. November; das ist eine konkrete Handlungsaufforderung an die Eltern. Der genannte Ausflug am 4. Dezember ist kein Termin der nutzenden Person, sondern betrifft das Kind, daher kein Event-Kandidat.",
+    "reply_needed": false,
+    "reply_reason": null,
+    "task_count": 1
+  },
+  "action_router_call_id": "347ec7ab-87ec-4675-a21f-3fddce6b6c4a",
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
+  "created_at": "2026-11-16T09:01:48.303017Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>",
+    "subject": "Erinnerung: Einverständniserklärung Planetarium"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": null,
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "817f70d2d31d7b212e435d84",
+  "imap": {
+    "account_id": "fa68dcee64f4721e19df75fa",
+    "folder": "INBOX",
+    "uid": 19,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "llm_call_ids": [
+    "bffdfe94-596c-4391-841b-b3e05960e537",
+    "f928cda6-ca6a-48ae-b56c-2165c031c40e",
+    "347ec7ab-87ec-4675-a21f-3fddce6b6c4a",
+    "12aff84b-07e6-4584-be4e-cece853bcbf9",
+    "bf23cdd2-60f3-44c1-965d-e5934cb2aa7b",
+    "350b5d8a-f7c0-4d62-a2ec-0c7bb2632355"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Fri, 13 Nov 2026 08:15:00 +0100",
+    "date_header_parsed": "2026-11-13T08:15:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Fri, 13 Nov 2026 08:15:00 +0100",
+      "from": "Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>",
+      "in_reply_to": "",
+      "message_id": "<06-erinnerung-formular@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "Erinnerung: Einverständniserklärung Planetarium"
+    },
+    "imap_received_at": "2026-11-13T08:15:00+01:00",
+    "internal_id": "817f70d2d31d7b212e435d84",
+    "message_ids": [
+      "<06-erinnerung-formular@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "Liebe Eltern der Klasse 4b,\n\nwir erinnern an die Einverständniserklärung für den Ausflug ins Planetarium am 4. Dezember. Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, falls noch nicht geschehen.\n\nIhr Sekretariat",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Die unterschriebene Einverständniserklärung für den Ausflug ins Planetarium am 4. Dezember abgeben, falls noch nicht geschehen.\n\nAbsender: Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>\nBetreff: Erinnerung: Einverständniserklärung Planetarium\nMail-Datum: 2026-11-13T08:15:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C06-erinnerung-formular@demo.mailhelp.example%3E)",
+      "due": null,
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, falls noch nicht geschehen.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_d2475844e5dae551d48330fc",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C06-erinnerung-formular@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [
+        "Welches konkrete Datum ist mit „Freitag, 20. November“ gemeint?"
+      ],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "817f70d2d31d7b212e435d84",
+      "sources": [],
+      "start": null,
+      "status": "needs_clarification",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": null,
+      "time_changes": [],
+      "title": "Einverständniserklärung Planetarium abgeben",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_d2475844e5dae551d48330fc",
+      "proposal_version": 2,
+      "status": "queued"
+    }
+  ],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "00560f21b0cfa74b79e7d02212ea5e7d27310caa726b4be2f80b05bf3a6028f9",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Die unterschriebene Einverständniserklärung für den Ausflug ins Planetarium am 4. Dezember abgeben, falls noch nicht geschehen.\n\nAbsender: Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>\nBetreff: Erinnerung: Einverständniserklärung Planetarium\nMail-Datum: 2026-11-13T08:15:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C06-erinnerung-formular@demo.mailhelp.example%3E)",
+      "due": "2026-11-20",
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, falls noch nicht geschehen.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_d2475844e5dae551d48330fc",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C06-erinnerung-formular@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "817f70d2d31d7b212e435d84",
+      "sources": [
+        {
+          "anchors": [
+            "9f0e4cc57b6fa842f43db08479c97f0f9294c3fbf12c94375d87bbf4f3789a29"
+          ],
+          "mail_id": "817f70d2d31d7b212e435d84",
+          "proposal_id": "p_d2475844e5dae551d48330fc",
+          "sent_at": "2026-11-13T08:15:00+01:00",
+          "subject": "erinnerung: einverständniserklärung planetarium"
+        }
+      ],
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": null,
+      "time_changes": [],
+      "title": "Einverständniserklärung Planetarium abgeben",
+      "uncertain_notified": false,
+      "version": 2,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "schule"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "skipped",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "completed"
+  },
+  "summary": {
+    "deadlines": [
+      "am 4. Dezember",
+      "bis Freitag, 20. November"
+    ],
+    "sentences": [
+      "Die Schule erinnert die Eltern der Klasse 4b an die Einverständniserklärung für den Planetariumsausflug am 4. Dezember.",
+      "Sie sollen das unterschriebene Formular bis Freitag, 20. November abgeben, falls noch nicht geschehen."
+    ]
+  },
+  "task_extraction": {
+    "schema_version": 1,
+    "tasks": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "description": "Die unterschriebene Einverständniserklärung für den Ausflug ins Planetarium am 4. Dezember abgeben, falls noch nicht geschehen.",
+        "due_text": "Freitag, 20. November",
+        "evidence": "Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, falls noch nicht geschehen.",
+        "responsibility": "user",
+        "title": "Einverständniserklärung Planetarium abgeben"
+      }
+    ]
+  },
+  "updated_at": "2026-11-16T09:02:22.814098Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

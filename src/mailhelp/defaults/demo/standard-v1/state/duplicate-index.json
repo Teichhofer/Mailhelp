@@ -1,0 +1,395 @@
+{
+  "entries": [
+    {
+      "content_fingerprint": "aa2410f096ac58a224209f099d4bbc207dce3c67eb6f4f20ea7f80ceeaf3e7ae",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 1,
+        "uidvalidity": 1
+      },
+      "mail_id": "7dc941b07ce4ec99dc5133f5",
+      "message_ids": [
+        "<11-reiseportal@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9d9a76bf96ea32c20ed078c6ab0901c150fe3b78c060442ec55ee06f80923bb1",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 2,
+        "uidvalidity": 1
+      },
+      "mail_id": "f62d74080eb272d054d37e9e",
+      "message_ids": [
+        "<12-elektronik@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "ca5a05209a4f191e6022744d3b66741dc9b1d83d73fd300d06fafcf5761dc2e1",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 3,
+        "uidvalidity": 1
+      },
+      "mail_id": "12f1bfd9a277b60d4e949fd7",
+      "message_ids": [
+        "<01-elternabend@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9c9aa78c69ab411f6ce31f3b4cdfff8347ab13929eb2040cb4fed42909c509a2",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 4,
+        "uidvalidity": 1
+      },
+      "mail_id": "a03bd30c79a817ff097e500b",
+      "message_ids": [
+        "<13-mode@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "65c8452ab2525660edab9c0cc5b24a4a9a8948a779a7c6712e95d4889c3ba151",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 5,
+        "uidvalidity": 1
+      },
+      "mail_id": "d47c12eed0e4ee309e652a94",
+      "message_ids": [
+        "<14-lieferdienst@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "e20d6600d1225be319d473d731680340bf341d8a9d9dc7069179f1fcd6ff247b",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 6,
+        "uidvalidity": 1
+      },
+      "mail_id": "fcd2160ce611f1d255b9cac5",
+      "message_ids": [
+        "<02-ausflug-formular@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "c580b1b24764e38ba4be8f6c7f093eb2cde39c1176d9849355187715427ab97d",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 7,
+        "uidvalidity": 1
+      },
+      "mail_id": "6d23e289f8a62e7623b55d59",
+      "message_ids": [
+        "<15-gewinnspiel@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "6547797f27ceac563ec09ddc76a33df56badbfdb880b47cca800c10a28bf5d21",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 8,
+        "uidvalidity": 1
+      },
+      "mail_id": "4246d6395e8cb3d2684b66de",
+      "message_ids": [
+        "<16-app-update@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "1129dd21368f3a77f314058bb5b3ac32dfd38e15d274a6bce7edae77b57c946f",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 9,
+        "uidvalidity": 1
+      },
+      "mail_id": "dcaf6e9b05b988f119ff6bc4",
+      "message_ids": [
+        "<03-workshop-material@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "6e05a02827500787d6e55fbcc89fc0e380a0e85e924162099884107d59f29a1c",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 10,
+        "uidvalidity": 1
+      },
+      "mail_id": "240f1d8fc2fd6cf84306ca9f",
+      "message_ids": [
+        "<17-soziales-netzwerk@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "91a5ac4dd68507bbfeb73a61a96869c6ee421478b4d47004136a8e016f57e85a",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 11,
+        "uidvalidity": 1
+      },
+      "mail_id": "18fcaa6f9c9f96b09cb4d7d8",
+      "message_ids": [
+        "<18-webinar@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "6e32c30742d5cc07e3115190c1af2d4e016162deae6f07265fe9bf69770c1773",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 12,
+        "uidvalidity": 1
+      },
+      "mail_id": "67252f5317b5c5a3a8501e05",
+      "message_ids": [
+        "<04-adventsbasar@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "f597e513fe312f06209b7652e6411d7f9656e98f431ffd97101506a1895e922a",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 13,
+        "uidvalidity": 1
+      },
+      "mail_id": "5f6ac933310b80a769c0fba5",
+      "message_ids": [
+        "<19-spendenaufruf@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "414b28dd8b40d1c2d412a09fe946452986c56053a626ae42366d4a0bc5d395a7",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 14,
+        "uidvalidity": 1
+      },
+      "mail_id": "b6a7d0c7a77e0d481f2226e0",
+      "message_ids": [
+        "<20-umfrage@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9526e9a68d9e675410207581bf1301ccf2065fbb3d25c2d76687f425964422a2",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 15,
+        "uidvalidity": 1
+      },
+      "mail_id": "fb7149540195c2e802f5260d",
+      "message_ids": [
+        "<21-kreditkarte@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "21cfa80e4341f30e9cc349272eea6a42d724175568ed22bcc912a4920771aa36",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 16,
+        "uidvalidity": 1
+      },
+      "mail_id": "49d54501af841bffc154feb5",
+      "message_ids": [
+        "<05-elternabend-verschoben@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9f542738c854b834049b82149ce8338c98cad51a8e099999de5e36ccf99977c0",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 17,
+        "uidvalidity": 1
+      },
+      "mail_id": "d44bfa9c2ee6a06a41bbf25e",
+      "message_ids": [
+        "<22-streaming@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "a67bee9a683c1e8138e948a4f7f65964f14a9723ec946d5c536ea2f70e00d664",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 18,
+        "uidvalidity": 1
+      },
+      "mail_id": "64b85524b6f5c57968371a60",
+      "message_ids": [
+        "<23-fitnessstudio@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "2c88d82caa2594d6eb6d955a9f073ea80f0eb2ee168b7d6a3932413501c26705",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 19,
+        "uidvalidity": 1
+      },
+      "mail_id": "817f70d2d31d7b212e435d84",
+      "message_ids": [
+        "<06-erinnerung-formular@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "90f59e06147cb8e2346be2ce4eb6449dfb453cb9f51e0b8e6736c7b81dcb812e",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 20,
+        "uidvalidity": 1
+      },
+      "mail_id": "7c5de1bb0191ffc7ddb1cff7",
+      "message_ids": [
+        "<24-zeitschrift@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "a6c086fd1c1039891d6c0f5d0630b271a9991f465220f87a8cb651b91cb45122",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 21,
+        "uidvalidity": 1
+      },
+      "mail_id": "79b95d24155d457eb5691ea3",
+      "message_ids": [
+        "<07-vorspiel-ohne-uhrzeit@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "2182a3743108dad5a62822db0055f043e6d2686127f741847999d773c0e01f84",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 22,
+        "uidvalidity": 1
+      },
+      "mail_id": "79900629a8e782a10d194394",
+      "message_ids": [
+        "<25-energie@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "5b3a67efcde974ef23ebcb05f8f7b8e780fb1cd581d48cf20f6d99f3acb6f2d5",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 23,
+        "uidvalidity": 1
+      },
+      "mail_id": "98159854b8b577220937f891",
+      "message_ids": [
+        "<08-unklarer-bezug@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "b9f2394103885d6f2dbc818a2fdbed49cf72240a9248c6a89e91140dc20dddd2",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 24,
+        "uidvalidity": 1
+      },
+      "mail_id": "982e67bee9ad1e1ef6970673",
+      "message_ids": [
+        "<26-moebelhaus@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "1e8b830830793d7a761982f016d24e38c88afa96b54259ebcafec77856cd5f49",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 25,
+        "uidvalidity": 1
+      },
+      "mail_id": "b7740bf2661d7e9ddb0b3220",
+      "message_ids": [
+        "<27-gartencenter@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "430bc9b2ad50e6ec1feec58626ad40e9720f6c7ee39cdd045c1865fa6605d67f",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 26,
+        "uidvalidity": 1
+      },
+      "mail_id": "f4c3a0bd32d80a6f4cef6778",
+      "message_ids": [
+        "<09-mensa-info@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "5fbf30b33eee6db6bb429ea223bfc3e0bdb20ad5763a1b8588d273d1dca5483f",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 27,
+        "uidvalidity": 1
+      },
+      "mail_id": "54ae2a36349a22b451bd87c1",
+      "message_ids": [
+        "<28-softwarelizenz@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "121d20a767c75fcc894fe3607060a7eb80a3aad338af6c5d9496840ee31da6ea",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 28,
+        "uidvalidity": 1
+      },
+      "mail_id": "4933312f7bc9aa57fb81a929",
+      "message_ids": [
+        "<29-hotel@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9ef0ecbe76ef342159410f61bd0a0b31f5110c176870e5d31471c1b6ed24f910",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 29,
+        "uidvalidity": 1
+      },
+      "mail_id": "252265321c7be3c06a87e244",
+      "message_ids": [
+        "<10-werbung-black-week@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "b05c80c9d72f43dc3ab21e1b2fc8ef5f87a347b3c4b48c603caf319b2237e46f",
+      "imap": {
+        "account_id": "fa68dcee64f4721e19df75fa",
+        "folder": "INBOX",
+        "uid": 30,
+        "uidvalidity": 1
+      },
+      "mail_id": "3e2462bb9bb75ff447249b43",
+      "message_ids": [
+        "<30-versicherung@demo.mailhelp.example>"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

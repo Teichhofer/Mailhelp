@@ -1,0 +1,12 @@
+{
+  "daily_briefing": {},
+  "decision_markers": {},
+  "outbox": {
+    "active": null,
+    "entries": [],
+    "schema_version": 1
+  },
+  "push_decisions": [],
+  "queue": null,
+  "schema_version": 1
+}
