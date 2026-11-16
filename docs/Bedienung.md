@@ -1,6 +1,6 @@
 # Alltagsbedienung
 
-Stand: Mailhelp 6.7. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
+Geprüft für Mailhelp 7.0. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
 nachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.
 
 ## Offene Entscheidungen
@@ -320,7 +320,7 @@ Auf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wisc
 
 ## Fehlgeschlagene Mails
 
-Die Statusseite zeigt unter „Handlungsbedarf und Wiederholungen“, welche Mail erneut
+Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut
 versucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.
 **Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen
 Versuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.

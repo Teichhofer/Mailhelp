@@ -1,6 +1,6 @@
 # Kalender und Aufgaben verbinden
 
-Stand: Mailhelp 5.4.1, Anbieterunterlagen am 11. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste
+Geprüft für Mailhelp 7.0; Anbieterunterlagen am 11. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste
 bestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`
 aus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein
 **Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.

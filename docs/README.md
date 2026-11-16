@@ -1,6 +1,6 @@
 # Dokumentation
 
-**Geprüft für Mailhelp 7.0**
+Geprüft für Mailhelp 7.0
 
 Hier stehen die Dokumente, die den aktuellen Stand beschreiben. Abgeschlossene Pläne,
 Release-Berichte, Konzepte und frühere Prüfberichte liegen im [Archiv](archiv/); sie beschreiben
@@ -33,7 +33,7 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Architektur](Architektur.md) | Pakete und Schichten, Weg einer Mail, Bestätigungsweg, Zustände, Altformate |
 | [Zustandsregeln](Zustandsregeln-3.6.md) | Regeln für Prüfbefehle, Schreibausführung und Merge mit ihren Testnachweisen |
 | [Entkopplung von Bedienung und Abruf](Entkopplung-Web-und-Abruf.md) | Gemeinsame Ressourcen, Sperren und Antwortzeiten |
-| [Prüfung der Dokumentation 5.3](Pruefung-Dokumentation-5.3.md) | Inventur aller Einstellungen (von `devtools/inventory.py` geschrieben) |
+| [Prüfung der Dokumentation 7.0](Pruefung-Dokumentation-7.0.md) | Prüfprotokoll aller lebenden Dokumente und Inventur aller Einstellungen (von `devtools/inventory.py` geschrieben) |
 
 ## Laufende Arbeit
 

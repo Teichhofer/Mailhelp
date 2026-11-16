@@ -1,7 +1,7 @@
 <!--
 Hinweise für Betreibende (vor Veröffentlichung entfernen):
 - Platzhalter in [eckigen Klammern] ersetzen (Name, Anschrift, Kontakt).
-- Die technischen Angaben entsprechen dem Repository-Stand 3.4.5 (14.10.2026).
+- Die technischen Angaben entsprechen dem Repository-Stand 7.0 (16.11.2026).
   Bei abweichender Konfiguration (andere Modelle, Anbieter, Aufbewahrungsfristen,
   Logging) diese Erklärung anpassen.
 - Für eine Google-OAuth-Prüfung muss diese Seite öffentlich erreichbar sein und zur
@@ -11,14 +11,14 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.4.5
+Stand: 16. November 2026 · Geprüft für Mailhelp 7.0
 
 ## 1. Worum es geht
 
 Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem oder mehreren Postfächern derselben Person,
 lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben und Termine vor.
-Als Ziele stehen Google Kalender, Todoist, Outlook / Microsoft 365, Microsoft To Do
-und CalDAV zur Verfügung. Die Vorschläge werden über einen optionalen Telegram-Bot oder die
+Als Ziele stehen Google Kalender, Todoist, Outlook / Microsoft 365, Microsoft To Do,
+CalDAV und Apple Erinnerungen (über iCloud-CalDAV) zur Verfügung. Die Vorschläge werden über einen optionalen Telegram-Bot oder die
 authentifizierte Weboberfläche zur Bestätigung vorgelegt. Mailhelp legt **nichts**
 im Kalender oder in der Aufgabenliste an, solange die berechtigte Person die konkrete
 Vorschlagsversion nicht ausdrücklich über einen dieser beiden Kanäle bestätigt hat.
@@ -48,18 +48,22 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 | Quellenreferenzen mit Nachrichtenzeit, Betreff und gehashten Gesprächsankern; Vorschlagsbeziehungen, Vergleichscache und Merge-Journal | lokale Mail- und Vorschlagsakten | Zusammengehörige offene Entscheidungen erkennen, Ergänzungen nachvollziehen und unterbrochene lokale Änderungen wiederaufnehmen |
 | Bestehende Termine im Zeitraum eines Terminvorschlags: Titel, Beschreibung, Ort, Beginn, Ende, Link | gewählter Kalenderdienst des Zielprofils | Erkennen von Duplikaten; optional Tagesüberblick |
 | Aufgaben in der konfigurierten Aufgabenliste | gewählter Aufgabendienst des Zielprofils | Erkennen bereits angelegter Aufgaben; optional Tagesüberblick |
-| Antwortentwürfe mit persönlichen Angaben und Signatur | Mailinhalt und eigene Vorgaben | Entwurf durch KI, lokales Prüfen und ausschließlich ausdrücklich bestätigtes Speichern im IMAP-Entwurfsordner |
+| Antwortentwürfe mit persönlichen Angaben und Signatur | Mailinhalt und eigene Vorgaben | Entwurf durch KI, lokales Prüfen und Speichern im IMAP-Entwurfsordner nach ausdrücklicher Bestätigung oder, wenn für ein Postfach ausdrücklich eingeschaltet (`auto_draft`), automatisch |
 | Tätigkeitsberichte mit Mailbelegen und XLSX-Exporten | ausgewählte Mails des Ursprungspostfachs | ausdrücklich gestartete Berichtsauswertung |
 | Web-Push-Abonnements einschließlich Endpunkt und öffentlicher Schlüssel | freigegebener Browser | inhaltsneutrale Hinweise; Widerruf je Gerät |
 | Postfachnummern, Zielprofilbindungen, Einrichtungsentwürfe und Diagnoseberichte | lokale Konfiguration und Prüfungen | getrennte Zugänge, Vererbung von Einstellungen und sichere Betriebsprüfung |
 | Gelernte Absender- und Themenfilter | aus bestätigten Entscheidungen | künftige Relevanzprüfung |
+| Lernbestand: manuelle Entscheidungen mit Mail, KI-Ergebnissen, ursprünglichem und entschiedenem Vorschlag sowie freiwillig gewähltem Ablehnungsgrund | eigene Entscheidungen | Annahmequote, Absenderhinweise und ausdrücklich gestartetes Regellernen |
+| Fragen an den Hilfschat und seine Antworten | Eingabe der angemeldeten Person | Erklärung von Einstellungen mit der mitgelieferten Dokumentation |
+| Nachweise geschriebener Einträge (Quittung, frisch beim Anbieter gelesene Angaben, Vergleich) | Kalender- bzw. Aufgabendienst des Zielprofils | Prüfen, ob der bestätigte Eintrag wirklich angelegt wurde |
 | Technische Protokolle (Zeitpunkte, Status, Fehler) | Mailhelp | Betrieb und Fehlersuche |
 | Nur bei aktivierter Weboberfläche: gekoppelte Geräte (selbst gewählter oder aus dem Browser abgeleiteter Gerätename, Zeitpunkte der Kopplung und letzten Nutzung, Sitzungsschlüssel nur als Hash), Kopplungscodes nur als Hash, Web-Aktionen mit Ergebnis | Browser der berechtigten Person | Anmeldung und Bedienung über das Web |
 
 Von Absenderinnen und Absendern verarbeitet Mailhelp nur, was in den empfangenen
 E-Mails steht. Der reguläre Abruf verändert weder Nachrichten noch Lesestatus.
 Mailhelp versendet keine E-Mails. Die optionale Entwurfsfunktion kann nach gesonderter
-Bestätigung einen neuen Entwurf im Ursprungspostfach speichern.
+Bestätigung einen neuen Entwurf im Ursprungspostfach speichern; ist die automatische Ablage für ein
+Postfach ausdrücklich eingeschaltet (`auto_draft`, Standard aus), geschieht das ohne Einzelbestätigung.
 
 Unterstützte Anhangstexte und bei aktivierter Bilderkennung ausgewählte Bild-/Scan-Daten
 können an den konfigurierten KI-Dienst übermittelt werden. Optionale Originalanhänge und
@@ -98,14 +102,14 @@ Für die Funktion werden Daten an folgende Dienste übermittelt:
 
 | Dienst | Übermittelte Daten | Zweck | Sitz |
 |---|---|---|---|
-| E-Mail-Anbieter der eingerichteten Postfächer | Abruf per IMAP, optional ausdrücklich gespeicherte Antwortentwürfe | Lesen der E-Mails und Entwurfsablage | abhängig vom Anbieter |
+| E-Mail-Anbieter der eingerichteten Postfächer | Abruf per IMAP, optional gespeicherte Antwortentwürfe | Lesen der E-Mails und Entwurfsablage | abhängig vom Anbieter |
 | IServ-Server der Schule (optional) | Anmeldung mit dem Elternkonto und Lesen der Elternbriefe | Abruf von Briefen und Anhängen; in IServ wird nichts bestätigt oder beantwortet | abhängig von der Schule |
-| OpenRouter und die tatsächlich gewählten Modellanbieter | Mail- und Anhangsinhalte, Vorschlagsfelder, bestehende Termine zur Duplikatprüfung, Klärungsantworten, optional persönliche Angaben | KI-Auswertung; Modelle und Routen gemäß `prompts.yaml` und `decisions_prompts.yaml` | abhängig vom Anbieter |
+| OpenRouter und die tatsächlich gewählten Modellanbieter | Mail- und Anhangsinhalte, Vorschlagsfelder, bestehende Termine zur Duplikatprüfung, Klärungsantworten, optional persönliche Angaben; Fragen an den Hilfschat mit kurzem Verlauf und Dokumentationsausschnitten; nach ausdrücklicher Freigabe begrenzte Auszüge und Korrekturen aus dem Lernbestand (Regellernen) sowie die Mails eines gestarteten Lernlaufs | KI-Auswertung; Modelle und Routen gemäß `prompts.yaml` und `decisions_prompts.yaml` | abhängig vom Anbieter |
 | Telegram Messenger, falls aktiviert | Hinweise gemäß Inhaltsprofil; direkte Vorschläge, Rückfragen und Antworten können Mailauszüge enthalten | Bedienung und Bestätigung | gemäß Anbieterangaben |
-| Todoist (Doist Inc.) | bestätigte Aufgaben; Lesen des Zielprojekts | Aufgabenanlage | USA |
-| Google Kalender (Google LLC / Google Ireland Ltd.) | bestätigte Termine; Lesen von Terminen im betroffenen Zeitraum | Terminanlage, Duplikatprüfung | Irland / USA |
-| Microsoft 365 / Outlook / Microsoft To Do, falls gewählt | bestätigte Termine oder Aufgaben; lesender Abgleich | Kalender- und Aufgabenfunktionen | abhängig vom Konto und Anbieter |
-| CalDAV-Anbieter, falls gewählt | bestätigte Termine oder Aufgaben; lesender Abgleich | Kalender- und Aufgabenfunktionen | abhängig vom Anbieter |
+| Todoist (Doist Inc.) | bestätigte Aufgaben; Lesen des Zielprojekts und der angelegten Aufgabe zur Nachprüfung; Löschen einer eigenen Aufgabe nur auf ausdrücklichen Wunsch innerhalb der Entfernfrist | Aufgabenanlage | USA |
+| Google Kalender (Google LLC / Google Ireland Ltd.) | bestätigte Termine, bestätigte Änderungen und Absagen bestehender Termine; Lesen von Terminen im betroffenen Zeitraum und des angelegten Termins zur Nachprüfung; Löschen eines eigenen Termins nur auf ausdrücklichen Wunsch innerhalb der Entfernfrist | Terminanlage, Duplikatprüfung | Irland / USA |
+| Microsoft 365 / Outlook / Microsoft To Do, falls gewählt | bestätigte Termine oder Aufgaben und ihre Änderungen; lesender Abgleich und Nachprüfung; Löschen eigener Einträge nur auf ausdrücklichen Wunsch innerhalb der Entfernfrist | Kalender- und Aufgabenfunktionen | abhängig vom Konto und Anbieter |
+| CalDAV-Anbieter einschließlich iCloud, falls gewählt | bestätigte Termine oder Aufgaben und ihre Änderungen; lesender Abgleich und Nachprüfung; Löschen eigener Einträge nur auf ausdrücklichen Wunsch innerhalb der Entfernfrist | Kalender- und Aufgabenfunktionen | abhängig vom Anbieter |
 | Push-Dienst des Browsers, falls freigegeben | Abonnement-Endpunkt und verschlüsselter inhaltsneutraler Hinweis | Web-Push | abhängig vom Browseranbieter |
 
 Die optionale Weboberfläche (ab Version 1.1) läuft auf dem eigenen PC und ist
@@ -131,7 +135,10 @@ gelten zusätzlich deren eigene Datenschutzbestimmungen.
 Mailhelp greift mit OAuth und den folgenden Berechtigungen auf Google Kalender zu:
 
 - `https://www.googleapis.com/auth/calendar.events`: Lesen von Terminen im Zeitraum
-  eines Terminvorschlags (Duplikatprüfung) und Anlegen bestätigter Termine;
+  eines Terminvorschlags (Duplikatprüfung), Anlegen bestätigter Termine, bestätigte
+  Änderungen und Absagen bestehender Termine, frisches Lesen eines angelegten Termins zur
+  Nachprüfung und – nur auf ausdrücklichen Wunsch innerhalb der Entfernfrist – Löschen eines
+  von Mailhelp angelegten Termins;
 - `https://www.googleapis.com/auth/calendar.calendars.readonly`: Prüfen, ob der
   konfigurierte Zielkalender erreichbar ist.
 
@@ -141,8 +148,8 @@ einschließlich der Anforderungen an die eingeschränkte Nutzung („Limited Use
 Insbesondere gilt:
 
 - Kalenderdaten werden ausschließlich verwendet, um die für die Nutzerin oder den
-  Nutzer sichtbare Funktion bereitzustellen: bestätigte Termine anlegen und
-  Duplikate vermeiden.
+  Nutzer sichtbare Funktion bereitzustellen: bestätigte Termine anlegen, ändern oder
+  absagen, ihre Anlage nachprüfen und Duplikate vermeiden.
 - Zur Duplikatprüfung werden Titel, Beschreibung, Ort und Zeitraum bestehender,
   zeitlich überlappender Termine zusammen mit dem Terminvorschlag an das
   KI-Modell übermittelt (siehe Abschnitt 5). Ein aktivierter Tagesüberblick kann
@@ -184,6 +191,8 @@ verantwortlichen Person, als lesbare JSON-Dateien und Protokolle.
 | Volltexte und Belege abgeschlossener Tätigkeitsberichte | `retention.activity_report_days`, im Beispiel 365 Tage; kompakte Termin-, Absender- und Betreffangaben bleiben |
 | Benachrichtigungsqueue und Zustellhistorie | ausstehende Meldungen bis zur Verarbeitung; Historie nach `notifications.delivery.history_days`, im Beispiel 30 Tage, ohne Nachrichtenvolltext |
 | Web-Push-Abonnements | bis zum Widerruf oder zur Entfernung ungültiger Abonnements |
+| Gespräche im Hilfschat | an die Websitzung gebunden; nach Abmeldung, Widerruf des Geräts oder 24 Stunden ohne Nutzung gelöscht |
+| Nachweise geschriebener Einträge | wie Vorschläge und Entscheidungen, solange für den Duplikatschutz erforderlich |
 
 Vollständige KI-Inhalte werden nur bei explizit gesetzten `logging.llm.include_requests`
 und `logging.llm.include_responses` protokolliert. Die ausgelieferte Beispielkonfiguration

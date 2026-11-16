@@ -6,7 +6,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Stand: 15. November 2026, Anwendungsversion 6.9.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).",
+  "text": "Geprüft für Mailhelp 7.0; Inventur aller Schlüssel: [Prüfbericht 7.0](Pruefung-Dokumentation-7.0.md).",
   "title": "Einstellungen der Weboberfläche"
  },
  {
@@ -74,7 +74,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Unter `/einstellungen/iserv` lassen sich Konten als Einrichtungsentwurf anlegen und ändern.\n„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ [HH:MM]` (z. B. `01.09.2026 07:30`),\n`JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.\nEin reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;\nfür `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeichert.\nIm Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des\nzugeordneten Postfachs. Deutsche Angaben mit Uhrzeit gelten in der konfigurierten Zeitzone.\nUngültige Daten und ISO-Zeitpunkte ohne Offset werden abgewiesen.\nZugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und\nausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.\nEin Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.\nDann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.",
+  "text": "Unter `/einstellungen/iserv` aktiviert **Verbindung prüfen und Konto aktivieren** ein neues Konto\ndirekt: Erst nach erfolgreicher Anmeldung werden Konto und Zugangsdaten gespeichert, und der Abruf\nstartet ohne Neustart im nächsten sicheren Mailzyklus. Alternativ lassen sich Konten als\nEinrichtungsentwurf anlegen und ändern.\n„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ [HH:MM]` (z. B. `01.09.2026 07:30`),\n`JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.\nEin reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;\nfür `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeichert.\nIm Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des\nzugeordneten Postfachs. Deutsche Angaben mit Uhrzeit gelten in der konfigurierten Zeitzone.\nUngültige Daten und ISO-Zeitpunkte ohne Offset werden abgewiesen.\nBeim Entwurf werden Zugangsdaten separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und\nausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert; wirksam wird sie nach\neinem Neustart.\nEin Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.\nDann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.",
   "title": "IServ-Konten"
  },
  {
@@ -769,7 +769,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Ersteinrichtung.md",
-  "text": "Stand: Mailhelp 5.3. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten\ngeprüften Vorschlag. Sie gilt für Windows 11 und Linux; Abweichungen für Docker sind markiert.\n\n**Ziel:** Mailhelp läuft, ist im Browser erreichbar, liest ein Postfach, hat eine KI-Anbindung\nund kennt Kalender und Aufgabenliste. Eine externe Eintragung geschieht erst nach deiner\nausdrücklichen Bestätigung.",
+  "text": "Geprüft für Mailhelp 7.0. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten\ngeprüften Vorschlag. Sie gilt für Windows 11 und Linux; Abweichungen für Docker sind markiert.\n\n**Ziel:** Mailhelp läuft, ist im Browser erreichbar, liest ein Postfach, hat eine KI-Anbindung\nund kennt Kalender und Aufgabenliste. Eine externe Eintragung geschieht erst nach deiner\nausdrücklichen Bestätigung.",
   "title": "Ersteinrichtung"
  },
  {
@@ -890,7 +890,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Konten-verwalten.md",
-  "text": "Stand: Mailhelp 5.3. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in\neiner bereits eingerichteten Installation hinzufügen, ändern und entfernen.\n\n**Grundsatz:** Zugangsdaten stehen nur in `.env` und werden unter **Einstellungen →\nZugangsdaten** gepflegt; angezeigt wird nur „hinterlegt“ oder „fehlt“. Änderungen an Postfächern\nund Zielen sind Entwürfe und werden erst nach einer erneuten ausdrücklichen Bestätigung\nübernommen. Keine dieser Seiten legt Aufgaben oder Termine an.",
+  "text": "Geprüft für Mailhelp 7.0. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in\neiner bereits eingerichteten Installation hinzufügen, ändern und entfernen.\n\n**Grundsatz:** Zugangsdaten stehen nur in `.env` und werden unter **Einstellungen →\nZugangsdaten** gepflegt; angezeigt wird nur „hinterlegt“ oder „fehlt“. Änderungen an Postfächern\nund Zielen sind Entwürfe und werden erst nach einer erneuten ausdrücklichen Bestätigung\nübernommen. Keine dieser Seiten legt Aufgaben oder Termine an.",
   "title": "Konten verwalten"
  },
  {
@@ -934,7 +934,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Konten-verwalten.md",
-  "text": "1. **Einstellungen → IServ-Konten**, **IServ-Konto hinzufügen**.\n2. Anzeigename, Adresse der Schule (ein kopierter IServ-Link wird auf die Schuladresse gekürzt),\n   das Postfach, dessen Zielprofil und Standards gelten, und optional eine Startgrenze eintragen.\n3. Zugangsdaten unter **Einstellungen → Zugangsdaten** hinterlegen\n   (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).\n4. Die Diagnose `iserv` ausführen und die Änderung ausdrücklich bestätigen.\n\n**Ergebnis:** Elternbriefe werden nach dem nächsten Neustart abgerufen und gelten immer als\nrelevant.",
+  "text": "1. **Einstellungen → IServ-Konten** öffnen.\n2. Unter **Direkt aktivieren** Anzeigename, Adresse der Schule (ein kopierter IServ-Link wird auf\n   die Schuladresse gekürzt), das Postfach, dessen Zielprofil und Standards gelten, optional eine\n   Startgrenze sowie Benutzername und Passwort eintragen. Leere Zugangsfelder verwenden bereits\n   hinterlegte Werte (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).\n3. **Verbindung prüfen und Konto aktivieren** wählen.\n\n**Ergebnis:** Erst nach erfolgreicher Anmeldung werden Konto und Zugangsdaten gespeichert. Der\nAbruf startet ohne Neustart im nächsten sicheren Mailzyklus; offene Rückfragen gegebenenfalls\nzuerst beantworten. Elternbriefe gelten immer als relevant. Wer nicht sofort aktivieren will,\nwählt **IServ-Konto als Entwurf hinzufügen**.",
   "title": "IServ-Konto ergänzen"
  },
  {
@@ -956,7 +956,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Konten-verwalten.md",
-  "text": "| Vorhaben | Weg | Wirkung |\n| --- | --- | --- |\n| Postfacheinstellung ändern | Postfachseite, Reiter wählen, **Entwurf prüfen**, **Entwurf übernehmen** | zwischen Mailzyklen bzw. nach Neustart |\n| Postfach entfernen | Postfachseite, **Postfach entfernen**, bestätigen | wird aus der Konfiguration entfernt und nicht mehr abgerufen |\n| Postfach vorübergehend abschalten | in `config.yaml` `enabled: false` beim Postfach | nach Neustart |\n| Zielprofil entfernen | Zielprofilseite, **Profil entfernen** | erst möglich, wenn kein Postfach es mehr verwendet („Verwendet von: …“) |\n| IServ-Konto ändern oder deaktivieren | IServ-Seite | nach Bestätigung und Neustart |\n| Zugangsdaten erneuern | **Einstellungen → Zugangsdaten** | Diagnose sofort, Mailabruf nach Neustart |",
+  "text": "| Vorhaben | Weg | Wirkung |\n| --- | --- | --- |\n| Postfacheinstellung ändern | Postfachseite, Reiter wählen, **Entwurf prüfen**, **Entwurf übernehmen** | zwischen Mailzyklen bzw. nach Neustart |\n| Postfach entfernen | Postfachseite, **Postfach entfernen**, bestätigen | wird aus der Konfiguration entfernt; nach dem Neustart nicht mehr abgerufen |\n| Postfach vorübergehend abschalten | in `config.yaml` `enabled: false` beim Postfach | nach Neustart |\n| Zielprofil entfernen | Zielprofilseite, **Profil entfernen** | erst möglich, wenn kein Postfach es mehr verwendet („Verwendet von: …“) |\n| IServ-Konto ändern, deaktivieren oder entfernen | IServ-Seite; die Änderung wird als Entwurf gespeichert | nach ausdrücklicher Übernahme des Entwurfs und Neustart |\n| Zugangsdaten erneuern | **Einstellungen → Zugangsdaten** | Diagnose sofort, Mailabruf nach Neustart |",
   "title": "Ändern, deaktivieren und entfernen"
  },
  {
@@ -979,7 +979,7 @@
    "targets.removal_window_minutes"
   ],
   "source": "docs/Ziele-einrichten.md",
-  "text": "Stand: Mailhelp 5.4.1, Anbieterunterlagen am 11. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste\nbestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`\naus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein\n**Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.\nListen-ID das konkrete Ziel innerhalb dieses Kontos.\n\nMailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten\nVorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.\nAngelegte Einträge können innerhalb der Frist (standardmäßig 10 Minuten, `targets.removal_window_minutes`)\nüber Web oder Telegram wieder entfernt werden. Die vorhandenen Berechtigungen für Google Kalender,\nOutlook, Todoist und CalDAV decken das Löschen der von Mailhelp angelegten Einträge bereits ab.",
+  "text": "Geprüft für Mailhelp 7.0; Anbieterunterlagen am 11. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste\nbestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`\naus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein\n**Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.\nListen-ID das konkrete Ziel innerhalb dieses Kontos.\n\nMailhelp schreibt nur nach deiner ausdrücklichen Bestätigung genau der angezeigten\nVorschlagsversion und prüft jede Eintragung anschließend mit einem frischen Abruf.\nAngelegte Einträge können innerhalb der Frist (standardmäßig 10 Minuten, `targets.removal_window_minutes`)\nüber Web oder Telegram wieder entfernt werden. Die vorhandenen Berechtigungen für Google Kalender,\nOutlook, Todoist und CalDAV decken das Löschen der von Mailhelp angelegten Einträge bereits ab.",
   "title": "Kalender und Aufgaben verbinden"
  },
  {
@@ -1066,7 +1066,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
-  "text": "Stand: Mailhelp 6.7. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails\nnachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.",
+  "text": "Geprüft für Mailhelp 7.0. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails\nnachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.",
   "title": "Alltagsbedienung"
  },
  {
@@ -1258,7 +1258,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
-  "text": "Die Statusseite zeigt unter „Handlungsbedarf und Wiederholungen“, welche Mail erneut\nversucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.\n**Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen\nVersuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.\nBeide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine\nAufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.",
+  "text": "Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut\nversucht wird oder aufgegeben wurde. Öffne die Mail, um Schritt und Ursache zu prüfen.\n**Erneut versuchen** startet die Fortsetzung beim nächsten Abruf und setzt die bisherigen\nVersuche zurück. **Ablegen** beendet sie als nicht verarbeitet; die Mail bleibt im Archiv.\nBeide Schaltflächen ändern nur den gespeicherten Zustand. Ein neuer Termin oder eine\nAufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.",
   "title": "Fehlgeschlagene Mails"
  },
  {
@@ -1317,7 +1317,7 @@
    "limits.llm_calls_per_minute"
   ],
   "source": "docs/Fehlerbehebung.md",
-  "text": "Stand: Mailhelp 5.4. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt\nEinträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern\ngleicht sie zuerst mit dem Anbieter ab.\n\n| Lage | Ursache | Nächster Schritt |\n| --- | --- | --- |\n| Anmeldung am Postfach fehlgeschlagen | Benutzername, Passwort oder Verbindungsart falsch | **Einstellungen → Zugangsdaten** prüfen; bei Zwei-Faktor-Schutz App-Passwort; **Zugriffe prüfen** |\n| Ordner fehlt | Ordnername anders als auf dem Server | auf der Postfachseite die gefundene Ordnerliste übernehmen |\n| Google: Anmeldung abgelaufen (`token_refresh_denied` im Protokoll) | Refresh-Token widerrufen oder abgelaufen | **Google verbinden** erneut ausführen |\n| Microsoft: Anmeldung abgelehnt | Token abgelaufen | **Microsoft verbinden** oder `mailhelp --microsoft-login` |\n| Anbieter nicht erreichbar | Netzwerk oder Störung beim Anbieter | abwarten; Mailhelp versucht es erneut. **Status** zeigt den letzten Kontakt |\n| KI-Budget erschöpft | `limits.llm_calls_per_minute` erreicht | nichts tun: die Mail wird automatisch später ausgewertet |\n| „Die Nachricht überschreitet ein Sicherheitslimit“ | Mail zu groß oder zu verschachtelt | Grenzen unter `limits` nur für vertrauenswürdige Mails erhöhen |\n| Einstellung „gespeichert – wirkt erst nach einem Neustart“ | noch nicht aktiv | **Einstellungen → Mailhelp neu starten** |\n| Eintragung noch nicht bestätigt | Eintrag beim Anbieter nicht sichtbar oder Abruf verweigert | Eintrag beim Anbieter ansehen; danach **Erneut prüfen** |\n| Unklarer Schreiberfolg | Antwort des Anbieters ging verloren | nichts tun: Mailhelp gleicht ab und legt nicht erneut an |\n| Ziel geändert, Anlage gesperrt | Vorschlag für ein anderes Ziel bestätigt | ursprüngliches Ziel wiederherstellen oder den neuen Vorschlag bestätigen |\n| „Beenden nicht ausgeführt“ oder „Neustart nicht ausgeführt“ | Bestätigung von einem früheren Start oder unvollständig | auf derselben Seite erneut bestätigen; hilft das nicht, Mailhelp im Terminal mit Strg+C beenden |\n| „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |\n| Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |",
+  "text": "Geprüft für Mailhelp 7.0. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt\nEinträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern\ngleicht sie zuerst mit dem Anbieter ab.\n\n| Lage | Ursache | Nächster Schritt |\n| --- | --- | --- |\n| Anmeldung am Postfach fehlgeschlagen | Benutzername, Passwort oder Verbindungsart falsch | **Einstellungen → Zugangsdaten** prüfen; bei Zwei-Faktor-Schutz App-Passwort; **Zugriffe prüfen** |\n| Ordner fehlt | Ordnername anders als auf dem Server | auf der Postfachseite die gefundene Ordnerliste übernehmen |\n| Google: Anmeldung abgelaufen (`token_refresh_denied` im Protokoll) | Refresh-Token widerrufen oder abgelaufen | **Google verbinden** erneut ausführen |\n| Microsoft: Anmeldung abgelehnt | Token abgelaufen | **Microsoft verbinden** oder `mailhelp --microsoft-login` |\n| Anbieter nicht erreichbar | Netzwerk oder Störung beim Anbieter | abwarten; Mailhelp versucht es erneut. **Status** zeigt den letzten Kontakt |\n| KI-Budget erschöpft | `limits.llm_calls_per_minute` erreicht | nichts tun: die Mail wird automatisch später ausgewertet |\n| „Die Nachricht überschreitet ein Sicherheitslimit“ | Mail zu groß oder zu verschachtelt | Grenzen unter `limits` nur für vertrauenswürdige Mails erhöhen |\n| Einstellung „gespeichert – wirkt erst nach einem Neustart“ | noch nicht aktiv | **Einstellungen → Mailhelp neu starten** |\n| Eintragung noch nicht bestätigt | Eintrag beim Anbieter nicht sichtbar oder Abruf verweigert | Eintrag beim Anbieter ansehen; danach **Erneut prüfen** |\n| Unklarer Schreiberfolg | Antwort des Anbieters ging verloren | nichts tun: Mailhelp gleicht ab und legt nicht erneut an |\n| Ziel geändert, Anlage gesperrt | Vorschlag für ein anderes Ziel bestätigt | ursprüngliches Ziel wiederherstellen oder den neuen Vorschlag bestätigen |\n| „Beenden nicht ausgeführt“ oder „Neustart nicht ausgeführt“ | Bestätigung von einem früheren Start oder unvollständig | auf derselben Seite erneut bestätigen; hilft das nicht, Mailhelp im Terminal mit Strg+C beenden |\n| „Mailhelp läuft bereits …“ | zweiter Start auf demselben Datenverzeichnis | laufende Instanz beenden |\n| Web-Passwort vergessen | – | am Rechner `mailhelp --reset-web-password --config-directory .` |",
   "title": "Fehler beheben"
  },
  {
@@ -1328,7 +1328,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Fehlerbehebung.md",
-  "text": "Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und\nnächstem Versuch. „Aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung\naus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und\nWartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv\nals nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.\nBereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist\nnur Ablegen möglich. Diese Aktionen legen weder Termine noch Aufgaben an.",
+  "text": "Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und\nnächstem Versuch. „aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung\naus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und\nWartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv\nals nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.\nBereits entfernte Analyse-Daten lassen sich dadurch nicht wiederherstellen; dann ist\nnur Ablegen möglich. Diese Aktionen legen weder Termine noch Aufgaben an.",
   "title": "Mail wird wiederholt nicht verarbeitet"
  },
  {
@@ -1395,7 +1395,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "Stand: Mailhelp 5.4.1.",
+  "text": "Geprüft für Mailhelp 7.0.",
   "title": "Betrieb und Update"
  },
  {
@@ -1406,7 +1406,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "Mailhelp versucht dasselbe Fehlerbild je Mail höchstens fünfmal. Die Pausen zwischen\nden Versuchen betragen 1 Minute, 5 Minuten, 30 Minuten und 2 Stunden. Danach bleibt die\nMail gespeichert und wird nicht weiter automatisch aufgenommen. Dauerhafte Fehler\nwerden sofort aufgegeben. Anbieterlimits setzen nur ihre eigene Wartezeit.\nDer Status nennt Schritt, Beginn, Versuchszahl und nächsten Versuch. Telegram meldet\ndas Aufgeben einmal, mit dem Link zur Mail bei aktivierter Weboberfläche.\n\n`logging.verbose: false` reduziert Routinezeilen: unveränderte Ordnerzahlen stündlich,\nein Abschluss je Telegram-Abfrage, Webanfragen nur bei Fehler oder über einer Sekunde.\nDer erste Stacktrace bleibt vollständig, Wiederholungen erscheinen alle 15 Minuten\nmit Zähler. „Ausführliches Protokoll“ aktiviert Einzelmeldungen nach dem Neustart;\nvollständige LLM-Inhalte benötigen weiterhin ihre eigenen Schalter.\nDas synthetische Tageslimit beträgt 2 MB bei unveränderten Rotationsgrenzen.\nDie Nachmessung am echten Bestand erfolgt nach einer Woche Betrieb.\n\nNeue Zustände enthalten optionale Wiederholungsfelder. Beim Rückwechsel auf eine\nältere Version müssen diese im aktuellen Zustand kompatibel entfernt werden.\nEine alte Sicherung ersetzt niemals unbesehen später bestätigte Schreibresultate.",
+  "text": "Mailhelp versucht dasselbe Fehlerbild je Mail höchstens fünfmal. Die Pausen zwischen\nden Versuchen betragen 1 Minute, 5 Minuten, 30 Minuten und 2 Stunden. Danach bleibt die\nMail gespeichert und wird nicht weiter automatisch aufgenommen. Dauerhafte Fehler\nwerden sofort aufgegeben. Anbieterlimits setzen nur ihre eigene Wartezeit.\nDer Status nennt Schritt, Beginn, Versuchszahl und nächsten Versuch. Telegram meldet\ndas Aufgeben einmal, mit dem Link zur Mail bei aktivierter Weboberfläche.\n\n`logging.verbose: false` reduziert Routinezeilen: unveränderte Ordnerzahlen stündlich,\nein Abschluss je Telegram-Abfrage, Webanfragen nur bei Fehler oder über einer Sekunde.\nDer erste Stacktrace bleibt vollständig, Wiederholungen erscheinen alle 15 Minuten\nmit Zähler. „Ausführliches Protokoll“ aktiviert Einzelmeldungen nach dem Neustart;\nvollständige LLM-Inhalte benötigen weiterhin ihre eigenen Schalter.\nDas synthetische Tageslimit beträgt 2 MB bei unveränderten Rotationsgrenzen.\n\nNeue Zustände enthalten optionale Wiederholungsfelder. Beim Rückwechsel auf eine\nältere Version müssen diese im aktuellen Zustand kompatibel entfernt werden.\nEine alte Sicherung ersetzt niemals unbesehen später bestätigte Schreibresultate.",
   "title": "Wiederkehrende Verarbeitungsfehler"
  },
  {
@@ -1452,7 +1452,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "Nach dem Installieren einer neuen Version den Dienst neu starten. Stylesheet und Skript werden\nbeim Start eingelesen. Ab 6.3.2 verweist jede Seite mit einem Inhaltskürzel auf den passenden\nStand beider Dateien, auch wenn ein älterer Service Worker den ersten Aufruf übernimmt.\n\n1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.\n2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).\n3. Neuen Stand holen und in derselben virtuellen Umgebung installieren:\n   `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.\n4. `mailhelp --check --config-directory .` und danach starten.\n\nNeue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue\nPrompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige\nRelease-Bericht beschreibt die Übernahme.",
+  "text": "Nach dem Installieren einer neuen Version den Dienst neu starten. Stylesheet und Skripte werden\nbeim Start eingelesen. Jede Seite verweist mit einem Inhaltskürzel auf den passenden Stand jeder\nDatei, auch wenn ein älterer Service Worker den ersten Aufruf übernimmt.\n\n1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.\n2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).\n3. Neuen Stand holen und in derselben virtuellen Umgebung installieren:\n   `python -m pip install -r requirements.lock` und `python -m pip install --no-deps -e .`.\n4. `mailhelp --check --config-directory .` und danach starten.\n\nNeue Einstellungen gelten mit ihrem Standard, ohne die eigene `config.yaml` umzuschreiben. Neue\nPrompt-Schritte werden nicht still in eine eigene `prompts.yaml` eingefügt; der jeweilige\nRelease-Bericht beschreibt die Übernahme.",
   "title": "Update"
  },
  {

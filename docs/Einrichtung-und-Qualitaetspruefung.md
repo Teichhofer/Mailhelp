@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 6. November 2026, Anwendungsversion 4.1.11. Die Einrichtungshinweise gelten
+Geprüft für Mailhelp 7.0. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
@@ -83,11 +83,12 @@ Für den Betrieb ohne Telegram `telegram.enabled: false` setzen. Die Erstkopplun
 benötigt einen laufenden Dienst und den lokalen `--pair`-Aufruf; Codes erscheinen
 ausschließlich im aufrufenden Terminal. Nach der Anmeldung bietet `/einrichtung`
 versionsbezogene Konfigurationsentwürfe und `/diagnose` sichere Einzelprüfungen.
-Passwörter und Tokens liegen in `.env` oder der Prozessumgebung; seit 3.3.11 lassen sie sich unter
-**Einstellungen → Zugangsdaten** nur schreibend eintragen. Postfächer und IServ-Konten werden unter
-**Einstellungen → Postfächer** bzw. **→ IServ-Konten** als Entwurf angelegt. Ein vollständig
-browserbasierter Erststart, OAuth-Anmeldung im Browser und ein Web-Lernmodus sind noch nicht
-implementiert.
+Passwörter und Tokens liegen in `.env` oder der Prozessumgebung; unter
+**Einstellungen → Zugangsdaten** lassen sie sich nur schreibend eintragen. Postfächer und IServ-Konten
+werden unter **Einstellungen → Postfächer** bzw. **→ IServ-Konten** geprüft und direkt aktiviert
+oder als Entwurf angelegt. Erststart, Google- und Microsoft-Anmeldung und der Lernmodus sind
+vollständig im Browser möglich ([Ersteinrichtung](Ersteinrichtung.md),
+[Kalender und Aufgaben verbinden](Ziele-einrichten.md), [Bedienung](Bedienung.md#lernmodus-lernfunktion)).
 
 ## IServ-Elternbriefe einrichten (ab 3.3.7)
 
@@ -95,13 +96,16 @@ Elternbriefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet und gel
 relevant. Benötigt werden die HTTPS-Adresse der Schule (z. B. `https://schule.example`) und die
 Anmeldedaten des Elternkontos.
 
-1. **Einstellungen → IServ-Konten**: Adresse, Anzeigename und das Postfach eintragen, dessen
-   Zielprofil gelten soll; „IServ-Konto als Entwurf hinzufügen“.
-2. **Einstellungen → Zugangsdaten**: `ISERV_<n>_USERNAME` und `ISERV_<n>_PASSWORD` eintragen.
-3. **Verbindungen prüfen → iserv** starten. „bereit“ bestätigt Anmeldung und Briefübersicht; ein
-   Zugangsdatenproblem bedeutet falsche Anmeldedaten oder einen zweiten Anmeldeschritt, den
-   Mailhelp noch nicht unterstützt.
-4. Den Entwurf übernehmen und Mailhelp neu starten.
+1. **Einstellungen → IServ-Konten**: unter **Direkt aktivieren** Adresse, Anzeigename, das Postfach,
+   dessen Zielprofil gelten soll, sowie Benutzername und Passwort eintragen.
+2. **Verbindung prüfen und Konto aktivieren** wählen. Erst nach erfolgreicher Anmeldung werden Konto
+   und Zugangsdaten (`ISERV_<n>_USERNAME`, `ISERV_<n>_PASSWORD`) gespeichert; der Abruf startet ohne
+   Neustart im nächsten sicheren Mailzyklus. Ein Zugangsdatenproblem bedeutet falsche Anmeldedaten
+   oder einen zweiten Anmeldeschritt, den Mailhelp noch nicht unterstützt.
+
+Der frühere Weg bleibt verfügbar: „IServ-Konto als Entwurf hinzufügen“, Zugangsdaten unter
+**Einstellungen → Zugangsdaten** eintragen, **Verbindungen prüfen** starten, den Entwurf übernehmen
+und Mailhelp neu starten.
 
 Ohne Weboberfläche: in `config.yaml` unter `iserv.accounts` ein Konto mit `id`, `server` und
 `mailbox` eintragen, in `.env` `ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD` setzen und

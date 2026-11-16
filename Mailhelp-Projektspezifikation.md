@@ -1,5 +1,21 @@
 # Mailhelp – Projektspezifikation
 
+Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
+Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
+
+## Ergänzung 7.0: Schichten, Typen und Skriptdateien
+
+Imports folgen den Schichten aus `tests/unit/test_layers.py`; jede Ausnahme ist dort mit Begründung
+benannt. Keine Funktion hat mehr als 80 Zeilen oder 10 Parameter außer den benannten Ausnahmen in
+`tests/unit/test_limits.py`. Jede Funktion ist vollständig annotiert (`mypy` mit
+`disallow_untyped_defs`, `disallow_incomplete_defs`, `disallow_untyped_calls`).
+
+Jede Seite lädt die Skripte `app.js`, `open-list.js`, `dialogs.js`, `push.js`, `settings.js` und
+`help.js` mit `defer` in dieser Reihenfolge (`web.pages.PAGE_SCRIPTS`); jede Adresse trägt den Hash
+ihres beim Start gelesenen Inhalts. `dialogs.js` liest den Zustand der Offen-Liste über
+`window.MailhelpOpen`. Ohne JavaScript bleiben alle Seiten vollständig bedienbar. Gespeicherte
+Formate und Ereignisnamen sind in 7.0 unverändert.
+
 ## Ergänzung 6.7.5: Wiederverwendete Auswertungsdaten
 
 Die Vorschlagsauswertung und Absenderhinweise verwenden die validierten, nur gelesenen
@@ -2278,7 +2294,7 @@ geschieht ausschließlich über Ausnahmetypen und strukturierte Merkmale: `ImapL
 `StartTlsFailed`, `ssl.SSLCertVerificationError`, `ssl.SSLError`, `socket.gaierror`, Zeitlimit und
 Verbindungsfehler (bei den Paaren 993/SSL und 143/STARTTLS als vertauschte Verschlüsselung),
 `FolderNotReadable`, HTTP-Status (OpenRouter 401/403 Schlüssel, 402 Guthaben, sonst Dienst),
-`OAuthTokenError` (bei Google „Freigabe abgelaufen“), `TargetAccessError` mit `reason` ∈ {`not_found`,
+`OAuthTokenError` (bei Google „Die Google-Freigabe ist abgelaufen oder wurde widerrufen.“), `TargetAccessError` mit `reason` ∈ {`not_found`,
 `forbidden`, `api_disabled`} (seit 6.1.4; `CalendarAccessError` ist eine Unterklasse, Todoist meldet
 403/404 damit statt mit einem allgemeinen `PermanentError`); seit 6.1.3 gilt ein `IMAP4.error` im Modus
 `starttls` (Server bietet STARTTLS nicht an) ebenfalls als vertauschte Verschlüsselung, `AuthenticationError`,
@@ -2503,7 +2519,7 @@ externe Anlage und keine Ablage im Postfach aus.
 als Liste und den ausgewählten Vorgang daneben (geladen aus derselben Detailseite,
 eindeutige IDs mit Präfix `detail-`). Die Vorschlagsseite zeigt Quellbeleg,
 Revisionshistorie und technische Analyse als einklappbare Abschnitte. Seit 5.9.5
-rendert der Server den Quellbeleg immer eingeklappt (`<details data-source-mail>`); `app.js`
+rendert der Server den Quellbeleg immer eingeklappt (`<details data-source-mail>`); `open-list.js`
 öffnet ihn beim Laden der Detailseite und beim Füllen der geteilten Ansicht, wenn
 `(min-width: 1024px)` zutrifft, unabhängig von Art und Bildvorschauen. Eine spätere
 Größenänderung schaltet ihn nicht um. Die Zusammenfassung nennt Absender und Zahl der Bilder. Schnellfilter (`filter` = `events`,
@@ -3057,7 +3073,7 @@ bleiben Vorschläge mit Vergleich, Angebot oder fehlgeschlagener Dublettenprüfu
 ein Link statt einer Schaltfläche.
 
 Seit 6.2.8 stehen in „Offen“ unter 900 px nur die Schnellfilter in einer seitlich scrollbaren Zeile;
-Suche, Sortierung und Gruppierung liegen unter „Suchen und sortieren“. `app.js` klappt diesen Bereich
+Suche, Sortierung und Gruppierung liegen unter „Suchen und sortieren“. `open-list.js` klappt diesen Bereich
 auf Telefonen beim Laden zu, außer wenn etwas gesetzt ist; die Zusammenfassung nennt dann die Werte.
 Ohne JavaScript bleibt er offen; ab 900 px ist er immer offen und die Zusammenfassung ausgeblendet.
 Bei 390 × 844 und 320 × 640 beginnt die erste Entscheidung in den oberen 60 % des Fensters.
@@ -3074,7 +3090,7 @@ Seit 6.2.10 zeigt die Auswertung ihre Kennzahlen als Kacheln (Beschriftung über
 eine Definitionsliste und je ein Link zur Aufrufliste). Ohne erfasste Aufrufe, beschädigte Zeilen und
 Schrittzeiten steht statt der Kennzahlen ein Satz mit dem Hinweis auf Zeitraum und Filter. Sprunglinks
 führen zu Kennzahlen, Diagrammen, Ablauf und „Nach Modell und Schritt“. Die Diagramme liegen in einem
-aufklappbaren Abschnitt, den `app.js` auf Telefonen beim Laden zuklappt; ohne JavaScript bleibt er offen.
+aufklappbaren Abschnitt, den `open-list.js` auf Telefonen beim Laden zuklappt; ohne JavaScript bleibt er offen.
 
 Seit 5.0.1 bündelt ab 900 Pixeln Breite eine feste Seitenleiste die Navigation in
 Arbeitsbereich, Einblicke und Verwaltung; bis 1199 Pixel als schmale Symbolleiste, deren
@@ -3145,7 +3161,7 @@ Seit 5.0.5 führt der Link der Karte auf `/abgleich?mail=<Mail-ID>&vorschlag=<Vo
 Diese Ansicht zeigt nur diesen Vorschlag und die Vorschläge, mit denen er verglichen wird
 (die gemerkten Zuordnungskandidaten und offene, nicht eindeutig verschiedene Vorschläge
 derselben Art bzw. bei einer ungeprüften Zusatzquelle der Hauptvorschlag), jeweils mit
-„Zusatz ausdrücklich zuordnen“ und „Als eigenen Vorschlag behalten“. Ist der Vorschlag nicht
+„Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“ (bis 6.5: „Zusatz ausdrücklich zuordnen“). Ist der Vorschlag nicht
 mehr im Bestand, meldet sie „Dieser Vorschlag steht nicht mehr zum Abgleich an.“; ohne
 verbliebenen Kandidaten „Kein anderer Vorschlag steht mehr zum Vergleich an.“. Ein Link führt
 zur vollständigen Abgleichseite; ohne beide Parameter zeigt `/abgleich` wie bisher alles.
@@ -4217,7 +4233,7 @@ Die Prüfansicht des Regellernens beginnt mit einer Zusammenfassung (Anzahl Änd
 neue Themen, Deaktivierungen, Anzahl Belege) und Sprunglinks `#vorschlag-n`. Jede Karte
 zeigt Art und Auswahl im Kopf, die Begründung, eine kurze Belegliste (Betreff, Signal,
 Datum) mit aufklappbarem Auszug, den Vergleich und die bearbeitbaren Felder. Eine feste
-Aktionsleiste nennt „n von m Vorschlägen ausgewählt“; `learning.js` aktualisiert die Zahl
+Aktionsleiste nennt „n zur Übernahme ausgewählt · m zum Verwerfen markiert.“; `learning.js` aktualisiert die Zahlen
 ohne Netzwerkaufruf, ohne Skript zeigt der Server die Zahl der zurückgegebenen Auswahl.
 Formularfelder, Validierung und Schreibpfad bleiben unverändert.
 
@@ -4344,16 +4360,16 @@ oder Telegram wieder entfernen.
 2. **Befehl und Vorschlagsstatus**:
    - `CommandKind.REMOVE_CREATED` (`remove_created`): versionsgeprüfter Befehl mit Sitzungsprüfung,
      CSRF-Schutz und Idempotenzschlüssel.
-   - Endzustand: `ProposalStatus.REMOVED` („Angelegt und wieder entfernt“).
+   - Endzustand: `ProposalStatus.REMOVED` (angezeigt als „Wieder entfernt“).
    - In der Annahmequote (`/lernen/vorschlaege`) wird `REMOVED` separat geführt und nicht als
      angenommen gezählt.
 
 3. **Bedienung**:
    - Weboberfläche: Zweistufige Bestätigung („Eintrag wieder entfernen“ führt zur Bestätigungsseite
-     mit Titel, Zeit und Ziel; erst „Jetzt entfernen“ sendet). Nach Ablauf des Zeitfensters
+     mit Titel, Zeit und Ziel; erst „Eintrag wirklich entfernen“ sendet). Nach Ablauf des Zeitfensters
      erscheint der externe Link.
    - Telegram: Inline-Schaltfläche „Wieder entfernen“ unter der Erfolgsmeldung mit Rückfrage
-     („Wirklich entfernen?“ / „Ja, entfernen“ / „Abbrechen“).
+     („Wirklich entfernen: „Titel“?“ / „Ja, entfernen“ / „Abbrechen“).
 
 ## Version 6.7 – Offene Punkte der Bedienung abschließen
 

@@ -1,7 +1,7 @@
 # Release 5.3 – Live-Suche, Hilfschat und geprüfte Dokumentation
 
 Versionen 5.3.0 bis 5.3.11, 10. November 2026. Grundlage: [Planung 5.3](Planung-5.3.md);
-Nachweise der Dokumentationsprüfung: [Prüfbericht 5.3](../Pruefung-Dokumentation-5.3.md).
+Nachweise der Dokumentationsprüfung: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
 
 5.3 hilft beim Finden und Verstehen von Einstellungen: Treffer erscheinen beim Tippen, ein
 Hilfschat erklärt Einstellungen und Abläufe mit der geprüften, mitgelieferten Dokumentation, und

@@ -1,6 +1,6 @@
 # Betrieb und Update
 
-Stand: Mailhelp 5.4.1.
+Geprüft für Mailhelp 7.0.
 
 ## Wiederkehrende Verarbeitungsfehler
 
@@ -17,7 +17,6 @@ Der erste Stacktrace bleibt vollständig, Wiederholungen erscheinen alle 15 Minu
 mit Zähler. „Ausführliches Protokoll“ aktiviert Einzelmeldungen nach dem Neustart;
 vollständige LLM-Inhalte benötigen weiterhin ihre eigenen Schalter.
 Das synthetische Tageslimit beträgt 2 MB bei unveränderten Rotationsgrenzen.
-Die Nachmessung am echten Bestand erfolgt nach einer Woche Betrieb.
 
 Neue Zustände enthalten optionale Wiederholungsfelder. Beim Rückwechsel auf eine
 ältere Version müssen diese im aktuellen Zustand kompatibel entfernt werden.
@@ -60,9 +59,9 @@ Zu sichern sind `config.yaml`, `.env`, `prompts.yaml`, die Themen-Dateien, das D
 
 ## Update
 
-Nach dem Installieren einer neuen Version den Dienst neu starten. Stylesheet und Skript werden
-beim Start eingelesen. Ab 6.3.2 verweist jede Seite mit einem Inhaltskürzel auf den passenden
-Stand beider Dateien, auch wenn ein älterer Service Worker den ersten Aufruf übernimmt.
+Nach dem Installieren einer neuen Version den Dienst neu starten. Stylesheet und Skripte werden
+beim Start eingelesen. Jede Seite verweist mit einem Inhaltskürzel auf den passenden Stand jeder
+Datei, auch wenn ein älterer Service Worker den ersten Aufruf übernimmt.
 
 1. Mailhelp beenden. Unter Windows ist das Pflicht, sonst sperrt Windows die Programmdatei.
 2. Konfiguration, `.env`, Prompts, Themen und Datenverzeichnis sichern (siehe Sicherung).

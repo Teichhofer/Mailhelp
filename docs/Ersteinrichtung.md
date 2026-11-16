@@ -1,6 +1,6 @@
 # Ersteinrichtung
 
-Stand: Mailhelp 5.3. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten
+Geprüft für Mailhelp 7.0. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten
 geprüften Vorschlag. Sie gilt für Windows 11 und Linux; Abweichungen für Docker sind markiert.
 
 **Ziel:** Mailhelp läuft, ist im Browser erreichbar, liest ein Postfach, hat eine KI-Anbindung

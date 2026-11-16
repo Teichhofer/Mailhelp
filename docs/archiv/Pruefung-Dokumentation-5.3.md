@@ -1,22 +1,22 @@
 # Prüfung der Dokumentation 5.3
 
-**Grundlage:** [Planung 5.3](archiv/Planung-5.3.md), Abschnitt 9
+**Grundlage:** [Planung 5.3](Planung-5.3.md), Abschnitt 9
 **Prüfstand:** Mailhelp 5.3.0 (nach Abschluss von 5.0 bis 5.2, Commit-Folge ab `51d7c62`)
-**Status:** abgeschlossen mit Release 5.3.11 ([Release-Bericht](archiv/Release-5.3.md)). Offen: Docker-Wege
+**Status:** abgeschlossen mit Release 5.3.11 ([Release-Bericht](Release-5.3.md)). Offen: Docker-Wege
 und die Bewertung echter Modellantworten des Hilfschats (Freigabe erforderlich).
 
 Dieser Bericht ist der Nachweis der Dokumentationsprüfung von 5.3. Der erzeugte Teil unten
 listet jede Einstellung und jede Kommandozeilenoption so, wie der Code sie tatsächlich kennt;
 er wird mit `python -m devtools.inventory` neu erzeugt, und ein Test schlägt fehl, wenn er
-veraltet ist. Ältere Prüfberichte ([Pruefung-Dokumentation](archiv/Pruefung-Dokumentation.md), 3.3.1)
+veraltet ist. Ältere Prüfberichte ([Pruefung-Dokumentation](Pruefung-Dokumentation.md), 3.3.1)
 sind kein Nachweis für 5.3.
 
 ## 1. Abgleich des Ausgangsstands
 
 | Baustein | Stand 5.3.0 |
 | --- | --- |
-| Versionen 5.0, 5.1, 5.2 | abgeschlossen mit Release-Berichten [5.0](archiv/Release-5.0.md), [5.1](archiv/Release-5.1.md), [5.2](archiv/Release-5.2.md) |
-| Einstellungsreferenz | [Web-Einstellungen](Web-Einstellungen.md) nennt im Kopf 4.8.6; Inhalte werden in H2 geprüft |
+| Versionen 5.0, 5.1, 5.2 | abgeschlossen mit Release-Berichten [5.0](Release-5.0.md), [5.1](Release-5.1.md), [5.2](Release-5.2.md) |
+| Einstellungsreferenz | [Web-Einstellungen](../Web-Einstellungen.md) nennt im Kopf 4.8.6; Inhalte werden in H2 geprüft |
 | Feldhilfen | `web/setting_help.py`, gekoppelt an `SETTINGS_FIELDS` (Test `test_setting_help`) |
 | Suche | Formularsuche `GET /einstellungen?suche=`; Live-Suche fehlt |
 | Hilfschat | fehlt |
@@ -64,7 +64,7 @@ wird mit einer verständlichen Meldung abgewiesen, ohne Modellaufruf.
 
 | Befund | Art | Korrektur und Nachweis |
 | --- | --- | --- |
-| 117 von 229 Einstellungen ohne eigenen Eintrag (Postfächer, IServ, Zielprofile, Benachrichtigungen, Grenzen, Protokolle, Pfade, Webserver, KI-Anbindung, Nachanalyse, Nachprüfung) | fehlt | Abschnitt „Vollständige Referenz weiterer Einstellungen (5.3)“ in [Web-Einstellungen](Web-Einstellungen.md); Test `test_every_setting_has_its_own_entry_in_the_reference` |
+| 117 von 229 Einstellungen ohne eigenen Eintrag (Postfächer, IServ, Zielprofile, Benachrichtigungen, Grenzen, Protokolle, Pfade, Webserver, KI-Anbindung, Nachanalyse, Nachprüfung) | fehlt | Abschnitt „Vollständige Referenz weiterer Einstellungen (5.3)“ in [Web-Einstellungen](../Web-Einstellungen.md); Test `test_every_setting_has_its_own_entry_in_the_reference` |
 | Aufbewahrungshilfen: „Offene Vorgänge bleiben **geschätzt**“ statt „geschützt“ (fünf Einträge und Feldhilfe) | falsch | korrigiert; Regressionstest `test_open_cases_are_named_protected_not_estimated_in_every_retention_help` |
 | `limits.max_attachment_bytes` ohne Wertebereich | unvollständig | 1024–100000000 Bytes ergänzt; Test `test_every_numeric_limit_in_the_code_is_named_in_the_reference` |
 | `retention.full_mail_days`, `retention.history_days`, `limits.max_llm_payload_bytes` ohne Standard; `attachments.max_original_bytes` nur als „25 MB“ | unvollständig | Standards 30, 90, 500000 und 26214400 Bytes (25 MiB) ergänzt; Test `test_every_numeric_default_in_the_code_is_named_in_the_reference` |
@@ -87,17 +87,17 @@ Abnahmewert (mindestens 95 %) erfüllt.
 
 | Anleitung | Schritt | System | Nachweis | Beobachtet |
 | --- | --- | --- | --- | --- |
-| [Ersteinrichtung](Ersteinrichtung.md) | leeres Verzeichnis bis „Einrichtung abgeschlossen“ (Koppeln, fünf Schritte, Prüfungen, Speichern und starten) | Windows 11, Chromium, synthetische Dienste | `ui_tests/test_ui_initial_setup.py` (auch ohne JavaScript und mobil) | Überschriften, Felder und Schaltflächen wie beschrieben |
+| [Ersteinrichtung](../Ersteinrichtung.md) | leeres Verzeichnis bis „Einrichtung abgeschlossen“ (Koppeln, fünf Schritte, Prüfungen, Speichern und starten) | Windows 11, Chromium, synthetische Dienste | `ui_tests/test_ui_initial_setup.py` (auch ohne JavaScript und mobil) | Überschriften, Felder und Schaltflächen wie beschrieben |
 | Ersteinrichtung | Docker-Weg (`compose.setup.yaml`) | Linux/Docker | **nicht nachvollzogen** – Docker auf dem Prüfrechner nicht verfügbar | offen |
-| [Konten verwalten](Konten-verwalten.md) | zweites Postfach in bestehender Installation hinzufügen und aktivieren | Windows 11, Chromium | `ui_tests/test_ui_settings35.py` | Prüfung, Speichern und Ergänzen wie beschrieben |
+| [Konten verwalten](../Konten-verwalten.md) | zweites Postfach in bestehender Installation hinzufügen und aktivieren | Windows 11, Chromium | `ui_tests/test_ui_settings35.py` | Prüfung, Speichern und Ergänzen wie beschrieben |
 | Konten verwalten | IServ-Konto anlegen und aktivieren | Windows 11 | `tests/web/test_iserv_web.py`, `tests/web/test_iserv_activation.py` | wie beschrieben |
 | Konten verwalten | Zielprofil anlegen, zuordnen, entfernen | Windows 11 | `tests/profiles/test_web.py`, `test_profile_completion.py`, `test_profile_review.py` | wie beschrieben |
 | beide | jede fett genannte Bedienbezeichnung existiert, jeder Link und Anker löst auf | – | `tests/release/test_guides.py` | bestanden |
 
 ### Weitere Anleitungen und Verständlichkeit (H6)
 
-Neu: [Ziele einrichten](Ziele-einrichten.md), [Bedienung](Bedienung.md),
-[Fehlerbehebung](Fehlerbehebung.md), [Betrieb](Betrieb.md). Jede Anleitung nennt Ziel,
+Neu: [Ziele einrichten](../Ziele-einrichten.md), [Bedienung](../Bedienung.md),
+[Fehlerbehebung](../Fehlerbehebung.md), [Betrieb](../Betrieb.md). Jede Anleitung nennt Ziel,
 Voraussetzungen, Schritte mit tatsächlichen Bezeichnungen, erwartetes Ergebnis und Fehlerhilfe;
 `tests/release/test_guides.py` prüft alle sechs Anleitungen auf existierende Bedienbezeichnungen,
 Links und Anker. Beim Schreiben gefundene und korrigierte Fehler: Die Ersteinrichtung nannte eine
@@ -150,21 +150,21 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 | Seite | Funktion | Dokumentation |
 | --- | --- | --- |
-| `/` | Offen: zu entscheidende Vorschläge und Fragen | README, [Bedienung](Bedienung.md) |
-| `/offen` | Offene Vorschläge (Kurzform) | [Bedienung](Bedienung.md) |
-| `/vorschlag/…` | Vorschlag mit Beleg, Prüfstand, Bearbeiten, Versionen | README 5.1/5.2, [Bedienung](Bedienung.md) |
-| `/serie/…` | Termine einer Serie gemeinsam bestätigen | [Bedienung](Bedienung.md) |
-| `/aktion/…` | Fortschritt einer Aktion | [Bedienung](Bedienung.md) |
-| `/mails` | Mailarchiv | [Bedienung](Bedienung.md) |
-| `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | README 5.1, [Bedienung](Bedienung.md) |
-| `/abgleich` | Vorschlagsabgleich | README 5.0, [Bedienung](Bedienung.md) |
-| `/verlauf` | Verlauf und Revisionen | [Bedienung](Bedienung.md) |
+| `/` | Offen: zu entscheidende Vorschläge und Fragen | README, [Bedienung](../Bedienung.md) |
+| `/offen` | Offene Vorschläge (Kurzform) | [Bedienung](../Bedienung.md) |
+| `/vorschlag/…` | Vorschlag mit Beleg, Prüfstand, Bearbeiten, Versionen | README 5.1/5.2, [Bedienung](../Bedienung.md) |
+| `/serie/…` | Termine einer Serie gemeinsam bestätigen | [Bedienung](../Bedienung.md) |
+| `/aktion/…` | Fortschritt einer Aktion | [Bedienung](../Bedienung.md) |
+| `/mails` | Mailarchiv | [Bedienung](../Bedienung.md) |
+| `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | README 5.1, [Bedienung](../Bedienung.md) |
+| `/abgleich` | Vorschlagsabgleich | README 5.0, [Bedienung](../Bedienung.md) |
+| `/verlauf` | Verlauf und Revisionen | [Bedienung](../Bedienung.md) |
 | `/berichte` | Tätigkeitsberichte, Export | Web-Einstellungen (activity_report) |
 | `/berichte/neu` | Neuen Tätigkeitsbericht starten | Web-Einstellungen (activity_report) |
-| `/auswertung` | Auswertung und Kennzahlen | [Bedienung](Bedienung.md) |
-| `/auswertung/aufrufe` | Aufrufliste hinter jeder Kennzahl (5.9.10) | [Bedienung](Bedienung.md) |
-| `/auswertung/schritte` | Langsamste Durchläufe je Verarbeitungsschritt (6.1.8) | [Bedienung](Bedienung.md) |
-| `/briefing` | Tagesüberblick | [Bedienung](Bedienung.md) |
+| `/auswertung` | Auswertung und Kennzahlen | [Bedienung](../Bedienung.md) |
+| `/auswertung/aufrufe` | Aufrufliste hinter jeder Kennzahl (5.9.10) | [Bedienung](../Bedienung.md) |
+| `/auswertung/schritte` | Langsamste Durchläufe je Verarbeitungsschritt (6.1.8) | [Bedienung](../Bedienung.md) |
+| `/briefing` | Tagesüberblick | [Bedienung](../Bedienung.md) |
 | `/themen` | Themenpflege | Web-Einstellungen |
 | `/themen/relevant/{identity}` | Relevantes Thema einzeln bearbeiten oder anlegen | Web-Einstellungen |
 | `/themen/ausschluss/{identity}` | Ausschlussthema einzeln bearbeiten oder anlegen | Web-Einstellungen |
@@ -174,34 +174,34 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/lernen` | Gemeinsame Lernübersicht, kein Analysestart | Bedienung, Web-Einstellungen |
 | `/lernen/postfach` | Lesender Lernlauf aus dem Postfach | Bedienung |
 | `/lernen/entscheidungen` | Regeln aus protokollierten Entscheidungen | Bedienung, Web-Einstellungen |
-| `/lernen/vorschlaege` | Annahmequote messen: Kacheln, Wochen, Themen, Absender, Gründe | [Bedienung](Bedienung.md) |
-| `/lernen/absender-hinweis` | Vorschau und Übernahme eines vorgeschlagenen Absenders | [Bedienung](Bedienung.md) |
-| `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
-| `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
-| `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |
-| `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](archiv/Release-6.8.md) |
+| `/lernen/vorschlaege` | Annahmequote messen: Kacheln, Wochen, Themen, Absender, Gründe | [Bedienung](../Bedienung.md) |
+| `/lernen/absender-hinweis` | Vorschau und Übernahme eines vorgeschlagenen Absenders | [Bedienung](../Bedienung.md) |
+| `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](../Betrieb.md) |
+| `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](../Fehlerbehebung.md) |
+| `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](../Fehlerbehebung.md) |
+| `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](Release-6.8.md) |
 | `/benachrichtigungen` | Benachrichtigungen dieses Geräts | Web-Einstellungen (notifications) |
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
-| `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
-| `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](Ersteinrichtung.md) |
+| `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](../Ersteinrichtung.md) |
+| `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](../Ersteinrichtung.md) |
 | `/einstellungen` | Einstellungsbereiche und Suche | Web-Einstellungen |
 | `/hilfe` | Hilfschat zu Einstellungen und Bedienung | Web-Einstellungen (Hilfschat) |
 | `/hilfe/dokumentation` | Mitgelieferte Dokumentation lesen, auch ohne KI | Web-Einstellungen (Hilfe) |
-| `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | [Konten verwalten](Konten-verwalten.md) |
-| `/einstellungen/iserv` | IServ-Konten | [Konten verwalten](Konten-verwalten.md) |
-| `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](Ziele-einrichten.md) |
-| `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | [Ziele einrichten](Ziele-einrichten.md) |
+| `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | [Konten verwalten](../Konten-verwalten.md) |
+| `/einstellungen/iserv` | IServ-Konten | [Konten verwalten](../Konten-verwalten.md) |
+| `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](../Ziele-einrichten.md) |
+| `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | [Ziele einrichten](../Ziele-einrichten.md) |
 | `/einstellungen/benachrichtigungen` | Benachrichtigungsregeln | Web-Einstellungen (notifications) |
 | `/einstellungen/ignorierte-absender` | Ignorierte Absender | Web-Einstellungen |
 | `/einstellungen/web-passwort` | Web-Passwort | Web-Einstellungen |
-| `/einstellungen/neustarten` | Neustart | [Betrieb](Betrieb.md) |
-| `/einstellungen/beenden` | Beenden | [Betrieb](Betrieb.md) |
+| `/einstellungen/neustarten` | Neustart | [Betrieb](../Betrieb.md) |
+| `/einstellungen/beenden` | Beenden | [Betrieb](../Betrieb.md) |
 
 ## 5. Inventur der Einstellungen und Optionen
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243** mit eigenem Eintrag in [Web-Einstellungen](../Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |

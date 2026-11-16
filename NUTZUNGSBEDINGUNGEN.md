@@ -7,7 +7,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Nutzungsbedingungen für Mailhelp
 
-Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.1
+Stand: 16. November 2026 · Geprüft für Mailhelp 7.0
 
 ## 1. Gegenstand
 
@@ -16,7 +16,7 @@ eigenen Postfächern, wertet sie mit KI-Modellen aus und schlägt Aufgaben und T
 vor. Die Bedienung erfolgt über einen optionalen Telegram-Bot oder gekoppelte,
 authentifizierte Webgeräte. Kalender- und Aufgabenaktionen benötigen eine
 ausdrückliche, versionsbezogene Bestätigung. Zieldienste können Google Kalender,
-Todoist, Microsoft-Dienste oder CalDAV sein.
+Todoist, Microsoft-Dienste, CalDAV oder Apple Erinnerungen (über iCloud-CalDAV) sein.
 
 Diese Bedingungen regeln die Nutzung der von [Vor- und Nachname] („Betreiber“)
 betriebenen Mailhelp-Instanz einschließlich der zugehörigen Google-OAuth-Anwendung
@@ -45,7 +45,8 @@ verbindet, erklärt, zur Nutzung dieser Konten berechtigt zu sein.
   übernimmt die bestätigende Person die Verantwortung für den angelegten Eintrag.
 - Der normale Mailabruf verändert weder Nachrichten noch Lesestatus. Mailhelp
   versendet keine E-Mails. Optional können KI-Antwortentwürfe nach gesonderter
-  Bestätigung im IMAP-Entwurfsordner des Ursprungspostfachs gespeichert werden.
+  Bestätigung im IMAP-Entwurfsordner des Ursprungspostfachs gespeichert werden; für ein
+  Postfach lässt sich ausdrücklich eine automatische Ablage einschalten (Standard aus).
 - Als irrelevant eingestufte E-Mails werden nicht weiter ausgewertet. Mailhelp
   ersetzt nicht das eigene Lesen wichtiger Post; insbesondere Fristen sind
   eigenverantwortlich zu überwachen.

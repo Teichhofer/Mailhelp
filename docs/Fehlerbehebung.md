@@ -1,6 +1,6 @@
 # Fehler beheben
 
-Stand: Mailhelp 5.4. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
+Geprüft für Mailhelp 7.0. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
 Einträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern
 gleicht sie zuerst mit dem Anbieter ab.
 
@@ -24,7 +24,7 @@ gleicht sie zuerst mit dem Anbieter ab.
 ## Mail wird wiederholt nicht verarbeitet
 
 Auf der Statusseite stehen die betroffenen Mails mit Beginn, Schritt, Versuchszahl und
-nächstem Versuch. „Aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung
+nächstem Versuch. „aufgegeben“ bedeutet: Mailhelp setzt die automatische Verarbeitung
 aus. Öffne die Mail und behebe zuerst die Ursache. „Erneut versuchen“ setzt Zähler und
 Wartezeit zurück. „Ablegen“ beendet die Verarbeitung bewusst; die Mail bleibt im Archiv
 als nicht verarbeitet sichtbar und zählt nicht mehr zum Handlungsbedarf.

@@ -14,7 +14,7 @@ Release-Berichte in ein Archiv verschieben). Umsetzung läuft; Stand und Nachwei
 15. November 2026 am Arbeitsstand 6.8.1 gemessen und werden in Schritt 7.0.1 neu erhoben.
 
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md),
-[Paketstruktur](archiv/Paketstruktur.md), [Prüfung der Dokumentation 5.3](Pruefung-Dokumentation-5.3.md)
+[Paketstruktur](archiv/Paketstruktur.md), [Prüfung der Dokumentation 5.3](archiv/Pruefung-Dokumentation-5.3.md)
 
 7.0 ändert **kein Verhalten**. Die Version macht den Code leichter änderbar und stellt sicher, dass
 jede lebende Anleitung zum tatsächlichen Stand passt. **Teil A** ist das Refactoring, **Teil B** die

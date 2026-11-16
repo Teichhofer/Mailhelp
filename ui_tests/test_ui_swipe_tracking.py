@@ -144,12 +144,14 @@ def test_flight_errors_preserve_result_and_never_repeat(phone, mailhelp, mode):
 
 @pytest.mark.parametrize("distance,reverse,expected", [(80, False, True), (45, False, False), (120, True, False)])
 def test_bounded_momentum(phone, mailhelp, distance, reverse, expected):
+    """Regression (7.0.15): with real time between CDP calls a loaded machine measured the 1 ms fling
+    as slow; the exact touch clock makes the measured speed the requested one."""
     sign_in(phone, mailhelp)
     sent = actions(phone)
-    touch = grab(phone)
+    touch = grab(phone, exact=True)
     if reverse:
         touch.move(distance)
-        phone.wait_for_timeout(150)
+        touch.pause(150)
         touch.move(-40, steps=2, duration=1)
     else:
         touch.move(distance, steps=2, duration=1)
@@ -160,6 +162,16 @@ def test_bounded_momentum(phone, mailhelp, distance, reverse, expected):
     else:
         expect(phone.locator(EVENT)).not_to_have_class(re.compile(".*swipe-card.*"))
         assert sent == []
+
+
+def test_exact_touch_clock_sets_the_event_times(phone, mailhelp):
+    sign_in(phone, mailhelp)
+    phone.evaluate("window.__times=[];document.addEventListener('pointermove',e=>__times.push(e.timeStamp),true)")
+    grab(phone, exact=True).move(30, steps=3, duration=3).pause(200).move(10, steps=1, duration=1).end()
+    times = phone.evaluate("window.__times")
+    gaps = [later - earlier for earlier, later in zip(times, times[1:])]
+    # Chrome coarsens timeStamp to 0.1 ms; every CDP round trip itself takes far longer than 1 ms.
+    assert [abs(gap - wanted) <= 0.2 for gap, wanted in zip(gaps, (1, 1, 201))] == [True] * 3 and len(gaps) == 3
 
 
 def test_reduced_motion_tracks_without_tilt_or_flight(phone, mailhelp):

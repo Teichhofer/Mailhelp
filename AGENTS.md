@@ -1,5 +1,7 @@
 # Entwicklungsregeln für Mailhelp
 
+Geprüft für Mailhelp 7.0.
+
 - Entwickle in Python für lokale Nutzung unter Windows 11 und Docker auf Linux.
 - Halte Prompts/Modelle/LLM-Parameter in prompts.yaml, Themen in topics.yaml,
   Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.

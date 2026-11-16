@@ -1,7 +1,7 @@
 """5.3 (H1): the inventory of every setting and command-line option, generated from the code.
 
 ``python -m devtools.inventory`` rewrites the generated section of
-``docs/Pruefung-Dokumentation-5.3.md``; ``--check`` fails when it is outdated. The table is the
+``docs/Pruefung-Dokumentation-7.0.md`` (until 7.0.14 the 5.3 report); ``--check`` fails when it is outdated. The table is the
 coverage matrix of the documentation review: one row per setting with type, default, limits,
 how it is changed and whether the settings reference documents it.
 """
@@ -20,7 +20,7 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT = ROOT / "docs" / "Pruefung-Dokumentation-5.3.md"
+REPORT = ROOT / "docs" / "Pruefung-Dokumentation-7.0.md"
 REFERENCE = ROOT / "docs" / "Web-Einstellungen.md"
 START, END = "<!-- inventar:start -->", "<!-- inventar:end -->"
 LIMITS = {"ge": "≥", "gt": ">", "le": "≤", "lt": "<", "min_length": "Länge ≥", "max_length": "Länge ≤"}

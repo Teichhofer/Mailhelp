@@ -1,36 +1,36 @@
 {
- "app_version": "7.0.14",
- "revision": "ed71bb47ee09186eda0491690b0f9b93f96563bd1ef1bc5abe92f605381041ab",
+ "app_version": "7.0.15",
+ "revision": "657aadf872b5b534f737a0fbecc7401faa0653470d74320311d11f0d985c73fc",
  "schema_version": 1,
  "sections": 107,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
-   "sha256": "63bbfa98692a6248487eb14e2d7ab80311f831f8d63837c71580d70895ce8b42"
+   "sha256": "74d1e3608f0c3f536f45d575c19c4712b059538f2a4440e6af1a94a8e9642957"
   },
   {
    "path": "docs/Ersteinrichtung.md",
-   "sha256": "85fe8b3c6402cbb488ac16aa0481b332263427384463519b581375864c0d7b20"
+   "sha256": "2b660fb063c6dd9b3ed6bce442314b8a247f908f6d14d54995d58619ba25000f"
   },
   {
    "path": "docs/Konten-verwalten.md",
-   "sha256": "723caa43b1af9bc2cc0e2b6a7a0a6aee369163a111c38612f2105f276c73110c"
+   "sha256": "e2e7ef7e0dc2ffde7539d6a2f7f947e834a9f482cb64e53f1bc7f0b2395e762c"
   },
   {
    "path": "docs/Ziele-einrichten.md",
-   "sha256": "792287a620f7d421f41a92f74a17acffd80c90704afa670aedeee56236703d74"
+   "sha256": "e84706356a5aabc333192c332ea87c6c5e4ed5b2d7024ea97d639359ada17d97"
   },
   {
    "path": "docs/Bedienung.md",
-   "sha256": "330b69320a85d0c827dd2548f8b93855d3b5180cc1633a0f46dc1dd618009ff7"
+   "sha256": "5ce76746c5f34f2f3517566b758c9ddcc6e8c7ad8c10a61dc7ca5fa9a1b5e8c8"
   },
   {
    "path": "docs/Fehlerbehebung.md",
-   "sha256": "ff6a54afabbb818efea5e7395cb040c8bd19b66b0a9f8464115af949efb8fb3b"
+   "sha256": "2520ab9e876d83cdb595cf3b1852321a3a464ed8327ab086608d521666412d33"
   },
   {
    "path": "docs/Betrieb.md",
-   "sha256": "00fce2aab75278245e6bec2d9b086b1c4b9a36dc4d943df6d70e1806fc23b98f"
+   "sha256": "2c315d792dc79ec4ae27acd8708b96e332a5da8094b7326a37cb7b1de1463705"
   }
  ]
 }

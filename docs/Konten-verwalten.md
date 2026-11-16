@@ -1,6 +1,6 @@
 # Konten verwalten
 
-Stand: Mailhelp 5.3. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in
+Geprüft für Mailhelp 7.0. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in
 einer bereits eingerichteten Installation hinzufügen, ändern und entfernen.
 
 **Grundsatz:** Zugangsdaten stehen nur in `.env` und werden unter **Einstellungen →
@@ -54,15 +54,17 @@ Ausnahmen von globalen Sperren. Alle Felder: [Einstellungen](Web-Einstellungen.m
 
 ## IServ-Konto ergänzen
 
-1. **Einstellungen → IServ-Konten**, **IServ-Konto hinzufügen**.
-2. Anzeigename, Adresse der Schule (ein kopierter IServ-Link wird auf die Schuladresse gekürzt),
-   das Postfach, dessen Zielprofil und Standards gelten, und optional eine Startgrenze eintragen.
-3. Zugangsdaten unter **Einstellungen → Zugangsdaten** hinterlegen
-   (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).
-4. Die Diagnose `iserv` ausführen und die Änderung ausdrücklich bestätigen.
+1. **Einstellungen → IServ-Konten** öffnen.
+2. Unter **Direkt aktivieren** Anzeigename, Adresse der Schule (ein kopierter IServ-Link wird auf
+   die Schuladresse gekürzt), das Postfach, dessen Zielprofil und Standards gelten, optional eine
+   Startgrenze sowie Benutzername und Passwort eintragen. Leere Zugangsfelder verwenden bereits
+   hinterlegte Werte (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).
+3. **Verbindung prüfen und Konto aktivieren** wählen.
 
-**Ergebnis:** Elternbriefe werden nach dem nächsten Neustart abgerufen und gelten immer als
-relevant.
+**Ergebnis:** Erst nach erfolgreicher Anmeldung werden Konto und Zugangsdaten gespeichert. Der
+Abruf startet ohne Neustart im nächsten sicheren Mailzyklus; offene Rückfragen gegebenenfalls
+zuerst beantworten. Elternbriefe gelten immer als relevant. Wer nicht sofort aktivieren will,
+wählt **IServ-Konto als Entwurf hinzufügen**.
 
 ## Weitere Ziele (Kalender und Aufgabenlisten)
 
@@ -81,10 +83,10 @@ Profil 1 ist das Ziel aus der Ersteinrichtung (**Standardprofil 1 bearbeiten**).
 | Vorhaben | Weg | Wirkung |
 | --- | --- | --- |
 | Postfacheinstellung ändern | Postfachseite, Reiter wählen, **Entwurf prüfen**, **Entwurf übernehmen** | zwischen Mailzyklen bzw. nach Neustart |
-| Postfach entfernen | Postfachseite, **Postfach entfernen**, bestätigen | wird aus der Konfiguration entfernt und nicht mehr abgerufen |
+| Postfach entfernen | Postfachseite, **Postfach entfernen**, bestätigen | wird aus der Konfiguration entfernt; nach dem Neustart nicht mehr abgerufen |
 | Postfach vorübergehend abschalten | in `config.yaml` `enabled: false` beim Postfach | nach Neustart |
 | Zielprofil entfernen | Zielprofilseite, **Profil entfernen** | erst möglich, wenn kein Postfach es mehr verwendet („Verwendet von: …“) |
-| IServ-Konto ändern oder deaktivieren | IServ-Seite | nach Bestätigung und Neustart |
+| IServ-Konto ändern, deaktivieren oder entfernen | IServ-Seite; die Änderung wird als Entwurf gespeichert | nach ausdrücklicher Übernahme des Entwurfs und Neustart |
 | Zugangsdaten erneuern | **Einstellungen → Zugangsdaten** | Diagnose sofort, Mailabruf nach Neustart |
 
 ## Wenn etwas nicht klappt

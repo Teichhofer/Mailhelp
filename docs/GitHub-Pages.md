@@ -1,5 +1,7 @@
 # Mailhelp-Projektwebsite
 
+Geprüft für Mailhelp 7.0.
+
 Die statische Website liegt in `website/`. Sie enthält Startseite, Einrichtung,
 Konfiguration, Datenschutz, Impressum und Nutzungsbedingungen. Betreiber ist
 Stefan Hartmann, Teichhof 1, 74670 Forchtenberg, Deutschland; öffentlicher Kontakt:

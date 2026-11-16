@@ -13,389 +13,34 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.14 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.15 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.0.14 verschiebt abgeschlossene Pläne und Berichte nach `docs/archiv/`, ergänzt ein Inhaltsverzeichnis der Dokumentation (`docs/README.md`) und ein aktuelles Architekturdokument (`docs/Architektur.md`).
+7.0.15 prüft alle lebenden Dokumente gegen Code und Oberfläche (Protokoll in `docs/Pruefung-Dokumentation-7.0.md`), korrigiert 25 veraltete Abschnitte, ergänzt dauerhafte automatische Dokumentationsprüfungen und kürzt dieses README auf Einstieg und Verweise.
 
-7.0.13 benennt die Testdateien nach Thema statt nach Version und teilt die drei größten Testdateien; die Tests selbst bleiben dieselben.
-
-Geplant: [Version 7.2 – Notion und Google Tasks](docs/Planung-7.2.md) als zusätzliche
-Aufgabenziele mit ausdrücklicher Freigabe, Einrichtung und sicherem Schreibabgleich.
-Die Planung ist noch nicht implementiert.
-
-7.0.12 teilt das Skript der Weboberfläche in sechs Dateien nach Bereichen und entfernt ungenutzte Stilregeln; Darstellung und Verhalten bleiben gleich.
-
-7.0.11 verlangt für jede Funktion des Pakets vollständige Typangaben und prüft sie mit mypy ohne Befund.
-
-7.0.10 teilt die Konfigurationsmodelle nach Bereichen und sichert die Grenzwerte (80 Zeilen je Funktion, 10 Parameter) mit einem Test.
-
-7.0.9 verteilt die sechs größten Klassen (Anwendung, Verarbeitung, Postfachlauf, Prüfdienst, Postfachseite, Pipeline) nach Aufgaben auf Module; die Schnittstellen bleiben gleich.
-
-7.0.8 zerlegt die längsten Funktionen von Prüfdienst und Telegram-Dialog in benannte Schritte; das Verhalten bleibt gleich.
-
-7.0.7 zerlegt die längsten Seitenfunktionen der Weboberfläche (Auswertung, Postfach, Status) bei byte-gleicher Ausgabe.
-
-7.0.6 zerlegt den Zusammenbau der Anwendung in benannte Schritte; das Verhalten bleibt gleich.
-
-7.0.5 verkürzt die vollständige Prüfung: Prozesstests verteilen sich auf alle Prozessorkerne, die
-Python-Prüfung dauert mit 12 Prozessen rund 10 statt 18 Minuten.
-
-7.0.4 legt die Schichten des Codes fest und prüft sie automatisch: Zusammenbau im neuen Paket
-`app`, Infrastruktur in `support`; Importe innerhalb von Funktionen sind von 328 auf 25 gesunken.
-
-7.0.3 entfernt die Kompatibilitätsfassaden `mailhelp.models` und `telegram._core` und verschiebt
-`storage`, `configuration` und die Textmodule in ihre Pakete; das Verhalten bleibt gleich.
-
-7.0.2 nimmt Dateien aus der Versionierung, die nicht zu Mailhelp gehören (Auswertungen anderer
-Arbeiten, Werkzeuge, lokale Arbeitsreste); sie bleiben auf der Festplatte.
-
-7.0.1 beginnt das Aufräumen des Codes ohne Verhaltensänderung: Kernseiten und Telegram-Texte
-sind als Vergleichsausgaben eingefroren, Kennzahlen, Bestandsprüfung und Mutationswerte des
-Ausgangsstands sind festgehalten. [Umsetzung 7.0](docs/Release-7.0.md).
-
-6.9.3 behebt zurückfedernde Wischgesten bei einem fehlenden letzten Bewegungsereignis
-und schützt horizontale Gesten vor der Übernahme durch natives Scrollen. Die untere
-Navigation bleibt auch bei einer versetzten festen WebKit-Ebene am sichtbaren Rand.
-
-6.9.3 lässt Karten auf dem Telefon dem Finger in beiden Achsen folgen, mit
-begrenzter Neigung und Schwung. Eine ausgelöste Karte fliegt zu einem Ergebnisstreifen;
-Ablehnungen holen sie zurück, unterbrochene Antworten werden weiter geprüft.
-Titel und Absender stehen vor den Schaltflächen, Zähler aktualisieren sich direkt,
-und eine einmalige sanfte Bewegung zeigt die Geste. Die Einstellung „Weniger Bewegung“
-wird berücksichtigt. [Umsetzung und Geräteabnahme 6.9](docs/archiv/Release-6.9.md).
-
-6.8.2 zeigt den Web-Push-Zustand in neun Stufen und bietet einen neutralen Test
-für das angemeldete Gerät. Schlüsselwechsel, Anbieterablehnungen und fehlende
-Postfachkanäle lassen sich gezielt erkennen und beheben. Eigene Änderungen und
-bereits offene Vorschläge erzeugen beim Aktivieren keine neue Meldung.
-Bestehende Profile benötigen eine ausdrückliche Bestätigung zur Kanaländerung.
-Hinweise für die installierte iOS-Web-App und die noch offene Geräteabnahme:
-[Release 6.8](docs/archiv/Release-6.8.md).
-
-6.7.5 verwendet für Lernhinweise bereits geprüfte, unveränderte Zustände erneut.
-Neue Entscheidungen und außerhalb von Mailhelp geänderte Dateien werden weiterhin erkannt.
-
-6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/archiv/Release-6.7.md)):
-- Verständlicher Vorschlagsabgleich: Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“, mit klaren Erklärsätzen zum weiteren Ablauf. Nur noch von Mailhelp vorgelegte Zuordnungen heben eine Schaltfläche hervor.
-- Passender Wischgesten-Tipp: Kurzer Hinweis unter der ersten Karte mit einmaligem Anstupsen („relevant / irrelevant“ bei Relevanzfragen, „zum Anlegen / zum Verwerfen“ bei Vorschlägen).
-- Neu gegliederte Alltagsanleitung (`docs/Bedienung.md`): Orientiert am täglichen Arbeitsablauf (Entscheiden, Klären, Abgleich, Kontrolle, Verlauf, Lernen), frei von Versionsfloskeln im Fließtext und mit deterministischem Hilfeindex.
-- Fristzeile in Telegram: Zusammenfassungen enthalten künftige Fristen als kompakte Abschlusszeile (`Fristen: ...`).
-
-6.6 ermöglicht das Wiederentfernen versehentlich angelegter Termine und Aufgaben ([Release 6.6](docs/archiv/Release-6.6.md)):
-- Angelegte Einträge können innerhalb eines konfigurierbaren Zeitfensters (Standard 10 Minuten, `targets.removal_window_minutes`) im Web und über Telegram wieder entfernt werden.
-- Strenger zweistufiger Bestätigungsablauf im Web (Bestätigungsseite mit Prüfdetails) und in Telegram (Inline-Rückfrage mit „Ja, entfernen“ / „Abbrechen“).
-- Kontrollabruf und Schutz vor Datenverlust: Wurde der Eintrag beim externen Anbieter zwischenzeitlich bearbeitet, wird er nicht gelöscht.
-- Wieder entfernte Vorschläge erhalten den Endzustand „Angelegt und wieder entfernt“ und werden in der Annahmequote separat ausgewiesen.
-
-6.5 misst die Annahmequote von Vorschlägen und senkt Fehlvorschläge gezielt ([Release 6.5](docs/archiv/Release-6.5.md)):
-- Neue Auswertung unter **Lernen → Vorschläge** (`/lernen/vorschlaege`) mit Annahmequoten gesamt, für Aufgaben und Termine, Wochenverlauf, Tabellen nach Thema und Absender sowie Ablehnungsgründen.
-- Freiwillige Begründung von Ablehnungen im Web und in Telegram mit fünf festen Gründen; der Grund fließt in das Regellernen ein.
-- Automatische Absender-Hinweise bei auffällig vielen Ablehnungen mit Vorschau betroffener Mails und optionaler Aufnahme in den Vorfilter.
-- Automatische Empfehlung für einen neuen Regellernlauf bei mindestens 20 neuen Ablehnungen.
-
-6.4 begrenzt wiederkehrende Verarbeitungsfehler auf fünf Versuche. Der Status zeigt
-Versuche, Beginn und nächsten Zeitpunkt; fehlgeschlagene Mails lassen sich bewusst
-erneut versuchen oder im Archiv ablegen. Routinemeldungen und wiederholte Stacktraces
-werden zusammengefasst; „Ausführliches Protokoll“ schaltet die Einzelmeldungen wieder ein.
-
-6.3.2 beendet automatische Wiederaufnahmen abgeschlossener Mails, wenn ihre benötigten
-Analyse-Daten bereits entfernt wurden. Natürliche Daumenbewegungen werden zuverlässiger
-erkannt, Wischen kann auf Titeln und Schaltflächen beginnen. Inhaltskürzel verbinden jede
-Seite mit dem passenden Stylesheet und Skript. Der Gerätetest durch den Betreiber steht aus
-([Planung 6.3.2](docs/archiv/Planung-6.3.2.md)).
-
-Seit 6.2.5 bevorzugt der Telegram-Befehl `/web` die erste in `web.allowed_hosts` eingetragene
-Domain oder Subdomain per HTTPS vor IP-Adressen und LAN-Zugriff. Trage dort die
-Adresse deines HTTPS-Proxys ein und verwende sie durchgehend, damit der Browser
-seine bestehende Sitzung wiederverwenden kann. Ohne Domain bleibt der lokale
-beziehungsweise LAN-Zugriff verfügbar.
-
-Version 6.3 ist umgesetzt ([Planung 6.3](docs/archiv/Planung-6.3.md), [Release 6.3](docs/archiv/Release-6.3.md)): Ab 6.3.1
-entscheidest du auf Telefon und Tablet eine Karte in **Offen** auch per Wischgeste – nach rechts anlegen,
-nach links verwerfen. Unter der Karte steht, was das Loslassen auslöst; Karten mit offener Klärung lassen
-sich nicht nach rechts ziehen und nennen den Grund. Schaltflächen, Tastenkürzel und die Bedienung ohne
-JavaScript bleiben unverändert.
-
-Version 6.2 ist umgesetzt und abgenommen ([Planung 6.2](docs/archiv/Planung-6.2.md), [Release 6.2](docs/archiv/Release-6.2.md)): einheitlicher Aufbau aller
-Seiten, verständliche Bezeichnungen statt interner Werte, dichtere Listen und eine kompaktere Ansicht
-auf dem Handy. Ab 6.2.1 kommen Ecken, Schriftgrößen und Schatten aus gemeinsamen Gestaltungsvariablen. Ab 6.2.2 haben alle
-Kernseiten denselben Seitenkopf und eine von zwei Seitenbreiten. Ab 6.2.3 zeigt der Verlauf deutsche
-Bezeichnungen und lokale Zeiten statt interner Werte; alle Seiten sprechen mit „du“ an. Ab 6.2.4 führen
-Hinweise direkt zur passenden Einstellung statt zu Schlüsseln in `config.yaml`. Ab 6.2.6 haben Verlauf,
-Mails und Auswertung dieselbe Werkzeugleiste mit „Mehr Filter“. Ab 6.2.7 sind Mails, Verlauf
-und Abgleich dichte Zeilenlisten. Ab 6.2.8 zeigt „Offen“ auf dem Telefon die erste
-Entscheidung ohne Scrollen; die Leiste unten führt zum Abgleich. Ab 6.2.9 hat die Einstellungsübersicht
-weniger, eindeutige Kacheln, und „Status“ beginnt mit „Alles in Ordnung“ oder dem Handlungsbedarf. Ab 6.2.10
-zeigt die Auswertung Kennzahl-Kacheln, Sprunglinks und auf dem Telefon zugeklappte Diagramme.
-
-Version 6.1 ist umgesetzt und abgenommen ([Planung 6.1](docs/archiv/Planung-6.1.md), [Release 6.1](docs/archiv/Release-6.1.md)): Prüfen in jedem Schritt der
-Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.
-Ab 6.1.1 nennen die Verbindungsprüfungen Ursache und Lösung eines Fehlers. Ab 6.1.2 hat jeder Schritt
-der Ersteinrichtung „Prüfen“; Prüfen speichert nichts, und die Eingaben bleiben stehen. Ab 6.1.6
-misst Mailhelp die Dauer jedes Verarbeitungsschritts und die Durchlaufzeit je Mail; ab 6.1.8 zeigt die
-**Auswertung** beides, mit den langsamsten Durchläufen je Schritt.
-
-Version 6.0 ist umgesetzt und abgenommen ([Planung 6.0](docs/archiv/Planung-6.0.md), [Release 6.0](docs/archiv/Release-6.0.md)). Ab 6.0.1 trennt die
-Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
-Bildschirme. Ab 6.0.2 prüfen die Browsertests alle Kernseiten auch auf sehr breiten Bildschirmen. Ab 6.0.4
-lassen sich Regelvorschläge verwerfen; verworfene werden gespeichert und lassen sich wieder zulassen. Ab 6.0.5
-erfährt die KI davon; schlägt sie dieselbe Änderung trotzdem vor, wird sie ausgeblendet. Ab 6.0.6 bündelt
-eine Werkzeugleiste in **Offen** Schnellfilter, Suche, Sortierung und Gruppierung nach Bearbeitungsbedarf.
-
-Version 5.9 ist abgeschlossen. Ab 5.9.1 zeigt die **Auswertung** Dauern in lesbaren
-Einheiten wie `20 Std. 54 Min.` statt als große Sekundenzahl. Ab 5.9.2 nennen Widersprüche
-zwischen zwei Mails beide Werte und ihre Herkunft („bisher 16:30 Uhr, laut Mail … 19:30 Uhr“);
-ab 5.9.3 wählst du im Web, ab 5.9.4 auch in Telegram den gültigen Wert mit einem Klick. Angelegt
-wird weiterhin erst nach deiner Bestätigung. Ab 5.9.5 ist der Quellbeleg auf breiten Bildschirmen
-(ab 1024 px) sofort aufgeklappt, auf schmalen zunächst eingeklappt.
-Ab 5.9.6 nutzt die **Themenliste** breite Bildschirme besser und trennt keine Wörter mehr. Ab 5.9.7
-nennen `/status` und Telegram `/status` die Zahl der bisher verarbeiteten Mails. Ab 5.9.8 zeigt die
-**Auswertung** Kostenmittel, eine Punktwolke der Aufrufdauer, die Rechenzeit je Schritt mit Anteilen
-und einen Ablaufplan der Mailverarbeitung. 5.9.9 sorgt dafür, dass schnell nacheinander gesendete
-Webaktionen auch unter Windows in ihrer Reihenfolge ausgeführt werden. Ab 5.9.10 führt jede Kennzahl
-der Auswertung per Klick zur Liste der zugehörigen Aufrufe, Fehler mit ihrer Ursache. Abnahme:
-[Release 5.9](docs/archiv/Release-5.9.md).
-Plan: [Planung 5.9](docs/archiv/Planung-5.9.md).
-
-Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und
-Relevanzfragen öffnen getrennte Übersichten, Mailfehler die gefilterte Mailablage
-und wartende Web-Aktionen ihre Warteschlange. Jede Übersicht führt zu den passenden
-Details; auch bei null Einträgen ist der Status erreichbar.
-
-Version 5.8 zeigt vor der Übernahme von Regeländerungen einen gesonderten Vergleich
-der tatsächlich bearbeiteten Feld- oder YAML-Werte. Erst der geprüfte Stand wird
-ausdrücklich bestätigt. Die Kostenschätzung erhält Eingaben; Postfachordner lassen
-sich ohne JavaScript auswählen. Themenkatalog, Formulare und Lernübersicht sind
-kompakter; Formularfehler sind verknüpft und auf Deutsch. Einstellungen zeigen Alt/Neu
-und ihre Wirkung, die Statusseite zuerst Handlungsbedarf und nächste Schritte.
-Plan und Abnahme: [Planung 5.8](docs/archiv/Planung-5.8.md), [Release 5.8](docs/archiv/Release-5.8.md).
-
-Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
-**Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand
-und öffnet die Funktionen ohne einen Modellaufruf. Alte Formulare benötigen nach dem
-Update eine neue Bestätigung. Ab 5.7.1 zeigt die Themenverwaltung eine kompakte Übersicht
-mit Reitern, Suche, Statusfiltern und Einzelbearbeitung. Postfachbereiche und Semikolons
-in Beispielen bleiben beim Bearbeiten erhalten. Ab 5.7.2 zeigt „Änderung prüfen“ vor dem
-ausdrücklichen Speichern die bisherige und die neue Regel nebeneinander. Ab 5.7.3 verwenden
-Themenvorschau und Regellernen denselben übersichtlichen Vergleich. Version 5.7 ist mit 5.7.5
-abgenommen. 5.7.6 lässt beim Regellernen wählen, ob nur neue oder alle bisherigen verwertbaren
-Entscheidungen ausgewertet werden, und nennt bei einem Fehlschlag die Ursache. In 5.7.7 liefert
-die KI nur noch die Änderungen je Thema. Mailhelp setzt das Thema selbst zusammen und
-verdichtet die Belege vorab. 5.8.2 dokumentiert die Abnahme mit dem echten Modell.
-Stand und Nachweise:
-[Release 5.7](docs/archiv/Release-5.7.md).
-
-Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des
-lokalen Entscheidungsprotokolls. Erst nach ausdrücklicher Freigabe werden begrenzte
-Belege an den aktiven KI-Anbieter übertragen. Vorschläge stehen neben den bisherigen
-Regeln, lassen sich bearbeiten und werden erst nach gesonderter Auswahl, Bestätigung
-und vollständiger YAML-, Schema- und Revisionsprüfung übernommen. Unterbrochene lokale
-Übernahmen lassen sich ohne erneuten KI-Aufruf abschließen. Kalender und Aufgabenlisten
-werden dabei nicht beschrieben. Details: [Planung 5.6](docs/archiv/Planung-5.6.md),
-[Release 5.6](docs/archiv/Release-5.6.md), [Anleitung](docs/Bedienung.md#aus-entscheidungen-lernen).
-
-Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/archiv/Planung-5.5.md),
-[Release 5.5](docs/archiv/Release-5.5.md)). 5.5.0 behebt
-die Meldung „crypto.randomUUID is not a function“ beim Aufruf über `http://` im Heimnetz und
-räumt das Fenster auf: Verschieben per Kopfzeile oder Pfeiltasten auf dem Titel, ohne
-Pfeilschaltflächen, **Antwort prüfen** und **Entwurf behalten**. Ab 5.5.1 steht der Kosten- und
-Datenschutzhinweis eingeklappt unter **Kostenpflichtig**; ab 5.5.2 behält der Chat seine
-Leseposition über Seitenwechsel, Neuladen und die Dokumentationsansicht hinweg; ab 5.5.3 lässt
-sich das Fenster an Rändern und Ecken vergrößern und verkleinern; ab 5.5.4 zeigt es zuerst eine
-Kurzantwort und die ausführliche Antwort auf Wunsch (ohne zusätzlichen KI-Aufruf). 5.5.5 schließt
-5.5 mit der Gesamtabnahme ab. 5.5.6 formatiert Chatantworten (Markdown: Schritte, Listen,
-Hervorhebungen) und ergänzt die Anleitung zum Lernmodus, sodass der Hilfschat Fragen zur
-Lernfunktion beantworten kann. 5.5.7 behebt, was Tests mit einem echten Modell zeigten: einzeilig
-gelieferte Listen, Wiederholungsschleifen und fehlende Quellenangaben.
-
-Version 5.4 öffnet den Hilfschat als kleines verschiebbares Fenster über den Einstellungen.
-Er bleibt beim Suchen, Bearbeiten, Bestätigen und Speichern geöffnet. Gespräch und Frageentwurf
-bleiben erhalten; **Hilfschat schließen** blendet das Fenster aus, **Chat leeren** verwirft den
-Inhalt. Antworten aktualisieren nur das Fenster. Ohne JavaScript funktionieren Öffnen und
-Fragen über Formulare. Details: [Release 5.4](docs/archiv/Release-5.4.md).
-
-5.4.1 schließt die bei der 5.3-Prüfung gefundenen Lücken: „Chat leeren“ entfernt auch
-Fragetexte aus gespeicherten Aufträgen. Deaktivierung, Sitzung und Chatversion werden vor
-jedem Modellversuch erneut geprüft. Die Suche findet auch Datei- und Einrichtungseinstellungen
-mit ihrem tatsächlichen Bedienweg. Harte Prozessabbrüche und wiederholte Neustarts sind
-mit simulierten Diensten geprüft. Behoben: Die Abmeldung unter **Geräte** löscht jetzt
-auch den lokalen Chatentwurf, und ein Sprung zu einer Einstellung derselben Seite (Live-Suche,
-Verweis im Chat) lädt die Seite nicht mehr neu, sodass ungespeicherte Eingaben erhalten bleiben.
-
-Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
-Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
-Farben des hellen und dunklen Designs mindestens WCAG AA (4,5:1). 5.0.2 behebt, dass
-bestätigte Aufgaben einer Mail mit mehreren Aufgaben nicht in Todoist ankamen; Aufgaben
-werden jetzt eher angelegt als als mögliche Dublette zurückgehalten. Ab 5.0.3 führt eine
-offene Zuordnungsfrage direkt in den Vorschlagsabgleich, und Antworten melden ihr echtes
-Ergebnis samt Nachfrage. 5.0.4 behebt, dass die geteilte Ansicht bei Vorschlägen mit
-Original-Mail-Link „Details nicht geladen“ meldete. Ab 5.0.5 zeigt der Abgleich von einer
-Karte aus nur den betroffenen Vorschlag und seine Vergleichskandidaten, ab 5.0.6 beide
-vollständig nebeneinander. Ab 5.0.7 tragen Karten ihre Art (Termin, Aufgabe,
-Terminänderung, Terminabsage, Antwortentwurf) als farbigen Streifen, Symbol und Text; ab 5.0.8
-bleibt die Entscheidungsleiste im Detailbereich der geteilten Ansicht stets sichtbar; ab 5.0.9
-bestätigt auch `A`, und die Seitenleiste zeigt „? Tastenkürzel“; ab 5.0.10 zeigt „Alles
-erledigt“ die Tageswerte als Kacheln; ab 5.0.11 sind alle Tippflächen mindestens 44 px hoch. Ab 5.0.1 liegt die
-Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
-dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
-[Planung 5.0](docs/archiv/Planung-5.0.md); Upgrade, Rückkehr und Prüfnachweise: [Release-Bericht 5.0](docs/archiv/Release-5.0.md).
-
-Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
-quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
-erscheint direkt wieder die Übersicht. Die betroffene Karte zeigt
-„Wird verarbeitet …“ und anschließend das Ergebnis; weitere Karten bleiben bedienbar.
-Fehler und unklare Anlagen bleiben sichtbar, bis du sie zur Kenntnis nimmst.
-Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut geprüft.
-Details und Messwerte: [Release 4.4](docs/archiv/Release-4.4.md).
-
-Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
-mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Ab 4.5.6 gelten eigene Notizen und eigene Weiterleitungen immer als relevant, auch wenn sie zu keinem deiner Themen passen; jede Anlage bestätigst du weiterhin selbst. Ab 4.5.7 enthält die Zusammenfassung zuverlässig die Fristen und Termine der Mail (Zeile „Fristen“ im Archiv); eine Anmeldefrist entfällt, wenn du schon angemeldet bist. Details: [Release 4.5](docs/archiv/Release-4.5.md).
-Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
-
-Version 4.6 gleicht Terminänderungen und Absagen mit deinem Kalender ab, statt einen
-zweiten Termin anzulegen. Ab 4.6.0 können alle Kalender (Google, CalDAV, Outlook) nach
-verwandten Terminen in einem Zeitraum suchen; der Titel wird dabei nur lokal verglichen.
-Ab 4.6.1 erkennt die Terminextraktion bei einer Verschiebung zusätzlich das frühere Datum.
-Ab 4.6.2 findet Mailhelp den betroffenen Kalendereintrag, auch wenn er an einem anderen Tag
-liegt; bei keinem oder mehreren Treffern fragt es nach, statt zu raten. Ab 4.6.3 zeigen
-Web und Telegram, was sich gegenüber dem Kalender ändert, und du wählst bei mehreren
-Treffern den gemeinten Termin per Schaltfläche. Ab 4.6.4 ändert eine bestätigte
-Verschiebung nur Zeit und Ort des bestehenden Eintrags; dein Titel und deine Beschreibung
-bleiben, eine Notiz vermerkt die Änderung. Eine bestätigte Absage sagt den Eintrag ab.
-Ab 4.6.5 wird eine Absage, deren Ergebnis unklar blieb, nach einem Neustart über den
-Kalendereintrag abgeglichen und nie doppelt ausgeführt. Der Qualitätskorpus enthält seit
-4.6.6 vier solche Änderungen und Absagen (38 Fälle). Ab 4.6.7 erkennt der Aktionsrouter
-auch reine Absagen („Die Sitzung entfällt“) als Termin, damit der Kalendereintrag abgesagt
-werden kann. Details: [Release 4.6](docs/archiv/Release-4.6.md).
-
-Version 4.7 bringt Links zur Original-Mail in Kalendereinträge und Aufgaben. Ab 4.7.0
-kann Mailhelp aus der Message-ID einer Mail einen Apple-Mail-Link bilden, ab 4.7.1 auch
-Links für Gmail und Outlook im Browser. Ab 4.7.2 enden neue Aufgaben und Termine mit
-„📧 Original-E-Mail öffnen“; ein Klick öffnet die Mail in Apple Mail oder bei Gmail-Postfächern
-in Gmail im Browser. Ab 4.7.3 zeigen auch Web-Karten und Telegram den Link. Ab 4.7.4 wählst du je Postfach
-unter Einstellungen → Postfächer → Ziele, welches Programm der Link öffnet
-(`imap.mailboxes[].mail_client`, Standard `auto`). Details: [Release 4.7](docs/archiv/Release-4.7.md).
-
-Version 4.8 baut die Antwortentwürfe aus. Ab 4.8.0 findet Mailhelp den Entwurfsordner auch
-dann, wenn der konfigurierte Name auf dem Server fehlt (Ordner mit der Kennzeichnung
-`\Drafts`). Ab 4.8.1 tragen Entwürfe genau ein „Re:“ im Betreff. Ab 4.8.2 erkennt Mailhelp, ob eine
-Mail eine schriftliche Antwort von dir erwartet. Ab 4.8.3 kann Mailhelp dann ohne Klick einen
-Antwortentwurf in deinem Entwurfsordner ablegen (`auto_draft: true`, Standard aus; Mailhelp
-sendet nie selbst). Ab 4.8.4 bleiben abgelegte Entwürfe auf der Mail- und Vorschlagsseite
-lesbar und kopierbar. Telegram zeigt sie gemäß Benachrichtigungsprofil als Aktionsergebnis;
-der Entwurfstext erscheint nur im Inhaltsmodus „Zusammenfassung“. Ab 4.8.5 lassen sich
-Entwürfe mit `drafts.enabled` global ausschalten und ihr Ordner mit `drafts.folder`
-überschreiben (`null`: Postfachvorgabe). Unter Einstellungen → Antworten sind diese
-Werte und `auto_draft` ohne Neustart änderbar; je Postfach ist `auto_draft` überschreibbar.
-Der Standard für automatische Ablage bleibt aus.
-Ab 4.8.6 prüft die Gesamtabnahme auch volle Postfächer, Verbindungsabbrüche und
-Wiederaufnahme nach einem Prozessabbruch. Details: [Release 4.8](docs/archiv/Release-4.8.md).
-Plan: [Planung 4.8](docs/archiv/Planung-4.8.md).
-Plan: [Planung 4.7](docs/archiv/Planung-4.7.md).
-Plan: [Planung 4.6](docs/archiv/Planung-4.6.md).
-
-Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
-1.000 verarbeiteten Mails dauerte es bisher 2 bis 9 Sekunden, bis das Ergebnis einer
-Aktion erschien; jetzt sind es rund 0,3 Sekunden. Mailhelp liest nur noch geänderte
-Zustände, schreibt unveränderte nicht mehr neu und prüft die Karte in den ersten
-Sekunden häufiger.
-
-Version 4.3 ersetzt blockierende Mengenfragen durch diagnostische Zählerhinweise;
-ein leerer Extraktionsbefund trotz erkannter Aufgaben bleibt ein Prüfhinweis.
-Werbliche Downloads und Höflichkeitsweiterleitungen sind im Router und Extraktor
-ausgeschlossen. Gleichnamige Termine derselben Mail bilden eine Serie mit Datum
-im Titel. Uhrzeiten können gemeinsam gespeichert und einzelne Termine ausgenommen
-werden. „Alle N Termine anlegen“ erfordert anschließend eine eigene Bestätigung
-der angezeigten Versionsliste. Details und Nachweise: [Release 4.3](docs/archiv/Release-4.3.md).
-
-Version 4.2 ergänzt „Schon erledigt“ in Web und Telegram: Vorschläge werden lokal
-abgeschlossen, bleiben positiv relevant im Lernbestand und erzeugen keine externen
-Aufgaben oder Termine. Web-Befehle werden vor Wiederaufnahmen bearbeitet; Telegram-
-Versand hält weder Dialog- noch Ablagesperre. Die Aktionsseite fragt ihren Status
-über einen eigenen authentifizierten Endpunkt ab. Ergebnisse und Grenzen: [Release 4.2](docs/archiv/Release-4.2.md).
-
-Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/archiv/Planung-4.1.md)); seit 4.1.0
-deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab. 4.1.10 ergänzt das
-Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`, etwa für Terminbestätigungen
-und Einsatz- oder Blockpläne mit eigenen Terminen im Anhang.
-4.1.11 schließt die Qualitätsoffensive ab: gezielte TDD-Tests mit 15-Sekunden-Schranke,
-gemessene parallele Schnellsuite und Mutationsaudit mit 99,01 % getöteten Kernmutanten.
-Ergebnisse und Grenzen: [Qualitätsabschluss 4.1](docs/archiv/Qualitaet-4.1.md).
-
-Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
-Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und
-Rückkehr: [Release 4.0](docs/archiv/Release-4.0.md). 4.0.1 behebt eine Verklemmung, bei der
-Weboberfläche und Mailabruf nach einer Web-Aktion dauerhaft hängen blieben, während `/health`
-weiter antwortete. 4.0.2 ergänzt das Thema „Behörden und Auflagen für Betrieb und
-Biogasanlage“ in `topics.yaml`.
-
-Version 3.8 ergänzt den Web-Lernmodus unter `/lernen`: Umfang und Preisannahme prüfen,
-lesenden Lauf ausdrücklich starten, pausieren oder abbrechen und die bearbeiteten
-Themen, Ausschlüsse, Absender und Ordner gemeinsam übernehmen. `/dienst/neu-laden`
-aktiviert gespeicherte Verbindungs- und Analyseänderungen ohne Prozessneustart;
-`/dienst/selbsttest` prüft die Komponenten lesend. Der Abschluss der Ersteinrichtung
-wechselt im selben Prozess in den Normalbetrieb und verlinkt den Lernmodus.
-Ab 4.9.7 startet ein Lernlauf mit realistischem Budget (etwa 1 USD für 20 Mails); zuvor
-lehnte eine viel zu hohe Kostenschätzung jeden Start ab. Abgelehnte Aktionen nennen ihren
-Grund. Plan: [Planung Lernen](docs/Planung-Lernen.md).
-Die Gesamtabnahme (Windows, Linux, Docker, installiertes Paket, Anbietermatrix) ist
-bestanden. Details, Betriebsgrenzen und Abschlussbericht: [Release 3.8](docs/archiv/Release-3.8.md).
-
-Version 3.7 startet ohne `config.yaml` einen geschützten Einrichtungsassistenten.
-Den automatisch im Terminal ausgegebenen Einmalcode im Browser eingeben und
-Web-Passwort, Zeitzone, Postfach, KI-Anbieter und Ziele einrichten. Terminal-Codes
-über `mailhelp --pair`, Telegram-Codes und Web-Passwort sind reguläre Anmeldewege.
-Google lässt sich mit der eingebauten Playground-Anleitung oder einem registrierten
-Webanwendungs-Client verbinden, Microsoft über einen Gerätecode im Browser.
-Details: [Release 3.7](docs/archiv/Release-3.7.md).
-
-Version 3.6 sichert gleichzeitige Entscheidungen und Wiederherstellung nach harten
-Prozessabbrüchen ab. Web-Freigaben bleiben über Neustarts an ihre Sitzung gebunden;
-identische Wiederholungen zeigen denselben Vorgang und sein Ergebnis. Fehlende oder
-beschädigte maßgebliche Akten blockieren unsichere Wiederholungen.
-Details: [Zustandsregeln und Tests](docs/Zustandsregeln-3.6.md), [Release 3.6](docs/archiv/Release-3.6.md).
-
-[Installation](#installation) · [Konfiguration](#konfiguration) ·
-[Betrieb](#betrieb) · [Docker](#docker) ·
-[Datenschutz und Sicherung](#datenschutz-und-sicherung) · [Dokumentation](#dokumentation)
+Alle Änderungen früherer Versionen stehen im [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
 - **Mehrere Postfächer:** IMAP-Abruf mit getrennten Kontoidentitäten und Wiederaufnahme
-  gespeicherter Verarbeitungsschritte nach einem Neustart.
-  Neue Postfächer lassen sich mit Server, Ordnern und Zugangsdaten gemeinsam prüfen und
-  aktivieren. Nach erfolgreicher Prüfung beginnt der Abruf ohne Dienstneustart.
-  Die Startgrenze ist mit dem heutigen Datum vorbelegt; leer bedeutet alle Mails.
-- **Gezielte Analyse:** Themen, ausgeschlossene Themen und Absenderfilter bestimmen,
-  welche Nachrichten verarbeitet werden. Dokumente und Bildanhänge können in die
-  Analyse einbezogen werden. Als irrelevant aussortierte Mails lassen sich nach einer
-  Themenänderung in Maildetail und Archiv mit „Erneut prüfen“ neu analysieren.
-- **Aufgaben und Termine:** Vorschläge enthalten Belege und Rückfragen bei fehlenden
-  oder widersprüchlichen Angaben. Der Abgleich berücksichtigt vorhandene Einträge
-  und offene Entscheidungen, um doppelte Aktionen zu vermeiden.
+  gespeicherter Verarbeitungsschritte nach einem Neustart. Neue Postfächer werden mit Server,
+  Ordnern und Zugangsdaten gemeinsam geprüft und ohne Dienstneustart aktiviert.
+- **Gezielte Analyse:** Themen, ausgeschlossene Themen und Absenderfilter bestimmen, welche
+  Nachrichten verarbeitet werden. Dokumente und Bildanhänge können einbezogen werden.
+- **Aufgaben und Termine:** Vorschläge enthalten Belege und Rückfragen bei fehlenden oder
+  widersprüchlichen Angaben. Der Abgleich berücksichtigt vorhandene Einträge und offene
+  Entscheidungen, um doppelte Aktionen zu vermeiden. Angelegte Einträge werden durch einen
+  frischen Abruf beim Anbieter nachgeprüft.
 - **Einstellungen je Postfach:** Eigene Zielprofile, Themen, Signaturen, Ruhezeiten,
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
-  Die globale Einstellungsübersicht bietet Kacheln, thematische Bereiche und eine Suche.
-  Gespeicherte, noch nicht aktive Änderungen werden an den Bereichskacheln angezeigt.
-- **Lernbestand:** Jede manuelle Entscheidung wird mit Mail, KI-Ergebnissen sowie
-  ursprünglichem und entschiedenem Vorschlag in `data/<Betriebsart>/learning/decisions.jsonl`
-  abgelegt. Die Frist steht in `retention.decision_learning_days` (Standard unbegrenzt).
-- **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
-  verwerfen; Aktionen werden sofort ausgeführt, auch während Mails analysiert werden.
-  Eine fehlgeschlagene Dublettenprüfung lässt sich direkt an der Karte wiederholen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
-  Die Statusseite führt alle konfigurierten IMAP-, IServ-, Kalender-, Aufgaben- und
-  Telegram-Konten einzeln auf, einschließlich deaktivierter Konten und noch ausstehender Neustarts.
-- **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails
-  verarbeitet, einschließlich Anhängen, und gelten immer als relevant.
-  Schuladresse und Zugangsdaten lassen sich gemeinsam prüfen und aktivieren; der Abruf
-  beginnt im nächsten sicheren Mailzyklus ohne manuellen Dienstneustart.
-  Die Startgrenze im IServ-Webformular akzeptiert auch `01.09.2026` oder `2026-09-01`;
-  reine Datumsangaben gelten ab 00:00 Uhr in der konfigurierten Zeitzone.
-- **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
-  Web-Push und Tätigkeitsberichte mit XLSX-Export.
+- **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder verwerfen,
+  auf dem Telefon auch per Wischgeste. Die installierbare Web-App funktioniert auch ohne Telegram
+  und bietet Verlauf, Auswertung, Lernen, Einstellungssuche und einen Hilfschat.
+- **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet,
+  einschließlich Anhängen, und gelten immer als relevant.
+- **Optional:** Antwortentwürfe im Ursprungspostfach, Postfach-Briefings, Web-Push und
+  Tätigkeitsberichte mit XLSX-Export.
 
-Antwortentwürfe werden nur nach ausdrücklichem Speichern im IMAP-Entwurfsordner
-abgelegt. Mailhelp versendet keine E-Mails.
+Antwortentwürfe werden nur im IMAP-Entwurfsordner abgelegt. Mailhelp versendet keine E-Mails.
 
 ### Unterstützte Dienste
 
@@ -404,38 +49,22 @@ abgelegt. Mailhelp versendet keine E-Mails.
 | E-Mail | IMAP-Postfächer |
 | Schule | IServ-Elternbriefe (Lesezugriff über die Weboberfläche, keine offizielle API) |
 | Kalender | Google Kalender, Outlook / Microsoft 365, CalDAV |
-| Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten |
-| Zusätzlicher Aufgabenadapter | Apple Erinnerungen über iCloud-CalDAV, soweit die Liste dort verfügbar ist |
+| Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten, Apple Erinnerungen über iCloud-CalDAV |
 | KI-Auswertung | OpenRouter; experimentell Ollama |
 | Bedienung | Telegram, lokale Weboberfläche und PWA |
 
-Kalender- und Aufgabendienst werden pro Zielprofil gewählt. Zugangstokens bleiben
-zwischen den Profilen getrennt.
+## Schnellstart
 
-## Installation
-
-### Voraussetzungen
-
-- Python **3.12.x** für die native Installation oder Docker mit Compose.
-- Ein IMAP-Postfach und Zugangsdaten für die verwendeten Analyse- und Zieldienste.
-- Für Telegram: ein Bot sowie die zulässige Nutzer- und Chat-ID.
-- Für die Weboberfläche: ein eigener Sitzungsschlüssel in `MAILHELP_WEB_SECRET`.
-
-Die folgenden Schritte gelten für eine Erstinstallation aus diesem Repository.
-Für eine Paketinstallation oder ein Update siehe die
-[Installations- und Release-Anleitung](docs/archiv/Release-1.0.md).
+Voraussetzungen: Python **3.12.x** oder Docker mit Compose, ein IMAP-Postfach und Zugangsdaten
+für die verwendeten Dienste.
 
 ### Windows 11
-
-Im Repository-Verzeichnis mit PowerShell ausführen:
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock
 .venv\Scripts\python -m pip install --no-deps -e .
-Copy-Item config.example.yaml config.yaml
-Copy-Item .env.example .env
-Copy-Item irrelevant-senders.example.json irrelevant-senders.json
+.venv\Scripts\mailhelp
 ```
 
 ### Linux
@@ -444,24 +73,43 @@ Copy-Item irrelevant-senders.example.json irrelevant-senders.json
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
 .venv/bin/python -m pip install --no-deps -e .
-cp config.example.yaml config.yaml
-cp .env.example .env
-cp irrelevant-senders.example.json irrelevant-senders.json
+.venv/bin/mailhelp
 ```
 
-Für die Browser-Ersteinrichtung die Kopierschritte auslassen und `mailhelp` starten:
-Ohne `config.yaml` erscheint der geschützte Assistent mit Terminal-Code.
-Die Kopierschritte oben bleiben die Alternative für manuelle Konfiguration.
-Bei Einmalprüfungen wie `--check` melden fehlende Dateien weiterhin Exitcode 2;
-eine vorhandene Konfiguration ohne `prompts.yaml` wird ebenfalls ausdrücklich gemeldet.
+Ohne `config.yaml` startet ein geschützter Einrichtungsassistent. Das Terminal zeigt einen
+Code; damit koppelt der Browser unter **http://127.0.0.1:8765** und führt durch Web-Zugang,
+Postfach, KI-Anbieter, Kalender und Aufgaben. Schritt für Schritt beschreibt das die
+[Ersteinrichtung](docs/Ersteinrichtung.md).
 
-Die nachfolgenden Beispiele verwenden `mailhelp` aus der virtuellen Umgebung.
-Ohne Aktivierung lautet der Aufruf unter Windows `.venv\Scripts\mailhelp` und
-unter Linux `.venv/bin/mailhelp`.
+Für eine manuelle Konfiguration stattdessen `config.example.yaml` nach `config.yaml`,
+`.env.example` nach `.env` und `irrelevant-senders.example.json` nach
+`irrelevant-senders.json` kopieren und anpassen.
+
+### Docker
+
+```sh
+docker compose -f compose.setup.yaml up --build
+```
+
+Den ausgegebenen Einmalcode unter `http://localhost:8765/anmelden` eingeben. Konfiguration,
+Zugangsdaten, Zustände und Logs bleiben im benannten Volume `mailhelp-config`. Die
+`compose.yaml` verwendet eine manuell angelegte Konfiguration; Einzelheiten stehen in
+[Betrieb und Update](docs/Betrieb.md).
+
+### Prüfen und starten
+
+```sh
+mailhelp --check --config-directory .
+mailhelp --check-access --config-directory .
+mailhelp --max-mails 10 --config-directory .
+mailhelp --config-directory .
+```
+
+`--check` prüft die Konfiguration ohne Netzwerkzugriff, `--check-access` die Zugänge (ohne
+Aufgaben oder Termine anzulegen). `--max-mails 10` begrenzt einen einzelnen Durchlauf; ohne
+diese Optionen läuft Mailhelp als Dienst. Pro Datenverzeichnis läuft nur eine Instanz.
 
 ## Konfiguration
-
-Einstellungen und Geheimnisse liegen getrennt vom Anwendungscode:
 
 | Datei | Inhalt |
 | --- | --- |
@@ -473,482 +121,70 @@ Einstellungen und Geheimnisse liegen getrennt vom Anwendungscode:
 | `irrelevant-senders.json` | Globale und postfachbezogene Absenderfilter |
 | `.env` | Zugangsdaten, Tokens und Sitzungsschlüssel; alternativ Prozessumgebung |
 
-[config.example.yaml](config.example.yaml) und [.env.example](.env.example) zeigen
-die verfügbaren Einstellungen und Geheimnisnamen. Prozessvariablen haben Vorrang
-vor den Werten aus `.env`.
+[config.example.yaml](config.example.yaml) und [.env.example](.env.example) zeigen alle
+Einstellungen und Geheimnisnamen. Prozessvariablen haben Vorrang vor `.env`. Fast alles lässt
+sich auch in der Weboberfläche unter **Einstellungen** ändern; jede Einstellung erklärt die
+[Einstellungsreferenz](docs/Web-Einstellungen.md). Mit `test_mode: true` werden Kalender- und
+Aufgabenaktionen nur simuliert.
 
-Vor dem ersten Lauf:
+## Datenschutz und Sicherheit
 
-1. IMAP-Server, Ordner, Zugangsdaten und den gewünschten historischen Startpunkt
-   in `imap.historical_start` festlegen.
-2. Kalender, Aufgabenliste und die erforderlichen Providerzugänge einrichten.
-3. Themen, Zeitzone und Benachrichtigungskanäle anpassen.
-4. Für eine Erprobung `test_mode: true` setzen. Der Testmodus simuliert Kalender-
-   und Aufgabenaktionen; Postfachabruf und KI-Auswertung verwenden weiterhin die
-   konfigurierten Dienste.
+Die Mailanalyse liest das Postfach, ohne Nachrichten oder Lesestatus zu ändern. Bei externen
+KI-Diensten werden ausgewählte Mailinhalte an die konfigurierten Anbieter übertragen; lokale
+Ausführung bedeutet daher nicht automatisch ausschließlich lokale Verarbeitung.
 
-Das Konfigurationsbeispiel verwendet `test_mode: false`. Auch im Produktivbetrieb
-erfordert jede Kalender- oder Aufgabenaktion eine ausdrückliche Bestätigung.
+Zustände werden als lesbare JSON-Dateien, Ereignisse als getrennte JSONL-Logs gespeichert.
+Mailzustände (Schema 9) und offene Entscheidungen bleiben über Neustarts erhalten.
+Zugangsdaten werden nicht protokolliert. Die ausgelieferte `config.example.yaml` schaltet
+vollständige KI-Anfrage- und Antwortlogs ausdrücklich ein; für einen Betrieb ohne diese
+Inhalte `logging.llm.include_requests` und `logging.llm.include_responses` auf `false` setzen.
 
-### Anmeldung bei Google und Microsoft
+Externe Schreibaktionen sind an Vorschlagsversion, Ziel und ausdrückliche Freigabe gebunden;
+unklare Schreibresultate werden vor einer Wiederholung abgeglichen. Webaktionen prüfen
+Sitzung, CSRF-Schutz, Version und Idempotenz. Hinweise für betriebene Instanzen stehen in der
+[Datenschutzerklärung](DATENSCHUTZ.md) und den [Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md);
+beide Vorlagen müssen an den jeweiligen Betrieb angepasst werden.
 
-Im Browser sind die Verbindungen unter **Einstellungen → Zielprofile** erreichbar.
-Für Google erklärt die [Playground-Anleitung](docs/Google-OAuth-Playground.md), wie
-eigene Clientdaten und Refresh-Token entstehen. Die zusätzliche direkte Anmeldung
-verwendet einen Webanwendungs-Client: `web.google_redirect_uri` muss exakt als
-Weiterleitungsadresse registriert sein (für entfernte Rechner HTTPS).
-Microsoft zeigt Gerätecode, Kopierknopf, Anmeldelink und Fortschritt im Browser.
-Nach geänderten Zugangsdaten „Konfiguration neu laden“ ausdrücklich bestätigen;
-Web-Sitzungsschlüssel und Web-Einstellungen benötigen einen kontrollierten Neustart. Prozessvariablen
-haben weiterhin Vorrang vor `.env`.
+## Entwicklung
 
-Die bisherigen CLI-Alternativen bleiben verfügbar:
-
-```sh
-mailhelp --google-auth --config-directory .
-mailhelp --microsoft-login --config-directory .
-```
-
-Nur den Befehl für den jeweils verwendeten Anbieter ausführen. Google verwendet
-eine Browseranmeldung mit lokalem Rückruf; Microsoft eine Anmeldung per Gerätecode.
-Mit `--profile 2` wird ein zusätzliches Zielprofil eingerichtet. Die erstmalige
-Google-Anmeldung für Docker auf dem Host durchführen.
-
-Die [Anleitung zu Zielprofilen und OAuth](docs/archiv/Release-3.2.md) beschreibt
-Voraussetzungen, Geheimnisnamen und die sichere Tokenablage.
-
-### Einstellungen je Postfach
-
-Unter **Einstellungen → Postfächer** lassen sich globale Werte gezielt
-überschreiben. Themen und Absenderausnahmen können auf einzelne Postfächer
-begrenzt werden. Zusätzliche Kalender- und Aufgabenziele werden über Zielprofile
-zugeordnet.
-
-Bestehende Vorschläge behalten ihr gespeichertes Ziel. Eine ausdrückliche
-Zielumstellung erzeugt eine neue, erneut zu bestätigende Version. Zieländerungen
-verändern den Analyse-Fingerprint nicht.
-
-Alle Felder und ihre Wirkung erläutert die
-[Einstellungsreferenz](docs/Web-Einstellungen.md).
-
-## Betrieb
-
-### Prüfen und starten
+Automatisierte Tests verwenden synthetische Daten und simulierte externe Dienste. Die
+vollständige Prüfung baut die Pakete und erzwingt **100 % Zeilen- und Branch-Abdeckung**
+des eigenen Codes einschließlich der Entwicklungswerkzeuge:
 
 ```sh
-mailhelp --check --config-directory .
-mailhelp --check-access --config-directory .
-mailhelp --max-mails 10 --config-directory .
-mailhelp --config-directory .
-```
-
-- `--check` validiert die Konfiguration ohne Netzwerkzugriff.
-- `--check-access` prüft die eingerichteten Zugänge und sendet bei aktiviertem
-  Telegram eine Testnachricht. Es erzeugt keine Aufgaben oder Termine.
-- `--max-mails 10` begrenzt einen einzelnen Abrufdurchlauf auf höchstens zehn Mails.
-- Ohne diese Optionen läuft Mailhelp als Dienst mit regelmäßigen Abrufzyklen.
-- Pro Datenverzeichnis läuft nur eine Instanz. Ein weiterer Start meldet
-  „Mailhelp läuft bereits …“; die laufende Instanz zuerst über **Beenden** in der
-  Weboberfläche oder mit Strg+C in ihrem Terminal beenden.
-- Nach einem Update oder Wechsel des Codestands Mailhelp neu starten. Bis dahin
-  liefert die Weboberfläche weiter Seiten und Dateien der laufenden Version aus.
-- Unter **Einstellungen → Mailhelp neu starten** steht neben „Mailhelp beenden“
-  ein Neustart mit eigener Bestätigungsseite bereit. Er stoppt den laufenden Dienst
-  kontrolliert und startet denselben Python-Interpreter mit denselben Startoptionen
-  neu. Gespeicherte Konfiguration, Zugangsdaten und aktualisierter Code werden neu
-  geladen; offene Vorgänge bleiben erhalten. Danach die Weboberfläche erneut öffnen.
-  Unter Windows bleibt der ursprüngliche Prozess im Terminal und startet Mailhelp
-  als Kindprozess neu; Strg+C beendet weiterhin beide.
-
-Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
-Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien
-werden nicht überschrieben.
-
-### IServ-Elternbriefe
-
-Anhänge werden bis einschließlich **5 MB (5.000.000 Bytes) je Datei** automatisch
-ausgewertet (`limits.max_attachment_bytes`). Bei größeren Anhängen erscheint die
-Nachricht immer als Vorschlag **„Nachricht manuell prüfen“** in der Vorschlagsliste,
-auch bei sonst irrelevanten Nachrichten und ohne KI-Aufruf. Der Vorschlag nennt die
-betroffenen Dateien. Er wird lokal gespeichert und erzeugt erst nach ausdrücklicher
-Bestätigung eine Aufgabe im Zieldienst. Weitere Nachrichten werden weiter abgerufen.
-Der Vorschlag lässt sich wie jeder andere bestätigen oder verwerfen, im Web und in
-Telegram (behoben in 3.8.27). Bei IServ werden zu große Dateien nicht vollständig heruntergeladen; die Originale
-bleiben dort verfügbar. Die Grenze für den Nachrichtentext ist davon unabhängig.
-
-In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je
-Elternkonto Adresse der Schule, Postfach, Startgrenze und Zugangsdaten eintragen und
-**Verbindung prüfen und Konto aktivieren** wählen. Leere Zugangsfelder verwenden die
-bereits hinterlegten Werte. Erst nach erfolgreicher Anmeldung werden das Konto und
-die Zugangsdaten gespeichert. Der laufende Dienst lädt die IServ-Verbindungen im
-nächsten sicheren Mailzyklus; offene Relevanzrückfragen gegebenenfalls zuerst beantworten.
-Andere offene Änderungen bleiben als Entwurf erhalten. Verbindungsfehler erscheinen direkt
-auf der Seite; Kennwörter werden nie wieder angezeigt. Unter **Weitere Aktionen und Entwurf**
-bleibt der bisherige Ablauf mit separater Diagnose und Übernahme verfügbar;
-alternativ in `config.yaml` unter `iserv.accounts` `id`, `server` (HTTPS-Adresse der Schule)
-und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
-`ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD`. Mailhelp meldet sich wie ein Browser
-an, liest neue Briefe samt Anhängen und verarbeitet sie mit Zielprofil und Standards
-des angegebenen Postfachs, ohne Relevanzprüfung. Briefe vor `historical_start` (ohne
-Angabe: die Grenze des Postfachs) bleiben unberührt. Mailhelp bestätigt, beantwortet
-oder archiviert in IServ nichts. Zwei-Faktor-Anmeldung und auf mehrere Seiten verteilte
-Briefübersichten werden noch nicht unterstützt; der Abruf meldet sie als Fehler.
-`--check-access` und die Diagnose der Weboberfläche prüfen auch die IServ-Anmeldung;
-die Einrichtung zeigt, ob die Zugangsdaten hinterlegt sind.
-
-### Weboberfläche
-
-In `config.yaml` `web.enabled: true` setzen und in `.env` einen zufälligen
-`MAILHELP_WEB_SECRET` mit mindestens 32 Zeichen hinterlegen. Nach dem Dienststart
-ist die Oberfläche standardmäßig unter **http://127.0.0.1:8765** erreichbar.
-
-Auf großen Bildschirmen ordnet eine Seitenleiste die Navigation nach Arbeitsbereich,
-Einblicken und Verwaltung. Auf dem Handy ist die kompakte Navigationsleiste horizontal
-wischbar. Vorschlagskarten zeigen die wichtigsten Angaben zuerst; Beschreibung und
-Beleg lassen sich aufklappen. Direkte Bereichslinks erleichtern die Suche in den
-globalen Einstellungen.
-
-Bestätigen und Verwerfen lassen sich 5 Sekunden rückgängig machen. Währenddessen
-bleibt die Vorgangsauswahl per Maus und Tastatur gesperrt; nach dem Rückgängigmachen
-ist sie sofort wieder verfügbar.
-
-Die Seite **Status** zeigt den aktuellen Verarbeitungsschritt und je Dienst den letzten
-erfolgreichen Kontakt. Beim Start prüft Mailhelp OpenRouter, Telegram und die
-Kalender- und Aufgabenziele im Hintergrund nur lesend; das IMAP-Postfach erscheint
-nach dem ersten Mailabruf.
-
-Ein zweiter Terminalaufruf erzeugt einen lokalen Einmalcode:
-
-```sh
-mailhelp --pair --config-directory .
-```
-
-Unter **Einstellungen** sind auch Abrufreihenfolge und -menge, Telegram-Bindung, Antwortentwürfe,
-Bildauswertung, Tagesüberblick, Tätigkeitsberichte, Lernmodus, Sitzungsdauer und Protokollierung
-änderbar; die Einrichtung enthält je Postfach die Startgrenze `historical_start`.
-
-Zugangsdaten (IMAP, IServ, OpenRouter, Telegram, Kalender- und Aufgabendienste) lassen sich
-unter **Einstellungen → Zugangsdaten** eintragen oder ersetzen. Die Seite zeigt nur, ob ein
-Wert hinterlegt ist, nie den Wert selbst; jede Änderung wird ausdrücklich bestätigt und nur
-die betroffene Zeile in `.env` ersetzt. In Docker muss `.env` dafür beschreibbar eingebunden
-sein. Der Mailabruf verwendet neue Werte nach bestätigtem Neuladen der Konfiguration.
-
-Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
-Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Auswertung zeigt
-KI-Aufrufe, Kosten und Dauer auch als Diagramme je Tag, Schritt und Modell. Ein Klick auf ein
-Diagramm öffnet eine große Ansicht. Balken zeigen ihre Details beim Darüberfahren, Fokussieren
-oder Antippen; Escape oder „Schließen“ beendet die große Ansicht. Die Anmeldung
-ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfläche
-`telegram.enabled: false` setzen.
-
-Die [Einrichtungs- und Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
-beschreibt auch den mobilen Zugriff und die Einrichtung des Telegram-Bots.
-
-Der Bereich **Zugangsdaten** auf der Einstellungsseite bietet einen Schnellzugriff
-auf die eingerichteten Dienste. **Alle Zugangsdaten und neue Konten** öffnet die
-vollständige Kontenübersicht einschließlich IServ und noch nicht übernommener
-Einrichtungsentwürfe. Dort gespeicherte Werte stehen der Diagnose sofort zur Verfügung;
-Werte aus der Prozessumgebung haben weiterhin Vorrang.
-
-Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn noch
-keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben
-Ordners entfernt den Hinweis. „Keine Fehler bei gespeicherten Mails“ betrifft nur
-die Mailanalyse.
-
-Beim ersten Abruf nach jedem Start speichert Mailhelp die Ordnerliste jedes Postfachs
-in `mailbox-folders.json` im Datenverzeichnis: Name, Rolle (z. B. `junk` für den
-Spam-Ordner), ob der Ordner abgerufen wird, und konfigurierte, aber auf dem Server
-fehlende Ordner. Ein Fehlschlag wird einmal protokolliert und beim nächsten Abruf
-wiederholt; der Mailabruf läuft davon unabhängig weiter.
-
-Bereits ausgeschlossene UIDs werden auch dann vor dem Abruf gefiltert, wenn der
-IMAP-Server seine höchste vorhandene UID erneut zurückgibt. Alte Warteschlangeneinträge
-können nach einem Neustart abgeschlossen werden, ohne die gespeicherte Startgrenze
-zu verändern.
-
-### Themen lernen und Entscheidungen abgleichen
-
-```sh
-mailhelp --learn 20 --mailbox 1 --config-directory .
-```
-
-Der interaktive Lernmodus liest Nachrichten zur Themen- und Filterpflege.
-Bei mehreren aktivierten Postfächern ist `--mailbox NUMMER` oder `--mailbox alle`
-erforderlich. Änderungen werden lokal gespeichert; Kalender und Aufgabenlisten
-werden dabei nicht beschrieben.
-
-Offene Entscheidungen lassen sich über die Weboberfläche oder Telegram bearbeiten.
-Der Abgleich von Vorschlägen und vorhandenen Einträgen ist in der
-[Bedienungsanleitung](docs/archiv/Release-2.4.md) beschrieben.
-
-## Docker
-
-Für eine neue Installation ohne vorbereitete Dateien:
-
-```sh
-docker compose -f compose.setup.yaml up --build
-```
-
-Den ausgegebenen Einmalcode unter `http://localhost:8765/anmelden` eingeben.
-Konfiguration, Zugangsdaten, Zustände und Logs bleiben im benannten Volume
-`mailhelp-config`. Details und Wiederherstellung: [Release 3.7](docs/archiv/Release-3.7.md).
-
-Die bestehende `compose.yaml` verwendet weiter die manuelle Konfiguration und
-baut das Image aus diesem Repository. Vor dem Start
-`config.yaml`, `.env` und `irrelevant-senders.json` aus den Vorlagen anlegen und
-wie oben beschrieben konfigurieren.
-
-Unter Linux die Datenverzeichnisse für den Containerbenutzer vorbereiten:
-
-```sh
-mkdir -p data logs
-sudo chown 65532:65532 data logs
-docker compose build
-docker compose run --rm mailhelp --check --config-directory /config
-docker compose up -d
-```
-
-Die Konfiguration wird schreibgeschützt eingebunden; Daten und Logs bleiben in
-persistenten Host-Verzeichnissen. Der Webport wird nur auf `127.0.0.1` des Hosts
-veröffentlicht. Für die Weboberfläche im Container `web.host: 0.0.0.0` setzen.
-
-```sh
-docker compose logs -f mailhelp
-docker compose exec mailhelp mailhelp --pair --config-directory /config
-docker compose down
-```
-
-Für den Lernmodus mit schreibbarer Konfiguration ist
-[compose.learn.yaml](compose.learn.yaml) vorgesehen. Dort werden die
-Konfigurationsdateien im Verzeichnis `learning-config` eingebunden.
-
-## Datenschutz und Sicherung
-
-Die normale Mailanalyse liest das Postfach ohne Änderungen an Nachrichten oder
-Lesestatus. Bei Verwendung externer KI-Dienste werden ausgewählte Mailinhalte an
-die konfigurierten Anbieter übertragen. Die lokale Ausführung der Anwendung
-bedeutet daher nicht automatisch eine ausschließlich lokale Datenverarbeitung.
-
-Zustände werden als lesbare JSON-Dateien, Ereignisse als separate JSONL-Logs
-gespeichert. Mailzustände (Schema 9) und offene Entscheidungen bleiben über
-Neustarts erhalten. Zugangsdaten werden nicht protokolliert; vollständige
-LLM-Inhalte sind nur nach ausdrücklicher Aktivierung des entsprechenden Loggings
-enthalten. Aufbewahrungsfristen sind konfigurierbar.
-
-Die ausgelieferte `config.example.yaml` aktiviert vollständige KI-Anfrage- und
-Antwortlogs ausdrücklich. Für einen Betrieb ohne diese Inhaltslogs
-`logging.llm.include_requests` und `logging.llm.include_responses` auf `false` setzen.
-
-Vor einer Sicherung oder Wiederherstellung den Dienst stoppen. Das vollständige
-Datenverzeichnis einschließlich `test/` und `production/` sowie Konfiguration,
-`.env` und OAuth-Token-Dateien sichern. Die
-[Upgrade-Anleitung](docs/archiv/Release-3.2.md) beschreibt Migration und Rückkehr zur
-vorherigen Version. Beim ersten Start nach dem Upgrade zunächst die bisherigen
-Ziele beibehalten, damit alte Analyse-Fingerprints als gleichwertig registriert
-werden können.
-
-Externe Schreibaktionen sind an Vorschlagsversion, Ziel und ausdrückliche Freigabe
-gebunden. Unklare Schreibresultate werden vor einer Wiederholung abgeglichen.
-Webaktionen prüfen Sitzung, CSRF-Schutz, Version und Idempotenz; die Sitzung wird
-bei der Ausführung erneut geprüft.
-
-Hinweise für betriebene Instanzen stehen in der
-[Datenschutzerklärung](DATENSCHUTZ.md) und den
-[Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Die Vorlagen müssen an den jeweiligen
-Betrieb angepasst werden.
-
-## Entwicklung und Qualitätssicherung
-
-Ab 4.1.11 stehen dieselben Qualitätsaufgaben im Terminal und als VS-Code-Tasks bereit:
-
-```sh
-python -m devtools.check tdd tests/unit/test_mutation_invariants.py
+python -m devtools.check full --workers 12
 python -m devtools.check fast
-python -m devtools.check full
-python -m devtools.check ui
-python -m devtools.check prompts
+python -m devtools.check tdd tests/unit/test_core.py
+python -m pytest ui_tests -n 6 --dist worksteal --no-cov
 ```
 
-`tdd` benötigt eine ausdrückliche Testauswahl und scheitert auch bei grünen Tests,
-wenn die gesamte Befehlslaufzeit einschließlich Prozessstart 15 Sekunden erreicht.
-`fast` führt weiterhin die gesamte Schnellsuite mit allen verfügbaren Workern und
-Workstealing aus; hier wird die Laufzeit dokumentiert, ohne eine 15-Sekunden-Grenze
-zu behaupten. Die Ergebnisse stehen in `.test-tmp/tdd-report.json` beziehungsweise
-`.test-tmp/fast-report.json`. Eine eigene Grenze ist mit `--max-seconds` möglich.
-`full` baut zuerst die aktuellen Pakete und erzwingt
-anschließend 100 % Zeilen- und Branch-Abdeckung einschließlich der Entwicklungswerkzeuge.
-Optional parallelisiert `full --workers 4` die gewöhnlichen Tests der vollständigen
-Abnahme; Prozess- und E2E-Prüfungen bleiben in einer gemeinsamen sequenziellen Gruppe.
-Ohne diese Angabe bleibt der gesamte Volltest sequenziell.
-Details und Messwerte: [Qualitätsabschluss 4.1](docs/archiv/Qualitaet-4.1.md).
-
-Beschädigte Zustandsdateien werden auch bei ungültigem UTF-8 sicher behandelt:
-schreibfreies Lesen meldet den Fehler, normales Laden erhält die ursprünglichen Bytes
-in einer `.corrupt`-Datei. Die maßgebliche Ablage bleibt bis zur Reparatur gesperrt.
-
-Automatisierte Tests verwenden synthetische Daten und simulierte externe Dienste.
-Die vollständige Python-Suite erzwingt **100 % Zeilen- und Branch-Abdeckung** des
-eigenen Anwendungscodes:
+`--workers` an die Zahl der Rechenkerne anpassen; ohne Angabe läuft die vollständige Prüfung
+seriell. Python- und Browserprüfung nicht gleichzeitig starten, weil die Zeitmessungen sonst
+unzuverlässig werden. Lint und Typprüfung:
 
 ```sh
-python -m pytest
 python -m pip install -r requirements-lint.lock
-python -m ruff check src tests ui_tests
-python -m mypy src/mailhelp
+python -m ruff check src tests ui_tests devtools
+python -m mypy
 ```
 
-Beim Entwickeln genügt meist der schnelle Lauf ohne Abdeckungsprüfung. Er lässt Tests mit
-den Markern `slow` (über eine Sekunde), `process` (echte Unterprozesse, harte Abbrüche) und
-`e2e` (Gesamtabläufe mit Container- oder Lebenszykluskontext) aus:
+mypy verlangt für jede Funktion vollständige Typangaben; Schichten, Funktionslänge und
+Parameterzahl prüfen `tests/unit/test_layers.py` und `tests/unit/test_limits.py`. Die
+Browsertests decken Desktop-, Mobil- und schmale Telefonansichten, große Bildschirme,
+Barrierefreiheit und 100 % der JavaScript-Blöcke ab.
 
-```sh
-python -m pytest -m "not (slow or process or e2e)" --no-cov
-python -m pytest tests/unit/test_core.py --no-cov
-```
-
-Vor jedem Commit und in der CI läuft weiterhin die vollständige Suite mit Abdeckungsprüfung.
-
-ruff begrenzt die McCabe-Komplexität jeder Funktion auf 15. mypy prüft alle
-Funktionsrümpfe; für die Kernpakete (Domäne, Persistenz, Normalisierung,
-Konfiguration, Laufschleife, Telegram, Review) gelten strikte Typregeln,
-die in `pyproject.toml` aufgeführt sind.
-
-Mit installiertem Chrome und den Browser-Testabhängigkeiten:
-
-```sh
-python -m pip install -e ".[test,ui]"
-python -m pytest ui_tests -n 4 --dist worksteal --no-cov -p no:cacheprovider
-```
-
-Ab 6.0.7 laufen die vollständigen Browsertests mit vier Workern parallel, auch in der CI.
-Die Workerzahl lässt sich über `-n` an den Rechner anpassen. Für einen seriellen Vergleichslauf
-entfällt `-n 4 --dist worksteal`. Beide Aufrufe funktionieren unter Windows 11 und in einer
-Linux-/Docker-Testumgebung mit Python 3.12, Chrome und den Testabhängigkeiten
-(`python -m pip install -e ".[test,ui]"`). Unter Linux müssen zusätzlich die von Playwright
-benötigten Systembibliotheken und Chrome installiert sein.
-Jeder Testlauf und Worker erhält einen eigenen Screenshot-Ordner unter `.test-tmp/ui-screens/`.
-JavaScript-Abdeckungsdaten werden pro Lauf und Worker getrennt gespeichert und zentral geprüft.
-Fehlende, beschädigte oder unvollständige Ergebnisse lassen den Gesamtlauf scheitern.
-
-Vor einem Push genügt oft der schnelle Browser-Smoke (rund 40 Sekunden): Anmeldung,
-Bestätigen und Übersicht, Offline-Seite und offline ausgelöste Aktion, Einrichtung ohne
-JavaScript und Barrierefreiheitsprüfung. Die JavaScript-Abdeckung prüft nur der volle Lauf.
-
-```sh
-python -m pytest ui_tests -m smoke --no-cov -p no:cacheprovider
-```
-
-Die Browserprüfungen umfassen Desktop-, Mobil- und schmale Telefonansichten, seit 6.0.2 zusätzlich
-alle Kernseiten bei 2560 × 1440 und 1920 × 1080 (`ui_tests/test_ui_widescreen60.py`),
-Barrierefreiheitsprüfungen und vollständige JavaScript-Blockabdeckung. Die CI prüft
-Windows, Linux, Distributionspakete und Docker-Wiederanläufe.
-
-Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
+Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), der Aufbau in der
+[Architektur](docs/Architektur.md), technische Verträge in der
 [Projektspezifikation](Mailhelp-Projektspezifikation.md).
 
 ## Dokumentation
 
-Aktuelle Anleitungen (Stand 5.3): [Ersteinrichtung](docs/Ersteinrichtung.md) ·
-[Konten verwalten](docs/Konten-verwalten.md) · [Kalender und Aufgaben verbinden](docs/Ziele-einrichten.md) ·
-[Bedienung](docs/Bedienung.md) · [Fehler beheben](docs/Fehlerbehebung.md) · [Betrieb und Update](docs/Betrieb.md) ·
-[Einstellungen](docs/Web-Einstellungen.md).
-Die Release-Berichte unten sind historische Nachweise ihrer Version.
-
-| Anliegen | Anleitung |
-| --- | --- |
-| Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/archiv/Release-1.0.md) |
-| Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
-| Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
-| Einstellungsbereiche und Postfächer im Betrieb aktivieren | [Release 3.5](docs/archiv/Release-3.5.md) |
-| IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web | [Release 3.4](docs/archiv/Release-3.4.md) |
-| Weboberfläche und technische Konsolidierung | [Release 3.3](docs/archiv/Release-3.3.md) |
-| Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/archiv/Release-3.2.md) |
-| Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/archiv/Release-3.1.md) |
-| Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/archiv/Release-2.4.md) |
-| Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
-| Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
-| Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/archiv/Planung-3.6.md) |
-| Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/archiv/Planung-3.7.md), [Release 3.7](docs/archiv/Release-3.7.md) |
-| Web-Lernmodus, Neuladen und Anbietermatrix | [Planung 3.8](docs/archiv/Planung-3.8.md), [Release 3.8](docs/archiv/Release-3.8.md) |
-| Gesamtfahrplan und Release 4.0 | [Planung 4.0](docs/archiv/Planung-4.0.md), [Release 4.0](docs/archiv/Release-4.0.md) |
-| Qualitätsoffensive und Testinfrastruktur | [Planung 4.1](docs/archiv/Planung-4.1.md) |
-| Reaktionsschnelle Web-Aktionen | [Planung 4.2](docs/archiv/Planung-4.2.md) |
-| Geplant für 5.3: Live-Suche, Hilfschat und Dokumentationsprüfung | [Detaillierter Plan 5.3](docs/archiv/Planung-5.3.md) |
-| Hilfschat als dauerhaft geöffnetes Fenster in den Einstellungen (5.4) | [Planung 5.4](docs/archiv/Planung-5.4.md), [Release 5.4](docs/archiv/Release-5.4.md) |
-| Hilfschat-Feinabstimmung: Kurzantworten, Größe, Scrollposition, Schlüssel über HTTP (5.5) | [Planung 5.5](docs/archiv/Planung-5.5.md), [Release 5.5](docs/archiv/Release-5.5.md) |
-
-Die statische Projektwebsite liegt unter [website/](website/).
-Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.
-
-## Postfach-Briefings (4.9)
-
-Unter **Einstellungen → Postfach-Briefings** lassen sich feste Tageszeiten,
-das Zielpostfach und das Auslassen leerer Briefings wählen. Standardmäßig bleibt
-die Funktion aus. Mit aktivierter Weboberfläche legt Mailhelp zu diesen Zeiten
-einen HTML- und Klartext-Entwurf im IMAP-Postfach ab: offene Termine, Aufgaben,
-Relevanzfragen und neue Zusammenfassungen mit Fristen. Es erfolgt kein Mailversand.
-
-Links öffnen die bestehenden Prüfkarten; jede Kalender- oder Aufgabenanlage braucht
-weiterhin die ausdrückliche Bestätigung der angezeigten Version. Dauerhafte
-Checkpoints und der Message-ID-Abgleich verhindern doppelte Entwürfe nach Neustarts.
-Nach dem Update den Dienst neu starten; die Briefing-Einstellungen wirken danach
-ohne Neustart. Einrichtung, Zeitumstellungen und Rückkehr beschreibt der
-[Release-Bericht 4.9](docs/archiv/Release-4.9.md).
-
-## Nachvollziehbare Erkennung (5.1)
-
-Version 5.1 macht nachvollziehbar, warum aus einer Mail eine Aufgabe, ein Termin oder
-nichts wurde. Ab 5.1.0 beschreibt ein Erklärungsmodell den tatsächlichen Verarbeitungsweg
-jeder Mail aus ihrem gespeicherten Zustand – mit festen Texten und ohne zusätzlichen
-Modellaufruf. Modellbegründungen bleiben als solche gekennzeichnet; nicht mehr
-aufbewahrte Ergebnisse werden als fehlend ausgewiesen. Ab 5.1.1 zeigt die Mailansicht diesen
-Weg unter „So wurde diese Mail verarbeitet“. Ab 5.1.2 gibt es dauerhafte
-Nachanalyse-Aufträge mit Budget (`reanalysis` in `config.yaml`), die eine Mail gezielt erneut
-auswerten, ohne bestehende Entscheidungen zu verändern. Ab 5.1.3 vergleicht Mailhelp das
-Ergebnis mit den vorhandenen Vorschlägen und übernimmt nur neue Befunde und Änderungen offener
-Vorschläge – als unbestätigte Vorschläge, versionsgeprüft und ohne Schreibzugriff. Ab 5.1.4
-nennt der Prüfverlauf mögliche Widersprüche und Auslassungen als Prüfhinweise mit Beleg.
-Ab 5.1.5 startet „Aufgabe oder Termin übersehen?“ in der Mailansicht eine Nachanalyse mit
-Budgethinweis; das Ergebnis lässt sich vergleichen und geprüft übernehmen. Ab 5.1.6 misst
-`mailhelp-quality-report` Erkennung, Auslassungen, Fehlalarme und Feldkorrektheit auf dem
-synthetischen Korpus v4 – getrennt von einer echten Modellbewertung. 5.1.7 behebt, dass Mails
-eines Postfachs mit eigenen Einstellungen nach einer Unterbrechung dauerhaft unbearbeitet
-blieben, und friert eine Qualitäts-Baseline mit festen Abnahmeschwellen ein. Ab 5.1.8 gelten die
-Aufbewahrungsfristen auch für Nachanalyse-Aufträge. Plan: [Planung 5.1](docs/archiv/Planung-5.1.md); Einrichtung, Upgrade, Nachweise und Grenzen: [Release-Bericht 5.1](docs/archiv/Release-5.1.md).
-
-## Geprüfte Eintragungen (5.2)
-
-Version 5.2 meldet eine Aufgabe oder einen Termin erst dann als „Angelegt und geprüft“, wenn
-ein frischer Abruf beim Anbieter den Eintrag mit den bestätigten Angaben nachweist. Ab 5.2.0
-stehen dafür der Status „Gespeichert – Eintrag wird geprüft“ und ein dauerhafter
-Prüfnachweis bereit. Ab 5.2.1 werden neue Aufgaben in Todoist und neue Termine im Google
-Kalender nach dem Anlegen frisch abgerufen und mit den bestätigten Angaben verglichen; nur
-der Abruf wird bei Bedarf wiederholt, nie die Anlage. Weicht etwas ab oder bleibt der Eintrag
-unauffindbar, meldet Mailhelp das einmal in Telegram und lässt den Eintrag unverändert.
-Einstellbar unter `write_verification` (Versuche, Abstände, Prüfdauer). Ab 5.2.2 gilt das
-auch für Outlook-Kalender und Microsoft To Do (dort tagesgenau, weil To Do nur den Tag speichert),
-ab 5.2.3 auch für CalDAV-Kalender, CalDAV-Aufgaben und Apple Erinnerungen. Ab 5.2.4 werden
-auch geänderte, ergänzte und abgesagte Termine sowie erkannte Dubletten frisch nachgeprüft;
-eine Kalenderdatei über Telegram heißt ehrlich „bereitgestellt – Übernahme nicht prüfbar“.
-Ab 5.2.6 zeigt die Weboberfläche den Prüfstand mit Soll/Ist-Vergleich, und „Erneut prüfen“ in
-Web und Telegram liest einen nicht bestätigten Eintrag nur erneut – ohne etwas zu ändern.
-Vor einer Rückkehr zu einer Version vor 5.2.0 den Dienst beenden und `mailhelp --prepare-rollback`
-ausführen; er stellt „wird geprüft“ auf „angelegt“ um, ohne etwas anzulegen.
-Plan: [Planung 5.2](docs/archiv/Planung-5.2.md); Einrichtung, Upgrade, Rückkehr, Nachweise und Grenzen: [Release-Bericht 5.2](docs/archiv/Release-5.2.md).
-
-## Einstellungssuche, Hilfschat und geprüfte Dokumentation (5.3)
-
-Version 5.3 bringt eine Live-Suche in den Einstellungen, einen Hilfschat, der über die aktive
-KI-Anbindung mit geprüften Dokumentationsausschnitten antwortet, und eine vollständige Prüfung
-der Dokumentation. Ab 5.3.0 erzeugt `python -m devtools.inventory` die Inventur aller
-Einstellungen und Optionen im [Prüfbericht](docs/Pruefung-Dokumentation-5.3.md).
-Ab 5.3.3 erscheinen Treffer der Einstellungssuche schon beim Tippen; ab 5.3.9 beantwortet
-**Hilfe zu Einstellungen** Fragen mit Quellen aus der mitgelieferten Dokumentation (Schritt
-`settings_help` in `prompts.yaml`, Einstellungen unter `help_chat`); der Chat ändert nichts.
-Ab 5.3.12 öffnet ein Chatsymbol unten rechts auf allen Einstellungsseiten den Hilfschat.
-Ab 5.3.13 nennt eine abgelehnte Beenden- oder Neustart-Bestätigung den Grund und bietet
-eine neue Bestätigung an.
-Plan: [Planung 5.3](docs/archiv/Planung-5.3.md); Abnahme, Upgrade und Grenzen: [Release-Bericht 5.3](docs/archiv/Release-5.3.md).
+Das [Inhaltsverzeichnis](docs/README.md) führt alle aktuellen Anleitungen auf:
+[Ersteinrichtung](docs/Ersteinrichtung.md) · [Konten verwalten](docs/Konten-verwalten.md) ·
+[Kalender und Aufgaben verbinden](docs/Ziele-einrichten.md) · [Bedienung](docs/Bedienung.md) ·
+[Fehler beheben](docs/Fehlerbehebung.md) · [Betrieb und Update](docs/Betrieb.md) ·
+[Einstellungen](docs/Web-Einstellungen.md). Abgeschlossene Pläne und Release-Berichte liegen
+im [Archiv](docs/archiv/). Die statische Projektwebsite liegt unter [website/](website/).
 
 ## Lizenz
 

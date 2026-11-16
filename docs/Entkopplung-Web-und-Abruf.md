@@ -1,6 +1,6 @@
 # Entkopplung von Bedienung und Mailabruf – Analyse
 
-**Stand:** 3. November 2026 (Version 3.6.3)  
+**Stand:** 3. November 2026 (Version 3.6.3); Geprüft für Mailhelp 7.0  
 **Zweck:** Grundlage für [Planung 3.6](archiv/Planung-3.6.md), Schritte 0.5 (Arbeitsthread) und 0.6 (Nachweis)  
 **Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Tests in 3.6.5 (Abschnitt 8); protokollierter synthetischer Betriebsnachweis in 3.6.17
 

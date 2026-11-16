@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.0.15 – Prüfung der lebenden Dokumente
+
+- Alle lebenden Dokumente Abschnitt für Abschnitt gegen Code und Oberfläche geprüft; 25 veraltete
+  Abschnitte korrigiert, unter anderem IServ-Direktaktivierung, Datenschutzerklärung (Stand 3.4.5),
+  Statusüberschrift und Knopftexte; Protokoll in `docs/Pruefung-Dokumentation-7.0.md`.
+- Neue Tests prüfen genannte Schlüssel, Optionen, Umgebungsvariablen, Beschriftungen, Dateien und
+  die Stand-Zeile „Geprüft für Mailhelp 7.0“ jedes lebenden Dokuments.
+- README auf Einstieg, Schnellstart und Verweise gekürzt; die Versionsgeschichte steht im CHANGELOG.
+
 ## 7.0.14 – Archiv, Inhaltsverzeichnis und Architektur
 
 - 114 abgeschlossene Pläne, Berichte und Konzepte nach `docs/archiv/` verschoben; alle Verweise
@@ -1163,7 +1172,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.3.0 – Bestandsaufnahme der Einstellungen und Funktionen (Planung 5.3, Schritt H1)
 
-- Neuer Prüfbericht [docs/Pruefung-Dokumentation-5.3.md](docs/Pruefung-Dokumentation-5.3.md):
+- Neuer Prüfbericht [docs/archiv/Pruefung-Dokumentation-5.3.md](docs/archiv/Pruefung-Dokumentation-5.3.md):
   Abgleich des Stands nach 5.2, festgelegte Verträge für Suchkatalog, Such-API, Hilfebestand,
   Modellanbindung, Chatzustand und Worker (zwei Threads, acht wartende Aufträge, je Chat einer).
 - Inventur aus dem Code: `python -m devtools.inventory` listet alle 229 Einstellungen mit Typ,

@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 15. November 2026, Anwendungsversion 6.9.1; Inventur aller Schlüssel: [Prüfbericht 5.3](Pruefung-Dokumentation-5.3.md).
+Geprüft für Mailhelp 7.0; Inventur aller Schlüssel: [Prüfbericht 7.0](Pruefung-Dokumentation-7.0.md).
 
 ## Themenübersicht
 
@@ -175,7 +175,10 @@ gelten für den Schnellzugriff innerhalb der allgemeinen Einstellungsseite.
 
 ## IServ-Konten
 
-Unter `/einstellungen/iserv` lassen sich Konten als Einrichtungsentwurf anlegen und ändern.
+Unter `/einstellungen/iserv` aktiviert **Verbindung prüfen und Konto aktivieren** ein neues Konto
+direkt: Erst nach erfolgreicher Anmeldung werden Konto und Zugangsdaten gespeichert, und der Abruf
+startet ohne Neustart im nächsten sicheren Mailzyklus. Alternativ lassen sich Konten als
+Einrichtungsentwurf anlegen und ändern.
 „Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ [HH:MM]` (z. B. `01.09.2026 07:30`),
 `JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.
 Ein reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;
@@ -183,8 +186,9 @@ für `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeiche
 Im Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des
 zugeordneten Postfachs. Deutsche Angaben mit Uhrzeit gelten in der konfigurierten Zeitzone.
 Ungültige Daten und ISO-Zeitpunkte ohne Offset werden abgewiesen.
-Zugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und
-ausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.
+Beim Entwurf werden Zugangsdaten separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und
+ausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert; wirksam wird sie nach
+einem Neustart.
 Ein Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.
 Dann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.
 

@@ -434,3 +434,69 @@ Größe und Typen, den Weg einer Mail durch die Verarbeitungsschritte, den Best�
 Prüfbefehl bis zum nachgewiesenen Eintrag, die Zustandsdateien aus `state_names.py` und die
 Migrationen der Altformate. Jede Aussage wurde beim Schreiben gegen den Code geprüft.
 
+## 7.0.15 – Prüfung der lebenden Dokumente (D13; K4, K5, K6)
+
+**Prüfung (K4).** Jedes lebende Dokument wurde Abschnitt für Abschnitt gegen Code und Oberfläche
+gelesen. Das Protokoll steht in [Prüfung der Dokumentation 7.0](Pruefung-Dokumentation-7.0.md)
+und nennt je Abschnitt Ergebnis und Fundstelle im Code. Korrigiert wurden unter anderem:
+
+- **Konten verwalten, Einstellungen, Einrichtung:** IServ-Konten werden seit der Direktaktivierung
+  ohne Neustart im nächsten sicheren Mailzyklus abgerufen. Drei Dokumente beschrieben noch den
+  Weg über Diagnose, Entwurf und Neustart. Entwürfe für Postfach- und IServ-Verbindungen brauchen
+  dagegen weiterhin einen Neustart; das fehlte beim Entfernen.
+- **Einrichtung und Qualitätsprüfung:** Der Satz, Erststart, OAuth und Lernmodus im Browser seien
+  „noch nicht implementiert“, stimmte seit 3.7/3.8 nicht mehr.
+- **Bedienung:** Die Statusseite heißt „Letzte Fehler und Handlungsbedarf“.
+- **Datenschutzerklärung:** Der technische Stand war 3.4.5. Ergänzt sind Lernbestand mit
+  Ablehnungsgründen, Hilfschat, Regellernen, Nachprüfung, Ändern, Absagen und Entfernen eigener
+  Einträge (auch bei der Google-Berechtigung), die automatische Entwurfsablage je Postfach und
+  die Frist für Hilfschat-Gespräche.
+- **Nutzungsbedingungen:** Stand 3.3.1; automatische Entwurfsablage und Apple Erinnerungen.
+- **Spezifikation:** Knopf- und Statustexte aus 6.0.4 und 6.6 sowie die Zuordnung des
+  Verhaltens zu `open-list.js`; neue Ergänzung 7.0 (Schichten, Typen, Skriptdateien).
+- **Betrieb:** eine längst erledigte Ankündigung aus 6.4 entfernt.
+
+Nicht im Einzelnen geprüft sind die fachlichen Regeln der Spezifikation aus früheren Versionen
+(4 410 Zeilen in versionsweisen Ergänzungen). Geprüft wurden dort alle Bezüge auf Code,
+Oberfläche und Konfiguration; die Satz-für-Satz-Prüfung jeder Regel bleibt offen und ist im
+Protokoll so vermerkt. Ebenfalls nicht prüfbar sind Schritte in fremden Oberflächen (Google,
+Microsoft) und Wege mit echten Konten.
+
+**Automatische Prüfungen (K5).** `tests/release/test_documentation_checks.py` prüft bei jedem
+Lauf die in den lebenden Dokumenten genannten Konfigurationsschlüssel, Kommandozeilenoptionen,
+Umgebungsvariablen (in beide Richtungen mit `.env.example`), die in den Anleitungen zitierten
+Beschriftungen und die genannten Repository-Dateien. Zitate, die keine Beschriftung sind,
+stehen mit Begründung in einer Ausnahmeliste. Ein Selbsttest weist nach, dass jede Prüfung eine
+falsche Angabe findet. Die Inventur aller Einstellungen schreibt `devtools/inventory.py` jetzt
+in den Prüfbericht 7.0; der Bericht 5.3 liegt im Archiv.
+
+**Stand-Zeilen und README (K6).** Jedes lebende Dokument trägt „Geprüft für Mailhelp 7.0“; ein
+Test verlangt die aktuelle Hauptversion, sodass ein ungeprüftes Dokument spätestens bei 8.0
+auffällt. Das README ist von 955 auf 191 Zeilen gekürzt: Einstieg, Schnellstart,
+Konfiguration, Datenschutz, Entwicklung und Verweise. Die Versionsgeschichte steht nur noch im
+CHANGELOG; das README nennt nur die aktuelle Version. Dabei sind veraltete Angaben zur
+parallelen Prüfung und zur Typprüfung entfallen.
+
+**Prüfhilfe für die Wartung.** Die Prüfung der fett gesetzten Beschriftungen diente als
+Hilfsmittel und ist kein Test, weil Fettdruck auch zur Betonung dient.
+
+**Zeitabhängiger Wischtest behoben.** `test_bounded_momentum[mobile-80-False-True]` scheiterte
+etwa bei jedem dritten Lauf, auch einzeln. Mit dem Stand 7.0.11 waren es drei von sechs Läufen; die
+Ursache lag also nicht in der Teilung der Skripte. Der Test simuliert einen schnellen Wisch über
+1 ms. Die Seite misst die Geschwindigkeit aus `event.timeStamp`, und dieser Zeitstempel kam aus der
+echten Zeit zwischen den CDP-Aufrufen, die unter Last weit über 1 ms liegt. Der Helfer
+`ui_tests/swipe_fakes69.Touch` kann jetzt jedes Ereignis mit einem Zeitstempel einer virtuellen Uhr
+senden (`exact=True`, CDP-Parameter `timestamp`). Damit misst die Seite genau die verlangte Dauer.
+Schwelle und Erwartung des Tests sind unverändert. Neu prüft
+`test_exact_touch_clock_sets_the_event_times`, dass die Abstände trotz langer echter Wartezeit auf
+0,1 ms genau ankommen. Danach bestand der Wischtest zehnmal hintereinander.
+
+**Live-Suche im parallelen Lauf.** `test_results_are_visible_within_300_ms_in_95_percent_of_100_searches`
+schlug in den letzten drei Browserläufen mit sechs Prozessen fehl, besteht aber allein. Einzeln
+gemessen liegen 7.0.13 und 7.0.15 gleich (Median 229 bzw. 228 ms, 95. Perzentil 242–247 ms): keine
+Verlangsamung, sondern die Last der parallel laufenden Browser. Die Grenze von 300 ms bleibt; die
+Frage, ob dieser Messtest seriell laufen soll, gehört zur Abnahme (7.0.16).
+
+Prüfung: 5 457 Python-Tests mit voller Abdeckung, 922 Browsertests (ein Lastfehlschlag wie oben),
+JavaScript-Abdeckung 100 %.
+
