@@ -11,6 +11,7 @@ from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.contracts import OAuthTokenError
 from mailhelp.external.google_tasks import GoogleTasks
 from mailhelp.external.notion import NotionTasks
+from mailhelp.external.notion_oauth import NotionTokenProvider
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar
 from mailhelp.external.oauth import google_scopes
@@ -132,17 +133,27 @@ NOTION = {"task_provider": "notion", "notion_data_source_id": "1" * 32,
 
 
 def test_a_notion_data_source_with_its_own_token(tmp_path):
-    """7.2: Notion needs only its connection token; no Google or Todoist secret."""
+    """7.2: an internal connection needs only its token; no Google or Todoist secret."""
     cfg = configured(tmp_path, **NOTION)
     policies = []
     built = build_writers(cfg, SECRETS.model_copy(update={"notion_token": SecretStr("nt")}), tmp_path,
                           policy=lambda name: policies.append(name) or None)
     assert isinstance(built.tasks, NotionTasks) and built.tasks.target == "1" * 32 == cfg.targets.task_target
-    assert built.tasks.client.headers["Authorization"] == "Bearer nt"
+    assert built.tasks.token == "nt" and built.resources == [built.calendar._token_provider]
     assert (built.tasks.open_status, built.tasks.done_statuses) == ("o", frozenset({"x", "y"}))
     assert policies == ["notion", "google_calendar"]
     assert provider_services(cfg.targets)[0] == "Notion"
-    assert provider_secret_names(cfg.targets)[0] == "NOTION_TOKEN" and "TODOIST_TOKEN" not in         provider_secret_names(cfg.targets)
+    # 7.2.5: either the internal token or an OAuth sign-in serves; the access check names what is missing.
+    assert not any(name.startswith(("NOTION", "TODOIST")) for name in provider_secret_names(cfg.targets))
+    built.close()
+
+
+def test_a_public_notion_connection_uses_the_profile_grant(tmp_path):
+    cfg = configured(tmp_path, **NOTION)
+    secrets = SECRETS.model_copy(update={"notion_client_id": SecretStr("ci"), "notion_client_secret": SecretStr("cs")})
+    built = build_writers(cfg, secrets, tmp_path, profile_id=3)
+    assert isinstance(built.tasks.token, NotionTokenProvider) and built.tasks.token in built.resources
+    assert built.tasks.token._tokens.path == tmp_path / "notion-token-3.json"
     built.close()
 
 

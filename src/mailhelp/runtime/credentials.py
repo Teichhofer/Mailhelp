@@ -30,6 +30,7 @@ LABELS = {
     "CALDAV_USERNAME": "CalDAV-Benutzername", "CALDAV_PASSWORD": "CalDAV-Passwort",
     "MICROSOFT_CLIENT_ID": "Microsoft Client-ID", "MICROSOFT_CLIENT_SECRET": "Microsoft Client-Schlüssel",
     "MICROSOFT_REFRESH_TOKEN": "Microsoft Refresh-Token", "NOTION_TOKEN": "Notion-Verbindungstoken",
+    "NOTION_CLIENT_ID": "Notion OAuth Client-ID", "NOTION_CLIENT_SECRET": "Notion OAuth Client-Schlüssel",
 }
 
 

@@ -22,6 +22,10 @@ neue Anlagen; das Schema wird direkt vor jeder Anlage erneut gelesen. Abgleich n
 Vorgangsschlüssel in offenen und archivierten Seiten; doppelter Treffer oder unvollständige Abfrage
 bleiben unklar. Kein Entfernen. Seit 7.2.4 wählt **Einstellungen → Zielprofile** die Datenquelle
 und ordnet die Eigenschaften zu; gespeichert wird ein Entwurf nach erneuter Schemaprüfung.
+Seit 7.2.5 kann statt `NOTION_TOKEN` eine öffentliche Verbindung per OAuth angemeldet werden
+(`NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`, `web.notion_redirect_uri`). Der rotierende Grant liegt in
+`notion-token.json` neben `.env`, gebunden an Arbeitsbereich und Bot; erneuert wird erst nach einer
+Ablehnung, und ein inzwischen rotiertes Paar wird übernommen.
 
 Seit 7.2.2 bietet `/auth/google/aufgabenlisten` die vollständig paginierte Auswahl bestehender
 Listen mit den gespeicherten Google-Zugangsdaten des gewählten Profils. Die Auswahl speichert

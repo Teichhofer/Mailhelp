@@ -161,7 +161,8 @@ SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "i
                 "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",
                 "targets.outlook_calendar", "targets.microsoft_todo_list", "targets.microsoft_tenant",
                 "targets.google_tasks_list", "targets.notion_data_source_id", "targets.notion_properties",
-                "targets.notion_open_status", "targets.notion_done_statuses", "daily_briefing.enabled", "daily_briefing.time"}
+                "targets.notion_open_status", "targets.notion_done_statuses",
+                "daily_briefing.enabled", "daily_briefing.time"}
 for section, fields in {
     "quiet_hours": ("enabled", "start", "end", "allow_system_errors"),
     "batching": ("enabled", "window_seconds"),

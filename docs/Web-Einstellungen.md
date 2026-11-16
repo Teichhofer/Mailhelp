@@ -778,3 +778,4 @@ reichen für gewöhnliche Mails; erhöhen nur bei wiederholt betroffenen, vertra
 | `web.port` | Port 1–65535; Standard 8765. | Datei |
 | `web.allowed_hosts` | Erlaubte Host-Angaben im Browseraufruf (Schutz vor DNS-Rebinding), 1–20 Einträge; Standard `127.0.0.1:8765`, `localhost:8765`. | Datei |
 | `web.google_redirect_uri` | Rücksprungadresse der Google-Anmeldung; muss in der Google-Cloud-Konsole eingetragen sein. Standard `http://localhost:8765/auth/google/callback`. | Datei |
+| `web.notion_redirect_uri` | Rücksprungadresse der Notion-Anmeldung (7.2.5); muss bei der öffentlichen Notion-Verbindung genau so eingetragen sein. HTTPS oder localhost, Pfad `/auth/notion/callback`. Standard `http://localhost:8765/auth/notion/callback`. | Datei |

@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.2.5 – Notion-Anmeldung mit OAuth
+
+- „Notion verbinden“ meldet eine öffentliche Notion-Verbindung an; die rotierenden Tokens liegen
+  in `notion-token.json`, gebunden an Arbeitsbereich und Bot.
+- Erneuerung erst nach Ablehnung; ein inzwischen rotiertes Paar wird übernommen statt verbraucht.
+
 ## 7.2.4 – Notion-Auswahl in der Oberfläche
 
 - Unter Zielprofile lassen sich die Notion-Datenquelle auswählen und ihre Eigenschaften zuordnen;

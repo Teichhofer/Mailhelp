@@ -129,6 +129,10 @@ def test_listing_is_read_completely_or_refused(tmp_path, monkeypatch):
     monkeypatch.setenv("NOTION_TOKEN", "")
     (tmp_path / ".env").write_text("NOTION_3_TOKEN=drei\n")
     assert notion_sources.notion_token(tmp_path, 3) == "drei" and notion_sources.notion_token(tmp_path, 1) == ""
+    # 7.2.5: without an internal token the access token of the saved OAuth grant serves.
+    (tmp_path / "notion-token.json").write_text(json.dumps({"access_token": "oauth-access", "refresh_token": "r",
+                                                            "workspace_id": "w", "bot_id": "b"}))
+    assert notion_sources.notion_token(tmp_path, 1) == "oauth-access"
     with pytest.raises(ValueError, match="Token fehlt"):
         notion_sources.data_sources("")
     endless = httpx.MockTransport(lambda request: httpx.Response(200, json={

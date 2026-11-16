@@ -168,7 +168,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **271 Einstellungen**, davon **271** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **272 Einstellungen**, davon **272** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -438,6 +438,7 @@ Erzeugt mit `python -m devtools.inventory`: **271 Einstellungen**, davon **271**
 | `web.google_redirect_uri` | str | 'http://localhost:8765/auth/google/call… |  | Datei | ja |
 | `web.host` | str | '127.0.0.1' |  | Datei | ja |
 | `web.lan_access` | bool | False |  | Weboberfläche | ja |
+| `web.notion_redirect_uri` | str | 'http://localhost:8765/auth/notion/call… |  | Datei | ja |
 | `web.port` | int | 8765 | ≥ 1, ≤ 65535 | Datei | ja |
 | `web.session_days` | int | 30 | ≥ 1, ≤ 365 | Weboberfläche | ja |
 | `write_verification.max_attempts` | int | 5 | ≥ 1, ≤ 10 | Datei | ja |

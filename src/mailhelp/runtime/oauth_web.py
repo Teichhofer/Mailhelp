@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..config import Settings
 from ..config.env_file import EnvFileConflict, file_hash, set_values
 from ..config.loader import _dotenv
+from ..external.contracts import ExternalUnavailable, OAuthTokenError
 from ..external.microsoft import (
     DEVICE_GRANT,
     SCOPES,
@@ -27,6 +28,7 @@ from ..external.microsoft import (
     TokenFile,
     _error_code,
 )
+from ..external.notion_oauth import AUTHORIZE_URL, NotionGrant, NotionTokenFile, exchange, token_path
 from ..external.oauth import google_scopes
 from ..mailbox.mailbox_settings import target_profiles
 from ..persistence.storage import JsonStore, atomic_replace
@@ -45,12 +47,14 @@ class OAuthConfig:
 
 def oauth_config(settings: Settings, env: dict[str, str], profile: int, provider: str) -> OAuthConfig:
     target = target_profiles(settings)[profile]
-    prefix = "GOOGLE_OAUTH" if provider == "google" else "MICROSOFT"
+    prefix = {"google": "GOOGLE_OAUTH", "notion": "NOTION"}.get(provider, "MICROSOFT")
 
     def value(suffix: str) -> str:
         base = f"{prefix}_{suffix}"
         return env.get(secret_name(base, profile), env.get(base, "")) if profile != 1 else env.get(base, "")
 
+    if provider == "notion":
+        return OAuthConfig(value("CLIENT_ID"), value("CLIENT_SECRET"), "", settings.web.notion_redirect_uri)
     return OAuthConfig(value("CLIENT_ID"), value("CLIENT_SECRET"), target.microsoft_tenant,
                        settings.web.google_redirect_uri, google_scopes(target))
 
@@ -59,7 +63,7 @@ class OAuthJob(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
     actor: str
-    provider: Literal["google", "microsoft"]
+    provider: Literal["google", "microsoft", "notion"]
     profile: int = Field(ge=1, le=99)
     key: str
     binding: str
@@ -118,12 +122,12 @@ class BrowserOAuth:
     def revision(self, profile: int, provider: str) -> str:
         return self.sign(self._binding(self.config(profile, provider)) + file_hash(self.directory / ".env"))
 
-    def start(self, provider: Literal["google", "microsoft"], actor: str, profile: int, key: str,
+    def start(self, provider: Literal["google", "microsoft", "notion"], actor: str, profile: int, key: str,
               revision: str) -> OAuthJob:
         if not self.authorize(actor) or not 8 <= len(key) <= 80:
             raise PermissionError("Anfrage nicht autorisiert.")
         cfg = self.config(profile, provider)
-        if not cfg.client_id or provider == "google" and not cfg.client_secret:
+        if not cfg.client_id or provider in {"google", "notion"} and not cfg.client_secret:
             raise ValueError("OAuth-Clientdaten zuerst hinterlegen.")
         with self.lock, self.store.locked():
             state = self.state()
@@ -151,6 +155,11 @@ class BrowserOAuth:
                     "scope": cfg.scopes, "access_type": "offline", "prompt": "consent", "state": job.id,
                     "include_granted_scopes": "true",
                     "code_challenge": challenge, "code_challenge_method": "S256"})
+            elif provider == "notion":
+                job.status = "pending"
+                job.uri = AUTHORIZE_URL + "?" + urlencode({
+                    "client_id": cfg.client_id, "redirect_uri": cfg.redirect, "response_type": "code",
+                    "owner": "user", "state": job.id})
             state.jobs.append(job)
             self._save(state)
         self.wake.set()
@@ -170,6 +179,15 @@ class BrowserOAuth:
         self._authorized(job)
         if self.clock() >= job.expires:
             raise ValueError("Anmeldung abgelaufen.")
+        if job.provider == "notion":
+            # The rotating grant lives in its own owner-only file, never in .env.
+            with self.store.locked():
+                self._authorized(job)
+                NotionTokenFile(token_path(self.directory, job.profile)).save(
+                    NotionGrant.model_validate_json(job.token))
+                self.changed(job.actor)
+                self._terminal(job, "done")
+            return
         env = _dotenv(self.directory / ".env")
         base = "GOOGLE_OAUTH_REFRESH_TOKEN" if job.provider == "google" else "MICROSOFT_REFRESH_TOKEN"
         name = base if job.profile == 1 else secret_name(base, job.profile)
@@ -213,6 +231,31 @@ class BrowserOAuth:
                 self._update(job)
                 self._finish(job)
             except (httpx.HTTPError, ValueError, KeyError, PermissionError, EnvFileConflict):
+                self._terminal(job, "failed")
+            return job
+
+    def notion_callback(self, identity: str, actor: str, code: str) -> OAuthJob:
+        """Exchange the code once; a consumed code is never exchanged again after a crash."""
+        with self.lock:
+            job = self.job(identity, actor)
+            if job.provider != "notion":
+                raise ValueError("Falscher Anmeldeweg.")
+            if job.status == "done":
+                return job
+            if job.status != "pending" or self.clock() >= job.expires or not 1 <= len(code) <= 4096:
+                raise ValueError("Anmeldung abgelaufen oder bereits verarbeitet.")
+            cfg = self._authorized(job)
+            job.status = "exchanging"
+            self._update(job)
+            try:
+                with httpx.Client(transport=self.transport, timeout=15, follow_redirects=False,
+                                  trust_env=False) as client:
+                    grant = exchange(client, cfg.client_id, cfg.client_secret, {
+                        "grant_type": "authorization_code", "code": code, "redirect_uri": cfg.redirect})
+                job.status, job.token = "committing", grant.model_dump_json()
+                self._update(job)
+                self._finish(job)
+            except (httpx.HTTPError, ValueError, PermissionError, OAuthTokenError, ExternalUnavailable):
                 self._terminal(job, "failed")
             return job
 

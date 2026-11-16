@@ -76,6 +76,10 @@ richtest du selbst ein; Mailhelp legt weder Datenquellen noch Eigenschaften an.
 2. In Notion eine interne Verbindung anlegen, mit den Fähigkeiten Inhalte lesen und Inhalte
    einfügen, und die Datenbank für diese Verbindung freigeben.
 3. Den Token als `NOTION_TOKEN` hinterlegen (weitere Profile: `NOTION_2_TOKEN` usw.).
+   Alternativ eine öffentliche Verbindung: `NOTION_CLIENT_ID` und `NOTION_CLIENT_SECRET` hinterlegen,
+   die Rücksprungadresse `web.notion_redirect_uri` bei Notion eintragen und unter **Einstellungen →
+   Zielprofile** **Notion verbinden** wählen. Mailhelp speichert die rotierenden Tokens in
+   `notion-token.json` neben `.env` und bleibt an den gewählten Arbeitsbereich gebunden.
 4. Unter **Einstellungen → Zielprofile** **Notion-Datenquelle auswählen**; angezeigt werden die
    für die Verbindung freigegebenen Datenquellen. Danach **Notion-Eigenschaften zuordnen**: je Feld
    eine Eigenschaft des passenden Typs und optional das Statusfeld mit der Option für neue Seiten

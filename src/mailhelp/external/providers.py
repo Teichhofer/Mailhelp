@@ -18,6 +18,7 @@ from .google_tasks import GoogleTasks
 from .http_writer import HttpWriter
 from .microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar, TokenFile
 from .notion import NotionTasks
+from .notion_oauth import NotionTokenFile, NotionTokenProvider, token_path
 from .oauth import GoogleOAuthTokenProvider
 from .roles import CALENDAR_SLOT, TASK_SLOT
 
@@ -124,7 +125,16 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         tasks = GoogleTasks(google, targets.google_tasks_list, timeout("google_tasks"), transport,
                             retry("google_tasks"), logger, settings.timezone)
     elif targets.task_provider == "notion":
-        tasks = NotionTasks(secrets.notion_token.get_secret_value(), targets.notion_data_source_id,
+        token: str | NotionTokenProvider = secrets.notion_token.get_secret_value()
+        if not token:
+            # 7.2.5: a public connection signed in through OAuth; its grant file belongs to the profile.
+            token = NotionTokenProvider(secrets.notion_client_id.get_secret_value(),
+                                        secrets.notion_client_secret.get_secret_value(),
+                                        NotionTokenFile(token_path(base_directory, profile_id)), timeout("notion"),
+                                        transport, logger)
+            resources.append(token)
+            stack.callback(token.close)
+        tasks = NotionTasks(token, targets.notion_data_source_id,
                             targets.notion_properties, targets.notion_open_status,
                             tuple(targets.notion_done_statuses), timeout("notion"), transport, retry("notion"), logger)
     else:

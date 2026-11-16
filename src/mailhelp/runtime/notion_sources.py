@@ -14,15 +14,18 @@ import httpx
 
 from ..config.loader import _dotenv
 from ..external.notion import API, VERSION, DataSource, _plain
+from ..external.notion_oauth import NotionTokenFile, token_path
 from ..proposals.target_profiles import secret_name
 
 MAX_PAGES = 20
 
 
 def notion_token(directory: Path, profile: int) -> str:
-    """The saved token of the profile's Notion connection; empty if none is saved."""
+    """The internal connection's token, else the access token of the saved OAuth grant; empty if neither."""
     env = {**_dotenv(directory / ".env"), **os.environ}
-    return env.get("NOTION_TOKEN" if profile == 1 else secret_name("NOTION_TOKEN", profile), "")
+    token = env.get("NOTION_TOKEN" if profile == 1 else secret_name("NOTION_TOKEN", profile), "")
+    grant = None if token else NotionTokenFile(token_path(directory, profile)).load()
+    return token or (grant.access_token if grant is not None else "")
 
 
 def _client(token: str, transport: httpx.BaseTransport | None) -> httpx.Client:

@@ -307,3 +307,29 @@ def test_helpers():
     assert _chunks("") == []
     assert _moment(None) is None and str(_moment("2026-05-12")) == "2026-05-12"
     assert _moment("2026-05-12T18:00:00.000+02:00").hour == 18
+
+
+def test_an_oauth_grant_is_asked_per_request_and_renewed_after_a_refusal():
+    """7.2.5: a refused access token marks the grant stale; the next request carries the renewed one."""
+    class Grant:
+        def __init__(self):
+            self.tokens, self.invalidated = iter(["alt", "neu"]), 0
+            self.current = next(self.tokens)
+
+        def access_token(self):
+            return self.current
+
+        def invalidate(self):
+            self.invalidated += 1
+            self.current = next(self.tokens)
+
+    grant, seen = Grant(), []
+
+    def handler(request):
+        seen.append(request.headers["Authorization"])
+        return httpx.Response(401) if request.headers["Authorization"] == "Bearer alt" else httpx.Response(200, json=SCHEMA)
+    target = NotionTasks(grant, SOURCE, FIELDS, "open", ("done",), transport=httpx.MockTransport(handler))
+    with pytest.raises(AuthenticationError):
+        target.check_access()
+    target.check_access()
+    assert grant.invalidated == 1 and seen == ["Bearer alt", "Bearer neu"]

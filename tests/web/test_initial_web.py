@@ -143,3 +143,29 @@ def test_initial_task_selection_is_versioned_and_does_not_write_externally(initi
     assert h.setup.state().config["targets"]["google_tasks_list"] == "selected"
     assert initial_request(h, "POST", path, form).status == 303  # Same idempotency key.
     assert initial_request(h, "GET", path + "?profile=2").status == 409
+
+
+def test_notion_sign_in_through_the_browser(initial):
+    """7.2.5: start, return without and with the original session, status page with the next step."""
+    h=initial
+    h.advance()
+    with (h.directory/'.env').open('a') as stream:
+        stream.write('NOTION_CLIENT_ID=synthetic-notion-client\nNOTION_CLIENT_SECRET=synthetic-notion-secret\n')
+    b=browser(h)
+    page=b.request('GET','/auth/notion/start?profile=1')
+    assert page.status==200 and b'Notion verbinden' in page.body
+    form={'csrf':h.auth.csrf_token(h.session.id),'profile':'1','key':'notion-valid-key',
+          'revision':h.oauth.revision(1,'notion')}
+    start=b.request('POST','/auth/notion/start',form)
+    assert start.status==303 and start.headers['Location'].startswith('https://api.notion.com/v1/oauth/authorize?')
+    state=parse_qs(start.headers['Location'].split('?',1)[1])['state'][0]
+    h.oauth.transport=httpx.MockTransport(lambda req:httpx.Response(200,json={
+        'access_token':'na','refresh_token':'nr','workspace_id':'w','bot_id':'b'}))
+    interstitial=browser(h,False).request('GET',f'/auth/notion/callback?state={state}&code=synthetic-code')
+    assert interstitial.status==200 and b'Notion-Anmeldung abschlie' in interstitial.body
+    assert not (h.directory/'notion-token.json').exists()
+    callback=b.request('GET',f'/auth/notion/callback?state={state}&code=synthetic-code')
+    status=b.request('GET',callback.headers['Location']).body
+    assert callback.status==303 and b'Notion-Anmeldung gespeichert' in status and b'/notion/datenquelle?profile=1' in status
+    assert (h.directory/'notion-token.json').exists()
+    assert b.request('GET',f'/auth/notion/callback?state={state}&error=access_denied').status==409

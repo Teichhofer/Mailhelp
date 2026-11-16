@@ -30,6 +30,7 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
         '<a href="/auth/microsoft?profile=1">Microsoft für Profil 1 verbinden</a> · '
         '<a href="/auth/google/kalender?profile=1">Google-Kalender für Profil 1 auswählen</a> · '
         '<a href="/auth/google/aufgabenlisten?profile=1">Google-Tasks-Liste für Profil 1 auswählen</a> · '
+        '<a href="/auth/notion/start?profile=1">Notion für Profil 1 verbinden</a> · '
         '<a href="/notion/datenquelle?profile=1">Notion-Datenquelle für Profil 1 auswählen</a> · '
         '<a href="/notion/zuordnung?profile=1">Notion-Eigenschaften für Profil 1 zuordnen</a></p>'
     )
@@ -40,6 +41,7 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
                  f'<a href="/auth/microsoft?profile={profile.id}">Microsoft verbinden</a> · '
                  f'<a href="/auth/google/kalender?profile={profile.id}">Google-Kalender auswählen</a> · '
                  f'<a href="/auth/google/aufgabenlisten?profile={profile.id}">Google-Tasks-Liste auswählen</a> · '
+                 f'<a href="/auth/notion/start?profile={profile.id}">Notion verbinden</a> · '
                  f'<a href="/notion/datenquelle?profile={profile.id}">Notion-Datenquelle auswählen</a> · '
                  f'<a href="/notion/zuordnung?profile={profile.id}">Notion-Eigenschaften zuordnen</a></p>')
         for field, value in profile.model_dump().items():

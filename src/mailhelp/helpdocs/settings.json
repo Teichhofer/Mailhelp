@@ -1411,6 +1411,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Rücksprungadresse der Notion-Anmeldung (7.2.5); muss bei der öffentlichen Notion-Verbindung genau so eingetragen sein. HTTPS oder localhost, Pfad `/auth/notion/callback`. Standard `http://localhost:8765/auth/notion/callback`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.notion_redirect_uri",
+  "key": "web.notion_redirect_uri",
+  "label": "web.notion_redirect_uri",
+  "path": "Datei",
+  "summary": "Datei: Rücksprungadresse der Notion-Anmeldung (7.2.5); muss bei der öffentlichen Notion-Verbindung genau so eingetragen sein."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Port 1–65535; Standard 8765.",
   "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
   "id": "setting:web.port",

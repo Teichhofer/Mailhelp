@@ -188,6 +188,17 @@ class LearningSettings(ConfigModel):
 
 _WEB_HOST = re.compile(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")
 
+def _redirect(value: str, provider: str, path: str) -> str:
+    """HTTPS or the local machine, exactly the callback path; no credentials, query or fragment."""
+    parsed = urlsplit(value)
+    if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+            or parsed.username or parsed.password or parsed.query or parsed.fragment
+            or parsed.path != path
+            or parsed.scheme == "http" and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}):
+        raise ValueError(f"{provider}-Rückleitung benötigt HTTPS oder localhost und {path}")
+    return value
+
+
 class WebSettings(ConfigModel):
     """Optional web interface; disabled by default (Mailhelp then behaves like 1.0)."""
 
@@ -204,17 +215,18 @@ class WebSettings(ConfigModel):
     # HTTP); /web uses it if no domain is configured. Requires host 0.0.0.0.
     lan_access: bool = False
     google_redirect_uri: str = "http://localhost:8765/auth/google/callback"
+    # 7.2.5: return address of a public Notion connection, entered there exactly like this.
+    notion_redirect_uri: str = "http://localhost:8765/auth/notion/callback"
 
     @field_validator("google_redirect_uri")
     @classmethod
     def valid_google_redirect(cls, value: str) -> str:
-        parsed = urlsplit(value)
-        if (parsed.scheme not in {"http", "https"} or not parsed.hostname
-                or parsed.username or parsed.password or parsed.query or parsed.fragment
-                or parsed.path != "/auth/google/callback"
-                or parsed.scheme == "http" and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}):
-            raise ValueError("Google-Rückleitung benötigt HTTPS oder localhost und /auth/google/callback")
-        return value
+        return _redirect(value, "Google", "/auth/google/callback")
+
+    @field_validator("notion_redirect_uri")
+    @classmethod
+    def valid_notion_redirect(cls, value: str) -> str:
+        return _redirect(value, "Notion", "/auth/notion/callback")
 
     @model_validator(mode="after")
     def lan_needs_all_interfaces(self) -> WebSettings:

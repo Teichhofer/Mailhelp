@@ -330,3 +330,59 @@ def test_task_lists_are_complete_read_only_and_profile_bound(oauth, mode):
     else:
         with pytest.raises((ValueError, httpx.HTTPError)):
             google_calendars(h.directory, 1, h.oauth.config(1, "google"), transport, tasks=True)
+
+
+NOTION_GRANT = {"access_token": "notion-access", "refresh_token": "notion-refresh", "workspace_id": "w1",
+                "bot_id": "b1"}
+
+
+def notion_ready(h, answer=None):
+    with (h.directory/'.env').open('a') as stream:
+        stream.write('NOTION_CLIENT_ID=synthetic-notion-client\nNOTION_CLIENT_SECRET=synthetic-notion-secret\n')
+    def provider(req):
+        h.calls.append(req)
+        return answer or httpx.Response(200,json=NOTION_GRANT)
+    h.oauth.transport=httpx.MockTransport(provider)
+
+
+def test_notion_sign_in_stores_the_grant_outside_env_and_never_twice(oauth):
+    """7.2.5: a public Notion connection; the rotating grant goes to its own owner-only file."""
+    h=oauth
+    notion_ready(h)
+    job=start(h,'notion')
+    query=parse_qs(job.uri.split('?',1)[1])
+    assert job.uri.startswith('https://api.notion.com/v1/oauth/authorize?')
+    assert query['owner']==['user'] and query['state']==[job.id] and query['response_type']==['code']
+    assert query['redirect_uri']==['http://localhost:8765/auth/notion/callback']
+    with pytest.raises(ValueError): h.oauth.google_callback(job.id,h.actor,'code')
+    with pytest.raises(ValueError): h.oauth.notion_callback(start(h).id,h.actor,'code')
+    done=h.oauth.notion_callback(job.id,h.actor,'notion-code')
+    assert done.status=='done' and len(h.calls)==1
+    body=json.loads(h.calls[0].content)
+    assert body=={'grant_type':'authorization_code','code':'notion-code',
+                  'redirect_uri':'http://localhost:8765/auth/notion/callback'}
+    assert h.calls[0].headers['Authorization'].startswith('Basic ')
+    saved=json.loads((h.directory/'notion-token.json').read_text())
+    assert saved['refresh_token']=='notion-refresh' and saved['workspace_id']=='w1'
+    assert 'notion-refresh' not in (h.directory/'.env').read_text()
+    assert 'notion-refresh' not in (h.store.directory/'web-oauth.json').read_text()
+    assert h.oauth.notion_callback(job.id,h.actor,'notion-code').status=='done' and len(h.calls)==1
+    with pytest.raises(ValueError): h.oauth.notion_callback(start(h,'notion').id,h.actor,'')
+
+
+@pytest.mark.parametrize('answer',[httpx.Response(400,json={'error':'invalid_grant'}),httpx.Response(503),
+                                   httpx.Response(200,json={'access_token':'ohne-rest'})])
+def test_a_refused_notion_exchange_saves_nothing(oauth,answer):
+    h=oauth
+    notion_ready(h,answer)
+    job=start(h,'notion')
+    assert h.oauth.notion_callback(job.id,h.actor,'code').status=='failed'
+    assert not (h.directory/'notion-token.json').exists()
+
+
+def test_notion_needs_both_client_values(oauth):
+    h=oauth
+    with (h.directory/'.env').open('a') as stream:
+        stream.write('NOTION_CLIENT_ID=nur-id\n')
+    with pytest.raises(ValueError,match='Clientdaten'):
+        start(h,'notion')

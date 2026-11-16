@@ -416,6 +416,7 @@ web:
   # Bei entferntem Zugriff HTTPS und den Host zusätzlich unter allowed_hosts zulassen.
   # Alternativ Google-Playground-Anleitung in der Einrichtung; CLI verwendet einen Desktop-Client.
   google_redirect_uri: http://localhost:8765/auth/google/callback
+  notion_redirect_uri: http://localhost:8765/auth/notion/callback
   # Einstellungen → Mailhelp neu starten lädt nach ausdrücklicher Bestätigung
   # gespeicherte Konfiguration und Zugangsdaten neu (Windows und Docker).
   # Einstellungen → Zugangsdaten bearbeitet einzelne Schlüssel in .env.

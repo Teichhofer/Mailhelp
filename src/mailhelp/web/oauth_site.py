@@ -27,6 +27,8 @@ class OAuthSite:
             ("GET", "/auth/google/start", self.google_start),
             ("POST", "/auth/google/start", self.start_google),
             ("GET", "/auth/microsoft", self.microsoft_start),
+            ("GET", "/auth/notion/start", self.notion_start),
+            ("POST", "/auth/notion/start", self.start_notion),
             ("POST", "/auth/microsoft/device", self.start_microsoft),
             ("GET", "/auth/microsoft/poll", self.progress),
             ("GET", r"/auth/status/(?P<identity>[a-f0-9]{64})", self.progress),
@@ -36,6 +38,7 @@ class OAuthSite:
             ("POST", "/auth/google/aufgabenlisten", self.choose_task_list)):
             site.app.route(method, path, site.signed_in(handler))
         site.app.route("GET", "/auth/google/callback", self.google_callback)
+        site.app.route("GET", "/auth/notion/callback", self.notion_callback)
 
     @staticmethod
     def _profile(request: Request) -> int:
@@ -64,7 +67,7 @@ class OAuthSite:
             revision = self.service.revision(profile, provider)
         except (ValueError, LookupError):
             return self.failed()
-        path = "/auth/google/start" if provider == "google" else "/auth/microsoft/device"
+        path = {"google": "/auth/google/start", "notion": "/auth/notion/start"}.get(provider, "/auth/microsoft/device")
         body = (f'<h1>{e(provider.title())} verbinden</h1><p>Zielprofil {profile}. '
                 'Clientdaten zuerst in den Zugangsdaten speichern. '
                 'Die Anmeldung erstellt keine Termine oder Aufgaben.</p>'
@@ -79,6 +82,12 @@ class OAuthSite:
     def microsoft_start(self, request: Request, session: WebSession) -> Response:
         return self._start_page(request, session, "microsoft")
 
+    def notion_start(self, request: Request, session: WebSession) -> Response:
+        return self._start_page(request, session, "notion")
+
+    def start_notion(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self._start(session, form, "notion")
+
     def start_google(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return self._start(session, form, "google")
 
@@ -90,11 +99,18 @@ class OAuthSite:
             job = self.service.start(provider, "web:" + session.id, int(form["profile"]), form["key"], form["revision"])
         except (ValueError, KeyError, PermissionError, LookupError):
             return self.failed()
-        if provider == "google":
+        if provider in {"google", "notion"}:
             return Response(303, headers={"Location": job.uri})
         return Response.redirect("/auth/status/" + job.id)
 
     def google_callback(self, request: Request) -> Response:
+        return self._callback(request, "google")
+
+    def notion_callback(self, request: Request) -> Response:
+        return self._callback(request, "notion")
+
+    def _callback(self, request: Request, provider: str) -> Response:
+        finish_label = "Google-Anmeldung abschließen" if provider == "google" else "Notion-Anmeldung abschließen"
         try:
             query = parse_qs(request.query, max_num_fields=6)
             identity = query["state"][0]
@@ -107,11 +123,12 @@ class OAuthSite:
             if session is None:
                 # SameSite=Strict cookies are intentionally absent on Google's cross-site return.
                 # A same-origin user click then carries the session; no token exchange happens here.
-                href = "/auth/google/callback?" + urlencode({"state": identity, "code": code})
-                return Response.html(200, layout("Google-Anmeldung abschließen",
+                href = f"/auth/{provider}/callback?" + urlencode({"state": identity, "code": code})
+                return Response.html(200, layout(finish_label,
                     '<h1>Zurück bei Mailhelp</h1><p>Die Anmeldung im ursprünglichen Browser abschließen.</p>'
-                    f'<a class="button" href="{e(href)}">Google-Anmeldung abschließen</a>', signed_in=False))
-            job = self.service.google_callback(identity, "web:" + session.id, code)
+                    f'<a class="button" href="{e(href)}">{finish_label}</a>', signed_in=False))
+            finish = self.service.google_callback if provider == "google" else self.service.notion_callback
+            job = finish(identity, "web:" + session.id, code)
         except (ValueError, KeyError, PermissionError, LookupError):
             return self.failed()
         return Response.redirect("/auth/status/" + job.id)
@@ -131,7 +148,10 @@ class OAuthSite:
                      f'<button type="button" data-copy-code="{e(job.user_code)}">Code kopieren</button>'
                      f'<p><a href="{e(job.uri)}" target="_blank" rel="noreferrer">'
                      'Bei Microsoft anmelden</a></p></section>')
-        if job.status == "done":
+        if job.status == "done" and job.provider == "notion":
+            body += ('<p>Notion-Anmeldung gespeichert.</p><p><a href="/einrichtung/start">Zur Einrichtung</a> · '
+                     f'<a href="/notion/datenquelle?profile={job.profile}">Notion-Datenquelle auswählen</a></p>')
+        elif job.status == "done":
             body += ('<p>Anmeldung gespeichert. Nach dem nächsten Neustart nutzt der Mailabruf die neuen Daten.</p>'
                      '<p><a href="/einrichtung/start">Zur Einrichtung</a> · '
                      f'<a href="/auth/google/kalender?profile={job.profile}">Google-Kalender auswählen</a> · '

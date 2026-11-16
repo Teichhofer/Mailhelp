@@ -51,7 +51,8 @@
         "provider": {
           "enum": [
             "google",
-            "microsoft"
+            "microsoft",
+            "notion"
           ],
           "title": "Provider",
           "type": "string"

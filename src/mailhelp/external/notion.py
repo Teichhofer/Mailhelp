@@ -25,6 +25,7 @@ from ..domain.proposal import Proposal, ProposalKind
 from ..llm.adapter import RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
 from .contracts import (
+    AccessTokenProvider,
     AuthenticationError,
     ExternalUncertain,
     IntegrationModel,
@@ -124,14 +125,17 @@ class NotionTasks(ProviderWriter):
 
     service, label, role = "notion", "Notion", "tasks"
 
-    def __init__(self, token: str, target: str, properties: NotionProperties, open_status: str = "",
+    def __init__(self, token: str | AccessTokenProvider, target: str, properties: NotionProperties,
+                 open_status: str = "",
                  done_statuses: tuple[str, ...] = (), timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
                  logger: EventLogger | None = None) -> None:
         self.target, self.fields, self.open_status = target, properties, open_status
         self.done_statuses = frozenset(done_statuses)
+        # An internal connection has a fixed token; a public one renews its OAuth grant (7.2.5).
+        self.token = token
         self.client = httpx.Client(base_url=API, timeout=timeout, transport=transport, follow_redirects=False,
-                                   headers={"Authorization": f"Bearer {token}", "Notion-Version": VERSION})
+                                   headers={"Notion-Version": VERSION})
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
         self._read_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
@@ -143,11 +147,14 @@ class NotionTasks(ProviderWriter):
     def _send(self, method: str, url: str, *, body: dict[str, Any] | None = None, key: str | None = None,
               allowed: frozenset[int] = frozenset()) -> httpx.Response:
         self.logger.event("DEBUG", self.service, "http_request", method=method, url=url, call_id=key)
-        response = self.client.request(method, url, json=body)
+        token = self.token if isinstance(self.token, str) else self.token.access_token()
+        response = self.client.request(method, url, json=body, headers={"Authorization": f"Bearer {token}"})
         if response.status_code in allowed:
             return response
         code = self._code(response)
         if response.status_code == 401:
+            if not isinstance(self.token, str):
+                self.token.invalidate()  # the next request renews the grant
             self.logger.event("ERROR", self.service, "authentication_failed", status=401)
             raise AuthenticationError(f"{self.label}: Notion hat das Token abgelehnt; Verbindung erneuern")
         if response.status_code in {403, 404}:

@@ -154,6 +154,9 @@ class Secrets(BaseModel):
     microsoft_refresh_token: SecretStr = SecretStr("")
     # 7.2: token of a Notion internal connection shared with the chosen data source.
     notion_token: SecretStr = SecretStr("")
+    # 7.2.5: a public Notion connection signed in through OAuth instead of an internal token.
+    notion_client_id: SecretStr = SecretStr("")
+    notion_client_secret: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
     profiles: dict[int, dict[str, SecretStr]] = Field(default_factory=dict)

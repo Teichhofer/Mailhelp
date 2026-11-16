@@ -143,3 +143,29 @@ Prüfung 7.2.4: 5 632 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung. Brows
 die Auswahl des Aufgabendienstes nennt jetzt Notion als sechsten Eintrag (Test angepasst, besteht).
 Unter Last scheiterten der bekannte Polling-Test nach abgelaufener Sitzung und der Zeittest der
 Live-Suche; beide bestanden danach zweimal einzeln.
+
+## 7.2.5 – Notion-OAuth mit rotierenden Tokens (P4)
+
+- Öffentliche Notion-Verbindung als Alternative zum festen Token: `NOTION_CLIENT_ID`,
+  `NOTION_CLIENT_SECRET` und `web.notion_redirect_uri` (HTTPS oder localhost, Pfad
+  `/auth/notion/callback`). **Notion verbinden** unter Zielprofile startet die Anmeldung
+  (`/auth/notion/start`) mit an Sitzung, Profil und Zugangsdatenrevision gebundenem Auftrag; die
+  Rückkehr (`/auth/notion/callback`) tauscht den Code genau einmal. Fehlt beim Rücksprung die
+  Sitzung, schließt erst ein Klick im ursprünglichen Browser ab.
+- Der Grant (Zugriffs- und Refresh-Token, Arbeitsbereich, Bot) liegt in `notion-token.json`
+  (`notion-token-<n>.json`) neben `.env`, nur für den Eigentümer lesbar, nie in `.env`, im
+  Auftragszustand oder in Logs. Notion rotiert den Refresh-Token bei jeder Erneuerung; das neue Paar
+  wird sofort gespeichert.
+- Erneuert wird erst, nachdem Notion einen Zugriff abgelehnt hat. Vorher liest Mailhelp die Datei
+  neu: Hat ein anderer Ablauf das Paar inzwischen rotiert, wird dieses genommen statt einen
+  verbrauchten Refresh-Token zu senden. Eine Erneuerung für einen anderen Arbeitsbereich oder Bot
+  wird abgelehnt. Fehlerantworten werden nie verkettet, damit kein Token in Meldungen gelangt.
+- Ohne festes Token nutzen Schreibziel und Auswahlseiten die Anmeldung. Fehlt beides, nennt
+  **Zugriffe prüfen** den Weg; beim Start wird für Notion kein Geheimnis mehr zwingend verlangt.
+- Der gespeicherte Auftragszustand (`OAuthJobs`) kennt den zusätzlichen Anbieterwert `notion`;
+  bestehende Dateien laden unverändert (Schema-Snapshot neu geschrieben).
+
+Prüfung 7.2.5: Der erste Lauf fand eine nicht abgedeckte Zeile (Erneuerung nach Ablehnung mit
+OAuth-Anmeldung); mit dem ergänzten Test 5 649 Python-Tests und 100 % Zeilen- und Branch-Abdeckung.
+Browser 931 bestanden; die bekannten Polling-Tests nach abgelaufener Sitzung und ein Push-Test
+scheiterten unter Last und bestanden danach zweimal einzeln.
