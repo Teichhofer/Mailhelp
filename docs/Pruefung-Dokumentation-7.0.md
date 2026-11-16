@@ -416,7 +416,7 @@ Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243**
 | `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | ja |
 | `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | ja |
 
-**24 Kommandozeilenoptionen** (`mailhelp --help`):
+**25 Kommandozeilenoptionen** (`mailhelp --help`):
 
 | Option | Bedeutung laut Hilfe |
 | --- | --- |
@@ -429,6 +429,7 @@ Erzeugt mit `python -m devtools.inventory`: **243 Einstellungen**, davon **243**
 | `--decision-test-laya` | EXPERIMENTELL: Relevanzprüfung des Ollama-Pfads im --decision-test mit dem Entscheidungsmodell Laya auf diesem Ollama-Server (/v1/systemone) |
 | `--decision-test-laya-model` | Laya-Modell für --decision-test-laya; überschreibt model aus laya_prompts.yaml |
 | `--decision-test-relevance-only` | im --decision-test ausschließlich die Relevanzprüfung beider Pfade vergleichen |
+| `--demo, -demo` | Demo-Modus mit vorbereiteten Beispieldaten in einem eigenen, leeren Verzeichnis starten |
 | `--google-auth` | Google-Anmeldung im lokalen Browser |
 | `--ignore-historical-start` | konfiguriertes imap.historical_start und den gespeicherten historischen Startpunkt für diesen Abruf aufheben |
 | `--learn` | ANZAHL Mails frei klassifizieren und Themen interaktiv im Terminal lernen |

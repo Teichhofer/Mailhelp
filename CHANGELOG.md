@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.1.1 – Demo-Modus: Startmodus und Verzeichnisgrenze
+
+- `mailhelp --demo` und `mailhelp -demo` starten eine Demo-Instanz; der Modus lässt sich mit keiner
+  anderen Option kombinieren.
+- Das Demo-Verzeichnis muss beim ersten Start leer sein und wird markiert; der normale Start lehnt
+  es ab, und die Demo lehnt jedes andere Verzeichnis ab.
+- Anmeldeseite mit Demo-Hinweis ohne Telegram-Code, Konsolenweg oder Passwort; Planung 7.1 und 7.2
+  aufgenommen.
+
 ## 7.0.16 – Abnahme von 7.0
 
 - Abnahme gegen die Kriterien der Planung 7.0: Zustandsdateien unverändert (gleiche Prüfsumme über

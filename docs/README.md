@@ -42,6 +42,8 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Planung 7.0](Planung-7.0.md) | Umbau des Codes und Prüfung der Dokumentation |
 | [Release 7.0](Release-7.0.md) | Stand und Nachweise der Patches von 7.0 |
 | [Lernmodus reparieren](Planung-Lernen.md) | Offener Plan zum Lernmodus in der Weboberfläche |
+| [Planung 7.1](Planung-7.1.md), [Release 7.1](Release-7.1.md) | Demo-Modus mit vorbereiteten Beispieldaten |
+| [Planung 7.2](Planung-7.2.md) | Notion und Google Tasks als Aufgabenziele |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

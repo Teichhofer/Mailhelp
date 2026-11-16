@@ -3,6 +3,18 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.1: Demo-Modus
+
+`mailhelp --demo` (gleichwertig `-demo`) startet eine Demo-Instanz; Plan: [docs/Planung-7.1.md](docs/Planung-7.1.md).
+Der Modus gilt für die ganze Prozesslaufzeit und lässt sich mit keiner anderen Option kombinieren.
+Das Laufzeitverzeichnis (`--config-directory`) muss beim ersten Start leer sein und erhält die
+Markierung `mailhelp-demo.json`; ein Verzeichnis mit anderen Dateien wird abgelehnt (Exitcode 2), und
+der normale Start lehnt ein Demo-Verzeichnis ebenso ab. Der Web-Schlüssel entsteht beim ersten Start
+in `demo-secret` (nur für den Eigentümer lesbar). Port, Adresse und zusätzliche Hostnamen kommen aus
+`MAILHELP_DEMO_PORT` (Standard 8765), `MAILHELP_DEMO_HOST` (Standard `127.0.0.1`) und
+`MAILHELP_DEMO_ALLOWED_HOSTS`. Die Demo erzeugt keine Clients für Postfach, Telegram, KI oder echte
+Ziele. Stand 7.1.1: Die Anmeldeseite zeigt den Demo-Hinweis; der Beispielbestand folgt.
+
 ## Ergänzung 7.0: Schichten, Typen und Skriptdateien
 
 Imports folgen den Schichten aus `tests/unit/test_layers.py`; jede Ausnahme ist dort mit Begründung

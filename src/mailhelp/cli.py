@@ -13,7 +13,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
-from .app import bootstrap
+from .app import bootstrap, demo
 from .app.composition import build_application, build_logger
 from .config import LOCAL_NUM_CTX, MailboxSettings, PromptConfig, Secrets, Settings, Topic, load_all, read_yaml
 from .config.loader import MissingConfiguration
@@ -129,6 +129,9 @@ ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {direct
                    "Die laufende Instanz zuerst beenden (Weboberfläche: Beenden, oder Strg+C in "
                    "ihrem Terminal) und Mailhelp dann erneut starten.")
 
+DEMO_DIRECTORY = ("{directory} ist ein Demo-Verzeichnis. Die Demo mit mailhelp --demo starten; "
+                  "für den normalen Betrieb ein eigenes Konfigurationsverzeichnis verwenden.")
+
 
 MISSING_CONFIGURATION = ("Konfigurationsdatei fehlt: {path}\n"
                          "Mailhelp erwartet config.yaml und prompts.yaml im Konfigurationsverzeichnis "
@@ -195,7 +198,20 @@ def main() -> int:
         return 1
 
 
+def _check_demo_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """7.1: the demo is a mode of its own; no other mode or option may change it."""
+    defaults = vars(parser.parse_args([]))
+    others = sorted("--" + name.replace("_", "-") for name, value in vars(args).items()
+                    if name not in {"demo", "config_directory"} and value != defaults[name])
+    if others:
+        parser.error("--demo lässt sich nicht mit anderen Optionen kombinieren: " + ", ".join(others))
+
+
 def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | None:
+    if demo.is_demo_directory(args.config_directory):
+        # 7.1: a demo directory is never opened as a production installation.
+        print(DEMO_DIRECTORY.format(directory=args.config_directory), file=sys.stderr)
+        return 2
     if args.pair:
         request_local_code(args.config_directory)
         return 0
@@ -239,6 +255,8 @@ def _parser() -> argparse.ArgumentParser:
         "--log-directory", type=Path,
         help="Logverzeichnis aus config.yaml für diesen Aufruf überschreiben",
     )
+    parser.add_argument("--demo", "-demo", action="store_true",
+                        help="Demo-Modus mit vorbereiteten Beispieldaten in einem eigenen, leeren Verzeichnis starten")
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
     parser.add_argument("--prepare-rollback", action="store_true",
@@ -531,17 +549,24 @@ def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics:
     return RESTART_EXIT_CODE if restart else 0
 
 
-def _main() -> int:
-    parser = _parser()
-    args = parser.parse_args()
+def _check_oauth_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.profile is not None and not (args.microsoft_login or args.google_auth):
         parser.error("--profile benötigt --google-auth oder --microsoft-login")
     if args.microsoft_login and args.google_auth:
         parser.error("Nur einen OAuth-Einrichtungsmodus wählen")
+
+
+def _main() -> int:
+    parser = _parser()
+    args = parser.parse_args()
+    _check_oauth_options(parser, args)
     _check_decision_test_options(parser, args)
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
+    if args.demo:
+        _check_demo_options(parser, args)
+        return demo.run_demo(args.config_directory, shutdown)
     early = _early_mode(args, shutdown)
     if early is not None:
         return early
