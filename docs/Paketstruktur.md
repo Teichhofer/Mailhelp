@@ -34,7 +34,7 @@ gebündelten Paketen `activity`, `config`, `domain`, `external`, `persistence`, 
 ## 3. Zielstruktur
 
 > Seit 7.0.4 gelten zusätzlich die Pakete `app` (Zusammenbau) und `support` (Infrastruktur) sowie die
-> Schichten aus `tests/unit/test_layers70.py`; Einzelheiten in [Release 7.0](Release-7.0.md). Dieses
+> Schichten aus `tests/unit/test_layers.py`; Einzelheiten in [Release 7.0](Release-7.0.md). Dieses
 > Dokument geht in 7.0.12 im neuen Architekturdokument auf.
 
 | Zielpaket | Zuständigkeit | Module (heute im Wurzelpaket) | Schritt |

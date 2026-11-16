@@ -29,7 +29,7 @@ class MailboxActivation(ConnectionActivation[MailboxSettings]):
         return keys.imap
 
     def probe(self, cfg: Settings, item: MailboxSettings, keys: Secrets) -> None:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..runtime.experience import _reader
         own = account_id(item.host, item.port, keys.imap[item.id].username)
         environment = self.runtime.environment()

@@ -36,7 +36,7 @@ def failure(orchestrator: Orchestrator, name: str, state: MailState, code: Proce
         text = "Mail wird nicht weiter versucht. " + text
         settings = getattr(orchestrator, "mailbox_settings", None)
         if settings is not None and settings.web.enabled:
-            # Late: against the layer direction, named in tests/unit/test_layers70.py.
+            # Late: against the layer direction, named in tests/unit/test_layers.py.
             from ..web.factory import base_url
             text += "\n" + base_url(settings) + "/mail/" + state.id
         error.notification_marked_at = None

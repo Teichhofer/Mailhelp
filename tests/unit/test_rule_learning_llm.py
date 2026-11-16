@@ -29,7 +29,7 @@ def test_the_optional_step_uses_the_active_route_without_invalidating_mail_analy
 
 
 def test_foreign_evidence_is_rejected_and_existing_repair_limits_and_guards_apply():
-    # 5.7.7: the model answers with changes only (see test_rule_changes577).
+    # 5.7.7: the model answers with changes only (see test_rule_changes).
     good = {"topic_id": "school", "category": "relevant", "action": "modify", "rationale": "Korrektur",
             "evidence": ["decision-1"], "changes": {"add_exclusions": ["Werbung"]}}
     bad = {**good, "evidence": ["foreign"]}

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "7.0.12"
+version = "7.0.13"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -55,12 +55,12 @@ do_not_mutate_patterns = ['^\s+def .*: \.\.\.$']
 pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider", "-m", "not (process or e2e)"]
 pytest_add_cli_args_test_selection = [
   "tests/unit/test_mutation_invariants.py", "tests/unit/test_core.py",
-  "tests/unit/test_validation_boundaries.py", "tests/unit/test_v13_domain.py",
+  "tests/unit/test_validation_boundaries.py", "tests/unit/test_domain.py",
   "tests/unit/test_mail_timestamps.py",
-  "tests/services/test_already_done.py", "tests/services/test_v42_responsiveness.py",
+  "tests/services/test_already_done.py", "tests/services/test_responsiveness.py",
   "tests/unit/test_lock_metrics.py",
-  "tests/unit/test_v43_counts.py", "tests/unit/test_v43_series_models.py",
-  "tests/services/test_v43_series.py", "tests/services/test_v43_series_recovery.py",
+  "tests/unit/test_counts.py", "tests/unit/test_series_models.py",
+  "tests/services/test_series.py", "tests/services/test_series_recovery.py",
 ]
 # Project files that tests read relative to the repository root.
 also_copy = [

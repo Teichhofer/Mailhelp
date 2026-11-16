@@ -330,7 +330,7 @@ class LlmConnection(ConfigModel):
     @field_validator("ollama_address")
     @classmethod
     def valid_address(cls, value: str) -> str:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..llm.ollama import parse_address
         value = value.removeprefix("http://").removesuffix("/")
         parse_address(value)

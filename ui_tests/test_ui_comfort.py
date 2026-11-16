@@ -118,7 +118,7 @@ def test_immediate_phone_actions_keep_the_thumb_zone_and_allow_another_card(page
     first = page.locator(f"#v-{mail_id(1)}-elternabend .actions")
     # 6.9 U2: title first. A bar sticking to the bottom edge would slide over the title while the card
     # scrolls in, so on the list it stands directly below title and sender (the first decision staying in
-    # the upper part of the window is checked in test_ui_open_mobile628).
+    # the upper part of the window is checked in test_ui_open_mobile).
     assert first.evaluate("(node) => getComputedStyle(node).position") == "static"
     card = page.locator(f"#v-{mail_id(1)}-elternabend").bounding_box()
     assert first.bounding_box()["y"] - card["y"] < 160

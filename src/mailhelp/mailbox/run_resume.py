@@ -183,7 +183,7 @@ def resume_pending(service: MailboxRunService, budget: _MailBudget | None = None
                 continue
             if state.awaiting_relevance:
                 continue
-            # Late: against the layer direction, named in tests/unit/test_layers70.py.
+            # Late: against the layer direction, named in tests/unit/test_layers.py.
             from ..processing.retry import blocked
             fingerprint = state.config_fingerprint
             active = getattr(service.orchestrator, "fingerprint_for", lambda _, fp=fingerprint: fp)(

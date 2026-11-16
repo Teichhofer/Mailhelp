@@ -394,7 +394,7 @@ class Analyzer:
                       settings: list[dict[str, str]], *,
                       before_call: Callable[[], None] = lambda: None) -> tuple[str, Any]:
         """5.3: an answer from the given help sections only, over the active model path."""
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..helpdocs import HelpAnswer, answer_validator
         payload = {"question": question, "history": history, "settings": settings,
                    "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}

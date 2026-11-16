@@ -13,7 +13,7 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 FAST = "not (slow or process or e2e)"
-LATENCY_TESTS = ("tests/services/test_v42_load.py", "tests/services/test_v441_load.py")
+LATENCY_TESTS = ("tests/services/test_load_action_start.py", "tests/services/test_load_result_latency.py")
 
 
 def commands(task: str, workers: str, tests: list[str] | None = None) -> list[list[str]]:

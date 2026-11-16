@@ -351,7 +351,7 @@ class ConfigurationService:
         if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
             candidate = apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
             if "target_profiles" in command.patch:
-                # Late: against the layer direction, named in tests/unit/test_layers70.py.
+                # Late: against the layer direction, named in tests/unit/test_layers.py.
                 from ..proposals.profile_usage import profile_references
                 proposed = {item["id"] for item in candidate["target_profiles"]}
                 for profile in raw.get("target_profiles", []):
@@ -465,7 +465,7 @@ class ConfigurationService:
                                 message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def clear_local_draft(self, command: AdminCommand) -> None:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..runtime.setup import SetupState
         draft = self.store.load_model("setup-state", SetupState)
         # Setup drafts (mailboxes, IServ accounts, profiles) share kind "settings"; once approved they

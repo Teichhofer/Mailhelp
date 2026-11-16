@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.0.13 – Testdateien nach Thema
+
+- 185 Testdateien mit Versionsnummer im Namen nach ihrem Thema umbenannt (`git mv`); Verweise in
+  Prüfwerkzeug, mutmut-Auswahl und Spezifikation nachgezogen.
+- Die drei größten Testdateien (bis 2 336 Zeilen) in 18 Themendateien geteilt.
+- Gesammelte Tests vorher und nachher eins zu eins gleich (5 345 Python-, 1 136 Browsertests).
+
 ## 7.0.12 – Frontend nach Bereichen
 
 - `app.js` in sechs Dateien geteilt (`app.js`, `open-list.js`, `dialogs.js`, `push.js`, `settings.js`,

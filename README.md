@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.12 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.13 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.13 benennt die Testdateien nach Thema statt nach Version und teilt die drei größten Testdateien; die Tests selbst bleiben dieselben.
+
+Geplant: [Version 7.2 – Notion und Google Tasks](docs/Planung-7.2.md) als zusätzliche
+Aufgabenziele mit ausdrücklicher Freigabe, Einrichtung und sicherem Schreibabgleich.
+Die Planung ist noch nicht implementiert.
 
 7.0.12 teilt das Skript der Weboberfläche in sechs Dateien nach Bereichen und entfernt ungenutzte Stilregeln; Darstellung und Verhalten bleiben gleich.
 

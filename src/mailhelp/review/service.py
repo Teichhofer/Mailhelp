@@ -321,7 +321,7 @@ class ReviewService:
         return command_reconciliation._reconcile_proposal(self, command)
 
     def _decide(self, command: ReviewCommand) -> ReviewResult:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..telegram.callbacks import Decision, DecisionAction
 
         if command.source == CommandSource.WEB:
@@ -344,7 +344,7 @@ class ReviewService:
         return ReviewResult(status=status, message=message)
 
     def _relevance(self, command: ReviewCommand) -> ReviewResult:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..telegram.callbacks import RelevanceDecision
 
         assert command.decision is not None
@@ -439,7 +439,7 @@ class ReviewService:
         return ReviewResult(status=ResultStatus.DONE, message=_DONE_MESSAGES[command.kind])
 
     def _cancel(self, command: ReviewCommand) -> ReviewResult:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..telegram.commands import TelegramCommands
 
         proposal = self._target(command)

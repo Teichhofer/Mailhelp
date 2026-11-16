@@ -54,7 +54,7 @@ Umgebung) und im Wurzelverzeichnis `irrelevant-senders.json`, `irrelevant-sender
 `spec-audit-coverage.json`. Die Dateien liegen weiter auf der Festplatte; die Git-Historie ist
 unverändert. Kein Test, kein Paketbau und keine Konfiguration las eine davon; die CI legt
 `irrelevant-senders.json` für den Containertest weiterhin aus `tests/fixtures` an.
-`tests/release/test_repository_scope70.py` verhindert, dass sie wieder versioniert werden.
+`tests/release/test_repository_scope.py` verhindert, dass sie wieder versioniert werden.
 
 **Hinweis Datenschutz.** Die beiden Dateien `irrelevant-senders.json*` enthielten rund 54 echte
 Absenderadressen und liegen in früheren Commits auf GitHub. Entfernen aus der Historie wäre ein
@@ -84,7 +84,7 @@ Betreibers.
 
 ## 7.0.4 – Schichten und späte Importe (R3, R4)
 
-**Schichten.** `tests/unit/test_layers70.py` legt die Richtung der Importe fest, von unten nach
+**Schichten.** `tests/unit/test_layers.py` legt die Richtung der Importe fest, von unten nach
 oben: Basis (`domain`, `text`, `state_names`, `paths`, `formatting`, `log_reduction`) →
 Infrastruktur (`logging`, `persistence`, `support`) → `config` → Adapter (`external`, `llm`) →
 `mailbox`, `proposals` → Dienste (`processing`, `review`, `rule_learning`, `notifications`,
@@ -275,7 +275,7 @@ entfernte ruff einen ungenutzten Import in `web/proposal_evaluation_site.py` (Be
 importieren aus dem neuen Modul. Ein Test zur Auflösung von Vorwärtsverweisen nutzte als Beispiel ein
 Modell, das jetzt in einem anderen Modul als `Settings` liegt; er nutzt jetzt `ImapCredentials`.
 
-**Grenzwerte.** `tests/unit/test_limits70.py`: keine Funktion über 80 Zeilen (vorher 16, längste 179),
+**Grenzwerte.** `tests/unit/test_limits.py`: keine Funktion über 80 Zeilen (vorher 16, längste 179),
 höchstens 10 Parameter. Zerlegt wurden noch `cli._parser` (91 Zeilen, jetzt nach Optionsgruppen) und
 `llm/evaluation.evaluate` (87 Zeilen). `_build_orchestrator` erhält die Analysekonfiguration als
 unveränderliche Datenklasse. 19 Funktionen bleiben benannte Ausnahmen mit Begründung: Konstruktoren,
@@ -358,4 +358,39 @@ Scrollen. Inhalt und Anordnung sind gleich.
 
 Prüfung: 5 342 Python-Tests mit voller Abdeckung, 922 Browsertests, JavaScript-Abdeckung 100 % der
 Blöcke in allen zehn Skripten.
+
+## 7.0.13 – Testdateien nach Thema (D11; R6)
+
+**Umbenannt.** 185 Testdateien trugen eine Versionsnummer im Namen (`test_v43_series.py`,
+`test_ui_swipe69.py`, `test_layers70.py`). Sie heißen jetzt nach ihrem Thema (`test_series.py`,
+`test_ui_swipe_tracking.py`, `test_layers.py`). Umbenannt wurde mit `git mv`, sodass die Historie
+jeder Datei erhalten bleibt. Angepasst sind die Verweise in `devtools/check.py` (Lasttests), der
+Testauswahl von `[tool.mutmut]`, `tests/release/test_quality_commands.py`, der Spezifikation,
+`docs/Paketstruktur.md` und den Quellcode-Kommentaren zu den Schichtausnahmen. Verlaufsdokumente
+(CHANGELOG, frühere Pläne und Berichte) nennen weiter die damaligen Namen.
+
+**Abweichung: genauer benannt statt zusammengeführt.** Wo zwei Dateien denselben Themennamen
+bekommen hätten (zum Beispiel `test_ui_swipe63.py` und `test_ui_swipe69.py`) oder der Name ohne
+Version kein Thema mehr nannte (`test_ui_v20.py`), steht jetzt ein genauerer Name aus dem Docstring
+der Datei: `test_ui_swipe_decide.py` / `test_ui_swipe_tracking.py`, `test_ui_comfort.py`,
+`test_load_action_start.py` / `test_load_store_lock.py` / `test_load_result_latency.py`.
+Zusammenführen hätte gleichnamige Hilfsfunktionen auf Modulebene kollidieren lassen, ohne für die
+Prüfung etwas zu gewinnen. Alle Basisnamen bleiben projektweit eindeutig; das ist nötig, weil die
+Testordner keine Pakete sind.
+
+**Geteilt.** Die drei größten Dateien sind nach Themen in zusammenhängende Blöcke geteilt. Die
+Reihenfolge innerhalb jedes Blocks ist unverändert, die Importe sind auf das Nötige reduziert:
+
+| Vorher | Zeilen | Nachher |
+| :--- | ---: | :--- |
+| `tests/telegram/test_telegram_dialog.py` | 2 336 | `test_telegram_temporal_answers`, `_persistence`, `_cards`, `_answers`, `_client_api`, `_confirmation` |
+| `tests/services/test_services.py` | 2 187 | `test_analyzer_core`, `test_analyzer_prompts`, `test_analyzer_revisions`, `test_service_integrations`, `test_orchestrator_flow`, `test_calendar_duplicates`, `test_reasoning_budgets` |
+| `tests/services/test_application.py` | 1 920 | `test_mailbox_run_queue`, `test_mailbox_checkpoints`, `test_run_relevance_wait`, `test_run_resume_summary`, `test_composition_startup` |
+
+Die größte Testdatei hat jetzt 1 037 Zeilen (`tests/services/test_experience.py`), vorher 2 336.
+
+**Nachweis.** Vorher und nachher wurden die gesammelten Tests verglichen. Nach dem Umbenennen
+entsprechen sich alle 5 345 Python- und 1 136 Browsertests eins zu eins (alter Pfad über die
+Zuordnung auf den neuen abgebildet). Nach dem Teilen sind die Test-IDs ohne Dateipfad dieselben
+5 345, keine fehlt und keine ist doppelt.
 

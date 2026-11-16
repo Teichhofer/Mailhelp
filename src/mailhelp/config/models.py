@@ -97,7 +97,7 @@ class Settings(ConfigModel):
 
     @model_validator(mode="after")
     def valid_mailbox_policies(self) -> Settings:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..mailbox.mailbox_settings import validate_policies
         validate_policies(self)
         return self
@@ -162,7 +162,7 @@ class Secrets(BaseModel):
         return self.imap[mailbox_id]
 
     def for_profile(self, profile_id: int) -> Secrets:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..proposals.target_profiles import profile_secrets
         return profile_secrets(self, profile_id)
 

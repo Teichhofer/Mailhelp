@@ -1,7 +1,7 @@
 """4.4: every script path of card polling, the progress page and form submission.
 
 Paths that end in a navigation abort it, so the document and its script coverage stay
-(see test_ui_v20.test_script_steps_that_end_in_a_navigation).
+(see test_ui_comfort.test_script_steps_that_end_in_a_navigation).
 """
 from playwright.sync_api import expect
 

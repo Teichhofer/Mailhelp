@@ -140,7 +140,7 @@ def iserv_secret_values(iserv: IServSettings, env: dict[str, str]
 
 def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]]) -> None:
     """Two mailboxes with the same server, port and user would share their whole processing state."""
-    # Late: against the layer direction, named in tests/unit/test_layers70.py.
+    # Late: against the layer direction, named in tests/unit/test_layers.py.
     from ..mailbox.imap import account_id
     seen: dict[str, int] = {}
     for mailbox in imap.enabled_mailboxes():
@@ -168,10 +168,10 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     credentials, missing = imap_secret_values(settings.imap, env)
     iserv, absent_iserv = iserv_secret_values(settings.iserv, env)
     missing += absent_iserv
-    # Late: against the layer direction, named in tests/unit/test_layers70.py.
+    # Late: against the layer direction, named in tests/unit/test_layers.py.
     from ..mailbox.mailbox_settings import active_profiles
 
-    # Late: against the layer direction, named in tests/unit/test_layers70.py.
+    # Late: against the layer direction, named in tests/unit/test_layers.py.
     from ..proposals.target_profiles import load_profile_secrets
     used = active_profiles(settings)
     names = [
@@ -183,7 +183,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     missing += absent
     missing += [name for name in names if not env.get(name)]
     if oauth_profile is not None:
-        # Late: against the layer direction, named in tests/unit/test_layers70.py.
+        # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..proposals.target_profiles import secret_name
         refresh = ("GOOGLE_OAUTH_REFRESH_TOKEN" if oauth_profile == 1
                    else secret_name("GOOGLE_OAUTH_REFRESH_TOKEN", oauth_profile))
@@ -199,7 +199,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     values["iserv"] = iserv
     values["profiles"] = profile_values
     _distinct_accounts(settings.imap, credentials)
-    # Late: against the layer direction, named in tests/unit/test_layers70.py.
+    # Late: against the layer direction, named in tests/unit/test_layers.py.
     from ..proposals.target_profiles import PROVIDER_FIELDS
     values.update({name: env[name.upper()] for name in PROVIDER_FIELDS if env.get(name.upper())})
     if settings.web.enabled:
@@ -212,7 +212,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     secrets = Secrets.model_validate(values)
     # Only analysis-relevant settings: operational changes (web, polling, logging,
     # retention, timeouts, metrics) must not hold back mails that are running.
-    # Late: against the layer direction, named in tests/unit/test_layers70.py.
+    # Late: against the layer direction, named in tests/unit/test_layers.py.
     from ..llm.fingerprints import config_fingerprint
     fingerprint = config_fingerprint(settings, prompts, topics)
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint

@@ -3348,7 +3348,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   alle 0,1 s ab, danach alle 0,5 s.
 - **Zielwert:** Vom Absenden bis zum sichtbaren Ergebnis in der Übersicht vergehen bei
   2.000 Mails und 500 Vorschlägen im Median weniger als 0,5 s
-  (`tests/services/test_v441_load.py`).
+  (`tests/services/test_load_result_latency.py`).
 
 ## Ergänzungen Version 4.5
 

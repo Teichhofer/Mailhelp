@@ -25,7 +25,7 @@ def test_quality_commands_use_the_running_interpreter_and_enforce_full_coverage(
 
 def test_full_runs_latency_acceptance_separately_without_parallel_coverage_overhead():
     commands = check.commands("full", "8")
-    for path in ("tests/services/test_v42_load.py", "tests/services/test_v441_load.py"):
+    for path in ("tests/services/test_load_action_start.py", "tests/services/test_load_result_latency.py"):
         assert "--ignore=" + path in commands[1]
         assert path in commands[2]
     assert "--no-cov" in commands[2] and "-n" not in commands[2]
