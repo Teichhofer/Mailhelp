@@ -8,7 +8,7 @@ from collections.abc import Callable
 from importlib.resources import files
 
 from .http import Request, Response, rejected
-from .pages import ASSET_URLS
+from .pages import ASSET_URLS, PAGE_SCRIPTS
 
 Route = Callable[..., Response]
 
@@ -16,6 +16,11 @@ Route = Callable[..., Response]
 STATIC_FILES = {
     "app.css": "text/css; charset=utf-8",
     "app.js": "text/javascript; charset=utf-8",
+    "open-list.js": "text/javascript; charset=utf-8",
+    "dialogs.js": "text/javascript; charset=utf-8",
+    "push.js": "text/javascript; charset=utf-8",
+    "settings.js": "text/javascript; charset=utf-8",
+    "help.js": "text/javascript; charset=utf-8",
     "setup.js": "text/javascript; charset=utf-8",
     "topics.js": "text/javascript; charset=utf-8",
     "learning.js": "text/javascript; charset=utf-8",
@@ -48,7 +53,7 @@ class WebApp:
         # (update, branch switch of an editable install).
         self.assets = {name: static_file(name) for name in (*STATIC_FILES, *ROOT_FILES)}
         self.asset_urls = {name: f"/static/{name}?v={hashlib.sha256(self.assets[name]).hexdigest()[:16]}"
-                           for name in ("app.css", "app.js")}
+                           for name in ("app.css", *PAGE_SCRIPTS)}
         # Without a new cache name a cache-first worker kept serving an outdated stylesheet forever.
         version = hashlib.sha256(b"\0".join(self.assets[name] for name in SHELL_FILES)).hexdigest()[:16]
         self.assets["sw.js"] = self.assets["sw.js"].replace(SHELL_VERSION, version.encode())

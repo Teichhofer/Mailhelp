@@ -312,3 +312,50 @@ Meldungen und sind nicht Teil von R8; sie wegzulassen hätte die Prüfung des Ke
 **Nebenbei.** Vier Zeilen über 120 Zeichen aus den Verschiebungen von 7.0.9 umbrochen;
 `ExperienceRuntime.__init__` wieder unter 80 Zeilen. Ruff meldet 27 Befunde (7.0.10: 29).
 
+## 7.0.12 – Frontend nach Bereichen (D10; R7)
+
+**Skripte.** `app.js` (1 593 Zeilen) ist in sechs Dateien geteilt, die jede Seite ohne Bündler in
+fester Reihenfolge mit `defer` lädt (`PAGE_SCRIPTS` in `web/pages.py`): `app.js` (Verbindung,
+Formularsperre, fixierte Leisten; 178 Zeilen), `open-list.js` (Offen-Liste, Hintergrundabgleich,
+Kartenaktionen und Wischgeste; 600), `dialogs.js` (Dialoge, Diagrammdetails, Tastenkürzel,
+Schnellfilter, Bildvorschau, Entwurf kopieren; 207), `push.js` (206), `settings.js`
+(Seitenleiste, Einstellungslinks, Live-Suche; 125) und `help.js` (Hilfefenster; 303). Die Reihenfolge
+entspricht der bisherigen Reihenfolge im Quelltext. Damit bleiben die Reihenfolge der Ereignis-Handler
+und die Reihenfolge der in die Kopfleiste eingefügten Knöpfe gleich. `dialogs.js` liest den Zustand
+der Offen-Liste über `window.MailhelpOpen`; Ausschnitt und Auswahl sind dort Getter, weil sie sich
+zur Laufzeit ändern. Jede Datei hat einen eigenen Hash in ihrer Adresse, sodass der Browser nach
+einer Aktualisierung jede geänderte Datei neu lädt. Der Service Worker speichert wie bisher nur
+`offline.html`, `app.css` und die Symbole; Skripte gehören nicht zu seinem Cache. Die
+JavaScript-Abdeckung der Browsersuite umfasst alle neuen Dateien und bleibt bei 100 % der Blöcke.
+
+**Abweichung: Wischgeste nicht getrennt.** Offen-Liste und Wischgeste rufen sich gegenseitig auf,
+auch aus Rückrufen laufender Statusabfragen. Getrennte Dateien hätten zwischen dem Ausführen beider
+Dateien eine Lücke gelassen, in der eine Antwort auf noch nicht geladene Funktionen trifft. Beide
+bleiben daher in `open-list.js`.
+
+**Stylesheet.** Die Nutzung jeder Regel wurde einmalig über die ganze Browsersuite gemessen
+(Chrome-DevTools `CSS.startRuleUsageTracking`, alle Geräteprofile). Von 752 Regeln griffen 60 auf
+keiner Seite. Jede davon wurde gegen den Quelltext geprüft. Entfernt sind die sechs Regeln, deren
+Klassen nirgends mehr erzeugt werden: `.filter-box` (seit 6.2.6 ungenutzt), `.model-overview` und
+`.rule-select` (seit 6.0.4). Die übrigen 54 bleiben. Ihre Klassen entstehen zur Laufzeit
+(`share-…` der Ablaufbalken, `help-top-left` aus gespeicherten Fensterpositionen) oder sie gelten
+für Zustände, die die Suite nicht herstellt (dunkles Farbschema, Hover, seltene Ergebnisse).
+
+**Abweichung: keine Umsortierung.** `app.css` wird nicht nach Bereichen umsortiert. Bei gleicher
+Spezifität entscheidet die Reihenfolge, welche Regel gilt. Eine Umsortierung hätte daher die
+Darstellung ändern können, ohne dass ein Test es zuverlässig bemerkt.
+
+**Eingefrorene Seiten.** Die Vergleichsdateien in `tests/golden/output` enthalten die Adressen von
+Stylesheet und Skripten samt Hash. Sie wurden neu geschrieben. Der Unterschied besteht nur aus den
+fünf neuen Skriptzeilen und den geänderten Hashes; sonst ist jede Seite byte-gleich.
+
+**Bildschirmfotos.** Alle 525 Bildschirmfotos der Browsersuite wurden pixelweise mit einem Lauf von
+7.0.11 (eigener Worktree) verglichen. Zwei Läufe desselben Stands unterscheiden sich bereits in 91
+Bildern (Uhrzeiten, Zeitpunkt von Animationen). Zehn Bilder weichen nur gegenüber 7.0.12 ab; alle
+zehn wurden angesehen. Die Unterschiede liegen in der Kantenglättung gedrehter Karten mitten in der
+Wischgeste, im Schatten eines gerade eingeblendeten Hinweises und in der Lage der festen Leiste beim
+Scrollen. Inhalt und Anordnung sind gleich.
+
+Prüfung: 5 342 Python-Tests mit voller Abdeckung, 922 Browsertests, JavaScript-Abdeckung 100 % der
+Blöcke in allen zehn Skripten.
+

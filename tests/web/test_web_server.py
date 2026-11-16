@@ -275,8 +275,8 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
             assert "Code " in sent[-1][1] and sent[-1][0] == cfg.telegram.chat_id
 
 
-@pytest.mark.parametrize("name", ["app.css", "app.js", "icon-192.png", "icon-512.png",
-                                  "icon-maskable-512.png"])
+@pytest.mark.parametrize("name", ["app.css", "app.js", "open-list.js", "dialogs.js", "push.js", "settings.js",
+                                  "help.js", "icon-192.png", "icon-512.png", "icon-maskable-512.png"])
 def test_static_application_files_are_served_from_the_package(name):
     response = get(WebApp([HOST]), f"/static/{name}")
     assert response.status == 200 and response.cache == "no-cache" and response.body

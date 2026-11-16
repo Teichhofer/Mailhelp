@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.0.12 – Frontend nach Bereichen
+
+- `app.js` in sechs Dateien geteilt (`app.js`, `open-list.js`, `dialogs.js`, `push.js`, `settings.js`,
+  `help.js`), die jede Seite in der bisherigen Reihenfolge lädt; jede Datei mit eigenem Hash.
+- Sechs Stilregeln entfernt, deren Klassen nirgends mehr erzeugt werden (gemessen über die ganze
+  Browsersuite und einzeln gegen den Quelltext geprüft).
+- JavaScript-Abdeckung weiterhin 100 % der Blöcke in allen Dateien.
+
 ## 7.0.11 – Vollständige Typangaben im ganzen Paket
 
 - `disallow_untyped_defs`, `disallow_incomplete_defs` und `disallow_untyped_calls` gelten in

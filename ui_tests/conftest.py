@@ -36,7 +36,8 @@ from pages import Overview  # noqa: E402
 from tests.scenarios.web_scenario import Revisions, populate  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
-COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js", "setup.js", "topics.js", "learning.js")
+COVERED_SCRIPTS = tuple(name for name in ("app.js", "open-list.js", "dialogs.js", "push.js", "settings.js", "help.js",
+                                         "sw.js", "setup.js", "topics.js", "learning.js")
                         if (STATIC / name).exists())
 DEVICES = {
     "desktop": dict(viewport={"width": 1366, "height": 900}),

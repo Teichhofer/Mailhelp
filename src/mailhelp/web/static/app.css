@@ -673,9 +673,6 @@ table { width: 100%; border-collapse: collapse; background: var(--surface); }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
 
-.filter-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 14px; }
-.filter-box[open] { padding-bottom: 12px; }
-
 /* Help stays outside the edit disclosure: reading it never opens or submits a form. */
 .setting-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 4px; align-items: start; }
 .setting-help { position: relative; display: inline-block; font-size: var(--text-s); font-weight: normal; }
@@ -722,10 +719,6 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .card-context[open] { padding-bottom: 8px; }
 .count { font-size: var(--text-s); line-height: 1.8; padding: 0 10px; vertical-align: middle; letter-spacing: 0; }
 .settings-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
-.model-overview { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 0 16px; margin: 0 0 20px; }
-.model-overview > summary { font-weight: 600; color: var(--text); }
-.model-overview[open] { padding-bottom: 16px; }
 .settings-layout { display: grid; gap: 24px; align-items: start; }
 .settings-values { min-width: 0; }
 .settings-index { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
@@ -1120,8 +1113,6 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
 }
 .rule-summary ol { margin: .5rem 0 0; padding-left: 1.3rem; }
 .rule-review { scroll-margin-top: 1rem; }
-.rule-select { display: flex; gap: .5rem; align-items: center; font-weight: 600; margin: .25rem 0 .75rem;
-  padding: .55rem .75rem; border: 1px solid var(--accent); border-radius: var(--radius-s); background: var(--accent-soft); }
 .rule-evidence { margin: .5rem 0 1rem; }
 .rule-evidence > summary { font-weight: 600; cursor: pointer; }
 .rule-evidence ul { padding-left: 1.1rem; }

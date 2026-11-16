@@ -43,7 +43,7 @@ def test_cdp_utf16_offsets_after_an_emoji_map_to_exact_characters(tmp_path, monk
 
 @pytest.mark.parametrize("suffix", ["", "?v=synthetic"])
 def test_cdp_offsets_preserve_windows_line_endings(suffix):
-    source = (STATIC / "app.js").read_bytes().decode("utf-8")
+    source = (STATIC / "open-list.js").read_bytes().decode("utf-8")
     start = source.index("polling.delete(url)")
     expected_line = source.count("\n", 0, start) + 1
     units = lambda text: len(text.encode("utf-16-le")) // 2
@@ -52,7 +52,7 @@ def test_cdp_offsets_preserve_windows_line_endings(suffix):
         {
             "result": [
                 {
-                    "url": "http://localhost/static/app.js" + suffix,
+                    "url": "http://localhost/static/open-list.js" + suffix,
                     "functions": [
                         {
                             "ranges": [
@@ -69,4 +69,4 @@ def test_cdp_offsets_preserve_windows_line_endings(suffix):
             ]
         }
     )
-    assert coverage.uncovered()["app.js"] == [expected_line]
+    assert coverage.uncovered()["open-list.js"] == [expected_line]

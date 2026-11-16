@@ -56,6 +56,8 @@ MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 # Open decisions of the current request, set once by the session guard (5.0.1).
 OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
 ASSET_URLS: ContextVar[Mapping[str, str]] = ContextVar("asset_urls", default=MappingProxyType({}))
+# 7.0.12: the page scripts by area; deferred, so they run in this order after parsing.
+PAGE_SCRIPTS = ("app.js", "open-list.js", "dialogs.js", "push.js", "settings.js", "help.js")
 # 5.3.12: whether the current request shows the floating help chat button (settings pages).
 HELP_BUTTON: ContextVar[bool] = ContextVar("help_button", default=False)
 HELP_WINDOW: ContextVar[Callable[[], str] | None] = ContextVar("help_window", default=None)
@@ -121,6 +123,11 @@ def page_head(title: str, section: str, intro: str = "", *, count: str = "",
             + (f'<p class="page-intro">{e(intro)}</p>' if intro else "") + "</div>")
 
 
+def _scripts() -> str:
+    urls = ASSET_URLS.get()
+    return "\n".join(f'<script src="{urls.get(name, "/static/" + name)}" defer></script>' for name in PAGE_SCRIPTS)
+
+
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
            refresh: int | None = None, fingerprint: str | None = None,
            state_url: str | None = None, before: str = "", after: str = "", wide: bool = False) -> str:
@@ -154,7 +161,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mailhelp">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<script src="{ASSET_URLS.get().get('app.js', '/static/app.js')}" defer></script>
+{_scripts()}
 </head>
 <body class="{"app-shell" if signed_in else "guest-shell"}"{data}>
 <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
