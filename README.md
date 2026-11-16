@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.0.13 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.0.14 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.0.14 verschiebt abgeschlossene Pläne und Berichte nach `docs/archiv/`, ergänzt ein Inhaltsverzeichnis der Dokumentation (`docs/README.md`) und ein aktuelles Architekturdokument (`docs/Architektur.md`).
 
 7.0.13 benennt die Testdateien nach Thema statt nach Version und teilt die drei größten Testdateien; die Tests selbst bleiben dieselben.
 
@@ -60,7 +62,7 @@ begrenzter Neigung und Schwung. Eine ausgelöste Karte fliegt zu einem Ergebniss
 Ablehnungen holen sie zurück, unterbrochene Antworten werden weiter geprüft.
 Titel und Absender stehen vor den Schaltflächen, Zähler aktualisieren sich direkt,
 und eine einmalige sanfte Bewegung zeigt die Geste. Die Einstellung „Weniger Bewegung“
-wird berücksichtigt. [Umsetzung und Geräteabnahme 6.9](docs/Release-6.9.md).
+wird berücksichtigt. [Umsetzung und Geräteabnahme 6.9](docs/archiv/Release-6.9.md).
 
 6.8.2 zeigt den Web-Push-Zustand in neun Stufen und bietet einen neutralen Test
 für das angemeldete Gerät. Schlüsselwechsel, Anbieterablehnungen und fehlende
@@ -68,24 +70,24 @@ Postfachkanäle lassen sich gezielt erkennen und beheben. Eigene Änderungen und
 bereits offene Vorschläge erzeugen beim Aktivieren keine neue Meldung.
 Bestehende Profile benötigen eine ausdrückliche Bestätigung zur Kanaländerung.
 Hinweise für die installierte iOS-Web-App und die noch offene Geräteabnahme:
-[Release 6.8](docs/Release-6.8.md).
+[Release 6.8](docs/archiv/Release-6.8.md).
 
 6.7.5 verwendet für Lernhinweise bereits geprüfte, unveränderte Zustände erneut.
 Neue Entscheidungen und außerhalb von Mailhelp geänderte Dateien werden weiterhin erkannt.
 
-6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/Release-6.7.md)):
+6.7 schließt offene Punkte der Bedienung ab ([Release 6.7](docs/archiv/Release-6.7.md)):
 - Verständlicher Vorschlagsabgleich: Schaltflächen heißen „Zu diesem Eintrag hinzufügen“ und „Als eigenen Vorschlag behalten“, mit klaren Erklärsätzen zum weiteren Ablauf. Nur noch von Mailhelp vorgelegte Zuordnungen heben eine Schaltfläche hervor.
 - Passender Wischgesten-Tipp: Kurzer Hinweis unter der ersten Karte mit einmaligem Anstupsen („relevant / irrelevant“ bei Relevanzfragen, „zum Anlegen / zum Verwerfen“ bei Vorschlägen).
 - Neu gegliederte Alltagsanleitung (`docs/Bedienung.md`): Orientiert am täglichen Arbeitsablauf (Entscheiden, Klären, Abgleich, Kontrolle, Verlauf, Lernen), frei von Versionsfloskeln im Fließtext und mit deterministischem Hilfeindex.
 - Fristzeile in Telegram: Zusammenfassungen enthalten künftige Fristen als kompakte Abschlusszeile (`Fristen: ...`).
 
-6.6 ermöglicht das Wiederentfernen versehentlich angelegter Termine und Aufgaben ([Release 6.6](docs/Release-6.6.md)):
+6.6 ermöglicht das Wiederentfernen versehentlich angelegter Termine und Aufgaben ([Release 6.6](docs/archiv/Release-6.6.md)):
 - Angelegte Einträge können innerhalb eines konfigurierbaren Zeitfensters (Standard 10 Minuten, `targets.removal_window_minutes`) im Web und über Telegram wieder entfernt werden.
 - Strenger zweistufiger Bestätigungsablauf im Web (Bestätigungsseite mit Prüfdetails) und in Telegram (Inline-Rückfrage mit „Ja, entfernen“ / „Abbrechen“).
 - Kontrollabruf und Schutz vor Datenverlust: Wurde der Eintrag beim externen Anbieter zwischenzeitlich bearbeitet, wird er nicht gelöscht.
 - Wieder entfernte Vorschläge erhalten den Endzustand „Angelegt und wieder entfernt“ und werden in der Annahmequote separat ausgewiesen.
 
-6.5 misst die Annahmequote von Vorschlägen und senkt Fehlvorschläge gezielt ([Release 6.5](docs/Release-6.5.md)):
+6.5 misst die Annahmequote von Vorschlägen und senkt Fehlvorschläge gezielt ([Release 6.5](docs/archiv/Release-6.5.md)):
 - Neue Auswertung unter **Lernen → Vorschläge** (`/lernen/vorschlaege`) mit Annahmequoten gesamt, für Aufgaben und Termine, Wochenverlauf, Tabellen nach Thema und Absender sowie Ablehnungsgründen.
 - Freiwillige Begründung von Ablehnungen im Web und in Telegram mit fünf festen Gründen; der Grund fließt in das Regellernen ein.
 - Automatische Absender-Hinweise bei auffällig vielen Ablehnungen mit Vorschau betroffener Mails und optionaler Aufnahme in den Vorfilter.
@@ -100,7 +102,7 @@ werden zusammengefasst; „Ausführliches Protokoll“ schaltet die Einzelmeldun
 Analyse-Daten bereits entfernt wurden. Natürliche Daumenbewegungen werden zuverlässiger
 erkannt, Wischen kann auf Titeln und Schaltflächen beginnen. Inhaltskürzel verbinden jede
 Seite mit dem passenden Stylesheet und Skript. Der Gerätetest durch den Betreiber steht aus
-([Planung 6.3.2](docs/Planung-6.3.2.md)).
+([Planung 6.3.2](docs/archiv/Planung-6.3.2.md)).
 
 Seit 6.2.5 bevorzugt der Telegram-Befehl `/web` die erste in `web.allowed_hosts` eingetragene
 Domain oder Subdomain per HTTPS vor IP-Adressen und LAN-Zugriff. Trage dort die
@@ -108,13 +110,13 @@ Adresse deines HTTPS-Proxys ein und verwende sie durchgehend, damit der Browser
 seine bestehende Sitzung wiederverwenden kann. Ohne Domain bleibt der lokale
 beziehungsweise LAN-Zugriff verfügbar.
 
-Version 6.3 ist umgesetzt ([Planung 6.3](docs/Planung-6.3.md), [Release 6.3](docs/Release-6.3.md)): Ab 6.3.1
+Version 6.3 ist umgesetzt ([Planung 6.3](docs/archiv/Planung-6.3.md), [Release 6.3](docs/archiv/Release-6.3.md)): Ab 6.3.1
 entscheidest du auf Telefon und Tablet eine Karte in **Offen** auch per Wischgeste – nach rechts anlegen,
 nach links verwerfen. Unter der Karte steht, was das Loslassen auslöst; Karten mit offener Klärung lassen
 sich nicht nach rechts ziehen und nennen den Grund. Schaltflächen, Tastenkürzel und die Bedienung ohne
 JavaScript bleiben unverändert.
 
-Version 6.2 ist umgesetzt und abgenommen ([Planung 6.2](docs/Planung-6.2.md), [Release 6.2](docs/Release-6.2.md)): einheitlicher Aufbau aller
+Version 6.2 ist umgesetzt und abgenommen ([Planung 6.2](docs/archiv/Planung-6.2.md), [Release 6.2](docs/archiv/Release-6.2.md)): einheitlicher Aufbau aller
 Seiten, verständliche Bezeichnungen statt interner Werte, dichtere Listen und eine kompaktere Ansicht
 auf dem Handy. Ab 6.2.1 kommen Ecken, Schriftgrößen und Schatten aus gemeinsamen Gestaltungsvariablen. Ab 6.2.2 haben alle
 Kernseiten denselben Seitenkopf und eine von zwei Seitenbreiten. Ab 6.2.3 zeigt der Verlauf deutsche
@@ -126,14 +128,14 @@ Entscheidung ohne Scrollen; die Leiste unten führt zum Abgleich. Ab 6.2.9 hat d
 weniger, eindeutige Kacheln, und „Status“ beginnt mit „Alles in Ordnung“ oder dem Handlungsbedarf. Ab 6.2.10
 zeigt die Auswertung Kennzahl-Kacheln, Sprunglinks und auf dem Telefon zugeklappte Diagramme.
 
-Version 6.1 ist umgesetzt und abgenommen ([Planung 6.1](docs/Planung-6.1.md), [Release 6.1](docs/Release-6.1.md)): Prüfen in jedem Schritt der
+Version 6.1 ist umgesetzt und abgenommen ([Planung 6.1](docs/archiv/Planung-6.1.md), [Release 6.1](docs/archiv/Release-6.1.md)): Prüfen in jedem Schritt der
 Ersteinrichtung mit verständlichen Meldungen und die Dauer jedes Verarbeitungsschritts in der Auswertung.
 Ab 6.1.1 nennen die Verbindungsprüfungen Ursache und Lösung eines Fehlers. Ab 6.1.2 hat jeder Schritt
 der Ersteinrichtung „Prüfen“; Prüfen speichert nichts, und die Eingaben bleiben stehen. Ab 6.1.6
 misst Mailhelp die Dauer jedes Verarbeitungsschritts und die Durchlaufzeit je Mail; ab 6.1.8 zeigt die
 **Auswertung** beides, mit den langsamsten Durchläufen je Schritt.
 
-Version 6.0 ist umgesetzt und abgenommen ([Planung 6.0](docs/Planung-6.0.md), [Release 6.0](docs/Release-6.0.md)). Ab 6.0.1 trennt die
+Version 6.0 ist umgesetzt und abgenommen ([Planung 6.0](docs/archiv/Planung-6.0.md), [Release 6.0](docs/archiv/Release-6.0.md)). Ab 6.0.1 trennt die
 Vergleichstabelle auf **Aus Entscheidungen lernen** keine Wörter mehr und nutzt breite
 Bildschirme. Ab 6.0.2 prüfen die Browsertests alle Kernseiten auch auf sehr breiten Bildschirmen. Ab 6.0.4
 lassen sich Regelvorschläge verwerfen; verworfene werden gespeichert und lassen sich wieder zulassen. Ab 6.0.5
@@ -152,8 +154,8 @@ nennen `/status` und Telegram `/status` die Zahl der bisher verarbeiteten Mails.
 und einen Ablaufplan der Mailverarbeitung. 5.9.9 sorgt dafür, dass schnell nacheinander gesendete
 Webaktionen auch unter Windows in ihrer Reihenfolge ausgeführt werden. Ab 5.9.10 führt jede Kennzahl
 der Auswertung per Klick zur Liste der zugehörigen Aufrufe, Fehler mit ihrer Ursache. Abnahme:
-[Release 5.9](docs/Release-5.9.md).
-Plan: [Planung 5.9](docs/Planung-5.9.md).
+[Release 5.9](docs/archiv/Release-5.9.md).
+Plan: [Planung 5.9](docs/archiv/Planung-5.9.md).
 
 Ab 5.8.1 sind die vier Kennzahlen auf **Status** anklickbar: offene Vorschläge und
 Relevanzfragen öffnen getrennte Übersichten, Mailfehler die gefilterte Mailablage
@@ -166,7 +168,7 @@ ausdrücklich bestätigt. Die Kostenschätzung erhält Eingaben; Postfachordner 
 sich ohne JavaScript auswählen. Themenkatalog, Formulare und Lernübersicht sind
 kompakter; Formularfehler sind verknüpft und auf Deutsch. Einstellungen zeigen Alt/Neu
 und ihre Wirkung, die Statusseite zuerst Handlungsbedarf und nächste Schritte.
-Plan und Abnahme: [Planung 5.8](docs/Planung-5.8.md), [Release 5.8](docs/Release-5.8.md).
+Plan und Abnahme: [Planung 5.8](docs/archiv/Planung-5.8.md), [Release 5.8](docs/archiv/Release-5.8.md).
 
 Version 5.7 bündelt die Lernfunktionen unter **Lernen**: Die Übersicht führt zu
 **Aus dem Postfach lernen** und **Aus Entscheidungen lernen**, zeigt den aktuellen Stand
@@ -181,7 +183,7 @@ Entscheidungen ausgewertet werden, und nennt bei einem Fehlschlag die Ursache. I
 die KI nur noch die Änderungen je Thema. Mailhelp setzt das Thema selbst zusammen und
 verdichtet die Belege vorab. 5.8.2 dokumentiert die Abnahme mit dem echten Modell.
 Stand und Nachweise:
-[Release 5.7](docs/Release-5.7.md).
+[Release 5.7](docs/archiv/Release-5.7.md).
 
 Version 5.6 ergänzt unter **Themen → Aus Entscheidungen lernen** die Auswertung des
 lokalen Entscheidungsprotokolls. Erst nach ausdrücklicher Freigabe werden begrenzte
@@ -189,11 +191,11 @@ Belege an den aktiven KI-Anbieter übertragen. Vorschläge stehen neben den bish
 Regeln, lassen sich bearbeiten und werden erst nach gesonderter Auswahl, Bestätigung
 und vollständiger YAML-, Schema- und Revisionsprüfung übernommen. Unterbrochene lokale
 Übernahmen lassen sich ohne erneuten KI-Aufruf abschließen. Kalender und Aufgabenlisten
-werden dabei nicht beschrieben. Details: [Planung 5.6](docs/Planung-5.6.md),
-[Release 5.6](docs/Release-5.6.md), [Anleitung](docs/Bedienung.md#aus-entscheidungen-lernen).
+werden dabei nicht beschrieben. Details: [Planung 5.6](docs/archiv/Planung-5.6.md),
+[Release 5.6](docs/archiv/Release-5.6.md), [Anleitung](docs/Bedienung.md#aus-entscheidungen-lernen).
 
-Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/Planung-5.5.md),
-[Release 5.5](docs/Release-5.5.md)). 5.5.0 behebt
+Version 5.5 stimmt den Hilfschat fein ab ([Planung 5.5](docs/archiv/Planung-5.5.md),
+[Release 5.5](docs/archiv/Release-5.5.md)). 5.5.0 behebt
 die Meldung „crypto.randomUUID is not a function“ beim Aufruf über `http://` im Heimnetz und
 räumt das Fenster auf: Verschieben per Kopfzeile oder Pfeiltasten auf dem Titel, ohne
 Pfeilschaltflächen, **Antwort prüfen** und **Entwurf behalten**. Ab 5.5.1 steht der Kosten- und
@@ -210,7 +212,7 @@ Version 5.4 öffnet den Hilfschat als kleines verschiebbares Fenster über den E
 Er bleibt beim Suchen, Bearbeiten, Bestätigen und Speichern geöffnet. Gespräch und Frageentwurf
 bleiben erhalten; **Hilfschat schließen** blendet das Fenster aus, **Chat leeren** verwirft den
 Inhalt. Antworten aktualisieren nur das Fenster. Ohne JavaScript funktionieren Öffnen und
-Fragen über Formulare. Details: [Release 5.4](docs/Release-5.4.md).
+Fragen über Formulare. Details: [Release 5.4](docs/archiv/Release-5.4.md).
 
 5.4.1 schließt die bei der 5.3-Prüfung gefundenen Lücken: „Chat leeren“ entfernt auch
 Fragetexte aus gespeicherten Aufträgen. Deaktivierung, Sitzung und Chatversion werden vor
@@ -236,7 +238,7 @@ bestätigt auch `A`, und die Seitenleiste zeigt „? Tastenkürzel“; ab 5.0.10
 erledigt“ die Tageswerte als Kacheln; ab 5.0.11 sind alle Tippflächen mindestens 44 px hoch. Ab 5.0.1 liegt die
 Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
 dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
-[Planung 5.0](docs/Planung-5.0.md); Upgrade, Rückkehr und Prüfnachweise: [Release-Bericht 5.0](docs/Release-5.0.md).
+[Planung 5.0](docs/archiv/Planung-5.0.md); Upgrade, Rückkehr und Prüfnachweise: [Release-Bericht 5.0](docs/archiv/Release-5.0.md).
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -244,10 +246,10 @@ erscheint direkt wieder die Übersicht. Die betroffene Karte zeigt
 „Wird verarbeitet …“ und anschließend das Ergebnis; weitere Karten bleiben bedienbar.
 Fehler und unklare Anlagen bleiben sichtbar, bis du sie zur Kenntnis nimmst.
 Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut geprüft.
-Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
+Details und Messwerte: [Release 4.4](docs/archiv/Release-4.4.md).
 
 Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
-mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Ab 4.5.6 gelten eigene Notizen und eigene Weiterleitungen immer als relevant, auch wenn sie zu keinem deiner Themen passen; jede Anlage bestätigst du weiterhin selbst. Ab 4.5.7 enthält die Zusammenfassung zuverlässig die Fristen und Termine der Mail (Zeile „Fristen“ im Archiv); eine Anmeldefrist entfällt, wenn du schon angemeldet bist. Details: [Release 4.5](docs/Release-4.5.md).
+mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Ab 4.5.6 gelten eigene Notizen und eigene Weiterleitungen immer als relevant, auch wenn sie zu keinem deiner Themen passen; jede Anlage bestätigst du weiterhin selbst. Ab 4.5.7 enthält die Zusammenfassung zuverlässig die Fristen und Termine der Mail (Zeile „Fristen“ im Archiv); eine Anmeldefrist entfällt, wenn du schon angemeldet bist. Details: [Release 4.5](docs/archiv/Release-4.5.md).
 Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
 
 Version 4.6 gleicht Terminänderungen und Absagen mit deinem Kalender ab, statt einen
@@ -264,7 +266,7 @@ Ab 4.6.5 wird eine Absage, deren Ergebnis unklar blieb, nach einem Neustart übe
 Kalendereintrag abgeglichen und nie doppelt ausgeführt. Der Qualitätskorpus enthält seit
 4.6.6 vier solche Änderungen und Absagen (38 Fälle). Ab 4.6.7 erkennt der Aktionsrouter
 auch reine Absagen („Die Sitzung entfällt“) als Termin, damit der Kalendereintrag abgesagt
-werden kann. Details: [Release 4.6](docs/Release-4.6.md).
+werden kann. Details: [Release 4.6](docs/archiv/Release-4.6.md).
 
 Version 4.7 bringt Links zur Original-Mail in Kalendereinträge und Aufgaben. Ab 4.7.0
 kann Mailhelp aus der Message-ID einer Mail einen Apple-Mail-Link bilden, ab 4.7.1 auch
@@ -272,7 +274,7 @@ Links für Gmail und Outlook im Browser. Ab 4.7.2 enden neue Aufgaben und Termin
 „📧 Original-E-Mail öffnen“; ein Klick öffnet die Mail in Apple Mail oder bei Gmail-Postfächern
 in Gmail im Browser. Ab 4.7.3 zeigen auch Web-Karten und Telegram den Link. Ab 4.7.4 wählst du je Postfach
 unter Einstellungen → Postfächer → Ziele, welches Programm der Link öffnet
-(`imap.mailboxes[].mail_client`, Standard `auto`). Details: [Release 4.7](docs/Release-4.7.md).
+(`imap.mailboxes[].mail_client`, Standard `auto`). Details: [Release 4.7](docs/archiv/Release-4.7.md).
 
 Version 4.8 baut die Antwortentwürfe aus. Ab 4.8.0 findet Mailhelp den Entwurfsordner auch
 dann, wenn der konfigurierte Name auf dem Server fehlt (Ordner mit der Kennzeichnung
@@ -287,10 +289,10 @@ Entwürfe mit `drafts.enabled` global ausschalten und ihr Ordner mit `drafts.fol
 Werte und `auto_draft` ohne Neustart änderbar; je Postfach ist `auto_draft` überschreibbar.
 Der Standard für automatische Ablage bleibt aus.
 Ab 4.8.6 prüft die Gesamtabnahme auch volle Postfächer, Verbindungsabbrüche und
-Wiederaufnahme nach einem Prozessabbruch. Details: [Release 4.8](docs/Release-4.8.md).
-Plan: [Planung 4.8](docs/Planung-4.8.md).
-Plan: [Planung 4.7](docs/Planung-4.7.md).
-Plan: [Planung 4.6](docs/Planung-4.6.md).
+Wiederaufnahme nach einem Prozessabbruch. Details: [Release 4.8](docs/archiv/Release-4.8.md).
+Plan: [Planung 4.8](docs/archiv/Planung-4.8.md).
+Plan: [Planung 4.7](docs/archiv/Planung-4.7.md).
+Plan: [Planung 4.6](docs/archiv/Planung-4.6.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
 1.000 verarbeiteten Mails dauerte es bisher 2 bis 9 Sekunden, bis das Ergebnis einer
@@ -304,25 +306,25 @@ Werbliche Downloads und Höflichkeitsweiterleitungen sind im Router und Extrakto
 ausgeschlossen. Gleichnamige Termine derselben Mail bilden eine Serie mit Datum
 im Titel. Uhrzeiten können gemeinsam gespeichert und einzelne Termine ausgenommen
 werden. „Alle N Termine anlegen“ erfordert anschließend eine eigene Bestätigung
-der angezeigten Versionsliste. Details und Nachweise: [Release 4.3](docs/Release-4.3.md).
+der angezeigten Versionsliste. Details und Nachweise: [Release 4.3](docs/archiv/Release-4.3.md).
 
 Version 4.2 ergänzt „Schon erledigt“ in Web und Telegram: Vorschläge werden lokal
 abgeschlossen, bleiben positiv relevant im Lernbestand und erzeugen keine externen
 Aufgaben oder Termine. Web-Befehle werden vor Wiederaufnahmen bearbeitet; Telegram-
 Versand hält weder Dialog- noch Ablagesperre. Die Aktionsseite fragt ihren Status
-über einen eigenen authentifizierten Endpunkt ab. Ergebnisse und Grenzen: [Release 4.2](docs/Release-4.2.md).
+über einen eigenen authentifizierten Endpunkt ab. Ergebnisse und Grenzen: [Release 4.2](docs/archiv/Release-4.2.md).
 
-Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
+Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/archiv/Planung-4.1.md)); seit 4.1.0
 deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab. 4.1.10 ergänzt das
 Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`, etwa für Terminbestätigungen
 und Einsatz- oder Blockpläne mit eigenen Terminen im Anhang.
 4.1.11 schließt die Qualitätsoffensive ab: gezielte TDD-Tests mit 15-Sekunden-Schranke,
 gemessene parallele Schnellsuite und Mutationsaudit mit 99,01 % getöteten Kernmutanten.
-Ergebnisse und Grenzen: [Qualitätsabschluss 4.1](docs/Qualitaet-4.1.md).
+Ergebnisse und Grenzen: [Qualitätsabschluss 4.1](docs/archiv/Qualitaet-4.1.md).
 
 Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
 Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und
-Rückkehr: [Release 4.0](docs/Release-4.0.md). 4.0.1 behebt eine Verklemmung, bei der
+Rückkehr: [Release 4.0](docs/archiv/Release-4.0.md). 4.0.1 behebt eine Verklemmung, bei der
 Weboberfläche und Mailabruf nach einer Web-Aktion dauerhaft hängen blieben, während `/health`
 weiter antwortete. 4.0.2 ergänzt das Thema „Behörden und Auflagen für Betrieb und
 Biogasanlage“ in `topics.yaml`.
@@ -337,7 +339,7 @@ Ab 4.9.7 startet ein Lernlauf mit realistischem Budget (etwa 1 USD für 20 Mails
 lehnte eine viel zu hohe Kostenschätzung jeden Start ab. Abgelehnte Aktionen nennen ihren
 Grund. Plan: [Planung Lernen](docs/Planung-Lernen.md).
 Die Gesamtabnahme (Windows, Linux, Docker, installiertes Paket, Anbietermatrix) ist
-bestanden. Details, Betriebsgrenzen und Abschlussbericht: [Release 3.8](docs/Release-3.8.md).
+bestanden. Details, Betriebsgrenzen und Abschlussbericht: [Release 3.8](docs/archiv/Release-3.8.md).
 
 Version 3.7 startet ohne `config.yaml` einen geschützten Einrichtungsassistenten.
 Den automatisch im Terminal ausgegebenen Einmalcode im Browser eingeben und
@@ -345,13 +347,13 @@ Web-Passwort, Zeitzone, Postfach, KI-Anbieter und Ziele einrichten. Terminal-Cod
 über `mailhelp --pair`, Telegram-Codes und Web-Passwort sind reguläre Anmeldewege.
 Google lässt sich mit der eingebauten Playground-Anleitung oder einem registrierten
 Webanwendungs-Client verbinden, Microsoft über einen Gerätecode im Browser.
-Details: [Release 3.7](docs/Release-3.7.md).
+Details: [Release 3.7](docs/archiv/Release-3.7.md).
 
 Version 3.6 sichert gleichzeitige Entscheidungen und Wiederherstellung nach harten
 Prozessabbrüchen ab. Web-Freigaben bleiben über Neustarts an ihre Sitzung gebunden;
 identische Wiederholungen zeigen denselben Vorgang und sein Ergebnis. Fehlende oder
 beschädigte maßgebliche Akten blockieren unsichere Wiederholungen.
-Details: [Zustandsregeln und Tests](docs/Zustandsregeln-3.6.md), [Release 3.6](docs/Release-3.6.md).
+Details: [Zustandsregeln und Tests](docs/Zustandsregeln-3.6.md), [Release 3.6](docs/archiv/Release-3.6.md).
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -421,7 +423,7 @@ zwischen den Profilen getrennt.
 
 Die folgenden Schritte gelten für eine Erstinstallation aus diesem Repository.
 Für eine Paketinstallation oder ein Update siehe die
-[Installations- und Release-Anleitung](docs/Release-1.0.md).
+[Installations- und Release-Anleitung](docs/archiv/Release-1.0.md).
 
 ### Windows 11
 
@@ -512,7 +514,7 @@ eine Browseranmeldung mit lokalem Rückruf; Microsoft eine Anmeldung per Geräte
 Mit `--profile 2` wird ein zusätzliches Zielprofil eingerichtet. Die erstmalige
 Google-Anmeldung für Docker auf dem Host durchführen.
 
-Die [Anleitung zu Zielprofilen und OAuth](docs/Release-3.2.md) beschreibt
+Die [Anleitung zu Zielprofilen und OAuth](docs/archiv/Release-3.2.md) beschreibt
 Voraussetzungen, Geheimnisnamen und die sichere Tokenablage.
 
 ### Einstellungen je Postfach
@@ -677,7 +679,7 @@ werden dabei nicht beschrieben.
 
 Offene Entscheidungen lassen sich über die Weboberfläche oder Telegram bearbeiten.
 Der Abgleich von Vorschlägen und vorhandenen Einträgen ist in der
-[Bedienungsanleitung](docs/Release-2.4.md) beschrieben.
+[Bedienungsanleitung](docs/archiv/Release-2.4.md) beschrieben.
 
 ## Docker
 
@@ -689,7 +691,7 @@ docker compose -f compose.setup.yaml up --build
 
 Den ausgegebenen Einmalcode unter `http://localhost:8765/anmelden` eingeben.
 Konfiguration, Zugangsdaten, Zustände und Logs bleiben im benannten Volume
-`mailhelp-config`. Details und Wiederherstellung: [Release 3.7](docs/Release-3.7.md).
+`mailhelp-config`. Details und Wiederherstellung: [Release 3.7](docs/archiv/Release-3.7.md).
 
 Die bestehende `compose.yaml` verwendet weiter die manuelle Konfiguration und
 baut das Image aus diesem Repository. Vor dem Start
@@ -740,7 +742,7 @@ Antwortlogs ausdrücklich. Für einen Betrieb ohne diese Inhaltslogs
 Vor einer Sicherung oder Wiederherstellung den Dienst stoppen. Das vollständige
 Datenverzeichnis einschließlich `test/` und `production/` sowie Konfiguration,
 `.env` und OAuth-Token-Dateien sichern. Die
-[Upgrade-Anleitung](docs/Release-3.2.md) beschreibt Migration und Rückkehr zur
+[Upgrade-Anleitung](docs/archiv/Release-3.2.md) beschreibt Migration und Rückkehr zur
 vorherigen Version. Beim ersten Start nach dem Upgrade zunächst die bisherigen
 Ziele beibehalten, damit alte Analyse-Fingerprints als gleichwertig registriert
 werden können.
@@ -778,7 +780,7 @@ anschließend 100 % Zeilen- und Branch-Abdeckung einschließlich der Entwicklung
 Optional parallelisiert `full --workers 4` die gewöhnlichen Tests der vollständigen
 Abnahme; Prozess- und E2E-Prüfungen bleiben in einer gemeinsamen sequenziellen Gruppe.
 Ohne diese Angabe bleibt der gesamte Volltest sequenziell.
-Details und Messwerte: [Qualitätsabschluss 4.1](docs/Qualitaet-4.1.md).
+Details und Messwerte: [Qualitätsabschluss 4.1](docs/archiv/Qualitaet-4.1.md).
 
 Beschädigte Zustandsdateien werden auch bei ungültigem UTF-8 sicher behandelt:
 schreibfreies Lesen meldet den Fehler, normales Laden erhält die ursprünglichen Bytes
@@ -854,26 +856,26 @@ Die Release-Berichte unten sind historische Nachweise ihrer Version.
 
 | Anliegen | Anleitung |
 | --- | --- |
-| Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/Release-1.0.md) |
+| Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/archiv/Release-1.0.md) |
 | Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
 | Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
-| Einstellungsbereiche und Postfächer im Betrieb aktivieren | [Release 3.5](docs/Release-3.5.md) |
-| IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web | [Release 3.4](docs/Release-3.4.md) |
-| Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
-| Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/Release-3.2.md) |
-| Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/Release-3.1.md) |
-| Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |
+| Einstellungsbereiche und Postfächer im Betrieb aktivieren | [Release 3.5](docs/archiv/Release-3.5.md) |
+| IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web | [Release 3.4](docs/archiv/Release-3.4.md) |
+| Weboberfläche und technische Konsolidierung | [Release 3.3](docs/archiv/Release-3.3.md) |
+| Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/archiv/Release-3.2.md) |
+| Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/archiv/Release-3.1.md) |
+| Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/archiv/Release-2.4.md) |
 | Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
 | Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
-| Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/Planung-3.6.md) |
-| Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md), [Release 3.7](docs/Release-3.7.md) |
-| Web-Lernmodus, Neuladen und Anbietermatrix | [Planung 3.8](docs/Planung-3.8.md), [Release 3.8](docs/Release-3.8.md) |
-| Gesamtfahrplan und Release 4.0 | [Planung 4.0](docs/Planung-4.0.md), [Release 4.0](docs/Release-4.0.md) |
-| Qualitätsoffensive und Testinfrastruktur | [Planung 4.1](docs/Planung-4.1.md) |
-| Reaktionsschnelle Web-Aktionen | [Planung 4.2](docs/Planung-4.2.md) |
-| Geplant für 5.3: Live-Suche, Hilfschat und Dokumentationsprüfung | [Detaillierter Plan 5.3](docs/Planung-5.3.md) |
-| Hilfschat als dauerhaft geöffnetes Fenster in den Einstellungen (5.4) | [Planung 5.4](docs/Planung-5.4.md), [Release 5.4](docs/Release-5.4.md) |
-| Hilfschat-Feinabstimmung: Kurzantworten, Größe, Scrollposition, Schlüssel über HTTP (5.5) | [Planung 5.5](docs/Planung-5.5.md), [Release 5.5](docs/Release-5.5.md) |
+| Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/archiv/Planung-3.6.md) |
+| Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/archiv/Planung-3.7.md), [Release 3.7](docs/archiv/Release-3.7.md) |
+| Web-Lernmodus, Neuladen und Anbietermatrix | [Planung 3.8](docs/archiv/Planung-3.8.md), [Release 3.8](docs/archiv/Release-3.8.md) |
+| Gesamtfahrplan und Release 4.0 | [Planung 4.0](docs/archiv/Planung-4.0.md), [Release 4.0](docs/archiv/Release-4.0.md) |
+| Qualitätsoffensive und Testinfrastruktur | [Planung 4.1](docs/archiv/Planung-4.1.md) |
+| Reaktionsschnelle Web-Aktionen | [Planung 4.2](docs/archiv/Planung-4.2.md) |
+| Geplant für 5.3: Live-Suche, Hilfschat und Dokumentationsprüfung | [Detaillierter Plan 5.3](docs/archiv/Planung-5.3.md) |
+| Hilfschat als dauerhaft geöffnetes Fenster in den Einstellungen (5.4) | [Planung 5.4](docs/archiv/Planung-5.4.md), [Release 5.4](docs/archiv/Release-5.4.md) |
+| Hilfschat-Feinabstimmung: Kurzantworten, Größe, Scrollposition, Schlüssel über HTTP (5.5) | [Planung 5.5](docs/archiv/Planung-5.5.md), [Release 5.5](docs/archiv/Release-5.5.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.
@@ -891,7 +893,7 @@ weiterhin die ausdrückliche Bestätigung der angezeigten Version. Dauerhafte
 Checkpoints und der Message-ID-Abgleich verhindern doppelte Entwürfe nach Neustarts.
 Nach dem Update den Dienst neu starten; die Briefing-Einstellungen wirken danach
 ohne Neustart. Einrichtung, Zeitumstellungen und Rückkehr beschreibt der
-[Release-Bericht 4.9](docs/Release-4.9.md).
+[Release-Bericht 4.9](docs/archiv/Release-4.9.md).
 
 ## Nachvollziehbare Erkennung (5.1)
 
@@ -912,7 +914,7 @@ Budgethinweis; das Ergebnis lässt sich vergleichen und geprüft übernehmen. Ab
 synthetischen Korpus v4 – getrennt von einer echten Modellbewertung. 5.1.7 behebt, dass Mails
 eines Postfachs mit eigenen Einstellungen nach einer Unterbrechung dauerhaft unbearbeitet
 blieben, und friert eine Qualitäts-Baseline mit festen Abnahmeschwellen ein. Ab 5.1.8 gelten die
-Aufbewahrungsfristen auch für Nachanalyse-Aufträge. Plan: [Planung 5.1](docs/Planung-5.1.md); Einrichtung, Upgrade, Nachweise und Grenzen: [Release-Bericht 5.1](docs/Release-5.1.md).
+Aufbewahrungsfristen auch für Nachanalyse-Aufträge. Plan: [Planung 5.1](docs/archiv/Planung-5.1.md); Einrichtung, Upgrade, Nachweise und Grenzen: [Release-Bericht 5.1](docs/archiv/Release-5.1.md).
 
 ## Geprüfte Eintragungen (5.2)
 
@@ -932,7 +934,7 @@ Ab 5.2.6 zeigt die Weboberfläche den Prüfstand mit Soll/Ist-Vergleich, und „
 Web und Telegram liest einen nicht bestätigten Eintrag nur erneut – ohne etwas zu ändern.
 Vor einer Rückkehr zu einer Version vor 5.2.0 den Dienst beenden und `mailhelp --prepare-rollback`
 ausführen; er stellt „wird geprüft“ auf „angelegt“ um, ohne etwas anzulegen.
-Plan: [Planung 5.2](docs/Planung-5.2.md); Einrichtung, Upgrade, Rückkehr, Nachweise und Grenzen: [Release-Bericht 5.2](docs/Release-5.2.md).
+Plan: [Planung 5.2](docs/archiv/Planung-5.2.md); Einrichtung, Upgrade, Rückkehr, Nachweise und Grenzen: [Release-Bericht 5.2](docs/archiv/Release-5.2.md).
 
 ## Einstellungssuche, Hilfschat und geprüfte Dokumentation (5.3)
 
@@ -946,7 +948,7 @@ Ab 5.3.3 erscheinen Treffer der Einstellungssuche schon beim Tippen; ab 5.3.9 be
 Ab 5.3.12 öffnet ein Chatsymbol unten rechts auf allen Einstellungsseiten den Hilfschat.
 Ab 5.3.13 nennt eine abgelehnte Beenden- oder Neustart-Bestätigung den Grund und bietet
 eine neue Bestätigung an.
-Plan: [Planung 5.3](docs/Planung-5.3.md); Abnahme, Upgrade und Grenzen: [Release-Bericht 5.3](docs/Release-5.3.md).
+Plan: [Planung 5.3](docs/archiv/Planung-5.3.md); Abnahme, Upgrade und Grenzen: [Release-Bericht 5.3](docs/archiv/Release-5.3.md).
 
 ## Lizenz
 

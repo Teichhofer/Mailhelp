@@ -1,21 +1,21 @@
 # Prüfung der Dokumentation 5.3
 
-**Grundlage:** [Planung 5.3](Planung-5.3.md), Abschnitt 9
+**Grundlage:** [Planung 5.3](archiv/Planung-5.3.md), Abschnitt 9
 **Prüfstand:** Mailhelp 5.3.0 (nach Abschluss von 5.0 bis 5.2, Commit-Folge ab `51d7c62`)
-**Status:** abgeschlossen mit Release 5.3.11 ([Release-Bericht](Release-5.3.md)). Offen: Docker-Wege
+**Status:** abgeschlossen mit Release 5.3.11 ([Release-Bericht](archiv/Release-5.3.md)). Offen: Docker-Wege
 und die Bewertung echter Modellantworten des Hilfschats (Freigabe erforderlich).
 
 Dieser Bericht ist der Nachweis der Dokumentationsprüfung von 5.3. Der erzeugte Teil unten
 listet jede Einstellung und jede Kommandozeilenoption so, wie der Code sie tatsächlich kennt;
 er wird mit `python -m devtools.inventory` neu erzeugt, und ein Test schlägt fehl, wenn er
-veraltet ist. Ältere Prüfberichte ([Pruefung-Dokumentation](Pruefung-Dokumentation.md), 3.3.1)
+veraltet ist. Ältere Prüfberichte ([Pruefung-Dokumentation](archiv/Pruefung-Dokumentation.md), 3.3.1)
 sind kein Nachweis für 5.3.
 
 ## 1. Abgleich des Ausgangsstands
 
 | Baustein | Stand 5.3.0 |
 | --- | --- |
-| Versionen 5.0, 5.1, 5.2 | abgeschlossen mit Release-Berichten [5.0](Release-5.0.md), [5.1](Release-5.1.md), [5.2](Release-5.2.md) |
+| Versionen 5.0, 5.1, 5.2 | abgeschlossen mit Release-Berichten [5.0](archiv/Release-5.0.md), [5.1](archiv/Release-5.1.md), [5.2](archiv/Release-5.2.md) |
 | Einstellungsreferenz | [Web-Einstellungen](Web-Einstellungen.md) nennt im Kopf 4.8.6; Inhalte werden in H2 geprüft |
 | Feldhilfen | `web/setting_help.py`, gekoppelt an `SETTINGS_FIELDS` (Test `test_setting_help`) |
 | Suche | Formularsuche `GET /einstellungen?suche=`; Live-Suche fehlt |
@@ -179,7 +179,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/status` | Status, Dienste, Neuladen | Web-Einstellungen, [Betrieb](Betrieb.md) |
 | `/diagnose` | Diagnose und Diagnosebericht | [Fehlerbehebung](Fehlerbehebung.md) |
 | `/diagnose/bericht` | Diagnosebericht herunterladen | [Fehlerbehebung](Fehlerbehebung.md) |
-| `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](Release-6.8.md) |
+| `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](archiv/Release-6.8.md) |
 | `/benachrichtigungen` | Benachrichtigungen dieses Geräts | Web-Einstellungen (notifications) |
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
 | `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |

@@ -126,7 +126,7 @@ Einrichtungsentwürfe unter `/einrichtung` und das Versandprofil unter
 Speichern erhält zunächst den Entwurf. Erst die gezeigte, versionsbezogene Übernahme aktiviert
 Änderungen; Verbindungs- und Zieländerungen benötigen eine aktuelle erfolgreiche Diagnose.
 Feldnamen, Grenzwerte, Kanalwahl und Sofort-/Neustartwirkung:
-[Betriebsanleitung 3.0](Release-3.0.md#konfigurationsvertrag).
+[Betriebsanleitung 3.0](archiv/Release-3.0.md#konfigurationsvertrag).
 
 Jedes Info-Symbol erklärt, was die Einstellung verändert und welche Folgen andere Werte haben. Mit der Maus darüberfahren, per Tab fokussieren oder auf dem Handy antippen. Escape blendet die Blase aus. Das Lesen verändert keine Einstellung.
 
@@ -539,7 +539,7 @@ Speichern erstellt einen Einrichtungsentwurf. Die Übernahme benötigt eine erne
 Bestätigung. Ziel-/Verbindungsänderungen verlangen aktuelle lesende Diagnosen. Der Entwurf zeigt laufende
 Mails, die durch eine relevante Änderung zurückgehalten werden. Zugangsdaten werden
 getrennt unter **Einstellungen → Zugangsdaten** direkt in `.env` bearbeitet.
-Anleitung: [Release 3.2](Release-3.2.md).
+Anleitung: [Release 3.2](archiv/Release-3.2.md).
 
 
 ## Postfach-Briefings (4.9)

@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.0.14 – Archiv, Inhaltsverzeichnis und Architektur
+
+- 114 abgeschlossene Pläne, Berichte und Konzepte nach `docs/archiv/` verschoben; alle Verweise
+  vom neuen Ort aus neu berechnet.
+- `docs/README.md` als Inhaltsverzeichnis der lebenden Dokumente, `docs/Architektur.md` ersetzt
+  die drei alten Architekturdokumente und `Paketstruktur.md`.
+- Neuer Test: jeder relative Link aller Markdown-Dateien muss auflösen.
+
 ## 7.0.13 – Testdateien nach Thema
 
 - 185 Testdateien mit Versionsnummer im Namen nach ihrem Thema umbenannt (`git mv`); Verweise in
@@ -125,7 +133,7 @@
 - Eine einmalige sanfte Bewegung ersetzt den Erklärungskasten; Schließen und der erste
   erfolgreiche Wisch beenden den Hinweis dauerhaft. Alte gespeicherte Zustände gelten weiter.
 - Unveränderte Befehle, Sitzung, CSRF-, Versions- und Idempotenzprüfung. Umsetzung und
-  noch offene reale Geräteabnahme stehen in `docs/Release-6.9.md`.
+  noch offene reale Geräteabnahme stehen in `docs/archiv/Release-6.9.md`.
 
 ## 6.8.2 – Releaseumfang bereinigen
 
@@ -147,7 +155,7 @@
 - Dauerhafte Aktivierungszeit und Versionsherkunft verhindern Meldungen für alte
   offene Vorschläge und eigene Änderungen aus Web oder Telegram.
 - Produktivbefund vor dem Update: Push ausgeschaltet, kein Gerät registriert.
-  Reale Geräteabnahme bleibt offen; Details und Prüfstand in `docs/Release-6.8.md`.
+  Reale Geräteabnahme bleibt offen; Details und Prüfstand in `docs/archiv/Release-6.8.md`.
 
 ## 6.7.5 – Schnelle Ergebnisanzeigen bei vielen gespeicherten Mails
 
@@ -248,11 +256,11 @@
 - Ein einmaliger Tipp unter der ersten Karte erklärt die Geste auf Touch-Geräten; die erste Entscheidung
   bleibt dadurch in den oberen 60 % des Fensters.
 - Doku berichtigt: Bestätigen hat seit den parallelen Webaktionen keine 5-Sekunden-Rückgängig-Frist mehr.
-- Entfernt: ungenutzte CSS-Klasse `.card.leaving`. Abnahme in `docs/Release-6.3.md`.
+- Entfernt: ungenutzte CSS-Klasse `.card.leaving`. Abnahme in `docs/archiv/Release-6.3.md`.
 
 ## 6.2.11 – Abnahme 6.2
 
-- Abnahme von Version 6.2 (Bedienkonzept und Design): `docs/Release-6.2.md` mit Zuordnung der Planschritte,
+- Abnahme von Version 6.2 (Bedienkonzept und Design): `docs/archiv/Release-6.2.md` mit Zuordnung der Planschritte,
   Vorher-Nachher-Messwerten, Abweichungen und Prüfergebnissen.
 - Planung 6.2 als umgesetzt markiert. Keine Änderung am Programmverhalten.
 
@@ -361,12 +369,12 @@
   sind ersetzt. Das Aussehen ändert sich höchstens um wenige Pixel.
 - Ein Test scheitert, sobald `app.css` außerhalb der Variablen feste Farben, Ecken, Schriftgrößen oder
   Schatten enthält.
-- Plan für Version 6.2 ([Planung 6.2](docs/Planung-6.2.md)): Bedienkonzept und Design vereinheitlichen.
+- Plan für Version 6.2 ([Planung 6.2](docs/archiv/Planung-6.2.md)): Bedienkonzept und Design vereinheitlichen.
 
 ## 6.1.9 – Abnahme 6.0 und 6.1
 
-- Abnahme von Version 6.0 (Planschritt 6.0.8) und 6.1: `docs/Release-6.0.md` mit der Messreihe der
-  Browsertests (Median seriell 1313 s, mit 4 Workern 416 s, Faktor 3,16) und `docs/Release-6.1.md`.
+- Abnahme von Version 6.0 (Planschritt 6.0.8) und 6.1: `docs/archiv/Release-6.0.md` mit der Messreihe der
+  Browsertests (Median seriell 1313 s, mit 4 Workern 416 s, Faktor 3,16) und `docs/archiv/Release-6.1.md`.
 - Ersteinrichtung: Tabelle der häufigsten Meldungen beim Prüfen mit dem jeweils nächsten Schritt.
 - Tests: Die Konfliktprüfung beim Speichern der Ersteinrichtung (Änderung während der Passwortprüfung)
   hat einen gezielten Test; ihre Abdeckung hing seit 6.1.2 vom Zufall ab.
@@ -545,7 +553,7 @@
 ## 5.9.11 – Abnahme der Version 5.9
 
 - Gesamtprüfung von 5.9.1 bis 5.9.10: Python-Suite mit 100 % Zeilen- und Branch-Abdeckung,
-  Browser-Suite auf Desktop, Mobil und schmalem Gerät; Ergebnis in `docs/Release-5.9.md`.
+  Browser-Suite auf Desktop, Mobil und schmalem Gerät; Ergebnis in `docs/archiv/Release-5.9.md`.
 - Planung 5.9 auf den umgesetzten Stand gebracht (Zuordnung der Planschritte zu den Versionen).
 - Behoben: Der Ablaufplan der Auswertung löste in `app.js` einen Skriptfehler aus, weil jede
   Diagrammabbildung eine Vergrößern-Schaltfläche erwartete. Kennzahl-Links sind auf Mobilgeräten
@@ -878,7 +886,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.5.5 – Abnahme und Release 5.5 (Planung 5.5, S6)
 
-- Releasebericht [docs/Release-5.5.md](docs/Release-5.5.md) mit allen Schritten 5.5.0–5.5.4,
+- Releasebericht [docs/archiv/Release-5.5.md](docs/archiv/Release-5.5.md) mit allen Schritten 5.5.0–5.5.4,
   Abweichungen vom Plan, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.5 abgeschlossen.
 - Browsertests: Wartebedingungen als Funktionen (die Inhaltsrichtlinie der Seite verbietet
   `eval`, das Playwright für wiederholt geprüfte Ausdrücke braucht); Größentest wartet auf das
@@ -974,7 +982,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
   ohne Browserspeicher und ohne JavaScript; Entwürfe lassen sich ausdrücklich behalten.
   Alte `/hilfe`-Links führen zu den Einstellungen mit geöffnetem Fenster.
 - Regressionstests für bisherigen Seitenwechsel, Fensterverlust und Antwort-Reload;
-  Anleitungen und ausgelieferte Hilfedokumentation aktualisiert. [Release 5.4](docs/Release-5.4.md).
+  Anleitungen und ausgelieferte Hilfedokumentation aktualisiert. [Release 5.4](docs/archiv/Release-5.4.md).
 
 ## 5.3.13 – Beenden und Neustart nach Ablehnung wieder möglich
 
@@ -998,7 +1006,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.3.11 – Abnahme und Release 5.3 (Planung 5.3, Schritt H12)
 
-- Release-Bericht [docs/Release-5.3.md](docs/Release-5.3.md) mit allen Änderungen 5.3.0 bis 5.3.10,
+- Release-Bericht [docs/archiv/Release-5.3.md](docs/archiv/Release-5.3.md) mit allen Änderungen 5.3.0 bis 5.3.10,
   Einrichtung, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.3 ist abgeschlossen.
 - Abnahme unter Windows 11: 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite 351 von 351,
   Live-Suche unter 300 ms, Lasttests, Ruff, mypy, Prompt-Gate, Inventur- und Hilfebestandsprüfung,
@@ -1168,7 +1176,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.2.9 – Abnahme und Release 5.2 (Planung 5.2, Schritt V12)
 
-- Release-Bericht [docs/Release-5.2.md](docs/Release-5.2.md) mit allen Änderungen 5.2.0 bis
+- Release-Bericht [docs/archiv/Release-5.2.md](docs/archiv/Release-5.2.md) mit allen Änderungen 5.2.0 bis
   5.2.8, Einrichtung, Upgrade, Rückkehr, Anbieter-/Operationsübersicht, Nachweisen und Grenzen;
   Planung 5.2 ist abgeschlossen.
 - Abnahme unter Windows 11 mit 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite, Lasttests,
@@ -1321,7 +1329,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.1.9 – Abnahme und Release 5.1 (Planung 5.1, Schritt R10)
 
-- Release-Bericht [docs/Release-5.1.md](docs/Release-5.1.md) mit allen Änderungen 5.1.0 bis
+- Release-Bericht [docs/archiv/Release-5.1.md](docs/archiv/Release-5.1.md) mit allen Änderungen 5.1.0 bis
   5.1.8, Einrichtung, Upgrade, Rückkehr, Nachweisen und Grenzen; Planung 5.1 ist
   abgeschlossen.
 - Abnahme unter Windows 11 mit 100 % Zeilen- und Branch-Abdeckung, Browser-Gesamtsuite,
@@ -1461,7 +1469,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 5.0.12 – Abnahme und Release 5.0 (Planung 5.0, Schritt 21.8)
 
-- Release-Bericht [docs/Release-5.0.md](docs/Release-5.0.md) mit allen Änderungen 5.0.0 bis
+- Release-Bericht [docs/archiv/Release-5.0.md](docs/archiv/Release-5.0.md) mit allen Änderungen 5.0.0 bis
   5.0.11, Upgrade, Rückkehr und Prüfnachweisen; Planung 5.0 ist abgeschlossen.
 - Abnahme unter Windows 11: 100 % Zeilen- und Branch-Abdeckung, 324 Browser-Tests,
   Ruff und mypy ohne Befunde. Die Linux/Docker-Abnahme ist nicht durchgeführt, weil Docker
@@ -1641,7 +1649,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 - End-to-End-Abnahme mit synthetischer Mail und Offline-IMAP: Antwort ohne Aufgabe oder
   Termin, Threading und Signatur, voller Ordner, Verbindungsabbruch vor und nach APPEND,
   Wiederaufnahme nach einem Prozessabbruch und Schutz vor Doppelentwürfen.
-- Release-Bericht `docs/Release-4.8.md` dokumentiert Funktion, Schalter, Tests und Grenzen.
+- Release-Bericht `docs/archiv/Release-4.8.md` dokumentiert Funktion, Schalter, Tests und Grenzen.
 - Regression: Der tatsächliche Entwurfsordner wird vor APPEND dauerhaft gebunden. Ein
   unklares Ergebnis wird auch nach einer Ordneränderung ausschließlich dort abgeglichen;
   ein nicht verfügbarer ursprünglicher Ordner löst keine neue Ablage an anderer Stelle aus.
@@ -1702,7 +1710,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 - End-to-End-Test: Der Link kommt in Todoist (Markdown) und im Google Kalender an;
   Sonderzeichen der Message-ID werden kodiert, ohne Message-ID entsteht kein Link.
-- Release-Bericht `docs/Release-4.7.md`.
+- Release-Bericht `docs/archiv/Release-4.7.md`.
 
 ## 4.7.4 – Einstellung für den Mail-Client (Planung 4.7, Schritt 18.5)
 
@@ -1744,7 +1752,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
   sie jetzt als Terminkandidaten. Nachprüfung mit echtem Modell: Router 4/4.
 - End-to-End-Test von der Mail bis zum verschobenen bzw. abgesagten Kalendereintrag für
   alle Abnahmekriterien aus Planung 4.6.
-- Release-Bericht `docs/Release-4.6.md`.
+- Release-Bericht `docs/archiv/Release-4.6.md`.
 
 ## 4.6.6 – Korpus für Terminänderungen (Planung 4.6, Schritt 17.7)
 
@@ -1849,14 +1857,14 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 - Reale Auswertung (deepseek-v4.1-flash über OpenRouter): Router 25 von 25, darunter alle
   drei eigenen Notizen. Nachprüfung der Notiz-Fälle nach der Korrektur: Relevanz,
   Routing und Extraktion bestehen; offen sind nur Fristen der Zusammenfassung
-  (eigener Plan: `docs/Planung-Fristen-Zusammenfassung.md`).
+  (eigener Plan: `docs/archiv/Planung-Fristen-Zusammenfassung.md`).
 
 ## 4.5.5 – Abnahme eigene Notizen (Planung 4.5, Schritte 16.6 und 16.7)
 
 - End-to-End-Regressionstest der Landesversammlung, synthetisiert: Eine eigene Notiz
   mit drei Einladungsfotos ergibt einen Terminvorschlag für die nutzende Person.
 - Das Offline-Prompt-Gate besteht für alle 34 Fälle. Release-Bericht:
-  `docs/Release-4.5.md`. Die Auswertung mit einem echten Modell steht aus.
+  `docs/archiv/Release-4.5.md`. Die Auswertung mit einem echten Modell steht aus.
 
 ## 4.5.4 – Korpus für eigene Notizen (Planung 4.5, Schritt 16.5)
 
@@ -2130,7 +2138,7 @@ Vier Läufe mit je 10 Fragen gegen `deepseek/deepseek-v4.1-flash` (insgesamt 41 
 
 ## 4.0.3 – Planung 4.2
 
-- [Planung 4.2](docs/Planung-4.2.md): Web-Aktionen sollen innerhalb einer Sekunde beginnen,
+- [Planung 4.2](docs/archiv/Planung-4.2.md): Web-Aktionen sollen innerhalb einer Sekunde beginnen,
   auch während Mailanalyse und Telegram-Versand. Grundlage sind die Messungen vom
   5. November 2026; Schritte 10.1–10.6 von der Messung der Wartezeiten bis zur Abnahme.
 
@@ -2174,7 +2182,7 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 
 ## 3.8.28 – Gesamtabnahme 3.8
 
-- Gesamtabnahme nach Q4.6 bestanden und im [Releasebericht 3.8](docs/Release-3.8.md)
+- Gesamtabnahme nach Q4.6 bestanden und im [Releasebericht 3.8](docs/archiv/Release-3.8.md)
   dokumentiert: vollständige Suite unter Windows und Linux mit 100 % Zeilen- und
   Branch-Abdeckung, 219 Browsertests mit 100 % JavaScript-Blockabdeckung, installiertes
   Wheel auf beiden Plattformen, Docker-Ablauf mit hartem Abbruch und zwei Neustarts.
@@ -2248,12 +2256,12 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 - Eigene Code-, Browser-, Fehler-, Wiederholungs- und Neustartprüfungen ergänzen die
   bisherigen Parallelbedienungs- und Prozessabbruchtests. Neue Persistenzmodelle besitzen
   schema-versionierte JSON-Verträge und Schema-Snapshots.
-- Die Zuordnung der 20 Planschritte zu 3.7.0–3.7.19 steht in `docs/Planung-3.7.md`.
+- Die Zuordnung der 20 Planschritte zu 3.7.0–3.7.19 steht in `docs/archiv/Planung-3.7.md`.
   Dieser Arbeitsstand bündelt die Umsetzung; Zwischenreleases wurden hier nicht veröffentlicht.
 - Gesamtabnahme: jeweils 2.966 Tests unter Windows und Linux mit 100 % Zeilen- und
   Branch-Abdeckung; 215 Browsertests mit 100 % JavaScript-Blockabdeckung. Zusätzlich
   bestehen 78 Python- und 10 Browsertests gegen das installierte Wheel; `ruff` und
-  `mypy` sind ohne Befund. Grenzen der Docker-Prüfung stehen in `docs/Release-3.7.md`.
+  `mypy` sind ohne Befund. Grenzen der Docker-Prüfung stehen in `docs/archiv/Release-3.7.md`.
 
 ## 3.6.39 – Feste DeepSeek-Provider: CoreWeave statt Together
 
@@ -2447,7 +2455,7 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 
 ## 3.6.10 – Zielstruktur der Pakete festgelegt (Planung 3.6, Schritt 0.9)
 
-- `docs/Paketstruktur.md` ordnet alle 78 Module des Wurzelpakets sechs Zielpaketen
+- `docs/archiv/Paketstruktur.md` ordnet alle 78 Module des Wurzelpakets sechs Zielpaketen
   (`mailbox`, `processing`, `proposals`, `llm`, `notifications`, `runtime`) oder dem
   Wurzelpaket zu und legt die Regeln für den Umzug fest: keine Verhaltensänderung, keine
   dauerhaften Alias-Module, `mailhelp.cli` und `mailhelp.models` bleiben. Der Umzug folgt in
@@ -2536,16 +2544,16 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 
 ## 3.5.10 – Planung in 3.6, 3.7 und 4.0 aufgeteilt
 
-- Die Planung bis 4.0 ist in drei Teilpläne aufgeteilt: `docs/Planung-3.6.md`
+- Die Planung bis 4.0 ist in drei Teilpläne aufgeteilt: `docs/archiv/Planung-3.6.md`
   (Vorarbeiten, Testgrundlage, Parallelbedienung und Prozessabbrüche; 31 Schritte),
-  `docs/Planung-3.7.md` (Ersteinrichtung und OAuth im Browser; 18 Schritte) und
-  `docs/Planung-4.0.md` (Zielbild, Gesamtfahrplan, Lernmodus, Neuladen, Anbietermatrix und
+  `docs/archiv/Planung-3.7.md` (Ersteinrichtung und OAuth im Browser; 18 Schritte) und
+  `docs/archiv/Planung-4.0.md` (Zielbild, Gesamtfahrplan, Lernmodus, Neuladen, Anbietermatrix und
   Release; 28 Schritte). Schrittnummern bleiben über alle Pläne eindeutig. Keine
   Verhaltensänderung.
 
 ## 3.5.9 – Planung 4.0 auf Stand gebracht
 
-- `docs/Planung-4.0.md` beschreibt den Ausgangsstand 3.5.8 je Pfeiler, führt die seit 3.4
+- `docs/archiv/Planung-4.0.md` beschreibt den Ausgangsstand 3.5.8 je Pfeiler, führt die seit 3.4
   vorhandene Zugangsdatenverwaltung als weitgehend umgesetzt und ersetzt die sechs Phasen
   durch 77 einzeln lieferbare Schritte (S ≤ 1 Tag, M ≤ 2 Tage) in neun Stufen, von den
   Vorarbeiten in 3.6.x bis zum Release. Offene Entscheidungen zum Schutz des Erststarts und
@@ -2652,7 +2660,7 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 - Doppelte Konten werden auch bei deaktivierten Postfächern zurückgewiesen.
   Fehler zeigen sichere Meldungen, erhalten die übrigen Eingaben und leeren das Passwortfeld.
 - Anleitung, Konfigurationsbeispiel und Paketinhalt aktualisiert:
-  [Planung 3.5](docs/Planung-3.5.md), [Betriebsanleitung 3.5](docs/Release-3.5.md).
+  [Planung 3.5](docs/archiv/Planung-3.5.md), [Betriebsanleitung 3.5](docs/archiv/Release-3.5.md).
 
 ## 3.4.7 – IServ gemeinsam prüfen und aktivieren
 
@@ -2763,7 +2771,7 @@ Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
 
 ## 3.4.1 – beta: Dokumentation für IServ, Zugangsdaten und Einstellungen vervollständigt
 
-- Neue [Release-Anleitung 3.4](docs/Release-3.4.md) mit Einrichtung der IServ-Elternbriefe über
+- Neue [Release-Anleitung 3.4](docs/archiv/Release-3.4.md) mit Einrichtung der IServ-Elternbriefe über
   die Weboberfläche und über Dateien, der Zugangsdatenseite, den neuen Einstellungen und den
   Änderungen seit 3.3.2; im Quellarchiv enthalten und in der README verlinkt.
 - Einrichtungsanleitung um einen Abschnitt zu IServ-Elternbriefen und die Zugangsdaten im Web
@@ -2925,8 +2933,8 @@ Abschluss von Planung 3.4 (Phasen 1–3 in 3.3.10–3.3.12):
   Nutzungsbedingungen und Projektwebsite auf den Stand 3.3 gebracht: optionale
   Telegram-Nutzung, lokale Webkopplung, mehrere Postfächer und Zielprofile,
   Google-Desktop-OAuth mit Profilnummer, aktivierte Inhaltslogs im Beispiel.
-- Neue [Release-Anleitung 3.3](docs/Release-3.3.md) (im Quellarchiv enthalten) und
-  [Prüfbericht zur Dokumentation](docs/Pruefung-Dokumentation.md).
+- Neue [Release-Anleitung 3.3](docs/archiv/Release-3.3.md) (im Quellarchiv enthalten) und
+  [Prüfbericht zur Dokumentation](docs/archiv/Pruefung-Dokumentation.md).
 - 35 ältere Pläne, Konzepte und Release-Dokumente sind als historisch gekennzeichnet;
   Planung 3.3 trennt umgesetzte Phasen von offenen Architekturzielen.
 - Keine Änderung am Anwendungsverhalten.
@@ -3002,7 +3010,7 @@ Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Teleg
   nach dem `@` (z. B. `@0`) wird abgelehnt statt als leerer Empfänger übernommen. Gefunden vom
   Eigenschaftstest `test_reply_drafts_never_carry_injected_headers`; Regressionstest
   `test_draft_subject_stays_one_line_and_recipients_need_both_address_parts` scheiterte vor der Korrektur.
-- [Planung 3.3](docs/Planung-3.3.md) (technische Konsolidierung, Nachfolger der früheren Planung 2.5) mit
+- [Planung 3.3](docs/archiv/Planung-3.3.md) (technische Konsolidierung, Nachfolger der früheren Planung 2.5) mit
   gemessenen Ausgangswerten: 18 mypy-Befunde unter `--check-untyped-defs`, 8 Funktionen über
   McCabe-Komplexität 15. Planung 4.0 in das Repository aufgenommen.
 
@@ -3032,7 +3040,7 @@ Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Teleg
 - Sämtliche Ziele sind aus dem Analyse-Fingerprint entfernt. Beim Upgrade werden die bisherigen
   Fingerprints und Themenrichtlinien bis 3.1 als gleichwertig registriert; laufende Mails und gebundene
   Vorschlagsziele bleiben erhalten. Details zu Upgrade/Backup/Rollback stehen in
-  [Release 3.2](docs/Release-3.2.md).
+  [Release 3.2](docs/archiv/Release-3.2.md).
 - Regression: CalDAV-URLs mit eingebetteten Benutzernamen werden abgewiesen. Kleine YAML-Feldänderungen
   behalten Kommentare; Mischentwürfe mit Listen und Benachrichtigungsregeln werden sicher bearbeitet.
   Die Einstellungs-Vorschau berücksichtigt registrierte Alt-Hashes und hält bei reinen Zieländerungen
@@ -3076,8 +3084,8 @@ Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Teleg
 
 ## 3.1.0 – beta: Mehrere Postfächer
 
-Planung: [docs/Planung-3.1.md](docs/Planung-3.1.md); Einrichtung, Upgrade und Rückkehr:
-[docs/Release-3.1.md](docs/Release-3.1.md). Umgesetzt schrittweise in 3.0.1 bis 3.0.5 (Einträge unten).
+Planung: [docs/archiv/Planung-3.1.md](docs/archiv/Planung-3.1.md); Einrichtung, Upgrade und Rückkehr:
+[docs/archiv/Release-3.1.md](docs/archiv/Release-3.1.md). Umgesetzt schrittweise in 3.0.1 bis 3.0.5 (Einträge unten).
 
 - Bis zu zehn IMAP-Postfächer (`imap.mailboxes`, Zugangsdaten `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`);
   das bisherige Format bleibt als Postfach 1 gültig.
@@ -3189,14 +3197,14 @@ Dieser Commit erstellt keinen Release und keinen Tag.
 
 ## 3.0.0 – beta: Einrichtung, Diagnose und Benachrichtigungen
 
-Planung: [docs/Planung-3.0.md](docs/Planung-3.0.md), Betrieb und Upgrade: [docs/Release-3.0.md](docs/Release-3.0.md).
+Planung: [docs/archiv/Planung-3.0.md](docs/archiv/Planung-3.0.md), Betrieb und Upgrade: [docs/archiv/Release-3.0.md](docs/archiv/Release-3.0.md).
 Abnahme auf diesem Stand unter Windows 11: 2173 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung,
 134 Browsertests mit 100 % JavaScript-Abdeckung, ruff und mypy ohne Befund. Der Release-Tag `v3.0.0`
 wird erst nach erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetzt.
 
-- Neue Planungen: mehrere Postfächer ([docs/Planung-3.1.md](docs/Planung-3.1.md), Geheimnisse
+- Neue Planungen: mehrere Postfächer ([docs/archiv/Planung-3.1.md](docs/archiv/Planung-3.1.md), Geheimnisse
   `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`) und Einstellungen je Postfach
-  ([docs/Planung-3.2.md](docs/Planung-3.2.md)). Beide gehören nicht zu 3.0.
+  ([docs/archiv/Planung-3.2.md](docs/archiv/Planung-3.2.md)). Beide gehören nicht zu 3.0.
 
 - Einrichtung unter `/einrichtung`: wiederaufnehmbare Entwürfe, Dateihash und Entwurfsversion,
   getrennte bestätigte Übernahme über die vorhandene, erneut autorisierte Kommando-Warteschlange.
@@ -3230,7 +3238,7 @@ wird erst nach erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetz
 
 ## 2.3.0 – Beta (Branch `beta`), weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
 
-Planung: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+Planung: [docs/archiv/Planung-2.3.md](docs/archiv/Planung-2.3.md).
 
 - **Kalender:** zusätzlich CalDAV (Nextcloud, iCloud, mailbox.org, Radicale …) und Outlook /
   Microsoft 365 (`targets.calendar_provider`). Duplikatprüfung, Ergänzung, Zeitänderung und Absage
@@ -3299,7 +3307,7 @@ Keine Verhaltensänderung.
 
 ## 2.2.2 – Beta (Branch `beta`), Anforderungsprüfung 2.2
 
-Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur hat einen Regressionstest.
+Behebt die Befunde aus [Pruefung-2.2.md](docs/archiv/Pruefung-2.2.md); jede Korrektur hat einen Regressionstest.
 
 - **Korrekturen während der Analyse:** Eine laufende Terminsuche überschrieb danach gespeicherte Nutzerentscheidungen und von Hand ergänzte Termine. Ergebnisse werden jetzt mit dem aktuellen Stand zusammengeführt (`test_live_corrections_survive_the_in_flight_event_analysis`).
 - **Harte KI-Grenze:** `max_llm_calls` wurde nur vor jeder Mail geprüft; Relevanz plus Terminsuche, Reparaturversuche und nachgeforderte Terminsuchen konnten sie überschreiten. Die Grenze gilt jetzt vor jedem Provideraufruf (`test_call_limit_stops_between_steps_and_resume_does_not_repeat_relevance`, `test_model_repair_also_consumes_the_hard_call_budget`, `test_requested_extraction_cannot_bypass_the_call_limit`).
@@ -3325,7 +3333,7 @@ Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur h
 - **xlsx-Export:** Blätter „Termine“, „Ohne Termin“ und „Bericht“; Mailinhalte werden nie zu Formeln. Neue Abhängigkeit `openpyxl` (gepinnt).
 - **Konfiguration:** Abschnitt `activity_report` (standardmäßig aus) und `retention.activity_report_days` (365); neue Prompts in `prompts.yaml`. Kein Analyse-Fingerprint ändert sich.
 - **PWA:** Cache-Name `mailhelp-shell-v3`, damit installierte Apps das neue Stylesheet laden.
-- Details: [Release-2.2.md](docs/Release-2.2.md).
+- Details: [Release-2.2.md](docs/archiv/Release-2.2.md).
 
 ## 2.1.1 – Beta (Branch `beta`)
 
@@ -3339,7 +3347,7 @@ Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur h
 - **Bereinigte Client- und Einstellungsattribute (A8):** `getattr`/`hasattr`-Weichen auf Settings und Clients (`primary_folder`, `service_name`, `last_relevance_source`) durch feste Attribute und Protokolle ersetzt.
 - **Browsertests & Stabilität (T7):** Automatisches Sammeln der Browser-Coverage vor jeder Navigation über DevTools-Hooks; konfigurierbare Rückgängig-Frist im Testserver via `data-undo-ms`. Alle 98 UI-Browsertests stabil.
 - **Statische Analyse (A1):** `ruff` und `mypy --strict` auf dem Kern (`domain/`, `external/contracts.py`, `drafts.py`, `webpush.py`, `briefing.py`, `attachments.py`) fehlerfrei. Durchgängig `from __future__ import annotations`.
-- **Qualitätssicherung:** 100 % Zeilen- und Branch-Abdeckung über alle 125 Module (1.721 Tests) verbindlich erreicht. Detaillierte Dokumentation in [Architektur-2.1.md](docs/Architektur-2.1.md) und [Release-2.1.md](docs/Release-2.1.md).
+- **Qualitätssicherung:** 100 % Zeilen- und Branch-Abdeckung über alle 125 Module (1.721 Tests) verbindlich erreicht. Detaillierte Dokumentation in [Architektur-2.1.md](docs/archiv/Architektur-2.1.md) und [Release-2.1.md](docs/archiv/Release-2.1.md).
 
 ## 2.0.3 – Beta (Branch `beta`), Planung 2.1 Phase 3
 
@@ -3381,7 +3389,7 @@ Keine Verhaltensänderung für Nutzer.
 - **Betrieb ohne Telegram (`telegram.enabled: false`):** Nur mit Weboberfläche; Kopplungscodes erscheinen in der Konsole des PCs, `TELEGRAM_BOT_TOKEN` entfällt.
 - **Fingerprints (Bugfix):** Die 2.0-Einstellungen gelangten in die Legacy-Fingerprints von 1.1/1.2; Mails aus diesen Versionen wären nach dem Upgrade hängen geblieben. Mit Regressionstest.
 - **Abhängigkeiten:** `pywebpush==2.5.0` samt Abhängigkeiten in `requirements.lock`; Docker-Image neu bauen.
-- Einrichtung, Upgrade und Rollback: [Release-2.0.md](docs/Release-2.0.md).
+- Einrichtung, Upgrade und Rollback: [Release-2.0.md](docs/archiv/Release-2.0.md).
 
 ## 1.6.0 – Beta (Branch `beta`)
 
@@ -3391,7 +3399,7 @@ Keine Verhaltensänderung für Nutzer.
 - **Telegram-Revisionen entflechtet:** Antwortinterpretation mit eigenen Retries, validierte Nachfolge-Vorschläge und durable/Legacy-Recovery besitzen eigenständige Grenzen. Persistenz, Zustellung und versionsbezogene Autorisierung behalten ihre Reihenfolge.
 - **Verhaltensverträge:** Zusätzliche Tests für die kompatiblen Schnittstellen, unabhängige Mailbox-Wiederaufnahme und identische Renderer-Ausgaben gegenüber 1.5. Bestehende JSON-Schemas, CLI-Optionen, Web-Routen, Konfiguration und externe API-Verträge bleiben unverändert.
 - **Browsertests korrigiert:** Die Kopplungstesthilfe erkennt den seit 1.5 gültigen vierstelligen Telegram-Code; der Negativtest verwendet garantiert einen abweichenden Code. Die synthetische Hauptschleife wird für unveränderte Renderzustände stabilisiert; produktive Recovery bleibt unverändert.
-- Architektur und Upgrade in [Architektur-1.6.md](docs/Architektur-1.6.md) und [Release-1.6.md](docs/Release-1.6.md) dokumentiert.
+- Architektur und Upgrade in [Architektur-1.6.md](docs/archiv/Architektur-1.6.md) und [Release-1.6.md](docs/archiv/Release-1.6.md) dokumentiert.
 
 ## 1.5.0 – Beta (Branch `beta`)
 
@@ -3434,7 +3442,7 @@ Keine Verhaltensänderung für Nutzer.
 - Lernmodus ergänzt IMAP-Ordner ohne Kommentarverlust.
 - Bestätigung von Schreibzugriffen über Telegram oder die authentifizierte Weboberfläche.
 
-Einrichtung, Upgrade und Rollback: [Release-Anleitung](docs/Release-1.2.md).
+Einrichtung, Upgrade und Rollback: [Release-Anleitung](docs/archiv/Release-1.2.md).
 
 ## 1.1.0 – Beta (Branch `beta`)
 
@@ -3452,7 +3460,7 @@ Einrichtung, Upgrade und Rollback: [Release-Anleitung](docs/Release-1.2.md).
 - Automatische Browsertests (Desktop und iPhone) mit Screenshots, Bedienbarkeits- und
   Kontrastprüfungen und 100 % JavaScript-Abdeckung; eigener CI-Job.
 
-Einrichtung und Einschränkungen: [Release-Anleitung](docs/Release-1.1.md).
+Einrichtung und Einschränkungen: [Release-Anleitung](docs/archiv/Release-1.1.md).
 
 ## 1.0.0 – 11. Oktober 2026
 
@@ -3463,7 +3471,7 @@ Einrichtung und Einschränkungen: [Release-Anleitung](docs/Release-1.1.md).
 - Semantischer Uhrzeitvergleich, präzisierte Zuständigkeits- und Zusammenfassungsregeln.
 - Prüfungen für Sicherungswiederherstellung, Paketinstallation und Release-Artefakte.
 
-Upgrade und Einschränkungen: [Release-Anleitung](docs/Release-1.0.md).
+Upgrade und Einschränkungen: [Release-Anleitung](docs/archiv/Release-1.0.md).
 
 ## 0.1.0
 

@@ -62,7 +62,7 @@ Provider in Lauf 3: Together 86, Friendli 40, OpenInference 19, Parasail 16, Fir
 
 Derselbe Provider versuchte bei 9cb2 zweimal `{"responsibility":"user", "start":…, "all_day":true}`. Dort scheiterte die Antwort nur zufällig an einer anderen Regel (Ende nicht nach Beginn).
 
-**Ursache.** In [analysis.py](../src/mailhelp/analysis.py) (`revise_proposal` → `validate_delta`) wird das Delta gegen `ProposalRevisionDelta` validiert. Dieses Schema erlaubt alle Geschäftsfelder. Die Liste `allowed` steuert nur, welchen Kontext das Modell sieht. Gegen das Ergebnis wird sie nicht geprüft.
+**Ursache.** In [analysis.py](../src/mailhelp/processing/analysis.py) (`revise_proposal` → `validate_delta`) wird das Delta gegen `ProposalRevisionDelta` validiert. Dieses Schema erlaubt alle Geschäftsfelder. Die Liste `allowed` steuert nur, welchen Kontext das Modell sieht. Gegen das Ergebnis wird sie nicht geprüft.
 
 **Bewertung.** Das widerspricht der Projektregel, LLM-Ausgaben als nicht vertrauenswürdig zu behandeln. Ein Modell kann so bei jeder Rückfrage Zuständigkeit, Sicherheit, Klassifikation, Titel oder Ziel verändern. Eine Promptregel allein schützt dagegen nicht.
 

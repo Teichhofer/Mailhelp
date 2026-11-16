@@ -99,25 +99,25 @@ def test_built_artifacts_exclude_private_runtime_files():
     with tarfile.open(source) as archive:
         names = {name.split("/", 1)[-1] for name in archive.getnames()}
         assert {"config.example.yaml", ".env.example", "prompts.yaml", "requirements.lock",
-                "docs/Release-1.0.md", "docs/Release-1.1.md", "docs/Release-1.2.md",
-                "docs/Release-1.6.md", "docs/Architektur-1.6.md", "docs/Planung-1.6.md",
-                "docs/Release-2.0.md", "docs/Planung-2.0.md", "docs/Release-3.5.md", "docs/Planung-3.5.md",
-                "docs/Planung-2.4.md", "docs/Architektur-2.4.md", "docs/Release-2.4.md",
-                "docs/Konzept-2.0-Redesign-und-Web-Push.md",
+                "docs/archiv/Release-1.0.md", "docs/archiv/Release-1.1.md", "docs/archiv/Release-1.2.md",
+                "docs/archiv/Release-1.6.md", "docs/archiv/Architektur-1.6.md", "docs/archiv/Planung-1.6.md",
+                "docs/archiv/Release-2.0.md", "docs/archiv/Planung-2.0.md", "docs/archiv/Release-3.5.md", "docs/archiv/Planung-3.5.md",
+                "docs/archiv/Planung-2.4.md", "docs/archiv/Architektur-2.4.md", "docs/archiv/Release-2.4.md",
+                "docs/archiv/Konzept-2.0-Redesign-und-Web-Push.md",
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
-        assert {"docs/Planung-4.1.md", "docs/Qualitaet-4.1.md", "requirements-mutation.lock"} <= names
-        assert {"docs/Planung-4.2.md", "docs/Release-4.2.md"} <= names
-        assert {"docs/Planung-4.3.md", "docs/Release-4.3.md"} <= names
-        assert {"docs/Planung-4.4.md", "docs/Release-4.4.md"} <= names
-        assert {"docs/Planung-4.8.md", "docs/Release-4.8.md"} <= names
-        assert {"docs/Planung-4.9.md", "docs/Release-4.9.md"} <= names
-        assert {"docs/Planung-5.0.md", "docs/Release-5.0.md"} <= names
-        assert {"docs/Planung-5.1.md", "docs/Release-5.1.md"} <= names
-        assert {"docs/Planung-5.2.md", "docs/Release-5.2.md"} <= names
-        assert {"docs/Planung-5.3.md", "docs/Release-5.3.md", "docs/Pruefung-Dokumentation-5.3.md",
+        assert {"docs/archiv/Planung-4.1.md", "docs/archiv/Qualitaet-4.1.md", "requirements-mutation.lock"} <= names
+        assert {"docs/archiv/Planung-4.2.md", "docs/archiv/Release-4.2.md"} <= names
+        assert {"docs/archiv/Planung-4.3.md", "docs/archiv/Release-4.3.md"} <= names
+        assert {"docs/archiv/Planung-4.4.md", "docs/archiv/Release-4.4.md"} <= names
+        assert {"docs/archiv/Planung-4.8.md", "docs/archiv/Release-4.8.md"} <= names
+        assert {"docs/archiv/Planung-4.9.md", "docs/archiv/Release-4.9.md"} <= names
+        assert {"docs/archiv/Planung-5.0.md", "docs/archiv/Release-5.0.md"} <= names
+        assert {"docs/archiv/Planung-5.1.md", "docs/archiv/Release-5.1.md"} <= names
+        assert {"docs/archiv/Planung-5.2.md", "docs/archiv/Release-5.2.md"} <= names
+        assert {"docs/archiv/Planung-5.3.md", "docs/archiv/Release-5.3.md", "docs/Pruefung-Dokumentation-5.3.md",
                 "docs/Ersteinrichtung.md", "docs/Betrieb.md"} <= names
-        assert {"docs/Planung-5.4.md", "docs/Release-5.4.md"} <= names
+        assert {"docs/archiv/Planung-5.4.md", "docs/archiv/Release-5.4.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)
 
 

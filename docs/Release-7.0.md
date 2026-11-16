@@ -366,7 +366,7 @@ Blöcke in allen zehn Skripten.
 `test_ui_swipe_tracking.py`, `test_layers.py`). Umbenannt wurde mit `git mv`, sodass die Historie
 jeder Datei erhalten bleibt. Angepasst sind die Verweise in `devtools/check.py` (Lasttests), der
 Testauswahl von `[tool.mutmut]`, `tests/release/test_quality_commands.py`, der Spezifikation,
-`docs/Paketstruktur.md` und den Quellcode-Kommentaren zu den Schichtausnahmen. Verlaufsdokumente
+`docs/archiv/Paketstruktur.md` und den Quellcode-Kommentaren zu den Schichtausnahmen. Verlaufsdokumente
 (CHANGELOG, frühere Pläne und Berichte) nennen weiter die damaligen Namen.
 
 **Abweichung: genauer benannt statt zusammengeführt.** Wo zwei Dateien denselben Themennamen
@@ -393,4 +393,44 @@ Die größte Testdatei hat jetzt 1 037 Zeilen (`tests/services/test_experience.p
 entsprechen sich alle 5 345 Python- und 1 136 Browsertests eins zu eins (alter Pfad über die
 Zuordnung auf den neuen abgebildet). Nach dem Teilen sind die Test-IDs ohne Dateipfad dieselben
 5 345, keine fehlt und keine ist doppelt.
+
+## 7.0.14 – Archiv, Inhaltsverzeichnis und Architektur (D12; K2, K3)
+
+**Archiv.** 114 abgeschlossene Pläne, Release-Berichte, Konzepte, Prüfberichte, die drei alten
+Architekturdokumente, `Paketstruktur.md` und die vier Bilder zu 5.8 (118 Dateien) liegen jetzt in
+[`docs/archiv/`](archiv/), verschoben mit `git mv`. In `docs/` bleiben die zwölf lebenden
+Dokumente aus K1, die laufenden Pläne (Planung 7.0, Release 7.0, Lernmodus) und der Prüfbericht
+5.3. Den schreibt `devtools/inventory.py` als laufende Inventur aller Einstellungen fort; er wird
+in 7.0.15 durch den Prüfbericht 7.0 abgelöst.
+
+**Verweise.** Jeder relative Link in allen Markdown-Dateien wurde vom alten Ort aus aufgelöst und
+vom neuen Ort aus neu berechnet; ebenso Erwähnungen der Form `docs/…` in Code, Konfiguration und
+Tests sowie die Liste der Dateien im Quellpaket (`[tool.hatch.build.targets.sdist]`). Ausgenommen
+sind die Versionshinweise zu getaggten Ständen (`devtools/release_notes.py` und sein Test): Dort
+lagen die Dokumente noch unter `docs/`. Vor dem Umzug zeigten 16 Links ins Leere (geplante Dateien,
+Quellpfade aus alten Versionen); danach sind es dieselben.
+
+**Fehler gefunden und behoben: Versionshinweise alter Tags.** `.github/scripts/release_notes.py`
+macht aus den Links eines CHANGELOG-Abschnitts Links auf den getaggten Stand. Nach dem Umzug
+hätte er für Tags vor 7.0.14 auf `docs/archiv/…` gezeigt, das es dort nicht gibt, und den
+Release-Leitfaden nicht mehr gefunden. Er setzt solche Links jetzt für ältere Tags auf `docs/`
+zurück und sucht den Leitfaden an beiden Orten. Der Regressionstest
+`test_regression_archived_documents_are_linked_where_the_tag_holds_them` scheitert mit dem alten
+Skript und besteht mit dem neuen.
+
+**Neuer Test.** Der in K2 vorausgesetzte Verweis-Test existierte nicht.
+`tests/release/test_documentation_links.py` prüft jetzt jeden relativen Link aller versionierten
+Markdown-Dateien. Links aus dem Archiv in den Code sind ausgenommen, weil archivierte Dokumente den
+Stand ihrer Version beschreiben. Dazu prüft er, dass keine Pläne oder Berichte vor 7.0 außerhalb
+des Archivs liegen und dass `docs/README.md` jedes lebende Dokument nennt. Ein Link eines alten
+Qualitätsberichts auf `src/mailhelp/analysis.py` zeigt jetzt auf den heutigen Ort in `processing/`.
+
+**Inhaltsverzeichnis.** [`docs/README.md`](README.md) ordnet die lebenden Dokumente nach Einrichten
+und Bedienen, Betrieb, Aufbau und laufender Arbeit.
+
+**Architektur.** [`docs/Architektur.md`](Architektur.md) ersetzt `Architektur-1.6`, `-2.1`, `-2.4`
+und `Paketstruktur`. Es beschreibt die Schichten aus `tests/unit/test_layers.py`, die Grenzen für
+Größe und Typen, den Weg einer Mail durch die Verarbeitungsschritte, den Bestätigungsweg vom
+Prüfbefehl bis zum nachgewiesenen Eintrag, die Zustandsdateien aus `state_names.py` und die
+Migrationen der Altformate. Jede Aussage wurde beim Schreiben gegen den Code geprüft.
 

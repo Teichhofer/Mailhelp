@@ -10,7 +10,7 @@ und `prompts` sowie entsprechende VS-Code-Tasks bereit. `full` benötigt zusätz
 Branch-Abdeckung. Die 15-Sekunden-Grenze für gezielte TDD-Tests wird über die gesamte
 Befehlslaufzeit gemessen. Die gesamte Schnellsuite wird ohne starre Zeitgrenze gemessen.
 Messwerte und Mutationsabnahme stehen in
-[Qualität 4.1](Qualitaet-4.1.md).
+[Qualität 4.1](archiv/Qualitaet-4.1.md).
 
 Unter Linux beziehungsweise WSL werden Mutationstests zusätzlich mit
 `python -m pip install -r requirements-mutation.lock` installiert. Der Befehl
@@ -31,7 +31,7 @@ automatischem Terminal-Code. Für eine neue Docker-Installation steht
 bereit. Der Assistent prüft die Verbindungen, speichert die Einstellungen und
 aktiviert den Normalbetrieb im selben Prozess und bietet den Web-Lernmodus an. Web-Passwort,
 Terminal-Code und Telegram-Code bleiben reguläre Anmeldewege.
-Verträge und Abnahme: [Release 3.8](Release-3.8.md).
+Verträge und Abnahme: [Release 3.8](archiv/Release-3.8.md).
 
 <p align="center">
   <img src="../src/mailhelp/assets/logo.png" alt="Mailhelp" width="200">
@@ -66,13 +66,13 @@ Analysethemen können unvollständige Mails zurückhalten; Fingerprints niemals 
 überschreiben. Reine Zieländerungen verändern seit 3.2 den Analyse-Fingerprint nicht.
 Bei einem Upgrade von älteren Versionen zunächst die bisherigen Ziele beibehalten,
 damit Alt-Fingerprints registriert werden. Details zu Migration und Rückkehr:
-[Release 3.2](Release-3.2.md), [Release 3.3](Release-3.3.md) und [Release 3.4](Release-3.4.md).
+[Release 3.2](archiv/Release-3.2.md), [Release 3.3](archiv/Release-3.3.md) und [Release 3.4](archiv/Release-3.4.md).
 
 ## Weboberfläche und Tailscale (ab 1.1)
 
 Einrichtung der optionalen Weboberfläche, Tailscale Serve für das iPhone,
 Installation als App und Verhalten bei Schlaf oder Neustart des PCs beschreibt
-[Release-1.1.md](Release-1.1.md). Kurzfassung: `web.enabled: true` und
+[Release-1.1.md](archiv/Release-1.1.md). Kurzfassung: `web.enabled: true` und
 `MAILHELP_WEB_SECRET` setzen und am PC `http://127.0.0.1:8765` öffnen. Einen Code mit
 `mailhelp --pair` am lokalen Host oder über Telegram anfordern und damit koppeln.
 Für das iPhone `tailscale serve --bg --https=443
@@ -106,7 +106,7 @@ Anmeldedaten des Elternkontos.
 Ohne Weboberfläche: in `config.yaml` unter `iserv.accounts` ein Konto mit `id`, `server` und
 `mailbox` eintragen, in `.env` `ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD` setzen und
 `mailhelp --check-access` ausführen. Briefe vor der Startgrenze (ohne Angabe: die des Postfachs)
-bleiben unberührt. Mailhelp verändert in IServ nichts. Details: [Release 3.4](Release-3.4.md).
+bleiben unberührt. Mailhelp verändert in IServ nichts. Details: [Release 3.4](archiv/Release-3.4.md).
 
 ## Google OAuth erstmals einrichten
 
@@ -126,7 +126,7 @@ entsprechend Googles [Desktop-OAuth-Ablauf](https://developers.google.com/identi
 2. Einen OAuth-Client vom Typ **Desktop-App** anlegen. Client-ID und Client-Secret
    ausschließlich in `.env` oder der Prozessumgebung als `GOOGLE_OAUTH_CLIENT_ID`
    und `GOOGLE_OAUTH_CLIENT_SECRET` hinterlegen. Für zusätzliche Profile gelten
-   die nummerierten Geheimnisnamen aus [Release 3.2](Release-3.2.md).
+   die nummerierten Geheimnisnamen aus [Release 3.2](archiv/Release-3.2.md).
 3. Am Host `mailhelp --google-auth --config-directory .` ausführen; für Profil 2
    zusätzlich `--profile 2` angeben. Mailhelp öffnet den Browser und nimmt den
    State-/PKCE-geschützten Rückruf an `127.0.0.1` auf einem freien Port entgegen.
@@ -341,7 +341,7 @@ erfolgreich ausgeführt werden. Kalender und Todoist wurden nicht beschrieben.
 
 Dieser Bericht vom 8. Oktober beschreibt nicht die heutige Plattformverfügbarkeit
 oder Abnahme. Die spätere lokale Facelift-Prüfung unter Windows, WSL und Docker
-steht in [Release 3.3](Release-3.3.md); reale Modellqualität bleibt separat zu prüfen.
+steht in [Release 3.3](archiv/Release-3.3.md); reale Modellqualität bleibt separat zu prüfen.
 
 Die Telegram-Korrekturen bewahren Rückfragesperren bei unklarem Versand und nach
 Neustart. Zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mail. Diese

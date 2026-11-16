@@ -112,7 +112,7 @@ lesend geprüft. Erst nach erneuter Sitzungs- und Dateiprüfung wechselt die ges
 Laufzeitgeneration; der HTTP-Listener bleibt bestehen, alte Verbindungen schließen danach.
 Web-Einstellungen, Sitzungsschlüssel, Datenverzeichnis und Betriebsmodus bleiben
 Neustartgrenzen. Die Ersteinrichtung wechselt dagegen direkt im selben Prozess in den
-Normalbetrieb und bietet den Web-Lernmodus an. Details: [Release 3.8](docs/Release-3.8.md).
+Normalbetrieb und bietet den Web-Lernmodus an. Details: [Release 3.8](docs/archiv/Release-3.8.md).
 
 Die verbindlichen Zustandsübergänge, Persistenzgrenzen und beide Reihenfolgen konkurrierender
 Entscheidungen für Review, Command-Inbox, Schreibausführung, Ledger und Merge stehen in
@@ -146,7 +146,7 @@ Orchestrator, Metriken, Labels, Antwortentwürfe und Filter berücksichtigen neu
 Bestehende Postfächer ändern oder entfernen bleibt ein Entwurf mit Übernahme;
 seit 3.8 aktiviert „Konfiguration neu laden“ den gespeicherten Stand.
 Kalender- und Aufgabenaktionen benötigen weiterhin ihre eigene versionsbezogene Bestätigung.
-Details und Betriebsgrenzen: [Release 3.5](docs/Release-3.5.md).
+Details und Betriebsgrenzen: [Release 3.5](docs/archiv/Release-3.5.md).
 
 ## Einrichtung und Benachrichtigungssteuerung (seit 3.0)
 
@@ -161,10 +161,10 @@ Aktivierungsmarker geschrieben und seit 3.8 im selben Prozess aktiviert.
 Direkte Google-Webanmeldung mit registriertem Webclient, State und PKCE sowie dauerhafte
 Microsoft-Device-Code-Vorgänge sind an die ursprüngliche Sitzung und Clientdaten gebunden.
 Die Google-Playground-Hilfe und profilbezogene Kalenderauswahl sind im Browser verfügbar.
-Persistenz-, Wiederherstellungs- und Downgrade-Verträge: [Release 3.7](docs/Release-3.7.md).
+Persistenz-, Wiederherstellungs- und Downgrade-Verträge: [Release 3.7](docs/archiv/Release-3.7.md).
 
 Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
-[Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
+[Release-3.0.md](docs/archiv/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
 versionsgebundenen Entwurf separat von der bestätigten Konfigurationsübernahme. Webübernahme
 verwendet Sitzung, CSRF, Dateihash, Idempotenz und erneute Autorisierung bei Ausführung.
 `mailhelp --pair` fordert einen Einmalcode über eine host-authentifizierte, kurzlebige lokale
@@ -2122,7 +2122,7 @@ gemeldet. Ein Telegram-Callback zu einer nicht mehr aktuellen Version antwortet 
 ohne Verbindung erscheint die Offline-Seite. POST-Anfragen, Daten und API-Antworten
 werden weder gespeichert noch später gesendet.
 
-Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).
+Einrichtung und Betrieb: [docs/archiv/Release-1.1.md](docs/archiv/Release-1.1.md).
 
 ## 19. Weboberfläche 1.2: Archiv, Verlauf, Auswertung und Einstellungen
 
@@ -2464,7 +2464,7 @@ persistierten Zustand. Ein fehlgeschlagener Prozessstart wird am Terminal als
 Fehler gemeldet und nicht automatisch erneut versucht. Danach öffnet der Benutzer
 die Weboberfläche erneut.
 
-Einrichtung, Upgrade und Rollback: [docs/Release-1.2.md](docs/Release-1.2.md).
+Einrichtung, Upgrade und Rollback: [docs/archiv/Release-1.2.md](docs/archiv/Release-1.2.md).
 
 ## 20. Version 1.3: Intelligenter Workflow & Dokumenten-Anhänge (Smart Engine)
 
@@ -2490,7 +2490,7 @@ Telegram-Antwortinterpretation, validierter Nachfolge-Vorschlag und Recovery
 erhalten explizite Abhängigkeiten; Persistenz und Zustellung bleiben koordiniert.
 Die bestehende Bestätigungsschranke und Reihenfolge dauerhafter Zustandsübergänge
 bleiben verpflichtend. Die vollständige Zuordnung ist in
-[Architektur-1.6.md](docs/Architektur-1.6.md) beschrieben.
+[Architektur-1.6.md](docs/archiv/Architektur-1.6.md) beschrieben.
 
 
 ## 21. Version 2.0: Eigenständige App, Web-Push, Antwort-Entwürfe und Tagesüberblick
@@ -2650,7 +2650,7 @@ voraus; `TELEGRAM_BOT_TOKEN`, `telegram.user_id` und `telegram.chat_id` entfalle
 Kopplungscodes werden nur auf der Konsole ausgegeben. Die 2.0-Einstellungen sind
 nicht Teil des Konfigurations-Fingerprints, auch nicht der Legacy-Fingerprints.
 
-Details und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
+Details und Upgrade: [Release-2.0.md](docs/archiv/Release-2.0.md).
 
 
 ### Auswahl bei Aktualisierung der Webübersicht
@@ -2743,11 +2743,11 @@ ausdrücklich auch vergangene.
   abgeschlossener Berichte. Die Einstellungen und Prompts sind nicht Teil der
   Analyse- oder Legacy-Fingerprints.
 
-Details: [Release-2.2.md](docs/Release-2.2.md).
+Details: [Release-2.2.md](docs/archiv/Release-2.2.md).
 
 ## 23. Version 2.3: Weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
 
-Planung und Entscheidungen: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+Planung und Entscheidungen: [docs/archiv/Planung-2.3.md](docs/archiv/Planung-2.3.md).
 
 ### 23.1 Anbieter
 
@@ -2883,7 +2883,7 @@ ist; die Wiederholung selbst schreibt nie extern.
 Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehungen,
 Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
 eine vollständige Zustandssicherung erforderlich; ein Rollback benötigt den Stand
-vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/Release-2.4.md).
+vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/archiv/Release-2.4.md).
 
 ## Version 3.2: Einstellungen je Postfach
 
@@ -2921,7 +2921,7 @@ registriert die bisherigen Fingerprints und Themenrichtlinien bis 3.1 für diese
 als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu verändern. Diese Registrierung
 ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
 Details, Fingerprint-Kompatibilität
-und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
+und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/archiv/Release-3.2.md).
 
 ## IServ-Elternbriefe (seit 3.3.7)
 
@@ -3179,7 +3179,7 @@ eine angehobene lokale Zeitgrenze erfüllt nicht das 15-Sekunden-Abnahmekriteriu
 Der Linux-Mutationslauf prüft die Kernmodule `domain`, `storage` und `external.confirmed`.
 Mindestens 90 % aller erzeugten Mutanten müssen durch fehlgeschlagene Tests erkannt sein;
 Timeouts und ungetestete Mutanten verbessern den Wert nicht. Einzelheiten und Messwerte
-stehen in `docs/Qualitaet-4.1.md`.
+stehen in `docs/archiv/Qualitaet-4.1.md`.
 
 Das Offline-Prompt-Gate verbindet die synthetische Auswertung mit Fingerprints der Prompts,
 Themen, Relevanzkonfiguration und des Korpus. Änderungen gegenüber der geprüften Basis
@@ -3503,7 +3503,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Absagen im Aktionsrouter (4.6.7):** Verschiebt, ändert oder sagt der aktuelle
   Nachrichtenteil einen bestimmten Termin ab, zählt der Router genau einen Terminkandidaten
   (`event`), auch wenn keine Handlung verlangt ist; die Absage eines bestimmten Termins ist
-  nie `none`. Release-Bericht: `docs/Release-4.6.md`.
+  nie `none`. Release-Bericht: `docs/archiv/Release-4.6.md`.
 
 ## Ergänzungen Version 4.7
 
@@ -3540,7 +3540,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Konfigurations-Fingerabdruck ein.
 - **Abnahme (18.6):** Der End-to-End-Test schreibt Aufgabe und Termin einer Mail mit
   Sonderzeichen in der Message-ID nach Todoist und Google Kalender (simuliert) und prüft
-  den Link in beiden Beschreibungen. Release-Bericht: `docs/Release-4.7.md`.
+  den Link in beiden Beschreibungen. Release-Bericht: `docs/archiv/Release-4.7.md`.
 
 ## Ergänzungen Version 4.8
 
@@ -4030,7 +4030,7 @@ die Suche in den allgemeinen Einstellungsbereichen benutzbar.
 
 ## Hilfschat-Feinabstimmung (5.5)
 
-Planung: [Planung 5.5](docs/Planung-5.5.md).
+Planung: [Planung 5.5](docs/archiv/Planung-5.5.md).
 
 ### Bedienelemente und Schlüssel (5.5.0)
 
@@ -4407,4 +4407,4 @@ am Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.
 429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der
 Aktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,
 Aktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.
-Einzelheiten: [Release 6.8](docs/Release-6.8.md).
+Einzelheiten: [Release 6.8](docs/archiv/Release-6.8.md).

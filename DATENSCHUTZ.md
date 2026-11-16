@@ -203,7 +203,7 @@ Version, Betriebssystemklasse, Komponentenstatus, Prüfdauer und sichere Fehlerc
 Zustelllogs enthalten Referenzen statt Nachrichtentexten. Telegram-Inhaltsmeldungen werden im
 Profil bewusst gewählt; Web-Push bleibt neutral. Erstkopplung ohne Telegram erfolgt durch
 `mailhelp --pair` am lokalen Host, ohne Codeausgabe in Dienstlogs. Ausstehende Meldungen prüfen
-Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/Release-3.0.md).
+Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/archiv/Release-3.0.md).
 
 Zugangsdaten lassen sich seit 3.3.11 über die angemeldete Weboberfläche in `.env` speichern. Die
 Weboberfläche gibt gespeicherte Werte nie aus, auch nicht maskiert; Protokolle enthalten nur den

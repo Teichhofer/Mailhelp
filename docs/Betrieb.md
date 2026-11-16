@@ -100,4 +100,4 @@ am Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.
 429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der
 Aktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,
 Aktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.
-Einzelheiten: [Release 6.8](Release-6.8.md).
+Einzelheiten: [Release 6.8](archiv/Release-6.8.md).

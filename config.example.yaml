@@ -92,7 +92,7 @@ personal_info: ""
 # event_defaults: {video_duration_minutes: 90}
 # notifications: {quiet_hours: {enabled: true}, categories: {decisions: []}}
 # Themenzuordnung in topics.yaml/irrelevant_topics.yaml: mailboxes: [2].
-# Ohne Zuordnung gilt ein Thema global. Details: docs/Release-3.2.md.
+# Ohne Zuordnung gilt ein Thema global. Details: docs/archiv/Release-3.2.md.
 target_profiles: []  # Standardprofil 1 bleibt targets; weitere IDs 2–99
 # - id: 2
 #   label: Arbeit
