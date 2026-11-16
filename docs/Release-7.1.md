@@ -156,3 +156,44 @@ getrennte Browserkontexte, WebKit auf einem iPhone-Profil.
 Prüfung: 5 541 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 932 bestanden ohne
 Fehler.
 
+## 7.1.5 – Docker-Betrieb und Abnahme (D7)
+
+- **`compose.demo.yaml`**: ein Dienst `mailhelp-demo` mit `--demo --config-directory /config`, dem
+  eigenen Volume `demo-daten` und nur `MAILHELP_DEMO_*`-Variablen. Kein `.env`, keine Dateien,
+  Daten oder Logs der normalen Instanz, kein veröffentlichter Port. Das Netz `mailhelp-demo` ist
+  intern; der HTTPS-Proxy tritt ihm bei. Für einen Proxy auf dem Host beschreibt
+  [Betrieb](Betrieb.md) die Variante mit Port und Firewallregel.
+- **Netzwerkfalle**: Ein Test sperrt Namensauflösung und Verbindungsaufbau und spielt einen ganzen
+  Besuch durch (Start, alle Leseseiten, Bestätigen, vorbereitete und freie Antworten,
+  Hintergrundarbeit, Neustart, Bereinigung). Die Demo berührt das Netz dabei nicht.
+- **Paket**: Ein Test entpackt das Wheel der aktuellen Version und prüft den Beispielbestand dort
+  mit allen Prüfsummen (30 Mails).
+
+### Abnahme 7.1
+
+| Schritt | Nachweis | Ergebnis |
+| :--- | :--- | :--- |
+| D1 | Aliasse, Kombinationen, Verzeichnisgrenze in beide Richtungen | erfüllt (7.1.1) |
+| D2 | Echter Verarbeitungslauf, Manifest, fachliche Prüfung | erfüllt; alle zehn Fälle seit 7.1.4 |
+| D3 | 30 Mails, atomarer Start, Wiederholung ohne Dubletten | erfüllt (7.1.3) |
+| D4 | „Demo starten“ ohne Code und Telegram, POST/CSRF/Idempotenz | erfüllt (7.1.3) |
+| D5 | Lokale Ziele, vorbereitete Antworten, gesperrte Wege auch direkt | erfüllt (7.1.3, 7.1.4) |
+| D6 | Getrennte Besucher, Neustart nur eigener Bereich, Ablauf, Grenzen | erfüllt bis auf die Demozeit |
+| D7 | Container mit eigenem Volume und ohne Egress | Konfiguration und statische Prüfung erfüllt; Probelauf offen |
+
+**Abweichungen.**
+
+1. *Demozeit* (6.3): nicht umgesetzt, siehe 7.1.4. Die Demo läuft in der echten Zeit.
+2. *Grenzwerte in `config.yaml`* (7): Die Demo besitzt keine `config.yaml`; die Werte stehen im
+   Code und in dieser Dokumentation.
+3. *Probelauf des Containers* (D7): Auf dem Entwicklungsrechner ist kein Docker installiert. Geprüft
+   sind die Compose-Datei (statisch), der Demo-Start aus einem leeren Verzeichnis, das Wheel mit dem
+   Bestand und die Netzwerkfalle. Ein frischer Container ohne Egress muss vor der öffentlichen
+   Bereitstellung einmal auf dem Server gestartet werden: Anmeldeseite, „Demo starten“, Bestätigen.
+4. *Fall 5 des Bestands*: Die Terminänderung wird erkannt, aber nicht mit dem Vorschlag aus Fall 1
+   verknüpft (siehe 7.1.2).
+
+Prüfung 7.1.5: 5 546 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 931 bestanden.
+Einmal scheiterte der lastabhängige Zeittest der Live-Suche (`test_results_are_visible_within_300_ms…`);
+er bestand danach dreimal einzeln.
+

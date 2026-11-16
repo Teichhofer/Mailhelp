@@ -1,0 +1,34 @@
+# 7.1 (D7): öffentliche Demo-Instanz, getrennt von der normalen Instanz.
+#
+#   docker compose -f compose.demo.yaml up -d --build
+#
+# Eigenes Volume, kein .env, keine Produktionsdateien. Das Netz ist intern: Der Container erreicht
+# kein Internet. Der Reverse Proxy (ein Container mit HTTPS für die Demo-Subdomain) tritt dem Netz
+# "mailhelp-demo" bei und leitet an mailhelp-demo:8765 weiter. Ein internes Netz kann keine Ports auf
+# dem Host veröffentlichen; für einen Proxy auf dem Host siehe docs/Betrieb.md, Abschnitt Demo-Instanz.
+services:
+  mailhelp-demo:
+    build: .
+    command: ["--demo", "--config-directory", "/config"]
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    environment:
+      MAILHELP_DEMO_HOST: 0.0.0.0
+      MAILHELP_DEMO_PORT: "8765"
+      # Hostname der Demo-Subdomain, wie ihn der Proxy im Host-Kopf weitergibt.
+      MAILHELP_DEMO_ALLOWED_HOSTS: ${MAILHELP_DEMO_ALLOWED_HOSTS:?Demo-Hostname setzen, z. B. demo.example.org}
+      # Der Proxy setzt X-Forwarded-For; nur deshalb zählen die Startgrenzen je Client danach.
+      MAILHELP_DEMO_TRUST_PROXY: "1"
+    volumes:
+      - demo-daten:/config
+    networks:
+      - mailhelp-demo
+
+volumes:
+  demo-daten:
+
+networks:
+  mailhelp-demo:
+    name: mailhelp-demo
+    internal: true

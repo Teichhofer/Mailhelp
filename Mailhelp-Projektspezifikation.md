@@ -34,6 +34,9 @@ einem Hinweis abgelehnt, ein Modell wird nie aufgerufen. „Demo neu starten“ 
 `MAILHELP_DEMO_TRUST_PROXY=1`. Abgelaufene Bereiche werden jede Minute entfernt. Die Demo läuft in
 der echten Zeit (keine verschobene Demozeit).
 
+Seit 7.1.5: `compose.demo.yaml` betreibt die Demo als eigenen Dienst (`--demo`, Volume `demo-daten`,
+nur `MAILHELP_DEMO_*`-Variablen, internes Netz `mailhelp-demo` ohne ausgehenden Zugang).
+
 Ein Neustart über die Weboberfläche startet Mailhelp mit genau denselben Startparametern
 (`sys.argv`), ein Neustart im Demo-Modus also wieder die Demo. In der öffentlichen Demo ist der
 Neustart über die Oberfläche für Besucher gesperrt; neu starten kann sie nur der Betreiber.

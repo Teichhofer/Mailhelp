@@ -261,6 +261,59 @@ def test_a_free_answer_meets_the_demo_limit_instead_of_a_model(instance):
     assert current["version"] == int(fields["version"])  # nothing invented, the question stays open
 
 
+class NetworkUsed(AssertionError):
+    pass
+
+
+@pytest.fixture
+def no_network(monkeypatch):
+    """A trap: any name lookup or connection fails the test instead of leaving the host."""
+    import socket
+
+    def refuse(*args, **kwargs):
+        raise NetworkUsed(f"Die Demo hat das Netz benutzt: {args!r}")
+    for name in ("getaddrinfo", "create_connection"):
+        monkeypatch.setattr(socket, name, refuse)
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket.socket, "connect_ex", refuse)
+    return refuse
+
+
+def test_the_network_trap_catches_a_connection(no_network):
+    import socket
+    with pytest.raises(NetworkUsed):
+        socket.create_connection(("example.org", 443))
+    with socket.socket() as probe, pytest.raises(NetworkUsed):
+        probe.connect(("192.0.2.1", 443))
+
+
+def test_a_whole_visit_never_uses_the_network(instance, no_network):
+    """Start, read, confirm, answer (prepared and free), background work, restart and cleanup."""
+    _response, jar = start(instance.site)
+    for path in ("/", "/mails", "/verlauf", "/status", "/einstellungen", "/termine", "/aufgaben"):
+        assert instance.site(request("GET", path, jar)).status in (200, 303, 403, 404)
+    page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
+    confirm = next(item for item in re.findall(r'<form method="post" action="/aktion"[^>]*>(.*?)</form>', page, re.S)
+                   if 'value="confirm"' in item)
+    fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', confirm))
+    instance.site(request("POST", "/aktion", jar, {**fields, "kind": "confirm"}))
+    for answer in _answer_forms(page)[:2]:
+        fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', answer))
+        text = html.unescape(re.search(r"<textarea[^>]*>(.*?)</textarea>", answer, re.S).group(1)) or "Weiß nicht."
+        instance.site(request("POST", "/aktion", jar, {**fields, "text": text}))
+        instance.site(request("POST", "/aktion", jar, {**fields, "text": "Eine freie Antwort."}))
+    for _ in range(8):
+        instance.runtimes.work()
+    area = instance.runtimes.visitors.area(instance.runtimes.auth.authenticate(jar["mh_session"]).id)
+    assert any('"status": "simulated"' in path.read_text(encoding="utf-8") for path in area.glob("proposal-*.json"))
+    restart = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode("utf-8")
+    csrf = re.search(r'name="csrf" value="([^"]+)"', restart).group(1)
+    key = re.search(r'name="key" value="([^"]+)"', restart).group(1)
+    assert instance.site(request("POST", "/demo/neu-starten", jar, {"csrf": csrf, "key": key})).status == 303
+    instance.runtimes.cleanup()
+    assert instance.site(request("GET", "/", jar)).status == 200
+
+
 def test_the_restart_confirms_and_replaces_only_the_own_area(instance):
     _response, jar = start(instance.site)
     _other, other = start(instance.site)

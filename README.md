@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.1.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.1.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, Rückfragen lassen sich mit vorbereiteten Beispielantworten beantworten, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
 
@@ -94,7 +94,8 @@ docker compose -f compose.setup.yaml up --build
 Den ausgegebenen Einmalcode unter `http://localhost:8765/anmelden` eingeben. Konfiguration,
 Zugangsdaten, Zustände und Logs bleiben im benannten Volume `mailhelp-config`. Die
 `compose.yaml` verwendet eine manuell angelegte Konfiguration; Einzelheiten stehen in
-[Betrieb und Update](docs/Betrieb.md).
+[Betrieb und Update](docs/Betrieb.md). Eine getrennte Demo-Instanz ohne Internetzugang startet
+`compose.demo.yaml` (siehe dort, Abschnitt Demo-Instanz).
 
 ### Prüfen und starten
 

@@ -63,6 +63,28 @@ Variable nicht setzen, sonst kann ein Besucher die Grenze mit einem erfundenen K
 Besucher beantworten Rückfragen nur mit den vorbereiteten Beispielantworten und setzen über
 „Demo neu starten“ ihre eigene Kopie zurück. Abgelaufene Kopien entfernt die Demo selbst.
 
+### Demo im Docker-Container
+
+```sh
+MAILHELP_DEMO_ALLOWED_HOSTS=demo.example.org docker compose -f compose.demo.yaml up -d --build
+```
+
+`compose.demo.yaml` startet denselben Image-Einstiegspunkt mit `--demo` und dem eigenen Volume
+`demo-daten`; `.env`, `config.yaml`, Daten und Logs der normalen Instanz werden nicht eingebunden.
+Beide Instanzen laufen unabhängig, auch gleichzeitig. Das Netz `mailhelp-demo` ist intern, der
+Container erreicht also kein Internet. Das ist die zweite Schutzschicht: Die Demo erzeugt ohnehin
+keine Clients für Postfach, Telegram, KI oder Ziele.
+
+Der HTTPS-Proxy für die Demo-Subdomain tritt dem Netz `mailhelp-demo` bei und leitet an
+`mailhelp-demo:8765` weiter. Ein internes Netz kann keinen Port auf dem Host veröffentlichen. Läuft
+der Proxy auf dem Host (etwa Tailscale Serve), braucht der Dienst ein normales Netz mit
+`127.0.0.1:<Port>:8765`; die Sperre des ausgehenden Verkehrs übernimmt dann eine Firewallregel für
+das Demo-Netz (unter Linux in der Kette `DOCKER-USER`). `MAILHELP_DEMO_TRUST_PROXY` bleibt nur
+gesetzt, solange ausschließlich der Proxy den Container erreicht.
+
+Zurücksetzen der ganzen Demo: Container stoppen und das Volume `demo-daten` löschen; beim nächsten
+Start ist das Verzeichnis leer und wird neu markiert.
+
 ## Sicherung
 
 Für eine konsistente Sicherung zuerst den Dienst kontrolliert beenden. Erst nach dem

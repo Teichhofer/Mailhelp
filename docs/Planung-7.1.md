@@ -4,7 +4,8 @@
 
 **Stand:** 15. November 2026
 
-**Status:** In Umsetzung ab 7.1.1 (16. November 2026). Ergänzung des Auftraggebers vom
+**Status:** Umgesetzt in 7.1.1 bis 7.1.5 (16. November 2026); Abnahme und Abweichungen in
+[Release 7.1](Release-7.1.md). Ergänzung des Auftraggebers vom
 16. November 2026: zusätzlich 20 nicht relevante Mails, Bestand damit 30 Mails (siehe 5.1).
 Der einmalige Erzeugungslauf über OpenRouter (D2) ist freigegeben.
 

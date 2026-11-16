@@ -1443,6 +1443,18 @@
   "title": "Demo-Instanz"
  },
  {
+  "id": "betrieb/demo-im-docker-container",
+  "path": [
+   "Betrieb und Update",
+   "Demo-Instanz",
+   "Demo im Docker-Container"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "```sh\nMAILHELP_DEMO_ALLOWED_HOSTS=demo.example.org docker compose -f compose.demo.yaml up -d --build\n```\n\n`compose.demo.yaml` startet denselben Image-Einstiegspunkt mit `--demo` und dem eigenen Volume\n`demo-daten`; `.env`, `config.yaml`, Daten und Logs der normalen Instanz werden nicht eingebunden.\nBeide Instanzen laufen unabhängig, auch gleichzeitig. Das Netz `mailhelp-demo` ist intern, der\nContainer erreicht also kein Internet. Das ist die zweite Schutzschicht: Die Demo erzeugt ohnehin\nkeine Clients für Postfach, Telegram, KI oder Ziele.\n\nDer HTTPS-Proxy für die Demo-Subdomain tritt dem Netz `mailhelp-demo` bei und leitet an\n`mailhelp-demo:8765` weiter. Ein internes Netz kann keinen Port auf dem Host veröffentlichen. Läuft\nder Proxy auf dem Host (etwa Tailscale Serve), braucht der Dienst ein normales Netz mit\n`127.0.0.1:<Port>:8765`; die Sperre des ausgehenden Verkehrs übernimmt dann eine Firewallregel für\ndas Demo-Netz (unter Linux in der Kette `DOCKER-USER`). `MAILHELP_DEMO_TRUST_PROXY` bleibt nur\ngesetzt, solange ausschließlich der Proxy den Container erreicht.\n\nZurücksetzen der ganzen Demo: Container stoppen und das Volume `demo-daten` löschen; beim nächsten\nStart ist das Verzeichnis leer und wird neu markiert.",
+  "title": "Demo im Docker-Container"
+ },
+ {
   "id": "betrieb/sicherung",
   "path": [
    "Betrieb und Update",

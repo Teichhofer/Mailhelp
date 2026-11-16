@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.1.5 – Demo-Modus: Docker-Betrieb und Abschluss von 7.1
+
+- `compose.demo.yaml` startet die Demo mit eigenem Volume, ohne `.env` und Produktionsdateien, in
+  einem internen Netz ohne Internetzugang; der Reverse Proxy tritt diesem Netz bei.
+- Die Paketprüfung verifiziert den Beispielbestand aus dem installierten Wheel.
+- Abnahmebericht 7.1 mit allen Abweichungen.
+
 ## 7.1.4 – Demo-Modus: vorbereitete Antworten und Neustart
 
 - Rückfragen lassen sich in der Demo mit vorbereiteten Beispielantworten beantworten; das Ergebnis
