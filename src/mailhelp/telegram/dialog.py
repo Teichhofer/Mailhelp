@@ -17,6 +17,7 @@ from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.relevance import RelevanceDialog
 from ..domain.run import TelegramOffset
 from ..external.contracts import ExternalWriter
+from ..i18n import Locale, use_locale
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
 from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import JsonStore
@@ -112,6 +113,8 @@ class TelegramDialogController:
         # Link and one-time code for the web interface (Telegram command /web).
         self.web_invite: Callable[[], str] | None = None
         self.writers, self.test_mode = writers or {}, test_mode
+        # 7.5.3: Telegram has no browser; its texts use the configured language.
+        self.locale = Locale.DE
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
         self.interpretation_attempts = interpretation_attempts
@@ -307,8 +310,13 @@ class TelegramDialogController:
     def poll_once(self, timeout: int | None = None) -> None:
         """Process new updates: from the inbox if a receiver fills it, else from Telegram.
 
-        With an inbox this never waits; *timeout* only applies to direct polling.
+        With an inbox this never waits; *timeout* only applies to direct polling. Every text sent
+        meanwhile uses the configured language (7.5.3).
         """
+        with use_locale(self.locale):
+            self._poll_once(timeout)
+
+    def _poll_once(self, timeout: int | None) -> None:
         # Only the operator executes decisions. Producers lock only durable enqueue;
         # no shared dialog/store lock spans a network, LLM or provider call.
         if self.stop_requested():

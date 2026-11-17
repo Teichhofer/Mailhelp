@@ -50,7 +50,7 @@ def display_date(value: date | datetime | None, configured_timezone: str) -> str
         return "—"
     if isinstance(value, datetime):
         return format_datetime_local(value, configured_timezone)
-    return value.strftime("%d.%m.%Y")
+    return day(value)
 
 
 def shorten(text: str, limit: int) -> str:
@@ -69,26 +69,36 @@ def sender_name(sender: str) -> str:
 
 
 def display_question(question: str) -> str:
-    return QUESTION_DISPLAY.get(question, question)
+    """The question as shown; stored texts stay German identities, only the display is translated (7.5)."""
+    return tr(QUESTION_DISPLAY.get(question, question))
 
 
-def answer_example(question: str) -> str | None:
-    """A short example answer that matches the kind of question."""
+_YES_NO = "„ja“ oder „nein“"
+
+
+def _example(question: str) -> str | None:
+    """The German example answer for the kind of the (German, stored) question."""
     words = set(re.findall(r"\w+", question.casefold()))
     if words & {"endet", "ende"}:
         return "„16:00“ oder „nach 2 Stunden“"
     if words & {"beginnt", "datum", "wann", "uhrzeit"}:
         return "„21.10.2026 14:00“"
     if words & {"zuständig", "belegt", "dennoch"}:
-        return "„ja“ oder „nein“"
+        return _YES_NO
     if "ort" in words:
         return "„Raum 3“"
     return None
 
 
+def answer_example(question: str) -> str | None:
+    """A short example answer that matches the kind of question, in the active language (7.5)."""
+    example = _example(question)
+    return tr(example) if example is not None else None
+
+
 def yes_no_question(question: str) -> bool:
-    """Whether the question is answered with yes or no."""
-    return answer_example(question) == "„ja“ oder „nein“"
+    """Whether the question is answered with yes or no; independent of the display language."""
+    return _example(question) == _YES_NO
 
 
 def event_time(proposal: Proposal, configured_timezone: str) -> str | None:
@@ -185,11 +195,11 @@ def card_content(proposal: Proposal, configured_timezone: str,
              if not event and proposal.due is not None else None),
         location=proposal.location if event else None,
         video_link=str(proposal.video_link) if event and proposal.video_link else None,
-        responsibility=(RESPONSIBILITY[proposal.responsibility]
+        responsibility=(tr(RESPONSIBILITY[proposal.responsibility])
                         if proposal.responsibility != "user" else None),
-        certainty=(CERTAINTY[proposal.certainty]
+        certainty=(tr(CERTAINTY[proposal.certainty])
                    if proposal.certainty != "certain" else None),
-        classification=(CLASSIFICATION[proposal.classification]
+        classification=(tr(CLASSIFICATION[proposal.classification])
                         if proposal.classification != "new" else None),
         writable=proposal_is_writable(proposal),
         test_mode=test_mode,

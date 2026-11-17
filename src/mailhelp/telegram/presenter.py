@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from ..domain.proposal import Proposal, ProposalKind
 from ..domain.proposal_sources import ProposalReference
 from ..external.contracts import proposal_is_writable
+from ..i18n import tr
 from ..proposals import conflicts
 from .callbacks import Decision, DecisionAction, validate_callback_markup
 from .formatting import format_proposal, numbered_message_parts, revision_summary
@@ -88,20 +89,20 @@ class ProposalPresenter:
         if not self.profile_available(proposal) or not proposal_is_writable(proposal):
             buttons = [
                 [
-                    button("Manuell prüfen", DecisionAction.EDIT),
-                    button("Verwerfen", DecisionAction.REJECT),
+                    button(tr("Manuell prüfen"), DecisionAction.EDIT),
+                    button(tr("Verwerfen"), DecisionAction.REJECT),
                 ]
             ]
         elif proposal.open_questions:
             buttons = [
                 [
-                    button("Klären", DecisionAction.EDIT),
-                    button("Verwerfen", DecisionAction.REJECT),
+                    button(tr("Klären"), DecisionAction.EDIT),
+                    button(tr("Verwerfen"), DecisionAction.REJECT),
                 ]
             ]
         else:
             confirm = button(
-                (
+                tr(
                     "Simulieren"
                     if self.test_mode
                     else ("Termin absagen" if proposal.is_cancellation else "Termin aktualisieren")
@@ -111,8 +112,8 @@ class ProposalPresenter:
                 ),
                 DecisionAction.CONFIRM,
             )
-            reject = button("Verwerfen", DecisionAction.REJECT)
-            buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
+            reject = button(tr("Verwerfen"), DecisionAction.REJECT)
+            buttons = [[confirm, button(tr("Ändern"), DecisionAction.EDIT), reject]]
         return buttons
 
     def _add_choice_rows(self, proposal: Proposal, buttons: list[list[dict[str, str]]],
@@ -122,16 +123,18 @@ class ProposalPresenter:
             # 4.6: the text above lists the candidates with the same numbers.
             choice = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                               action=DecisionAction.CHOOSE_EVENT, candidate=index)
-            buttons.append([{"text": f"Termin {index + 1} meinen", "callback_data": self.encode(choice)}])
+            buttons.append([{"text": tr("Termin {number} meinen", number=index + 1),
+                             "callback_data": self.encode(choice)}])
         buttons[0:0] = self._conflict_rows(proposal)
-        buttons.append([button("✓ Schon erledigt", DecisionAction.ALREADY_DONE)])
+        buttons.append([button(tr("✓ Schon erledigt"), DecisionAction.ALREADY_DONE)])
         if proposal.mail_link is not None and proposal.mail_link.startswith("https://"):
             # 4.7: Gmail or Outlook on the web; Telegram opens only http(s) links in buttons.
-            buttons.append([{"text": "📧 Original-Mail öffnen", "url": proposal.mail_link}])
+            buttons.append([{"text": tr("📧 Original-Mail öffnen"), "url": proposal.mail_link}])
         for number, name, digest in self.retarget_choices(proposal):
             decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                 action=DecisionAction.RETARGET, target_profile=number, profile_hash=digest)
-            buttons.append([{"text": f"Auf Zielprofil {name} umstellen", "callback_data": self.encode(decision)}])
+            buttons.append([{"text": tr("Auf Zielprofil {name} umstellen", name=name),
+                             "callback_data": self.encode(decision)}])
 
     def _association_row(self, proposal: Proposal, additional: Proposal) -> list[dict[str, str]]:
         """Add a possible second entry to this proposal or keep it separate."""
@@ -142,7 +145,7 @@ class ProposalPresenter:
                 version=proposal.version, action=action,
                 additional_ref=ProposalReference(mail_id=additional.source_mail_id, proposal_id=additional.id),
                 additional_version=additional.version)
-            choices.append({"text": label, "callback_data": self.encode(decision)})
+            choices.append({"text": tr(label), "callback_data": self.encode(decision)})
         return choices
 
     def _conflict_rows(self, proposal: Proposal) -> list[list[dict[str, str]]]:
@@ -155,7 +158,7 @@ class ProposalPresenter:
                 decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                                     version=proposal.version, action=DecisionAction.CHOOSE_VARIANT,
                                     conflict_id=conflict.id, variant=variant.id)
-                verb = "übernehmen" if variant.origin == "source" else "behalten"
+                verb = tr("übernehmen") if variant.origin == "source" else tr("behalten")
                 row.append({"text": f"{conflicts.button_text(conflict, variant, zone)} {verb}",
                             "callback_data": self.encode(decision)})
             rows.append(row)

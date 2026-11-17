@@ -14,6 +14,7 @@ from ..config.configuration import ConfigurationService, effective_models
 from ..external.providers import build_writers, provider_services
 from ..external.roles import writer_for
 from ..helpdocs.chat import HelpChat, redactor, secret_values
+from ..i18n import Locale
 from ..llm.adapter import RetryPolicy
 from ..llm.decisions import (
     DecisionAnalyzer,
@@ -248,6 +249,7 @@ def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: J
                            for number in range(1, settings.logging.llm.backup_count + 1))]
     dialog.learning = DecisionLearningLog(store, settings.retention.decision_learning_days, logger,
                                           llm_logs=llm_logs if settings.learning.decision_llm_content else ())
+    dialog.locale = Locale(settings.language)
     return dialog
 
 

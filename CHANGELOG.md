@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.5.3 – Telegram in beiden Sprachen
+
+- Telegram-Karten, Knöpfe, Rückfragen, Antwortbeispiele und Zusammenfassungen erscheinen in der
+  eingestellten Sprache (`language`); Telegram-Befehle wie `/abbrechen` bleiben gleich.
+- Zuständigkeit, Sicherheit, Einordnung und angezeigte Rückfragen auf Karten sind übersetzt; die
+  gespeicherten Fragen bleiben deutsch.
+
 ## 7.5.2 – Formate in beiden Sprachen
 
 - Datum, Uhrzeit, Zahlen, Dauern und die Terminzeile der Karten erscheinen auf Englisch im

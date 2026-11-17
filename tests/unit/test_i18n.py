@@ -20,9 +20,10 @@ def _literal_calls() -> set[str]:
     found: set[str] = set()
     for path in PACKAGE.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "tr"
-                    and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):
-                found.add(node.args[0].value)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "tr" and node.args:
+                # Also the alternatives of a conditional argument: tr("A" if x else "B").
+                found.update(item.value for item in ast.walk(node.args[0])
+                             if isinstance(item, ast.Constant) and isinstance(item.value, str))
     return found
 
 
@@ -37,7 +38,10 @@ def test_every_literal_text_has_an_english_entry_with_the_same_placeholders():
 
 
 def test_every_shown_label_has_an_english_entry():
-    assert [value for value in {*STATUSES.values(), *KINDS.values()} if value not in EN] == []
+    from mailhelp.review.cards import CERTAINTY, CLASSIFICATION, QUESTION_DISPLAY, RESPONSIBILITY
+    shown = {*STATUSES.values(), *KINDS.values(), *RESPONSIBILITY.values(), *CERTAINTY.values(),
+             *CLASSIFICATION.values(), *QUESTION_DISPLAY.values()}
+    assert [value for value in shown if value not in EN] == []
 
 
 def test_german_is_the_reference_and_english_falls_back_to_it():

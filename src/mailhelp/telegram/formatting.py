@@ -12,6 +12,7 @@ import re
 from zoneinfo import ZoneInfo
 
 from ..domain.proposal import Proposal, ProposalKind
+from ..i18n import tr
 from ..proposals import conflicts
 from ..review.calendar_display import candidate_label, change_parts
 from ..review.cards import (
@@ -75,17 +76,18 @@ def _calendar_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
     lines = []
     if proposal.target_event_id is not None:
         if proposal.is_cancellation:
-            lines.append("❌ Termin im Kalender stornieren: Der bestehende Eintrag wird nach Bestätigung abgesagt")
+            lines.append(tr("❌ Termin im Kalender stornieren: Der bestehende Eintrag wird nach Bestätigung abgesagt"))
         elif proposal.time_changes:
             # Telegram messages are plain text: "bisher … → neu …" instead of strike-through.
-            lines.append("🔄 Terminänderung gegenüber Kalender:")
+            lines.append(tr("🔄 Terminänderung gegenüber Kalender:"))
             for change in proposal.time_changes:
                 parts = change_parts(change)
-                lines.append(f"- {parts[0]}: bisher {parts[1]} → neu {parts[2]}" if parts else f"- {change}")
+                lines.append(tr("- {field}: bisher {before} → neu {after}", field=parts[0], before=parts[1],
+                                after=parts[2]) if parts else f"- {change}")
         else:
-            lines.append("🔄 Terminänderung gegenüber Kalender")
+            lines.append(tr("🔄 Terminänderung gegenüber Kalender"))
     if proposal.calendar_candidates:
-        lines.append("📅 Passende Kalendertermine:")
+        lines.append(tr("📅 Passende Kalendertermine:"))
         lines.extend(f"{index}. {candidate_label(item, configured_timezone)}"
                      for index, item in enumerate(proposal.calendar_candidates, 1))
     return lines
@@ -96,7 +98,7 @@ def _conflict_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
     zone = ZoneInfo(configured_timezone)
     lines = []
     for conflict in proposal.field_conflicts:
-        lines.append(f"⚠️ Widerspruch: {conflicts.label(conflict)} – welcher Wert soll gelten?")
+        lines.append(tr("⚠️ Widerspruch: {field} – welcher Wert soll gelten?", field=conflicts.label(conflict)))
         lines.extend(f"• {conflicts.origin_text(variant, proposal.sources)}: "
                      f"{conflicts.value_text(conflict, variant, zone)}" for variant in conflict.variants)
     return lines
@@ -108,8 +110,8 @@ def format_proposal(
     """Render a compact card: title and time first, deviations and questions after."""
     card = card_content(proposal, configured_timezone, test_mode)
     event = card.kind == ProposalKind.EVENT
-    version = f" (Version {card.version})" if card.version > 1 else ""
-    lines = [f"{'📅 Termin' if event else '✅ Aufgabe'}{version}: {card.title}"]
+    version = f" ({tr('Version {number}', number=card.version)})" if card.version > 1 else ""
+    lines = [f"{tr('📅 Termin') if event else tr('✅ Aufgabe')}{version}: {card.title}"]
     if card.when:
         lines.append(f"🕒 {card.when}")
     if card.location:
@@ -117,32 +119,32 @@ def format_proposal(
     if card.video_link:
         lines.append(f"🔗 {card.video_link}")
     if card.due:
-        lines.append(f"🕒 Fällig: {card.due}")
+        lines.append(tr("🕒 Fällig: {due}", due=card.due))
     if card.target_hint:
         lines.append(f"ℹ️ {card.target_hint}")
     if card.responsibility:
-        lines.append(f"Zuständig: {card.responsibility}")
+        lines.append(tr("Zuständig: {value}", value=card.responsibility))
     if card.certainty:
-        lines.append(f"Sicherheit: {card.certainty}")
+        lines.append(tr("Sicherheit: {value}", value=card.certainty))
     if card.classification:
-        lines.append(f"Einordnung: {card.classification}")
+        lines.append(tr("Einordnung: {value}", value=card.classification))
     lines.extend(_calendar_lines(proposal, configured_timezone))
     if not card.writable:
-        lines.append("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.")
+        lines.append(tr("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen."))
     elif test_mode:
-        lines.append("🧪 Testmodus: Der Eintrag wird nur simuliert, nicht extern angelegt.")
+        lines.append(tr("🧪 Testmodus: Der Eintrag wird nur simuliert, nicht extern angelegt."))
     lines.extend(_conflict_lines(proposal, configured_timezone))
     shown = {conflict.question for conflict in proposal.field_conflicts}
     questions = [question for question in card.questions if question not in shown]
     if questions:
-        lines.append("❓ Offen:")
+        lines.append(tr("❓ Offen:"))
         lines.extend(f"- {question}" for question in questions)
     if card.description:
         lines.append(f"📝 {card.description}")
-    lines.append(f"Beleg: „{card.evidence}“")
+    lines.append(tr("Beleg: „{evidence}“", evidence=card.evidence))
     if proposal.mail_link is not None and proposal.mail_link.startswith("message://"):
         # Telegram buttons only open https links; Apple Mail's link stays copyable text.
-        lines.append(f"📧 Original-Mail (Apple Mail): {proposal.mail_link}")
+        lines.append(tr("📧 Original-Mail (Apple Mail): {link}", link=proposal.mail_link))
     return "\n".join(lines)
 
 
@@ -153,8 +155,8 @@ def clarification_prompt(proposal: Proposal, configured_timezone: str) -> str:
         text = f"❓ {display_question(question)}"
         example = answer_example(question)
     else:
-        text = f"✏️ Was soll an „{proposal.title}“ geändert werden?"
-        example = "„Titel: Elternabend“ oder „Ort: Raum 3“"
+        text = tr("✏️ Was soll an „{title}“ geändert werden?", title=proposal.title)
+        example = tr("„Titel: Elternabend“ oder „Ort: Raum 3“")
     if proposal.open_questions:
         context = f"„{proposal.title}“"
         if proposal.kind == ProposalKind.EVENT:
@@ -162,10 +164,10 @@ def clarification_prompt(proposal: Proposal, configured_timezone: str) -> str:
             if when:
                 context += f" · {when}"
         elif proposal.due is not None:
-            context += f" · fällig {display_date(proposal.due, configured_timezone)}"
+            context += " · " + tr("fällig {date}", date=display_date(proposal.due, configured_timezone))
         text += f"\n{context}"
-    hint = f"z. B. {example} · " if example else ""
-    return f"{text}\n{hint}/abbrechen beendet die Bearbeitung"
+    hint = tr("z. B. {example} · ", example=example) if example else ""
+    return f"{text}\n{hint}" + tr("/abbrechen beendet die Bearbeitung")
 
 
 def revision_summary(previous: Proposal, current: Proposal, configured_timezone: str) -> str:
@@ -177,14 +179,14 @@ def revision_summary(previous: Proposal, current: Proposal, configured_timezone:
 
     before, after = lines(previous), lines(current)
     if before == after:
-        return "Übernommen – keine sichtbare Änderung."
+        return tr("Übernommen – keine sichtbare Änderung.")
     new_questions = [f"- {display_question(question)}" for question in current.open_questions
                      if question not in previous.open_questions]
     added = [line for line in after if line not in before
-             and line != "❓ Offen:" and line not in new_questions]
-    text = "Übernommen" + (":\n" + "\n".join(added) if added else ".")
+             and line != tr("❓ Offen:") and line not in new_questions]
+    text = tr("Übernommen") + (":\n" + "\n".join(added) if added else ".")
     if new_questions:
-        text += "\nNeu offen:\n" + "\n".join(new_questions)
+        text += "\n" + tr("Neu offen:") + "\n" + "\n".join(new_questions)
     return text
 
 

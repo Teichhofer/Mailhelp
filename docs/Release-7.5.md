@@ -52,3 +52,26 @@ Fehler, JavaScript zu 100 % abgedeckt.
 
 Prüfung 7.5.2: 5 735 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 956 bestanden ohne
 Fehler, JavaScript zu 100 % abgedeckt.
+
+## 7.5.3 – Telegram (L3)
+
+- Telegram hat keinen Browser; seine Texte folgen der Einstellung `language`. Der Dialog führt jeden
+  Abruf in dieser Sprache aus (`TelegramDialogController.locale`, gesetzt beim Start).
+- Übersetzt: Kopfzeile der Karte (Termin, Aufgabe, Version), Fälligkeit, Zuständigkeit, Sicherheit,
+  Einordnung, Kalenderänderungen, Widersprüche, Hinweise zu Testmodus und manueller Prüfung, offene
+  Fragen, Beleg und Original-Mail; Rückfragen mit Antwortbeispiel; die Zusammenfassung einer Antwort;
+  alle Knöpfe (Anlegen, Ändern, Verwerfen, Klären, Schon erledigt, Kalendertermin wählen, Zielprofil,
+  Quelle zuordnen, Widerspruchswerte).
+- Gespeicherte Fragen bleiben deutsche Kennungen der Fachlogik; nur ihre Anzeige wird übersetzt.
+  `yes_no_question` erkennt Ja/Nein-Fragen unabhängig von der Anzeigesprache.
+- Der Vollständigkeitstest prüft auch die Alternativen eines bedingten Arguments
+  (`tr("A" if x else "B")`) und alle angezeigten Kartenbezeichnungen.
+
+**Offen.** Quittungen und Fehlermeldungen des Dialogs (z. B. „Angelegt.“) folgen mit den übrigen
+Texten in 7.5.4; Telegram-Befehle bleiben deutsch.
+
+Prüfung 7.5.3: 5 752 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; ein zeitkritischer Test
+scheiterte, während eine andere Sitzung gleichzeitig Tests ausführte, und bestand danach zweimal
+einzeln. Der erste Browserlauf blieb bei etwa 99 % eine Stunde ohne Fortschritt stehen und wurde
+abgebrochen; der Wiederholungslauf mit ausführlicher Ausgabe bestand vollständig (956 bestanden,
+JavaScript zu 100 % abgedeckt). Die Ursache des Stillstands war nicht reproduzierbar.
