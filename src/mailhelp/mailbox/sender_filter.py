@@ -7,10 +7,20 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import getaddresses
 from typing import Literal
 
-from ..domain.relevance import HeaderPrefilter, IrrelevantSenders, ListSignals, SenderRule, SenderRules, subject_key
+from ..domain.relevance import (
+    HeaderPrefilter,
+    IrrelevantSenders,
+    ListSignals,
+    PrefilterHits,
+    RuleHits,
+    SenderRule,
+    SenderRules,
+    subject_key,
+)
 from ..persistence.storage import JsonStore, atomic_replace
 
 HeaderMode = Literal["off", "trial", "on"]
@@ -129,6 +139,18 @@ def prefilter(sender: object, subject: str, signals: ListSignals | None, blocked
                 _matches(rule, address) for address in remaining):
             return PrefilterMatch("ignore", rule.id, f"Vorfilter: {_label(rule)}")
     return header_match(signals, blocked.headers)
+
+
+HITS = "prefilter-hits"
+
+
+def record_hit(store: JsonStore, rule_id: str, at: datetime, *, trial: bool = False) -> None:
+    """Count one decision of a rule (or one mail a header trial would have filtered)."""
+    with store.locked():
+        hits = store.load_model(HITS, PrefilterHits, PrefilterHits())
+        bucket = hits.trial if trial else hits.rules
+        bucket[rule_id] = RuleHits(count=bucket.get(rule_id, RuleHits()).count + 1, last=at)
+        store.save(HITS, hits.model_dump(mode="json"))
 
 
 def is_irrelevant_sender(header: object, blocked: IrrelevantSenders, mailbox_id: int = 1) -> bool:

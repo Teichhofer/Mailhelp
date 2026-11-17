@@ -14,13 +14,13 @@ import yaml
 
 from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from ..domain.extraction import LearnedCategory, MailClassification
-from ..domain.relevance import IrrelevantSenders
+from ..domain.relevance import IrrelevantSenders, ListSignals
 from ..mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from ..mailbox.mailbox_settings import effective_topics
-from ..mailbox.mime import prepare
+from ..mailbox.mime import extract_list_signals, prepare
 from ..mailbox.sender_filter import (
     change_irrelevant_senders,
-    is_irrelevant_sender,
+    prefilter,
     save_sender_filter,
     sender_addresses,
 )
@@ -280,7 +280,9 @@ class LearningMode:
                            if getattr(source.imap, "account_id", None) == mail.account_id), 1)
             payload["mailbox_id"] = number
             headers = cast(dict[str, Any], payload["headers"])
-            if is_irrelevant_sender(headers.get("from", ""), blocked, number):
+            match = prefilter(headers.get("from", ""), headers.get("subject", ""),
+                              ListSignals.model_validate(extract_list_signals(mail.raw, self.limits)), blocked, number)
+            if match is not None and match.action == "ignore":
                 return None, None, False
             if self._known(payload, [*self.topics, *self.irrelevant_topics]):
                 return None, None, False

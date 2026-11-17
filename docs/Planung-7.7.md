@@ -2,7 +2,7 @@
 
 **Zielversion:** 7.7, Umsetzung in Patchversionen 7.7.1 bis 7.7.6  
 **Stand:** 17. November 2026 (überarbeitet nach Abgleich mit dem Code von 7.5.4)  
-**Status:** In Umsetzung; 7.7.1 umgesetzt, siehe [Release 7.7](Release-7.7.md).  
+**Status:** In Umsetzung; 7.7.1 und 7.7.2 umgesetzt, siehe [Release 7.7](Release-7.7.md).  
 **Ausgangsstand:** Nach Abschluss von 7.5 (Mehrsprachigkeit, 7.5.5–7.5.7 stehen noch aus) und 7.6 (klärungsfreie Demo-Vorschläge).  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Architektur](Architektur.md), [Bedienung](Bedienung.md), [Web-Einstellungen](Web-Einstellungen.md).
 

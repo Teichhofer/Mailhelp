@@ -31,7 +31,7 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     assert set(schemas.__all__) == expected | {
         "ActivityReport", "ReportMail", "DiagnosticsState", "NotificationQueue", "SetupState",
         "ProposalMatchCache", "ProposalMergeJournal", "ProposalRelation",
-        "InitialDraft", "OAuthJobs", "PasswordState", "LearningJob", "ReloadState", "SeriesReceipt", "SeriesOffer",
+        "InitialDraft", "OAuthJobs", "PasswordState", "PrefilterHits", "LearningJob", "ReloadState", "SeriesReceipt", "SeriesOffer",
         "IncomingRecord", "ReanalysisJob", "WriteVerification"}
     # 5.1.2 re-analysis jobs and 5.2.0 write verifications are stored files as well.
     from mailhelp.domain.reanalysis import ReanalysisJob

@@ -52,7 +52,7 @@ def de(text: str, **params: object) -> str:
 
 
 @cache
-def _templates() -> tuple[tuple[str, re.Pattern[str], str], ...]:
+def _templates() -> tuple[tuple[str, re.Pattern[str], str, bool], ...]:
     """Catalog entries with placeholders as patterns, the most specific (longest literal text) first."""
     found = []
     for german, english in EN.items():
@@ -64,7 +64,7 @@ def _templates() -> tuple[tuple[str, re.Pattern[str], str], ...]:
                 pattern += f"(?P={name})" if name in names else f"(?P<{name}>.*?)"
                 names.add(name)
         if names and literal.strip():
-            prefix = next(string.Formatter().parse(german))[0]
+            prefix = next(iter(string.Formatter().parse(german)))[0]
             found.append((len(literal), prefix, re.compile(pattern, re.DOTALL), english, "\n" in german))
     found.sort(key=lambda item: -item[0])
     return tuple((prefix, pattern, english, lines) for _size, prefix, pattern, english, lines in found)

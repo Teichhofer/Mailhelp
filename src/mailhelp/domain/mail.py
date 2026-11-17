@@ -46,6 +46,8 @@ class MailState(StrictModel):
     display_headers: DisplayHeaders | None = None
     # 7.7: list and automation headers for the prefilter; beside the mail, so no model input changes.
     list_signals: ListSignals | None = None
+    # 7.7: the prefilter rule that decided the relevance without a model call, if any.
+    prefilter_rule: str | None = Field(default=None, min_length=1, max_length=32)
     # 4.5: sent from one of the user's own addresses; user_note holds their own words.
     # A hint for reading the mail only; it never authorizes an external write.
     self_mail: bool = False

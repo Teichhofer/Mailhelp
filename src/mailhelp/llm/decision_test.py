@@ -24,7 +24,7 @@ from ..logging import NullLogger, redact
 from ..mailbox.imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
 from ..mailbox.mailbox_settings import effective_topics
 from ..mailbox.mime import prepare
-from ..mailbox.sender_filter import is_irrelevant_sender
+from ..mailbox.sender_filter import prefilter
 from ..paths import runtime_path
 from ..processing.analysis import Analyzer
 from ..support.metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
@@ -160,8 +160,11 @@ class DecisionTestMode:
             classifier.relevance_analyzer.irrelevant = effective_topics(
                 classifier.relevance_analyzer.irrelevant, number
             )
-        blocked = self.blocked_senders is not None and is_irrelevant_sender(
-            mail.get("headers", {}).get("from", ""), self.blocked_senders, number)
+        headers = mail.get("headers", {})
+        # 7.7.2: the same rules as the pipeline; a VIP rule never filters, the stored mail has no list headers.
+        match = None if self.blocked_senders is None else prefilter(
+            headers.get("from", ""), headers.get("subject", ""), None, self.blocked_senders, number)
+        blocked = match is not None and match.action == "ignore"
         if blocked or not any(topic.enabled for topic in topics):
             operation = lambda: ("prefilter", Relevance(decision="irrelevant", topic_ids=[], reason="Postfachfilter"))
         else:

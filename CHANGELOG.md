@@ -1,5 +1,16 @@
 # Änderungen
 
+## 7.7.2 – Vorfilter-Regeln in der Verarbeitung
+
+- Mails von VIP-Absendern gelten ohne Relevanz-Aufruf als relevant und werden normal weiter
+  analysiert; jeder Kalender- oder Aufgabeneintrag braucht weiterhin die Bestätigung.
+- Sperrregeln (Adresse, Domain, Muster, Betreff) und eingeschaltete Kopfzeilen-Vorfilter ordnen eine
+  Mail ohne jeden Modellaufruf als irrelevant ein, auch ohne Bilderkennung.
+- Die Begründung nennt die auslösende Regel („Vorfilter: no-reply@*“, „VIP-Absender: schule.test“);
+  „So wurde diese Mail verarbeitet“ zeigt sie mit „ohne KI-Aufruf“.
+- Trefferzahl und letzter Treffer jeder Regel stehen in `prefilter-hits.json`.
+- Entscheidungstest und Lernmodus wenden dieselben Regeln an wie die Verarbeitung.
+
 ## 7.7.1 – Vorfilter-Regeln: Datenmodell und Auswerter
 
 - Absenderfilter Schema 3: Neben den bisherigen Listen (Adressen, Domains, Postfach-Ausnahmen) gibt es

@@ -94,6 +94,22 @@ class HeaderPrefilter(StrictModel):
         return self
 
 
+class RuleHits(StrictModel):
+    count: int = Field(default=0, ge=0)
+    last: datetime | None = None
+
+
+class PrefilterHits(StrictModel):
+    """7.7: how often each rule decided (``rules``) and how often a header trial would have (``trial``).
+
+    Kept apart from the rule file, so counting never competes with web changes or learning jobs.
+    """
+
+    schema_version: Literal[1] = 1
+    rules: dict[str, RuleHits] = Field(default_factory=dict)
+    trial: dict[str, RuleHits] = Field(default_factory=dict)
+
+
 class IrrelevantSenders(StrictModel):
     """Durable, human-readable sender prefilter learned from rejected topics.
 

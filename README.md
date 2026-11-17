@@ -13,9 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.7.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.7.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.7.1 legt die Grundlage für Vorfilter-Regeln und VIP-Absender (Planung 7.7): Regeln für Adressen, Domains, Muster wie `no-reply@*` und Betreffe sowie Verteiler-Kopfzeilen, ausgewertet ohne Sprachmodell. Wirksam werden sie mit den nächsten Patches.
+7.7.1 legt die Grundlage für Vorfilter-Regeln und VIP-Absender (Planung 7.7): Regeln für Adressen, Domains, Muster wie `no-reply@*` und Betreffe sowie Verteiler-Kopfzeilen, ausgewertet ohne Sprachmodell. Seit 7.7.2 wirken sie in der Verarbeitung: VIP-Absender sparen den Relevanz-Aufruf, Sperrregeln sortieren ohne jeden KI-Aufruf aus; Regeln anlegen lässt sich mit dem nächsten Patch.
 
 7.6.1 macht die Demo klärungsfrei: Alle zehn Vorschläge der Beispielmails sind sofort bestätigbar, keine Karte stellt eine Rückfrage. So lässt sich der ganze Stapel in einem Zug entscheiden. Seit 7.6.2 bestätigt `1` und verwirft `2` den ausgewählten Vorgang, danach ist die nächste Karte ausgewählt; die Demo nennt die Tasten und bietet nach der letzten Karte einen Neustart an.
 

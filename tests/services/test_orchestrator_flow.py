@@ -365,7 +365,7 @@ def test_orchestrator(tmp_path):
             analyzer, store, Notify(), 1, [topic], 1000, sender_store=sender_store
         ).process(blocked_mail)
         assert state["relevance"] == {
-            "decision": "irrelevant", "topic_ids": [], "reason": "Absender-Vorfilter"
+            "decision": "irrelevant", "topic_ids": [], "reason": "Vorfilter: example.test"
         }
         assert state["llm_call_ids"] == []
         assert not (store.directory / "irrelevant-senders.json").exists()

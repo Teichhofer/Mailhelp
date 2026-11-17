@@ -2442,6 +2442,20 @@
       "title": "Normalized Proposals",
       "type": "array"
     },
+    "prefilter_rule": {
+      "anyOf": [
+        {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prefilter Rule"
+    },
     "processing_filed": {
       "default": false,
       "title": "Processing Filed",

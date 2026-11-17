@@ -94,7 +94,7 @@ def test_parent_letters_are_relevant_without_check_or_sender_filter(tmp_path):
                                       "reason": "IServ-Elternbrief: immer relevant"}
         assert orchestrator.analyzer.last_relevance_source == "iserv"
         other = FetchedMail("INBOX", 1, 6, b"From: x@schule.example\nSubject: Werbung\n\nKauf", "0" * 24)
-        assert orchestrator.process(other).state["relevance"]["reason"] == "Absender-Vorfilter"
+        assert orchestrator.process(other).state["relevance"]["reason"] == "Vorfilter: schule.example"
 
 
 def test_no_reply_drafts_for_mail_outside_the_imap_mailboxes():

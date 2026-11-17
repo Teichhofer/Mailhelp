@@ -540,3 +540,23 @@ def test_analyzer_learning_stages_pass_validated_payloads():
     assert calls[0][0] == "learning_classification"
     assert calls[1][0] == "learning_abstraction"
     assert calls[1][1] == {"classifications": [classification.model_dump()]}
+
+
+def test_the_learning_mode_skips_newsletters_once_the_header_filter_is_on(tmp_path):
+    from email.message import EmailMessage
+
+    from mailhelp.domain.relevance import HeaderPrefilter, IrrelevantSenders
+    from mailhelp.persistence.storage import JsonStore
+    message = EmailMessage()
+    message["From"], message["Subject"], message["List-Id"] = "Shop <news@shop.test>", "Angebote", "<news.shop.test>"
+    message.set_content("Synthetisch")
+    for mode, expected in (("off", 1), ("on", 0)):
+        analyzer = Analyzer([])
+        with JsonStore(tmp_path / mode) as store:
+            store.save("irrelevant-senders", IrrelevantSenders(headers=HeaderPrefilter(lists=mode))
+                       .model_dump(mode="json"))
+            learning = LearningMode(Imap([[FetchedMail("INBOX", 1, 1, message.as_bytes())]]), analyzer, ["INBOX"],
+                                    1000, [topic()], tmp_path / "topics.yaml", [], tmp_path / "irrelevant.yaml",
+                                    store, output_fn=lambda _line: None)
+            assert learning.run(1) == 0
+        assert len(analyzer.relevance_topics) == expected

@@ -70,7 +70,7 @@ def test_blocked_senders_never_reach_the_vision_model(tmp_path):
                      .model_dump(mode="json"))
         result, analyzer = run(store, Reader(), sender_store=senders)
     assert result.state["mail"]["metadata"]["vision"] == "skipped_sender"
-    assert result.state["relevance"]["reason"] == "Absender-Vorfilter" and analyzer.seen == []
+    assert result.state["relevance"]["reason"] == "Vorfilter: info@schule.example" and analyzer.seen == []
 
 
 def test_rate_limit_defers_and_resumes_without_reading_twice(tmp_path):

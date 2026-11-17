@@ -15,7 +15,7 @@ from ..domain.proposal import Proposal
 from ..domain.relevance import ListSignals, Relevance, RelevanceDialog
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mime import extract_display_headers, extract_list_signals, prepare
-from ..mailbox.sender_filter import is_irrelevant_sender
+from ..mailbox.sender_filter import prefilter, record_hit
 from ..notifications.briefing_identity import is_own_briefing
 from . import pipeline_failures, pipeline_proposals
 from .perspective import Perspective, read_perspective
@@ -240,6 +240,11 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
+            headers = _prepared(state).headers
+            # 7.7.2: VIP and IServ before every ignore rule, the rules and header filters before any model.
+            match = prefilter(headers.sender, headers.subject, state.list_signals, self.o.blocked_senders(),
+                              self.o.mailbox_number(state.imap.account_id))
+            topics = self.o.topics_for(state.config_fingerprint, state.imap.account_id)
             if _prepared(state).metadata.get("mailhelp_briefing") is True:
                 state.relevance = Relevance(decision="irrelevant", topic_ids=[], reason="Eigenes Postfach-Briefing")
                 call = None
@@ -250,15 +255,15 @@ class MailPipeline:
                 )
                 call = None
                 self.o.analyzer.last_relevance_source = "iserv"
-            elif is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders(),
-                                    self.o.mailbox_number(state.imap.account_id)):
-                state.relevance = Relevance(
-                    decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
-                )
-                call = None
-                self.o.analyzer.last_relevance_source = "prefilter"
+            elif match is not None:
+                # A VIP rule names only topics that exist and are switched on for this mailbox.
+                enabled = {topic.id for topic in topics if topic.enabled}
+                chosen = [topic for topic in match.topic_ids if topic in enabled] if match.action == "vip" else []
+                state.relevance = Relevance(decision="relevant" if match.action == "vip" else "irrelevant",
+                                            topic_ids=chosen, reason=match.reason)
+                state.prefilter_rule, call = match.rule_id, None
+                self.o.analyzer.last_relevance_source = "vip" if match.action == "vip" else "prefilter"
             else:
-                topics = self.o.topics_for(state.config_fingerprint, state.imap.account_id)
                 own = _perspective(state).own_relevance()
                 if self.o.mailbox_settings is not None and not any(topic.enabled for topic in topics):
                     call = None
@@ -275,8 +280,11 @@ class MailPipeline:
                     state.llm_call_ids.append(call)
             state.steps.relevance = "completed"
             self.o.save(run.name, state)
+            if state.prefilter_rule is not None:
+                # Counted after the decision is saved: a restart never decides the same mail twice.
+                record_hit(self.o.store, state.prefilter_rule, state.updated_at)
             self.o.logger.event("INFO", "orchestrator", "relevance_completed", mail_id=state.id,
-                              call_id=call, sender_prefilter=call is None)
+                              call_id=call, sender_prefilter=call is None, prefilter_rule=state.prefilter_rule)
 
     @staticmethod
     def _skip_after_irrelevant(state: MailState) -> None:

@@ -20,7 +20,7 @@ from ..domain.proposal import ActionLedger
 from ..domain.proposal_sources import ProposalRelation
 from ..domain.reanalysis import ReanalysisJob
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
-from ..domain.relevance import IrrelevantSenders, RelevanceDialog
+from ..domain.relevance import IrrelevantSenders, PrefilterHits, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 from ..domain.verification import WriteVerification
 from ..notifications.notifications import NotificationQueue
@@ -49,6 +49,7 @@ __all__ = [
     "NotificationQueue",
     "OAuthJobs",
     "PasswordState",
+    "PrefilterHits",
     "ProposalClarificationState",
     "ProposalMatchCache",
     "ProposalMergeJournal",

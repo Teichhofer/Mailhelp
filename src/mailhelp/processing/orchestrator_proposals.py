@@ -14,7 +14,7 @@ from ..domain.deep_links import mail_link
 from ..domain.extraction import ExtractionCountConflict
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
-from ..mailbox.sender_filter import is_irrelevant_sender
+from ..mailbox.sender_filter import prefilter
 from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, MailDateContext, resolve_day
 from ..proposals.proposal_builder import ProposalBuilder
 from ..telegram.formatting import mail_line
@@ -84,6 +84,15 @@ def record_count_conflict(orchestrator: Orchestrator, name: str, state: MailStat
                       extractor_call_id=extractor_call_id)
 
 
+def _filtered(orchestrator: Orchestrator, state: MailState) -> bool:
+    """7.7.2: the image recognition costs a model call; it follows the relevance prefilter exactly."""
+    assert state.prepared is not None
+    headers = state.prepared.headers
+    match = prefilter(headers.sender, headers.subject, state.list_signals, orchestrator.blocked_senders(),
+                      orchestrator.mailbox_number(state.imap.account_id))
+    return match is not None and match.action == "ignore"
+
+
 def read_images(orchestrator: Orchestrator, name: str, state: MailState, raw: bytes) -> None:
     """Vision OCR before relevance; progress is saved per attachment.
 
@@ -96,8 +105,7 @@ def read_images(orchestrator: Orchestrator, name: str, state: MailState, raw: by
         return
     if not raw:
         metadata["vision"] = "unavailable"
-    elif is_irrelevant_sender(state.prepared.headers.sender, orchestrator.blocked_senders(),
-                              orchestrator.mailbox_number(state.imap.account_id)):
+    elif _filtered(orchestrator, state):
         metadata["vision"] = "skipped_sender"
     else:
         attachments = state.mail.get("extracted_attachments", [])

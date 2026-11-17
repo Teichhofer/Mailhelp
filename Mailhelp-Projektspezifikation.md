@@ -26,6 +26,17 @@ Kopfzeilen werden beim Vorbereiten als `MailState.list_signals` neben der Mail g
 ihr, damit sich keine Eingabe an das Sprachmodell ändert. Vor dem ersten Schreiben von Schema 3 bleibt
 die bisherige Datei als `.json.v1` bzw. `.json.v2` erhalten.
 
+Seit 7.7.2 prüft der Relevanzschritt in dieser Reihenfolge: eigenes Briefing (irrelevant), IServ-Konto
+(relevant), Treffer von `prefilter()`, Postfach ohne aktives Thema (irrelevant), eigene Notiz,
+Sprachmodell. Ein VIP-Treffer setzt `relevant` mit den VIP-Themen, die im Postfach vorhanden und
+eingeschaltet sind, und die Analyse läuft normal weiter; ein Sperrtreffer setzt `irrelevant` und
+überspringt alle Folgeschritte. Die Begründung lautet `VIP-Absender: <Regel>` bzw. `Vorfilter: <Regel>`
+(Betreffe in „…“, Kopfzeilen „automatische Systemmail“ bzw. „Newsletter oder Verteiler“), die Quelle
+`vip` bzw. `prefilter`. Die Kennung der Regel steht in `MailState.prefilter_rule`; nach dem Speichern
+der Entscheidung zählt `prefilter-hits.json` (`PrefilterHits`) Treffer und letzten Treffer je Regel.
+Die Bilderkennung entfällt, wenn eine Sperrregel greift. Entscheidungstest (mit Betreff) und Lernmodus
+(mit Kopfzeilen) verwenden denselben Auswerter.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der

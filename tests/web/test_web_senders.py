@@ -198,4 +198,4 @@ def test_the_next_mail_of_an_ignored_sender_is_sorted_out_without_llm(tmp_path):
                "Message-ID: <neu@schule.test>\n\nText").encode()
         result = orchestrator.process(FetchedMail("INBOX", 1, 50, raw))
     assert result.state["relevance"] == {"decision": "irrelevant", "topic_ids": [],
-                                         "reason": "Absender-Vorfilter"}
+                                         "reason": "Vorfilter: klasse4b@schule.test"}

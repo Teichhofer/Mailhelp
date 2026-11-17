@@ -1,0 +1,56 @@
+{
+  "$defs": {
+    "RuleHits": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "last": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last"
+        }
+      },
+      "title": "RuleHits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "7.7: how often each rule decided (``rules``) and how often a header trial would have (``trial``).\n\nKept apart from the rule file, so counting never competes with web changes or learning jobs.",
+  "properties": {
+    "rules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/RuleHits"
+      },
+      "title": "Rules",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trial": {
+      "additionalProperties": {
+        "$ref": "#/$defs/RuleHits"
+      },
+      "title": "Trial",
+      "type": "object"
+    }
+  },
+  "title": "PrefilterHits",
+  "type": "object"
+}

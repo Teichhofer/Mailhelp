@@ -47,6 +47,9 @@ RULE_REASONS = {
     SELF_NOTE_REASON: "Eigene Notiz: immer relevant.",
 }
 
+# 7.7.2: reasons of prefilter rules name the rule after the prefix.
+RULE_PREFIXES = ("Vorfilter: ", "VIP-Absender: ")
+
 ERROR_TEXTS = {
     ProcessingErrorCode.ANALYSIS_DATA_REMOVED:
         "Aktionserkennung nicht nachholbar – Analyse-Daten nach Aufbewahrung entfernt.",
@@ -154,6 +157,9 @@ def _relevance(state: MailState) -> Step:
     topics = tuple(relevance.topic_ids)
     if relevance.reason in RULE_REASONS:
         return Step("relevance", title, Outcome.DONE, f"{text} {RULE_REASONS[relevance.reason]}", topics=topics)
+    if relevance.reason.startswith(RULE_PREFIXES):
+        # 7.7.2: decided by a named prefilter rule, without a model call.
+        return Step("relevance", title, Outcome.DONE, f"{text} {relevance.reason} – ohne KI-Aufruf.", topics=topics)
     return Step("relevance", title, Outcome.DONE, text, model_reason=relevance.reason, topics=topics)
 
 
