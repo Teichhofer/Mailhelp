@@ -62,3 +62,36 @@ def test_the_dialog_sends_in_the_configured_language(monkeypatch):
     monkeypatch.setattr(TelegramDialogController, "_poll_once", lambda self, timeout: seen.append(current()))
     controller.poll_once()
     assert seen == [Locale.EN] and current() == Locale.DE
+
+
+def test_the_transport_sends_german_texts_and_buttons_in_the_configured_language():
+    """7.5.4: results and notices are made in German and leave Telegram in the configured language."""
+    import json
+
+    import httpx
+
+    from mailhelp.telegram.client import TelegramClient
+    sent = []
+
+    def handler(request):
+        sent.append((request.url.path.rsplit("/", 1)[-1], json.loads(request.content)))
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 1} if "send" in request.url.path
+                                         else True}, request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(handler), locale=Locale.EN)
+    client.send(2, "Vorschlag verworfen.\n🌐 Im Web: Mail als irrelevant eingestuft.",
+                {"inline_keyboard": [[{"text": "Erneut anlegen", "callback_data": "x"}]]})
+    client.send(2, "Bereits entfernt.")
+    client.send(2, "Nicht autorisiert.", {"remove_keyboard": True})
+    client.answer_callback("c", "Aktion wird verarbeitet …")
+    german = TelegramClient("secret", 1, httpx.MockTransport(handler))
+    german.send(2, "Bereits entfernt.")
+    client.close()
+    german.close()
+    assert sent[0][1]["text"] == "Proposal dismissed.\n🌐 On the web: Email classified as irrelevant."
+    assert sent[0][1]["reply_markup"]["inline_keyboard"][0][0] == {"text": "Create again", "callback_data": "x"}
+    assert sent[1][1] == {"chat_id": 2, "text": "Already removed."}
+    assert sent[2][1]["reply_markup"] == {"remove_keyboard": True} and sent[2][1]["text"] == "Not authorised."
+    assert sent[3] == ("answerCallbackQuery", {"callback_query_id": "c", "text": "Processing action …"})
+    assert sent[4][1]["text"] == "Bereits entfernt."
+

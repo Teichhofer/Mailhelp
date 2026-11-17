@@ -8,6 +8,7 @@ from typing import Any
 
 from ..domain.processing import TelegramDialogState
 from ..domain.proposal import Proposal
+from ..i18n import de
 from ..review.cards import event_time
 from ..review.commands import CommandKind, CommandSource
 from ..review.errors import StaleCommand
@@ -31,13 +32,17 @@ def _present(controller: Any, offer: SeriesOffer, mode: str) -> None:
         token = create_offer(controller.store, offer)
         controller.store.save(name, {"token": token})
     if mode == "answer":
-        prompt = f"Für alle {len(offer.items)} offenen Termine dieser Serie übernehmen? Antwort: {offer.answer}"
+        prompt = de("Für alle {count} offenen Termine dieser Serie übernehmen? Antwort: {answer}",
+                    count=len(offer.items), answer=offer.answer)
         buttons = [{"text": "Alle", "callback_data": f"series:{token}:all"},
-                   {"text": "Nur diesen", "callback_data": f"series:{token}:one"}]
+                   {"text": de("Nur diesen"), "callback_data": f"series:{token}:one"}]
     else:
-        prompt = "Angezeigte Termine und Versionen prüfen. Erst diese Bestätigung autorisiert die Anlage."
-        buttons = [{"text": f"Alle {len(offer.items)} Termine anlegen", "callback_data": f"series:{token}:confirm"}]
-    rows = [f"{item.title} · {event_time(item, controller.configured_timezone)} · ID {item.id}, Version {item.version}"
+        prompt = de("Angezeigte Termine und Versionen prüfen. Erst diese Bestätigung autorisiert die Anlage.")
+        buttons = [{"text": de("Alle {count} Termine anlegen",
+                               count=len(offer.items)), "callback_data": f"series:{token}:confirm"}]
+    rows = [de("{title} · {event_time} · ID {id}, Version {version}",
+               title=item.title, event_time=event_time(item, controller.configured_timezone), id=item.id,
+               version=item.version)
             for item in offer.items]
     parts = numbered_message_parts("Mailhelp", "Terminserie", prompt + "\n\n" + "\n".join(rows))
     for part in parts[:-1]:
@@ -80,11 +85,11 @@ def offer_confirmation(controller: Any, proposal: Proposal) -> None:
 def execute_callback(controller: Any, data: str) -> str:
     match = re.fullmatch(r"series:([a-f0-9]{32}):(all|one|confirm)", data)
     if match is None:
-        raise ValueError("Ungültige Serienentscheidung")
+        raise ValueError(de("Ungültige Serienentscheidung"))
     token, action = match.groups()
     offer = controller.store.load_model(f"series-offer-{token}", SeriesOffer)
     if offer is None or offer.actor != _actor(controller):
-        raise StaleCommand("Serienauswahl nicht vorhanden oder nicht autorisiert")
+        raise StaleCommand(de("Serienauswahl nicht vorhanden oder nicht autorisiert"))
     if action == "one":
         offer = offer.model_copy(update={"items": offer.items[:1]})
     kind = CommandKind.SERIES_CONFIRM if action == "confirm" else CommandKind.SERIES_ANSWER

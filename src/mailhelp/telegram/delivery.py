@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..domain.proposal import Proposal
+from ..i18n import de
 from ..persistence.proposals import ProposalRepository
 from .client import TelegramTransport
 from .outbox import TelegramOutbox
@@ -72,7 +73,7 @@ class ProposalDeliveryService:
             ref = proposal.pending_sources[0]
             additional = self.repository.load_current(ref.mail_id, ref.proposal_id)
             if additional is None:
-                raise ValueError("Zusätzliche Quelle fehlt; Abgleich prüfen")
+                raise ValueError(de("Zusätzliche Quelle fehlt; Abgleich prüfen"))
         presentation = self.presenter.present(proposal, sender, subject, previous, additional)
         for part in presentation.parts[:-1]:
             self.telegram.send(self.chat_id, part)

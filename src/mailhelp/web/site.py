@@ -25,6 +25,7 @@ from ..config import Settings, WebSettings, read_yaml
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
+from ..i18n import current, tr
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
@@ -152,10 +153,21 @@ class MailhelpSite:
             empty = self.experience.inbox_zero() if not overview.open and not overview.relevance else None
             self._overview = overview
             self._empty = empty
+            self._overview_locale = current()
             self._overview_revision = self.views.store.revision
 
     def overview(self) -> Overview:
+        """The published overview; a reader of another language gets the same state in their words (7.5.4)."""
+        if current() != self._overview_locale:
+            return self.views.overview()
         return self._overview
+
+    def empty_state(self) -> str | None:
+        """The inbox-zero content of the published overview, in the reader's language."""
+        if current() == self._overview_locale:
+            return self._empty
+        overview = self.overview()
+        return self.experience.inbox_zero() if not overview.open and not overview.relevance else None
 
     # --- helpers ------------------------------------------------------------------
 
@@ -163,18 +175,18 @@ class MailhelpSite:
     def _form(self, request: Request) -> dict[str, str] | Response:
         content_type = (request.header("content-type") or "").split(";")[0].strip().lower()
         if content_type != FORM_TYPE:
-            return Response.text(415, "Nur Formulardaten werden angenommen.")
+            return Response.text(415, tr("Nur Formulardaten werden angenommen."))
         try:
             return request.form(max_num_fields=200 if request.path in {"/themen/lernen", "/lernen/entscheidungen"} else
                                 120 if request.path.startswith("/serie/") else 20)
         except (UnicodeDecodeError, ValueError):
-            return Response.text(400, "Ungültige Formulardaten.")
+            return Response.text(400, tr("Ungültige Formulardaten."))
 
     @staticmethod
     def _forbidden() -> Response:
         return Response.html(403, error_page(
-            "Sicherheitsprüfung fehlgeschlagen",
-            "Die Anfrage konnte nicht bestätigt werden. Bitte die Seite neu laden und erneut versuchen."))
+            tr("Sicherheitsprüfung fehlgeschlagen"),
+            tr("Die Anfrage konnte nicht bestätigt werden. Bitte die Seite neu laden und erneut versuchen.")))
 
     def signed_in(self, handler: Handler) -> Handler:
         """Require a live session; a POST also requires its CSRF token."""
@@ -193,7 +205,7 @@ class MailhelpSite:
             if request.method == "POST":
                 if (self.lifecycle is not None and self.lifecycle.state != "running"
                         and request.path not in {"/einstellungen/beenden", "/einstellungen/neustarten"}):
-                    return self._reply(request, 503, "Mailhelp wird beendet; keine neuen Aktionen möglich.")
+                    return self._reply(request, 503, tr("Mailhelp wird beendet; keine neuen Aktionen möglich."))
                 form = self._form(request)
                 if isinstance(form, Response):
                     return form
@@ -309,14 +321,14 @@ class MailhelpSite:
                 conflict_id=form.get("conflict_id") or None, variant=form.get("variant") or None,
                 reason=form.get("reason") or None)
         except (ValueError, ValidationError):
-            return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
+            return self._reply(request, 422, tr("Die Aktion ist unvollständig oder ungültig."))
         stale = self._stale(command)
         try:
             existing = self.commands.existing(command)
         except CommandConflict:
-            return self._reply(request, 422, "Diese Aktion wurde bereits mit anderen Angaben gesendet.")
+            return self._reply(request, 422, tr("Diese Aktion wurde bereits mit anderen Angaben gesendet."))
         if stale is not None and existing is None:
-            current = next((view for view in self._overview.open + self._overview.recent
+            current = next((view for view in self.overview().open + self.overview().recent
                             if (view.mail_id, view.proposal_id) == (command.mail_id, command.proposal_id)), None)
             if request.wants_json():
                 return Response.json(409, {"error": stale,
@@ -325,12 +337,12 @@ class MailhelpSite:
         try:
             entry, new = self.commands.submit(command)
         except CommandConflict:
-            return self._reply(request, 422, "Diese Aktion wurde bereits mit anderen Angaben gesendet.")
+            return self._reply(request, 422, tr("Diese Aktion wurde bereits mit anderen Angaben gesendet."))
         except CommandInboxFull:
-            return self._reply(request, 503, "Mailhelp ist gerade ausgelastet. Bitte gleich erneut versuchen.")
+            return self._reply(request, 503, tr("Mailhelp ist gerade ausgelastet. Bitte gleich erneut versuchen."))
         except OSError:
-            return self._reply(request, 503, "Die Aktion konnte nicht sicher gespeichert werden. "
-                               "Bitte denselben Versuch erneut senden.")
+            return self._reply(request, 503, tr("Die Aktion konnte nicht sicher gespeichert werden. "
+                               "Bitte denselben Versuch erneut senden."))
         self.commands.note_acceptance(entry, (time.perf_counter() - started) * 1000, new)
         location = f"/aktion/{entry.id}"
         if request.wants_json():
@@ -350,52 +362,52 @@ class MailhelpSite:
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
             state = self.views.store.peek_model("mail-" + command.mail_id, MailState)
             if state is None or state.analysis_round != command.version or state.processing_filed:
-                return "Die Mail wurde inzwischen geändert oder verarbeitet."
+                return tr("Die Mail wurde inzwischen geändert oder verarbeitet.")
             return None
         if command.kind == CommandKind.RECHECK_MAIL:
             return None
         if command.kind == CommandKind.RELEVANCE:
-            current_relevance = next((view for view in self._overview.relevance
+            current_relevance = next((view for view in self.overview().relevance
                                       if view.mail_id == command.mail_id), None)
             if current_relevance is not None and command.version < current_relevance.version:
-                return "Diese Relevanzfrage ist bereits beantwortet oder veraltet."
+                return tr("Diese Relevanzfrage ist bereits beantwortet oder veraltet.")
             return None
         assert command.proposal_id is not None
-        current = next((view for view in self._overview.open + self._overview.recent
+        current = next((view for view in self.overview().open + self.overview().recent
                         if (view.mail_id, view.proposal_id) == (command.mail_id, command.proposal_id)), None)
         if command.kind == CommandKind.VERIFY_ENTRY:
             # 5.2: a recheck belongs to exactly the written, not yet verified version.
             if current is not None and (command.version != current.version
                                         or CommandKind.VERIFY_ENTRY not in current.actions):
-                return "Dieser Eintrag wird bereits geprüft oder wurde inzwischen geändert."
+                return tr("Dieser Eintrag wird bereits geprüft oder wurde inzwischen geändert.")
             return None
         if command.kind == CommandKind.REJECT_REASON:
             if current is not None and (command.version != current.version or current.status != ProposalStatus.REJECTED):
-                return "Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen."
+                return tr("Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen.")
             return None
         if command.kind == CommandKind.REMOVE_CREATED:
             if current is not None and (
                 command.version != current.version
                 or current.status not in {ProposalStatus.CREATED, ProposalStatus.REMOVED}
             ):
-                return "Dieser Vorschlag wurde inzwischen geändert oder ist nicht angelegt."
+                return tr("Dieser Vorschlag wurde inzwischen geändert oder ist nicht angelegt.")
             return None
         if (current is not None and (command.version < current.version
                 or (command.version == current.version and current.status not in {ProposalStatus.PENDING_CONFIRMATION,
                                           ProposalStatus.NEEDS_CLARIFICATION}))):
-            return "Dieser Vorschlag wurde inzwischen geändert oder entschieden."
+            return tr("Dieser Vorschlag wurde inzwischen geändert oder entschieden.")
         return None
 
     @staticmethod
     def _reply(request: Request, status: int, message: str) -> Response:
         if request.wants_json():
             return Response.json(status, {"error": message})
-        return Response.html(status, error_page("Aktion nicht möglich", message))
+        return Response.html(status, error_page(tr("Aktion nicht möglich"), message))
 
     def progress(self, request: Request, session: WebSession, entry_id: str) -> Response:
         entry = self.commands.get(entry_id)
         if entry is None or entry.command.actor != f"web:{session.id}":
-            return self._reply(request, 404, "Diese Aktion ist nicht (mehr) bekannt.")
+            return self._reply(request, 404, tr("Diese Aktion ist nicht (mehr) bekannt."))
         if request.wants_json():
             return Response.json(200, {
                 "id": entry.id, "status": entry.status.value,
@@ -405,7 +417,7 @@ class MailhelpSite:
         if isinstance(command, AdminCommand):
             if entry.result is None:
                 return Response.html(
-                    200, layout("Einstellungen werden gespeichert", "<h1>Wird verarbeitet</h1>", refresh=1)
+                    200, layout(tr("Einstellungen werden gespeichert"), f"<h1>{tr('Wird verarbeitet')}</h1>", refresh=1)
                 )
             if command.kind == AdminKind.SENDERS:
                 # Back to where the change was made; that page shows the result.
@@ -413,8 +425,8 @@ class MailhelpSite:
                 target = f"/mail/{mail_id}" if mail_id else SENDERS_PATH
                 return Response.redirect(f"{target}?ergebnis={entry.id}")
             return Response.html(
-                200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status))
-                            + '<a href="/einstellungen">Zurück</a>')
+                200, layout(tr("Ergebnis"), notice(entry.result.message, result_kind(entry.result.status))
+                            + f'<a href="/einstellungen">{tr("Zurück")}</a>')
             )
         if entry.result is not None and command.kind in {CommandKind.RECHECK_MAIL, CommandKind.RETRY_MAIL,
                                                         CommandKind.FILE_MAIL}:
@@ -432,14 +444,14 @@ class MailhelpSite:
         """Only the authenticated browser's durable command, without rebuilding views."""
         entry = self.commands.get(entry_id)
         if entry is None or not visible(entry, f"web:{session.id}"):
-            return Response.json(404, {"error": "Diese Aktion ist nicht (mehr) bekannt."})
+            return Response.json(404, {"error": tr("Diese Aktion ist nicht (mehr) bekannt.")})
         return Response.json(200, {"status": entry.status.value,
                                    "target": f"/aktion/{entry.id}" if entry.result is not None else None})
 
     def acknowledge(self, request: Request, session: WebSession, form: dict[str, str], entry_id: str) -> Response:
         entry = self.commands.get(entry_id)
         if entry is None or entry.result is None or not visible(entry, f"web:{session.id}"):
-            return self._reply(request, 404, "Diese abgeschlossene Aktion ist nicht bekannt.")
+            return self._reply(request, 404, tr("Diese abgeschlossene Aktion ist nicht bekannt."))
         self.commands.incoming.acknowledge(entry, f"web:{session.id}")
         return Response.redirect("/")
 

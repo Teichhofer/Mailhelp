@@ -14,6 +14,7 @@ from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..external.roles import writer_for
 from ..external.verification import EntryReader
+from ..i18n import de
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.storage import JsonStore
 from ..processing.write_verification import WriteVerifications
@@ -80,7 +81,7 @@ class ConfirmedWriteExecutor:
         if isinstance(start, datetime):
             local_start = start.astimezone(ZoneInfo(self.configured_timezone))
             return f" · {local_start:%d.%m.%Y, %H:%M} Uhr"
-        return f" · {start:%d.%m.%Y}, ganztägig"
+        return de(" · {date}, ganztägig", date=f"{start:%d.%m.%Y}")
 
     def writer_for(self, proposal: Proposal) -> ExternalWriter | None:
         return writer_for(self.writers, proposal)
@@ -150,34 +151,40 @@ class ConfirmedWriteExecutor:
         title, operation = proposal.title, record.operation
         assert record.receipt is not None
         if operation == "cancel" and record.receipt.result == "existing":
-            return f"✅ Termin „{title}“ war im Kalender bereits abgesagt oder gelöscht (geprüft); nichts geändert."
+            return de("✅ Termin „{title}“ war im Kalender bereits abgesagt oder gelöscht (geprüft); nichts geändert.",
+                      title=title)
         if operation == "cancel":
-            return f"✅ Termin „{title}“ im Kalender abgesagt und geprüft."
+            return de("✅ Termin „{title}“ im Kalender abgesagt und geprüft.", title=title)
         if operation == "update":
-            changes = "; ".join(result.get("time_changes") or proposal.time_changes) or "bestätigte Angaben übernommen"
-            return (f"✅ Bestehender Termin „{title}“ geändert und geprüft: {changes}. Titel und Beschreibung "
-                    "bleiben erhalten; die Änderung ist in der Beschreibung vermerkt.")
+            changes = "; ".join(result.get("time_changes") or proposal.time_changes) or de("bestätigte Angaben "
+                                                                                           "übernommen")
+            return (de("✅ Bestehender Termin „{title}“ geändert und geprüft: {changes}. Titel und Beschreibung "
+                       "bleiben erhalten; die Änderung ist in der Beschreibung vermerkt.",
+                       title=title, changes=changes))
         if operation == "append" and result.get("time_changes"):
-            return (f"✅ Bestehender Termin „{title}“ aktualisiert und geprüft: {'; '.join(result['time_changes'])}. "
-                    "Die Änderung ist in der Terminbeschreibung vermerkt.")
+            return (de("✅ Bestehender Termin „{title}“ aktualisiert und geprüft: {changes}. Die Änderung ist in der "
+                       "Terminbeschreibung vermerkt.",
+                       title=title, changes="; ".join(result["time_changes"])))
         if operation == "append":
-            return (f"Bereits vorhandener gleicher Termin „{title}“ wurde erkannt; fehlende Informationen wurden "
-                    "ergänzt und geprüft. Kein neuer Termin wurde angelegt.")
+            return (de("Bereits vorhandener gleicher Termin „{title}“ wurde erkannt; fehlende Informationen wurden "
+                       "ergänzt und geprüft. Kein neuer Termin wurde angelegt.",
+                       title=title))
         if operation == "duplicate":
-            return (f"Bereits vorhandener gleicher Termin „{title}“ wurde erkannt und frisch geprüft. "
-                    "Kein neuer Termin wurde angelegt.")
+            return (de("Bereits vorhandener gleicher Termin „{title}“ wurde erkannt und frisch geprüft. Kein neuer "
+                       "Termin wurde angelegt.",
+                       title=title))
         return self._created_text(proposal, changed, verified=True)
 
     def _recheck_button(self, proposal: Proposal) -> dict[str, Any]:
         """A version-bound, read-only "Erneut prüfen" for the authorized chat (5.2)."""
         token = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                          action=DecisionAction.VERIFY_ENTRY).encode(self.store)
-        return {"inline_keyboard": [[{"text": "Erneut prüfen", "callback_data": token}]]}
+        return {"inline_keyboard": [[{"text": de("Erneut prüfen"), "callback_data": token}]]}
 
     def _remove_button(self, proposal: Proposal) -> dict[str, Any]:
         token = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                          action=DecisionAction.REMOVE_ASK).encode(self.store)
-        return {"inline_keyboard": [[{"text": "Wieder entfernen", "callback_data": token}]]}
+        return {"inline_keyboard": [[{"text": de("Wieder entfernen"), "callback_data": token}]]}
 
     def _can_remove(self, proposal: Proposal, result: dict[str, Any]) -> bool:
         if self.test_mode or result.get("simulation"):
@@ -191,11 +198,13 @@ class ConfirmedWriteExecutor:
 
     def _unverified_text(self, proposal: Proposal, record: WriteVerification) -> str:
         if record.state == VerificationState.MISMATCH:
-            return (f"⚠️ Eintrag vorhanden, Angaben weichen ab: „{proposal.title}“ – "
-                    f"{differences_text(record, ZoneInfo(self.configured_timezone))}. "
-                    "Mailhelp ändert den Eintrag nicht automatisch und legt keinen neuen an.")
-        return (f"⚠️ Eintragung noch nicht bestätigt: „{proposal.title}“ wurde gespeichert, aber "
-                f"{reason_text(record)}. Mailhelp legt den Eintrag nicht erneut an.")
+            return (de("⚠️ Eintrag vorhanden, Angaben weichen ab: „{title}“ – {differences_text}. Mailhelp ändert den "
+                       "Eintrag nicht automatisch und legt keinen neuen an.",
+                       title=proposal.title,
+                       differences_text=differences_text(record, ZoneInfo(self.configured_timezone))))
+        return (de("⚠️ Eintragung noch nicht bestätigt: „{title}“ wurde gespeichert, aber {reason_text}. Mailhelp "
+                   "legt den Eintrag nicht erneut an.",
+                   title=proposal.title, reason_text=reason_text(record)))
 
     def _authorized(self, proposal: Proposal) -> bool:
         actor = proposal.confirmed_web_actor
@@ -244,10 +253,10 @@ class ConfirmedWriteExecutor:
             return
         self.telegram.send(
             self.chat_id,
-            f"Ziel geändert: „{proposal.title}“ bleibt gesperrt. "
-            "Das konfigurierte Ziel stimmt nicht mit dem angezeigten Vorschlagsziel überein. "
-            "Ursprüngliches Ziel wiederherstellen oder einen neuen Vorschlag "
-            "für das neue Ziel ausdrücklich bestätigen.",
+            de("Ziel geändert: „{title}“ bleibt gesperrt. Das konfigurierte Ziel stimmt nicht mit dem angezeigten "
+               "Vorschlagsziel überein. Ursprüngliches Ziel wiederherstellen oder einen neuen Vorschlag für das neue "
+               "Ziel ausdrücklich bestätigen.",
+               title=proposal.title),
         )
         self._reported_target_mismatches.add(reference)
 
@@ -255,45 +264,51 @@ class ConfirmedWriteExecutor:
         """The message about the write; ``None`` when an unclear result was reported before."""
         operation = result.get("operation")
         if result.get("authorization_invalid"):
-            return "Anlage blockiert: Freigabe, Vorschlagsversion oder Websitzung ist nicht mehr gültig."
+            return de("Anlage blockiert: Freigabe, Vorschlagsversion oder Websitzung ist nicht mehr gültig.")
         if operation == "calendar_file":
-            return (f"📎 Kalenderdatei für „{proposal.title}“{self._event_time_details(changed)} bereitgestellt – "
-                    "Übernahme in den Kalender nicht prüfbar.")
+            return (de("📎 Kalenderdatei für „{title}“{event_time_details} bereitgestellt – Übernahme in den Kalender "
+                       "nicht prüfbar.",
+                       title=proposal.title, event_time_details=self._event_time_details(changed)))
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
-            return f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, aber nicht angelegt (nur simuliert)."
+            return de("🧪 Testmodus: {kind} „{title}“ bestätigt, aber nicht angelegt (nur simuliert).",
+                      kind=kind, title=proposal.title)
         if operation == "event_cancelled":
-            return f"✅ Termin „{proposal.title}“ im Kalender abgesagt."
+            return de("✅ Termin „{title}“ im Kalender abgesagt.", title=proposal.title)
         if operation == "already_cancelled":
-            return f"✅ Termin „{proposal.title}“ war im Kalender bereits abgesagt oder gelöscht; nichts geändert."
+            return de("✅ Termin „{title}“ war im Kalender bereits abgesagt oder gelöscht; nichts geändert.",
+                      title=proposal.title)
         if operation == "event_changed":
-            changes = "; ".join(result.get("time_changes") or []) or "bestätigte Angaben übernommen"
-            return (f"✅ Bestehender Termin „{proposal.title}“ geändert: {changes}. "
-                    "Titel und Beschreibung bleiben erhalten; die Änderung ist in der Beschreibung vermerkt.")
+            changes = "; ".join(result.get("time_changes") or []) or de("bestätigte Angaben übernommen")
+            return (de("✅ Bestehender Termin „{title}“ geändert: {changes}. Titel und Beschreibung bleiben erhalten; "
+                       "die Änderung ist in der Beschreibung vermerkt.",
+                       title=proposal.title, changes=changes))
         if operation == "duplicate_updated" and result.get("time_changes"):
-            return (f"✅ Bestehender Termin „{proposal.title}“ aktualisiert: "
-                    f"{'; '.join(result['time_changes'])}. "
-                    "Die Änderung ist in der Terminbeschreibung vermerkt.")
+            return (de("✅ Bestehender Termin „{title}“ aktualisiert: {changes}. Die Änderung ist in der "
+                       "Terminbeschreibung vermerkt.",
+                       title=proposal.title, changes="; ".join(result["time_changes"])))
         if operation == "duplicate_updated":
-            return (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
-                    "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
+            return (de("Bereits vorhandener gleicher Termin „{title}“ wurde erkannt; fehlende Informationen wurden "
+                       "ergänzt. Kein neuer Termin wurde angelegt.",
+                       title=proposal.title))
         if operation == "duplicate_skipped":
-            return (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
-                    "Kein neuer Termin wurde angelegt.")
+            return (de("Bereits vorhandener gleicher Termin „{title}“ wurde erkannt. Kein neuer Termin wurde angelegt.",
+                       title=proposal.title))
         if changed.status == ProposalStatus.CREATED:
             return self._created_text(proposal, changed)
         if changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return None
-            return (f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht "
-                    "automatisch wiederholt.")
-        return f"Erstellen von „{proposal.title}“ fehlgeschlagen."
+            return (de("Unklarer Schreiberfolg bei „{title}“; wird weiter abgeglichen und nicht automatisch "
+                       "wiederholt.",
+                       title=proposal.title))
+        return de("Erstellen von „{title}“ fehlgeschlagen.", title=proposal.title)
 
     def _created_text(self, proposal: Proposal, changed: Proposal, verified: bool = False) -> str:
-        where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
-        text = f"✅ Angelegt{' und geprüft' if verified else ''} {where}: „{proposal.title}“"
-        if proposal.kind == ProposalKind.EVENT:
-            text += self._event_time_details(changed)
+        where = de("als Aufgabe") if proposal.kind == ProposalKind.TASK else de("im Kalender")
+        details = self._event_time_details(changed) if proposal.kind == ProposalKind.EVENT else ""
+        text = de("✅ Angelegt und geprüft {where}: „{title}“{details}" if verified
+                  else "✅ Angelegt {where}: „{title}“{details}", where=where, title=proposal.title, details=details)
         if changed.external_link:
             text += f"\n{changed.external_link}"
         return text

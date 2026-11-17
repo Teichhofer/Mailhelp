@@ -15,6 +15,7 @@ from ..domain.proposal import (
     ProposalStatus,
 )
 from ..domain.relevance import RelevanceDialogStatus
+from ..i18n import de
 from ..mailbox.mailbox_settings import event_defaults_for
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
@@ -38,15 +39,15 @@ def reconcile(service: ReviewService, command: ReviewCommand | AdminCommand) -> 
         return service.execute(command)
     if isinstance(command, AdminCommand):
         if service.configuration is None:
-            return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
+            return ReviewResult(status=ResultStatus.FAILED, message=de("Konfigurationsdienst nicht verfügbar."))
         return service.configuration.reconcile(command)
     ProposalReconciliationService(service.controller.store).recover()
     if service._took_effect(command):
         service._record(command)
         return ReviewResult(status=ResultStatus.DONE,
-                            message="Nach einem Neustart abgeglichen; der aktuelle Stand wird angezeigt.")
+                            message=de("Nach einem Neustart abgeglichen; der aktuelle Stand wird angezeigt."))
     return ReviewResult(status=ResultStatus.FAILED,
-                        message="Durch einen Neustart unterbrochen – bitte prüfen und erneut auslösen.")
+                        message=de("Durch einen Neustart unterbrochen – bitte prüfen und erneut auslösen."))
 
 
 def resume_admitted(service: ReviewService, command: ReviewCommand | AdminCommand) -> ReviewResult:
@@ -119,23 +120,23 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
             state = review.controller.repository.load_mail(command.mail_id)
             item = next((p for p in state.proposals if p.id == command.proposal_id), None) if state else None
             if item is None or item.version != command.version or item.source_mail_id != command.mail_id:
-                raise StaleCommand("Mailbefund inzwischen geändert")
+                raise StaleCommand(de("Mailbefund inzwischen geändert"))
             digest = hashlib.sha256(json.dumps(item.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()
             if digest != command.proposal_hash or review.controller.repository.load_current(command.mail_id, item.id):
-                raise StaleCommand("Mailbefund inzwischen geändert oder wiederhergestellt")
+                raise StaleCommand(de("Mailbefund inzwischen geändert oder wiederhergestellt"))
             # Preserve the original action key; a projection cannot prove
             # whether a confirmed request already reached the provider.
             if item.status == ProposalStatus.CONFIRMED:
                 item = item.model_copy(update={"status": ProposalStatus.UNCERTAIN})
             review.controller.repository.save_revision(item)
-            return ReviewResult(status=ResultStatus.DONE, message="Gespeicherten Befund wiederhergestellt.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Gespeicherten Befund wiederhergestellt."))
         assert command.proposal_id is not None  # ReviewCommand requires it for proposal kinds
         source = service.required(command.mail_id, command.proposal_id)
         if source.version != command.version:
-            raise StaleCommand("Quellversion inzwischen geändert")
+            raise StaleCommand(de("Quellversion inzwischen geändert"))
         if command.kind == CommandKind.DEFAULTS:
             if source.status not in service_module._OPEN:
-                raise StaleCommand("Vorschlag nicht mehr offen")
+                raise StaleCommand(de("Vorschlag nicht mehr offen"))
             if review.configuration is not None:
                 handler = review.controller.relevance_handler
                 defaults = event_defaults_for(review.configuration.active, review.controller.store, source,
@@ -144,7 +145,7 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
                 defaults = EventDefaultsSettings()
             digest = hashlib.sha256(json.dumps(defaults.model_dump(), sort_keys=True).encode()).hexdigest()
             if digest != command.proposal_hash:
-                raise StaleCommand("Standarddauer inzwischen geändert")
+                raise StaleCommand(de("Standarddauer inzwischen geändert"))
             changed = reapply_defaults(source, defaults)
             review.controller.repository.save_revision(changed)
             notifications = [changed] if changed.version != source.version else []
@@ -152,7 +153,7 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
             assert command.target_ref is not None
             target = service.required(command.target_ref.mail_id, command.target_ref.proposal_id)
             if target.version != command.target_version:
-                raise StaleCommand("Zielversion inzwischen geändert")
+                raise StaleCommand(de("Zielversion inzwischen geändert"))
             changed = service.manual(source, target, separate=command.kind == CommandKind.SEPARATE)
             target_current = service.required(target.source_mail_id, target.id)
             notifications = [target_current] if target_current.status in service_module._OPEN else []
@@ -160,4 +161,4 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
                 notifications.append(changed)
     for proposal in notifications:
         review.controller.send_proposal(proposal)
-    return ReviewResult(status=ResultStatus.DONE, message="Vorschlagsversion gespeichert; separat bestätigen.")
+    return ReviewResult(status=ResultStatus.DONE, message=de("Vorschlagsversion gespeichert; separat bestätigen."))

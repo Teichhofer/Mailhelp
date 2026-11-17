@@ -75,3 +75,38 @@ scheiterte, während eine andere Sitzung gleichzeitig Tests ausführte, und best
 einzeln. Der erste Browserlauf blieb bei etwa 99 % eine Stunde ohne Fortschritt stehen und wurde
 abgebrochen; der Wiederholungslauf mit ausführlicher Ausgabe bestand vollständig (956 bestanden,
 JavaScript zu 100 % abgedeckt). Die Ursache des Stillstands war nicht reproduzierbar.
+
+## 7.5.4 – Offene Entscheidungen, Aktionen und Telegram-Meldungen (L4, erster Teil)
+
+- **Arbeitsbereich „Offen“ auf Englisch:** Seitenkopf, Filter, Suche und Sortierung, Gruppen,
+  Karten (Art, Badges, Fakten, Hinweise, Rückfragen, Kalenderabgleich, Serien, Relevanzfrage),
+  Aktionsknöpfe mit Erklärung, Antwortformular, Ablehngründe, Prüfung angelegter Einträge,
+  Fortschritts-, Ergebnis-, Veraltet- und Entfernen-Seite, die Detailseite eines Vorschlags und der
+  Mailkopf mit Anhängen. Fehlerantworten der Weboberfläche (Sitzung, Formular, Version) ebenso.
+- **Gespeicherte Meldungen:** Ergebnisse von Aktionen entstehen im Hintergrund und werden deutsch
+  gespeichert (`de()` markiert sie). Angezeigt werden sie in der Sprache des Lesers: `stored()`
+  übersetzt den ganzen Text oder jede Zeile, auch Einträge mit Werten („Grund gespeichert: …“) und
+  deren Werte, und schreibt deutsche Datums- und Zeitangaben um (`07.01.2027, 11:30 Uhr` →
+  `Jan 7, 2027, 11:30`). Jede Hinweisbox der Weboberfläche nutzt das.
+- **Telegram-Quittungen und -Fehlermeldungen:** Der Telegram-Versand übersetzt jede Nachricht,
+  jeden Knopf und jede Rückmeldung auf einen Knopfdruck in die eingestellte Sprache. Damit sind
+  `/hilfe`, `/status`, Anlage-, Änderungs- und Absagequittungen, Doppelanlage-Rückfragen,
+  Serien, Relevanz und alle Fehlermeldungen des Dialogs englisch, wenn `language: en` gilt.
+- **Fehlerkorrektur:** Die zwischengespeicherte Übersicht war für alle Sprachen dieselbe; ein
+  englischer Leser hinterließ englische Karten für den nächsten deutschen, und die vom Hauptthread
+  veröffentlichte Übersicht blieb für englische Leser deutsch. Der Cache gilt jetzt je Sprache, und
+  ein Leser einer anderen Sprache erhält die Übersicht in seiner Sprache. Regressionstests:
+  `tests/review/test_review_language.py`, `tests/web/test_web_language_pages.py`.
+- Web-Befehle laufen im Telegram-Dialog; ihr Ergebnis wird unabhängig von dessen Sprache deutsch
+  gespeichert. Widerspruchsfelder („Endzeit“) erscheinen übersetzt.
+
+**Abweichung vom Plan.** L4 umfasst mehr Seiten, als ein Patch sinnvoll prüfbar macht. 7.5.4 deckt
+den täglichen Ablauf ab (Offen, Detail, Aktionen, Telegram); die übrigen Webseiten (Mails, Verlauf,
+Status, Auswertung, Berichte, Einstellungen, Geräte, Abgleich, Lernen, Einrichtung) folgen in 7.5.5.
+JavaScript und Einstellungshilfen rücken auf 7.5.6, CLI und Gesamtabnahme auf 7.5.7. Bis dahin
+bleiben die unteren Abschnitte der Detail- und Mailseite (Analyse, Verlauf, Verarbeitungsschritte)
+deutsch.
+
+Prüfung 7.5.4: 5 788 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 956 bestanden ohne
+Fehler, JavaScript zu 100 % abgedeckt. Ein erster Python-Lauf scheiterte, weil während des Laufs der
+Hilfeindex neu erzeugt und die Versionsnummer erhöht wurde; der Wiederholungslauf ohne Eingriffe bestand.

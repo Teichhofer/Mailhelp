@@ -30,6 +30,7 @@ from ..domain.proposal import (
     required_revision_questions,
 )
 from ..domain.verification import OPERATIONS, WriteVerification, operation_id
+from ..i18n import de
 from ..notifications.notification_context import web_reply
 from ..persistence.archive import record_event, record_recheck, record_relevance
 from ..persistence.revision_origin import ORIGIN
@@ -54,28 +55,28 @@ if TYPE_CHECKING:
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"
 _RECHECK_REFUSED = {
-    RecheckOutcome.NOT_FOUND: "Diese Mail ist nicht (mehr) vorhanden.",
-    RecheckOutcome.NOT_IRRELEVANT: "Diese Mail ist nicht als irrelevant aussortiert.",
-    RecheckOutcome.STALE: "Diese Mail wird bereits erneut geprüft oder wurde inzwischen geändert.",
-    RecheckOutcome.ALREADY_PENDING: "Diese Mail wird noch verarbeitet.",
+    RecheckOutcome.NOT_FOUND: de("Diese Mail ist nicht (mehr) vorhanden."),
+    RecheckOutcome.NOT_IRRELEVANT: de("Diese Mail ist nicht als irrelevant aussortiert."),
+    RecheckOutcome.STALE: de("Diese Mail wird bereits erneut geprüft oder wurde inzwischen geändert."),
+    RecheckOutcome.ALREADY_PENDING: de("Diese Mail wird noch verarbeitet."),
 }
 
 # Shown in the web; Telegram keeps its own confirmation texts.
 _DONE_MESSAGES = {
-    CommandKind.REJECT: "Vorschlag verworfen.",
-    CommandKind.REMOVE_CREATED: "Eintrag entfernt und geprüft.",
-    CommandKind.ALREADY_DONE: "Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)",
-    CommandKind.START_CLARIFICATION: "Bearbeitung gestartet – bitte die Rückfrage beantworten.",
-    CommandKind.ANSWER: "Antwort übernommen – der Vorschlag wird aktualisiert.",
-    CommandKind.CANCEL_CLARIFICATION: "Bearbeitung beendet; der Vorschlag ist unverändert.",
+    CommandKind.REJECT: de("Vorschlag verworfen."),
+    CommandKind.REMOVE_CREATED: de("Eintrag entfernt und geprüft."),
+    CommandKind.ALREADY_DONE: de("Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)"),
+    CommandKind.START_CLARIFICATION: de("Bearbeitung gestartet – bitte die Rückfrage beantworten."),
+    CommandKind.ANSWER: de("Antwort übernommen – der Vorschlag wird aktualisiert."),
+    CommandKind.CANCEL_CLARIFICATION: de("Bearbeitung beendet; der Vorschlag ist unverändert."),
 }
 _STATUS_MESSAGES = {
     ResultStatus.WRITTEN: "Angelegt.",
     ResultStatus.NEEDS_DUPLICATE_CONFIRMATION:
-        "Diese Aktion wurde bereits früher angelegt. Wirklich erneut anlegen?",
-    ResultStatus.WRITE_UNCERTAIN: "Bestätigt; die externe Anlage ist noch unklar und wird abgeglichen.",
-    ResultStatus.WRITE_FAILED: "Bestätigt; die externe Anlage ist fehlgeschlagen.",
-    ResultStatus.NOT_WRITTEN: "Bestätigt; keine externe Anlage ausgeführt.",
+        de("Diese Aktion wurde bereits früher angelegt. Wirklich erneut anlegen?"),
+    ResultStatus.WRITE_UNCERTAIN: de("Bestätigt; die externe Anlage ist noch unklar und wird abgeglichen."),
+    ResultStatus.WRITE_FAILED: de("Bestätigt; die externe Anlage ist fehlgeschlagen."),
+    ResultStatus.NOT_WRITTEN: de("Bestätigt; keine externe Anlage ausgeführt."),
 }
 _DECISION_ACTIONS = {
     CommandKind.CONFIRM: "confirm",
@@ -116,10 +117,10 @@ class ReviewService:
         """Apply *command*; with *raise_errors*, a rejected command raises instead."""
         if isinstance(command, AdminCommand):
             if self.configuration is None:
-                return ReviewResult(status=ResultStatus.INVALID, message="Konfigurationsdienst nicht verfügbar.")
+                return ReviewResult(status=ResultStatus.INVALID, message=de("Konfigurationsdienst nicht verfügbar."))
             return self.configuration.execute(command)
         if not self._authorized(command):
-            return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+            return ReviewResult(status=ResultStatus.UNAUTHORIZED, message=de("Nicht autorisiert."))
         try:
             result = self._execute(command)
             self._record(command)
@@ -202,7 +203,7 @@ class ReviewService:
                     if q != "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."]}))
             with self.controller.store.locked():
                 if self._target(command) != previous:
-                    raise StaleCommand("Vorschlag inzwischen geändert")
+                    raise StaleCommand(de("Vorschlag inzwischen geändert"))
                 questions = required_revision_questions(result)
                 status = (result.status if result.status == ProposalStatus.ALREADY_EXISTS else
                           ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION)
@@ -210,7 +211,7 @@ class ReviewService:
                     "open_questions": list(dict.fromkeys([*result.open_questions, *questions])), "status": status})
                 result = invalidate_creation_permissions(result)
                 self.controller.persist(result)
-            return ReviewResult(status=ResultStatus.DONE, message="Erneut geprüft; separat bestätigen.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Erneut geprüft; separat bestätigen."))
         if command.kind == CommandKind.RETARGET:
             previous = self._target(command)
             cfg = getattr(self.controller.relevance_handler, "mailbox_settings", None)
@@ -221,7 +222,8 @@ class ReviewService:
             changed = retarget(cfg, previous, command.target_profile, command.proposal_hash)
             self._commit(previous, changed)
             self.controller.send_proposal(changed)
-            return ReviewResult(status=ResultStatus.DONE, message="Ziel umgestellt; neue Version separat bestätigen.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Ziel umgestellt; neue Version separat "
+                                                                     "bestätigen."))
         if command.kind in {CommandKind.MERGE, CommandKind.SEPARATE, CommandKind.RESTORE, CommandKind.DEFAULTS}:
             return self._reconcile_proposal(command)
         if command.kind == CommandKind.EDIT:
@@ -237,7 +239,8 @@ class ReviewService:
             record_event(self.controller.store, revised, "edit", command.source.value, command.idempotency_key)
             if revised.version != previous.version:
                 self.controller.send_proposal(revised)
-            return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Neue Version gespeichert; bitte separat "
+                                                                     "bestätigen."))
         handlers = {CommandKind.RETRY_MAIL: self._processing, CommandKind.FILE_MAIL: self._processing,
                     CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
                     CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
@@ -267,13 +270,13 @@ class ReviewService:
         with self.controller.store.locked():
             current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
             if current is None or current.version != command.version:
-                raise StaleCommand("Vorschlag inzwischen geändert oder nicht gefunden")
+                raise StaleCommand(de("Vorschlag inzwischen geändert oder nicht gefunden"))
             if current.status != ProposalStatus.REJECTED:
                 raise ValueError("Grund kann nur für verworfene Vorschläge angegeben werden.")
             updated = current.model_copy(update={"reject_reason": command.reason})
             self.controller.persist(updated)
         label = REJECT_REASONS[command.reason]
-        return ReviewResult(status=ResultStatus.DONE, message=f"Grund gespeichert: {label}.")
+        return ReviewResult(status=ResultStatus.DONE, message=de("Grund gespeichert: {label}.", label=label))
 
     def _choose_variant(self, command: ReviewCommand) -> ReviewResult:
         """5.9.3: one value of a field conflict becomes a new version; it is not a confirmation."""
@@ -291,9 +294,11 @@ class ReviewService:
         self.controller.send_proposal(chosen)
         # 5.9.4: the receipt names the field and the value (plan 2.1.5), e.g. "Endzeit 20:30 Uhr übernommen".
         value = button_text(conflict, variant, ZoneInfo(self.controller.configured_timezone))
-        verb = "übernommen" if variant.origin == "source" else "behalten"
+        source = variant.origin == "source"
         return ReviewResult(status=ResultStatus.DONE,
-                            message=f"{label(conflict)} {value} {verb}; neue Version bitte separat bestätigen.")
+                            message=de("{label} {value} übernommen; neue Version bitte separat bestätigen." if source
+                                       else "{label} {value} behalten; neue Version bitte separat bestätigen.",
+                                       label=label(conflict), value=value))
 
     def _choose_event(self, command: ReviewCommand) -> ReviewResult:
         """Bind a change or cancellation to the calendar entry the user picked (4.6, 17.4)."""
@@ -307,13 +312,13 @@ class ReviewService:
         chosen = invalidate_creation_permissions(chosen.model_copy(update={"version": previous.version + 1}))
         self._commit(previous, chosen)
         self.controller.send_proposal(chosen)
-        return ReviewResult(status=ResultStatus.DONE, message="Kalendertermin zugeordnet; separat bestätigen.")
+        return ReviewResult(status=ResultStatus.DONE, message=de("Kalendertermin zugeordnet; separat bestätigen."))
 
     def _commit(self, previous: Proposal, changed: Proposal) -> None:
         with self.controller.store.locked():
             current = self.controller.repository.load_current(previous.source_mail_id, previous.id)
             if current != previous:
-                raise StaleCommand("Vorschlag inzwischen geändert oder entschieden")
+                raise StaleCommand(de("Vorschlag inzwischen geändert oder entschieden"))
             self.controller.persist(changed)
 
     def _reconcile_proposal(self, command: ReviewCommand) -> ReviewResult:
@@ -361,30 +366,30 @@ class ReviewService:
         if command.source == CommandSource.TELEGRAM:
             return ReviewResult(status=ResultStatus.DONE, message=text or "")
         label = "relevant" if command.decision == "relevant" else "irrelevant"
-        return ReviewResult(status=ResultStatus.DONE, message=f"Mail als {label} eingestuft.")
+        return ReviewResult(status=ResultStatus.DONE, message=de("Mail als {label} eingestuft.", label=label))
 
     def _processing(self, command: ReviewCommand) -> ReviewResult:
         apply(self.controller.store, command)
         return ReviewResult(status=ResultStatus.DONE, message=(
-            "Erneuter Versuch beim nächsten Abruf." if command.kind == CommandKind.RETRY_MAIL else
-            "Mail als nicht verarbeitet abgelegt; sie bleibt im Archiv."))
+            de("Erneuter Versuch beim nächsten Abruf.") if command.kind == CommandKind.RETRY_MAIL else
+            de("Mail als nicht verarbeitet abgelegt; sie bleibt im Archiv.")))
 
     def _recheck(self, command: ReviewCommand) -> ReviewResult:
         if self.recheck is None:
-            raise ReviewError("Erneute Prüfung ist in diesem Betrieb nicht verfügbar.")
+            raise ReviewError(de("Erneute Prüfung ist in diesem Betrieb nicht verfügbar."))
         outcome = self.recheck(command.mail_id, command.version)
         if outcome is not RecheckOutcome.QUEUED:
             raise StaleCommand(_RECHECK_REFUSED[outcome])
         return ReviewResult(status=ResultStatus.DONE,
-                            message="Die Mail wird beim nächsten Abruf mit den aktuellen Themen erneut geprüft.")
+                            message=de("Die Mail wird beim nächsten Abruf mit den aktuellen Themen erneut geprüft."))
 
     def _target(self, command: ReviewCommand) -> Proposal:
         assert command.proposal_id is not None
         proposal: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if proposal is None:
-            raise StaleCommand("Vorschlag wurde nicht gefunden")
+            raise StaleCommand(de("Vorschlag wurde nicht gefunden"))
         if proposal.version != command.version or proposal.status not in _OPEN:
-            raise StaleCommand("Der Vorschlag wurde inzwischen geändert oder entschieden")
+            raise StaleCommand(de("Der Vorschlag wurde inzwischen geändert oder entschieden"))
         return proposal
 
     def _verify_entry(self, command: ReviewCommand) -> ReviewResult:
@@ -392,12 +397,12 @@ class ReviewService:
         assert command.proposal_id is not None
         current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if current is None or current.version != command.version or current.status != ProposalStatus.VERIFYING:
-            raise StaleCommand("Der Vorschlag wurde inzwischen geändert oder entschieden")
+            raise StaleCommand(de("Der Vorschlag wurde inzwischen geändert oder entschieden"))
         checks = getattr(self.controller.write_executor, "verification", None)
         if checks is None or not checks.restart(current):
-            raise StaleCommand("Für diesen Eintrag läuft bereits eine Prüfung oder sie ist abgeschlossen")
+            raise StaleCommand(de("Für diesen Eintrag läuft bereits eine Prüfung oder sie ist abgeschlossen"))
         return ReviewResult(status=ResultStatus.DONE,
-                            message="Erneute Prüfung gestartet – Mailhelp liest den Eintrag nur erneut.")
+                            message=de("Erneute Prüfung gestartet – Mailhelp liest den Eintrag nur erneut."))
 
     def _pointer(self) -> TelegramDialogState:
         state = self.controller.store.load_model(_DIALOG, TelegramDialogState, TelegramDialogState())
@@ -414,7 +419,7 @@ class ReviewService:
         target = (proposal.source_mail_id, proposal.id, proposal.version)
         if (pointer.mail_id, pointer.proposal_id, pointer.version) != target:
             if pointer.retry_required:
-                raise ReviewBusy("Eine andere Antwort wird gerade verarbeitet; bitte gleich erneut senden.")
+                raise ReviewBusy(de("Eine andere Antwort wird gerade verarbeitet; bitte gleich erneut senden."))
             if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
                 self._commit(proposal, proposal.model_copy(
                     update={"status": ProposalStatus.NEEDS_CLARIFICATION}))
@@ -432,10 +437,10 @@ class ReviewService:
                                 message=f"Antwort nicht übernommen – Rückfrage: {follow_up}"[:500])
         if not isinstance(state, ProposalClarificationState) or state.answer_status == AnswerStatus.INVALID:
             return ReviewResult(status=ResultStatus.NEEDS_ANSWER,
-                                message="Antwort nicht übernommen; der Vorschlag ist unverändert.")
+                                message=de("Antwort nicht übernommen; der Vorschlag ist unverändert."))
         if state.answer_status == AnswerStatus.PENDING:
             return ReviewResult(status=ResultStatus.DONE,
-                                message="Antwort gespeichert – die Auswertung wird automatisch wiederholt.")
+                                message=de("Antwort gespeichert – die Auswertung wird automatisch wiederholt."))
         return ReviewResult(status=ResultStatus.DONE, message=_DONE_MESSAGES[command.kind])
 
     def _cancel(self, command: ReviewCommand) -> ReviewResult:
@@ -446,7 +451,7 @@ class ReviewService:
         pointer = self._pointer()
         if (pointer.mail_id, pointer.proposal_id, pointer.version) != (
                 proposal.source_mail_id, proposal.id, proposal.version):
-            raise StaleCommand("Für diesen Vorschlag läuft keine Bearbeitung")
+            raise StaleCommand(de("Für diesen Vorschlag läuft keine Bearbeitung"))
         controller = self.controller
         TelegramCommands(controller.store, controller.repository, controller.presenter,
                          controller.telegram, controller.chat_id, controller.relevance,
@@ -475,7 +480,7 @@ def _invalid_fields(exc: Exception) -> list[str]:
 def _error_message(exc: Exception) -> str:
     if isinstance(exc, ReviewError):
         return str(exc)
-    return "Die Eingabe ist ungültig."
+    return de("Die Eingabe ist ungültig.")
 
 
 def proposal_creation_time(store: JsonStore, proposal: Proposal) -> datetime | None:

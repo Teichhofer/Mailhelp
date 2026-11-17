@@ -10,6 +10,7 @@ from typing import Any, Protocol, cast
 import httpx
 from pydantic import ValidationError
 
+from ..i18n import Locale, stored, use_locale
 from ..llm.adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
 from ..notifications.notification_context import web_reply
@@ -44,8 +45,11 @@ class TelegramClient:
         poll_timeout: int = 30,
         policy: RetryPolicy | None = None,
         logger: EventLogger | None = None,
+        locale: Locale = Locale.DE,
     ) -> None:
         self.poll_timeout = poll_timeout
+        # 7.5.4: texts made in German elsewhere (results, background notices) leave in this language.
+        self.locale = locale
         self.client = httpx.Client(
             base_url=f"https://api.telegram.org/bot{token}",
             timeout=timeout,
@@ -213,6 +217,7 @@ class TelegramClient:
         self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None
     ) -> None:
         validate_callback_markup(reply_markup)
+        text, reply_markup = self._localized(text), self._localized_markup(reply_markup)
         call_id = str(uuid.uuid4())
         self.logger.event("INFO", "telegram", "send_started", call_id=call_id)
         if self.route_background and web_reply.get():
@@ -288,7 +293,20 @@ class TelegramClient:
             size=len(content),
         )
 
+    def _localized(self, text: str) -> str:
+        with use_locale(self.locale):
+            return stored(text)
+
+    def _localized_markup(self, markup: dict[str, Any] | None) -> dict[str, Any] | None:
+        if markup is None or "inline_keyboard" not in markup:
+            return markup
+        rows = [[{**button, "text": self._localized(button["text"])} for button in row]
+                for row in markup["inline_keyboard"]]
+        return {**markup, "inline_keyboard": rows}
+
     def answer_callback(self, callback_id: str, text: str) -> None:
+        text = self._localized(text)
+
         def request() -> httpx.Response:
             response = self.client.post(
                 "/answerCallbackQuery",

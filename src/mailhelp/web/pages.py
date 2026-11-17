@@ -14,7 +14,7 @@ from datetime import datetime
 from types import MappingProxyType
 
 from ..formatting import format_datetime_local
-from ..i18n import Locale, current, tr
+from ..i18n import Locale, current, stored, tr
 from .auth import WebSession
 
 
@@ -191,7 +191,8 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 
 def notice(text: str, kind: str = "info") -> str:
     role = "alert" if kind == "error" else "status"
-    return f'<p class="notice notice-{kind}" role="{role}">{e(text)}</p>'
+    # 7.5.4: result messages are stored in German and shown in the reader's language.
+    return f'<p class="notice notice-{kind}" role="{role}">{e(stored(text))}</p>'
 
 
 # Where pairing codes appear: the Telegram chat or, without Telegram (2.0), the PC console.

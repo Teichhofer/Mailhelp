@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from ..domain.proposal_sources import ProposalReference
+from ..i18n import tr
 from ..persistence.storage import CorruptState
 from ..processing.attachments import AttachmentCache, download_name
 from ..review import CommandKind
@@ -14,7 +15,7 @@ from .actions import confirm_remove_page
 from .auth import WebSession
 from .command_cards import CommandCards
 from .http import Request, Response
-from .pages import notice
+from .pages import e, notice
 from .proposal_evaluation_pages import learning_run_hint_banner
 from .review_pages import disclosure
 
@@ -47,7 +48,7 @@ class ReviewSite:
         try:
             choice = tools.parse(request.query)
         except ValueError:
-            return Response.text(422, "Ungültiger Filter.")
+            return Response.text(422, tr("Ungültiger Filter."))
         selected = choice.filter
         overview = self.site.overview()
         total = len(overview.open) + len(overview.relevance)
@@ -72,7 +73,7 @@ class ReviewSite:
         references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
         damaged = len(tuple((self.site.commands.incoming.directory / "quarantine").glob("*.invalid")))
-        warning = (notice("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen.", "error")
+        warning = (notice(tr("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen."), "error")
                    if damaged else "")
         cfg = getattr(self.site.archive, "configuration", None)
         l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
@@ -85,11 +86,11 @@ class ReviewSite:
         page = overview_page(overview, actions=cards.proposal,
                              relevance_actions=cards.relevance,
                              before=warning + hint_banner + tools.toolbar("/offen", choice),
-                             empty=self.site._empty if finished else None,
+                             empty=self.site.empty_state() if finished else None,
                              after=cards.detached(references),
                              count=tools.count(len(overview.open) + len(overview.relevance), total, choice),
                              sections=tools.groups(overview.relevance, overview.open) if choice.group else None,
-                             no_match=tools.NO_MATCH.format(path="/offen") if choice.narrowed else None)
+                             no_match=tools.no_match("/offen") if choice.narrowed else None)
         return Response.html(200, page)
 
     def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:
@@ -104,14 +105,15 @@ class ReviewSite:
     def mail(self, request: Request, session: WebSession, mail_id: str) -> Response:
         view = self.site.views.mail(mail_id)
         if view is None:
-            return Response.html(404, error_page("Nicht gefunden", "Diese Mail ist nicht (mehr) vorhanden."))
+            return Response.html(404, error_page(tr("Nicht gefunden"), tr("Diese Mail ist nicht (mehr) vorhanden.")))
         question = next((item for item in self.site.views.overview().relevance if item.mail_id == mail_id), None)
         csrf = self.site.auth.csrf_token(session.id)
         message, kind = self._result_notice(request, session)
         analysis_round = recheck_round(self.site.views.store, mail_id)
-        recheck = (f'<section class="card"><h2>Aussortiert</h2><p>Mailhelp hat diese Mail als nicht relevant '
-                   f'eingestuft. Nach einer Änderung der Themen kann sie mit der aktuellen Konfiguration erneut '
-                   f'geprüft werden; das Ergebnis erscheint nach dem nächsten Abruf.</p>'
+        recheck = (f'<section class="card"><h2>{tr("Aussortiert")}</h2><p>'
+                   + tr("Mailhelp hat diese Mail als nicht relevant eingestuft. Nach einer Änderung der Themen kann "
+                        "sie mit der aktuellen Konfiguration erneut geprüft werden; das Ergebnis erscheint nach dem "
+                        "nächsten Abruf.") + '</p>'
                    f'{recheck_form(csrf, mail_id, analysis_round)}</section>'
                    if analysis_round is not None else "")
         recheck += self.site.archive.mail_archive.failure_card(mail_id, view.subject, csrf)
@@ -130,10 +132,10 @@ class ReviewSite:
         mail = self.site.views.mail(mail_id)
         if mail is None or mail.text is None or not any(
                 item.preview is not None and item.preview.index == int(index) for item in mail.extracted_attachments):
-            return Response.text(404, "Anhang nicht vorhanden.")
+            return Response.text(404, tr("Anhang nicht vorhanden."))
         data = AttachmentCache(self.site.views.store).read(mail_id, int(index))
         if data is None:
-            return Response.text(404, "Anhang nicht vorhanden.")
+            return Response.text(404, tr("Anhang nicht vorhanden."))
         return Response(200, data, "image/jpeg", headers={
             "Content-Security-Policy": "default-src 'none'",
             "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
@@ -144,7 +146,7 @@ class ReviewSite:
         found = (AttachmentCache(self.site.views.store).original(mail_id, int(index))
                  if mail is not None and mail.text is not None else None)
         if found is None:
-            return Response.text(404, "Original nicht vorhanden.")
+            return Response.text(404, tr("Original nicht vorhanden."))
         original, data = found
         name, fallback = download_name(original.filename, original.index)
         self.site.logger.event("INFO", "web", "attachment_downloaded", mail_id=mail_id, index=original.index,
@@ -160,20 +162,21 @@ class ReviewSite:
             proposal = self.site.reconciliation_page.service.resolve(
                 ProposalReference(mail_id=mail_id, proposal_id=proposal_id))
         except (ValueError, CorruptState):
-            return self.site._reply(request, 409, "Ungültige kanonische Vorschlagsreferenz.")
+            return self.site._reply(request, 409, tr("Ungültige kanonische Vorschlagsreferenz."))
         if proposal is not None and (proposal.source_mail_id, proposal.id) != (mail_id, proposal_id):
             return Response.redirect(f"/vorschlag/{proposal.source_mail_id}/{proposal.id}")
         view = self.site.views.proposal(mail_id, proposal_id)
         if view is None:
             return Response.html(404, error_page(
-                "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
-        link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
+                tr("Nicht gefunden"), tr("Dieser Vorschlag ist nicht (mehr) vorhanden.")))
+        link = (f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">'
+                f'{tr("Felder bearbeiten")}</a></p>')
         archive = self.site.archive.mail_archive
         extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
                  + (self.site.mailbox_page.target_forms(proposal, session) if proposal is not None else "")
                  + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
-                 + disclosure("Revisionshistorie &amp; Differenzen", archive.revisions(mail_id, proposal_id))
-                 + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
+                 + disclosure(e(tr("Revisionshistorie & Differenzen")), archive.revisions(mail_id, proposal_id))
+                 + disclosure(e(tr("Technische LLM-Analyse & Metriken")), archive.analysis(mail_id)))
         cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id),
                              refresh_target(request), sender_hint_lookup=self._sender_hint, views=self.site.views)
         page = detail_page(view, actions=cards.proposal,
@@ -185,7 +188,7 @@ class ReviewSite:
         view = self.site.views.proposal(mail_id, proposal_id)
         if view is None or not view.can_remove:
             return Response.html(404, error_page(
-                "Nicht möglich", "Dieser Eintrag kann nicht wieder entfernt werden."))
+                tr("Nicht möglich"), tr("Dieser Eintrag kann nicht wieder entfernt werden.")))
         csrf = self.site.auth.csrf_token(session.id)
         return Response.html(200, confirm_remove_page(view, csrf))
 

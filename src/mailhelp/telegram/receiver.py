@@ -19,11 +19,12 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..i18n import de
 from ..logging import EventLogger
 from ..persistence.storage import JsonStore
 
 INBOX = "telegram-inbox"
-ACKNOWLEDGEMENT = "Eingegangen – wird bearbeitet …"
+ACKNOWLEDGEMENT = de("Eingegangen – wird bearbeitet …")
 
 
 class InboxEntry(BaseModel):

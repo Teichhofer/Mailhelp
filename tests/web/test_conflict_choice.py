@@ -185,3 +185,18 @@ def test_a_choice_survives_a_restart_and_a_foreign_chat_cannot_choose(web, item)
     chosen = current(web, item)
     assert chosen.version == item.version + 1 and chosen.end == START + timedelta(hours=2, minutes=30)
     assert web.writer.created == 0
+
+
+def test_the_result_of_a_choice_is_stored_in_german_while_telegram_speaks_english(web, item):
+    """7.5.4: web commands run in the dialog thread, but their stored result never takes its language."""
+    from mailhelp.i18n import Locale, use_locale
+    from tests.fakes.web_routes import action_id
+    web.dialog.locale = Locale.EN
+    fields = web.form(f"/vorschlag/{item.source_mail_id}/{item.id}", kind="choose_conflict_variant", variant="b")
+    entry_id = action_id(web.submit(fields).headers["Location"])
+    web.run()
+    message = web.commands.get(entry_id).result.message
+    assert message == "Endzeit 20:30 Uhr übernommen; neue Version bitte separat bestätigen."
+    with use_locale(Locale.EN):
+        from mailhelp.i18n import stored
+        assert stored(message) == "End time 20:30 applied; please confirm the new version separately."

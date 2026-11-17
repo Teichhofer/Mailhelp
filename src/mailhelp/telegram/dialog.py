@@ -17,7 +17,7 @@ from ..domain.proposal import Proposal, ProposalStatus
 from ..domain.relevance import RelevanceDialog
 from ..domain.run import TelegramOffset
 from ..external.contracts import ExternalWriter
-from ..i18n import Locale, use_locale
+from ..i18n import Locale, de, use_locale
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
 from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import JsonStore
@@ -370,13 +370,15 @@ class TelegramDialogController:
                 queue_wait = (self.commands.clock() - entry.received_at).total_seconds() * 1000
                 started = time.perf_counter()
                 try:
-                    result = self.review.execute(command)
+                    # 7.5.4: results are stored in German and shown in each reader's language.
+                    with use_locale(Locale.DE):
+                        result = self.review.execute(command)
                 except Exception as exc:
                     self.logger.event("ERROR", "review", "command_failed", command_id=entry.id,
                                       source=command.source.value, kind=command.kind.value,
                                       error_class=type(exc).__name__)
                     result = ReviewResult(status=ResultStatus.FAILED,
-                                          message="Die Aktion ist fehlgeschlagen; Details stehen im Protokoll.")
+                                          message=de("Die Aktion ist fehlgeschlagen; Details stehen im Protokoll."))
                 timings = {**waits, "queue_wait_ms": round(queue_wait, 3),
                            "latency_ms": round((self.commands.clock() - entry.received_at).total_seconds() * 1000, 3),
                            "execution_ms": round((time.perf_counter() - started) * 1000, 3)}
@@ -391,7 +393,7 @@ class TelegramDialogController:
                     and result.status == ResultStatus.DONE
                     and command.kind in {CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.RELEVANCE}):
                 try:
-                    self.telegram.send(self.chat_id, f"🌐 Im Web: {result.message}")
+                    self.telegram.send(self.chat_id, de("🌐 Im Web: {message}", message=result.message))
                 except Exception as exc:
                     self.logger.event("ERROR", "review", "web_notice_failed",
                                       error_class=type(exc).__name__)

@@ -41,6 +41,7 @@ from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from ..domain.run import MailRunState
 from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
 from ..formatting import format_datetime_local
+from ..i18n import current, stored, tr
 from ..i18n.formatting import number
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.attachments import AttachmentCache, OriginalFile
@@ -344,7 +345,7 @@ def _confirm_target(proposal: Proposal) -> str:
     target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
     if proposal.target_event_id is not None:
         target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
-    return target
+    return tr(target)
 
 
 class ReviewViews:
@@ -374,8 +375,9 @@ class ReviewViews:
             listing = self.store.scan()
             # Only states shown in the overview count; mailbox polls and queues do not.
             relevant = tuple(item for item in listing.items() if _shown(item[0]))
+            # The views hold texts of the reader's language (7.5.4): one cached overview per language.
             key = (self.store.settings_revision, relevant,
-                   tuple(sorted(self.mailboxes.items())), self.profile_label, self.profile_available)
+                   tuple(sorted(self.mailboxes.items())), self.profile_label, self.profile_available, current())
             cached = self._overview
             if cached is not None and cached[0] == key and now - cached[1] < OVERVIEW_MAX_AGE_SECONDS:
                 return cached[2]
@@ -598,7 +600,7 @@ class ReviewViews:
             question = display_question(answerable[0])
             example = answer_example(answerable[0])
         elif open_ and (editing or not card.writable):
-            question, example = _CHANGE_QUESTION, _CHANGE_EXAMPLE
+            question, example = tr(_CHANGE_QUESTION), tr(_CHANGE_EXAMPLE)
         state, actions = self._state_and_actions(proposal, open_, editing, answer_saved, paused, blocked,
                                                  verification)
         headers = mail.display_headers if mail is not None else None
@@ -615,7 +617,7 @@ class ReviewViews:
             yes_no=bool(open_ and answerable) and yes_no_question(answerable[0]),
             reconciliation_required=blocked,
             actions=frozenset(actions),
-            confirm_label="Simulieren" if self.test_mode else target,
+            confirm_label=tr("Simulieren") if self.test_mode else target,
             external_link=proposal.external_link if proposal.status == ProposalStatus.CREATED else None,
             updated_at=mail.updated_at if mail is not None else None,
             duplicate_match=proposal.duplicate_match,
@@ -640,20 +642,21 @@ class ReviewViews:
         actions = (_open_actions(proposal, editing, blocked)
                    if open_ and not answer_saved and not paused else set())
         if paused:
-            state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
+            state = tr("Verarbeitung pausiert – bitte Betreiber prüfen lassen")
         elif answer_saved:
-            state = "Antwort gespeichert – wird verarbeitet"
+            state = tr("Antwort gespeichert – wird verarbeitet")
         elif editing:
-            state = "Rückfrage offen"
+            state = tr("Rückfrage offen")
         else:
-            state = "Schon erledigt" if proposal.resolution == "already_done" else STATUS_LABELS[proposal.status]
+            done = proposal.resolution == "already_done"
+            state = tr("Schon erledigt" if done else STATUS_LABELS[proposal.status])
         if not self.profile_available(proposal):
             actions.discard(CommandKind.CONFIRM)
-            state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
+            state = tr("Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen")
         if proposal.status == ProposalStatus.CONFIRMED and proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR:
-            state = "Freigabe des Altbestands nicht prüfbar – Anlage gesperrt"
+            state = tr("Freigabe des Altbestands nicht prüfbar – Anlage gesperrt")
         if verification is not None:
-            state = verification.title
+            state = stored(verification.title)
             if verification.recheckable and proposal.status == ProposalStatus.VERIFYING:
                 actions.add(CommandKind.VERIFY_ENTRY)
         return state, actions
@@ -707,7 +710,7 @@ def conflict_choices(proposal: Proposal, configured_timezone: str) -> tuple[Conf
     """Field conflicts with their values in the configured zone (5.9.3)."""
     zone = ZoneInfo(configured_timezone)
     return tuple(ConflictChoice(
-        id=item.id, label=conflicts.label(item), question=conflicts.question(item, proposal.sources, zone),
+        id=item.id, label=tr(conflicts.label(item)), question=conflicts.question(item, proposal.sources, zone),
         stored_question=item.question,
         options=tuple(ConflictOption(id=variant.id, origin=conflicts.origin_text(variant, proposal.sources),
                                      value=conflicts.value_text(item, variant, zone),

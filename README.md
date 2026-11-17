@@ -15,7 +15,7 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
 **Version:** 7.5.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.5.1 beginnt die englische Oberfläche: Navigation und Statusbezeichnungen lassen sich über einen Link in der Navigation oder die Einstellung `language` auf Englisch umstellen; weitere Bereiche folgen in den nächsten Patches.
+7.5.1 beginnt die englische Oberfläche: Navigation und Statusbezeichnungen lassen sich über einen Link in der Navigation oder die Einstellung `language` auf Englisch umstellen; weitere Bereiche folgen in den nächsten Patches. Seit 7.5.4 sind die offenen Entscheidungen mit allen Aktionen sowie die Telegram-Quittungen und -Meldungen zweisprachig.
 
 7.4.1 erkennt mehrtägige Termine: Datumsbereiche wie „Donnerstag 07. bis Freitag 08. Januar 2027“ oder `07./08.01.2027` werden mit Beginn- und Endzeit über alle Tage eingetragen, ohne Rückfrage nach dem Datum.
 

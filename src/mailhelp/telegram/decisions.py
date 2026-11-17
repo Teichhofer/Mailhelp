@@ -14,6 +14,7 @@ from ..domain.proposal import (
     ProposalStatus,
     invalidate_creation_permissions,
 )
+from ..i18n import de
 from ..persistence.ledger import ActionLedgerPort
 from ..persistence.proposals import ProposalRepository
 from ..persistence.storage import JsonStore
@@ -61,7 +62,7 @@ class ProposalDecisionService:
                            web_actor: str | None = None) -> tuple[ResultStatus, str]:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
-            raise PermissionError("Nicht autorisierte Telegram-Anfrage")
+            raise PermissionError(de("Nicht autorisierte Telegram-Anfrage"))
         ProposalReconciliationService(self.store).recover()
         proposal = self._open_proposal(decision)
         if decision.action == DecisionAction.EDIT:
@@ -71,13 +72,13 @@ class ProposalDecisionService:
             in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE}
             and proposal.status != ProposalStatus.PENDING_CONFIRMATION
         ):
-            raise AnswerRequired("Zuerst müssen die offenen Fragen beantwortet werden")
+            raise AnswerRequired(de("Zuerst müssen die offenen Fragen beantwortet werden"))
         confirming = decision.action in {
             DecisionAction.CONFIRM,
             DecisionAction.CONFIRM_DUPLICATE,
         }
         if confirming and not self.profile_available(proposal):
-            raise AnswerRequired("Zielprofil nicht mehr konfiguriert oder nicht verfügbar")
+            raise AnswerRequired(de("Zielprofil nicht mehr konfiguriert oder nicht verfügbar"))
         if confirming:
             candidates = ProposalReconciliationService(self.store).confirmation_candidates(proposal)
             if candidates:
@@ -87,7 +88,7 @@ class ProposalDecisionService:
                     "open_questions": [MATCHING_QUESTION]})
                 revised = invalidate_creation_permissions(revised)
                 self._commit(proposal, revised)
-                raise StaleCommand("Offene Entscheidungen haben sich geändert; neue Version prüfen")
+                raise StaleCommand(de("Offene Entscheidungen haben sich geändert; neue Version prüfen"))
         if confirming and self.precheck is not None:
             checked = self.precheck.check_proposal(proposal)
             fields = ("status", "duplicate_check_failed", "target_event_id", "time_changes", "is_cancellation")
@@ -96,16 +97,16 @@ class ProposalDecisionService:
                     "explicit_duplicate_create_confirmed_version": None})
                 checked = invalidate_creation_permissions(checked)
                 self._commit(proposal, checked)
-                raise StaleCommand("Dublettenprüfung hat den Vorschlag geändert; neue Version prüfen")
+                raise StaleCommand(de("Dublettenprüfung hat den Vorschlag geändert; neue Version prüfen"))
         duplicates = self.ledger.prior_actions(proposal) if confirming else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
             self._ask_about_duplicate(decision, duplicates[-1])
             return (ResultStatus.NEEDS_DUPLICATE_CONFIRMATION,
-                    "✅ Doppelanlage-Prüfung wurde entgegengenommen.")
+                    de("✅ Doppelanlage-Prüfung wurde entgegengenommen."))
         if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
-            raise StaleCommand("Die Doppelanlage-Bestätigung ist veraltet")
+            raise StaleCommand(de("Die Doppelanlage-Bestätigung ist veraltet"))
         if confirming and write_authorizer is not None and not write_authorizer():
-            raise StaleCommand("Websitzung vor Ausführung ungültig geworden")
+            raise StaleCommand(de("Websitzung vor Ausführung ungültig geworden"))
         changed = (
             proposal.model_copy(update={"status": ProposalStatus.REJECTED,
                 "resolution": "already_done" if decision.action == DecisionAction.ALREADY_DONE else None})
@@ -129,21 +130,21 @@ class ProposalDecisionService:
         if changed.status == ProposalStatus.CONFIRMED:
             return self._write(changed)
         return ResultStatus.DONE, (
-            "✅ Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)"
-            if changed.resolution == "already_done" else "✅ Vorschlag wurde verworfen.")
+            de("✅ Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)")
+            if changed.resolution == "already_done" else de("✅ Vorschlag wurde verworfen."))
 
     def _commit(self, previous: Proposal, changed: Proposal) -> None:
         """Claim the unchanged open version atomically, after all external reads."""
         with self.store.locked():
             if self.repository.load_current(previous.source_mail_id, previous.id) != previous:
-                raise StaleCommand("Vorschlag inzwischen geändert oder entschieden")
+                raise StaleCommand(de("Vorschlag inzwischen geändert oder entschieden"))
             self.persistence.persist(changed)
 
     def _open_proposal(self, decision: Decision) -> Proposal:
         """The exact proposal version the button belongs to, while it still awaits a decision."""
         proposal = self.repository.load_current(decision.mail_id, decision.proposal_id)
         if proposal is None:
-            raise StaleCommand("Vorschlag wurde nicht gefunden")
+            raise StaleCommand(de("Vorschlag wurde nicht gefunden"))
         if (proposal.source_mail_id, proposal.id, proposal.version) != (
             decision.mail_id,
             decision.proposal_id,
@@ -152,7 +153,7 @@ class ProposalDecisionService:
             ProposalStatus.PENDING_CONFIRMATION,
             ProposalStatus.NEEDS_CLARIFICATION,
         }:
-            raise StaleCommand("Diese Schaltfläche ist veraltet")
+            raise StaleCommand(de("Diese Schaltfläche ist veraltet"))
         return proposal
 
     def _start_edit(self, proposal: Proposal) -> tuple[ResultStatus, str]:
@@ -167,7 +168,7 @@ class ProposalDecisionService:
             and not active.retry_required
         ):
             return (ResultStatus.DONE,
-                    "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten.")
+                    de("✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten."))
         changed = proposal.model_copy(
             update={"status": ProposalStatus.NEEDS_CLARIFICATION}
         )
@@ -189,8 +190,8 @@ class ProposalDecisionService:
         """An action like this was created before: ask before doing it twice."""
         source = self.repository.load_mail(previous.mail_id)
         headers = source.display_headers if source is not None else None
-        source_text = (f"Absender: {headers.sender}\nBetreff: {headers.subject}"
-                       if headers is not None else "Quellangaben nicht mehr verfügbar.")
+        source_text = (de("Absender: {sender}\nBetreff: {subject}", sender=headers.sender, subject=headers.subject)
+                       if headers is not None else de("Quellangaben nicht mehr verfügbar."))
         duplicate = decision.model_copy(
             update={"action": DecisionAction.CONFIRM_DUPLICATE}
         )
@@ -199,21 +200,22 @@ class ProposalDecisionService:
             self.allowed_chat,
             "\n".join(
                 [
-                    f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} "
-                    f"„{previous.title}“.",
-                    f"Frühere Quelle (Version {previous.proposal_version}):\n{source_text}",
-                    "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
+                    de("Bereits angelegt: {value} „{title}“.",
+                       value="Aufgabe" if previous.kind == ProposalKind.TASK else "Termin", title=previous.title),
+                    de("Frühere Quelle (Version {proposal_version}):\n{source_text}",
+                       proposal_version=previous.proposal_version, source_text=source_text),
+                    de("Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?"),
                 ]
             ),
             {
                 "inline_keyboard": [
                     [
                         {
-                            "text": "Erneut anlegen",
+                            "text": de("Erneut anlegen"),
                             "callback_data": duplicate.encode(self.store),
                         },
                         {
-                            "text": "Nicht erneut",
+                            "text": de("Nicht erneut"),
                             "callback_data": reject.encode(self.store),
                         },
                     ]
@@ -232,11 +234,11 @@ class ProposalDecisionService:
             return ResultStatus.WRITTEN, ""
         if result.status == ProposalStatus.UNCERTAIN:
             return (ResultStatus.WRITE_UNCERTAIN,
-                    "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar.")
+                    de("⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar."))
         if result.status == ProposalStatus.FAILED:
             return (ResultStatus.WRITE_FAILED,
-                    "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen.")
+                    de("❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen."))
         return (ResultStatus.NOT_WRITTEN,
-                "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt.")
+                de("⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt."))
 
 __all__ = ["ProposalDecisionService"]

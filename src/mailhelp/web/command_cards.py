@@ -6,6 +6,7 @@ from functools import partial
 from typing import Any
 from urllib.parse import quote
 
+from ..i18n import tr
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import requires_ack
@@ -31,7 +32,7 @@ def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
         # An explicit target without fragment: refreshing to the current URL with its
         # card anchor would only scroll within the page instead of reloading it.
         return (f'<div data-card-command-status="/api/aktion/{entry.id}" role="status" aria-live="polite">'
-                'Wird verarbeitet …</div><noscript>'
+                f'{tr("Wird verarbeitet …")}</div><noscript>'
                 f'<meta http-equiv="refresh" content="1; url={e(refresh)}"></noscript>')
     assert entry.result is not None
     content = '<div data-command-result>' + notice(entry.result.message, result_kind(entry.result.status)) + '</div>'
@@ -39,7 +40,7 @@ def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
         content = '<div role="alert">' + content + (
             f'<form method="post" action="/aktion/{entry.id}/gesehen">'
             f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-            '<button class="button small" type="submit">Zur Kenntnis genommen</button></form></div>')
+            f'<button class="button small" type="submit">{tr("Zur Kenntnis genommen")}</button></form></div>')
     return content
 
 
@@ -78,8 +79,8 @@ class CommandCards:
         def actions() -> str:
             if entries and needs_choice(entries[-1], view):
                 return ('<div class="actions">'
-                        + _button_form(self.csrf, view, CommandKind.CONFIRM_DUPLICATE, "Erneut anlegen", "primary")
-                        + _button_form(self.csrf, view, CommandKind.REJECT, "Nicht erneut anlegen", "") + '</div>')
+                        + _button_form(self.csrf, view, CommandKind.CONFIRM_DUPLICATE, tr("Erneut anlegen"), "primary")
+                        + _button_form(self.csrf, view, CommandKind.REJECT, tr("Nicht erneut anlegen"), "") + '</div>')
             return proposal_actions(self.csrf)(view)
         return self.render(entries, actions)
 
@@ -101,7 +102,8 @@ class CommandCards:
                     parts.append(
                         f'<div class="sender-hint-notice notice warn" data-sender-hint>'
                         f'<p>{e(hint.trigger_sentence)}</p>'
-                        f'<p class="card-links"><a class="button primary small" href="/lernen/absender-hinweis?sender={quote(hint.sender)}">Ansehen</a></p>'
+                        f'<p class="card-links"><a class="button primary small" href="/lernen/absender-hinweis?sender={quote(hint.sender)}">'
+                        f'{tr("Ansehen")}</a></p>'
                         f'</div>'
                     )
             return "".join(parts)
@@ -115,7 +117,7 @@ class CommandCards:
             if view is not None and view.can_remove:
                 return (f'<p class="card-links"><a class="button" '
                         f'href="/vorschlag/{e(command.mail_id)}/{e(command.proposal_id)}/entfernen">'
-                        f'Eintrag wieder entfernen</a></p>')
+                        f'{tr("Eintrag wieder entfernen")}</a></p>')
         return ""
 
     def detached(self, references: set[tuple[str, str | None]]) -> str:
@@ -134,7 +136,7 @@ class CommandCards:
             assert isinstance(command, ReviewCommand)
             link = (f'/vorschlag/{command.mail_id}/{command.proposal_id}' if command.proposal_id
                     else f'/mail/{command.mail_id}')
-            parts.append(f'<article class="card" id="{anchor(entry)}"><h2>Deine Aktion</h2>'
+            parts.append(f'<article class="card" id="{anchor(entry)}"><h2>{tr("Deine Aktion")}</h2>'
                          + self.render(entries, partial(self._detached_actions, entry))
-                         + f'<p class="card-links"><a data-detail href="{link}">Details</a></p></article>')
+                         + f'<p class="card-links"><a data-detail href="{link}">{tr("Details")}</a></p></article>')
         return ''.join(parts)

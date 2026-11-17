@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.5.4 – Offene Entscheidungen und Telegram-Meldungen in beiden Sprachen
+
+- Die Seite „Offen“ mit Filtern, Karten, Aktionen, Ergebnis- und Detailseite erscheint auf Englisch;
+  Ergebnisse von Aktionen werden deutsch gespeichert und in der Sprache des Lesers angezeigt.
+- Telegram-Quittungen, `/hilfe`, `/status` und Fehlermeldungen erscheinen in der eingestellten Sprache.
+- Fehlerkorrektur: Die zwischengespeicherte Übersicht zeigte Lesern einer anderen Sprache die Karten der
+  zuerst gewählten Sprache.
+
 ## 7.5.3 – Telegram in beiden Sprachen
 
 - Telegram-Karten, Knöpfe, Rückfragen, Antwortbeispiele und Zusammenfassungen erscheinen in der

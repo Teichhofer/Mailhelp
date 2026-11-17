@@ -193,7 +193,8 @@ def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str]
     if settings.telegram.enabled:
         telegram: TelegramClient | DisabledTelegram = TelegramClient(
             secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds,
-            poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
+            poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger,
+            locale=Locale(settings.language))
     else:
         telegram = DisabledTelegram()
     stack.callback(telegram.close)

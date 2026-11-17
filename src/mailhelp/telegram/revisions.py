@@ -26,6 +26,7 @@ from ..domain.proposal import (
     reconciliation_only,
 )
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..i18n import de
 from ..llm.adapter import RetryableError
 from ..notifications.notification_context import web_reply
 from ..persistence.proposals import clarification_name, proposal_name, proposal_version_name
@@ -87,8 +88,8 @@ class ProposalRevisionProcessor:
                 "INFO", "telegram.dialog", "answer_rejected", reason="no_open_dialog"
             )
             self.telegram.send(
-                self.chat_id, "Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag "
-                              "„Klären“, „Ändern“ oder „Manuell prüfen“ wählen."
+                self.chat_id, de("Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag "
+                              "„Klären“, „Ändern“ oder „Manuell prüfen“ wählen.")
             )
             return None
         mail_id, proposal_id, version = dialog.reference()
@@ -102,7 +103,7 @@ class ProposalRevisionProcessor:
             self.telegram.send(self.chat_id, f"❓ {RECONCILIATION_HINT}\n„{proposal.title}“")
             return RECONCILIATION_HINT
         questions = answerable_questions(proposal)
-        question = questions[0] if questions else "Welche Änderung soll übernommen werden?"
+        question = questions[0] if questions else de("Welche Änderung soll übernommen werden?")
         clarification_record_name = clarification_name(mail_id, proposal_id, version)
         if self._already_answered(clarification_record_name):
             return None
@@ -124,7 +125,7 @@ class ProposalRevisionProcessor:
             )
             self.telegram.send(
                 self.chat_id,
-                "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.",
+                de("Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert."),
             )
             return None
         # This is the acknowledgement boundary: persist the authorized input
@@ -157,7 +158,7 @@ class ProposalRevisionProcessor:
             )
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(
-                self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden."
+                self.chat_id, de("Der zugehörige Vorschlag wurde nicht gefunden.")
             )
             return None
         assert isinstance(proposal, Proposal)
@@ -178,7 +179,7 @@ class ProposalRevisionProcessor:
             )
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(
-                self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert."
+                self.chat_id, de("Die Rückfrage ist veraltet; es wurde nichts geändert.")
             )
             return None
         return proposal
@@ -195,7 +196,7 @@ class ProposalRevisionProcessor:
                 )
                 self.telegram.send(
                     self.chat_id,
-                    "Keine offene Rückfrage. Die vorherige Antwort ist bereits gespeichert.",
+                    de("Keine offene Rückfrage. Die vorherige Antwort ist bereits gespeichert."),
                 )
                 return True
             if (
@@ -204,7 +205,7 @@ class ProposalRevisionProcessor:
             ):
                 self.telegram.send(
                     self.chat_id,
-                    "Die autorisierte Antwort ist bereits sicher gespeichert und wird verarbeitet.",
+                    de("Die autorisierte Antwort ist bereits sicher gespeichert und wird verarbeitet."),
                 )
                 return True
         return False
@@ -241,7 +242,7 @@ class ProposalRevisionProcessor:
             proposal_id=dialog.proposal_id,
             version=dialog.version,
         )
-        self.telegram.send(self.chat_id, "✅ Vorschlag wurde verworfen.")
+        self.telegram.send(self.chat_id, de("✅ Vorschlag wurde verworfen."))
 
     def _interpret_pending(self, state: ProposalClarificationState) -> str | None:
         interpreter = AuthorizedAnswerInterpreter(
@@ -380,11 +381,11 @@ class ProposalRevisionProcessor:
         self.telegram.send(
             self.chat_id,
             (
-                "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. "
+                de("Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. "
                 "Die Antwort bleibt erhalten. Zur Wiederaufnahme muss ein Betreiber den "
-                "Revisionsstatus auf retry_required setzen und Mailhelp neu starten."
+                "Revisionsstatus auf retry_required setzen und Mailhelp neu starten.")
                 if exhausted
-                else "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."
+                else de("Die interne Verarbeitung der gespeicherten Antwort ist verzögert.")
             ),
         )
 

@@ -10,6 +10,10 @@ menschlichen Oberfläche; der deutsche Text ist der Schlüssel, Englisch steht i
 fehlende Übersetzung zeigt den deutschen Text. Die Sprache gilt je Anfrage: Cookie `mailhelp_lang`,
 sonst `Accept-Language`, sonst `language` aus `config.yaml` (Standard `de`). `language` zählt nicht zum
 Analyse-Fingerabdruck. KI-Prompts, Themen, Extraktion und gespeicherte Zustände bleiben deutsch.
+Seit 7.5.4 werden Ergebnisse von Aktionen und Telegram-Nachrichten deutsch erzeugt (`de()`) und erst
+beim Lesen übersetzt (`stored()`): die Weboberfläche in jeder Hinweisbox in der Sprache des Lesers,
+der Telegram-Versand (Text, Knöpfe, Rückmeldungen) in der Sprache aus `language`. Deutsche Datums- und
+Zeitangaben darin werden dabei umgeschrieben. Die zwischengespeicherte Übersicht gilt je Sprache.
 
 ## Ergänzung 7.4: Mehrtägige Termine
 

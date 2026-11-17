@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlencode
 
 from ..domain.proposal import ProposalStatus
+from ..i18n import tr
 from ..review.commands import CommandKind
 from ..review.filters import FILTERS
 from ..review.views import ProposalView, RelevanceView
@@ -19,7 +20,11 @@ from .pages import e
 SORTS = {"neu": "Neueste Mail zuerst", "alt": "Älteste Mail zuerst", "datum": "Nächster Termin / nächste Frist zuerst"}
 GROUP = "bedarf"
 MAX_QUERY = 80
-NO_MATCH = '<p class="empty">Keine passenden Entscheidungen. <a href="{path}">Zurücksetzen</a></p>'
+
+
+def no_match(path: str) -> str:
+    return (f'<p class="empty">{tr("Keine passenden Entscheidungen.")} '
+            f'<a href="{e(path)}">{tr("Zurücksetzen")}</a></p>')
 OLDEST = datetime.min.replace(tzinfo=UTC)
 LATEST = datetime.max.replace(tzinfo=UTC)
 
@@ -95,41 +100,44 @@ def groups(relevance: Sequence[RelevanceView], views: Sequence[ProposalView]
     confirmable = tuple(view for view in views if ready(view))
     rest = tuple(view for view in views if not needs_answer(view) and not ready(view))
     return [(title, people, items) for title, people, items in (
-        ("Rückfrage nötig", tuple(relevance), asking), ("Bereit zum Bestätigen", (), confirmable),
-        ("Weitere Prüfung nötig", (), rest)) if people or items]
+        (tr("Rückfrage nötig"), tuple(relevance), asking), (tr("Bereit zum Bestätigen"), (), confirmable),
+        (tr("Weitere Prüfung nötig"), (), rest)) if people or items]
 
 
 def count(shown: int, total: int, view: OpenView) -> str:
-    return f"{shown} von {total}" if view.narrowed else str(total)
+    return tr("{shown} von {total}", shown=shown, total=total) if view.narrowed else str(total)
 
 
 def toolbar(path: str, view: OpenView) -> str:
     """Quick filters keep search, sort and grouping; the form keeps the quick filter."""
     chips = "".join(
         f'<a class="button small" data-filter="{key}" aria-current="{str(view.filter == key).lower()}" '
-        f'href="{e(path + "?" + urlencode(view.params(filter=key)))}">{label}</a>' for key, label in FILTERS.items())
-    sorts = "".join(f'<option value="{key}"{" selected" if key == view.sort else ""}>{label}</option>'
+        f'href="{e(path + "?" + urlencode(view.params(filter=key)))}">{tr(label)}</a>'
+        for key, label in FILTERS.items())
+    sorts = "".join(f'<option value="{key}"{" selected" if key == view.sort else ""}>{tr(label)}</option>'
                     for key, label in SORTS.items())
     filter_field = f'<input type="hidden" name="filter" value="{e(view.filter)}">' if view.filter else ""
     # 6.2.8: on phones search, sort and grouping fold under one control (app.js closes it there unless
     # something is set); from 900 px the summary is hidden and the form always shown.
     active = [text for text in (f"„{view.q}“" if view.q else "",
-                                SORTS[view.sort] if view.sort != "neu" else "",
-                                "gruppiert" if view.group else "") if text]
+                                tr(SORTS[view.sort]) if view.sort != "neu" else "",
+                                tr("gruppiert") if view.group else "") if text]
     state = f' <span class="open-more-state">({e(", ".join(active))})</span>' if active else ""
-    return ('<div class="open-toolbar"><nav class="filter-chips" aria-label="Schnellfilter">' + chips + '</nav>'
+    return (f'<div class="open-toolbar"><nav class="filter-chips" aria-label="{tr("Schnellfilter")}">'
+            + chips + '</nav>'
             f'<details class="open-more" open data-open-more{" data-set" if active else ""}>'
-            f'<summary>Suchen und sortieren{state}</summary>'
+            f'<summary>{tr("Suchen und sortieren")}{state}</summary>'
             f'<form method="get" action="{e(path)}" class="open-search" role="search">{filter_field}'
-            '<div class="open-field"><label for="open-q">Suchen</label>'
+            f'<div class="open-field"><label for="open-q">{tr("Suchen")}</label>'
             f'<input id="open-q" type="search" name="q" maxlength="{MAX_QUERY}" value="{e(view.q)}" '
-            'placeholder="Titel, Betreff oder Absender"></div>'
-            f'<div class="open-field"><label for="open-sort">Sortierung</label><select id="open-sort" name="sort">'
+            f'placeholder="{tr("Titel, Betreff oder Absender")}"></div>'
+            f'<div class="open-field"><label for="open-sort">{tr("Sortierung")}</label>'
+            '<select id="open-sort" name="sort">'
             f'{sorts}</select></div>'
             f'<label class="open-group"><input type="checkbox" name="gruppe" value="{GROUP}"'
-            f'{" checked" if view.group else ""}> Nach Bearbeitungsbedarf gruppieren</label>'
-            '<button class="button primary" type="submit">Anzeigen</button>'
-            f'<a class="button link" href="{e(path)}">Zurücksetzen</a></form></details></div>')
+            f'{" checked" if view.group else ""}> {tr("Nach Bearbeitungsbedarf gruppieren")}</label>'
+            f'<button class="button primary" type="submit">{tr("Anzeigen")}</button>'
+            f'<a class="button link" href="{e(path)}">{tr("Zurücksetzen")}</a></form></details></div>')
 
 
-__all__ = ["OpenView", "count", "groups", "ordered", "parse", "search_open", "search_relevance", "toolbar"]
+__all__ = ["OpenView", "count", "groups", "no_match", "ordered", "parse", "search_open", "search_relevance", "toolbar"]

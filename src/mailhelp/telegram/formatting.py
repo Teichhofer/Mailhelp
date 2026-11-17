@@ -98,7 +98,7 @@ def _conflict_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
     zone = ZoneInfo(configured_timezone)
     lines = []
     for conflict in proposal.field_conflicts:
-        lines.append(tr("⚠️ Widerspruch: {field} – welcher Wert soll gelten?", field=conflicts.label(conflict)))
+        lines.append(tr("⚠️ Widerspruch: {field} – welcher Wert soll gelten?", field=tr(conflicts.label(conflict))))
         lines.extend(f"• {conflicts.origin_text(variant, proposal.sources)}: "
                      f"{conflicts.value_text(conflict, variant, zone)}" for variant in conflict.variants)
     return lines

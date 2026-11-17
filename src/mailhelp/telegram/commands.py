@@ -10,6 +10,7 @@ from .. import state_names
 from ..domain.mail import MailState
 from ..domain.processing import AnswerStatus, ProposalClarificationState, TelegramDialogState
 from ..domain.proposal import Proposal, ProposalStatus
+from ..i18n import de
 from ..persistence.proposals import clarification_name, proposal_name
 from ..review.views import count_processed, german_number
 from ..state_names import mail_state_names
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from .presenter import ProposalPresenter
     from .relevance import RelevanceDialogProcessor
 
-HELP = (
+HELP = de(
     "Mailhelp – Befehle\n"
     "/offen – aktuelle Entscheidung erneut zeigen\n"
     "/status – Zahl verarbeiteter Mails und alle offenen Vorgänge\n"
@@ -36,7 +37,7 @@ HELP = (
     "einer Nachricht; die nächste offene Frage folgt automatisch. Angelegt wird erst, "
     "wenn du „Im Kalender anlegen“ bzw. „Als Aufgabe anlegen“ drückst."
 )
-STARTUP = "👋 Mailhelp gestartet. Befehle: /hilfe"
+STARTUP = de("👋 Mailhelp gestartet. Befehle: /hilfe")
 
 
 @dataclass
@@ -77,7 +78,7 @@ class TelegramCommands:
         elif command == "/web":
             self.web_link()
         else:
-            self.telegram.send(self.chat_id, "Unbekannter Befehl. Verfügbare Befehle: /hilfe")
+            self.telegram.send(self.chat_id, de("Unbekannter Befehl. Verfügbare Befehle: /hilfe"))
 
     def overview(self, *, interactive: bool = False, compact: bool = False, counted: bool = False) -> None:
         """List open decisions; *compact* counts held-back proposals instead of listing them.
@@ -87,13 +88,15 @@ class TelegramCommands:
         report = _Overview(interactive=interactive, compact=compact)
         if counted:
             count = count_processed(self.store)
-            report.header = f"📊 Bisher {german_number(count)} {'Mail' if count == 1 else 'Mails'} verarbeitet."
+            report.header = de("📊 Bisher {count} {value} verarbeitet.",
+                               count=german_number(count), value="Mail" if count == 1 else "Mails")
             abandoned = sum(bool(mail_state.processing_retry and mail_state.processing_retry.abandoned)
                             for name in mail_state_names(self.store)
                             if (mail_state := self.store.load_model(name, MailState)) is not None
                             and not mail_state.processing_filed)
             if abandoned:
-                report.lines.append(f"{abandoned} aufgegebene Mails – Handlungsbedarf im Webstatus.")
+                report.lines.append(de("{abandoned} aufgegebene Mails – Handlungsbedarf im Webstatus.",
+                                       abandoned=abandoned))
         profiles = self.presenter.profiles_status()
         if profiles:
             report.lines.append(profiles)
@@ -111,20 +114,23 @@ class TelegramCommands:
         if sequential:
             report.presentations = [item for item in report.presentations if item[0] == report.current_key]
             if report.current_key in report.labels:
-                report.lines.append(f"Aktuelle Entscheidung: {report.labels[report.current_key]}")
+                report.lines.append(de("Aktuelle Entscheidung: {value}", value=report.labels[report.current_key]))
         if report.held_back:
-            report.lines.append(f"{report.held_back} weitere Vorschläge folgen nacheinander.")
+            report.lines.append(de("{held_back} weitere Vorschläge folgen nacheinander.", held_back=report.held_back))
         held = self.outbox.held_count() if self.outbox is not None else 0
         if held and not compact:
-            report.lines.append(f"Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Entscheidung: {held}")
+            report.lines.append(de("Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Entscheidung: {held}",
+                                   held=held))
         self._send_overview(report)
 
     def _relevance_lines(self, report: _Overview) -> None:
         for dialog in self.relevance.open():
             mail = self.repository.load_mail(dialog.mail_id)
-            subject = mail.display_headers.subject if mail and mail.display_headers else "Mail ohne Betreff"
-            report.labels[(dialog.mail_id, None)] = f"Relevanz „{subject}“ · Version {dialog.version}"
-            report.lines.append(f"Relevanzentscheidung: {subject} · Version {dialog.version}")
+            subject = mail.display_headers.subject if mail and mail.display_headers else de("Mail ohne Betreff")
+            report.labels[(dialog.mail_id, None)] = de("Relevanz „{subject}“ · Version {version}",
+                                                       subject=subject, version=dialog.version)
+            report.lines.append(de("Relevanzentscheidung: {subject} · Version {version}",
+                                   subject=subject, version=dialog.version))
 
     def _open_proposals(self) -> Iterator[tuple[Proposal, ProposalClarificationState | None]]:
         """Current versions that wait for a decision, with the state of their clarification."""
@@ -146,7 +152,7 @@ class TelegramCommands:
         saved = (state is not None and state.authorized_answer is not None
                  and state.answer_status != AnswerStatus.INVALID)
         key = (proposal.source_mail_id, proposal.id)
-        report.labels[key] = f"„{proposal.title}“ · Version {proposal.version}"
+        report.labels[key] = de("„{title}“ · Version {version}", title=proposal.title, version=proposal.version)
         if editing:
             report.current_key = key
         if (proposal.source_mail_id, proposal.id, proposal.version) in report.queued:
@@ -154,17 +160,18 @@ class TelegramCommands:
             if report.compact:
                 report.held_back += 1
                 return
-            status = "Noch nicht gesendet – folgt nach Erledigung der aktuellen Entscheidung"
+            status = de("Noch nicht gesendet – folgt nach Erledigung der aktuellen Entscheidung")
         elif saved:
             assert state is not None
-            status = ("Verarbeitung pausiert; Betreiber muss den gespeicherten Zustand prüfen"
+            status = (de("Verarbeitung pausiert; Betreiber muss den gespeicherten Zustand prüfen")
                       if "paused" in {state.interpretation_status, state.proposal_revision_status}
-                      else "Antwort gespeichert; Verarbeitung läuft oder wird automatisch fortgesetzt")
+                      else de("Antwort gespeichert; Verarbeitung läuft oder wird automatisch fortgesetzt"))
         elif editing and active is not None and active.retry_required:
-            status = "Antwort gespeichert; Verarbeitung wird automatisch fortgesetzt"
+            status = de("Antwort gespeichert; Verarbeitung wird automatisch fortgesetzt")
         else:
             status = self._waiting_status(report, proposal, key, editing)
-        report.lines.append(f"„{proposal.title}“ · Version {proposal.version}: {status}")
+        report.lines.append(de("„{title}“ · Version {version}: {status}",
+                               title=proposal.title, version=proposal.version, status=status))
 
     def _waiting_status(self, report: _Overview, proposal: Proposal, key: tuple[str, str], editing: bool) -> str:
         """A proposal that waits for the user; /offen shows its question or its card again."""
@@ -176,13 +183,13 @@ class TelegramCommands:
             subject = mail.display_headers.subject if mail and mail.display_headers else "—"
             report.presentations.append((key, self.presenter.present(proposal, sender, subject)))
         if editing:
-            return "Warte auf Antwort zur angezeigten Frage"
+            return de("Warte auf Antwort zur angezeigten Frage")
         if proposal.status == ProposalStatus.NEEDS_CLARIFICATION:
-            return "Klärung erforderlich – bitte „Klären“ bzw. „Ändern“ oder „Manuell prüfen“ wählen"
-        return "Warte auf Bestätigung oder Verwerfen"
+            return de("Klärung erforderlich – bitte „Klären“ bzw. „Ändern“ oder „Manuell prüfen“ wählen")
+        return de("Warte auf Bestätigung oder Verwerfen")
 
     def _send_overview(self, report: _Overview) -> None:
-        lines = report.lines or ["Keine offene Telegram-Entscheidung."]
+        lines = report.lines or [de("Keine offene Telegram-Entscheidung.")]
         self.telegram.send(self.chat_id, "\n".join(([report.header] if report.header else []) + lines))
         for _, presentation in report.presentations:
             for part in presentation.parts[:-1]:
@@ -194,7 +201,7 @@ class TelegramCommands:
 
     def web_link(self) -> None:
         if self.web_invite is None:
-            self.telegram.send(self.chat_id, "Die Weboberfläche ist nicht aktiviert.")
+            self.telegram.send(self.chat_id, de("Die Weboberfläche ist nicht aktiviert."))
             return
 
         try:
@@ -205,28 +212,30 @@ class TelegramCommands:
 
     def web_signout(self) -> None:
         if self.web_logout is None:
-            self.telegram.send(self.chat_id, "Die Weboberfläche ist nicht aktiviert.")
+            self.telegram.send(self.chat_id, de("Die Weboberfläche ist nicht aktiviert."))
             return
         count = self.web_logout()
-        self.telegram.send(self.chat_id, f"🔐 Alle Geräte der Weboberfläche wurden abgemeldet ({count}).")
+        self.telegram.send(self.chat_id, de("🔐 Alle Geräte der Weboberfläche wurden abgemeldet ({count}).",
+                                            count=count))
 
     def cancel(self) -> None:
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
         if dialog is None or dialog.proposal_id is None:
-            self.telegram.send(self.chat_id, "Keine aktive Bearbeitung. Offene Entscheidungen: /offen")
+            self.telegram.send(self.chat_id, de("Keine aktive Bearbeitung. Offene Entscheidungen: /offen"))
             return
         mail_id, proposal_id, version = dialog.reference()
         proposal = self.repository.load_current(mail_id, proposal_id)
         if (proposal is None or proposal.version != version or
                 proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}):
             self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
-            self.telegram.send(self.chat_id, "Die Bearbeitung ist nicht mehr aktuell. Offene Entscheidungen: /offen")
+            self.telegram.send(self.chat_id,
+                               de("Die Bearbeitung ist nicht mehr aktuell. Offene Entscheidungen: /offen"))
             return
         state = self.store.load_model(clarification_name(mail_id, proposal_id, version), ProposalClarificationState)
         if dialog.retry_required or (state is not None and state.authorized_answer is not None
                                      and state.answer_status != AnswerStatus.INVALID):
-            self.telegram.send(self.chat_id, "Die Antwort ist bereits gespeichert. Die Verarbeitung kann hier "
-                                             "nicht abgebrochen werden. Status: /status")
+            self.telegram.send(self.chat_id, de("Die Antwort ist bereits gespeichert. Die Verarbeitung kann hier "
+                                             "nicht abgebrochen werden. Status: /status"))
             return
         # Only the editing mode changes. Questions, content and version are preserved.
         snapshot = self.repository.load_version(mail_id, proposal_id, version)
@@ -237,7 +246,7 @@ class TelegramCommands:
         sender = mail.display_headers.sender if mail and mail.display_headers else "—"
         subject = mail.display_headers.subject if mail and mail.display_headers else "—"
         presentation = self.presenter.present(proposal, sender, subject)
-        self.telegram.send(self.chat_id, "Bearbeitung geschlossen. Vorschlag unverändert; bitte erneut auswählen.")
+        self.telegram.send(self.chat_id, de("Bearbeitung geschlossen. Vorschlag unverändert; bitte erneut auswählen."))
         for part in presentation.parts[:-1]:
             self.telegram.send(self.chat_id, part)
         self.telegram.send(self.chat_id, presentation.parts[-1], presentation.reply_markup)

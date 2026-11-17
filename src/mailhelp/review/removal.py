@@ -10,6 +10,7 @@ from ..domain.proposal import (
 )
 from ..external.contracts import EntryModifiedError
 from ..external.roles import writer_for
+from ..i18n import de
 from ..llm.adapter import UncertainWriteError
 from ..persistence.archive import record_event
 from . import service as service_module
@@ -28,18 +29,18 @@ def _remove_created(service: ReviewService, command: ReviewCommand) -> ReviewRes
     with service.controller.store.locked():
         current = service.controller.repository.load_current(command.mail_id, command.proposal_id)
         if current is None or current.version != command.version:
-            raise StaleCommand("Vorschlag inzwischen geändert oder nicht gefunden")
+            raise StaleCommand(de("Vorschlag inzwischen geändert oder nicht gefunden"))
         if current.status == ProposalStatus.REMOVED:
-            return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Bereits entfernt."))
         if current.status == ProposalStatus.SIMULATED:
-            raise ReviewError("Simulierte Vorschläge können nicht extern entfernt werden.")
+            raise ReviewError(de("Simulierte Vorschläge können nicht extern entfernt werden."))
         if current.status != ProposalStatus.CREATED:
-            raise ReviewError("Nur angelegte Einträge können wieder entfernt werden.")
+            raise ReviewError(de("Nur angelegte Einträge können wieder entfernt werden."))
         if current.external_id is None:
-            raise ReviewError("Keine externe ID vorhanden.")
+            raise ReviewError(de("Keine externe ID vorhanden."))
         if not service._is_within_removal_window(current):
             raise ReviewError(
-                "Die Frist zum Entfernen des Eintrags ist abgelaufen (maximal 10 Minuten nach dem Anlegen)."
+                de("Die Frist zum Entfernen des Eintrags ist abgelaufen (maximal 10 Minuten nach dem Anlegen).")
             )
 
         writer = _removing_writer(service, current)
@@ -49,18 +50,18 @@ def _remove_created(service: ReviewService, command: ReviewCommand) -> ReviewRes
         except EntryModifiedError:
             return ReviewResult(
                 status=ResultStatus.INVALID,
-                message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
+                message=de("Nicht entfernt – Eintrag wurde beim Anbieter geändert."),
             )
 
         if not prepared.requires_write:
             removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
             service.controller.persist(removed)
             record_event(service.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-            return ReviewResult(status=ResultStatus.DONE, message="Bereits entfernt.")
+            return ReviewResult(status=ResultStatus.DONE, message=de("Bereits entfernt."))
 
         # Live authorization check at the write boundary
         if not service._authorized(command):
-            return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+            return ReviewResult(status=ResultStatus.UNAUTHORIZED, message=de("Nicht autorisiert."))
 
         try:
             prepared.operation()
@@ -70,23 +71,23 @@ def _remove_created(service: ReviewService, command: ReviewCommand) -> ReviewRes
                 removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
                 service.controller.persist(removed)
                 record_event(service.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-                return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
+                return ReviewResult(status=ResultStatus.DONE, message=de("Entfernt und geprüft."))
             return ReviewResult(
                 status=ResultStatus.WRITE_UNCERTAIN,
-                message="Entfernen noch nicht bestätigt; Abgleich läuft.",
+                message=de("Entfernen noch nicht bestätigt; Abgleich läuft."),
             )
         except EntryModifiedError:
             return ReviewResult(
                 status=ResultStatus.INVALID,
-                message="Nicht entfernt – Eintrag wurde beim Anbieter geändert.",
+                message=de("Nicht entfernt – Eintrag wurde beim Anbieter geändert."),
             )
         except Exception:
-            return ReviewResult(status=ResultStatus.FAILED, message="Entfernen fehlgeschlagen.")
+            return ReviewResult(status=ResultStatus.FAILED, message=de("Entfernen fehlgeschlagen."))
 
         removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
         service.controller.persist(removed)
         record_event(service.controller.store, removed, "remove", command.source.value, command.idempotency_key)
-        return ReviewResult(status=ResultStatus.DONE, message="Entfernt und geprüft.")
+        return ReviewResult(status=ResultStatus.DONE, message=de("Entfernt und geprüft."))
 
 
 def _removal_window_minutes(service: ReviewService) -> int:
@@ -111,11 +112,11 @@ def _is_within_removal_window(service: ReviewService, proposal: Proposal) -> boo
 def _removing_writer(service: ReviewService, proposal: Proposal) -> TargetWriter:
     writer = service._writer_for(proposal)
     if writer is None:
-        raise ReviewError("Kein Schreibdienst für diesen Vorschlag konfiguriert.")
+        raise ReviewError(de("Kein Schreibdienst für diesen Vorschlag konfiguriert."))
     if not getattr(writer, "supports_remove", True):
         # 7.2: also a direct command must not reach an unprotected deletion.
-        raise ReviewError(f"{writer.label}: Einträge lassen sich in Mailhelp nicht wieder entfernen; "
-                          "bitte direkt beim Anbieter bearbeiten.")
+        raise ReviewError(de("{label}: Einträge lassen sich in Mailhelp nicht wieder entfernen; "
+                          "bitte direkt beim Anbieter bearbeiten.", label=writer.label))
     return writer
 
 

@@ -11,6 +11,7 @@ from ..domain.processing import ProposalClarificationState, TelegramDialogState
 from ..domain.proposal import ProposalStatus
 from ..domain.relevance import RelevanceDialog
 from ..domain.run import TelegramOffset
+from ..i18n import de
 from ..llm.adapter import PermanentError
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
@@ -38,8 +39,8 @@ if TYPE_CHECKING:
 # before every mail.
 INBOX_RETRY_SECONDS = 30.0
 INBOX_MAX_ATTEMPTS = 3
-STALE_BUTTON = ("ℹ️ Bereits entschieden oder geändert (z. B. in der Weboberfläche) – "
-                "diese Schaltfläche ist veraltet. Aktueller Stand: /offen")
+STALE_BUTTON = (de("ℹ️ Bereits entschieden oder geändert (z. B. in der Weboberfläche) – "
+                "diese Schaltfläche ist veraltet. Aktueller Stand: /offen"))
 # Telegram buttons translated into channel-neutral review commands.
 _COMMAND_KINDS = {
     DecisionAction.RETARGET: CommandKind.RETARGET,
@@ -83,7 +84,7 @@ def send_relevance_question(telegram: TelegramTransport, chat_id: int, dialog: R
         [
             f"Absender: {sender}",
             f"Betreff: {subject}",
-            "Relevanz bitte bestätigen:",
+            de("Relevanz bitte bestätigen:"),
         ]
     )
     validate_callback_markup({"inline_keyboard": buttons})
@@ -169,7 +170,7 @@ class TelegramUpdateHandler:
             )
             self.o.telegram.send(
                 self.o.chat_id,
-                "Telegram-Eingabe ist syntaktisch ungültig und wurde verworfen.",
+                de("Telegram-Eingabe ist syntaktisch ungültig und wurde verworfen."),
             )
         except Exception as exc:
             # Do not acknowledge an update that failed operationally.  It
@@ -197,8 +198,8 @@ class TelegramUpdateHandler:
             )
             self.o.telegram.send(
                 self.o.chat_id,
-                "❌ Eine Telegram-Eingabe konnte nicht verarbeitet werden und wurde "
-                "verworfen. Bitte /offen öffnen und die Aktion erneut wählen.",
+                de("❌ Eine Telegram-Eingabe konnte nicht verarbeitet werden und wurde "
+                "verworfen. Bitte /offen öffnen und die Aktion erneut wählen."),
             )
 
     def handle(self, update: TelegramUpdate, acknowledged: bool = False) -> None:
@@ -230,7 +231,8 @@ class TelegramUpdateHandler:
             if len(dialogs) != 1:
                 self.o.telegram.send(
                     self.o.chat_id,
-                    "Freitext ist nicht eindeutig zuordenbar; bitte die Schaltfläche der gewünschten Mail verwenden.",
+                    de("Freitext ist nicht eindeutig zuordenbar; bitte die Schaltfläche der gewünschten Mail "
+                       "verwenden."),
                 )
                 return
             dialog = dialogs[0]
@@ -268,7 +270,7 @@ class TelegramUpdateHandler:
         # LLM, or external-service work begins, unless the receiver thread
         # already did so when the update arrived.
         if not acknowledged:
-            self.o.telegram.answer_callback(callback.id, "Aktion wird verarbeitet …")
+            self.o.telegram.answer_callback(callback.id, de("Aktion wird verarbeitet …"))
         if not self.o.validator.authorized(callback.sender.id, callback.message.chat.id):
             self.o.logger.event(
                 "WARNING",
@@ -279,7 +281,7 @@ class TelegramUpdateHandler:
                 user_id=callback.sender.id,
                 chat_id=callback.message.chat.id,
             )
-            self.o.telegram.send(self.o.chat_id, "❌ Nicht autorisierte Aktion.")
+            self.o.telegram.send(self.o.chat_id, de("❌ Nicht autorisierte Aktion."))
             return
         outcome = self._confirmation(update, callback)
         if outcome is None:
@@ -306,14 +308,14 @@ class TelegramUpdateHandler:
                 except (ValueError, ValidationError):
                     self.o.telegram.send(
                         self.o.chat_id,
-                        "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
+                        de("❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen."),
                     )
                     return None
                 if decision.action == DecisionAction.REMOVE_ASK:
                     self._ask_removal(decision)
                     return None
                 if decision.action == DecisionAction.REMOVE_CANCEL:
-                    self.o.telegram.send(self.o.chat_id, "Entfernen abgebrochen; der Eintrag bleibt erhalten.")
+                    self.o.telegram.send(self.o.chat_id, de("Entfernen abgebrochen; der Eintrag bleibt erhalten."))
                     return None
                 return self._execute_decision(decision, actor, key)
         except StaleCommand:
@@ -335,7 +337,7 @@ class TelegramUpdateHandler:
             )
             self.o.telegram.send(
                 self.o.chat_id,
-                "❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen.",
+                de("❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen."),
             )
             return None
 
@@ -346,7 +348,7 @@ class TelegramUpdateHandler:
         except (ValueError, ValidationError):
             self.o.telegram.send(
                 self.o.chat_id,
-                "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
+                de("❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen."),
             )
             return None
         confirmation = self.o.review.execute(ReviewCommand(
@@ -362,17 +364,17 @@ class TelegramUpdateHandler:
         """Ask once more before removing a created entry, while the removal window is open."""
         current = self.o.repository.load_current(decision.mail_id, decision.proposal_id)
         if current is None or current.version != decision.version or current.status != ProposalStatus.CREATED:
-            self.o.telegram.send(self.o.chat_id, "Dieser Eintrag wurde inzwischen geändert oder bereits entfernt.")
+            self.o.telegram.send(self.o.chat_id, de("Dieser Eintrag wurde inzwischen geändert oder bereits entfernt."))
             return
         created = proposal_creation_time(self.o.store, current)
         if created is not None:
             now = datetime.now(UTC)
             window = self.o.review._removal_window_minutes()
             if now > created + timedelta(minutes=window):
-                self.o.telegram.send(self.o.chat_id, "Die Frist zum Entfernen des Eintrags ist abgelaufen.")
+                self.o.telegram.send(self.o.chat_id, de("Die Frist zum Entfernen des Eintrags ist abgelaufen."))
                 return
         markup = remove_confirmation_markup(self.o.store, decision.mail_id, decision.proposal_id, decision.version)
-        self.o.telegram.send(self.o.chat_id, f"Wirklich entfernen: „{current.title}“?", markup)
+        self.o.telegram.send(self.o.chat_id, de("Wirklich entfernen: „{title}“?", title=current.title), markup)
         return
 
     def _execute_decision(self, decision: Decision, actor: str,
@@ -420,7 +422,7 @@ class TelegramUpdateHandler:
             and self.o.validator.authorized(callback.sender.id, callback.message.chat.id)
         ):
             self.o.telegram.answer_callback(
-                callback.id, "Diese Relevanzantwort wurde bereits verarbeitet."
+                callback.id, de("Diese Relevanzantwort wurde bereits verarbeitet.")
             )
             return
         message = update.message
@@ -430,5 +432,5 @@ class TelegramUpdateHandler:
             and self.o.validator.authorized(message.sender.id, message.chat.id)
         ):
             self.o.telegram.send(
-                self.o.chat_id, "Diese Relevanzantwort wurde bereits verarbeitet."
+                self.o.chat_id, de("Diese Relevanzantwort wurde bereits verarbeitet.")
             )

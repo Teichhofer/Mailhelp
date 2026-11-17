@@ -6,6 +6,7 @@ from typing import Protocol
 
 from ..domain.mail import MailState
 from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
+from ..i18n import de
 from ..persistence.storage import CorruptState, JsonStore
 from ..state_names import MAIL_PREFIX, is_mail_state
 from .callbacks import RelevanceDecision
@@ -67,7 +68,7 @@ class RelevanceDialogProcessor:
     ) -> str | None:
         try:
             if self.handler is None:
-                raise ValueError("Relevanzverarbeitung ist nicht verfügbar")
+                raise ValueError(de("Relevanzverarbeitung ist nicht verfügbar"))
             state = self.handler.resolve_relevance(
                 decision.mail_id, decision.version, decision.decision, offset
             )
@@ -78,7 +79,7 @@ class RelevanceDialogProcessor:
             raise
         if decision.decision == "relevant":
             self.handler.resume_mail(state)
-        text = f"✅ E-Mail wurde als {decision.decision} eingestuft."
+        text = de("✅ E-Mail wurde als {decision} eingestuft.", decision=decision.decision)
         if notify:
             self.telegram.send(self.chat_id, text)
             return None

@@ -16,11 +16,11 @@ PACKAGE = Path(mailhelp.__file__).parent
 
 
 def _literal_calls() -> set[str]:
-    """Every German text passed literally to tr() in the package."""
+    """Every German text passed literally to tr() or de() in the package."""
     found: set[str] = set()
     for path in PACKAGE.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "tr" and node.args:
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"tr", "de"} and node.args:
                 # Also the alternatives of a conditional argument: tr("A" if x else "B").
                 found.update(item.value for item in ast.walk(node.args[0])
                              if isinstance(item, ast.Constant) and isinstance(item.value, str))
@@ -39,8 +39,16 @@ def test_every_literal_text_has_an_english_entry_with_the_same_placeholders():
 
 def test_every_shown_label_has_an_english_entry():
     from mailhelp.review.cards import CERTAINTY, CLASSIFICATION, QUESTION_DISPLAY, RESPONSIBILITY
+    from mailhelp.proposals.conflicts import _LABELS
+    from mailhelp.review.filters import FILTERS
+    from mailhelp.review.reject_reasons import REJECT_REASONS
+    from mailhelp.review.views import STATUS_LABELS
+    from mailhelp.web.open_toolbar import SORTS
+    from mailhelp.web.review_pages import FULL_TEXT, KINDS as CARD_KINDS, VISION_LABELS
     shown = {*STATUSES.values(), *KINDS.values(), *RESPONSIBILITY.values(), *CERTAINTY.values(),
-             *CLASSIFICATION.values(), *QUESTION_DISPLAY.values()}
+             *CLASSIFICATION.values(), *QUESTION_DISPLAY.values(), *STATUS_LABELS.values(), *FILTERS.values(),
+             *SORTS.values(), *REJECT_REASONS.values(), *CARD_KINDS.values(), *VISION_LABELS.values(),
+             *FULL_TEXT.values(), *FULL_TEXT, *(names[0] for names in _LABELS.values())}
     assert [value for value in shown if value not in EN] == []
 
 

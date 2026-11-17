@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..domain.proposal import ProposalKind, ProposalStatus
+from ..i18n import stored, tr
 from ..review.calendar_display import change_parts
 from ..review.cards import sender_name
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
@@ -51,7 +52,10 @@ def https_link(value: str | None) -> str | None:
 
 def _fact(icon: str, text: str, label: str) -> str:
     return (f'<li data-fact="{e(label)}"><span class="icon" aria-hidden="true">{icon}</span>'
-            f'<span><span class="visually-hidden">{label}: </span>{text}</span></li>')
+            f'<span><span class="visually-hidden">{tr(label)}: </span>{text}</span></li>')
+
+
+FULL_TEXT = {"Beschreibung": "Beschreibung vollständig anzeigen", "Beleg": "Beleg vollständig anzeigen"}
 
 
 def _expandable(short: str, full: str, label: str, quote: bool) -> str:
@@ -59,7 +63,8 @@ def _expandable(short: str, full: str, label: str, quote: bool) -> str:
     tag, end = ('blockquote class="evidence"', "blockquote") if quote else ("p", "p")
     if short == full:
         return f"<{tag}>{e(short)}</{end}>"
-    return (f"<{tag}>{e(short)}</{end}><details><summary>{label} vollständig anzeigen</summary>"
+    summary = tr(FULL_TEXT[label])
+    return (f"<{tag}>{e(short)}</{end}><details><summary>{summary}</summary>"
             f'<p class="full">{e(full)}</p></details>')
 
 
@@ -68,7 +73,7 @@ def _card_facts(card: Any) -> list[str]:
     if card.when:
         facts.append(_fact("🕒", e(card.when), "Zeit"))
     if card.due:
-        facts.append(_fact("🕒", f"Fällig: {e(card.due)}", "Frist"))
+        facts.append(_fact("🕒", tr("Fällig: {due}", due=e(card.due)), "Frist"))
     if card.target_hint:
         facts.append(_fact("ℹ️", e(card.target_hint), "Aufgabenziel"))
     if card.location:
@@ -82,7 +87,7 @@ def _card_facts(card: Any) -> list[str]:
 
 
 def _metadata(card: Any) -> list[str]:
-    return [f'<span class="badge warn">{prefix}: {e(value)}</span>'
+    return [f'<span class="badge warn">{tr(prefix)}: {e(value)}</span>'
             for value, prefix in ((card.responsibility, "Zuständig"), (card.certainty, "Sicherheit"),
                                   (card.classification, "Einordnung")) if value]
 
@@ -91,11 +96,12 @@ def _card_labels(view: ProposalView, *, metadata: bool = True) -> list[str]:
     card = view.card
     labels = [f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span>']
     if card.profile_label:
-        labels.append(f'<span class="badge">Zielprofil: {e(card.profile_label)} · {e(card.target)}</span>')
+        labels.append('<span class="badge">' + tr('Zielprofil: {profile} · {target}', profile=e(card.profile_label),
+                                                  target=e(card.target)) + '</span>')
     if view.current:
-        labels.append('<span class="badge accent">Aktuell in Telegram</span>')
+        labels.append(f'<span class="badge accent">{tr("Aktuell in Telegram")}</span>')
     if view.queued:
-        labels.append('<span class="badge">Folgt in Telegram</span>')
+        labels.append(f'<span class="badge">{tr("Folgt in Telegram")}</span>')
     if metadata:
         labels.extend(_metadata(card))
     if view.duplicate_match is not None:
@@ -105,7 +111,7 @@ def _card_labels(view: ProposalView, *, metadata: bool = True) -> list[str]:
 
 def _duplicate_label(match: Any) -> str:
     url = https_link(getattr(match, "external_link", None))
-    text = e(getattr(match, "details", "Bereits vorhanden"))
+    text = e(stored(getattr(match, "details", tr("Bereits vorhanden"))))
     if url:
         return (f'<span class="badge info"><a href="{e(url)}" target="_blank" '
                 f'rel="noopener noreferrer">{text} ↗</a></span>')
@@ -117,9 +123,9 @@ def _card_warning(view: ProposalView) -> str:
     # With open questions the answers decide whether it can be created.
     if not card.writable and not card.questions and view.status in {
             ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
-        return notice("Kann nicht automatisch angelegt werden – bitte manuell prüfen.", "warn")
+        return notice(tr("Kann nicht automatisch angelegt werden – bitte manuell prüfen."), "warn")
     if card.test_mode:
-        return notice("Testmodus: Der Eintrag wird nur simuliert.", "info")
+        return notice(tr("Testmodus: Der Eintrag wird nur simuliert."), "info")
     return ""
 
 
@@ -133,7 +139,7 @@ def _card_questions(questions: Any) -> str:
     if not questions:
         return ""
     items = "".join(f"<li>{e(question)}</li>" for question in questions)
-    return (f'<details class="questions"><summary>Offene Fragen ({len(questions)})</summary>'
+    return (f'<details class="questions"><summary>{tr('Offene Fragen ({count})', count=len(questions))}</summary>'
             f'<ul>{items}</ul></details>')
 
 
@@ -142,23 +148,24 @@ def _change_line(change: str) -> str:
     if parts is None:
         return f"<li>{e(change)}</li>"
     label, old, new = parts
-    return f"<li>{e(label)}: <del>{e(old)}</del> → <strong>{e(new)}</strong></li>"
+    return f"<li>{e(stored(label))}: <del>{e(old)}</del> → <strong>{e(new)}</strong></li>"
 
 
 def _diff_box(view: ProposalView) -> str:
     """Old values struck through, new ones bold; a cancellation as a red notice (4.6)."""
     if view.is_cancellation:
-        return notice("Termin im Kalender stornieren: Der bestehende Eintrag wird nach deiner "
-                      "Bestätigung abgesagt.", "error")
+        return notice(tr("Termin im Kalender stornieren: Der bestehende Eintrag wird nach deiner "
+                         "Bestätigung abgesagt."), "error")
     candidates = ""
     if view.calendar_candidates:
         items = "".join(f"<li>{e(label)}</li>" for label in view.calendar_candidates)
-        candidates = (f'<div class="diff-box"><p>📅 <strong>Passende Kalendertermine:</strong></p>'
+        candidates = (f'<div class="diff-box"><p>📅 <strong>{tr("Passende Kalendertermine:")}</strong></p>'
                       f"<ol>{items}</ol></div>")
     if not view.time_changes:
         return candidates
     lines = "".join(_change_line(str(change)) for change in view.time_changes)
-    return (candidates + '<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
+    heading = tr("Terminänderung gegenüber dem Kalender:")
+    return (candidates + f'<div class="diff-box"><p>🔄 <strong>{heading}</strong></p>'
             f"<ul>{lines}</ul></div>")
 
 
@@ -184,33 +191,33 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
     kind = card_kind(view)
     metadata = " ".join(_metadata(card))
-    context = (f'<details class="card-context"><summary class="context-label">Beschreibung und Beleg</summary>'
+    context = (f'<details class="card-context"><summary class="context-label">{tr("Beschreibung und Beleg")}</summary>'
                f'<p class="labels">{metadata}</p>{description}{evidence}</details>'
                if detail_link else description + evidence)
     created = https_link(view.external_link)
     if view.can_remove:
         created_link = (f'<p class="card-links"><a class="button" '
                         f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}/entfernen">'
-                        f'Eintrag wieder entfernen</a></p>')
+                        f'{tr("Eintrag wieder entfernen")}</a></p>')
     else:
         created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
-                        f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
+                        f'{tr("Im Kalender öffnen" if event else "Aufgabe öffnen")}</a></p>'
                         if created else "")
     # 4.7: the link is one of the percent-encoded forms validated on Proposal.mail_link.
     original = (f'<p class="card-links"><a href="{e(view.mail_link)}" rel="noopener noreferrer">'
-                "📧 Original-Mail öffnen</a></p>" if view.mail_link else "")
+                f"{tr('📧 Original-Mail öffnen')}</a></p>" if view.mail_link else "")
     created_link += original
-    version = f" · Version {view.version}" if view.version > 1 else ""
+    version = " · " + tr("Version {number}", number=view.version) if view.version > 1 else ""
     title = e(card.title)
     mobile_facts = " · ".join(value for value in (card.when, card.location) if value)
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
     current = " current" if view.current else ""
     details = (f'<p class="card-links"><a class="button small" data-detail '
-               f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
+               f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{tr("Details")}</a></p>'
                if detail_link else "")
     return f"""<article class="card kind-{kind}{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
-<p class="kind"><span class="kind-label">{KINDS[kind]}</span>{version}</p>
+<p class="kind"><span class="kind-label">{tr(KINDS[kind])}</span>{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
 <p class="source">✉️ {e(view.sender)}<span class="source-subject"> · {e(view.subject)}</span>
 <span class="mobile-card-facts">{e(mobile_facts)}</span></p>
@@ -224,12 +231,12 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
                    detail_link: bool = True) -> str:
     details = (f'<p class="card-links"><a class="button small" data-detail href="/mail/{e(view.mail_id)}">'
-               'Details</a></p>' if detail_link else "")
+               f'{tr("Details")}</a></p>' if detail_link else "")
     return f"""<article class="card" id="r-{e(view.mail_id)}">
-<p class="kind">❔ Relevanz</p>
+<p class="kind">{tr("❔ Relevanz")}</p>
 <h3>{e(view.subject)}</h3>
 <p class="source">✉️ {e(view.sender)}</p>
-<p>Ist diese Mail für dich relevant? Bis zur Antwort wartet die Mailanalyse.</p>
+<p>{tr("Ist diese Mail für dich relevant? Bis zur Antwort wartet die Mailanalyse.")}</p>
 {details}
 {actions(view) if actions else ""}
 </article>"""
@@ -249,9 +256,10 @@ def _proposal_items(views: tuple[ProposalView, ...], actions: Actions | None) ->
             title = e(group[0].base_title or group[0].card.title)
             # A running or finished action of a member must not hide in a closed group (4.4).
             opened = " open" if "data-command-result" in cards or "data-card-command-status" in cards else ""
-            items.append(f'<details class="series-group"{opened}><summary>Serie: {title} '
-                         f'({len(group)} Termine)</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
-                         f'Serie bearbeiten und bestätigen</a></p>{cards}</details>')
+            summary = tr("Serie: {title} ({count} Termine)", title=title, count=len(group))
+            items.append(f'<details class="series-group"{opened}><summary>{summary}'
+                         f'</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
+                         f'{tr("Serie bearbeiten und bestätigen")}</a></p>{cards}</details>')
         else:
             items.append(cards)
     return items
@@ -262,13 +270,13 @@ Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
 # Not a .notice: it is no result message. app.js moves it below the first card it explains, so the first
 # decision stays in the upper 60 % of a phone window (6.2.8).
 def swipe_hint(first_is_relevance: bool = False) -> str:
-    text = ("Nach rechts wischen: relevant · nach links: irrelevant"
-            if first_is_relevance
-            else "Nach rechts wischen: anlegen · nach links: verwerfen")
+    text = tr("Nach rechts wischen: relevant · nach links: irrelevant"
+              if first_is_relevance
+              else "Nach rechts wischen: anlegen · nach links: verwerfen")
     return ('<div class="swipe-hint" data-swipe-hint hidden>'
             f'<span>{text}</span>'
             '<button class="button small" type="button" data-swipe-hint-close '
-            'aria-label="Hinweis schließen">×</button></div>')
+            f'aria-label="{tr("Hinweis schließen")}">×</button></div>')
 
 
 SWIPE_HINT = swipe_hint(False)
@@ -286,26 +294,26 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     under their own headings; *no_match* is shown when a search or filter leaves nothing.
     """
     count = count if count is not None else str(len(overview.open) + len(overview.relevance))
-    parts = [page_head("Offene Entscheidungen", "Arbeitsbereich",
-                       "Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen.",
+    parts = [page_head(tr("Offene Entscheidungen"), tr("Arbeitsbereich"),
+                       tr("Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen."),
                        count=f' <span class="count">{e(count)}</span>'), before]
     if message:
         parts.append(notice(message, message_kind))
     if overview.damaged:
-        parts.append(notice(f"{overview.damaged} gespeicherte Datensätze sind beschädigt und werden "
-                            "nicht angezeigt. Bitte die Protokolle prüfen.", "error"))
+        parts.append(notice(tr("{count} gespeicherte Datensätze sind beschädigt und werden "
+                               "nicht angezeigt. Bitte die Protokolle prüfen.", count=overview.damaged), "error"))
     items: list[str] = []
     if sections is not None:
         for title, people, views in sections:
-            items.append(f'<h2>{e(title)} <span class="count">{len(people) + len(views)}</span></h2>')
+            items.append(f'<h2>{e(stored(title))} <span class="count">{len(people) + len(views)}</span></h2>')
             items.extend(relevance_card(view, relevance_actions) for view in people)
             items.extend(_proposal_items(views, actions))
     else:
         if overview.relevance:
-            items.append("<h2>Relevanz klären</h2>")
+            items.append(f"<h2>{tr('Relevanz klären')}</h2>")
             items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
         if overview.open:
-            items.append("<h2>Vorschläge</h2>")
+            items.append(f"<h2>{tr('Vorschläge')}</h2>")
             items.extend(_proposal_items(overview.open, actions))
     if items:
         first_is_relevance = False
@@ -326,7 +334,8 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
         parts.append(no_match)
     elif not overview.open and not overview.relevance:
         parts.append(empty if empty is not None else
-                     '<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.</p>')
+                     '<p class="empty">'
+                     + tr("Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.") + '</p>')
     if overview.recent:
         items = []
         for view in overview.recent:
@@ -334,8 +343,8 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                 f'<li><span><a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">'
                 f'{e(view.card.title)}</a></span>'
                 f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span></li>')
-        parts.append(f'<h2>Zuletzt erledigt</h2><ul class="recent">{"".join(items)}</ul>')
-    return layout("Offen", "\n".join(parts) + after, active="/", fingerprint=overview.fingerprint)
+        parts.append(f'<h2>{tr("Zuletzt erledigt")}</h2><ul class="recent">{"".join(items)}</ul>')
+    return layout(tr("Offen"), "\n".join(parts) + after, active="/", fingerprint=overview.fingerprint)
 
 
 VISION_LABELS = {
@@ -358,15 +367,16 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
         facts.append(("Postfach", mail.mailbox))
     if mail.received:
         facts.append(("Datum", mail.received))
-    rows = "".join(f"<dt>{label}</dt><dd>{e(value)}</dd>" for label, value in facts)
+    rows = "".join(f"<dt>{tr(label)}</dt><dd>{e(value)}</dd>" for label, value in facts)
     notes = []
     if mail.attachments_omitted:
-        notes.append(f"{mail.attachments_omitted} Anhang/Anhänge nicht ausgewertet und nicht gespeichert.")
+        notes.append(tr("{count} Anhang/Anhänge nicht ausgewertet und nicht gespeichert.",
+                        count=mail.attachments_omitted))
     if mail.text_shortened:
-        notes.append("Der Text wurde für die Auswertung gekürzt.")
+        notes.append(tr("Der Text wurde für die Auswertung gekürzt."))
     if mail.text is None:
-        body = notice("Der vollständige Mailtext ist nicht mehr gespeichert "
-                      "(automatische Löschung nach Abschluss und Aufbewahrungsfrist).", "info")
+        body = notice(tr("Der vollständige Mailtext ist nicht mehr gespeichert "
+                         "(automatische Löschung nach Abschluss und Aufbewahrungsfrist)."), "info")
     else:
         body = f'<div class="mail-text">{e(mail.text)}</div>'
     hints = "".join(f'<p class="meta">{e(note)}</p>' for note in notes)
@@ -384,14 +394,14 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
         for position, att in enumerate(mail.extracted_attachments):
             fn = att.filename
             st = att.extraction_status
-            st_text = status_labels.get(st, st)
+            st_text = tr(status_labels[st]) if st in status_labels else st
             badge_class = "ok" if st == "success" else "warn"
             if att.vision is not None:
-                st_text = VISION_LABELS.get(att.vision, att.vision)
+                st_text = tr(VISION_LABELS[att.vision]) if att.vision in VISION_LABELS else att.vision
                 badge_class = "ok" if att.vision == "read" else "warn"
             original = mail.originals.get(position)
             download = (f' <a class="button small" href="/mail/{e(mail.mail_id)}/original/{position}" download>'
-                        f'Original herunterladen</a> <span class="meta">{_size(original.size_bytes)}</span>'
+                        f'{tr("Original herunterladen")}</a> <span class="meta">{_size(original.size_bytes)}</span>'
                         if original is not None else "")
             att_items.append(
                 f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span>'
@@ -404,20 +414,23 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
                 if preview.width is not None:
                     size = f'{preview.width} × {preview.height} px · {size}'
                 text = att.text
-                recognized = (f'<details><summary>Erkannten Text anzeigen</summary><pre>{e(text)}</pre></details>'
-                              if text else '<p class="meta">Kein erkannter Text gespeichert.</p>')
+                shown = tr("Erkannten Text anzeigen")
+                recognized = (f'<details><summary>{shown}</summary><pre>{e(text)}</pre></details>'
+                              if text else f'<p class="meta">{tr("Kein erkannter Text gespeichert.")}</p>')
                 att_items.append(f'<li class="image-preview"><a href="{url}" data-lightbox '
-                                 f'aria-label="{e(fn)} vergrößern">'
+                                 f'aria-label="{e(tr("{name} vergrößern", name=fn))}">'
                                  f'<img src="{url}" alt="{e(fn)}" loading="lazy"></a>'
                                  f'<p class="meta">{e(fn)} · {size}</p>{recognized}</li>')
-        att_section = (f'<div class="attachments"><p><strong>Anhänge ({len(mail.extracted_attachments)}):</strong></p>'
+        heading = tr("Anhänge ({count}):", count=len(mail.extracted_attachments))
+        att_section = (f'<div class="attachments"><p><strong>{heading}</strong></p>'
                        f'<ul>{"".join(att_items)}</ul></div>')
     cal_section = ""
     if mail.calendar_events:
-        cal_section = (f'<div class="notice info"><p>📅 <strong>{len(mail.calendar_events)} '
-                       'ICS-Kalenderanhang/-anhänge erkannt</strong></p></div>')
+        count = len(mail.calendar_events)
+        cal_section = (f'<div class="notice info"><p>📅 <strong>'
+                       f'{tr("{count} ICS-Kalenderanhang/-anhänge erkannt", count=count)}</strong></p></div>')
     return f"""<section class="card mail" id="mail" aria-labelledby="mail-titel">
-<h2 id="mail-titel">Mail</h2>
+<h2 id="mail-titel">{tr("Mail")}</h2>
 <dl class="mail-head">{rows}</dl>
 {sender_actions}{att_section}{cal_section}{body}{hints}
 </section>"""
@@ -440,13 +453,13 @@ def disclosure(summary: str, body: str, *, opened: bool = False, marker: str = "
 
 def source_summary(mail: MailView | None) -> str:
     """5.9.5: the collapsed source names its content, e.g. "(Mail von Schule, 2 Bilder)"."""
-    title = "Quellbeleg aus E-Mail / Anhang"
+    title = tr("Quellbeleg aus E-Mail / Anhang")
     if mail is None:
         return title
-    parts = [f"Mail von {sender_name(mail.sender)}"] if mail.sender.strip("— ") else []
+    parts = [tr("Mail von {name}", name=sender_name(mail.sender))] if mail.sender.strip("— ") else []
     images = sum(1 for item in mail.extracted_attachments if item.preview is not None)
     if images:
-        parts.append("1 Bild" if images == 1 else f"{images} Bilder")
+        parts.append(tr("1 Bild") if images == 1 else tr("{count} Bilder", count=images))
     return f"{title} ({e(', '.join(parts))})" if parts else title
 
 
@@ -454,8 +467,8 @@ def detail_page(view: ProposalView, *, actions: Actions | None = None,
                 mail: MailView | None = None, after: str = "") -> str:
     # 5.9.5: always collapsed from the server; app.js opens it from 1024 px (split view and
     # detail page). Without JavaScript and on small screens it stays collapsed.
-    content = f"""<p><a href="/">← Zur Übersicht</a></p>
-<h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
+    content = f"""<p><a href="/">← {tr("Zur Übersicht")}</a></p>
+<h1>{tr("Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe")}</h1>
 {proposal_card(view, actions=actions, detail_link=False)}
 {disclosure(source_summary(mail), mail_section(mail), marker=" data-source-mail")}"""
     return layout(view.card.title, content, active="/", after=after)
@@ -467,8 +480,8 @@ def mail_page(mail: MailView, relevance: RelevanceView | None = None,
     """A mail on its own, with the relevance question if it is still open."""
     question = relevance_card(relevance, actions, detail_link=False) if relevance else ""
     result = notice(message, message_kind) if message else ""
-    content = f"""<p><a href="/">← Zur Übersicht</a></p>
-<h1>Mail</h1>
+    content = f"""<p><a href="/">← {tr("Zur Übersicht")}</a></p>
+<h1>{tr("Mail")}</h1>
 {result}{question}{recheck}
 {mail_section(mail, sender_actions)}"""
     return layout(mail.subject, content, active="/", after=after)

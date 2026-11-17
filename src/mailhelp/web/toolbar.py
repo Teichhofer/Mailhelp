@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from ..i18n import tr
 from .pages import e
 
 
@@ -30,10 +31,11 @@ def toolbar(action: str, main: Sequence[str], *, submit: str, more: Sequence[str
     """
     extra = ""
     if more:
-        state = f" ({active} aktiv)" if active else ""
-        extra = (f'<details class="toolbar-more"{" open" if active else ""}><summary>Mehr Filter{state}</summary>'
+        state = " " + tr("({count} aktiv)", count=active) if active else ""
+        extra = (f'<details class="toolbar-more"{" open" if active else ""}>'
+                 f'<summary>{tr("Mehr Filter")}{state}</summary>'
                  f'<div class="filters">{"".join(more)}</div></details>')
-    link = f'<a class="button link" href="{e(reset)}">Zurücksetzen</a>' if reset else ""
+    link = f'<a class="button link" href="{e(reset)}">{tr("Zurücksetzen")}</a>' if reset else ""
     return (f'<form method="get" action="{e(action)}" class="toolbar" role="search">{hidden}'
             f'<div class="toolbar-row">{"".join(main)}'
             f'<button class="button primary" type="submit">{e(submit)}</button>{link}</div>{below}{extra}</form>')

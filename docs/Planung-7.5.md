@@ -159,16 +159,16 @@ language: de
 
 ---
 
-## 5. Umsetzungsschritte (Patch-Plan 7.5.1 bis 7.5.6)
+## 5. Umsetzungsschritte (Patch-Plan 7.5.1 bis 7.5.7)
 
 | Schritt | Patch | Inhalt |
 | :--- | :--- | :--- |
 | **L1** | 7.5.1 | **i18n-Kernmodul & Katalog:** `src/mailhelp/i18n/` anlegen, Engine `t()` und ContextVar implementieren, vollständige Basiskataloge `de.py` und `en.py` erstellen. Bidirektionaler Vollständigkeitstest. |
 | **L2** | 7.5.2 | **Formatierung:** Datums-, Uhrzeit-, Zahlen- und Dauer-Formatierer in `formatting.py` umsetzen. Integration in `cards.py` und `labels.py`. Unit-Tests. |
 | **L3** | 7.5.3 | **Telegram-Lokalisierung:** `formatting.py` und `presenter.py` für Telegram auf das i18n-Modul umstellen. Prüfung von Buttons, Bestätigungen und Rückfragen in beiden Sprachen. |
-| **L4** | 7.5.4 | **Web-Lokalisierung (Templates & HTML):** Navigation, Badges, Tabellen, Formulare und Überschriften auf `t()` umstellen. Sprachwähler im Header und in den Einstellungen einbauen. |
-| **L5** | 7.5.5 | **Web-Lokalisierung (JavaScript & Hilfen):** `open-list.js` und `dialogs.js` mit `MailhelpI18n` verbinden. Einstellungs-Hilfetexte in `setting_help.py` übersetzen. |
-| **L6** | 7.5.6 | **CLI, Gesamtabnahme & Dokumentation:** CLI-Meldungen lokalisieren, vollständige Python-Prüfung (`devtools.check full`) und Playwright-Browsersuite für beide Sprachen ausführen. 100 % Zeilen- und Branch-Coverage. |
+| **L4** | 7.5.4, 7.5.5 | **Web-Lokalisierung (Templates & HTML):** Navigation, Badges, Tabellen, Formulare und Überschriften auf `t()` umstellen. Sprachwähler im Header und in den Einstellungen einbauen. Umgesetzt in zwei Patches: 7.5.4 Offen, Aktionen und Telegram-Meldungen, 7.5.5 die übrigen Seiten. |
+| **L5** | 7.5.6 | **Web-Lokalisierung (JavaScript & Hilfen):** `open-list.js` und `dialogs.js` mit `MailhelpI18n` verbinden. Einstellungs-Hilfetexte in `setting_help.py` übersetzen. |
+| **L6** | 7.5.7 | **CLI, Gesamtabnahme & Dokumentation:** CLI-Meldungen lokalisieren, vollständige Python-Prüfung (`devtools.check full`) und Playwright-Browsersuite für beide Sprachen ausführen. 100 % Zeilen- und Branch-Coverage. |
 
 ---
 

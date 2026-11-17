@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import EventDefaultsSettings
 from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions
+from ..i18n import de
 from ..mailbox.mailbox_settings import event_defaults_for
 from ..proposals.event_defaults import reapply_defaults
 from ..proposals.proposal_reconciliation import ProposalReconciliationService
@@ -53,20 +54,20 @@ class SeriesService:
             if receipt is None:
                 receipt = self._prepare(command)
             elif receipt.command != command:
-                raise ValueError("Serienschlüssel bereits für eine andere Entscheidung verwendet")
+                raise ValueError(de("Serienschlüssel bereits für eine andere Entscheidung verwendet"))
         if fresh:
             self._preflight(receipt)
             with self.store.locked():
                 if any(self.controller.repository.load_current(item.source_mail_id, item.id) != item
                        for item in receipt.originals):
-                    raise StaleCommand("Serie während der Vorprüfung geändert; Liste erneut prüfen")
+                    raise StaleCommand(de("Serie während der Vorprüfung geändert; Liste erneut prüfen"))
                 self.store.save(name, receipt.model_dump(mode="json"))
         for index, original in enumerate(receipt.originals):
             if original.id in receipt.completed:
                 continue
             if not self.review._authorized(command):
                 return ReviewResult(status=ResultStatus.UNAUTHORIZED,
-                                    message="Sitzung abgelaufen; verbleibende Serientermine bleiben unverändert.")
+                                    message=de("Sitzung abgelaufen; verbleibende Serientermine bleiben unverändert."))
             if command.kind == CommandKind.SERIES_ANSWER:
                 self._revise(receipt, original, receipt.revisions[index])
             else:
@@ -92,15 +93,15 @@ class SeriesService:
         fields = ("status", "duplicate_check_failed", "target_event_id", "time_changes", "is_cancellation")
         for item in receipt.originals:
             if not service.profile_available(item):
-                raise AnswerRequired("Zielprofil nicht verfügbar; gesamte Serie bleibt unverändert")
+                raise AnswerRequired(de("Zielprofil nicht verfügbar; gesamte Serie bleibt unverändert"))
             if reconciliation.confirmation_candidates(item):
-                raise StaleCommand("Zuordnung geändert; gesamte Serie erneut prüfen")
+                raise StaleCommand(de("Zuordnung geändert; gesamte Serie erneut prüfen"))
             if service.ledger.prior_actions(item):
-                raise AnswerRequired("Frühere Anlage gefunden; betroffenen Termin separat prüfen")
+                raise AnswerRequired(de("Frühere Anlage gefunden; betroffenen Termin separat prüfen"))
             if service.precheck is not None:
                 checked = service.precheck.check_proposal(item)
                 if any(getattr(checked, field) != getattr(item, field) for field in fields):
-                    raise StaleCommand("Dublettenprüfung geändert; gesamte Serie erneut prüfen")
+                    raise StaleCommand(de("Dublettenprüfung geändert; gesamte Serie erneut prüfen"))
 
     def _prepare(self, command: ReviewCommand) -> SeriesReceipt:
         originals, skipped = [], []
@@ -110,17 +111,17 @@ class SeriesService:
             valid = current is not None and current.version == member.version and current.status in OPEN
             if not valid:
                 if command.kind == CommandKind.SERIES_CONFIRM:
-                    raise StaleCommand("Serie geändert; gesamte angezeigte Liste neu prüfen und bestätigen")
+                    raise StaleCommand(de("Serie geändert; gesamte angezeigte Liste neu prüfen und bestätigen"))
                 skipped.append(member.proposal_id)
                 continue
             assert current is not None
             if current.kind != "event" or current.series_key is None or key is not None and current.series_key != key:
-                raise ValueError("Die angezeigten Termine gehören nicht zu derselben Serie")
+                raise ValueError(de("Die angezeigten Termine gehören nicht zu derselben Serie"))
             key = current.series_key
             if command.kind == CommandKind.SERIES_CONFIRM and (
                     current.status != ProposalStatus.PENDING_CONFIRMATION or current.open_questions
                     or not current.is_creatable):
-                raise AnswerRequired("Zuerst alle offenen Fragen der ausgewählten Termine klären")
+                raise AnswerRequired(de("Zuerst alle offenen Fragen der ausgewählten Termine klären"))
             originals.append(current)
         receipt = SeriesReceipt(command=command, originals=originals, skipped=skipped)
         if command.kind == CommandKind.SERIES_ANSWER:
@@ -131,7 +132,7 @@ class SeriesService:
         question = "Wann endet der Termin?" if endpoint == "end" else "Wann beginnt der Termin?"
         candidate = deterministic_temporal_revision(original, question, answer, self.controller.configured_timezone)
         if candidate is None:
-            raise AnswerRequired("Bitte eine eindeutige Uhrzeit oder ein Zeitintervall angeben")
+            raise AnswerRequired(de("Bitte eine eindeutige Uhrzeit oder ein Zeitintervall angeben"))
         candidate = protect_revision(original, candidate)
         state = self.controller.repository.load_mail(original.source_mail_id)
         policy = state.proposal_policy if state is not None else None
@@ -173,7 +174,7 @@ class SeriesService:
             result = ReviewResult(status=status, message=message)
         elif current is not None and current.version == original.version and current.status in {
                 ProposalStatus.CREATED, ProposalStatus.SIMULATED, ProposalStatus.VERIFYING}:
-            result = ReviewResult(status=ResultStatus.WRITTEN, message="Bereits abgeschlossen.")
+            result = ReviewResult(status=ResultStatus.WRITTEN, message=de("Bereits abgeschlossen."))
         else:
-            raise StaleCommand("Serie während der Anlage geändert; verbleibende Termine neu prüfen und bestätigen.")
+            raise StaleCommand(de("Serie während der Anlage geändert; verbleibende Termine neu prüfen und bestätigen."))
         receipt.outcomes[original.id] = result.status.value
