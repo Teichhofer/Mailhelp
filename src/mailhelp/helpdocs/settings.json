@@ -471,6 +471,46 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Betrachtete Mails der letzten 1–365 Tage; Standard 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_days",
+  "key": "learning.prefilter_hint_days",
+  "label": "learning.prefilter_hint_days",
+  "path": "Datei",
+  "summary": "Datei: Betrachtete Mails der letzten 1–365 Tage; Standard 30."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "So viele Mails eines Absenders, alle von der KI als irrelevant eingestuft und ohne gegenteilige Antwort, ergeben einen Hinweis „ignorieren“: 2–100; Standard 3.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_irrelevant_mails",
+  "key": "learning.prefilter_hint_irrelevant_mails",
+  "label": "learning.prefilter_hint_irrelevant_mails",
+  "path": "Datei",
+  "summary": "Datei: So viele Mails eines Absenders, alle von der KI als irrelevant eingestuft und ohne gegenteilige Antwort, ergeben einen Hinweis „ignorieren“: 2–100; Stan…"
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "So viele Mails eines Absenders, die alle zu mindestens einem bestätigten Vorschlag führten, ergeben einen Hinweis „VIP“: 2–100; Standard 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_vip_mails",
+  "key": "learning.prefilter_hint_vip_mails",
+  "label": "learning.prefilter_hint_vip_mails",
+  "path": "Datei",
+  "summary": "Datei: So viele Mails eines Absenders, die alle zu mindestens einem bestätigten Vorschlag führten, ergeben einen Hinweis „VIP“: 2–100; Standard 5."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "ja (true, Standard) zeigt unter Lernen → Vorschläge Hinweise für Ignorier- und VIP-Regeln aus gespeicherten Entscheidungen. nein (false) schaltet sie ab.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hints_enabled",
+  "key": "learning.prefilter_hints_enabled",
+  "label": "learning.prefilter_hints_enabled",
+  "path": "Datei",
+  "summary": "Datei: ja (true, Standard) zeigt unter Lernen → Vorschläge Hinweise für Ignorier- und VIP-Regeln aus gespeicherten Entscheidungen."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Betrachteter Zeitraum für die Annahmequote eines Absenders: 1–365 Tage; Standard 90. Ältere Entscheidungen werden für Absender-Hinweise nicht herangezogen.",
   "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
   "id": "setting:learning.sender_hint_days",

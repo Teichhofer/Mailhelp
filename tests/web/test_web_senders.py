@@ -333,3 +333,45 @@ def test_header_filters_are_switched_tried_and_lists_excepted(web, senders):
     empty = {**web.form(LIST_PATH, action=f"{LIST_PATH}/verteiler/hinzufuegen"), "verteiler": "<>"}
     _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/verteiler/hinzufuegen", empty))
     assert "Regel nicht geändert" in page
+
+
+# --- 7.7.5: hints and figures ---------------------------------------------------------------------
+
+def _irrelevant_mails(web, sender, first):
+    from datetime import UTC, datetime
+
+    from mailhelp.domain.relevance import Relevance
+    from tests.fakes.factories import build_mail_state
+    for number in range(first, first + 3):
+        state = build_mail_state(mail_id(number), sender=sender, subject=f"Angebot {number}",
+                                 updated=datetime.now(UTC), relevance=Relevance(
+                                     decision="irrelevant", topic_ids=[], reason="Werbung"))
+        web.store.save(f"mail-{mail_id(number)}", state.model_dump(mode="json"))
+
+
+def test_the_learning_page_suggests_rules_takes_one_over_and_forgets_a_dismissed_one(web, senders):
+    _irrelevant_mails(web, "Shop <news@shop.test>", 40)
+    _irrelevant_mails(web, "Reisen <angebote@reisen.test>", 50)
+    page = web.browser.request("GET", "/lernen/vorschlaege").body.decode()
+    assert "Hinweise für Vorfilter-Regeln" in page
+    assert "3 Mails von news@shop.test wurden von der KI als irrelevant eingestuft." in page
+    fields = web.form("/lernen/vorschlaege", action=f"{LIST_PATH}/regel", wert="news@shop.test")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", fields))
+    assert "„news@shop.test“ wird künftig ohne KI-Aufruf aussortiert." in page
+    assert [(rule.value, rule.origin) for rule in rules(senders)] == [("news@shop.test", "hint")]
+    fields = web.form("/lernen/vorschlaege", action="/lernen/absender-hinweis/nicht-mehr-vorschlagen")
+    web.browser.request("POST", "/lernen/absender-hinweis/nicht-mehr-vorschlagen", fields)
+    page = web.browser.request("GET", "/lernen/vorschlaege").body.decode()
+    assert "Hinweise für Vorfilter-Regeln" not in page
+    assert "Vorschläge für neue Regeln" in web.browser.request("GET", LIST_PATH).body.decode()
+
+
+def test_the_analysis_page_shows_the_prefilter_figures(web, senders, tmp_path):
+    from mailhelp.support.metrics import MetricsRecorder, MetricsSettings
+    web.site.archive.metrics = MetricsRecorder(tmp_path / "m.jsonl", MetricsSettings())
+    page = web.browser.request("GET", "/auswertung").body.decode()
+    assert "Ohne Relevanzprüfung entschieden: 0 Mails." in page and "Ersparnis nicht schätzbar" in page
+    web.site.archive.configuration = None
+    assert "Ohne Relevanzprüfung entschieden" in web.browser.request("GET", "/auswertung").body.decode()
+    page = web.browser.request("GET", "/auswertung?mode=decision_test").body.decode()
+    assert "Ohne Relevanzprüfung entschieden" not in page

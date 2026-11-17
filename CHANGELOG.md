@@ -1,5 +1,16 @@
 # Änderungen
 
+## 7.7.5 – Hinweise für Vorfilter-Regeln und Kennzahlen
+
+- Unter Lernen → Vorschläge erscheinen Hinweise für neue Regeln aus gespeicherten Entscheidungen:
+  Absender, deren Mails die KI wiederholt als irrelevant einstufte (ignorieren, bei mehreren Adressen
+  einer Domain auch die ganze Domain), und Absender, deren Mails alle zu bestätigten Vorschlägen führten
+  (VIP). „Als Regel übernehmen“ legt die Regel an, „Nicht mehr vorschlagen“ blendet den Hinweis aus.
+  Schwellwerte stehen unter `learning.prefilter_hint_*` in `config.yaml`.
+- Die Auswertung zeigt einen Abschnitt „Vorfilter“: ohne Relevanzprüfung entschiedene Mails nach Grund,
+  eine als Schätzung gekennzeichnete Ersparnis aus den echten Relevanzprüfungen des Zeitraums, die Regeln
+  mit den meisten Treffern und Regeln ohne Treffer seit 90 Tagen.
+
 ## 7.7.4 – Kopfzeilen-Vorfilter mit Probelauf
 
 - Auf der Seite „Absender-Regeln“ lassen sich die Filter „Automatische Systemmails“ und „Newsletter und

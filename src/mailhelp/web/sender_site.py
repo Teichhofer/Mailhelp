@@ -176,6 +176,7 @@ class SenderSite:
         return self._rule_command(request, session, form, {
             "rule_action": "add", "kind": form.get("art"), "value": form.get("wert", ""),
             "action": form.get("aktion", "ignore"), "note": form.get("notiz", ""),
+            "origin": "hint" if form.get("herkunft") == "hint" else "manual",
             "mailbox_id": int(mailbox) if mailbox.isdigit() else None})
 
     def change_rule(self, request: Request, session: WebSession, form: dict[str, str], step: str) -> Response:

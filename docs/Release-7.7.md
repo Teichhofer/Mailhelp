@@ -157,3 +157,43 @@ hätte eine weitere Zustandsdatei je Mail gebraucht.
   Branch-Abdeckung, Lasttests bestanden.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.7.5 – Hinweise für Regeln und Kennzahlen
+
+- **Hinweise (`review/prefilter_hints.py`):** Sie entstehen ohne Modellaufruf aus gespeicherten
+  Mailzuständen der letzten 30 Tage. Zwei neue Quellen ergänzen die Absenderhinweise aus 6.5:
+  - **Relevanzprüfung:** Mindestens drei Mails eines Absenders hat die KI alle als irrelevant
+    eingestuft. Gezählt wird nur ohne Regelentscheidung und ohne menschliche Antwort.
+  - **Bestätigte Vorschläge:** Mindestens fünf Mails eines Absenders, die alle zu einem bestätigten
+    Vorschlag führten, ergeben einen VIP-Hinweis.
+
+  Zwei oder mehr Adressen derselben Domain ergeben zusätzlich einen Domain-Hinweis, außer bei großen
+  Mailanbietern. Die Schwellwerte stehen unter `learning.prefilter_hint_*` in `config.yaml`.
+- **Anzeige unter Lernen → Vorschläge:** „Als Regel übernehmen“ nutzt den normalen Regelbefehl mit
+  `origin: hint`. „Nicht mehr vorschlagen“ nutzt die vorhandene Ablehnungsliste. Die Regelseite
+  verlinkt auf die Hinweise.
+- **Kennzahlen (`web/prefilter_stats.py`, Abschnitt „Vorfilter“ auf `/auswertung`):**
+  - vermiedene Relevanzprüfungen nach Grund;
+  - geschätzte Ersparnis aus dem Median der echten Relevanzprüfungen, ohne Vergleich „nicht
+    schätzbar“;
+  - die fünf Regeln mit den meisten Treffern und Regeln ohne Treffer seit 90 Tagen.
+- **Tests:**
+  - Hinweise: Schwellwerte, Zeitfenster, Regel- und Antwortausschluss, Ausnahmen, Ablehnungsliste,
+    Domain-Hinweis und große Mailanbieter, VIP mit bestätigten Vorschlägen.
+  - Kennzahlen: Gründe, Schätzung für Cloud, Ollama und Aufrufe ohne Kostenangabe, Abschnitt mit
+    Regelnamen.
+  - Web: Übernahme mit `origin: hint`, Ausblenden, Auswertung mit und ohne Konfiguration.
+
+**Abweichungen vom Plan:**
+
+- **Mailseite:** Sie verlinkt nicht auf offene Hinweise. Die Hinweise stehen gesammelt unter
+  Lernen, und die Regelseite verlinkt dorthin.
+- **VIP-Hinweis:** Er verlangt nicht ausdrücklich „nie irrelevant“, sondern dass jede Mail relevant
+  war und zu einem bestätigten Vorschlag führte. Das schließt eine irrelevante Mail ebenfalls aus.
+
+**Prüfung 7.7.5:**
+
+- `python -m devtools.check full --workers 12`: 5.881 Tests bestanden, 100 % Zeilen- und
+  Branch-Abdeckung, Lasttests bestanden.
+- `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
+  JavaScript-Abdeckung 100 %.

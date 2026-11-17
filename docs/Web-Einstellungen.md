@@ -415,6 +415,10 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 | Absender-Hinweise: Maximale Annahmequote (`learning.sender_hint_max_acceptance_rate`) | Höchste Annahmequote, bis zu der ein Hinweis erzeugt wird: 0.0–1.0 (0 % bis 100 %); Standard 0.1 (10 %). | Im laufenden Betrieb |
 | Hinweis auf Regellernlauf aktivieren (`learning.learning_run_hints_enabled`) | ja (true, Standard) zeigt auf „Offen“ und „Lernen“ einen Hinweis, wenn seit dem letzten Lernlauf viele neue Ablehnungen vorliegen. nein (false) schaltet diesen Hinweis ab. | Im laufenden Betrieb |
 | Hinweis auf Regellernlauf: Schwellenwert Ablehnungen (`learning.learning_run_hint_rejections`) | Anzahl neuer Ablehnungen seit dem letzten Regellernlauf, ab der ein Hinweis eingeblendet wird: 1–500; Standard 20. | Im laufenden Betrieb |
+| Hinweise für Vorfilter-Regeln aktivieren (`learning.prefilter_hints_enabled`) | ja (true, Standard) zeigt unter Lernen → Vorschläge Hinweise für Ignorier- und VIP-Regeln aus gespeicherten Entscheidungen. nein (false) schaltet sie ab. | Im laufenden Betrieb |
+| Hinweise für Vorfilter-Regeln: Zeitraum in Tagen (`learning.prefilter_hint_days`) | Betrachtete Mails der letzten 1–365 Tage; Standard 30. | Im laufenden Betrieb |
+| Hinweise für Vorfilter-Regeln: Mindestzahl irrelevanter Mails (`learning.prefilter_hint_irrelevant_mails`) | So viele Mails eines Absenders, alle von der KI als irrelevant eingestuft und ohne gegenteilige Antwort, ergeben einen Hinweis „ignorieren“: 2–100; Standard 3. | Im laufenden Betrieb |
+| Hinweise für Vorfilter-Regeln: Mindestzahl bestätigter Mails (`learning.prefilter_hint_vip_mails`) | So viele Mails eines Absenders, die alle zu mindestens einem bestätigten Vorschlag führten, ergeben einen Hinweis „VIP“: 2–100; Standard 5. | Im laufenden Betrieb |
 
 ## Weboberfläche
 

@@ -231,6 +231,14 @@ learning:
   sender_hint_max_acceptance_rate: 0.10
   learning_run_hints_enabled: true
   learning_run_hint_rejections: 20
+  # 7.7.5: Hinweise für Vorfilter-Regeln unter Lernen → Vorschläge, aus gespeicherten Entscheidungen
+  # der letzten prefilter_hint_days Tage: ab prefilter_hint_irrelevant_mails Mails, die die KI alle als
+  # irrelevant einstufte, „ignorieren“; ab prefilter_hint_vip_mails Mails, die alle zu bestätigten
+  # Vorschlägen führten, „VIP“.
+  prefilter_hints_enabled: true
+  prefilter_hint_days: 30
+  prefilter_hint_irrelevant_mails: 3
+  prefilter_hint_vip_mails: 5
 # 3.1: Mehrere Postfächer (höchstens 10) statt der Postfachfelder direkt unter imap
 # (= Postfach 1): Liste imap.mailboxes mit stabiler Nummer id (1–99), Anzeigename label
 # und enabled. Abruf, Kontingent und Duplikaterkennung gelten über alle Postfächer; Entwürfe

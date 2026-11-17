@@ -171,7 +171,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **273 Einstellungen**, davon **273** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -252,6 +252,10 @@ Erzeugt mit `python -m devtools.inventory`: **273 Einstellungen**, davon **273**
 | `learning.learning_run_hint_rejections` | int | 20 | ≥ 1, ≤ 500 | Datei | ja |
 | `learning.learning_run_hints_enabled` | bool | True |  | Datei | ja |
 | `learning.parallel_llm_calls` | int | 4 | ≥ 1, ≤ 100 | Weboberfläche | ja |
+| `learning.prefilter_hint_days` | int | 30 | ≥ 1, ≤ 365 | Datei | ja |
+| `learning.prefilter_hint_irrelevant_mails` | int | 3 | ≥ 2, ≤ 100 | Datei | ja |
+| `learning.prefilter_hint_vip_mails` | int | 5 | ≥ 2, ≤ 100 | Datei | ja |
+| `learning.prefilter_hints_enabled` | bool | True |  | Datei | ja |
 | `learning.sender_hint_days` | int | 90 | ≥ 1, ≤ 365 | Datei | ja |
 | `learning.sender_hint_max_acceptance_rate` | float | 0.1 | ≥ 0.0, ≤ 1.0 | Datei | ja |
 | `learning.sender_hint_min_proposals` | int | 5 | ≥ 1, ≤ 100 | Datei | ja |

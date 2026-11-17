@@ -8,6 +8,7 @@ from .. import state_names
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange, file_hash
 from ..domain.mail import MailState
 from ..mailbox.sender_filter import sender_addresses
+from ..review.prefilter_hints import PrefilterHint, prefilter_hints
 from ..review.proposal_evaluation import (
     ACCEPTED_STATUSES,
     dismiss_learning_run_hint,
@@ -71,13 +72,24 @@ class ProposalEvaluationSite:
         hints = sender_hints(store, self.configuration, **hints_kwargs)
         dismissed = list_dismissed_sender_hints(store)
         csrf = self.site.auth.csrf_token(session.id)
-        html = proposal_evaluation_page(report, params, hints=hints, dismissed=dismissed, csrf=csrf)
+        html = proposal_evaluation_page(report, params, hints=hints, dismissed=dismissed, csrf=csrf,
+                                        prefilter=self._prefilter_hints(store, l_cfg, dismissed))
 
         learning_hint = get_learning_run_hint(store, **run_hints_kwargs)
         if learning_hint:
             html = learning_run_hint_banner(learning_hint, csrf) + html
 
         return Response.html(200, layout("Vorschläge", html, active="/lernen"))
+
+    def _prefilter_hints(self, store: Any, l_cfg: Any, dismissed: list[str]) -> list[PrefilterHint]:
+        """7.7.5: the thresholds come from ``learning`` in config.yaml."""
+        if self.configuration is None:
+            return []
+        options = {} if l_cfg is None else {
+            "enabled": l_cfg.prefilter_hints_enabled, "days": l_cfg.prefilter_hint_days,
+            "irrelevant_mails": l_cfg.prefilter_hint_irrelevant_mails, "vip_mails": l_cfg.prefilter_hint_vip_mails}
+        return prefilter_hints(store, self.configuration.blocked_senders(), self.site.clock(), dismissed=dismissed,
+                               **options)
 
     def sender_hint_preview(self, request: Request, session: Any) -> Response:
         query = parse_qs(request.query)

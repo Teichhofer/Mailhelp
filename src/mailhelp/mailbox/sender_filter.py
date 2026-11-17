@@ -101,6 +101,11 @@ def _matches(rule: _Rule, address: str) -> bool:
     return wildcard(rule.value, address)
 
 
+def rule_covers(rules: Iterable[_Rule], address: str) -> bool:
+    """Whether any sender rule – ignore, VIP or exception – already names this address (7.7.5)."""
+    return any(rule.kind != "subject" and _matches(rule, address) for rule in rules)
+
+
 def _label(rule: _Rule) -> str:
     return f"„{rule.value}“" if rule.kind == "subject" else rule.value
 

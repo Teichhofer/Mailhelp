@@ -185,6 +185,11 @@ class LearningSettings(ConfigModel):
     sender_hint_max_acceptance_rate: float = Field(default=0.10, ge=0.0, le=1.0)
     learning_run_hints_enabled: bool = True
     learning_run_hint_rejections: int = Field(default=20, ge=1, le=500)
+    # 7.7.5: suggested prefilter rules from the relevance check and from confirmed proposals.
+    prefilter_hints_enabled: bool = True
+    prefilter_hint_days: int = Field(default=30, ge=1, le=365)
+    prefilter_hint_irrelevant_mails: int = Field(default=3, ge=2, le=100)
+    prefilter_hint_vip_mails: int = Field(default=5, ge=2, le=100)
 
 _WEB_HOST = re.compile(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")
 

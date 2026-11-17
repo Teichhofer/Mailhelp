@@ -66,6 +66,27 @@ Relevanzschritt jede Mail, die ein Filter im Probelauf aussortiert hätte, unter
 `List-Id` wird auf ihre Kennung in spitzen Klammern verkürzt und kleingeschrieben (`list_key`), sowohl
 beim Lesen der Mail als auch bei Ausnahmen.
 
+Seit 7.7.5 ermittelt `review/prefilter_hints.py` Hinweise für Regeln, nur aus gespeicherten Zuständen
+und ohne Modellaufruf. Betrachtet werden Mails der letzten `learning.prefilter_hint_days` Tage (Standard
+30) mit genau einer lesbaren Absenderadresse:
+
+- „ignorieren“: mindestens `learning.prefilter_hint_irrelevant_mails` (Standard 3) Mails, alle vom
+  Modell als irrelevant eingestuft – keine Regelentscheidung, keine Antwort der Nutzerin oder des
+  Nutzers auf eine Relevanzrückfrage;
+- „VIP“: mindestens `learning.prefilter_hint_vip_mails` (Standard 5) Mails, alle relevant und jede mit
+  mindestens einem Vorschlag in `created`, `verifying` oder `simulated`;
+- Domain: zwei oder mehr Ignorier-Hinweise derselben Domain, außer für große Mailanbieter.
+
+Absender, die eine Regel bereits nennt (auch eine Ausnahme), und Werte der Ablehnungsliste der
+Absenderhinweise werden nicht vorgeschlagen; `learning.prefilter_hints_enabled` schaltet alles ab.
+Lernen → Vorschläge zeigt die Hinweise mit „Als Regel übernehmen“ (Regel mit `origin: hint` über den
+normalen Regelbefehl) und „Nicht mehr vorschlagen“. `/auswertung` zeigt im Modus Normalbetrieb den
+Abschnitt „Vorfilter“: Mails des Zeitraums ohne Relevanzprüfung nach Grund (VIP, Sperrregel,
+Kopfzeilen-Vorfilter, Briefing, IServ, Postfach ohne Thema, eigene Notiz), eine Schätzung aus dem Median
+von Tokens und Euro der echten Relevanzaufrufe des Zeitraums (Cloud über `usd_per_eur`, Ollama über
+Laufzeit, Leistung und Strompreis) mal vermiedene Aufrufe – ohne Vergleichsaufrufe „nicht schätzbar“ –,
+die fünf Regeln mit den meisten Treffern und Regeln, die älter als 90 Tage sind und seitdem nicht trafen.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der

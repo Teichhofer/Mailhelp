@@ -4,6 +4,8 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
+from ..i18n import tr
+from ..review.prefilter_hints import PrefilterHint
 from ..review.proposal_evaluation import PERIODS, ProposalEvaluationReport, SenderHint
 from ..review.reject_reasons import REJECT_REASONS
 from .actions import new_key
@@ -37,6 +39,38 @@ def _hints_section(hints: list[SenderHint] | tuple[SenderHint, ...]) -> str:
         )
         hints_html = f'<section class="stack" id="absender-hinweise"><h2>Hinweise zu Absendern</h2>{hint_cards}</section>'
     return hints_html
+
+
+def _post(action: str, label: str, style: str, **fields: str) -> str:
+    inputs = "".join(f'<input type="hidden" name="{name}" value="{e(value)}">' for name, value in fields.items())
+    return (f'<form method="post" action="{action}" class="inline-form">{inputs}'
+            f'<button class="{style}">{e(label)}</button></form>')
+
+
+def prefilter_hints_section(hints: list[PrefilterHint], csrf: str) -> str:
+    """7.7.5: suggested prefilter rules; taking one over saves it as a rule (origin ``hint``)."""
+    if not hints:
+        return ""
+    cards = ""
+    for hint in hints:
+        if hint.action == "vip":
+            text = tr("{count} Mails von {value} führten jeweils zu bestätigten Vorschlägen. Als VIP einstufen?",
+                      count=hint.count, value=hint.value)
+        elif hint.kind == "domain":
+            text = tr("{count} Mails von Adressen der Domain {value} wurden von der KI als irrelevant eingestuft. "
+                      "Ganze Domain künftig ohne KI-Aufruf aussortieren?", count=hint.count, value=hint.value)
+        else:
+            text = tr("{count} Mails von {value} wurden von der KI als irrelevant eingestuft. Künftig ohne "
+                      "KI-Aufruf aussortieren?", count=hint.count, value=hint.value)
+        subjects = "".join(f"<li>{e(subject)}</li>" for subject in hint.subjects)
+        take = _post("/einstellungen/absender/regel", tr("Als Regel übernehmen"), "button primary small",
+                     csrf=csrf, key=new_key(), art=hint.kind, wert=hint.value, aktion=hint.action, herkunft="hint")
+        dismiss = _post("/lernen/absender-hinweis/nicht-mehr-vorschlagen", tr("Nicht mehr vorschlagen"),
+                        "button small", csrf=csrf, sender=hint.value)
+        cards += (f'<div class="notice info prefilter-hint"><p>{e(text)}</p><ul class="meta">{subjects}</ul>'
+                  f'<p class="card-links">{take}{dismiss}</p></div>')
+    return (f'<section class="stack" id="vorfilter-hinweise"><h2>{tr("Hinweise für Vorfilter-Regeln")}</h2>'
+            f'<p class="meta">{tr("Aus gespeicherten Entscheidungen, ohne KI-Aufruf ermittelt.")}</p>{cards}</section>')
 
 
 def _dismissed_section(dismissed: list[str] | tuple[str, ...], csrf: str) -> str:
@@ -184,6 +218,7 @@ def _reasons_section(report: ProposalEvaluationReport) -> str:
 def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str, Any],
                              hints: list[SenderHint] | tuple[SenderHint, ...] = (),
                              dismissed: list[str] | tuple[str, ...] = (),
+                             prefilter: list[PrefilterHint] | None = None,
                              csrf: str = "") -> str:
     """Render the proposal evaluation page under /lernen/vorschlaege."""
     days_val = str(params.get("days", report.days))
@@ -200,7 +235,7 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
         back=("/lernen", "Zurück zu Lernen"),
     )
 
-    hints_html = _hints_section(hints)
+    hints_html = _hints_section(hints) + prefilter_hints_section(prefilter or [], csrf)
     dismissed_html = _dismissed_section(dismissed, csrf)
 
     if report.empty:

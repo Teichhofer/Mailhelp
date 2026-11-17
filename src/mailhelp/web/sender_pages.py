@@ -6,7 +6,7 @@ import secrets
 from ..domain.relevance import HeaderPrefilter, IrrelevantSenders, PrefilterHits, RuleHits, SenderRule, SenderRules
 from ..formatting import format_datetime_local
 from ..i18n import tr
-from ..mailbox.sender_filter import AUTOMATED, FREEMAIL, LISTS, prefilter, sender_addresses
+from ..mailbox.sender_filter import AUTOMATED, FREEMAIL, LISTS, HeaderFilter, prefilter, sender_addresses
 from .pages import e, notice
 
 LIST_PATH = "/einstellungen/absender"
@@ -136,6 +136,8 @@ def senders_page(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, sta
         body += notice(message, message_kind)
     body += ('<p>' + tr("Diese Regeln entscheiden vor jedem KI-Aufruf. Ein VIP-Absender spart nur die "
                         "Relevanzprüfung; Termine und Aufgaben brauchen weiterhin deine Bestätigung.") + '</p>')
+    body += (f'<p><a href="/lernen/vorschlaege#vorfilter-hinweise">'
+             f'{tr("Vorschläge für neue Regeln aus deinen Entscheidungen")}</a></p>')
     body += rule_form(csrf, stand, values or {}, preview, savable)
     body += _section(tr("VIP-Absender"), tr("Immer relevant, auch wenn eine Sperre passt."), rows("vip"),
                      tr("Noch kein VIP-Absender."))
@@ -148,7 +150,7 @@ def senders_page(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, sta
     return body + header_section(blocked.headers, hits, csrf, stand, zone)
 
 
-HEADERS = {
+HEADERS: dict[HeaderFilter, tuple[str, str, str]] = {
     "automated": (AUTOMATED, "Automatische Systemmails",
                   "Auto-Submitted (z. B. Abwesenheitsnotizen) oder Precedence: bulk, junk, list."),
     "lists": (LISTS, "Newsletter und Verteiler",

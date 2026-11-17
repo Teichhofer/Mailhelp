@@ -7,6 +7,8 @@ from zoneinfo import ZoneInfo
 
 from .. import state_names
 from ..domain.proposal import Proposal
+from ..domain.relevance import IrrelevantSenders, PrefilterHits
+from ..mailbox.sender_filter import HITS
 from ..review.filters import matches
 from ..review.queries import ArchiveQuery
 from ..support.stage_metrics import report as stage_report
@@ -16,6 +18,7 @@ from .calls_page import METRICS, STATUSES, calls_page
 from .calls_page import SORTS as CALL_SORTS
 from .http import Request, Response
 from .pages import layout
+from .prefilter_stats import prefilter_section
 from .review_pages import detail_page
 from .stage_page import SORTS as STAGE_SORTS
 from .stage_page import STAGES, stage_page, title
@@ -157,6 +160,12 @@ class HistorySite:
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]
         steps = stage_report(selected.stages, **{key: params[key] for key in
                                                  ("days", "mode", "stage", "since", "until") if key in params})
-        return Response.html(200, layout("Auswertung", statistics_page(params, report, everything,
-                                                                         self.site.configured_timezone, steps=steps),
-                                         active="/auswertung"))
+        html = statistics_page(params, report, everything, self.site.configured_timezone, steps=steps)
+        if params["mode"] == "production":
+            # 7.7.5: what the prefilter decided without a relevance call, and the estimated saving.
+            configuration = self.archive.configuration
+            blocked = configuration.blocked_senders() if configuration is not None else IrrelevantSenders()
+            hits = self.site.views.store.peek_model(HITS, PrefilterHits, PrefilterHits())
+            html += prefilter_section(self.site.views.store, metrics.records()[0], blocked, hits, self.site.clock(),
+                                      params["days"], metrics.settings.usd_per_eur)
+        return Response.html(200, layout("Auswertung", html, active="/auswertung"))

@@ -817,4 +817,34 @@ EN: dict[str, str] = {
         "Auto-Submitted (e.g. out-of-office replies) or Precedence: bulk, junk, list.",
     "List-Id oder List-Unsubscribe – auch Rundbriefe von Schule oder Verein.":
         "List-Id or List-Unsubscribe – including newsletters from school or club.",
+    # Prefilter hints and figures (7.7.5)
+    "Absender-Regeln verwalten": "Manage sender rules",
+    "Als Regel übernehmen": "Take over as a rule",
+    "Aus gespeicherten Entscheidungen, ohne KI-Aufruf ermittelt.": "Found in stored decisions, without an AI call.",
+    "Ersparnis nicht schätzbar: In diesem Zeitraum gab es keine echte Relevanzprüfung zum Vergleich.":
+        "Saving cannot be estimated: there was no real relevance check in this period to compare with.",
+    "Geschätzt gespart: etwa {tokens} Tokens und {euros} € (Median je echter Relevanzprüfung im Zeitraum × vermiedene "
+    "Aufrufe).":
+        "Estimated saving: about {tokens} tokens and €{euros} (median per real relevance check in the period × "
+        "avoided calls).",
+    "Hinweise für Vorfilter-Regeln": "Suggested prefilter rules",
+    "Nicht mehr vorschlagen": "Do not suggest again",
+    "Ohne Relevanzprüfung entschieden: {count} Mails.": "Decided without a relevance check: {count} emails.",
+    "Regeln mit den meisten Treffern": "Rules with the most matches",
+    "Seit {days} Tagen ohne Treffer": "No match for {days} days",
+    "Vorfilter": "Prefilter",
+    "Vorschläge für neue Regeln aus deinen Entscheidungen": "Suggestions for new rules from your decisions",
+    "{count} Mails von Adressen der Domain {value} wurden von der KI als irrelevant eingestuft. Ganze Domain künftig "
+    "ohne KI-Aufruf aussortieren?":
+        "The AI judged {count} emails from addresses of the domain {value} irrelevant. Sort out the whole domain "
+        "without an AI call from now on?",
+    "{count} Mails von {value} führten jeweils zu bestätigten Vorschlägen. Als VIP einstufen?":
+        "{count} emails from {value} each led to confirmed proposals. Mark as VIP?",
+    "{count} Mails von {value} wurden von der KI als irrelevant eingestuft. Künftig ohne KI-Aufruf aussortieren?":
+        "The AI judged {count} emails from {value} irrelevant. Sort them out without an AI call from now on?",
+    "Sperrregel": "Ignore rule",
+    "Eigenes Briefing": "Own briefing",
+    "IServ-Konto": "IServ account",
+    "Postfach ohne Thema": "Mailbox without a topic",
+    "Eigene Notiz": "Own note",
 }
