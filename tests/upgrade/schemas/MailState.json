@@ -840,6 +840,19 @@
           "default": null,
           "title": "Date"
         },
+        "end_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Date"
+        },
         "start": {
           "anyOf": [
             {

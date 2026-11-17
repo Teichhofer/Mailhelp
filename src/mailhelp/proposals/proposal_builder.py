@@ -223,7 +223,7 @@ class ProposalBuilder:
                 temporal.known_start_time is not None):
             values["known_temporal_facts"] = KnownTemporalFacts(
                 date=temporal.known_date, start=temporal.known_start,
-                start_time=temporal.known_start_time)
+                start_time=temporal.known_start_time, end_date=temporal.known_end_date)
         if temporal is not None:
             values["temporal_fact"] = temporal.temporal_fact
         if isinstance(item, ExtractedEvent) and item.classification == "change":

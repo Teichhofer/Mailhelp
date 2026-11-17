@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.5.5 – Vollständige Datumsbereiche und mehrtägige Klärung
+
+- Integriert den 7.4-Nachtrag in den mehrsprachigen Stand 7.5.4. Jahreslose benannte und numerische Datumsbereiche sowie Monats- und Jahreswechsel folgen der bestehenden Jahresregel für Einzeltage.
+- Bei fehlender Enduhrzeit bleibt das validierte Enddatum in `known_temporal_facts.end_date` gespeichert. Klärungsantworten verwenden den letzten Kalendertag, auch nach einem Neustart und bei Spannen über mehr als zwei Tage. Revisionen schützen dieses Datum.
+- Regressionen sichern die Jahresherkunft, ungültige und widersprüchliche Eingaben sowie mehrstufige Klärungen. Das optionale Zustandsfeld ist mit älteren JSON-Dateien kompatibel und durch aktualisierte Schemas und einen Upgrade-Zustand abgesichert.
+
 ## 7.5.4 – Offene Entscheidungen und Telegram-Meldungen in beiden Sprachen
 
 - Die Seite „Offen“ mit Filtern, Karten, Aktionen, Ergebnis- und Detailseite erscheint auf Englisch;

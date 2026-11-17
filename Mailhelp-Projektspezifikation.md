@@ -21,8 +21,14 @@ Plan: [docs/Planung-7.4.md](docs/Planung-7.4.md). Seit 7.4.1 erkennt die Normali
 mit Wochentagen, Kurzformen und über Monats- und Jahresgrenzen; ein genannter Wochentag muss zum
 Kalendertag passen. Ein Bereich mit Uhrzeiten wird ein getakteter Termin vom ersten Tag (Beginn) bis
 zum letzten Tag (Ende); ohne Endzeit lautet die Rückfrage „Wann endet der Termin am <Datum>?“. Ein
-Bereich ohne Uhrzeiten oder ausdrücklich ganztägig bleibt ganztägig mit exklusivem Ende. Bereiche
-ohne Jahreszahl werden nicht automatisch aufgelöst.
+Bereich ohne Uhrzeiten oder ausdrücklich ganztägig bleibt ganztägig mit exklusivem Ende. Bereiche ohne Jahreszahl folgen derselben Jahresregel wie Einzeltage: Ein eindeutiges Jahr im Beleg gilt vorrangig; sonst wird aus dem validierten Maildatum der nächste Beginn abgeleitet. Monats- und Jahreswechsel bleiben zusammenhängende Spannen. Widersprüchliche Jahre, ungültiger Kontext, unmögliche Kalendertage und abweichende Wochentage führen zur Rückfrage. Die Jahresherkunft bleibt als `explicit_mail` beziehungsweise `mail_context` gespeichert.
+
+Bei unvollständigen getakteten Bereichen enthält `known_temporal_facts.end_date` den validierten
+letzten Kalendertag. Klärungsantworten zur Enduhrzeit verwenden diesen Tag. Der Beginn bleibt am
+ersten Tag und beide Datumsfakten bleiben über Speicherung, Neustart und aufeinanderfolgende
+Antworten erhalten. Widersprechende Revisionsdaten werden abgewiesen. Das zusätzliche Feld ist
+optional, damit ältere Zustandsdateien weiterhin lesbar bleiben. Zusätzliche Einstellungen sind
+für die Auflösung und Klärung von Datumsbereichen nicht erforderlich.
 
 ## Ergänzung 7.3: Fehlgeschlagene Mails verwalten
 

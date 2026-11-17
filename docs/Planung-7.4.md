@@ -1,8 +1,8 @@
 # Mailhelp 7.4 – Mehrtägige Termine und Datumsbereiche
 
 **Zielversion:** 7.4, Umsetzung in Patchversionen ab 7.4.1  
-**Stand:** 16. November 2026  
-**Status:** Umgesetzt in 7.4.1 (17. November 2026); Abnahme und Abweichung in [Release 7.4](Release-7.4.md).  
+**Stand:** 17. November 2026
+**Status:** Vollständig umgesetzt und automatisiert abgenommen. Der Nachtrag ergänzt Jahresauflösung ohne Jahreszahl und die Speicherung des Enddatums während der Klärung. Prüfstand in [Release 7.4](Release-7.4.md).
 **Ausgangsfall:** E-Mail vom 09.11.2026, 16:15 Uhr MEZ (`mail-450553d4e60ffe8960b6c59f`),  
 Betreff: *„WG: Programm Vlf Schulungstagung Bad Waldse am 07./08.01.2027 - "Mit Krisen und mentalen Belastungen gut umgehen"“*  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 7.1](Planung-7.1.md), [Planung 7.2](Planung-7.2.md).

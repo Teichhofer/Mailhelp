@@ -82,6 +82,7 @@ class NormalizationResult:
     known_date: date | None = None
     known_start: datetime | None = None
     known_start_time: time | None = None
+    known_end_date: date | None = None
     temporal_fact: TemporalFact | None = None
 
     @property
@@ -230,7 +231,8 @@ def _yearless_range(event: ExtractedEvent, context: MailDateContext) -> _Range |
     raw = event.date_text
     if raw is None:
         return None
-    for separator in (" ", ""):
+    raw = raw.strip()
+    for separator in (" ", "", "."):
         template = raw + separator + "2000"
         ranges = _date_ranges(template)
         if len(ranges) != 1 or ranges[0].text != template:
@@ -243,7 +245,7 @@ def _yearless_range(event: ExtractedEvent, context: MailDateContext) -> _Range |
         start, fact = resolved
         end_year = start.year + (shape.end.month < shape.start.month)
         rebuilt = _date_ranges(raw + separator + str(end_year))
-        if not rebuilt:
+        if not rebuilt or rebuilt[0].end < rebuilt[0].start:
             return _failure(NormalizationReason.INVALID_DATE, raw, event.responsibility, _INVALID_DATE)
         return replace(rebuilt[0], text=raw, year_source=fact.year_source)
     return None
@@ -528,7 +530,7 @@ def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
         else:
             result = _failure(NormalizationReason.MISSING_TIME, event.date_text, responsibility,
                               "Wann beginnt der Termin?")
-        return replace(result, known_date=day, temporal_fact=fact)
+        return replace(result, known_date=day, known_end_date=end_day, temporal_fact=fact)
     zone = (_explicit_offset(event.timezone_offset_text)
             if event.timezone_offset_text is not None
             else _context_zone(context, responsibility))
@@ -551,7 +553,7 @@ def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
                                        responsibility, temporal_fact=fact)
         question = "Wann endet der Termin?" if last == day else f"Wann endet der Termin am {last:%d.%m.%Y}?"
         result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility, question)
-        return replace(result, known_date=day, known_start=start, temporal_fact=fact)
+        return replace(result, known_date=day, known_start=start, known_end_date=end_day, temporal_fact=fact)
     end_clock = _parse_time(event.end_time_text, responsibility)
     if isinstance(end_clock, NormalizationResult):
         return replace(end_clock, temporal_fact=fact)

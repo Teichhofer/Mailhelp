@@ -132,6 +132,7 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
     if known is not None and revised.known_temporal_facts is not None and revised.known_temporal_facts != known:
         enriched_start = (known.start is None
                           and revised.known_temporal_facts.date == known.date
+                          and revised.known_temporal_facts.end_date == known.end_date
                           and revised.known_temporal_facts.start is not None)
         if not enriched_start:
             raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden")
@@ -143,8 +144,10 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
             complete_timed and known.date is not None and start_day != known.date
         ):
             raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
-        if known.start is not None and revised.start != known.start:
-            raise ContradictoryRevision("Eine bekannte Beginnzeit darf nicht verändert werden")
+        if ((known.start is not None and revised.start != known.start)
+                or (known.end_date is not None and isinstance(revised.end, datetime)
+                    and revised.end.date() != known.end_date)):
+            raise ContradictoryRevision("Eine bekannte Beginnzeit oder ein Enddatum darf nicht verändert werden")
     if previous.start is not None and revised.start != previous.start:
         raise ContradictoryRevision("Ein bestätigter Terminbeginn darf nicht verändert werden")
     expected = (ProposalStatus.NEEDS_CLARIFICATION if revised.open_questions

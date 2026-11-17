@@ -28,6 +28,7 @@ from ..processing.analysis import (
     LlmTokenLimitExceeded,
 )
 from ..text.temporal_answers import (
+    allowed_event_answer_dates,
     deterministic_classification_revision,
     deterministic_temporal_revision,
     expected_event_date,
@@ -204,14 +205,10 @@ class AuthorizedAnswerInterpreter:
     def _contradiction_message(state: ProposalClarificationState, proposal: Proposal,
                                temporal_answer: str, current_date: date) -> str:
         """Explain which validated fact a deterministic time answer contradicts."""
-        expected = expected_event_date(proposal)
+        expected = expected_event_date(proposal, state.question)
         parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)
         # Without a validated date there is nothing the answer could contradict.
-        allowed_dates = (
-            set() if expected is None
-            else {expected, expected + timedelta(days=1)} if "ende" in state.question.casefold()
-            else {expected}
-        )
+        allowed_dates = allowed_event_answer_dates(proposal, state.question)
         wrong_date = (
             parsed is not None
             and parsed.date is not None

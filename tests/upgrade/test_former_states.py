@@ -8,6 +8,9 @@ directories were kept.  The scenarios cover a created proposal (``complete``),
 an open clarification with a revised version (``incomplete``), web sessions
 and the command inbox (``web``) and IMAP checkpoints (``state``).
 
+The synthetic 7.4 addendum state retains a multi-day event's last day while
+its end clock is still missing. It was written by the proposal builder.
+
 The current release must read every file without quarantine or loss, and a
 restart must neither repeat an external write nor analyse a finished mail again.
 """
@@ -42,8 +45,10 @@ def model_for(name: str):
 
 
 def test_every_release_and_scenario_is_present():
-    assert sorted({release for release, _ in CASES}) == ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "2.0"]
-    assert all(len([case for case in CASES if case[0] == release]) == 4 for release, _ in CASES)
+    assert sorted({release for release, _ in CASES}) == ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "2.0", "7.4"]
+    for release, _ in CASES:
+        expected_scenarios = 1 if release == "7.4" else 4
+        assert len([case for case in CASES if case[0] == release]) == expected_scenarios
 
 
 @pytest.mark.parametrize(("release", "scenario"), CASES)

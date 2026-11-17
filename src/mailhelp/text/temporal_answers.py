@@ -179,8 +179,11 @@ def normalize_deterministic_temporal_answer(parsed: DeterministicTemporalAnswer)
     return " ".join(parts)
 
 
-def expected_event_date(proposal: Proposal) -> date | None:
+def expected_event_date(proposal: Proposal, question: str = "") -> date | None:
     """The validated event date an answer must not contradict."""
+    if "ende" in question.casefold() and proposal.known_temporal_facts is not None:
+        if proposal.known_temporal_facts.end_date is not None:
+            return proposal.known_temporal_facts.end_date
     return (
         (proposal.known_temporal_facts.date or
          (proposal.known_temporal_facts.start.date() if proposal.known_temporal_facts.start is not None else None))
@@ -189,6 +192,17 @@ def expected_event_date(proposal: Proposal) -> date | None:
         if proposal.temporal_fact is not None
         else None
     )
+
+
+def allowed_event_answer_dates(proposal: Proposal, question: str) -> set[date | None]:
+    """End answers respect a known last day or the existing overnight rule."""
+    expected = expected_event_date(proposal, question)
+    allowed = {expected}
+    known = proposal.known_temporal_facts
+    if ("ende" in question.casefold() and expected is not None
+            and (known is None or known.end_date is None)):
+        allowed.add(expected + timedelta(days=1))
+    return allowed
 
 
 def _requested_times(parsed: DeterministicTemporalAnswer,
@@ -237,7 +251,7 @@ def _localize(value: clock_time | None, value_day: date | None, zone: ZoneInfo) 
 
 def _interval(proposal: Proposal, parsed: DeterministicTemporalAnswer, day: date | None,
               start_time: clock_time | None, end_time: clock_time | None,
-              zone: ZoneInfo) -> tuple[datetime | None, datetime | None]:
+              zone: ZoneInfo, end_day: date | None) -> tuple[datetime | None, datetime | None]:
     """Start and end of the answer, checked against the already known start."""
     start = _localize(start_time, day, zone)
     if (
@@ -247,7 +261,7 @@ def _interval(proposal: Proposal, parsed: DeterministicTemporalAnswer, day: date
         and proposal.known_temporal_facts.start_time is not None
     ):
         start = _localize(proposal.known_temporal_facts.start_time, day, zone)
-    end_day = parsed.date or day
+    end_day = parsed.date or end_day
     known_start = (
         proposal.known_temporal_facts.start
         if proposal.known_temporal_facts is not None
@@ -309,15 +323,13 @@ def deterministic_temporal_revision(
         for word in ("datum", "beginn", "ende", "uhrzeit", "wann")
     ):
         return None
-    expected = expected_event_date(proposal)
+    expected = expected_event_date(proposal, question)
     parsed = parse_deterministic_temporal_answer(
         normalized_answer, reference_date or expected
     )
     if parsed is None:
         return None
-    allowed_dates = {expected}
-    if "ende" in question.casefold() and expected is not None:
-        allowed_dates.add(expected + timedelta(days=1))
+    allowed_dates = allowed_event_answer_dates(proposal, question)
     if (
         parsed.date is not None
         and expected is not None
@@ -326,11 +338,12 @@ def deterministic_temporal_revision(
         raise ContradictoryRevision(
             "Die Antwort widerspricht dem validierten Termindatum"
         )
-    day = parsed.date or expected
+    day = expected_event_date(proposal) or parsed.date
     start_time, end_time = _requested_times(parsed, question)
     if day is None and (start_time is not None or end_time is not None):
         return None
-    start, end = _interval(proposal, parsed, day, start_time, end_time, ZoneInfo(configured_timezone))
+    start, end = _interval(proposal, parsed, day, start_time, end_time,
+                           ZoneInfo(configured_timezone), expected)
     changes = _temporal_changes(proposal, parsed, expected, start, end)
     revised = apply_proposal_revision(
         proposal, ProposalRevisionDelta(answered_question=question,
@@ -344,7 +357,7 @@ def deterministic_temporal_revision(
                 update={
                     "temporal_fact": TemporalFact(
                         raw_text=normalized_answer,
-                        normalized_date=parsed.date,
+                        normalized_date=day,
                         year_source=YearSource.TELEGRAM,
                         status=TemporalResolutionStatus.RESOLVED,
                     )

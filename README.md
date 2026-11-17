@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.5.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.5.5 integriert den vollständigen Nachtrag zu 7.4. Datumsbereiche ohne Jahr folgen derselben Mailkontext-Regel wie Einzeltage, einschließlich Jahreswechsel. Bei fehlender Enduhrzeit bleibt der letzte Kalendertag auch über Klärung und Neustart erhalten. Widersprüchliche Angaben führen zu Rückfragen.
 
 7.5.1 beginnt die englische Oberfläche: Navigation und Statusbezeichnungen lassen sich über einen Link in der Navigation oder die Einstellung `language` auf Englisch umstellen; weitere Bereiche folgen in den nächsten Patches. Seit 7.5.4 sind die offenen Entscheidungen mit allen Aktionen sowie die Telegram-Quittungen und -Meldungen zweisprachig.
 

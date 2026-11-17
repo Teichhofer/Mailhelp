@@ -102,6 +102,7 @@ class KnownTemporalFacts(StrictModel):
     # A clock explicitly present in the mail can be retained before an
     # ambiguous/yearless calendar date has been resolved.
     start_time: time | None = None
+    end_date: CalendarDate | None = None
 
     @model_validator(mode="after")
     def validate_facts(self) -> KnownTemporalFacts:
@@ -113,6 +114,9 @@ class KnownTemporalFacts(StrictModel):
             raise ValueError("Bekanntes Datum und bekannte Beginnzeit müssen zusammenpassen")
         if self.start is not None and self.start_time is not None:
             raise ValueError("Beginnzeit darf nicht zugleich vollständig und datumslos gespeichert sein")
+        start_day = self.date or (self.start.date() if self.start is not None else None)
+        if self.end_date is not None and start_day is not None and self.end_date < start_day:
+            raise ValueError("Das bekannte Enddatum darf nicht vor dem Beginn liegen")
         return self
 
 
@@ -555,6 +559,8 @@ def _revision_day(previous: Proposal, changes: dict[str, Any]) -> KnownTemporalF
         allowed_end_days = {resolved_day}
         if not previous.all_day and isinstance(end, datetime):
             allowed_end_days.add(resolved_day + timedelta(days=1))
+            if known is not None and known.end_date is not None:
+                allowed_end_days = {known.end_date}
         if end_day not in allowed_end_days:
             raise ValueError(
                 f"end widerspricht dem validierten Datum {resolved_day.isoformat()}")
