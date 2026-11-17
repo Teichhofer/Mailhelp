@@ -90,3 +90,11 @@ ohne neue gespeicherte Formate.
 
 Weitere Abweichung (7.3.1): Eine erneut versuchte Mail bleibt bis zur Verarbeitung gekennzeichnet in
 der Fehlerliste, damit Liste und Statuszähler übereinstimmen.
+
+Prüfung 7.3.3: 5 673 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung (danach die neue Seite
+`/mails/fehler/alle` im Seiteninventar ergänzt; die Inventarprüfung besteht). Browser 952 bestanden,
+JavaScript vollständig abgedeckt. **Nachtrag zu 7.3.2:** Der Lauf zu 7.3.2 meldete am Ende drei nicht
+abgedeckte Zeilen in `dialogs.js` (Rückfall bei Lesefehler); ich hatte nur nach gescheiterten Tests
+gesucht und die Meldung übersehen. Der Rückfalltest stellt den Lesefehler jetzt auf Serverseite nach
+und sammelt die Abdeckung vor der Rückfall-Navigation ein. Ein Testaufbau scheiterte an einer
+Port-Kollision und bestand danach zweimal einzeln.
