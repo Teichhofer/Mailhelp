@@ -28,6 +28,12 @@ def test_a_rule_is_previewed_saved_switched_off_and_removed(page, mailhelp, tmp_
             page.get_by_role("button", name="Entfernen").click()
             expect(main).to_contain_text("Regel für „no-reply@*“ entfernt.", timeout=10000)
             expect(main).to_contain_text("Derzeit wird kein Absender ignoriert.")
+            # 7.7.4: the header filter for newsletters goes into a trial first.
+            form = page.locator("form", has=page.get_by_label("Newsletter und Verteiler"))
+            form.get_by_label("Newsletter und Verteiler").select_option("trial")
+            form.get_by_role("button", name="Übernehmen").click()
+            expect(main).to_contain_text("Newsletter und Verteiler: Probelauf.", timeout=10000)
+            expect(main).to_contain_text("0 Mails wären aussortiert worden")
             assert page.errors == []
         finally:
             configuration.senders = None

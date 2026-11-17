@@ -47,7 +47,9 @@ class SenderSite:
                 ("POST", f"{LIST_PATH}/entfernen", self.remove),
                 ("POST", RULE_PATH, self.add_rule),
                 ("POST", rf"{RULE_PATH}/(?P<step>entfernen|enable|disable)", self.change_rule),
-                ("POST", f"{LIST_PATH}/ausnahme-vip", self.promote)):
+                ("POST", f"{LIST_PATH}/ausnahme-vip", self.promote),
+                ("POST", f"{LIST_PATH}/kopfzeilen", self.header_mode),
+                ("POST", rf"{LIST_PATH}/verteiler/(?P<step>hinzufuegen|entfernen)", self.list_exception)):
             site.app.route(method, path, site.signed_in(handler))
 
     @property
@@ -185,6 +187,16 @@ class SenderSite:
         return self._rule_command(request, session, form, {
             "rule_action": "promote", "value": form.get("adresse", ""),
             "mailbox_id": int(mailbox) if mailbox.isdigit() else None})
+
+
+    def header_mode(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self._rule_command(request, session, form, {
+            "rule_action": "header_mode", "header": form.get("filter"), "mode": form.get("modus")})
+
+    def list_exception(self, request: Request, session: WebSession, form: dict[str, str], step: str) -> Response:
+        return self._rule_command(request, session, form, {
+            "rule_action": "list_exception_add" if step == "hinzufuegen" else "list_exception_remove",
+            "value": form.get("verteiler", "")})
 
 
 __all__ = ["LIST_PATH", "OLD_PATH", "SenderSite"]

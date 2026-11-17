@@ -13,17 +13,19 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..domain.relevance import IrrelevantSenders
+from ..domain.relevance import IrrelevantSenders, list_key
 from ..i18n import de
 from ..llm.learning import topics_document
 from ..mailbox.sender_filter import (
     change_irrelevant_senders,
+    change_list_exception,
     drop_rule,
     new_rule,
     promote_exception,
     put_rule,
     rule_value,
     save_sender_filter,
+    set_header_mode,
     switch_rule,
 )
 from ..persistence.storage import JsonStore, atomic_replace
@@ -97,11 +99,16 @@ class SenderChange(BaseModel):
         return ", ".join([*self.addresses, *self.domains])
 
 
+HEADER_NAMES = {"automated": "Automatische Systemmails", "lists": "Newsletter und Verteiler"}
+MODE_NAMES = {"off": "aus", "trial": "Probelauf", "on": "an"}
+
+
 class RuleChange(BaseModel):
     """7.7.3: one change of a prefilter rule; idempotent through the rule's stable id."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    rule_action: Literal["add", "remove", "enable", "disable", "promote"]
+    rule_action: Literal["add", "remove", "enable", "disable", "promote", "header_mode", "list_exception_add",
+                         "list_exception_remove"]
     kind: Literal["address", "domain", "pattern", "subject"] | None = None
     value: str = Field(default="", max_length=320)
     action: Literal["ignore", "vip", "allow_only"] = "ignore"
@@ -111,11 +118,17 @@ class RuleChange(BaseModel):
     origin: Literal["manual", "mail", "hint", "telegram"] = "manual"
     rule_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{16}$")
     mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
+    # 7.7.4: the header filters and their list exceptions.
+    header: Literal["automated", "lists"] | None = None
+    mode: Literal["off", "trial", "on"] | None = None
 
     @model_validator(mode="after")
     def complete(self) -> RuleChange:
         needed = {"add": self.kind is not None and self.value.strip() != "",
-                  "promote": self.mailbox_id is not None and self.value.strip() != ""}
+                  "promote": self.mailbox_id is not None and self.value.strip() != "",
+                  "header_mode": self.header is not None and self.mode is not None,
+                  "list_exception_add": self.value.strip() != "",
+                  "list_exception_remove": self.value.strip() != ""}
         if not needed.get(self.rule_action, self.rule_id is not None):
             raise ValueError("Regeländerung unvollständig")
         return self
@@ -377,6 +390,17 @@ class ConfigurationService:
                 assert change.rule_id is not None
                 updated = switch_rule(current, change.rule_id, change.rule_action == "enable")
                 message = de("Regel eingeschaltet.") if change.rule_action == "enable" else de("Regel ausgeschaltet.")
+            elif change.rule_action == "header_mode":
+                assert change.header is not None and change.mode is not None
+                updated = set_header_mode(current, change.header, change.mode, now)
+                message = de("{filter}: {mode}.", filter=de(HEADER_NAMES[change.header]),
+                             mode=de(MODE_NAMES[change.mode]))
+            elif change.rule_action in {"list_exception_add", "list_exception_remove"}:
+                key = list_key(change.value)
+                added = change.rule_action == "list_exception_add"
+                updated = change_list_exception(current, key, added)
+                message = (de("Verteiler {list} wird nie vorgefiltert.", list=key) if added
+                           else de("Ausnahme für Verteiler {list} entfernt.", list=key))
             else:
                 assert change.mailbox_id is not None
                 address = rule_value("address", change.value)

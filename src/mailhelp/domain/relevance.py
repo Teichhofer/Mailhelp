@@ -24,6 +24,15 @@ def subject_key(text: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
 
 
+def list_key(value: str) -> str:
+    """7.7.4: the identifier of a ``List-Id`` (``"Shop News" <news.shop.test>`` → ``<news.shop.test>``)."""
+    value = value.strip().casefold()
+    start, end = value.rfind("<"), value.rfind(">")
+    if 0 <= start < end and value[start + 1:end].strip():
+        return value[start:end + 1]
+    return f"<{value.strip('<> ')}>" if value.strip("<> ") else ""
+
+
 class ListSignals(StrictModel):
     """7.7: bounded, untrusted list and automation headers of a mail, used only by the prefilter.
 

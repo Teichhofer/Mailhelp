@@ -309,3 +309,27 @@ def test_the_mail_page_ignores_the_domain_or_makes_the_sender_a_vip(web, senders
     save_mail(web.store, 22, "a@x.test, b@y.test", "Zwei", text="x")
     assert web.browser.request("POST", f"/mail/{mail_id(22)}/absender-vip", fields).status == 422
     assert web.browser.request("POST", f"/mail/{'e' * 24}/absender-vip", fields).status == 404
+
+
+def test_header_filters_are_switched_tried_and_lists_excepted(web, senders):
+    page = web.browser.request("GET", LIST_PATH).body.decode()
+    assert "Kopfzeilen-Vorfilter" in page and "Keine Verteiler-Ausnahmen." in page
+    fields = {**web.form(LIST_PATH, action=f"{LIST_PATH}/kopfzeilen", filter="lists"), "modus": "trial"}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/kopfzeilen", fields))
+    assert "Newsletter und Verteiler: Probelauf." in page and blocked(senders).headers.lists == "trial"
+    assert "Probelauf seit" in page and "0 Mails wären aussortiert worden" in page
+    fields = {**web.form(LIST_PATH, action=f"{LIST_PATH}/verteiler/hinzufuegen"), "verteiler": "Eltern.Schule.test"}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/verteiler/hinzufuegen", fields))
+    assert "Verteiler &lt;eltern.schule.test&gt; wird nie vorgefiltert." in page
+    assert blocked(senders).headers.list_exceptions == ["<eltern.schule.test>"]
+    fields = web.form(LIST_PATH, action=f"{LIST_PATH}/verteiler/entfernen")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/verteiler/entfernen", fields))
+    assert "Ausnahme für Verteiler &lt;eltern.schule.test&gt; entfernt." in page
+    fields = {**web.form(LIST_PATH, action=f"{LIST_PATH}/kopfzeilen", filter="automated"), "modus": "on"}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/kopfzeilen", fields))
+    assert "Automatische Systemmails: an." in page and blocked(senders).headers.automated == "on"
+    wrong = {**web.form(LIST_PATH, action=f"{LIST_PATH}/kopfzeilen", filter="lists"), "modus": "immer"}
+    assert web.browser.request("POST", f"{LIST_PATH}/kopfzeilen", wrong).status == 422
+    empty = {**web.form(LIST_PATH, action=f"{LIST_PATH}/verteiler/hinzufuegen"), "verteiler": "<>"}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/verteiler/hinzufuegen", empty))
+    assert "Regel nicht geändert" in page

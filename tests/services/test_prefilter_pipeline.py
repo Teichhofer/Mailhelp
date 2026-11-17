@@ -130,3 +130,17 @@ def test_the_decision_test_follows_subject_and_vip_rules(tmp_path):
     vip = IrrelevantSenders(rules=[rule("address", "sender@example.test", action="vip")],
                             addresses=["sender@example.test"])
     assert stages(vip) == {"model"}
+
+
+def test_a_header_trial_only_counts_and_an_exception_is_never_counted(tmp_path):
+    newsletter = b'List-Id: "Schule" <Eltern.Schule.test>\nList-Unsubscribe: <https://x>\n'
+    with JsonStore(tmp_path) as store:
+        rules(store, headers=HeaderPrefilter(lists="trial", trial_since={"lists": NOW}))
+        analyzer = Counting()
+        state = MailState.model_validate(process(store, analyzer, raw("a@schule.test", extra=newsletter)).state)
+        assert analyzer.relevance_calls == 1 and state.prefilter_rule is None and state.relevance.reason == "why"
+        assert hits(store).trial[LISTS].count == 1 and hits(store).rules == {}
+        rules(store, headers=HeaderPrefilter(lists="trial", trial_since={"lists": NOW},
+                                             list_exceptions=["<eltern.schule.test>"]))
+        process(store, analyzer, raw("a@schule.test", extra=newsletter, uid=2), uid=2)
+        assert analyzer.relevance_calls == 2 and hits(store).trial[LISTS].count == 1

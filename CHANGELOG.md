@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.7.4 – Kopfzeilen-Vorfilter mit Probelauf
+
+- Auf der Seite „Absender-Regeln“ lassen sich die Filter „Automatische Systemmails“ und „Newsletter und
+  Verteiler“ je auf aus, Probelauf oder an stellen. Nach dem Update sind beide aus.
+- Im Probelauf entscheidet weiter die KI; Mailhelp zählt nur, wie viele Mails seit Beginn des Probelaufs
+  aussortiert worden wären, und zeigt Anzahl und letzten Treffer.
+- Verteiler-Ausnahmen (`List-Id`) sortiert der Filter für Newsletter nie aus. Eine `List-Id` wird an
+  ihrer Kennung in spitzen Klammern erkannt, auch mit Beschreibung davor.
+
 ## 7.7.3 – Absender-Regeln verwalten (Web und Telegram)
 
 - Neue Seite „Absender-Regeln“ (`/einstellungen/absender`; die alte Adresse leitet weiter): VIP-Absender,

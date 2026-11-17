@@ -129,3 +129,31 @@ Werte). `mypy` meldete ihn, der Prüflauf führt `mypy` aber nicht aus.
   Branch-Abdeckung, Lasttests bestanden.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.7.4 – Kopfzeilen-Vorfilter
+
+- **Schalter:** Auf der Regelseite stehen „Automatische Systemmails“ und „Newsletter und Verteiler“
+  je auf aus, Probelauf oder an. Nach dem Update sind beide aus.
+- **Probelauf:** Entscheidet keine Regel, zählt der Relevanzschritt jede Mail, die ein Filter im
+  Probelauf aussortiert hätte, in `prefilter-hits.json` unter `trial`. Die Entscheidung trifft
+  weiter die KI. Die Seite zeigt Beginn, Anzahl und letzten Treffer des Probelaufs.
+- **Verteiler-Ausnahmen:** Der Filter für Newsletter sortiert diese Verteiler nie aus. Eine `List-Id`
+  wird auf ihre Kennung in spitzen Klammern verkürzt (`"Schule" <eltern.schule.test>` →
+  `<eltern.schule.test>`), damit Ausnahmen zuverlässig greifen.
+- **Tests:**
+  - Probelauf: Er zählt nur, die Entscheidung bleibt beim Modell, und eine Ausnahme wird nicht
+    gezählt.
+  - Ein erneuter Probelauf behält seinen Beginn.
+  - Moduswechsel, Ausnahmen hinzufügen und entfernen, ungültiger Modus und leere `List-Id`.
+  - Der Browsertest schaltet den Newsletter-Filter in den Probelauf.
+
+**Abweichung vom Plan:** Der Probelauf zeigt Anzahl und letzten Treffer, aber keine Liste der
+einzelnen Mails. Die betroffenen Mails stehen wie alle anderen im Mailarchiv; eine eigene Liste
+hätte eine weitere Zustandsdatei je Mail gebraucht.
+
+**Prüfung 7.7.4:**
+
+- `python -m devtools.check full --workers 12`: 5.872 Tests bestanden, 100 % Zeilen- und
+  Branch-Abdeckung, Lasttests bestanden.
+- `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
+  JavaScript-Abdeckung 100 %.

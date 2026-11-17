@@ -192,6 +192,30 @@ def new_rule(kind: RuleKind, text: str, action: RuleAction, at: datetime, *, mai
                       created_at=at, origin=origin)
 
 
+HeaderFilter = Literal["automated", "lists"]
+
+
+def set_header_mode(blocked: IrrelevantSenders, header: HeaderFilter, mode: HeaderMode,
+                    at: datetime) -> IrrelevantSenders:
+    """7.7.4: switch one header filter; a trial starts counting when it is switched on."""
+    headers = blocked.headers
+    trial_since = {key: value for key, value in headers.trial_since.items() if key != header}
+    if mode == "trial":
+        trial_since[header] = headers.trial_since.get(header, at) if getattr(headers, header) == "trial" else at
+    updated = headers.model_copy(update={header: mode, "trial_since": trial_since})
+    return blocked.model_copy(update={"headers": HeaderPrefilter.model_validate(updated.model_dump())})
+
+
+def change_list_exception(blocked: IrrelevantSenders, list_id: str, add: bool) -> IrrelevantSenders:
+    """A mailing list that the header filter for lists never sorts out; ``ValueError`` if unusable."""
+    if not list_id or len(list_id) > 200:
+        raise ValueError("Bitte eine gültige List-Id angeben")
+    current = set(blocked.headers.list_exceptions)
+    exceptions = sorted(current | {list_id} if add else current - {list_id})
+    headers = HeaderPrefilter.model_validate({**blocked.headers.model_dump(), "list_exceptions": exceptions})
+    return blocked.model_copy(update={"headers": headers})
+
+
 def put_rule(blocked: IrrelevantSenders, rule: SenderRule) -> tuple[IrrelevantSenders, str]:
     """Add a rule idempotently: ``added``, ``exists`` (same action) or ``changed`` (new action)."""
     current = next((item for item in blocked.rules if item.id == rule.id), None)

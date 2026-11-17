@@ -14,6 +14,7 @@ from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any
 
+from ..domain.relevance import list_key
 from ..text.attachment_extractor import extract_attachment_text
 from ..text.calendar_parser import parse_icalendar
 
@@ -85,7 +86,7 @@ def extract_list_signals(raw: bytes, limits: int | MimeLimits | object) -> dict[
     def value(name: str, limit: int) -> str:
         return _clean_display(str(message.get(name, ""))).casefold()[:limit]
 
-    return {"list_id": value("List-Id", 200), "list_unsubscribe": message.get("List-Unsubscribe") is not None,
+    return {"list_id": list_key(value("List-Id", 200)), "list_unsubscribe": message.get("List-Unsubscribe") is not None,
             "precedence": value("Precedence", 50), "auto_submitted": value("Auto-Submitted", 50)}
 
 

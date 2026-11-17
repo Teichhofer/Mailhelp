@@ -793,4 +793,28 @@ EN: dict[str, str] = {
     "Absender {address} wird künftig ignoriert.": "Sender {address} will be ignored from now on.",
     "Die Relevanzfrage ist veraltet oder bereits beantwortet": "The relevance question is outdated or already answered",
     "Rückgängig": "Undo",
+    # Header prefilter (7.7.4)
+    "Ausnahme für Verteiler {list} entfernt.": "Exception for mailing list {list} removed.",
+    "Ausnahme hinzufügen": "Add exception",
+    "Diese Verteiler sortiert der Filter für Newsletter nie aus.":
+        "The filter for newsletters never sorts out these mailing lists.",
+    "Keine Verteiler-Ausnahmen.": "No mailing list exceptions.",
+    "Kopfzeilen-Vorfilter": "Header prefilter",
+    "List-Id": "List-Id",
+    "Probelauf seit {since}: {count} Mails wären aussortiert worden (zuletzt: {when}). Entschieden hat weiter die KI.":
+        "Trial since {since}: {count} emails would have been sorted out (last: {when}). The AI still decided.",
+    "Standardmäßig aus. Ein Probelauf zählt nur, was aussortiert würde; erst „an“ spart KI-Aufrufe.":
+        "Off by default. A trial only counts what would be sorted out; only “on” saves AI calls.",
+    "Verteiler {list} wird nie vorgefiltert.": "Mailing list {list} is never prefiltered.",
+    "Verteiler-Ausnahmen": "Mailing list exceptions",
+    "{filter}: {mode}.": "{filter}: {mode}.",
+    "Übernehmen": "Apply",
+    "Automatische Systemmails": "Automated system emails",
+    "Newsletter und Verteiler": "Newsletters and mailing lists",
+    "Probelauf": "Trial",
+    "an": "on",
+    "Auto-Submitted (z. B. Abwesenheitsnotizen) oder Precedence: bulk, junk, list.":
+        "Auto-Submitted (e.g. out-of-office replies) or Precedence: bulk, junk, list.",
+    "List-Id oder List-Unsubscribe – auch Rundbriefe von Schule oder Verein.":
+        "List-Id or List-Unsubscribe – including newsletters from school or club.",
 }

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import secrets
 
-from ..domain.relevance import IrrelevantSenders, PrefilterHits, RuleHits, SenderRule, SenderRules
+from ..domain.relevance import HeaderPrefilter, IrrelevantSenders, PrefilterHits, RuleHits, SenderRule, SenderRules
 from ..formatting import format_datetime_local
 from ..i18n import tr
-from ..mailbox.sender_filter import FREEMAIL, prefilter, sender_addresses
+from ..mailbox.sender_filter import AUTOMATED, FREEMAIL, LISTS, prefilter, sender_addresses
 from .pages import e, notice
 
 LIST_PATH = "/einstellungen/absender"
@@ -145,7 +145,48 @@ def senders_page(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, sta
                      tr("Derzeit wird kein Absender ignoriert."))
     body += _section(tr("Ausnahmen"), tr("Heben jede Sperre für diesen Absender auf, ohne ihn zum VIP zu machen."),
                      _exceptions(blocked.mailboxes, csrf, stand) + rows("allow_only"), tr("Keine Ausnahmen."))
-    return body
+    return body + header_section(blocked.headers, hits, csrf, stand, zone)
+
+
+HEADERS = {
+    "automated": (AUTOMATED, "Automatische Systemmails",
+                  "Auto-Submitted (z. B. Abwesenheitsnotizen) oder Precedence: bulk, junk, list."),
+    "lists": (LISTS, "Newsletter und Verteiler",
+              "List-Id oder List-Unsubscribe – auch Rundbriefe von Schule oder Verein."),
+}
+MODES = {"off": "aus", "trial": "Probelauf", "on": "an"}
+
+
+def header_section(headers: HeaderPrefilter, hits: PrefilterHits, csrf: str, stand: str, zone: str) -> str:
+    """7.7.4: off after an update; a trial only counts what would have been sorted out."""
+    rows = []
+    for key, (rule_id, name, explanation) in HEADERS.items():
+        mode = getattr(headers, key)
+        options = "".join(f'<option value="{value}"{" selected" if value == mode else ""}>{tr(label)}</option>'
+                          for value, label in MODES.items())
+        select = f'<label>{tr(name)}<select name="modus">{options}</select></label>'
+        trial = ""
+        if mode == "trial":
+            counted = hits.trial.get(rule_id, RuleHits())
+            trial = '<p class="meta">' + tr("Probelauf seit {since}: {count} Mails wären aussortiert worden "
+                                             "(zuletzt: {when}). Entschieden hat weiter die KI.",
+                                             since=format_datetime_local(headers.trial_since[key], zone),
+                                             count=counted.count, when=_when(counted, zone)) + "</p>"
+        rows.append(f'<li><span class="meta">{tr(explanation)}</span>{trial}'
+                    + action_form(f"{LIST_PATH}/kopfzeilen", csrf, tr("Übernehmen"), "button small", select,
+                                  stand=stand, filter=key) + "</li>")
+    exceptions = [f'<li><span class="sender-entry">{e(item)}</span>'
+                  + action_form(f"{LIST_PATH}/verteiler/entfernen", csrf, tr("Entfernen"), stand=stand, verteiler=item)
+                  + "</li>" for item in headers.list_exceptions]
+    field = (f'<label>{tr("List-Id")}<input type="text" name="verteiler" maxlength="200" required '
+             'autocomplete="off" placeholder="&lt;eltern.schule.de&gt;"></label>')
+    return (f'<h2>{tr("Kopfzeilen-Vorfilter")}</h2><p class="meta">'
+            + tr("Standardmäßig aus. Ein Probelauf zählt nur, was aussortiert würde; erst „an“ spart KI-Aufrufe.")
+            + f'</p><ul class="sender-list">{"".join(rows)}</ul>'
+            + _section(tr("Verteiler-Ausnahmen"), tr("Diese Verteiler sortiert der Filter für Newsletter nie aus."),
+                       exceptions, tr("Keine Verteiler-Ausnahmen."))
+            + action_form(f"{LIST_PATH}/verteiler/hinzufuegen", csrf, tr("Ausnahme hinzufügen"), "button small",
+                          field, stand=stand))
 
 
 def preview_text(matched: int, total: int, conflict: bool) -> str:

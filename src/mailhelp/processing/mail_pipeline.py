@@ -15,7 +15,7 @@ from ..domain.proposal import Proposal
 from ..domain.relevance import ListSignals, Relevance, RelevanceDialog
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mime import extract_display_headers, extract_list_signals, prepare
-from ..mailbox.sender_filter import prefilter, record_hit
+from ..mailbox.sender_filter import header_match, prefilter, record_hit
 from ..notifications.briefing_identity import is_own_briefing
 from . import pipeline_failures, pipeline_proposals
 from .perspective import Perspective, read_perspective
@@ -264,6 +264,10 @@ class MailPipeline:
                 state.prefilter_rule, call = match.rule_id, None
                 self.o.analyzer.last_relevance_source = "vip" if match.action == "vip" else "prefilter"
             else:
+                # 7.7.4: a trial only counts what it would have sorted out; the model still decides.
+                trial = header_match(state.list_signals, self.o.blocked_senders().headers, frozenset({"trial"}))
+                if trial is not None:
+                    record_hit(self.o.store, trial.rule_id, state.updated_at, trial=True)
                 own = _perspective(state).own_relevance()
                 if self.o.mailbox_settings is not None and not any(topic.enabled for topic in topics):
                     call = None

@@ -251,3 +251,31 @@ def test_rule_values_need_one_usable_address_and_a_web_change_needs_a_live_sessi
         result = service.change_rules("web:" + "a" * 16, RuleChange(rule_action="add", kind="address",
                                                                     value="a@b.test"))
         assert result.status == ResultStatus.UNAUTHORIZED and senders.load("irrelevant-senders") is None
+
+
+# --- 7.7.4: header filters -------------------------------------------------------------------------
+
+@pytest.mark.parametrize(("header", "expected"), [
+    ('"Shop News" <News.Shop.test>', "<news.shop.test>"), ("<eltern.schule.test>", "<eltern.schule.test>"),
+    ("eltern.schule.test", "<eltern.schule.test>"), ("", ""), ("<>", ""),
+])
+def test_a_list_id_is_compared_by_its_identifier(header, expected):
+    from mailhelp.domain.relevance import list_key
+    assert list_key(header) == expected
+
+
+def test_a_trial_keeps_its_start_and_ends_when_the_filter_is_switched(tmp_path):
+    from mailhelp.mailbox.sender_filter import change_list_exception, set_header_mode
+    later = datetime(2026, 11, 20, tzinfo=UTC)
+    blocked = set_header_mode(IrrelevantSenders(), "lists", "trial", NOW)
+    assert blocked.headers.lists == "trial" and blocked.headers.trial_since == {"lists": NOW}
+    assert set_header_mode(blocked, "lists", "trial", later).headers.trial_since == {"lists": NOW}
+    switched = set_header_mode(blocked, "lists", "on", later)
+    assert switched.headers.lists == "on" and switched.headers.trial_since == {}
+    assert set_header_mode(switched, "automated", "trial", later).headers.trial_since == {"automated": later}
+    listed = change_list_exception(switched, "<a.test>", True)
+    assert listed.headers.list_exceptions == ["<a.test>"]
+    assert change_list_exception(listed, "<a.test>", False).headers.list_exceptions == []
+    for value in ("", "<" + "a" * 200 + ">"):
+        with pytest.raises(ValueError, match="List-Id"):
+            change_list_exception(listed, value, True)

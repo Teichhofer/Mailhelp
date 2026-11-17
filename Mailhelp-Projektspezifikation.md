@@ -57,6 +57,15 @@ Ignorier-Regel an (`origin: telegram`) und beantwortet die Rückfrage mit „irr
 sind idempotent, sodass ein Neustart dazwischen genau eine Regel ergibt. Die Antwort trägt
 „Rückgängig“ (`rule-undo:<regel>`), das nur diese Regel entfernt; die Einordnung der Mail bleibt.
 
+Seit 7.7.4 schaltet die Regelseite die Kopfzeilen-Vorfilter (`RuleChange` `header_mode` mit `header`
+`automated`/`lists` und `mode` `off`/`trial`/`on`) und pflegt Verteiler-Ausnahmen
+(`list_exception_add`/`list_exception_remove`). Der Wechsel auf `trial` setzt `trial_since`; ein
+erneutes `trial` behält den Beginn, jeder andere Modus entfernt ihn. Entscheidet keine Regel, zählt der
+Relevanzschritt jede Mail, die ein Filter im Probelauf aussortiert hätte, unter `prefilter-hits.json`
+`trial` (`header-automated`, `header-lists`); die Entscheidung trifft weiter das Sprachmodell. Eine
+`List-Id` wird auf ihre Kennung in spitzen Klammern verkürzt und kleingeschrieben (`list_key`), sowohl
+beim Lesen der Mail als auch bei Ausnahmen.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der
