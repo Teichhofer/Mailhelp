@@ -2,7 +2,7 @@
 
 Geprüft für Mailhelp 7.3.
 
-Umsetzung von [Planung 7.3](Planung-7.3.md) in 7.3.1 bis 7.3.3.
+Umsetzung von [Planung 7.3](Planung-7.3.md) in 7.3.1 bis 7.3.3; Prüfung und Korrektur in 7.3.4.
 
 ## 7.3.1 – Ursache und Aktionen in der Fehlerliste (F1, F2)
 
@@ -98,3 +98,30 @@ abgedeckte Zeilen in `dialogs.js` (Rückfall bei Lesefehler); ich hatte nur nach
 gesucht und die Meldung übersehen. Der Rückfalltest stellt den Lesefehler jetzt auf Serverseite nach
 und sammelt die Abdeckung vor der Rückfall-Navigation ein. Ein Testaufbau scheiterte an einer
 Port-Kollision und bestand danach zweimal einzeln.
+
+## 7.3.4 – Prüfung der Umsetzung
+
+Auf Wunsch des Auftraggebers wurde 7.3 gegen Plan und Entwicklungsregeln geprüft: Vorgaben 1 bis 4,
+Datenschutz (keine Inhalte oder Geheimnisse im Bericht), Barrierefreiheit (natives `<dialog>`,
+sichtbare Beschriftungen), CSRF, Versionsprüfung und Idempotenz jeder Einzel- und Sammelaktion
+sowie die Tests. Ein Fehler wurde gefunden und behoben:
+
+- **Fehlerkorrektur:** Mit JavaScript sprang „Erneut versuchen“ oder „Ignorieren“ nach dem Absenden
+  zur Übersicht (`/?aktion=…`), aus der Fehlerliste wie von der Mailseite. Ohne JavaScript führt der
+  Server zur Fehlerliste beziehungsweise zur Mailseite. Die Listenknöpfe aus 7.3.1 waren nur ohne
+  JavaScript geprüft. Jetzt laufen diese beiden Befehle auch mit JavaScript über die Seite der
+  Aktion, die zur Fehlerliste oder zur Mailseite weiterleitet. Die Knöpfe im Fehlerbericht-Dialog der
+  Liste erhalten dabei denselben Rücksprung wie die Zeilenknöpfe. Regressionstests in
+  `ui_tests/test_ui_failures.py` scheitern ohne die Korrektur und bestehen mit ihr.
+
+**Hinweis zur Historie.** Den Stand 7.3.3 tragen zwei Commits: `d8156b5` (00:06 Uhr) schrieb die
+damals noch offenen 7.3.3-Änderungen samt der Pläne 7.4 bis 7.6 fest, ohne dass diese Sitzung ihn
+erstellt hatte; `697a356` ergänzte Tests und Prüfergebnisse, ohne die Version erneut zu erhöhen.
+Die Historie wird nicht umgeschrieben; 7.3.4 erhöht die Version wieder regelkonform. Die Pläne 7.4
+bis 7.6 stehen seitdem im Dokumentenverzeichnis.
+
+Prüfung 7.3.4: 5 673 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung (danach die Pläne 7.4 bis
+7.6 im Dokumentenverzeichnis ergänzt; die Dokumentationsprüfungen bestehen). Browser 954 bestanden,
+JavaScript vollständig abgedeckt. Unter Last scheiterten der Zeitmesstest der Live-Suche und ein
+Tastaturtest wegen `ERR_NO_BUFFER_SPACE` (Windows ohne freie Netzwerkpuffer); beide bestanden danach
+zweimal einzeln.

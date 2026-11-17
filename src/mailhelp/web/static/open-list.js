@@ -275,6 +275,12 @@
     }
     if (pane && pane.contains(form)) pane.dataset.dirty = "no";
     function admitted(id) {
+      var kind = fields.get("kind");
+      if (kind === "retry_mail" || kind === "file_mail") {
+        // 7.3.4: like without JavaScript, the action's page leads on to the mail or the failure list.
+        location.assign("/aktion/" + id + (fields.get("zurueck") === "fehlerliste" ? "?zurueck=fehlerliste" : ""));
+        return;
+      }
       if (!card || (location.pathname !== "/" && location.pathname !== "/offen")) {
         var anchor = fields.get("proposal_id") ? "v-" + fields.get("mail_id") + "-" + fields.get("proposal_id") : "r-" + fields.get("mail_id");
         location.assign("/?aktion=" + id + "#" + anchor);

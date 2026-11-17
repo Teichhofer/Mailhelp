@@ -206,6 +206,14 @@
       if (!card) throw new Error("missing");
       card.removeAttribute("id");
       card.querySelector("details").open = true;
+      // Opened from the failure list, its actions lead back to the list like the row buttons.
+      card.querySelectorAll('form[action="/aktion"]').forEach(function (form) {
+        var back = document.createElement("input");
+        back.type = "hidden";
+        back.name = "zurueck";
+        back.value = "fehlerliste";
+        form.appendChild(back);
+      });
       modal("Fehlerbericht", [card]);
     }).catch(function () { location.href = link.href; });
   });

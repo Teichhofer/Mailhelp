@@ -1,5 +1,10 @@
 # Änderungen
 
+## 7.3.4 – Prüfung von 7.3
+
+- Fehlerkorrektur: Mit JavaScript führen „Erneut versuchen“ und „Ignorieren“ zurück zur Fehlerliste
+  oder Mailseite statt zur Übersicht; das gilt auch für die Knöpfe im Fehlerbericht-Dialog.
+
 ## 7.3.3 – Fehlgeschlagene Mails: Sammelaktionen
 
 - „Alle erneut versuchen“ und „Alle ignorieren“ über der Fehlerliste, mit Bestätigung der Anzahl;

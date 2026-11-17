@@ -45,6 +45,9 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Planung 7.1](Planung-7.1.md), [Release 7.1](Release-7.1.md) | Demo-Modus mit vorbereiteten Beispieldaten |
 | [Planung 7.2](Planung-7.2.md), [Release 7.2](Release-7.2.md) | Notion und Google Tasks als Aufgabenziele |
 | [Planung 7.3](Planung-7.3.md), [Release 7.3](Release-7.3.md) | Verwaltung fehlgeschlagener Mails |
+| [Planung 7.4](Planung-7.4.md) | Mehrtägige Termine und Datumsbereiche |
+| [Planung 7.5](Planung-7.5.md) | Mehrsprachigkeit und englische Lokalisierung |
+| [Planung 7.6](Planung-7.6.md) | Klärungsfreie Demo-Vorschläge und Flow-Optimierung |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

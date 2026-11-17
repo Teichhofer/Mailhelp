@@ -144,3 +144,33 @@ def test_all_failed_mails_are_ignored_after_a_confirmation(page, mailhelp):
         page.wait_for_timeout(200)
     expect(page.get_by_role("link", name="Details", exact=True)).to_have_count(0)
     assert page.errors == []
+
+
+def test_an_action_in_the_dialog_returns_to_the_failure_list(page, mailhelp):
+    """Review 7.3.4: the dialog's buttons come from the mail page and lead back to the list like the row ones."""
+    if page.device != "desktop":
+        pytest.skip("Der Rücksprung ist geräteunabhängig")
+    fail(mailhelp)
+    sign_in(page, mailhelp)
+    dialog = open_report(page, mailhelp)
+    dialog.get_by_role("button", name="Ignorieren", exact=True).click()
+    page.wait_for_url("**/mails?state=failed&ergebnis=*")
+    expect(page.locator(".notice").first).to_be_visible()
+    assert page.errors == []
+
+
+@pytest.mark.parametrize("start", ["list", "mail"])
+def test_with_javascript_an_action_returns_where_it_started(page, mailhelp, start):
+    """Regression 7.3.4: with JavaScript, retry and ignore jumped to the overview instead of back."""
+    if page.device != "desktop":
+        pytest.skip("Der Rücksprung ist geräteunabhängig")
+    fail(mailhelp)
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + ("/mails?state=failed" if start == "list" else f"/mail/{mail_id(7)}"))
+    page.get_by_role("button", name="Ignorieren", exact=True).first.click()
+    if start == "list":
+        page.wait_for_url("**/mails?state=failed&ergebnis=*")
+    else:
+        page.wait_for_url(f"**/mail/{mail_id(7)}?ergebnis=*")
+    expect(page.get_by_text("Nicht verarbeitet", exact=False).first).to_be_visible()
+    assert page.errors == []
