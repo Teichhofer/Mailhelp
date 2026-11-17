@@ -1311,6 +1311,17 @@
   "title": "Annahmequote messen und verbessern"
  },
  {
+  "id": "bedienung/absender-regeln-und-vorfilter",
+  "path": [
+   "Alltagsbedienung",
+   "Absender-Regeln und Vorfilter"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Unter **Einstellungen → Absender-Regeln** (`/einstellungen/absender`) legst du fest, welche Mails\nMailhelp schon vor jedem KI-Aufruf einordnet. Ab 7.7 gibt es drei Arten:\n\n- **Ignorieren:** Mails werden ohne KI-Aufruf und ohne Benachrichtigung als irrelevant eingeordnet –\n  für eine Adresse (`newsletter@shop.de`), eine Domain mit allen Subdomains (`shop.de`), ein Muster mit\n  `*` (`no-reply@*`) oder einen Betreff (`Automatische Antwort:`).\n- **VIP – immer relevant:** Mails gelten ohne Relevanzprüfung als relevant, auch wenn eine Sperre\n  passt. Die Termine und Aufgaben daraus brauchen weiterhin deine Bestätigung; ein VIP spart nur die\n  Relevanzprüfung.\n- **Nur Ausnahme:** hebt jede Sperre für einen Absender auf, ohne ihn zum VIP zu machen. Bisherige\n  Postfach-Ausnahmen stehen hier und lassen sich mit „Als VIP übernehmen“ umwandeln.\n\nEine neue Regel prüfst du zuerst mit **Treffer prüfen**: Mailhelp zählt, wie viele der letzten 200\nMails sie getroffen hätte, und warnt bei Domains großer Mailanbieter. Erst danach erscheint **Regel\nspeichern**. Jede Regel zeigt Treffer und letzten Treffer und lässt sich aus- und wieder einschalten.\n\nAn einer Mail findest du neben dem Absender **Absender ignorieren**, „Domain … ignorieren“ (mit dem\nNamen der Domain) und **Als VIP einstufen**. Fragt Telegram, ob eine Mail relevant ist, ignoriert der\nKnopf 🚫 **Absender immer ignorieren** den Absender künftig; **Rückgängig** entfernt nur diese Regel wieder. Welche Regel eine Mail\neingeordnet hat, steht unter „So wurde diese Mail verarbeitet“.\n\nDer **Kopfzeilen-Vorfilter** erkennt automatische Systemmails (`Auto-Submitted`, `Precedence`) und\nNewsletter (`List-Id`, `List-Unsubscribe`). Beide Filter sind zunächst aus. Im **Probelauf** entscheidet\nweiter die KI; Mailhelp zählt nur, wie viele Mails aussortiert worden wären. Rundbriefe, die du\nbehalten möchtest, trägst du als **Verteiler-Ausnahme** ein (z. B. `<eltern.schule.de>`).\n\n**Lernen → Vorschläge** schlägt neue Regeln aus deinen Entscheidungen vor: Absender, deren Mails die KI\nwiederholt als irrelevant einstufte, und Absender, deren Mails stets zu bestätigten Vorschlägen\nführten. Die **Auswertung** zeigt im Abschnitt „Vorfilter“, wie viele Relevanzprüfungen entfielen, und\nschätzt die Ersparnis aus den echten Prüfungen desselben Zeitraums.",
+  "title": "Absender-Regeln und Vorfilter"
+ },
+ {
   "id": "bedienung/bedienung-auf-dem-telefon",
   "path": [
    "Alltagsbedienung",

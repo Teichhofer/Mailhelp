@@ -197,3 +197,38 @@ hätte eine weitere Zustandsdatei je Mail gebraucht.
   Branch-Abdeckung, Lasttests bestanden.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.7.6 – Dokumentation und Abnahme
+
+- **Bedienung:** neuer Abschnitt „Absender-Regeln und Vorfilter“. Die Hilfe ist neu erzeugt.
+- **Beispiel:** `irrelevant-senders.example.json` zeigt Schema 3 mit leeren Regeln und
+  ausgeschalteten Kopfzeilen-Vorfiltern. Ältere Dateien liest Mailhelp weiter und stellt sie beim
+  nächsten Schreiben mit Sicherung um.
+
+### Abnahme nach Planung 7.7, Abschnitt 5
+
+| Nr. | Kriterium | Nachweis |
+| :-- | :--- | :--- |
+| 1 | Eine Ignorier-Regel löst keinen Modellaufruf aus, auch keine Bilderkennung. Die Mail ist mit Regelname als irrelevant eingeordnet. | `test_an_ignore_rule_files_the_mail_without_any_model_call`, `test_blocked_senders_never_reach_the_vision_model` |
+| 2 | Ein VIP-Absender löst keinen Relevanz-Aufruf aus. Die Analyse läuft weiter, und jeder Eintrag braucht die Bestätigung. | `test_a_vip_sender_skips_only_the_relevance_call_and_keeps_the_confirmation` |
+| 3 | Schema 1 und 2 verhalten sich nach der Migration identisch, einschließlich exakter Domains und `allow`. Die alte Datei wird gesichert. | `test_migrated_lists_decide_exactly_as_before`, `test_schema_1_and_2_documents_become_schema_3_without_loss`, `test_the_older_schema_is_kept_once_before_schema_3_is_written` |
+| 4 | Der Kopfzeilen-Vorfilter ist nach dem Update aus. Der Probelauf ändert keine Entscheidung. | `test_header_filters_are_off_by_default_and_a_trial_never_decides`, `test_a_header_trial_only_counts_and_an_exception_is_never_counted` |
+| 5 | Entscheidungstest, Lernmodus, Aktivitätsbericht und Verarbeitung kommen zum selben Ergebnis. | Ein Auswerter für alle Aufrufer: `test_the_decision_test_follows_subject_and_vip_rules`, `test_the_learning_mode_skips_newsletters_once_the_header_filter_is_on`. Aktivitätsbericht und Mailseite nutzen `is_irrelevant_sender`, das über `prefilter()` entscheidet. |
+| 6 | Die Ersparnis ist als Schätzung gekennzeichnet und aus echten Aufrufen abgeleitet. | `test_the_saving_is_estimated_from_real_relevance_calls_only`, `test_the_section_shows_the_counts_the_estimate_the_busiest_and_unused_rules` |
+| 7 | Der Telegram-Knopf legt genau eine Regel an, auch bei doppeltem Druck und nach einem Neustart. Auf eine veraltete Rückfrage wirkt er nicht. „Rückgängig“ entfernt nur die Regel. | `test_the_relevance_question_ignores_the_sender_once_and_undoes_only_the_rule`, `test_a_restart_between_rule_and_answer_keeps_exactly_one_rule`, `test_without_one_clear_sender_there_is_no_button_and_no_rule` |
+| 8 | Alle neuen Seiten und Meldungen gibt es auf Deutsch und Englisch. | `test_every_literal_text_has_an_english_entry_with_the_same_placeholders`: 108 neue Einträge in `i18n/en.py` |
+| 9 | 100 % Zeilen- und Branch-Abdeckung; die Browsersuite ist grün. | Prüfung unten |
+
+**Offene Punkte:**
+
+- **Begründungen bleiben deutsch:** Die gespeicherten Begründungen („Vorfilter: …“, „VIP-Absender: …“)
+  werden wie alle Analysebegründungen deutsch gespeichert. Die Erklärung „So wurde diese Mail
+  verarbeitet“ ist noch nicht zweisprachig. Beides gehört zur ausstehenden Lokalisierung der
+  Mailseiten (Planung 7.8).
+- **Aktivitätsbericht ohne neue Regeln:** Er arbeitet mit dem Absenderstand, der zum Bericht gehört.
+  Die neuen Regeln (Muster, Betreffe, VIP) wirken dort erst, wenn das Berichtsformat sie aufnimmt.
+
+**Prüfung 7.7.6** Vollständiger Python-Lauf laut `check776b.log` mit 5 881 bestandenen Tests,
+100 % Zeilen- und Branch-Abdeckung sowie bestandenen Lasttests. Die Browsersuite meldet
+962 bestandene, 234 übersprungene und einen fehlgeschlagenen Diagramm-Hoverfall.
+Die unveränderte Einzelwiederholung dieses Falls besteht mit einem Test.

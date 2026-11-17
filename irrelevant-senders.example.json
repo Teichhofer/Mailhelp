@@ -1,5 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "addresses": [],
-  "domains": []
+  "domains": [],
+  "mailboxes": {},
+  "rules": [],
+  "headers": {"automated": "off", "lists": "off", "trial_since": {}, "list_exceptions": []}
 }

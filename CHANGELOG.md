@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.7.6 – Abschluss von 7.7
+
+- Bedienung: neuer Abschnitt „Absender-Regeln und Vorfilter“.
+- `irrelevant-senders.example.json` zeigt das Schema 3 mit Regeln und Kopfzeilen-Vorfiltern (aus).
+- Abnahme von 7.7 nach den Kriterien des Plans im Release-Bericht.
+
 ## 7.7.5 – Hinweise für Vorfilter-Regeln und Kennzahlen
 
 - Unter Lernen → Vorschläge erscheinen Hinweise für neue Regeln aus gespeicherten Entscheidungen:
