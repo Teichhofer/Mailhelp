@@ -143,3 +143,25 @@ def test_regression_manual_day_can_receive_a_confirmed_start_without_losing_prot
     revised = reapply_defaults(merged, EventDefaultsSettings())
     assert revised.start == start and revised.end == start + timedelta(hours=1)
     assert revised.status == "pending_confirmation" and "start" in revised.protected_fields
+
+
+END_ON_DAY = "Wann endet der Termin am 21.11.2030?"
+
+
+def test_the_end_question_of_a_multi_day_event_is_settled_like_the_plain_one():
+    """Regression 7.4: the dated end question stayed open after an edit, a default or a merge."""
+    from mailhelp.domain.proposal import time_question
+    assert time_question(END_ON_DAY) and time_question("Wann beginnt der Termin?")
+    assert not time_question("Ist die extrahierte Information sicher belegt?")
+    start = datetime(2030, 11, 20, 14, tzinfo=UTC)
+    item = proposal(1, "span", kind="event", title="Skype-Termin", known_temporal_facts={"start": start},
+                    open_questions=[END_ON_DAY], end=None)
+    assert END_ON_DAY not in reapply_defaults(item, EventDefaultsSettings(video_duration_minutes=75)).open_questions
+    edited = proposal(2, "span", kind="event", start="2030-11-20T14:00:00+01:00", end=None,
+                      open_questions=[END_ON_DAY])
+    revised = edit_proposal(edited, ProposalEditPatch(end="2030-11-21T12:00:00+01:00"), "Europe/Berlin",
+                            {edited.target})
+    assert END_ON_DAY not in revised.open_questions and revised.end.day == 21
+    from mailhelp.proposals.proposal_merge import _answered_questions
+    complete = edited.model_copy(update={"end": revised.end})
+    assert END_ON_DAY.startswith(_answered_questions(complete))

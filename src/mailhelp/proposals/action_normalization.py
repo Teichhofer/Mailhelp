@@ -100,12 +100,23 @@ _DATE_DE = re.compile(
 _DATE_YEARLESS = re.compile(rf"(?i)(\d{{1,2}})\.?\s+({MONTH_PATTERN})\Z")
 _DATE_NAMED = re.compile(
     rf"(?i)(?:({WEEKDAY_PATTERN}),?\s+)?(?:den\s+)?(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})\Z")
+# 7.4: date ranges with weekdays, across months and in short forms.
+_SEPARATOR = r"\s*(?:-|\u2013|\u2014|/|\bbis\b|\bund\b)\s*"
+_WEEKDAY = rf"(?:({WEEKDAY_OR_ABBREVIATION_PATTERN})\.?,?\s+)?"
+# "Donnerstag 07. bis Freitag 08. Januar 2027", "7./8. Januar 2027", "vom 7. bis 8. Januar 2027"
 _DATE_RANGE_NAMED = re.compile(
-    rf"(?i)(?:vom\s+)?(\d{{1,2}})\.?\s*(?:-|\u2013|\u2014|bis|und)\s*"
-    rf"(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})")
+    rf"(?i)(?:vom\s+)?{_WEEKDAY}(\d{{1,2}})\.?{_SEPARATOR}{_WEEKDAY}(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})")
+# "28. Januar bis 2. Februar 2027"; "28. Dezember bis 2. Januar 2027" starts in the year before.
+_DATE_RANGE_MONTHS = re.compile(
+    rf"(?i)(?:vom\s+)?{_WEEKDAY}(\d{{1,2}})\.?\s+({MONTH_PATTERN}){_SEPARATOR}"
+    rf"{_WEEKDAY}(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})")
+# "07.01.2027 \u2013 08.01.2027", "Do 07.01.2027 bis Fr 08.01.2027", "28.01. bis 02.02.2027"
 _DATE_RANGE_NUMERIC = re.compile(
-    r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(?:-|\u2013|\u2014|bis)\s*"
-    r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)", re.IGNORECASE)
+    rf"(?i)(?<![\d.]){_WEEKDAY}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})?{_SEPARATOR}"
+    rf"{_WEEKDAY}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})(?!\d)")
+# "07./08.01.2027", "07.-08.01.2027", "Do 07. \u2013 Fr 08.01.2027", "7./8.1.2027"
+_DATE_RANGE_SHORT = re.compile(
+    rf"(?i)(?<![\d.]){_WEEKDAY}(\d{{1,2}})\.{_SEPARATOR}{_WEEKDAY}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})(?!\d)")
 # Approximate times ("ca. 15:30 Uhr") are taken at face value; a dot as the
 # separator ("13.00 Uhr") is accepted only together with "Uhr", so that a date
 # such as "07.10" in the time field is never read as a clock time.
@@ -153,36 +164,58 @@ def evidence_date_matches(day: date, evidence: str, received: date) -> bool:
     return not words or any(day == received + timedelta(days=relative[word]) for word in words)
 
 
-def _date_ranges(raw: str) -> list[tuple[str, date, date]]:
-    """Return the distinct, explicit German date ranges contained in *raw*."""
-    ranges: list[tuple[str, date, date]] = []
+@dataclass(frozen=True)
+class _Range:
+    text: str
+    start: date
+    end: date
+    # A named weekday contradicts its calendar day: the range needs a clarification.
+    contradicted: bool
+
+
+def _range(match: re.Match[str], start: tuple[int, int, int], end: tuple[int, int, int],
+           weekdays: tuple[str | None, str | None]) -> _Range | None:
+    try:
+        first, last = date(*start), date(*end)
+    except ValueError:
+        return None
+    return _Range(match.group(0), first, last,
+                  weekday_contradicts(first, weekdays[0]) or weekday_contradicts(last, weekdays[1]))
+
+
+def _date_ranges(raw: str) -> list[_Range]:
+    """The distinct, explicit German date ranges contained in *raw*."""
+    found: list[_Range | None] = []
     for match in _DATE_RANGE_NAMED.finditer(raw):
-        try:
-            start = date(int(match.group(4)), MONTHS[match.group(3).casefold()], int(match.group(1)))
-            end = date(int(match.group(4)), MONTHS[match.group(3).casefold()], int(match.group(2)))
-        except ValueError:
-            continue
-        ranges.append((match.group(0), start, end))
+        month, year = MONTHS[match.group(5).casefold()], int(match.group(6))
+        found.append(_range(match, (year, month, int(match.group(2))), (year, month, int(match.group(4))),
+                            (match.group(1), match.group(3))))
+    for match in _DATE_RANGE_MONTHS.finditer(raw):
+        first, last, year = MONTHS[match.group(3).casefold()], MONTHS[match.group(6).casefold()], int(match.group(7))
+        found.append(_range(match, (year if first <= last else year - 1, first, int(match.group(2))),
+                            (year, last, int(match.group(5))), (match.group(1), match.group(4))))
     for match in _DATE_RANGE_NUMERIC.finditer(raw):
-        try:
-            start = date(int(match.group(3)), int(match.group(2)), int(match.group(1)))
-            end = date(int(match.group(6)), int(match.group(5)), int(match.group(4)))
-        except ValueError:
-            continue
-        ranges.append((match.group(0), start, end))
-    # Repeated mentions (possibly with different dash spelling) are still one
-    # unambiguous range; only differing start/end pairs create ambiguity.
-    distinct = {(start, end): (text, start, end) for text, start, end in ranges}
+        last_year, first_month, last_month = int(match.group(8)), int(match.group(3)), int(match.group(7))
+        first_year = int(match.group(4)) if match.group(4) else (
+            last_year if first_month <= last_month else last_year - 1)
+        found.append(_range(match, (first_year, first_month, int(match.group(2))),
+                            (last_year, last_month, int(match.group(6))), (match.group(1), match.group(5))))
+    for match in _DATE_RANGE_SHORT.finditer(raw):
+        month, year = int(match.group(5)), int(match.group(6))
+        found.append(_range(match, (year, month, int(match.group(2))), (year, month, int(match.group(4))),
+                            (match.group(1), match.group(3))))
+    # Repeated mentions are one range; overlapping patterns matching the same text agree.
+    distinct = {(item.start, item.end): item for item in found if item is not None}
     return list(distinct.values())
 
 
-def _unambiguous_date_range(event: ExtractedEvent) -> tuple[str, date, date] | None:
+def _unambiguous_date_range(event: ExtractedEvent) -> _Range | None:
     """Recover one explicit range from date_text, or defensively from evidence."""
     for raw in (event.date_text, event.evidence if event.date_text is None else None):
         if raw is None:
             continue
         ranges = _date_ranges(raw)
-        if len(ranges) == 1 and ranges[0][2] >= ranges[0][1]:
+        if len(ranges) == 1 and ranges[0].end >= ranges[0].start:
             return ranges[0]
     return None
 
@@ -401,14 +434,18 @@ def split_time_range(event: ExtractedEvent) -> ExtractedEvent:
                                     "end_time_text": event.end_time_text or end.strip()})
 
 
+def _range_fact(date_range: _Range) -> TemporalFact:
+    return TemporalFact(raw_text=date_range.text, normalized_date=date_range.start,
+                        year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
+
+
 def _normalize_date_range(event: ExtractedEvent, context: MailDateContext,
-                          date_range: tuple[str, date, date]) -> NormalizationResult:
+                          date_range: _Range) -> NormalizationResult:
     """An explicit multi-day range without clock times is an all-day interval."""
     responsibility = event.responsibility
-    raw_range, start_day, inclusive_end = date_range
+    raw_range, start_day, inclusive_end = date_range.text, date_range.start, date_range.end
     checked = _context_zone(context, responsibility)
-    fact = TemporalFact(raw_text=raw_range, normalized_date=start_day,
-                        year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
+    fact = _range_fact(date_range)
     if isinstance(checked, NormalizationResult):
         return replace(checked, temporal_fact=fact)
     return NormalizationResult(
@@ -448,8 +485,12 @@ def _normalize_all_day(event: ExtractedEvent, context: MailDateContext, day: dat
 
 
 def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
-                     fact: TemporalFact) -> NormalizationResult:
-    """Start and end on the event day; missing parts become one concrete question."""
+                     fact: TemporalFact, end_day: date | None = None) -> NormalizationResult:
+    """Start on the event day, end on *end_day* (7.4: a multi-day range) or the same day.
+
+    Missing parts become one concrete question; the known start stays a known fact.
+    """
+    last = end_day or day
     responsibility = event.responsibility
     if event.time_text is None:
         if event.end_time_text is not None:
@@ -479,14 +520,14 @@ def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
             return NormalizationResult(TemporalValue(start, duration_end, False), None,
                                        f"{event.date_text} {event.time_text}", None,
                                        responsibility, temporal_fact=fact)
-        result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
-                          "Wann endet der Termin?")
+        question = "Wann endet der Termin?" if last == day else f"Wann endet der Termin am {last:%d.%m.%Y}?"
+        result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility, question)
         return replace(result, known_date=day, known_start=start, temporal_fact=fact)
     end_clock = _parse_time(event.end_time_text, responsibility)
     if isinstance(end_clock, NormalizationResult):
         return replace(end_clock, temporal_fact=fact)
-    end = (datetime.combine(day, end_clock, zone)
-           if isinstance(zone, timezone) else _localize(day, end_clock, zone, responsibility))
+    end = (datetime.combine(last, end_clock, zone)
+           if isinstance(zone, timezone) else _localize(last, end_clock, zone, responsibility))
     if isinstance(end, NormalizationResult):
         return replace(end, temporal_fact=fact)
     if end <= start:
@@ -503,8 +544,17 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     """Normalize an event without making a responsibility decision."""
     event = split_time_range(event)
     date_range = _unambiguous_date_range(event)
-    if date_range is not None and event.time_text is None and event.end_time_text is None:
-        return _normalize_date_range(event, context, date_range)
+    if date_range is not None:
+        if date_range.contradicted:
+            return replace(_failure(NormalizationReason.INVALID_DATE, date_range.text, event.responsibility,
+                                    _WEEKDAY_MISMATCH),
+                           temporal_fact=TemporalFact(raw_text=date_range.text,
+                                                      status=TemporalResolutionStatus.UNRESOLVED))
+        if event.time_requirement == TimeRequirement.ALL_DAY or (
+                event.time_text is None and event.end_time_text is None):
+            return _normalize_date_range(event, context, date_range)
+        # 7.4: a timed multi-day event starts on the first and ends on the last day.
+        return _normalize_timed(event, context, date_range.start, _range_fact(date_range), date_range.end)
     parsed_day = _parse_date(event.date_text, event.responsibility, context, event.evidence)
     if isinstance(parsed_day, NormalizationResult):
         return _unresolved_event_day(event, parsed_day)

@@ -432,6 +432,17 @@ RECONCILIATION_HINT = ("Diese Rückfrage lässt sich nicht per Antwort klären. 
                        "zuordnen oder „Als eigenen Vorschlag behalten“ wählen und danach bestätigen.")
 
 
+START_QUESTION = "Wann beginnt der Termin?"
+END_QUESTION = "Wann endet der Termin?"
+# 7.4: a multi-day event asks for the end on its last day ("Wann endet der Termin am 08.01.2027?").
+_END_ON_DAY = "Wann endet der Termin am "
+
+
+def time_question(question: str) -> bool:
+    """Whether *question* asks for the start or end of an event and is settled by an entered time."""
+    return question in {START_QUESTION, END_QUESTION} or question.startswith(_END_ON_DAY)
+
+
 def answerable_questions(proposal: Proposal) -> list[str]:
     """Open questions a text answer can clarify, in their order."""
     return [question for question in proposal.open_questions if question not in RECONCILIATION_QUESTIONS]

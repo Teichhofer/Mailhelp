@@ -8,7 +8,7 @@ import pytest
 from playwright.sync_api import expect
 
 from checks import audit
-from conftest import Page, sign_in
+from conftest import Page, navigate_collected, sign_in
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProcessingError
 from mailhelp.domain.retry import ProcessingRetry
@@ -167,7 +167,9 @@ def test_with_javascript_an_action_returns_where_it_started(page, mailhelp, star
     fail(mailhelp)
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + ("/mails?state=failed" if start == "list" else f"/mail/{mail_id(7)}"))
-    page.get_by_role("button", name="Ignorieren", exact=True).first.click()
+    # The script leaves at once for /aktion/<id>; hold that page until its coverage is taken.
+    navigate_collected(page, mailhelp, page.get_by_role("button", name="Ignorieren", exact=True).first,
+                       path="/aktion/" + "a" * 32)
     if start == "list":
         page.wait_for_url("**/mails?state=failed&ergebnis=*")
     else:

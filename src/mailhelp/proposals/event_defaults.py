@@ -6,7 +6,7 @@ from typing import Literal
 
 from ..config import EventDefaultsSettings
 from ..domain.extraction import ExtractedEvent
-from ..domain.proposal import Proposal, ProposalStatus, required_revision_questions
+from ..domain.proposal import Proposal, ProposalStatus, required_revision_questions, time_question
 from .action_normalization import (
     MailDateContext,
     NormalizationReason,
@@ -75,7 +75,7 @@ def reapply_defaults(proposal: Proposal, defaults: EventDefaultsSettings) -> Pro
     if "known_temporal_facts" in proposal.protected_fields:
         candidate = candidate.model_copy(update={"protected_fields": list(dict.fromkeys([
             *proposal.protected_fields, "start"]))})
-    questions = [q for q in proposal.open_questions if q not in {"Wann beginnt der Termin?", "Wann endet der Termin?"}]
+    questions = [q for q in proposal.open_questions if not time_question(q)]
     questions = list(dict.fromkeys([*questions, *required_revision_questions(candidate)]))
     candidate = candidate.model_copy(update={"open_questions": questions,
         "status": ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION})

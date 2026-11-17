@@ -3,6 +3,15 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.4: Mehrtägige Termine
+
+Plan: [docs/Planung-7.4.md](docs/Planung-7.4.md). Seit 7.4.1 erkennt die Normalisierung Datumsbereiche
+mit Wochentagen, Kurzformen und über Monats- und Jahresgrenzen; ein genannter Wochentag muss zum
+Kalendertag passen. Ein Bereich mit Uhrzeiten wird ein getakteter Termin vom ersten Tag (Beginn) bis
+zum letzten Tag (Ende); ohne Endzeit lautet die Rückfrage „Wann endet der Termin am <Datum>?“. Ein
+Bereich ohne Uhrzeiten oder ausdrücklich ganztägig bleibt ganztägig mit exklusivem Ende. Bereiche
+ohne Jahreszahl werden nicht automatisch aufgelöst.
+
 ## Ergänzung 7.3: Fehlgeschlagene Mails verwalten
 
 Plan: [docs/Planung-7.3.md](docs/Planung-7.3.md). Seit 7.3.1 zeigt die Fehlerliste `/mails?state=failed`

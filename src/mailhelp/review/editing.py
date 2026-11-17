@@ -13,6 +13,7 @@ from ..domain.proposal import (
     ProposalStatus,
     required_revision_questions,
     settled_conflict_questions,
+    time_question,
 )
 
 
@@ -83,9 +84,9 @@ def edit_proposal(previous: Proposal, patch: ProposalEditPatch, zone: str, targe
     candidate = previous.model_copy(update=changes)
     questions = required_revision_questions(candidate)
     # Preserve unresolved questions not replaced by the directly entered facts.
-    temporal = {"Wann beginnt der Termin?", "Wann endet der Termin?",
-                *settled_conflict_questions(previous, set(changes))}
-    questions = list(dict.fromkeys(questions + [q for q in previous.open_questions if q not in temporal]))
+    temporal = settled_conflict_questions(previous, set(changes))
+    questions = list(dict.fromkeys(questions + [q for q in previous.open_questions
+                                                if q not in temporal and not time_question(q)]))
     changes.update(version=previous.version + 1, open_questions=questions,
                    explicit_duplicate_create_confirmed_version=None,
                    explicit_create_fallback_confirmed=False,

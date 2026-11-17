@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.3.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.4.1 erkennt mehrtägige Termine: Datumsbereiche wie „Donnerstag 07. bis Freitag 08. Januar 2027“ oder `07./08.01.2027` werden mit Beginn- und Endzeit über alle Tage eingetragen, ohne Rückfrage nach dem Datum.
 
 7.3 macht fehlgeschlagene Mails direkt bedienbar: Die Fehlerliste nennt Ursache, Stufe und Versuche, „Erneut versuchen“ und „Ignorieren“ wirken ohne Umweg, und ein kopierbarer Fehlerbericht steht oben auf der Mailseite und als Dialog in der Liste; „Alle erneut versuchen“ und „Alle ignorieren“ wirken nach einer Bestätigung auf die ganze Liste.
 

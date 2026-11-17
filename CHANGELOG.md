@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.4.1 – Mehrtägige Termine und Datumsbereiche
+
+- Datumsbereiche mit Wochentagen, Kurzformen (`07./08.01.2027`) und über Monats- und Jahresgrenzen
+  werden erkannt; widersprüchliche Wochentage führen zur Rückfrage.
+- Getaktete Mehrtagestermine beginnen am ersten und enden am letzten Tag; ohne Endzeit fragt
+  Mailhelp nach dem Ende am letzten Tag.
+- Fehlerkorrektur: Die Endfrage eines Mehrtagestermins wird nach Bearbeitung, Standarddauer oder
+  Zusammenführen wie die einfache Endfrage erledigt.
+
 ## 7.3.4 – Prüfung von 7.3
 
 - Fehlerkorrektur: Mit JavaScript führen „Erneut versuchen“ und „Ignorieren“ zurück zur Fehlerliste

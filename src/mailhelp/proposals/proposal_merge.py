@@ -14,7 +14,8 @@ from ..domain.proposal_sources import ProposalReference
 from . import conflicts
 from .proposal_matching import day
 
-_TIME_QUESTIONS = ("Wann beginnt der Termin?", "Wann endet der Termin?",
+# Prefixes: "Wann endet der Termin" also covers the end on a named day of a multi-day event (7.4).
+_TIME_QUESTIONS = ("Wann beginnt der Termin?", "Wann endet der Termin",
                    "Welches konkrete Datum", "Ist die extrahierte Information sicher belegt?")
 # Fields an additional source may add or change, in the order they are compared.
 _MERGED_FIELDS = ("start", "end", "due", "location", "video_link", "known_temporal_facts")
