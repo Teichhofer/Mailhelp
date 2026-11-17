@@ -159,6 +159,80 @@ def is_irrelevant_sender(header: object, blocked: IrrelevantSenders, mailbox_id:
     return match is not None and match.action == "ignore"
 
 
+RuleKind = Literal["address", "domain", "pattern", "subject"]
+RuleAction = Literal["ignore", "vip", "allow_only"]
+# Large mail providers: a domain rule for them would catch everyone (7.7, 3.8 and 3.10).
+FREEMAIL = frozenset({"gmail.com", "googlemail.com", "web.de", "gmx.de", "gmx.net", "t-online.de", "outlook.com",
+                      "hotmail.com", "live.com", "yahoo.com", "yahoo.de", "icloud.com", "me.com", "posteo.de",
+                      "mailbox.org", "freenet.de", "aol.com", "proton.me", "protonmail.com"})
+
+
+def rule_value(kind: RuleKind, text: str) -> str:
+    """Normalize what a person typed for one rule kind; ``ValueError`` if it is unusable."""
+    value = text.strip()
+    if kind == "address":
+        addresses = sender_addresses(value)
+        if len(addresses) != 1:
+            raise ValueError("Bitte genau eine gültige E-Mail-Adresse angeben")
+        return addresses.pop()
+    if kind == "domain":
+        return value.casefold().removeprefix("@").removeprefix("*.").rstrip(".")
+    if kind == "pattern":
+        return value.casefold()
+    return subject_key(value)
+
+
+def new_rule(kind: RuleKind, text: str, action: RuleAction, at: datetime, *, mailbox: int | None = None,
+             topic_ids: Iterable[str] = (), note: str = "",
+             origin: Literal["manual", "mail", "hint", "telegram", "migration"] = "manual") -> SenderRule:
+    """A validated rule with its stable id; ``ValueError`` for an unusable value or combination."""
+    value = rule_value(kind, text)
+    return SenderRule(id=SenderRule.identity(kind, value, mailbox), kind=kind, value=value, action=action,
+                      mailbox=mailbox, topic_ids=sorted(set(topic_ids)), note=note.strip()[:200],
+                      created_at=at, origin=origin)
+
+
+def put_rule(blocked: IrrelevantSenders, rule: SenderRule) -> tuple[IrrelevantSenders, str]:
+    """Add a rule idempotently: ``added``, ``exists`` (same action) or ``changed`` (new action)."""
+    current = next((item for item in blocked.rules if item.id == rule.id), None)
+    if current is not None and (current.action, current.topic_ids) == (rule.action, rule.topic_ids):
+        return blocked, "exists"
+    rules = [item for item in blocked.rules if item.id != rule.id] + [
+        rule if current is None else rule.model_copy(update={"created_at": current.created_at})]
+    return blocked.model_copy(update={"rules": rules}), "added" if current is None else "changed"
+
+
+def drop_rule(blocked: IrrelevantSenders, rule_id: str) -> tuple[IrrelevantSenders, SenderRule | None]:
+    rule = next((item for item in blocked.rules if item.id == rule_id), None)
+    return blocked.model_copy(update={"rules": [item for item in blocked.rules if item.id != rule_id]}), rule
+
+
+def switch_rule(blocked: IrrelevantSenders, rule_id: str, enabled: bool) -> IrrelevantSenders:
+    """Switch one rule on or off; ``ValueError`` if it does not exist (any more)."""
+    if all(item.id != rule_id for item in blocked.rules):
+        raise ValueError("Regel nicht (mehr) vorhanden")
+    return blocked.model_copy(update={"rules": [
+        item.model_copy(update={"enabled": enabled}) if item.id == rule_id else item for item in blocked.rules]})
+
+
+def promote_exception(blocked: IrrelevantSenders, mailbox: int, address: str,
+                      at: datetime) -> IrrelevantSenders:
+    """Turn a schema-2 mailbox exception into a VIP rule of the same mailbox (7.7, decision 1)."""
+    scope = blocked.mailboxes.get(str(mailbox), SenderRules())
+    if address not in scope.allow:
+        raise ValueError("Ausnahme nicht (mehr) vorhanden")
+    updated = scope.model_copy(update={"allow": [item for item in scope.allow if item != address]})
+    blocked = blocked.model_copy(update={"mailboxes": {**blocked.mailboxes, str(mailbox): updated}})
+    return put_rule(blocked, new_rule("address", address, "vip", at, mailbox=mailbox, origin="migration"))[0]
+
+
+def rule_hits(rule: SenderRule, mails: Iterable[tuple[str, str]]) -> int:
+    """How many of the given (sender, subject) pairs the rule alone would match – for a preview."""
+    alone = IrrelevantSenders(rules=[rule.model_copy(update={"enabled": True})])
+    return sum(1 for sender, subject in mails
+               if prefilter(sender, subject, None, alone, rule.mailbox or 1) is not None)
+
+
 def add_irrelevant_senders(blocked: IrrelevantSenders, headers: list[object]) -> IrrelevantSenders:
     """Return a validated list extended by every syntactically usable address."""
     additions = set().union(*(sender_addresses(header) for header in headers)) if headers else set()

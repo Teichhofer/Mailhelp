@@ -83,3 +83,49 @@ Werte). `mypy` meldete ihn, der Prüflauf führt `mypy` aber nicht aus.
   Branch-Abdeckung, Lasttests bestanden. `mypy src/mailhelp` ohne Befund.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 960 Tests bestanden, 234 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.7.3 – Regeln verwalten im Web und per Telegram
+
+- **Seite `/einstellungen/absender`** (`web/sender_pages.py`, `web/sender_site.py`): Die alte Adresse
+  leitet weiter.
+  - Abschnitte: VIP-Absender, ignorierte Absender (Listen aus Schema 2 und Regeln) und Ausnahmen, je
+    mit Postfach, Treffern und letztem Treffer.
+  - Regeln lassen sich ein- und ausschalten und entfernen.
+  - Eine neue Regel wird zuerst gegen die letzten 200 Mails gezählt. Erst diese Vorschau bietet
+    „Regel speichern“. Bei großen Mailanbietern erscheint eine Warnung.
+- **Befehl `RuleChange`** (`config/configuration.py`): `add`, `remove`, `enable`, `disable` und
+  `promote` laufen über den bestehenden `AdminCommand` im Hauptthread.
+  - Von der Regelseite ist jede Änderung an den Hash der Regeldatei gebunden.
+  - Die stabile Regelkennung macht jede Änderung idempotent.
+  - `promote` macht aus einer Postfach-Ausnahme eine VIP-Regel desselben Postfachs.
+- **Mailseite:** Neu sind „Domain … ignorieren“ (nicht für große Mailanbieter) und „Als VIP einstufen“.
+- **Telegram:** Die Relevanzrückfrage hat den Knopf „🚫 Absender immer ignorieren“, die Antwort trägt
+  „Rückgängig“. Die Reihenfolge ist Prüfung auf eine offene Rückfrage, dann Regel, dann Antwort.
+  Dadurch legt eine veraltete Rückfrage keine Regel an, und ein Neustart dazwischen ergibt genau
+  eine Regel.
+- **Sprache:** 70 neue Texte stehen in `i18n/en.py`.
+- **Fehlerkorrektur während der Umsetzung:** Die Vorschau des vollständigen Formulars endete im Browser
+  mit „Interner Fehler“. Die Ergebnisanzeige liest höchstens fünf Felder der Adresse, das Formular
+  sendet sechs. Eine Vorschau liest jetzt keine Ergebnisanzeige mehr. Regressionstest:
+  `test_regression_the_preview_of_the_complete_form_is_shown`.
+- **Tests:** Web (Vorschau, Speichern, Doppelung, Aktionswechsel, veralteter Stand, Ein/Aus,
+  Entfernen, ungültige Regeln, Ausnahme → VIP, Mailseiten-Knöpfe), Telegram (Knopf, doppelter Druck,
+  Neustart zwischen Regel und Antwort, Rückgängig, mehrdeutiger Absender) und der Browsertest
+  `ui_tests/test_ui_sender_rules.py` auf Desktop und Telefon.
+
+**Abweichungen vom Plan:**
+
+- **Geltungsbereich des Telegram-Knopfs:** Die Regel gilt global, wie beim Knopf „Absender
+  ignorieren“ an der Mailseite. Der Plan nannte das Eingangspostfach. Beide Knöpfe verhalten sich so
+  gleich, und eine Postfachregel lässt sich auf der Regelseite anlegen.
+- **„Absender ignorieren“ an der Mailseite** bleibt ein Eintrag der einfachen Adressliste. Damit
+  bleibt „Absender wieder zulassen“ wie bisher nutzbar. Neue Einträge auf der Regelseite sind Regeln.
+- **Die Nachwirkung aus 3.7** („N frühere Mails“) zeigt die Vorschau vor dem Speichern als Trefferzahl
+  der letzten 200 Mails. Eine Neuprüfung früherer Mails startet wie bisher von der Mailseite aus.
+
+**Prüfung 7.7.3:**
+
+- `python -m devtools.check full --workers 12`: 5.864 Tests bestanden, 100 % Zeilen- und
+  Branch-Abdeckung, Lasttests bestanden.
+- `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 963 Tests bestanden, 234 übersprungen,
+  JavaScript-Abdeckung 100 %.

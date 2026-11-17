@@ -161,7 +161,8 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](Ziele-einrichten.md) |
 | `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | [Ziele einrichten](Ziele-einrichten.md) |
 | `/einstellungen/benachrichtigungen` | Benachrichtigungsregeln | Web-Einstellungen (notifications) |
-| `/einstellungen/ignorierte-absender` | Ignorierte Absender | Web-Einstellungen |
+| `/einstellungen/absender` | Absender-Regeln (seit 7.7.3) | Web-Einstellungen |
+| `/einstellungen/ignorierte-absender` | Weiterleitung auf die Absender-Regeln (seit 7.7.3) | Web-Einstellungen |
 | `/einstellungen/web-passwort` | Web-Passwort | Web-Einstellungen |
 | `/einstellungen/neustarten` | Neustart | [Betrieb](Betrieb.md) |
 | `/einstellungen/beenden` | Beenden | [Betrieb](Betrieb.md) |

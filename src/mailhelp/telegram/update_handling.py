@@ -7,14 +7,19 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import ValidationError
 
+from .. import state_names
+from ..config.configuration import RuleChange
+from ..domain.mail import MailState
 from ..domain.processing import ProposalClarificationState, TelegramDialogState
 from ..domain.proposal import ProposalStatus
-from ..domain.relevance import RelevanceDialog
+from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus, SenderRule
 from ..domain.run import TelegramOffset
 from ..i18n import de
 from ..llm.adapter import PermanentError
+from ..mailbox.sender_filter import sender_addresses
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
+from ..review.results import ResultStatus
 from ..review.service import proposal_creation_time
 from ..state_names import clarification
 from .callbacks import (
@@ -32,6 +37,9 @@ from .series import execute_callback, offer_answer
 
 if TYPE_CHECKING:
     from .dialog import TelegramDialogController
+
+# 7.7.3: the button under "Absender wird künftig ignoriert" removes exactly that rule again.
+UNDO = "rule-undo:"
 
 # A failing inbox update is retried after 30 s, then 60 s, and dropped after
 # the third attempt; a permanent error is dropped at once.  Retrying without
@@ -59,7 +67,10 @@ _COMMAND_KINDS = {
 
 def send_relevance_question(telegram: TelegramTransport, chat_id: int, dialog: RelevanceDialog,
                             sender: str, subject: str) -> None:
-    """Ask whether a mail is relevant, with one button per answer."""
+    """Ask whether a mail is relevant, with one button per answer.
+
+    7.7.3: with exactly one readable sender address a third button ignores the sender from now on.
+    """
     buttons = [
         [
             {
@@ -80,6 +91,9 @@ def send_relevance_question(telegram: TelegramTransport, chat_id: int, dialog: R
             },
         ]
     ]
+    if len(sender_addresses(sender)) == 1:
+        buttons.append([{"text": "🚫 " + de("Absender immer ignorieren"), "callback_data": RelevanceDecision(
+            mail_id=dialog.mail_id, version=dialog.version, decision="ignore_sender").encode()}])
     text = "\n".join(
         [
             f"Absender: {sender}",
@@ -302,6 +316,8 @@ class TelegramUpdateHandler:
                 return execute_callback(self.o, callback.data), None
             if callback.data.startswith("relevance:"):
                 return self._relevance_answer(update, callback, actor, key)
+            if callback.data.startswith(UNDO):
+                return self._undo_rule(callback.data.removeprefix(UNDO), actor), None
             else:
                 try:
                     decision = self.o.validator.decision(callback.data)
@@ -351,6 +367,8 @@ class TelegramUpdateHandler:
                 de("❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen."),
             )
             return None
+        if relevance.decision == "ignore_sender":
+            return self._ignore_sender(update, relevance, actor, key)
         confirmation = self.o.review.execute(ReviewCommand(
             kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
             actor=actor, mail_id=relevance.mail_id, version=relevance.version,
@@ -359,6 +377,41 @@ class TelegramUpdateHandler:
             replay_offset=update.update_id + 1,
         ), raise_errors=True).message
         return confirmation, None
+
+    def _ignore_sender(self, update: TelegramUpdate, relevance: RelevanceDecision, actor: str,
+                       key: str) -> tuple[str, dict[str, Any]]:
+        """7.7.3: the rule first, then the answer – both idempotent, so a repeat after a restart adds
+        exactly one rule; a stale or answered question adds none."""
+        state = self.o.store.load_model(state_names.mail(relevance.mail_id), MailState)
+        dialog = state.relevance_dialog if isinstance(state, MailState) else None
+        if (dialog is None or dialog.version != relevance.version or dialog.status != RelevanceDialogStatus.OPEN):
+            raise StaleCommand(de("Die Relevanzfrage ist veraltet oder bereits beantwortet"))
+        assert isinstance(state, MailState)
+        addresses = sender_addresses(state.display_headers.sender if state.display_headers else "")
+        configuration = self.o.review.configuration
+        if len(addresses) != 1 or configuration is None:
+            raise ValueError("Absender nicht eindeutig oder Absenderverwaltung nicht verfügbar")
+        address = addresses.pop()
+        added = configuration.change_rules(actor, RuleChange(
+            rule_action="add", kind="address", value=address, origin="telegram"), verified=True)
+        if added.status != ResultStatus.DONE:
+            raise ValueError(added.message)
+        confirmation = self.o.review.execute(ReviewCommand(
+            kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM, actor=actor, mail_id=relevance.mail_id,
+            version=relevance.version, decision="irrelevant", idempotency_key=key,
+            replay_offset=update.update_id + 1), raise_errors=True).message
+        rule_id = SenderRule.identity("address", address, None)
+        markup = {"inline_keyboard": [[{"text": de("Rückgängig"), "callback_data": UNDO + rule_id}]]}
+        validate_callback_markup(markup)
+        return confirmation + "\n" + de("Absender {address} wird künftig ignoriert.", address=address), markup
+
+    def _undo_rule(self, rule_id: str, actor: str) -> str:
+        """Remove only the rule of the button; the mail keeps its answer."""
+        configuration = self.o.review.configuration
+        if configuration is None:
+            raise ValueError("Absenderverwaltung nicht verfügbar")
+        return configuration.change_rules(actor, RuleChange(rule_action="remove", rule_id=rule_id),
+                                          verified=True).message
 
     def _ask_removal(self, decision: Decision) -> None:
         """Ask once more before removing a created entry, while the removal window is open."""

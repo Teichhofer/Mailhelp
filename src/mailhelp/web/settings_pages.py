@@ -302,7 +302,7 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     # 6.2.9: profile and delivery history are part of "Benachrichtigungen"; devices are in the main navigation.
     body += _tiles("Inhalte", (
         _tile("/themen", "Themen", "Relevante und irrelevante Themen")
-        + _tile("/einstellungen/ignorierte-absender", "Ignorierte Absender", "Absender und Domains ausblenden")))
+        + _tile("/einstellungen/absender", "Absender-Regeln", "Ignorieren, VIP-Absender und Ausnahmen")))
     body += _tiles("System", (
         _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
         + _tile("/dienst/neu-laden", "Konfiguration neu laden", "Verbindungen ohne Prozessneustart wechseln")

@@ -85,7 +85,7 @@ def test_sender_changes_need_a_session_and_the_csrf_token(web, senders):
     fields = web.form(f"/mail/{MAIL1}", action=f"/mail/{MAIL1}/absender-ignorieren")
     for changed in ({**fields, "csrf": "falsch"}, {"key": fields["key"]}):
         assert web.browser.request("POST", f"/mail/{MAIL1}/absender-ignorieren", changed).status == 403
-    assert web.browser.request("POST", LIST_PATH, {"key": "e" * 32, "eintrag": "x@y.de"}).status == 403
+    assert web.browser.request("POST", f"{LIST_PATH}/regel", {"key": "e" * 32, "wert": "x@y.de"}).status == 403
     web.browser.cookies.clear()
     response = web.browser.request("POST", f"/mail/{MAIL1}/absender-ignorieren", fields)
     assert response.status == 403
@@ -97,7 +97,7 @@ def test_domain_blocks_and_mails_without_a_usable_address(web, senders):
     senders.save("irrelevant-senders", IrrelevantSenders(domains=["schule.test"]).model_dump(mode="json"))
     page = web.browser.request("GET", f"/mail/{MAIL1}").body.decode()
     assert '<span class="badge danger">Domain wird ignoriert</span>' in page
-    assert f'<a href="{LIST_PATH}">Liste verwalten</a>' in page
+    assert f'<a href="{LIST_PATH}">Regeln verwalten</a>' in page
     save_mail(web.store, 9, "—", "Ohne Absender", text="Text")
     page = web.browser.request("GET", f"/mail/{mail_id(9)}").body.decode()
     assert "Keine Absenderadresse erkennbar." in page
@@ -110,25 +110,22 @@ def test_domain_blocks_and_mails_without_a_usable_address(web, senders):
     assert response.status == 422
 
 
-def test_the_list_page_adds_normalized_entries_and_removes_them(web, senders):
+def test_the_list_page_shows_the_simple_lists_and_removes_their_entries(web, senders):
     page = web.browser.request("GET", LIST_PATH).body.decode()
     assert "Derzeit wird kein Absender ignoriert." in page
     settings_page = web.browser.request("GET", "/einstellungen").body.decode()
-    assert f'href="{LIST_PATH}"><strong>Ignorierte Absender</strong>' in settings_page
-    for entry in ("Newsletter <News@Shop.EXAMPLE>", "Werbung.Example.COM."):
-        fields = {**web.form(LIST_PATH, action=LIST_PATH), "eintrag": entry}
-        location, page = finish(web, web.browser.request("POST", LIST_PATH, fields))
-        assert location.startswith(f"{LIST_PATH}?ergebnis=")
-    assert blocked(senders) == IrrelevantSenders(addresses=["news@shop.example"],
-                                                 domains=["werbung.example.com"])
-    assert "„werbung.example.com“ wird ab sofort ignoriert" in page
-    assert "Liste (2)" in page and '<span class="badge accent">Domain</span>' in page
+    assert f'href="{LIST_PATH}"><strong>Absender-Regeln</strong>' in settings_page
+    senders.save("irrelevant-senders", IrrelevantSenders(addresses=["news@shop.example"],
+                                                         domains=["werbung.example.com"]).model_dump(mode="json"))
+    page = web.browser.request("GET", LIST_PATH).body.decode()
+    assert "Ignorierte Absender (2)" in page and '<span class="badge accent">Domain</span>' in page
     fields = web.form(LIST_PATH, action=f"{LIST_PATH}/entfernen", eintrag="news@shop.example")
-    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/entfernen", fields))
-    assert blocked(senders).addresses == [] and "Liste (1)" in page
+    location, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/entfernen", fields))
+    assert location.startswith(f"{LIST_PATH}?ergebnis=")
+    assert blocked(senders).addresses == [] and "Ignorierte Absender (1)" in page
     for entry in ("a@x.de, b@x.de", "kein domain", ""):
-        fields = {**web.form(LIST_PATH, action=LIST_PATH), "eintrag": entry}
-        response = web.browser.request("POST", LIST_PATH, fields)
+        fields = {**web.form(LIST_PATH, action=f"{LIST_PATH}/entfernen"), "eintrag": entry}
+        response = web.browser.request("POST", f"{LIST_PATH}/entfernen", fields)
         assert response.status == 422 and "gültige E-Mail-Adresse oder Domain" in response.body.decode()
 
 
@@ -136,7 +133,8 @@ def test_without_the_configuration_service_nothing_is_offered(web):
     assert web.site.archive.configuration is None
     assert "Absender ignorieren" not in web.browser.request("GET", f"/mail/{MAIL1}").body.decode()
     fields = {"csrf": csrf(web), "key": "a" * 32, "eintrag": "x@y.de"}
-    for path in (f"/mail/{MAIL1}/absender-ignorieren", LIST_PATH, f"{LIST_PATH}/entfernen"):
+    for path in (f"/mail/{MAIL1}/absender-ignorieren", f"/mail/{MAIL1}/absender-vip", f"{LIST_PATH}/entfernen",
+                 f"{LIST_PATH}/regel"):
         assert web.browser.request("POST", path, fields).status == 503
     assert web.browser.request("GET", LIST_PATH).status == 503
 
@@ -199,3 +197,115 @@ def test_the_next_mail_of_an_ignored_sender_is_sorted_out_without_llm(tmp_path):
         result = orchestrator.process(FetchedMail("INBOX", 1, 50, raw))
     assert result.state["relevance"] == {"decision": "irrelevant", "topic_ids": [],
                                          "reason": "Vorfilter: klasse4b@schule.test"}
+
+
+# --- 7.7.3: rules ---------------------------------------------------------------------------------
+
+def rules(store):
+    return blocked(store).rules
+
+
+def save_form(web, query):
+    """The preview of a rule; its page carries the form that saves exactly this rule."""
+    page = web.browser.request("GET", f"{LIST_PATH}?{query}&vorschau=1").body.decode()
+    return page, web.form(f"{LIST_PATH}?{query}&vorschau=1", action=f"{LIST_PATH}/regel")
+
+
+def test_the_old_address_leads_to_the_rules_page(web, senders):
+    response = web.browser.request("GET", "/einstellungen/ignorierte-absender")
+    assert response.status == 303 and response.headers["Location"] == LIST_PATH
+
+
+def test_a_rule_is_previewed_saved_once_changed_switched_and_removed(web, senders):
+    save_mail(web.store, 20, "Bank <no-reply@bank.test>", "Kontoauszug", text="x")
+    page, fields = save_form(web, "art=pattern&wert=No-Reply@*&aktion=ignore&notiz=Bankpost")
+    assert "Diese Regel würde 1 der letzten" in page
+    location, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", fields))
+    assert location.startswith(f"{LIST_PATH}?ergebnis=") and "„no-reply@*“ wird künftig ohne KI-Aufruf aussortiert." in page
+    [rule] = rules(senders)
+    assert (rule.kind, rule.value, rule.note, rule.origin) == ("pattern", "no-reply@*", "Bankpost", "manual")
+    assert "Ignorierte Absender (1)" in page and "Treffer: 0 · zuletzt: nie" in page and "Bankpost" in page
+    # The same rule again changes nothing; the version check refuses a form from before the change.
+    _, fields = save_form(web, "art=pattern&wert=no-reply@*&aktion=ignore")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", fields))
+    assert "Diese Regel gibt es bereits." in page
+    _, stale = save_form(web, "art=pattern&wert=no-reply@*&aktion=vip")
+    web.store.save("prefilter-hits", {"schema_version": 1, "rules": {rule.id: {"count": 3, "last": "2026-11-17T10:00:00+00:00"}},
+                                      "trial": {}})
+    _, fields = save_form(web, "art=pattern&wert=no-reply@*&aktion=allow_only")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", fields))
+    assert "Regel für „no-reply@*“ geändert." in page and "Ausnahmen (1)" in page and "Treffer: 3 · zuletzt: 17.11.2026" in page
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", stale))
+    assert "Absenderfilter inzwischen geändert." in page and rules(senders)[0].action == "allow_only"
+    for step, expected in (("disable", "Regel ausgeschaltet."), ("enable", "Regel eingeschaltet."),
+                           ("entfernen", "Regel für „no-reply@*“ entfernt.")):
+        fields = web.form(LIST_PATH, action=f"{LIST_PATH}/regel/{step}", regel=rule.id)
+        _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel/{step}", fields))
+        assert expected in page
+    assert rules(senders) == []
+
+
+def test_regression_the_preview_of_the_complete_form_is_shown(web, senders):
+    """7.7.3: the browser sends all six fields; the result notice allowed five and failed."""
+    query = "art=pattern&wert=no-reply%40*&aktion=ignore&postfach=&notiz=&vorschau=1"
+    response = web.browser.request("GET", f"{LIST_PATH}?{query}")
+    assert response.status == 200 and "Diese Regel würde" in response.body.decode()
+
+
+def test_a_disabled_rule_is_marked_and_unusable_rules_are_refused(web, senders):
+    _, fields = save_form(web, "art=subject&wert=Automatische Antwort:&aktion=ignore")
+    finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", fields))
+    fields = web.form(LIST_PATH, action=f"{LIST_PATH}/regel/disable")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel/disable", fields))
+    assert '<span class="badge">aus</span>' in page and "Einschalten" in page
+    page = web.browser.request("GET", f"{LIST_PATH}?art=pattern&wert=(a%2B)%2B@x&aktion=ignore&vorschau=1").body.decode()
+    assert "Diese Regel ist ungültig." in page and "Regel speichern" not in page
+    page = web.browser.request("GET", f"{LIST_PATH}?art=domain&wert=gmail.com&aktion=ignore&vorschau=1").body.decode()
+    assert "großer Mailanbieter" in page
+    bad = {"csrf": csrf(web), "key": "b" * 32, "art": "subject", "wert": "Angebot", "aktion": "vip"}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel", bad))
+    assert "Regel nicht geändert: ungültig oder nicht schreibbar." in page
+    incomplete = {"csrf": csrf(web), "key": "c" * 32, "art": "address", "wert": " "}
+    assert web.browser.request("POST", f"{LIST_PATH}/regel", incomplete).status == 422
+    nothing = {"csrf": csrf(web), "key": "d" * 32, "regel": "0" * 16}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel/entfernen", nothing))
+    assert "Diese Regel gibt es nicht mehr." in page
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/regel/enable", {**nothing, "key": "e" * 32}))
+    assert "Regel nicht geändert" in page
+
+
+def test_an_exception_of_schema_2_becomes_a_vip_rule(web, senders):
+    from mailhelp.domain.relevance import SenderRules
+    senders.save("irrelevant-senders", IrrelevantSenders(mailboxes={"1": SenderRules(allow=[SENDER])})
+                 .model_dump(mode="json"))
+    page = web.browser.request("GET", LIST_PATH).body.decode()
+    assert "Ausnahmen (1)" in page and "hebt nur die Sperre auf" in page
+    fields = web.form(LIST_PATH, action=f"{LIST_PATH}/ausnahme-vip")
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/ausnahme-vip", fields))
+    assert f"„{SENDER}“ gilt jetzt als VIP-Absender." in page and "VIP-Absender (1)" in page
+    [rule] = rules(senders)
+    assert (rule.action, rule.mailbox, rule.origin) == ("vip", 1, "migration")
+    assert blocked(senders).mailboxes["1"].allow == []
+    again = {**fields, "key": "f" * 32, "stand": ""}
+    _, page = finish(web, web.browser.request("POST", f"{LIST_PATH}/ausnahme-vip", again))
+    assert "Regel nicht geändert" in page
+
+
+def test_the_mail_page_ignores_the_domain_or_makes_the_sender_a_vip(web, senders):
+    page = web.browser.request("GET", f"/mail/{MAIL1}").body.decode()
+    assert "🌐 Domain schule.test ignorieren" in page and "⭐ Als VIP einstufen" in page
+    location, page = finish(web, post(web, f"/mail/{MAIL1}", f"/mail/{MAIL1}/absender-vip"))
+    assert location.startswith(f"/mail/{MAIL1}?ergebnis=") and f"„{SENDER}“ gilt künftig ohne Relevanzprüfung" in page
+    assert "⭐ VIP-Absender" in page and rules(senders)[0].origin == "mail"
+    senders.save("irrelevant-senders", IrrelevantSenders().model_dump(mode="json"))
+    _, page = finish(web, post(web, f"/mail/{MAIL1}", f"/mail/{MAIL1}/domain-ignorieren"))
+    assert "Wird durch eine Regel ignoriert" in page and rules(senders)[0].value == "schule.test"
+    save_mail(web.store, 21, "Freund <freund@gmail.com>", "Hallo", text="x")
+    page = web.browser.request("GET", f"/mail/{mail_id(21)}").body.decode()
+    assert "Domain gmail.com ignorieren" not in page and "⭐ Als VIP einstufen" in page
+    fields = {"csrf": csrf(web), "key": "a" * 32}
+    response = web.browser.request("POST", f"/mail/{mail_id(21)}/domain-ignorieren", fields)
+    assert response.status == 422 and "nicht möglich" in response.body.decode()
+    save_mail(web.store, 22, "a@x.test, b@y.test", "Zwei", text="x")
+    assert web.browser.request("POST", f"/mail/{mail_id(22)}/absender-vip", fields).status == 422
+    assert web.browser.request("POST", f"/mail/{'e' * 24}/absender-vip", fields).status == 404

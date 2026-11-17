@@ -5,6 +5,7 @@ import copy
 import hashlib
 import re
 from collections.abc import Callable
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
@@ -13,8 +14,18 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain.relevance import IrrelevantSenders
+from ..i18n import de
 from ..llm.learning import topics_document
-from ..mailbox.sender_filter import change_irrelevant_senders, save_sender_filter
+from ..mailbox.sender_filter import (
+    change_irrelevant_senders,
+    drop_rule,
+    new_rule,
+    promote_exception,
+    put_rule,
+    rule_value,
+    save_sender_filter,
+    switch_rule,
+)
 from ..persistence.storage import JsonStore, atomic_replace
 from ..review.commands import CommandSource
 from ..review.results import ResultStatus, ReviewResult
@@ -84,6 +95,30 @@ class SenderChange(BaseModel):
     @property
     def entries(self) -> str:
         return ", ".join([*self.addresses, *self.domains])
+
+
+class RuleChange(BaseModel):
+    """7.7.3: one change of a prefilter rule; idempotent through the rule's stable id."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    rule_action: Literal["add", "remove", "enable", "disable", "promote"]
+    kind: Literal["address", "domain", "pattern", "subject"] | None = None
+    value: str = Field(default="", max_length=320)
+    action: Literal["ignore", "vip", "allow_only"] = "ignore"
+    mailbox_id: int | None = Field(default=None, ge=1, le=99)
+    topic_ids: list[str] = Field(default_factory=list, max_length=20)
+    note: str = Field(default="", max_length=200)
+    origin: Literal["manual", "mail", "hint", "telegram"] = "manual"
+    rule_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{16}$")
+    mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
+
+    @model_validator(mode="after")
+    def complete(self) -> RuleChange:
+        needed = {"add": self.kind is not None and self.value.strip() != "",
+                  "promote": self.mailbox_id is not None and self.value.strip() != ""}
+        if not needed.get(self.rule_action, self.rule_id is not None):
+            raise ValueError("Regeländerung unvollständig")
+        return self
 
 
 SETTINGS_FIELDS = {
@@ -304,17 +339,68 @@ class ConfigurationService:
         assert isinstance(blocked, IrrelevantSenders)
         return blocked
 
+    def _require_mailbox(self, mailbox_id: int | None) -> None:
+        if mailbox_id is not None:
+            path = self.directory / "config.yaml"
+            active = Settings.model_validate(read_yaml(path)) if path.exists() else self.active
+            if active.imap.mailbox(mailbox_id) is None:
+                raise ValueError("Postfach nicht konfiguriert")
+
+    def change_rules(self, actor: str, change: RuleChange, *, verified: bool = False) -> ReviewResult:
+        """7.7.3: add, remove, switch or promote one rule; a repeated change changes nothing.
+
+        ``verified``: the caller already checked the sender (the Telegram user and chat of the button);
+        a web change is checked again here, right before writing.
+        """
+        try:
+            self._require_mailbox(change.mailbox_id)
+            current, now = self._current_senders(), datetime.now(UTC)
+            if change.rule_action == "add":
+                assert change.kind is not None  # RuleChange.complete
+                rule = new_rule(change.kind, change.value, change.action, now, mailbox=change.mailbox_id,
+                                topic_ids=change.topic_ids, note=change.note, origin=change.origin)
+                updated, outcome = put_rule(current, rule)
+                message = {"exists": de("Diese Regel gibt es bereits."),
+                           "changed": de("Regel für „{value}“ geändert.", value=rule.value),
+                           "added": {"ignore": de("„{value}“ wird künftig ohne KI-Aufruf aussortiert.",
+                                                  value=rule.value),
+                                     "vip": de("„{value}“ gilt künftig ohne Relevanzprüfung als relevant.",
+                                               value=rule.value),
+                                     "allow_only": de("„{value}“ wird nie vorgefiltert.", value=rule.value),
+                                     }[rule.action]}[outcome]
+            elif change.rule_action == "remove":
+                assert change.rule_id is not None
+                updated, removed = drop_rule(current, change.rule_id)
+                message = (de("Regel für „{value}“ entfernt.", value=removed.value) if removed is not None
+                           else de("Diese Regel gibt es nicht mehr."))
+            elif change.rule_action in {"enable", "disable"}:
+                assert change.rule_id is not None
+                updated = switch_rule(current, change.rule_id, change.rule_action == "enable")
+                message = de("Regel eingeschaltet.") if change.rule_action == "enable" else de("Regel ausgeschaltet.")
+            else:
+                assert change.mailbox_id is not None
+                address = rule_value("address", change.value)
+                updated = promote_exception(current, change.mailbox_id, address, now)
+                message = de("„{value}“ gilt jetzt als VIP-Absender.", value=address)
+            if updated != current:
+                assert self.senders is not None  # _current_senders() refused a missing list
+                if not verified and not self.authorize(actor):
+                    return ReviewResult(status=ResultStatus.UNAUTHORIZED, message=de("Sitzung inzwischen abgelaufen."))
+                save_sender_filter(self.senders, updated)
+            return ReviewResult(status=ResultStatus.DONE, message=message)
+        except (ValueError, OSError):
+            return ReviewResult(status=ResultStatus.INVALID,
+                                message=de("Regel nicht geändert: ungültig oder nicht schreibbar."))
+
     def change_senders(self, command: AdminCommand) -> ReviewResult:
         """Apply an idempotent sender change; it takes effect with the next mail."""
         try:
             if command.expected_hash is not None and command.expected_hash != file_hash(self.path(command)):
                 raise ConfigurationConflict("Absenderfilter inzwischen geändert")
+            if "rule_action" in command.patch:
+                return self.change_rules(command.actor, RuleChange.model_validate(command.patch))
             change = SenderChange.model_validate(command.patch)
-            if change.mailbox_id is not None:
-                path = self.directory / "config.yaml"
-                active = Settings.model_validate(read_yaml(path)) if path.exists() else self.active
-                if active.imap.mailbox(change.mailbox_id) is None:
-                    raise ValueError("Postfach nicht konfiguriert")
+            self._require_mailbox(change.mailbox_id)
             current = self._current_senders()
             updated = change_irrelevant_senders(current, change.action in {"add", "allow"},
                 change.addresses, change.domains, change.mailbox_id, allow=change.action in {"allow", "unallow"})
@@ -341,7 +427,8 @@ class ConfigurationService:
 
     def path(self, command: AdminCommand) -> Path:
         if command.kind == AdminKind.SENDERS:
-            return self.directory / "irrelevant-senders.json"
+            # The list lives where its store keeps it; the version check must read that file.
+            return (self.senders.directory if self.senders is not None else self.directory) / "irrelevant-senders.json"
         filename = "config.yaml" if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP} else (
             "topics.yaml" if command.category == "relevant" else "irrelevant_topics.yaml")
         return self.directory / filename

@@ -331,3 +331,97 @@ def test_contradictory_end_without_validated_date_gets_a_question(tmp_path):
         assert state["answer_status"] == "invalid"
         assert "Bitte" in transport.sent[-1][1]
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 1
+
+
+# --- 7.7.3: "Absender immer ignorieren" in the relevance question ---------------------------------
+
+def _ignoring(tmp_path, store, sender="Shop <News@Shop.test>"):
+    from mailhelp.config.configuration import ConfigurationService
+    from mailhelp.domain.mail import DisplayHeaders
+    from tests.fakes.shared_application import settings
+    mail_id = "c" * 24
+    state = relevance_state(mail_id)
+    state.display_headers = DisplayHeaders(sender=sender, subject="Angebot")
+    store.save("mail-" + mail_id, state.model_dump(mode="json"))
+    senders = JsonStore(tmp_path / "config").__enter__()
+    c, t, _ = controller(store)
+    c.relevance_handler = RelevanceHandler(store)
+    # The web authorizer refuses everything: the Telegram button is checked by user and chat instead.
+    c.review.configuration = ConfigurationService(tmp_path, store, settings(tmp_path), lambda actor: False,
+                                                  lambda active: None, senders=senders)
+    return mail_id, c, t, senders
+
+
+def _rules(senders):
+    from mailhelp.domain.relevance import IrrelevantSenders
+    return senders.load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders()).rules
+
+
+def test_the_relevance_question_ignores_the_sender_once_and_undoes_only_the_rule(tmp_path):
+    with JsonStore(tmp_path / "state") as store:
+        mail_id, c, t, senders = _ignoring(tmp_path, store)
+        c.send_relevance(RelevanceDialog(mail_id=mail_id), "Shop <News@Shop.test>", "Angebot")
+        [button] = t.sent[-1][2]["inline_keyboard"][1]
+        assert button == {"text": "🚫 Absender immer ignorieren", "callback_data": f"relevance:{mail_id}:1:ignore_sender"}
+        t.updates = [callback(1, button["callback_data"])]
+        c.poll_once()
+        [rule] = _rules(senders)
+        assert (rule.kind, rule.value, rule.action, rule.mailbox, rule.origin) == (
+            "address", "news@shop.test", "ignore", None, "telegram")
+        text, markup = t.sent[-1][1], t.sent[-1][2]
+        assert "Absender news@shop.test wird künftig ignoriert." in text
+        assert markup == {"inline_keyboard": [[{"text": "Rückgängig", "callback_data": f"rule-undo:{rule.id}"}]]}
+        assert store.load("mail-" + mail_id)["relevance_dialog"]["decision"] == "irrelevant"
+        # Pressed again (or replayed after a restart): the answered question adds no second rule.
+        t.updates = [callback(2, button["callback_data"])]
+        c.poll_once()
+        assert len(_rules(senders)) == 1 and "Schaltfläche ist veraltet" in t.sent[-1][1]
+        t.updates = [callback(3, f"rule-undo:{rule.id}")]
+        c.poll_once()
+        assert _rules(senders) == [] and "Regel für „news@shop.test“ entfernt." in t.sent[-1][1]
+        assert store.load("mail-" + mail_id)["relevance_dialog"]["decision"] == "irrelevant"
+        t.updates = [callback(4, f"rule-undo:{rule.id}")]
+        c.poll_once()
+        assert "Diese Regel gibt es nicht mehr." in t.sent[-1][1]
+        senders.__exit__(None, None, None)
+
+
+def test_a_restart_between_rule_and_answer_keeps_exactly_one_rule(tmp_path):
+    from mailhelp.config.configuration import RuleChange
+    with JsonStore(tmp_path / "state") as store:
+        mail_id, c, t, senders = _ignoring(tmp_path, store)
+        # The rule was saved, then the process stopped before the answer.
+        c.review.configuration.change_rules("telegram", RuleChange(
+            rule_action="add", kind="address", value="news@shop.test", origin="telegram"), verified=True)
+        t.updates = [callback(1, f"relevance:{mail_id}:1:ignore_sender")]
+        c.poll_once()
+        assert len(_rules(senders)) == 1 and "wird künftig ignoriert" in t.sent[-1][1]
+        assert store.load("mail-" + mail_id)["relevance_dialog"]["decision"] == "irrelevant"
+        senders.__exit__(None, None, None)
+
+
+def test_without_one_clear_sender_there_is_no_button_and_no_rule(tmp_path):
+    from mailhelp.domain.mail import DisplayHeaders
+    with JsonStore(tmp_path / "state") as store:
+        mail_id, c, t, senders = _ignoring(tmp_path, store, sender="a@x.test, b@y.test")
+        c.send_relevance(RelevanceDialog(mail_id=mail_id), "a@x.test, b@y.test", "Zwei")
+        assert len(t.sent[-1][2]["inline_keyboard"]) == 1
+        t.updates = [callback(1, f"relevance:{mail_id}:1:ignore_sender")]
+        c.poll_once()
+        assert _rules(senders) == [] and "konnte nicht verarbeitet werden" in t.sent[-1][1]
+        assert store.load("mail-" + mail_id)["relevance_dialog"]["status"] == "open"
+        # A rule that cannot be saved leaves the question open as well.
+        c.review.configuration.senders = None
+        mail_two = "d" * 24
+        state = relevance_state(mail_two)
+        state.display_headers = DisplayHeaders(sender="news@shop.test", subject="x")
+        store.save("mail-" + mail_two, state.model_dump(mode="json"))
+        t.updates = [callback(2, f"relevance:{mail_two}:1:ignore_sender")]
+        c.poll_once()
+        assert "konnte nicht verarbeitet werden" in t.sent[-1][1]
+        assert store.load("mail-" + mail_two)["relevance_dialog"]["status"] == "open"
+        c.review.configuration = None
+        t.updates = [callback(3, "rule-undo:" + "0" * 16)]
+        c.poll_once()
+        assert "konnte nicht verarbeitet werden" in t.sent[-1][1]
+        senders.__exit__(None, None, None)

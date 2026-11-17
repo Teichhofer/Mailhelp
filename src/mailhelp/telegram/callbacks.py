@@ -37,7 +37,8 @@ class DecisionAction(StrEnum):
 class RelevanceDecision(InternalTelegramModel):
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     version: int = Field(ge=1)
-    decision: str = Field(pattern=r"^(relevant|irrelevant)$")
+    # 7.7.3: ``ignore_sender`` answers "irrelevant" and ignores the sender from now on.
+    decision: str = Field(pattern=r"^(relevant|irrelevant|ignore_sender)$")
 
     def encode(self) -> str:
         return f"relevance:{self.mail_id}:{self.version}:{self.decision}"

@@ -10,7 +10,7 @@ BUTTON = '<a class="help-fab" href="/hilfe" aria-label="Hilfschat öffnen" title
 
 
 @pytest.mark.parametrize("path", ["/einstellungen", "/einstellungen/postfaecher", "/einstellungen/postfaecher/2",
-                                  "/einstellungen/zielprofile", "/einstellungen/ignorierte-absender",
+                                  "/einstellungen/zielprofile", "/einstellungen/absender",
                                   "/einstellungen/web-passwort", "/themen", "/themen/speichern"])
 def test_settings_paths_show_the_button(path):
     assert shows_help_button(path)
@@ -41,7 +41,7 @@ def test_signed_in_settings_pages_carry_the_button_and_other_pages_do_not(web):
     response = web.browser.request("GET", "/einstellungen")
     assert response.status == 200 and 'id="help-widget"' in response.body.decode()
     # Subpages keep the button, also when their service is unavailable in this setup.
-    for path in ("/einstellungen/ignorierte-absender", "/themen"):
+    for path in ("/einstellungen/absender", "/themen"):
         assert 'id="help-widget"' in web.browser.request("GET", path).body.decode(), path
     for path in ("/", "/mails", "/hilfe"):
         assert "help-fab" not in web.browser.request("GET", path).body.decode(), path

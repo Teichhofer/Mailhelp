@@ -235,3 +235,19 @@ def test_the_older_schema_is_kept_once_before_schema_3_is_written(tmp_path, vers
         assert json.loads(backup.read_text(encoding="utf-8"))["addresses"] == ["a@b.test"]
         assert store.load("irrelevant-senders")["schema_version"] == 3
         assert sorted(path.name for path in tmp_path.glob("irrelevant-senders.json.v*")) == [backup.name]
+
+
+def test_rule_values_need_one_usable_address_and_a_web_change_needs_a_live_session(tmp_path):
+    from mailhelp.config.configuration import ConfigurationService, RuleChange
+    from mailhelp.mailbox.sender_filter import new_rule
+    from mailhelp.review.results import ResultStatus
+    from tests.fakes.shared_application import settings
+    for text in ("kein-absender", "a@b.test, c@d.test"):
+        with pytest.raises(ValueError, match="genau eine"):
+            new_rule("address", text, "ignore", NOW)
+    with JsonStore(tmp_path / "state") as store, JsonStore(tmp_path / "config") as senders:
+        service = ConfigurationService(tmp_path, store, settings(tmp_path), lambda actor: False,
+                                       lambda active: None, senders=senders)
+        result = service.change_rules("web:" + "a" * 16, RuleChange(rule_action="add", kind="address",
+                                                                    value="a@b.test"))
+        assert result.status == ResultStatus.UNAUTHORIZED and senders.load("irrelevant-senders") is None

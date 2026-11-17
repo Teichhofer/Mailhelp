@@ -1,5 +1,18 @@
 # Änderungen
 
+## 7.7.3 – Absender-Regeln verwalten (Web und Telegram)
+
+- Neue Seite „Absender-Regeln“ (`/einstellungen/absender`; die alte Adresse leitet weiter): VIP-Absender,
+  ignorierte Absender und Ausnahmen mit Postfach, Treffern und letztem Treffer; Regeln ein- und
+  ausschalten oder entfernen. Eine neue Regel zeigt vor dem Speichern, wie viele der letzten 200 Mails
+  sie treffen würde, und warnt bei großen Mailanbietern.
+- Bisherige Postfach-Ausnahmen lassen sich mit „Als VIP übernehmen“ zu VIP-Regeln machen.
+- An der Mailseite: „Domain … ignorieren“ (nicht bei großen Mailanbietern) und „Als VIP einstufen“.
+- Telegram: Die Relevanzrückfrage hat den Knopf „🚫 Absender immer ignorieren“; die Antwort bietet
+  „Rückgängig“, das nur die Regel entfernt.
+- Änderungen von der Regelseite sind an den Stand der Regeldatei gebunden; jede Änderung ist
+  idempotent. Alle Texte gibt es auf Deutsch und Englisch.
+
 ## 7.7.2 – Vorfilter-Regeln in der Verarbeitung
 
 - Mails von VIP-Absendern gelten ohne Relevanz-Aufruf als relevant und werden normal weiter

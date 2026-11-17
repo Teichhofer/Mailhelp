@@ -37,6 +37,26 @@ der Entscheidung zählt `prefilter-hits.json` (`PrefilterHits`) Treffer und letz
 Die Bilderkennung entfällt, wenn eine Sperrregel greift. Entscheidungstest (mit Betreff) und Lernmodus
 (mit Kopfzeilen) verwenden denselben Auswerter.
 
+Seit 7.7.3 verwaltet `/einstellungen/absender` die Regeln (`/einstellungen/ignorierte-absender` leitet
+dorthin weiter). Die Seite zeigt VIP-Absender, ignorierte Absender (Listen aus Schema 2 und Regeln) und
+Ausnahmen, je mit Postfach, Trefferzahl und letztem Treffer aus `prefilter-hits.json`. Eine neue Regel
+wird zuerst als Vorschau gegen die letzten 200 Mails gezählt; erst die Vorschau bietet „Regel
+speichern“, und eine Domainregel für einen großen Mailanbieter wird gewarnt. Jede Änderung ist ein
+`AdminCommand` (`AdminKind.SENDERS`, Patch `RuleChange`: `add`, `remove`, `enable`, `disable`, `promote`)
+mit Sitzung, CSRF, Idempotenzschlüssel und – von der Regelseite – dem Hash der Regeldatei
+(`expected_hash`); ein geänderter Stand ergibt „Absenderfilter inzwischen geändert.“. Die stabile
+Regelkennung macht jede Änderung idempotent; dieselbe Art und derselbe Wert mit anderer Aktion ändert
+die bestehende Regel. „Als VIP übernehmen“ wandelt eine `allow`-Ausnahme in eine VIP-Regel desselben
+Postfachs (`origin: migration`). Die Mailseite bietet „Domain … ignorieren“ (nicht für große
+Mailanbieter) und „Als VIP einstufen“, beide global wie „Absender ignorieren“.
+
+In Telegram trägt die Relevanzrückfrage bei genau einer lesbaren Absenderadresse den Knopf „🚫 Absender
+immer ignorieren“ (`relevance:<mail>:<version>:ignore_sender`). Er prüft zuerst, ob die Rückfrage dieser
+Version noch offen ist (sonst „Schaltfläche ist veraltet“, keine Regel), legt dann die globale
+Ignorier-Regel an (`origin: telegram`) und beantwortet die Rückfrage mit „irrelevant“. Beide Schritte
+sind idempotent, sodass ein Neustart dazwischen genau eine Regel ergibt. Die Antwort trägt
+„Rückgängig“ (`rule-undo:<regel>`), das nur diese Regel entfernt; die Einordnung der Mail bleibt.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der
