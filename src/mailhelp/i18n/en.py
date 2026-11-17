@@ -32,6 +32,14 @@ EN: dict[str, str] = {
     "English": "English",
     "Deutsch": "Deutsch",
     "unbekannt ({value})": "unknown ({value})",
+    # Dates, times and durations (7.5.2)
+    "{n} Min.": "{n} min",
+    "{n} Std.": "{n} h",
+    "{n} Tag": "{n} day",
+    "{n} Tage": "{n} days",
+    "ganztägig": "all-day",
+    "höchstens {duration}": "at most {duration}",
+    "Ende angenommen: Standarddauer {minutes} Min.": "Assumed end: default duration {minutes} min",
     # Statuses, events, sources and kinds (web/labels.py)
     "Als irrelevant eingestuft": "Rated as irrelevant",
     "Als relevant eingestuft": "Rated as relevant",

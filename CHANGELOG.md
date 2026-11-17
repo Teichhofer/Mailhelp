@@ -1,5 +1,10 @@
 # Änderungen
 
+## 7.5.2 – Formate in beiden Sprachen
+
+- Datum, Uhrzeit, Zahlen, Dauern und die Terminzeile der Karten erscheinen auf Englisch im
+  englischen Format; die deutsche Ausgabe bleibt unverändert.
+
 ## 7.5.1 – Sprachkern und Spracheinstellung
 
 - Neue Einstellung `language` (de, en) und Sprachwahl im Browser über einen Link in der Navigation;

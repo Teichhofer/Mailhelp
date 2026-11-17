@@ -5,16 +5,19 @@ import math
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from .i18n import tr
+from .i18n.formatting import day_time, decimal
+
 
 def format_datetime_local(value: datetime, zone: str | ZoneInfo) -> str:
-    """Format a datetime in the given timezone as DD.MM.YYYY, HH:MM Uhr."""
+    """Format a datetime in the given timezone as DD.MM.YYYY, HH:MM Uhr (7.5: or Jan 7, 2027, 14:30)."""
     tz = ZoneInfo(zone) if isinstance(zone, str) else zone
-    return value.astimezone(tz).strftime("%d.%m.%Y, %H:%M Uhr")
+    return day_time(value.astimezone(tz))
 
 
 
 def _decimal(value: float, digits: int) -> str:
-    return f"{value:,.{digits}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
+    return decimal(value, digits)
 
 
 def duration_text(seconds: float, *, precise: bool = False) -> str:
@@ -30,9 +33,10 @@ def duration_text(seconds: float, *, precise: bool = False) -> str:
         return f"{_decimal(seconds, digits)} s"
     if round(seconds) < 3600:
         minutes, rest = divmod(round(seconds), 60)
-        return f"{minutes} Min." + (f" {rest} s" if rest else "")
+        return tr("{n} Min.", n=minutes) + (f" {rest} s" if rest else "")
     if round(seconds / 60) < 1440:
         hours, minutes = divmod(round(seconds / 60), 60)
-        return f"{hours} Std." + (f" {minutes} Min." if minutes else "")
+        return tr("{n} Std.", n=hours) + (" " + tr("{n} Min.", n=minutes) if minutes else "")
     days, hours = divmod(round(seconds / 3600), 24)
-    return f"{days} {'Tag' if days == 1 else 'Tage'}" + (f" {hours} Std." if hours else "")
+    return (tr("{n} Tag", n=days) if days == 1 else tr("{n} Tage", n=days)) + (
+        " " + tr("{n} Std.", n=hours) if hours else "")

@@ -171,6 +171,7 @@ class _Range:
     end: date
     # A named weekday contradicts its calendar day: the range needs a clarification.
     contradicted: bool
+    year_source: YearSource = YearSource.EXPLICIT_MAIL
 
 
 def _range(match: re.Match[str], start: tuple[int, int, int], end: tuple[int, int, int],
@@ -217,6 +218,34 @@ def _unambiguous_date_range(event: ExtractedEvent) -> _Range | None:
         ranges = _date_ranges(raw)
         if len(ranges) == 1 and ranges[0].end >= ranges[0].start:
             return ranges[0]
+    return None
+
+
+def _yearless_range(event: ExtractedEvent, context: MailDateContext) -> _Range | NormalizationResult | None:
+    """Resolve a complete yearless range by the same policy as a yearless single day.
+
+    A leap-year placeholder only recognizes the syntax. Its weekday and year are
+    never accepted as facts; the actual range is rebuilt after resolving its start.
+    """
+    raw = event.date_text
+    if raw is None:
+        return None
+    for separator in (" ", ""):
+        template = raw + separator + "2000"
+        ranges = _date_ranges(template)
+        if len(ranges) != 1 or ranges[0].text != template:
+            continue
+        shape = ranges[0]
+        month = next(name for name, number in MONTHS.items() if number == shape.start.month)
+        resolved = _parse_date(f"{shape.start.day}. {month}", event.responsibility, context, event.evidence)
+        if isinstance(resolved, NormalizationResult):
+            return replace(resolved, raw_value=raw)
+        start, fact = resolved
+        end_year = start.year + (shape.end.month < shape.start.month)
+        rebuilt = _date_ranges(raw + separator + str(end_year))
+        if not rebuilt:
+            return _failure(NormalizationReason.INVALID_DATE, raw, event.responsibility, _INVALID_DATE)
+        return replace(rebuilt[0], text=raw, year_source=fact.year_source)
     return None
 
 
@@ -436,7 +465,7 @@ def split_time_range(event: ExtractedEvent) -> ExtractedEvent:
 
 def _range_fact(date_range: _Range) -> TemporalFact:
     return TemporalFact(raw_text=date_range.text, normalized_date=date_range.start,
-                        year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
+                        year_source=date_range.year_source, status=TemporalResolutionStatus.RESOLVED)
 
 
 def _normalize_date_range(event: ExtractedEvent, context: MailDateContext,
@@ -544,6 +573,11 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     """Normalize an event without making a responsibility decision."""
     event = split_time_range(event)
     date_range = _unambiguous_date_range(event)
+    if date_range is None:
+        inferred = _yearless_range(event, context)
+        if isinstance(inferred, NormalizationResult):
+            return inferred
+        date_range = inferred
     if date_range is not None:
         if date_range.contradicted:
             return replace(_failure(NormalizationReason.INVALID_DATE, date_range.text, event.responsibility,

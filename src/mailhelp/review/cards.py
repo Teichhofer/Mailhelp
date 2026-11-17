@@ -19,6 +19,8 @@ from ..domain.proposal import Proposal, ProposalKind
 from ..external.contracts import proposal_is_writable
 from ..external.google_tasks import DUE_NOTE
 from ..formatting import format_datetime_local
+from ..i18n import tr
+from ..i18n.formatting import clock, clock_suffix, day, day_time
 
 RESPONSIBILITY = {"user": "Du", "other": "Andere Person", "unclear": "Noch unklar"}
 CERTAINTY = {"certain": "Eindeutig", "uncertain": "Unsicher", "contradictory": "Widersprüchlich"}
@@ -92,7 +94,8 @@ def yes_no_question(question: str) -> bool:
 def event_time(proposal: Proposal, configured_timezone: str) -> str | None:
     text = _event_time(proposal, configured_timezone)
     if proposal.default_duration_minutes is not None:
-        text = f"{text} · Ende angenommen: Standarddauer {proposal.default_duration_minutes} Min."
+        text = f"{text} · " + tr("Ende angenommen: Standarddauer {minutes} Min.",
+                                  minutes=proposal.default_duration_minutes)
     return text
 
 
@@ -106,25 +109,26 @@ def _event_time(proposal: Proposal, configured_timezone: str) -> str | None:
     if proposal.all_day and isinstance(start, date) and not isinstance(start, datetime):
         last = end - timedelta(days=1) if isinstance(end, date) else None
         if last is not None and last != start:
-            return f"{start:%d.%m.%Y} – {last:%d.%m.%Y}, ganztägig"
-        return f"{start:%d.%m.%Y}, ganztägig"
+            return f"{day(start)} – {day(last)}, {tr('ganztägig')}"
+        return f"{day(start)}, {tr('ganztägig')}"
     if isinstance(start, datetime):
         local_start = start.astimezone(zone)
         if isinstance(end, datetime):
             local_end = end.astimezone(zone)
             if local_end.date() == local_start.date():
-                return f"{local_start:%d.%m.%Y, %H:%M}–{local_end:%H:%M} Uhr"
-            return f"{local_start:%d.%m.%Y, %H:%M} Uhr – {local_end:%d.%m.%Y, %H:%M} Uhr"
-        text = f"{local_start:%d.%m.%Y, %H:%M} Uhr"
+                return f"{day(local_start)}, {clock(local_start)}–{clock(local_end)}{clock_suffix()}"
+            return f"{day_time(local_start)} – {day_time(local_end)}"
+        text = day_time(local_start)
         if proposal.duration_minutes:
-            prefix = "höchstens " if proposal.duration_is_upper_bound else ""
-            text += f" ({prefix}{proposal.duration_minutes} Min.)"
+            minutes = tr("{n} Min.", n=proposal.duration_minutes)
+            bounded = tr("höchstens {duration}", duration=minutes) if proposal.duration_is_upper_bound else minutes
+            text += f" ({bounded})"
         return text
     facts = proposal.known_temporal_facts
     if facts is not None and facts.date is not None:
-        text = f"{facts.date:%d.%m.%Y}"
+        text = day(facts.date)
         if facts.start_time:
-            text += f", {facts.start_time:%H:%M} Uhr"
+            text += f", {clock(facts.start_time)}{clock_suffix()}"
         return text
     return None
 

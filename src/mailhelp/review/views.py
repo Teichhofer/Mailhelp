@@ -41,6 +41,7 @@ from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from ..domain.run import MailRunState
 from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
 from ..formatting import format_datetime_local
+from ..i18n.formatting import number
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.attachments import AttachmentCache, OriginalFile
 from ..proposals import conflicts
@@ -213,8 +214,8 @@ def count_processed(store: JsonStore) -> int:
 
 
 def german_number(value: int) -> str:
-    """1234 → "1.234" (German thousands separator)."""
-    return f"{value:,}".replace(",", ".")
+    """1234 → "1.234" (German thousands separator; 7.5: "1,234" in English)."""
+    return number(value)
 
 
 @dataclass(frozen=True)

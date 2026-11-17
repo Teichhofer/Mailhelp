@@ -36,3 +36,19 @@ Bis dahin sind auf Englisch nur Rahmen, Navigation und Statusbezeichnungen über
 
 Prüfung 7.5.1: 5 720 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 956 bestanden ohne
 Fehler, JavaScript zu 100 % abgedeckt.
+
+## 7.5.2 – Datum, Uhrzeit, Zahlen und Dauern (L2)
+
+- `mailhelp.i18n.formatting`: Datum (`07.01.2027` / `Jan 7, 2027`), Uhrzeit mit „Uhr“ nur auf Deutsch,
+  auf Englisch im 24-Stunden-Format (`14:30`), damit keine Zeit ein AM/PM braucht, Tausendertrenner
+  (`1.234` / `1,234`) und Dezimalzahlen.
+- Eingebunden in `format_datetime_local`, `duration_text` (`Min.`, `Std.`, `Tage` / `min`, `h`,
+  `days`), `german_number` und die Terminzeile der Karten: einzelne Tage, Spannen über mehrere Tage,
+  ganztägig, Dauer mit „höchstens“ und „Ende angenommen: Standarddauer …“.
+- Die deutsche Ausgabe bleibt Zeichen für Zeichen gleich (Golden-Seiten unverändert).
+
+**Abweichung.** Der Plan nennt für Englisch wahlweise 12- oder 24-Stunden-Zeit. Mailhelp zeigt
+24-Stunden-Zeit: Sie ist eindeutig, passt zu den gespeicherten Zeiten und zur Eingabe in Formularen.
+
+Prüfung 7.5.2: 5 735 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung; Browser 956 bestanden ohne
+Fehler, JavaScript zu 100 % abgedeckt.
