@@ -3,12 +3,12 @@
   "base_title": null,
   "calendar_candidates": [],
   "canonical_ref": null,
-  "certainty": "uncertain",
+  "certainty": "certain",
   "classification": "new",
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Unterschriebene Einverständniserklärung für den Ausflug ins Planetarium am 4. Dezember einreichen, sofern noch nicht erfolgt.\n\nAbsender: Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>\nBetreff: Erinnerung: Einverständniserklärung Planetarium\nMail-Datum: 2026-11-13T08:15:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C06-erinnerung-formular@demo.mailhelp.example%3E)",
+  "description": "Zwei Packungen Bastelkleber und einen bunten DIN-A4-Fotokarton besorgen und zum Workshop mitbringen.\n\nAbsender: Tom Weber <jugend@tsv-beispielstadt.example>\nBetreff: Bastel-Workshop am Samstag – du betreust mit mir\nMail-Datum: 2026-11-10T19:05:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C03-workshop-material@demo.mailhelp.example%3E)",
   "due": "2026-11-20",
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -16,25 +16,23 @@
   "duration_minutes": null,
   "end": null,
   "end_origin": "unknown",
-  "evidence": "Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, falls noch nicht geschehen.",
+  "evidence": "Bitte besorge bis Freitag, 20. November 2026, zwei Packungen Bastelkleber und einen Block Fotokarton (DIN A4, bunt) und bring beides zum Workshop mit.",
   "explicit_create_fallback_confirmed": false,
   "explicit_duplicate_create_confirmed_version": null,
   "explicit_non_binding_create_confirmed": false,
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_7b829eb5ac13dc0a39cec21b",
+  "id": "p_3f8cd37f994fb341ff4e2747",
   "is_cancellation": false,
   "kind": "task",
   "known_temporal_facts": null,
   "location": null,
-  "mail_link": "message://%3C06-erinnerung-formular@demo.mailhelp.example%3E",
+  "mail_link": "message://%3C03-workshop-material@demo.mailhelp.example%3E",
   "matching_candidates": [],
   "meeting_mode": "unknown",
   "merge_review_required": false,
-  "open_questions": [
-    "Ist die extrahierte Information sicher belegt?"
-  ],
+  "open_questions": [],
   "original_date": null,
   "pending_sources": [],
   "protected_fields": [],
@@ -46,28 +44,33 @@
   "separated_from": [],
   "series_key": null,
   "simulation_notified": false,
-  "source_mail_id": "817f70d2d31d7b212e435d84",
+  "source_mail_id": "dcaf6e9b05b988f119ff6bc4",
   "sources": [
     {
       "anchors": [
-        "9f0e4cc57b6fa842f43db08479c97f0f9294c3fbf12c94375d87bbf4f3789a29"
+        "36b1d15894fdd0d93248959854c92a699738765cd4dec83b7b1980ac2d9ce7e6"
       ],
-      "mail_id": "817f70d2d31d7b212e435d84",
-      "proposal_id": "p_7b829eb5ac13dc0a39cec21b",
-      "sent_at": "2026-11-13T08:15:00+01:00",
-      "subject": "erinnerung: einverständniserklärung planetarium"
+      "mail_id": "dcaf6e9b05b988f119ff6bc4",
+      "proposal_id": "p_3f8cd37f994fb341ff4e2747",
+      "sent_at": "2026-11-10T19:05:00+01:00",
+      "subject": "bastel-workshop am samstag – du betreust mit mir"
     }
   ],
   "start": null,
-  "status": "needs_clarification",
+  "status": "pending_confirmation",
   "target": "example-project",
   "target_event_id": null,
   "target_profile": 1,
   "target_provider": "todoist",
-  "temporal_fact": null,
+  "temporal_fact": {
+    "normalized_date": "2026-11-20",
+    "raw_text": "Freitag, 20. November 2026",
+    "status": "resolved",
+    "year_source": "explicit_mail"
+  },
   "time_changes": [],
-  "title": "Einverständniserklärung Planetarium abgeben",
+  "title": "Bastelmaterial besorgen und mitbringen",
   "uncertain_notified": false,
-  "version": 2,
+  "version": 1,
   "video_link": null
 }

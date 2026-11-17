@@ -8,7 +8,7 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
+  "description": "Mias unterschriebene Einverständniserklärung im Sekretariat abgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Begleitung und Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
   "due": "2026-11-20",
   "duplicate_check_failed": false,
   "duplicate_match": null,
@@ -16,14 +16,14 @@
   "duration_minutes": null,
   "end": null,
   "end_origin": "unknown",
-  "evidence": "Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit.",
+  "evidence": "Bitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, 20. November 2026, im Sekretariat ab.",
   "explicit_create_fallback_confirmed": false,
   "explicit_duplicate_create_confirmed_version": null,
   "explicit_non_binding_create_confirmed": false,
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_d12ad8fba3156f6f61539c67",
+  "id": "p_130b907c241ff642caa186df",
   "is_cancellation": false,
   "kind": "task",
   "known_temporal_facts": null,
@@ -51,9 +51,9 @@
         "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
       ],
       "mail_id": "fcd2160ce611f1d255b9cac5",
-      "proposal_id": "p_d12ad8fba3156f6f61539c67",
+      "proposal_id": "p_130b907c241ff642caa186df",
       "sent_at": "2026-11-10T07:48:00+01:00",
-      "subject": "ausflug ins planetarium – einverständniserklärung"
+      "subject": "ausflug ins planetarium – begleitung und einverständniserklärung"
     }
   ],
   "start": null,
@@ -69,7 +69,7 @@
     "year_source": "explicit_mail"
   },
   "time_changes": [],
-  "title": "Einverständniserklärung unterschrieben zurückgeben",
+  "title": "Einverständniserklärung im Sekretariat abgeben",
   "uncertain_notified": false,
   "version": 1,
   "video_link": null

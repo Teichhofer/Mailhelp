@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "817f70d2d31d7b212e435d84",
-  "recorded_at": "2026-11-16T13:39:27.609096+00:00",
+  "recorded_at": "2026-11-17T14:19:51.641295+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,12 +13,10 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "4. Dezember",
-      "Freitag, 20. November"
+      "Mittwoch, 25. November 2026"
     ],
     "sentences": [
-      "Das Sekretariat der Grundschule am Lindenpark erinnert die Eltern der Klasse 4b an die Einverständniserklärung für den Planetariumsausflug am 4. Dezember.",
-      "Sie bittet, das unterschriebene Formular bis Freitag, 20. November abzugeben, falls noch nicht geschehen."
+      "Das Sekretariat der Grundschule bittet die Eltern der Klasse 4b, bis Mittwoch, 25. November 2026, 12 € Eintritt für den Planetarium-Ausflug zu überweisen."
     ]
   },
   "topics": {

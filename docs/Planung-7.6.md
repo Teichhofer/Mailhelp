@@ -2,7 +2,7 @@
 
 **Zielversion:** 7.6, Umsetzung in Patchversionen ab 7.6.1  
 **Stand:** 16. November 2026  
-**Status:** Geplant; noch nicht implementiert.  
+**Status:** In Umsetzung; 7.6.1 (Q1–Q3) umgesetzt, siehe [Release 7.6](Release-7.6.md).  
 **Ausgangsstand:** Nach Umsetzung von 7.1 (Demo-Modus) und den Folgeversionen.  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 7.1](Planung-7.1.md).
 

@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "79b95d24155d457eb5691ea3",
-  "recorded_at": "2026-11-16T13:40:15.138231+00:00",
+  "recorded_at": "2026-11-17T14:20:13.637634+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,11 +13,10 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "Mittwoch, 9. Dezember 2026"
+      "Mittwoch, 9. Dezember 2026, von 16:00 bis 17:30 Uhr"
     ],
     "sentences": [
-      "Die Musikschule informiert die Eltern, dass der Vorspielnachmittag der Geigenklasse am Mittwoch, 9. Dezember 2026 im Kammermusiksaal stattfindet.",
-      "Mia spielt dort ihr erstes Solostück; die genaue Uhrzeit wird noch abgestimmt."
+      "Die Musikschule lädt die Eltern zum Vorspielnachmittag der Geigenklasse am 9. Dezember 2026 von 16:00 bis 17:30 Uhr in den Kammermusiksaal ein."
     ]
   },
   "topics": {

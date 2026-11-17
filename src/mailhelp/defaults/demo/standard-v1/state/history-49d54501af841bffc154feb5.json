@@ -2,12 +2,12 @@
   "events": [
     {
       "actor": null,
-      "at": "2026-11-16T13:39:22.041871Z",
-      "id": "ffe682f41e59a19ff08468a72a6f1b7e",
+      "at": "2026-11-17T14:19:48.690981Z",
+      "id": "e3c49915181932b3fc629ee3fa36a9e9",
       "kind": "state",
-      "proposal_id": "p_ec41035e8e84ab3801ea906c",
+      "proposal_id": "p_6baa373cd6edc83aa7a15724",
       "source": "system",
-      "status": "needs_clarification",
+      "status": "pending_confirmation",
       "version": 1
     }
   ],

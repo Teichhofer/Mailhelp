@@ -2,33 +2,23 @@
   "events": [
     {
       "actor": null,
-      "at": "2026-11-16T13:37:28.329006Z",
-      "id": "3a6d66580e42acf82b5ddb6525a9781b",
+      "at": "2026-11-17T14:18:40.696395Z",
+      "id": "995b1cee18afc1dfe7306ccb2056fc9f",
       "kind": "state",
-      "proposal_id": "p_d12ad8fba3156f6f61539c67",
+      "proposal_id": "p_130b907c241ff642caa186df",
       "source": "system",
       "status": "pending_confirmation",
       "version": 1
     },
     {
       "actor": null,
-      "at": "2026-11-16T13:37:28.362028Z",
-      "id": "9098a63120463e9e87720d206f9f21c1",
+      "at": "2026-11-17T14:18:40.728229Z",
+      "id": "1d415726da039ac6b53f130678cc9d02",
       "kind": "state",
-      "proposal_id": "p_b9e428b080850e29997083c4",
+      "proposal_id": "p_7876d322bcb836014c28eeb0",
       "source": "system",
-      "status": "needs_clarification",
+      "status": "pending_confirmation",
       "version": 1
-    },
-    {
-      "actor": null,
-      "at": "2026-11-16T13:40:12.294163Z",
-      "id": "d1480ec08834033bc162942e2aa3a858",
-      "kind": "state",
-      "proposal_id": "p_b9e428b080850e29997083c4",
-      "source": "system",
-      "status": "needs_clarification",
-      "version": 2
     }
   ],
   "removed": false,

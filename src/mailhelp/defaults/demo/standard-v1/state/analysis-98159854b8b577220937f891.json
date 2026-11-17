@@ -1,15 +1,23 @@
 {
   "human_decision": null,
   "mail_id": "98159854b8b577220937f891",
-  "recorded_at": "2026-11-16T13:40:27.623000+00:00",
+  "recorded_at": "2026-11-17T14:20:28.594380+00:00",
   "relevance": {
-    "decision": "unclear",
-    "reason": "Die Nachricht betrifft eine persönliche Absprache für Samstag, aber der genannte Stand lässt sich keinem der übergebenen Themen eindeutig zuordnen.",
-    "topic_ids": []
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "verein"
+    ]
   },
   "schema_version": 1,
-  "source": "JEV → Standard-LLM-Fallback",
-  "summary": null,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Die Jugendabteilung informiert, dass die neuen Trikots da sind und beim nächsten regulären Training an die Kinder verteilt werden.",
+      "Die Angeschriebenen müssen dafür nichts tun und nichts bezahlen."
+    ]
+  },
   "topics": {
     "foerderverein": "Förderverein und Schulfeste",
     "musikschule": "Musikschule",

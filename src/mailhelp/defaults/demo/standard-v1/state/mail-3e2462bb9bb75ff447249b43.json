@@ -4,7 +4,7 @@
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T13:40:36.106638Z",
+  "created_at": "2026-11-17T14:20:43.269377Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Versicherung Sicherheim <service@sicherheim.example>",
@@ -28,7 +28,7 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "11bf00a7-bdba-4a34-a5b8-ab3b3a9d23b8"
+    "5971ddaf-5c0b-405d-bbc3-1710aa8b416e"
   ],
   "mail": {
     "calendar_events": [],
@@ -80,8 +80,20 @@
       "caldav_task_url": "",
       "calendar_provider": "google",
       "google_calendar": "primary",
+      "google_tasks_list": "@default",
       "microsoft_tenant": "common",
       "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
       "outlook_calendar": "default",
       "removal_window_minutes": 10,
       "task_provider": "todoist",
@@ -115,7 +127,7 @@
   },
   "summary": null,
   "task_extraction": null,
-  "updated_at": "2026-11-16T13:40:36.405873Z",
+  "updated_at": "2026-11-17T14:20:43.524323Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

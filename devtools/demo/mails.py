@@ -1,9 +1,10 @@
 """7.1 (D2): the synthetic original mails of the demo dataset, written for this purpose.
 
 Every address uses a reserved example domain; no real person, mailbox, phone number or document
-appears. The first ten mails show the planned flows (Planung 7.1, 5.1), the other twenty are
-deliberately irrelevant (decision of 16 November 2026). ``devtools.demo.dataset`` turns them into
-``.eml`` messages and runs them through the real processing path.
+appears. The first ten mails show the planned flows (Planung 7.1, 5.1); since 7.6 each of them is
+complete – date, times, who is meant – so every proposal can be decided at once (Planung 7.6). The
+other twenty are deliberately irrelevant (decision of 16 November 2026). ``devtools.demo.dataset``
+turns them into ``.eml`` messages and runs them through the real processing path.
 """
 from __future__ import annotations
 
@@ -30,50 +31,48 @@ RELEVANT = (
     DemoMail("01-elternabend", "Frau Lehmann (Klassenleitung 4b) <lehmann@grundschule-lindenpark.example>",
              "Einladung zum Elternabend der Klasse 4b", "2026-11-09 16:12",
              "Liebe Eltern der Klasse 4b,\n\nich lade Sie herzlich zum Elternabend ein:\n\n"
-             "Donnerstag, 26. November 2026, 19:30 Uhr\nRaum 12, Grundschule am Lindenpark\n\n"
+             "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr\nRaum 12, Grundschule am Lindenpark\n\n"
              "Wir besprechen den Ausflug ins Planetarium, die Lesepaten und die Termine bis zu den "
-             "Weihnachtsferien. Der Abend dauert etwa anderthalb Stunden.\n\nViele Grüße\nJana Lehmann"),
+             "Weihnachtsferien.\n\nViele Grüße\nJana Lehmann"),
     DemoMail("02-ausflug-formular", "Frau Lehmann (Klassenleitung 4b) <lehmann@grundschule-lindenpark.example>",
-             "Ausflug ins Planetarium – Einverständniserklärung", "2026-11-10 07:48",
-             "Liebe Eltern,\n\nam Freitag, 4. Dezember 2026, fährt die Klasse 4b ins Planetarium. "
-             "Im Anhang der Postmappe finden Sie die Einverständniserklärung. Bitte geben Sie sie "
-             "unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit. "
-             "Ohne unterschriebene Erklärung kann Ihr Kind leider nicht mitfahren.\n\n"
-             "Danke und viele Grüße\nJana Lehmann"),
+             "Ausflug ins Planetarium – Begleitung und Einverständniserklärung", "2026-11-10 07:48",
+             "Liebe Alex,\n\nvielen Dank, dass Sie die Klasse 4b ins Planetarium begleiten. Sie sind fest als "
+             "Begleitperson eingeteilt: Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr, Treffpunkt ist der "
+             "Schulhof.\n\nBitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, "
+             "20. November 2026, im Sekretariat ab.\n\nDanke und viele Grüße\nJana Lehmann"),
     DemoMail("03-workshop-material", "Tom Weber (TSV Beispielstadt, Jugend) <jugend@tsv-beispielstadt.example>",
-             "Bastel-Workshop der Jugendabteilung – bitte Material mitbringen", "2026-11-10 19:05",
-             "Hallo zusammen,\n\nfür den Bastel-Workshop der Jugendabteilung brauchen wir noch Material. "
-             "Alex, könntest du bitte zwei Packungen Bastelkleber und einen Block Fotokarton (DIN A4, bunt) "
-             "besorgen und zum Workshop mitbringen? Eine feste Uhrzeit für den Einkauf gibt es nicht, Hauptsache "
-             "das Material ist bis zum Workshop am Samstag, 21. November, da.\n\nSportliche Grüße\nTom"),
+             "Bastel-Workshop am Samstag – du betreust mit mir", "2026-11-10 19:05",
+             "Hallo Alex,\n\ndanke, dass du mit mir den Bastel-Workshop der Jugendabteilung betreust. Er findet am "
+             "Samstag, 21. November 2026, von 10:00 bis 12:30 Uhr im Vereinsheim statt.\n\nBitte besorge bis "
+             "Freitag, 20. November 2026, zwei Packungen Bastelkleber und einen Block Fotokarton (DIN A4, bunt) "
+             "und bring beides zum Workshop mit.\n\nSportliche Grüße\nTom"),
     DemoMail("04-adventsbasar", "Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>",
-             "Einladung zum Adventsbasar – Kuchenspenden gesucht", "2026-11-11 12:30",
-             "Liebe Eltern,\n\nder Förderverein lädt herzlich zum Adventsbasar ein:\n"
-             "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.\n\n"
-             "Wir freuen uns über Kuchenspenden. Wer einen Kuchen beisteuern möchte, meldet sich bitte bis "
-             "Montag, 30. November 2026, über das Formular auf der Schulwebsite an.\n\n"
-             "Herzliche Grüße\nIhr Förderverein"),
-    DemoMail("05-elternabend-verschoben", "Frau Lehmann (Klassenleitung 4b) <lehmann@grundschule-lindenpark.example>",
-             "Re: Einladung zum Elternabend der Klasse 4b – neuer Termin", "2026-11-12 14:20",
-             "Liebe Eltern,\n\nder Elternabend, zu dem ich Sie am 9. November eingeladen habe, kann am "
-             "Donnerstag, 26. November, leider nicht stattfinden. Er wird verschoben auf Dienstag, "
-             "1. Dezember 2026, ebenfalls um 19:30 Uhr in Raum 12. Die Tagesordnung bleibt gleich.\n\n"
-             "Entschuldigen Sie die Umstände!\nJana Lehmann"),
-    DemoMail("06-erinnerung-formular",
+             "Adventsbasar – danke für deinen Kuchen", "2026-11-11 12:30",
+             "Liebe Alex,\n\nwir freuen uns auf dich beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 "
+             "bis 17:00 Uhr in der Aula der Grundschule.\n\nDanke, dass du einen Schokoladenkuchen spendest! "
+             "Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.\n\n"
+             "Herzliche Grüße\nDein Förderverein"),
+    DemoMail("05-lesepaten-treffen", "Frau Lehmann (Klassenleitung 4b) <lehmann@grundschule-lindenpark.example>",
+             "Lesepaten: Einführungstreffen", "2026-11-12 14:20",
+             "Liebe Alex,\n\nschön, dass Sie Lesepatin bzw. Lesepate der Klasse 4b werden. Das Einführungstreffen "
+             "für alle Lesepaten findet am Dienstag, 1. Dezember 2026, von 18:00 bis 19:00 Uhr in der "
+             "Schulbibliothek statt.\n\nViele Grüße\nJana Lehmann"),
+    DemoMail("06-ausflug-eintritt",
              "Sekretariat Grundschule am Lindenpark <sekretariat@grundschule-lindenpark.example>",
-             "Erinnerung: Einverständniserklärung Planetarium", "2026-11-13 08:15",
-             "Liebe Eltern der Klasse 4b,\n\nwir erinnern an die Einverständniserklärung für den Ausflug ins "
-             "Planetarium am 4. Dezember. Bitte geben Sie sie bis Freitag, 20. November, unterschrieben ab, "
-             "falls noch nicht geschehen.\n\nIhr Sekretariat"),
-    DemoMail("07-vorspiel-ohne-uhrzeit", "Musikschule Beispielstadt <info@musikschule-beispielstadt.example>",
-             "Vorspielnachmittag der Geigenklasse", "2026-11-13 17:40",
-             "Liebe Eltern,\n\nam Mittwoch, 9. Dezember 2026, findet der Vorspielnachmittag der Geigenklasse "
-             "im Kammermusiksaal der Musikschule statt. Mia spielt dort ihr erstes Solostück. Die genaue "
-             "Uhrzeit stimmen wir gerade mit dem Saal ab.\n\nMusikalische Grüße\nIhre Musikschule"),
-    DemoMail("08-unklarer-bezug", "Sandra K. <sandra.k@post.example>",
-             "Wegen Samstag", "2026-11-14 10:02",
-             "Hallo Alex,\n\nwegen Samstag: Bringst du die Sachen für den Stand mit, oder soll ich sie abholen? "
-             "Gib mir bitte bis Freitag Bescheid.\n\nLiebe Grüße\nSandra"),
+             "Planetarium: Eintritt bitte überweisen", "2026-11-13 08:15",
+             "Liebe Eltern der Klasse 4b,\n\nfür den Ausflug ins Planetarium bitten wir Sie, bis Mittwoch, "
+             "25. November 2026, 12 € Eintritt auf das Klassenkonto zu überweisen (Verwendungszweck: Planetarium "
+             "und der Name Ihres Kindes).\n\nIhr Sekretariat"),
+    DemoMail("07-vorspiel", "Musikschule Beispielstadt <info@musikschule-beispielstadt.example>",
+             "Einladung zum Vorspielnachmittag der Geigenklasse", "2026-11-13 17:40",
+             "Liebe Eltern,\n\nwir laden Sie herzlich zum Vorspielnachmittag der Geigenklasse ein: Mittwoch, "
+             "9. Dezember 2026, von 16:00 bis 17:30 Uhr im Kammermusiksaal der Musikschule. Mia spielt dort ihr "
+             "erstes Solostück.\n\nMusikalische Grüße\nIhre Musikschule"),
+    DemoMail("08-neue-trikots", "Tom Weber (TSV Beispielstadt, Jugend) <jugend@tsv-beispielstadt.example>",
+             "Neue Trikots für die Jugend", "2026-11-14 10:02",
+             "Hallo zusammen,\n\ndie neuen Trikots der Jugendabteilung sind da. Wir verteilen sie beim nächsten "
+             "regulären Training an die Kinder. Ihr müsst dafür nichts tun und nichts bezahlen.\n\n"
+             "Sportliche Grüße\nTom"),
     DemoMail("09-mensa-info", "Grundschule am Lindenpark <info@grundschule-lindenpark.example>",
              "Neuer Speiseplan der Mensa online", "2026-11-15 09:30",
              "Liebe Eltern,\n\nder Speiseplan der Mensa für Dezember ist ab sofort auf der Schulwebsite "

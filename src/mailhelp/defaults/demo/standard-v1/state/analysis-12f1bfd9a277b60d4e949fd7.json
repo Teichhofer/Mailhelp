@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "12f1bfd9a277b60d4e949fd7",
-  "recorded_at": "2026-11-16T13:36:59.664042+00:00",
+  "recorded_at": "2026-11-17T14:18:13.831698+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,10 +13,10 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "Donnerstag, 26. November 2026, 19:30 Uhr"
+      "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr"
     ],
     "sentences": [
-      "Jana Lehmann lädt die Eltern der Klasse 4b zum Elternabend am 26. November 2026 um 19:30 Uhr in Raum 12 ein.",
+      "Frau Lehmann lädt die Eltern der Klasse 4b zum Elternabend am 26. November 2026 von 19:30 bis 21:00 Uhr in Raum 12 ein.",
       "Besprochen werden der Ausflug ins Planetarium, die Lesepaten und die Termine bis zu den Weihnachtsferien."
     ]
   },

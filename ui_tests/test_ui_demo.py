@@ -14,6 +14,7 @@ from mailhelp.config import WebSettings
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.web.demo_site import DEMO_NOTICE
 from pages import MASTER, DetailPane
+from tests.fakes.demo_questions import asked_dataset
 
 CONFIRM = "In der Demo anlegen"
 
@@ -25,6 +26,18 @@ class Log:
 
 @pytest.fixture
 def instance(tmp_path):
+    yield from serve(tmp_path)
+
+
+@pytest.fixture
+def asked(tmp_path, monkeypatch):
+    """7.6: the shipped demo asks nothing; this copy keeps one question with a prepared answer."""
+    dataset = asked_dataset(tmp_path / "dataset")
+    monkeypatch.setattr(demo, "packaged", lambda: dataset)
+    yield from serve(tmp_path)
+
+
+def serve(tmp_path):
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -98,19 +111,20 @@ def test_a_visitor_starts_the_demo_and_confirms_in_the_own_copy(page, instance):
     assert page.errors == []
 
 
-def test_a_prepared_answer_and_a_restart(page, instance):
+def test_a_prepared_answer_and_a_restart(page, asked):
     if page.device != "desktop":
         pytest.skip("Der Ablauf ist geräteunabhängig; das Wischen prüft der Telefon-Test")
+    instance = asked
     start_demo(page, instance)
     prepared = page.get_by_text("In der Demo vorbereitet")
     form = open_card(page, prepared, "16:00").locator("form", has=prepared).first
     expect(form.locator("textarea")).to_have_value(re.compile("16:00 Uhr"))
     form.get_by_role("button", name="Antwort senden").click()
     page.goto(f"{instance.url}/")
-    expect(page.locator(MASTER)).to_contain_text("Wann endet der Termin?", timeout=10000)
+    expect(page.locator(f"{MASTER} form", has=prepared)).to_have_count(0, timeout=10000)
     page.get_by_role("link", name="Demo neu starten").first.click()
     page.get_by_role("button", name="Demo jetzt neu starten").click()
-    expect(page.locator(f"{MASTER} form", has=page.get_by_text("In der Demo vorbereitet"))).to_have_count(3)
+    expect(page.locator(f"{MASTER} form", has=page.get_by_text("In der Demo vorbereitet"))).to_have_count(1)
     assert page.errors == []
 
 
@@ -143,7 +157,7 @@ def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance):
         page = context.new_page()
         start_demo(page, instance)
         page.goto(f"{instance.url}/mails")
-        expect(page.locator("main")).to_contain_text("Elternabend")
+        expect(page.locator("main")).to_contain_text("Black Week")
         page.goto(f"{instance.url}/einrichtung")
         expect(page.get_by_text("In der Demo nicht verfügbar")).to_be_visible()
         context.close()

@@ -8,37 +8,31 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Mia spielt ihr erstes Solostück; die genaue Uhrzeit wird noch mit dem Saal abgestimmt.\n\nAbsender: Musikschule Beispielstadt <info@musikschule-beispielstadt.example>\nBetreff: Vorspielnachmittag der Geigenklasse\nMail-Datum: 2026-11-13T17:40:00+01:00\n📧 Original-E-Mail öffnen: message://%3C07-vorspiel-ohne-uhrzeit@demo.mailhelp.example%3E",
+  "description": "Mia spielt ihr erstes Solostück.\n\nAbsender: Musikschule Beispielstadt <info@musikschule-beispielstadt.example>\nBetreff: Einladung zum Vorspielnachmittag der Geigenklasse\nMail-Datum: 2026-11-13T17:40:00+01:00\n📧 Original-E-Mail öffnen: message://%3C07-vorspiel@demo.mailhelp.example%3E",
   "due": null,
   "duplicate_check_failed": false,
   "duplicate_match": null,
   "duration_is_upper_bound": false,
   "duration_minutes": null,
-  "end": null,
-  "end_origin": "unknown",
-  "evidence": "am Mittwoch, 9. Dezember 2026, findet der Vorspielnachmittag der Geigenklasse im Kammermusiksaal der Musikschule statt",
+  "end": "2026-12-09T17:30:00+01:00",
+  "end_origin": "mail_end",
+  "evidence": "wir laden Sie herzlich zum Vorspielnachmittag der Geigenklasse ein: Mittwoch, 9. Dezember 2026, von 16:00 bis 17:30 Uhr im Kammermusiksaal der Musikschule.",
   "explicit_create_fallback_confirmed": false,
   "explicit_duplicate_create_confirmed_version": null,
   "explicit_non_binding_create_confirmed": false,
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_ef1a5cfa5c2e8daebc218e67",
+  "id": "p_3531f0eef9102ccfbecaacd0",
   "is_cancellation": false,
   "kind": "event",
-  "known_temporal_facts": {
-    "date": "2026-12-09",
-    "start": null,
-    "start_time": null
-  },
+  "known_temporal_facts": null,
   "location": "Kammermusiksaal der Musikschule",
-  "mail_link": "message://%3C07-vorspiel-ohne-uhrzeit@demo.mailhelp.example%3E",
+  "mail_link": "message://%3C07-vorspiel@demo.mailhelp.example%3E",
   "matching_candidates": [],
   "meeting_mode": "unknown",
   "merge_review_required": false,
-  "open_questions": [
-    "Wann beginnt der Termin?"
-  ],
+  "open_questions": [],
   "original_date": null,
   "pending_sources": [],
   "protected_fields": [],
@@ -54,16 +48,16 @@
   "sources": [
     {
       "anchors": [
-        "fae50e3878cf7133e48440fac99ecd01ff0dbe9c2462d2a62fc23484199e928c"
+        "4ee0af1b23a4e1c6551d65593187da9b3f3f72f2b90cfe0385d2e94ef5718065"
       ],
       "mail_id": "79b95d24155d457eb5691ea3",
-      "proposal_id": "p_ef1a5cfa5c2e8daebc218e67",
+      "proposal_id": "p_3531f0eef9102ccfbecaacd0",
       "sent_at": "2026-11-13T17:40:00+01:00",
-      "subject": "vorspielnachmittag der geigenklasse"
+      "subject": "einladung zum vorspielnachmittag der geigenklasse"
     }
   ],
-  "start": null,
-  "status": "needs_clarification",
+  "start": "2026-12-09T16:00:00+01:00",
+  "status": "pending_confirmation",
   "target": "primary",
   "target_event_id": null,
   "target_profile": 1,

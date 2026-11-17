@@ -104,7 +104,15 @@ def _application(store_directory: Path, calls: list, submitted: list | None = No
     return application
 
 
-def test_process_uses_the_normal_entry_point_and_answers_through_the_dialog(tmp_path):
+def test_the_shipped_mails_need_no_prepared_answer():
+    """7.6: the demo mails are complete, so the generation run answers nothing."""
+    assert dataset.ANSWERS == {}
+
+
+def test_process_uses_the_normal_entry_point_and_answers_through_the_dialog(tmp_path, monkeypatch):
+    # The answer path stays for datasets that ask something; here it gets two synthetic answers.
+    monkeypatch.setattr(dataset, "ANSWERS", {"07-vorspiel": ("Um 16:00 Uhr.",),
+                                             "03-workshop-material": ("Von 10 bis 12:30 Uhr.",)})
     dataset.configuration(tmp_path, "sk-synthetic")
     calls, submitted = [], []
     store, fingerprint, recorded = dataset.process(tmp_path, _application(tmp_path / "data", calls, submitted))

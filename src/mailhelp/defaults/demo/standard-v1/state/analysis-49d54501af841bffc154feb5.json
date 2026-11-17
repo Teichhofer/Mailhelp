@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "49d54501af841bffc154feb5",
-  "recorded_at": "2026-11-16T13:38:56.218042+00:00",
+  "recorded_at": "2026-11-17T14:19:38.543802+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,13 +13,11 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "9. November",
-      "Donnerstag, 26. November",
-      "Dienstag, 1. Dezember 2026, 19:30 Uhr"
+      "Dienstag, 1. Dezember 2026, von 18:00 bis 19:00 Uhr"
     ],
     "sentences": [
-      "Frau Lehmann verschiebt den Elternabend der Klasse 4b vom 26. November auf Dienstag, 1. Dezember 2026, 19:30 Uhr in Raum 12.",
-      "Die Tagesordnung bleibt unverändert."
+      "Frau Lehmann bestätigt Alex als Lesepatin bzw. Lesepate der Klasse 4b.",
+      "Das Einführungstreffen für alle Lesepaten findet am 1. Dezember 2026 von 18:00 bis 19:00 Uhr in der Schulbibliothek statt."
     ]
   },
   "topics": {

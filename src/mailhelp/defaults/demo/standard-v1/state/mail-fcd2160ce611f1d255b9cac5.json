@@ -2,20 +2,20 @@
   "action_route": {
     "action_state": "task_and_event",
     "event_count": 1,
-    "reason": "Die Mail enthält eine konkrete Aufgabe (Einverständniserklärung unterschrieben bis 20.11.2026 zurückgeben) und einen ausdrücklich genannten Termin (Klassenausflug ins Planetarium am 4.12.2026).",
+    "reason": "Die Mail bestätigt einen konkreten künftigen Termin (Begleitung des Ausflugs am 4. Dezember 2026, 08:30–13:00 Uhr) und verlangt zusätzlich die Abgabe der unterschriebenen Einverständniserklärung bis 20. November 2026.",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 1
   },
-  "action_router_call_id": "14f12823-5f06-4b18-8a3f-bd1504ca2425",
+  "action_router_call_id": "26344b8a-30eb-4c12-824a-5725e5dd64bc",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T13:37:08.679418Z",
+  "created_at": "2026-11-17T14:18:23.279601Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Frau Lehmann <lehmann@grundschule-lindenpark.example>",
-    "subject": "Ausflug ins Planetarium – Einverständniserklärung"
+    "subject": "Ausflug ins Planetarium – Begleitung und Einverständniserklärung"
   },
   "duplicate": {
     "outcome": "new",
@@ -29,18 +29,18 @@
         "certainty": "certain",
         "classification": "new",
         "date_text": "Freitag, 4. Dezember 2026",
-        "description": "Die Klasse 4b besucht das Planetarium; Eltern müssen die Einverständniserklärung unterschrieben zurückgeben.",
+        "description": "Begleitung der Klasse 4b beim Ausflug ins Planetarium.",
         "duration_is_upper_bound": false,
         "duration_minutes": null,
-        "end_time_text": null,
-        "evidence": "am Freitag, 4. Dezember 2026, fährt die Klasse 4b ins Planetarium",
-        "location": "Planetarium",
+        "end_time_text": "13:00 Uhr",
+        "evidence": "Sie sind fest als Begleitperson eingeteilt: Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr, Treffpunkt ist der Schulhof.",
+        "location": "Schulhof",
         "original_date_text": null,
-        "responsibility": "other",
-        "time_requirement": "required_unknown",
-        "time_text": null,
+        "responsibility": "user",
+        "time_requirement": "timed",
+        "time_text": "08:30",
         "timezone_offset_text": null,
-        "title": "Ausflug ins Planetarium",
+        "title": "Begleitung Planetarium-Ausflug Klasse 4b",
         "video_link": null
       }
     ],
@@ -57,12 +57,11 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "91573f52-e31f-4c9a-8eb2-1105838cc9af",
-    "e5a87ae0-a4ee-4845-a197-1165d1f98133",
-    "14f12823-5f06-4b18-8a3f-bd1504ca2425",
-    "33c5e548-ef2a-4a88-b529-87ef9f5d0992",
-    "bfad9535-943f-4f12-bfe2-eacf8b05a400",
-    "77704c62-d28a-4824-a413-c33a326a158f"
+    "813d8b00-e433-4880-97d3-f6bc30da93b3",
+    "2011c1de-7252-4d9e-aa87-2ed286ca0092",
+    "26344b8a-30eb-4c12-824a-5725e5dd64bc",
+    "20534932-3502-4a17-a8bf-b3cdb25c2b26",
+    "b3ec5c6b-2377-44d7-a73d-b7386c3f168d"
   ],
   "mail": {
     "calendar_events": [],
@@ -77,7 +76,7 @@
       "message_id": "<02-ausflug-formular@demo.mailhelp.example>",
       "references": "",
       "reply_to": "",
-      "subject": "Ausflug ins Planetarium – Einverständniserklärung"
+      "subject": "Ausflug ins Planetarium – Begleitung und Einverständniserklärung"
     },
     "imap_received_at": "2026-11-10T07:48:00+01:00",
     "internal_id": "fcd2160ce611f1d255b9cac5",
@@ -89,7 +88,7 @@
       "text_shortened": false,
       "vision": "completed"
     },
-    "text": "Liebe Eltern,\n\nam Freitag, 4. Dezember 2026, fährt die Klasse 4b ins Planetarium. Im Anhang der Postmappe finden Sie die Einverständniserklärung. Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit. Ohne unterschriebene Erklärung kann Ihr Kind leider nicht mitfahren.\n\nDanke und viele Grüße\nJana Lehmann",
+    "text": "Liebe Alex,\n\nvielen Dank, dass Sie die Klasse 4b ins Planetarium begleiten. Sie sind fest als Begleitperson eingeteilt: Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr, Treffpunkt ist der Schulhof.\n\nBitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, 20. November 2026, im Sekretariat ab.\n\nDanke und viele Grüße\nJana Lehmann",
     "user_timezone": "Europe/Berlin"
   },
   "normalized_proposals": [
@@ -103,7 +102,7 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
+      "description": "Mias unterschriebene Einverständniserklärung im Sekretariat abgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Begleitung und Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
       "due": "2026-11-20",
       "duplicate_check_failed": false,
       "duplicate_match": null,
@@ -111,14 +110,14 @@
       "duration_minutes": null,
       "end": null,
       "end_origin": "unknown",
-      "evidence": "Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit.",
+      "evidence": "Bitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, 20. November 2026, im Sekretariat ab.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_d12ad8fba3156f6f61539c67",
+      "id": "p_130b907c241ff642caa186df",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -154,14 +153,14 @@
         "year_source": "explicit_mail"
       },
       "time_changes": [],
-      "title": "Einverständniserklärung unterschrieben zurückgeben",
+      "title": "Einverständniserklärung im Sekretariat abgeben",
       "uncertain_notified": false,
       "version": 1,
       "video_link": null
     },
     {
       "all_day": false,
-      "base_title": "Ausflug ins Planetarium",
+      "base_title": "Begleitung Planetarium-Ausflug Klasse 4b",
       "calendar_candidates": [],
       "canonical_ref": null,
       "certainty": "certain",
@@ -169,53 +168,46 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Die Klasse 4b besucht das Planetarium; Eltern müssen die Einverständniserklärung unterschrieben zurückgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
+      "description": "Begleitung der Klasse 4b beim Ausflug ins Planetarium.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Begleitung und Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
       "duration_minutes": null,
-      "end": null,
-      "end_origin": "unknown",
-      "evidence": "am Freitag, 4. Dezember 2026, fährt die Klasse 4b ins Planetarium",
+      "end": "2026-12-04T13:00:00+01:00",
+      "end_origin": "mail_end",
+      "evidence": "Sie sind fest als Begleitperson eingeteilt: Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr, Treffpunkt ist der Schulhof.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_b9e428b080850e29997083c4",
+      "id": "p_7876d322bcb836014c28eeb0",
       "is_cancellation": false,
       "kind": "event",
-      "known_temporal_facts": {
-        "date": "2026-12-04",
-        "start": null,
-        "start_time": null
-      },
-      "location": "Planetarium",
+      "known_temporal_facts": null,
+      "location": "Schulhof",
       "mail_link": "message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
       "matching_candidates": [],
       "meeting_mode": "unknown",
       "merge_review_required": false,
-      "open_questions": [
-        "Wann beginnt der Termin?",
-        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
-      ],
+      "open_questions": [],
       "original_date": null,
       "pending_sources": [],
       "protected_fields": [],
       "reconciliation_journal": null,
       "reject_reason": null,
       "resolution": null,
-      "responsibility": "other",
+      "responsibility": "user",
       "schema_version": 3,
       "separated_from": [],
-      "series_key": "dfef56551bfba69bc041a69829c175f813cf68318de68d9a1ed00aaa0bc08bce",
+      "series_key": "8162534136d91d8fbb5bae0ebf7b138bfb972e54bc31de43a6d9c7422f2c4070",
       "simulation_notified": false,
       "source_mail_id": "fcd2160ce611f1d255b9cac5",
       "sources": [],
-      "start": null,
-      "status": "needs_clarification",
+      "start": "2026-12-04T08:30:00+01:00",
+      "status": "pending_confirmation",
       "target": "primary",
       "target_event_id": null,
       "target_profile": 1,
@@ -227,7 +219,7 @@
         "year_source": "explicit_mail"
       },
       "time_changes": [],
-      "title": "Ausflug ins Planetarium",
+      "title": "Begleitung Planetarium-Ausflug Klasse 4b",
       "uncertain_notified": false,
       "version": 1,
       "video_link": null
@@ -238,13 +230,13 @@
   "processing_retry": null,
   "proposal_notifications": [
     {
-      "proposal_id": "p_d12ad8fba3156f6f61539c67",
+      "proposal_id": "p_130b907c241ff642caa186df",
       "proposal_version": 1,
       "status": "queued"
     },
     {
-      "proposal_id": "p_b9e428b080850e29997083c4",
-      "proposal_version": 2,
+      "proposal_id": "p_7876d322bcb836014c28eeb0",
+      "proposal_version": 1,
       "status": "queued"
     }
   ],
@@ -265,8 +257,20 @@
       "caldav_task_url": "",
       "calendar_provider": "google",
       "google_calendar": "primary",
+      "google_tasks_list": "@default",
       "microsoft_tenant": "common",
       "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
       "outlook_calendar": "default",
       "removal_window_minutes": 10,
       "task_provider": "todoist",
@@ -284,7 +288,7 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
+      "description": "Mias unterschriebene Einverständniserklärung im Sekretariat abgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Begleitung und Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
       "due": "2026-11-20",
       "duplicate_check_failed": false,
       "duplicate_match": null,
@@ -292,14 +296,14 @@
       "duration_minutes": null,
       "end": null,
       "end_origin": "unknown",
-      "evidence": "Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit.",
+      "evidence": "Bitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, 20. November 2026, im Sekretariat ab.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_d12ad8fba3156f6f61539c67",
+      "id": "p_130b907c241ff642caa186df",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -327,9 +331,9 @@
             "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
           ],
           "mail_id": "fcd2160ce611f1d255b9cac5",
-          "proposal_id": "p_d12ad8fba3156f6f61539c67",
+          "proposal_id": "p_130b907c241ff642caa186df",
           "sent_at": "2026-11-10T07:48:00+01:00",
-          "subject": "ausflug ins planetarium – einverständniserklärung"
+          "subject": "ausflug ins planetarium – begleitung und einverständniserklärung"
         }
       ],
       "start": null,
@@ -345,64 +349,56 @@
         "year_source": "explicit_mail"
       },
       "time_changes": [],
-      "title": "Einverständniserklärung unterschrieben zurückgeben",
+      "title": "Einverständniserklärung im Sekretariat abgeben",
       "uncertain_notified": false,
       "version": 1,
       "video_link": null
     },
     {
       "all_day": false,
-      "base_title": "Ausflug ins Planetarium",
+      "base_title": "Begleitung Planetarium-Ausflug Klasse 4b",
       "calendar_candidates": [],
       "canonical_ref": null,
       "certainty": "certain",
       "classification": "new",
-      "confirmed_web_actor": null,
+      "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Die Klasse 4b besucht das Planetarium; Eltern müssen die Einverständniserklärung unterschrieben zurückgeben.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E\n\nErgänzung: Die Klasse 4b besucht das Planetarium; Eltern werden an die Einverständniserklärung erinnert.",
+      "description": "Begleitung der Klasse 4b beim Ausflug ins Planetarium.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Begleitung und Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 Original-E-Mail öffnen: message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
       "duration_minutes": null,
-      "end": null,
-      "end_origin": "unknown",
-      "evidence": "am Freitag, 4. Dezember 2026, fährt die Klasse 4b ins Planetarium",
+      "end": "2026-12-04T13:00:00+01:00",
+      "end_origin": "mail_end",
+      "evidence": "Sie sind fest als Begleitperson eingeteilt: Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr, Treffpunkt ist der Schulhof.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_b9e428b080850e29997083c4",
+      "id": "p_7876d322bcb836014c28eeb0",
       "is_cancellation": false,
       "kind": "event",
-      "known_temporal_facts": {
-        "date": "2026-12-04",
-        "start": null,
-        "start_time": null
-      },
-      "location": "Planetarium",
+      "known_temporal_facts": null,
+      "location": "Schulhof",
       "mail_link": "message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
       "matching_candidates": [],
       "meeting_mode": "unknown",
       "merge_review_required": false,
-      "open_questions": [
-        "Wann beginnt der Termin?",
-        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
-        "Wann endet der Termin?"
-      ],
+      "open_questions": [],
       "original_date": null,
       "pending_sources": [],
       "protected_fields": [],
-      "reconciliation_journal": "reconciliation-merge-7ca467a779a893a5209b6db8e8dc21be0dddb0be7d8b5058c980b622f9674a7b",
+      "reconciliation_journal": null,
       "reject_reason": null,
       "resolution": null,
-      "responsibility": "other",
+      "responsibility": "user",
       "schema_version": 3,
       "separated_from": [],
-      "series_key": "dfef56551bfba69bc041a69829c175f813cf68318de68d9a1ed00aaa0bc08bce",
+      "series_key": "8162534136d91d8fbb5bae0ebf7b138bfb972e54bc31de43a6d9c7422f2c4070",
       "simulation_notified": false,
       "source_mail_id": "fcd2160ce611f1d255b9cac5",
       "sources": [
@@ -411,22 +407,13 @@
             "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
           ],
           "mail_id": "fcd2160ce611f1d255b9cac5",
-          "proposal_id": "p_b9e428b080850e29997083c4",
+          "proposal_id": "p_7876d322bcb836014c28eeb0",
           "sent_at": "2026-11-10T07:48:00+01:00",
-          "subject": "ausflug ins planetarium – einverständniserklärung"
-        },
-        {
-          "anchors": [
-            "9f0e4cc57b6fa842f43db08479c97f0f9294c3fbf12c94375d87bbf4f3789a29"
-          ],
-          "mail_id": "817f70d2d31d7b212e435d84",
-          "proposal_id": "p_8716aa81279deda3db58618e",
-          "sent_at": "2026-11-13T08:15:00+01:00",
-          "subject": "erinnerung: einverständniserklärung planetarium"
+          "subject": "ausflug ins planetarium – begleitung und einverständniserklärung"
         }
       ],
-      "start": null,
-      "status": "needs_clarification",
+      "start": "2026-12-04T08:30:00+01:00",
+      "status": "pending_confirmation",
       "target": "primary",
       "target_event_id": null,
       "target_profile": 1,
@@ -438,9 +425,9 @@
         "year_source": "explicit_mail"
       },
       "time_changes": [],
-      "title": "Ausflug ins Planetarium",
+      "title": "Begleitung Planetarium-Ausflug Klasse 4b",
       "uncertain_notified": false,
-      "version": 2,
+      "version": 1,
       "video_link": null
     }
   ],
@@ -472,12 +459,12 @@
   },
   "summary": {
     "deadlines": [
-      "Freitag, 4. Dezember 2026",
+      "Freitag, 4. Dezember 2026, von 08:30 bis 13:00 Uhr",
       "Freitag, 20. November 2026"
     ],
     "sentences": [
-      "Die Lehrerin informiert die Eltern, dass die Klasse 4b am Freitag, 4. Dezember 2026, ins Planetarium fährt.",
-      "Sie bittet, die unterschriebene Einverständniserklärung bis spätestens Freitag, 20. November 2026 mitzugeben, sonst ist die Teilnahme nicht möglich."
+      "Frau Lehmann bestätigt Alex als Begleitperson für den Planetariumsausflug der Klasse 4b am 4. Dezember 2026 von 08:30 bis 13:00 Uhr.",
+      "Bis 20. November 2026 soll Alex Mias unterschriebene Einverständniserklärung im Sekretariat abgeben."
     ]
   },
   "task_extraction": {
@@ -486,15 +473,15 @@
       {
         "certainty": "certain",
         "classification": "new",
-        "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.",
+        "description": "Mias unterschriebene Einverständniserklärung im Sekretariat abgeben.",
         "due_text": "Freitag, 20. November 2026",
-        "evidence": "Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit.",
+        "evidence": "Bitte geben Sie außerdem Mias unterschriebene Einverständniserklärung bis Freitag, 20. November 2026, im Sekretariat ab.",
         "responsibility": "user",
-        "title": "Einverständniserklärung unterschrieben zurückgeben"
+        "title": "Einverständniserklärung im Sekretariat abgeben"
       }
     ]
   },
-  "updated_at": "2026-11-16T13:40:12.440143Z",
+  "updated_at": "2026-11-17T14:18:40.846355Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

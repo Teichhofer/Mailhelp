@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.6.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.6.1 macht die Demo klärungsfrei: Alle zehn Vorschläge der Beispielmails sind sofort bestätigbar, keine Karte stellt eine Rückfrage. So lässt sich der ganze Stapel in einem Zug entscheiden.
 
 7.5.5 integriert den vollständigen Nachtrag zu 7.4. Datumsbereiche ohne Jahr folgen derselben Mailkontext-Regel wie Einzeltage, einschließlich Jahreswechsel. Bei fehlender Enduhrzeit bleibt der letzte Kalendertag auch über Klärung und Neustart erhalten. Widersprüchliche Angaben führen zu Rückfragen.
 
@@ -25,7 +27,7 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
 7.2.3 bis 7.2.5 bringen Notion als Aufgabenziel, mit festem Token oder Anmeldung über „Notion verbinden“: Bestätigte Aufgaben werden als Seiten in einer Notion-Datenquelle angelegt (Datenquelle und Eigenschaften seit 7.2.4 unter Zielprofile auswählbar). 7.2.2 ergänzte die Auswahl der Google-Tasks-Liste in der Einrichtung und je Zielprofil. Vorschau und Telegram zeigen vor der Freigabe, dass Google Tasks das Datum übernimmt und die genaue Frist im Text steht.
 
-Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, Rückfragen lassen sich mit vorbereiteten Beispielantworten beantworten, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
+Der Demo-Modus (`mailhelp --demo`) zeigt Mailhelp mit 30 vorbereiteten Beispielmails: „Demo starten“ öffnet für zwei Stunden eine eigene Kopie in der normalen Oberfläche. Bestätigungen werden nur in der Demo angelegt, alle Vorschläge sind ohne Rückfrage entscheidbar, und „Demo neu starten“ setzt die eigene Kopie zurück. Einrichtung, Konten und KI-Funktionen sind gesperrt.
 
 Alle Änderungen früherer Versionen stehen im [CHANGELOG](CHANGELOG.md).
 

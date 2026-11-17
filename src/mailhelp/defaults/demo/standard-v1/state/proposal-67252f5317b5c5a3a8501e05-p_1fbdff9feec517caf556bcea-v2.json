@@ -8,27 +8,27 @@
   "confirmed_web_actor": "web:unverified-legacy",
   "created_at": null,
   "default_duration_minutes": null,
-  "description": "Die unterschriebene Erklärung dem Kind wieder mitgeben, damit es am Planetariumsausflug teilnehmen kann.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Ausflug ins Planetarium – Einverständniserklärung\nMail-Datum: 2026-11-10T07:48:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C02-ausflug-formular@demo.mailhelp.example%3E)",
-  "due": "2026-11-20",
+  "description": "Den Kuchen am 5. Dezember 2026 bis 13:30 Uhr in die Aula der Grundschule bringen.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Adventsbasar – danke für deinen Kuchen\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
+  "due": "2026-12-05",
   "duplicate_check_failed": false,
   "duplicate_match": null,
   "duration_is_upper_bound": false,
   "duration_minutes": null,
   "end": null,
   "end_origin": "unknown",
-  "evidence": "Bitte geben Sie sie unterschrieben bis spätestens Freitag, 20. November 2026, Ihrem Kind wieder mit.",
+  "evidence": "Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.",
   "explicit_create_fallback_confirmed": false,
   "explicit_duplicate_create_confirmed_version": null,
   "explicit_non_binding_create_confirmed": false,
   "external_id": null,
   "external_link": null,
   "field_conflicts": [],
-  "id": "p_d12ad8fba3156f6f61539c67",
+  "id": "p_1fbdff9feec517caf556bcea",
   "is_cancellation": false,
   "kind": "task",
   "known_temporal_facts": null,
   "location": null,
-  "mail_link": "message://%3C02-ausflug-formular@demo.mailhelp.example%3E",
+  "mail_link": "message://%3C04-adventsbasar@demo.mailhelp.example%3E",
   "matching_candidates": [],
   "meeting_mode": "unknown",
   "merge_review_required": false,
@@ -44,16 +44,16 @@
   "separated_from": [],
   "series_key": null,
   "simulation_notified": false,
-  "source_mail_id": "fcd2160ce611f1d255b9cac5",
+  "source_mail_id": "67252f5317b5c5a3a8501e05",
   "sources": [
     {
       "anchors": [
-        "a2d28e0ff98df5242be53a981ca3d3400fd0d4f9466d4f5d07b3a9daf89adcf9"
+        "41bf4b6e8bd64eba753248c2df10b329dfc3018bf4780845093d3a05048d9264"
       ],
-      "mail_id": "fcd2160ce611f1d255b9cac5",
-      "proposal_id": "p_d12ad8fba3156f6f61539c67",
-      "sent_at": "2026-11-10T07:48:00+01:00",
-      "subject": "ausflug ins planetarium – einverständniserklärung"
+      "mail_id": "67252f5317b5c5a3a8501e05",
+      "proposal_id": "p_1fbdff9feec517caf556bcea",
+      "sent_at": "2026-11-11T12:30:00+01:00",
+      "subject": "adventsbasar – danke für deinen kuchen"
     }
   ],
   "start": null,
@@ -62,15 +62,10 @@
   "target_event_id": null,
   "target_profile": 1,
   "target_provider": "todoist",
-  "temporal_fact": {
-    "normalized_date": "2026-11-20",
-    "raw_text": "Freitag, 20. November 2026",
-    "status": "resolved",
-    "year_source": "explicit_mail"
-  },
+  "temporal_fact": null,
   "time_changes": [],
-  "title": "Einverständniserklärung unterschrieben zurückgeben",
+  "title": "Schokoladenkuchen zum Adventsbasar bringen",
   "uncertain_notified": false,
-  "version": 1,
+  "version": 2,
   "video_link": null
 }

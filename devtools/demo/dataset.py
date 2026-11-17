@@ -68,11 +68,9 @@ PLACEHOLDERS = {
 # Store files that belong to the run, not to the dataset.
 RUN_FILES = ("llm-budget.json",)
 # Prepared answers (Planung 7.1, 6.2): the demo replays what the real answer path produced for them.
-ANSWERS = {
-    "07-vorspiel-ohne-uhrzeit": ("Um 16:00 Uhr, Dauer etwa eine Stunde.",),
-    "03-workshop-material": ("Samstag, 21. November, von 10:00 bis 13:00 Uhr.",),
-    "04-adventsbasar": ("Ja, ich backe einen Kuchen und melde ihn über das Formular an.",),
-}
+# Since 7.6 every demo mail is complete and no proposal asks a question, so none are prepared; the
+# mechanism stays for datasets that need one.
+ANSWERS: dict[str, tuple[str, ...]] = {}
 REVISION_METHODS = ("interpret_telegram_answer", "clarify_telegram_answer", "revise_proposal")
 
 Application = Callable[..., AbstractContextManager[Any]]

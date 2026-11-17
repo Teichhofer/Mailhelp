@@ -1,9 +1,0 @@
-{
-  "call_id": "f6954a96-fdc5-49de-af44-0c7e3ea28757",
-  "decision": {
-    "candidate": 0,
-    "reason": "Beide beziehen sich auf denselben konkreten Termin: den Ausflug der Klasse 4b ins Planetarium am 4. Dezember 2026. Die eingehende Nachricht ist eine Erinnerung zur Einverständniserklärung für genau diesen Ausflug.",
-    "relation": "same_occurrence"
-  },
-  "schema_version": 1
-}

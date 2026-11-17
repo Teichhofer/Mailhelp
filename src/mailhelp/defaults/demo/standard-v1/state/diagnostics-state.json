@@ -2,9 +2,9 @@
   "operations": {},
   "results": {
     "imap": {
-      "checked_at": "2026-11-16T13:36:55.279834Z",
+      "checked_at": "2026-11-17T14:18:06.360803Z",
       "code": "network",
-      "config_revision": "50b1505f85a9fb4cc3b565461a94b7890f10a6b2ddb54be0d75aba420481e705",
+      "config_revision": "db6e5648c725541b0bedc25517a7f6f1535c4df509da643470c304f8d5eb8b4e",
       "duration_ms": 0,
       "status": "failed"
     }

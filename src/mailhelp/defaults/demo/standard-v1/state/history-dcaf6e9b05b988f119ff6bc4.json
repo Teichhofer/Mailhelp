@@ -2,23 +2,23 @@
   "events": [
     {
       "actor": null,
-      "at": "2026-11-16T13:38:12.343885Z",
-      "id": "020e94626fd2ef365b112bcd61bc01a0",
+      "at": "2026-11-17T14:18:57.785139Z",
+      "id": "06545317a33358c7a89e6a25a08881d9",
       "kind": "state",
-      "proposal_id": "p_2a6ade23d43e97668bb8b8dd",
+      "proposal_id": "p_3f8cd37f994fb341ff4e2747",
       "source": "system",
       "status": "pending_confirmation",
-      "version": 2
+      "version": 1
     },
     {
       "actor": null,
-      "at": "2026-11-16T13:38:12.377233Z",
-      "id": "4085d3e85d87051503be18a20c7e1e43",
+      "at": "2026-11-17T14:18:57.819529Z",
+      "id": "bdc5b9772b7ffb9be1bbbe970aadf821",
       "kind": "state",
-      "proposal_id": "p_dc79805a03ddb2b7f7572541",
+      "proposal_id": "p_9914f9d1731a362360b700e4",
       "source": "system",
-      "status": "needs_clarification",
-      "version": 2
+      "status": "pending_confirmation",
+      "version": 1
     }
   ],
   "removed": false,

@@ -2,20 +2,20 @@
   "action_route": {
     "action_state": "task_and_event",
     "event_count": 1,
-    "reason": "Die Mail lädt zum Adventsbasar am 5. Dezember 2026 ein (Terminkandidat) und verlangt zusätzlich eine Anmeldung für Kuchenspenden bis 30. November 2026 über das Formular (Aufgabenkandidat).",
+    "reason": "Die Mail lädt zum Adventsbasar am 5. Dezember 2026 ein (Termin) und bittet ausdrücklich darum, den Schokoladenkuchen bis 13:30 Uhr in die Aula zu bringen (Aufgabe).",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 1
   },
-  "action_router_call_id": "a4e50f14-789a-41e5-9f38-fa58fef843ea",
+  "action_router_call_id": "382be8a5-591f-40db-9ba5-c98d3c5ba6a3",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T13:38:13.183660Z",
+  "created_at": "2026-11-17T14:18:58.631574Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>",
-    "subject": "Einladung zum Adventsbasar – Kuchenspenden gesucht"
+    "subject": "Adventsbasar – danke für deinen Kuchen"
   },
   "duplicate": {
     "outcome": "new",
@@ -29,11 +29,11 @@
         "certainty": "certain",
         "classification": "new",
         "date_text": "Samstag, 5. Dezember 2026",
-        "description": "Der Förderverein lädt Eltern zum Adventsbasar in die Aula der Grundschule ein.",
+        "description": "Einladung zum Adventsbasar der Grundschule am Lindenpark.",
         "duration_is_upper_bound": false,
-        "duration_minutes": null,
-        "end_time_text": "17:00",
-        "evidence": "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
+        "duration_minutes": 180,
+        "end_time_text": "17:00 Uhr",
+        "evidence": "wir freuen uns auf dich beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
         "location": "Aula der Grundschule",
         "original_date_text": null,
         "responsibility": "user",
@@ -57,12 +57,13 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "1a7768a2-efd8-4710-a67d-2fce854f8783",
-    "bf7f002a-a985-4529-b31a-0756d60d38e4",
-    "a4e50f14-789a-41e5-9f38-fa58fef843ea",
-    "4b808c72-2257-43a4-8a9c-e52b77bb91df",
-    "b23094c7-9505-4506-b97d-41a9226372a3",
-    "5d01bab4-164f-478d-b6ea-a0ef8d7c97c7"
+    "cf537ae5-ecb8-4962-a400-d3f24e289256",
+    "8321411d-8deb-45ad-881d-1d0419a74997",
+    "382be8a5-591f-40db-9ba5-c98d3c5ba6a3",
+    "2aae8b3a-0769-4c11-b357-5d76cf791e62",
+    "cff39948-ecf6-445e-a2c4-e552c843f0d1",
+    "7f1116af-31f6-42c8-8e93-531a340b40ed",
+    "56abc219-7c75-45cc-b0ce-ffbbcdfea34b"
   ],
   "mail": {
     "calendar_events": [],
@@ -77,7 +78,7 @@
       "message_id": "<04-adventsbasar@demo.mailhelp.example>",
       "references": "",
       "reply_to": "",
-      "subject": "Einladung zum Adventsbasar – Kuchenspenden gesucht"
+      "subject": "Adventsbasar – danke für deinen Kuchen"
     },
     "imap_received_at": "2026-11-11T12:30:00+01:00",
     "internal_id": "67252f5317b5c5a3a8501e05",
@@ -89,7 +90,7 @@
       "text_shortened": false,
       "vision": "completed"
     },
-    "text": "Liebe Eltern,\n\nder Förderverein lädt herzlich zum Adventsbasar ein:\nSamstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.\n\nWir freuen uns über Kuchenspenden. Wer einen Kuchen beisteuern möchte, meldet sich bitte bis Montag, 30. November 2026, über das Formular auf der Schulwebsite an.\n\nHerzliche Grüße\nIhr Förderverein",
+    "text": "Liebe Alex,\n\nwir freuen uns auf dich beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr in der Aula der Grundschule.\n\nDanke, dass du einen Schokoladenkuchen spendest! Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.\n\nHerzliche Grüße\nDein Förderverein",
     "user_timezone": "Europe/Berlin"
   },
   "normalized_proposals": [
@@ -98,27 +99,27 @@
       "base_title": null,
       "calendar_candidates": [],
       "canonical_ref": null,
-      "certainty": "uncertain",
-      "classification": "non_binding",
+      "certainty": "certain",
+      "classification": "new",
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Bei Interesse über das Formular auf der Schulwebsite anmelden.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
-      "due": "2026-11-30",
+      "description": "Den Kuchen am 5. Dezember 2026 bis 13:30 Uhr in die Aula der Grundschule bringen.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Adventsbasar – danke für deinen Kuchen\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
+      "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
       "duration_minutes": null,
       "end": null,
       "end_origin": "unknown",
-      "evidence": "Wer einen Kuchen beisteuern möchte, meldet sich bitte bis Montag, 30. November 2026, über das Formular auf der Schulwebsite an.",
+      "evidence": "Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_e07cbc1ff92396fd51f0d615",
+      "id": "p_1fbdff9feec517caf556bcea",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -128,9 +129,7 @@
       "meeting_mode": "unknown",
       "merge_review_required": false,
       "open_questions": [
-        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
-        "Ist die extrahierte Information sicher belegt?",
-        "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
+        "Welches konkrete Datum ist mit „5. Dezember 2026, 13:30 Uhr“ gemeint?"
       ],
       "original_date": null,
       "pending_sources": [],
@@ -138,7 +137,7 @@
       "reconciliation_journal": null,
       "reject_reason": null,
       "resolution": null,
-      "responsibility": "unclear",
+      "responsibility": "user",
       "schema_version": 3,
       "separated_from": [],
       "series_key": null,
@@ -151,14 +150,9 @@
       "target_event_id": null,
       "target_profile": 1,
       "target_provider": "todoist",
-      "temporal_fact": {
-        "normalized_date": "2026-11-30",
-        "raw_text": "Montag, 30. November 2026",
-        "status": "resolved",
-        "year_source": "explicit_mail"
-      },
+      "temporal_fact": null,
       "time_changes": [],
-      "title": "Kuchenspende anmelden",
+      "title": "Schokoladenkuchen zum Adventsbasar bringen",
       "uncertain_notified": false,
       "version": 1,
       "video_link": null
@@ -173,22 +167,22 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Der Förderverein lädt Eltern zum Adventsbasar in die Aula der Grundschule ein.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
+      "description": "Einladung zum Adventsbasar der Grundschule am Lindenpark.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Adventsbasar – danke für deinen Kuchen\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
-      "duration_minutes": null,
+      "duration_minutes": 180,
       "end": "2026-12-05T17:00:00+01:00",
       "end_origin": "mail_end",
-      "evidence": "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
+      "evidence": "wir freuen uns auf dich beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_c4d92d28e945a09cbeff57a3",
+      "id": "p_57f3a5ab58f85b823f405489",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -235,12 +229,12 @@
   "processing_retry": null,
   "proposal_notifications": [
     {
-      "proposal_id": "p_e07cbc1ff92396fd51f0d615",
-      "proposal_version": 1,
+      "proposal_id": "p_1fbdff9feec517caf556bcea",
+      "proposal_version": 2,
       "status": "queued"
     },
     {
-      "proposal_id": "p_c4d92d28e945a09cbeff57a3",
+      "proposal_id": "p_57f3a5ab58f85b823f405489",
       "proposal_version": 1,
       "status": "queued"
     }
@@ -262,8 +256,20 @@
       "caldav_task_url": "",
       "calendar_provider": "google",
       "google_calendar": "primary",
+      "google_tasks_list": "@default",
       "microsoft_tenant": "common",
       "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
       "outlook_calendar": "default",
       "removal_window_minutes": 10,
       "task_provider": "todoist",
@@ -276,27 +282,27 @@
       "base_title": null,
       "calendar_candidates": [],
       "canonical_ref": null,
-      "certainty": "uncertain",
-      "classification": "non_binding",
+      "certainty": "certain",
+      "classification": "new",
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Bei Interesse über das Formular auf der Schulwebsite anmelden.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
-      "due": "2026-11-30",
+      "description": "Den Kuchen am 5. Dezember 2026 bis 13:30 Uhr in die Aula der Grundschule bringen.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Adventsbasar – danke für deinen Kuchen\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C04-adventsbasar@demo.mailhelp.example%3E)",
+      "due": "2026-12-05",
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
       "duration_minutes": null,
       "end": null,
       "end_origin": "unknown",
-      "evidence": "Wer einen Kuchen beisteuern möchte, meldet sich bitte bis Montag, 30. November 2026, über das Formular auf der Schulwebsite an.",
+      "evidence": "Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_e07cbc1ff92396fd51f0d615",
+      "id": "p_1fbdff9feec517caf556bcea",
       "is_cancellation": false,
       "kind": "task",
       "known_temporal_facts": null,
@@ -305,18 +311,14 @@
       "matching_candidates": [],
       "meeting_mode": "unknown",
       "merge_review_required": false,
-      "open_questions": [
-        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
-        "Ist die extrahierte Information sicher belegt?",
-        "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
-      ],
+      "open_questions": [],
       "original_date": null,
       "pending_sources": [],
       "protected_fields": [],
       "reconciliation_journal": null,
       "reject_reason": null,
       "resolution": null,
-      "responsibility": "unclear",
+      "responsibility": "user",
       "schema_version": 3,
       "separated_from": [],
       "series_key": null,
@@ -328,27 +330,22 @@
             "41bf4b6e8bd64eba753248c2df10b329dfc3018bf4780845093d3a05048d9264"
           ],
           "mail_id": "67252f5317b5c5a3a8501e05",
-          "proposal_id": "p_e07cbc1ff92396fd51f0d615",
+          "proposal_id": "p_1fbdff9feec517caf556bcea",
           "sent_at": "2026-11-11T12:30:00+01:00",
-          "subject": "einladung zum adventsbasar – kuchenspenden gesucht"
+          "subject": "adventsbasar – danke für deinen kuchen"
         }
       ],
       "start": null,
-      "status": "needs_clarification",
+      "status": "pending_confirmation",
       "target": "example-project",
       "target_event_id": null,
       "target_profile": 1,
       "target_provider": "todoist",
-      "temporal_fact": {
-        "normalized_date": "2026-11-30",
-        "raw_text": "Montag, 30. November 2026",
-        "status": "resolved",
-        "year_source": "explicit_mail"
-      },
+      "temporal_fact": null,
       "time_changes": [],
-      "title": "Kuchenspende anmelden",
+      "title": "Schokoladenkuchen zum Adventsbasar bringen",
       "uncertain_notified": false,
-      "version": 1,
+      "version": 2,
       "video_link": null
     },
     {
@@ -361,22 +358,22 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Der Förderverein lädt Eltern zum Adventsbasar in die Aula der Grundschule ein.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Einladung zum Adventsbasar – Kuchenspenden gesucht\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
+      "description": "Einladung zum Adventsbasar der Grundschule am Lindenpark.\n\nAbsender: Förderverein Grundschule am Lindenpark <vorstand@foerderverein-lindenpark.example>\nBetreff: Adventsbasar – danke für deinen Kuchen\nMail-Datum: 2026-11-11T12:30:00+01:00\n📧 Original-E-Mail öffnen: message://%3C04-adventsbasar@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
-      "duration_minutes": null,
+      "duration_minutes": 180,
       "end": "2026-12-05T17:00:00+01:00",
       "end_origin": "mail_end",
-      "evidence": "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
+      "evidence": "wir freuen uns auf dich beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr in der Aula der Grundschule.",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_c4d92d28e945a09cbeff57a3",
+      "id": "p_57f3a5ab58f85b823f405489",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -404,9 +401,9 @@
             "41bf4b6e8bd64eba753248c2df10b329dfc3018bf4780845093d3a05048d9264"
           ],
           "mail_id": "67252f5317b5c5a3a8501e05",
-          "proposal_id": "p_c4d92d28e945a09cbeff57a3",
+          "proposal_id": "p_57f3a5ab58f85b823f405489",
           "sent_at": "2026-11-11T12:30:00+01:00",
-          "subject": "einladung zum adventsbasar – kuchenspenden gesucht"
+          "subject": "adventsbasar – danke für deinen kuchen"
         }
       ],
       "start": "2026-12-05T14:00:00+01:00",
@@ -456,29 +453,29 @@
   },
   "summary": {
     "deadlines": [
-      "Samstag, 5. Dezember 2026, 14:00 bis 17:00 Uhr",
-      "Montag, 30. November 2026"
+      "Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr",
+      "Samstag, 5. Dezember 2026, bis 13:30 Uhr"
     ],
     "sentences": [
-      "Der Förderverein lädt zum Adventsbasar am 5. Dezember 2026 von 14:00 bis 17:00 Uhr in die Schulaula ein.",
-      "Für Kuchenspenden bittet er um Anmeldung bis 30. November 2026 über das Formular der Schulwebsite."
+      "Der Förderverein freut sich auf Alex beim Adventsbasar am Samstag, 5. Dezember 2026, von 14:00 bis 17:00 Uhr in der Aula.",
+      "Er bittet Alex, den gespendeten Schokoladenkuchen am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula zu bringen."
     ]
   },
   "task_extraction": {
     "schema_version": 1,
     "tasks": [
       {
-        "certainty": "uncertain",
-        "classification": "non_binding",
-        "description": "Bei Interesse über das Formular auf der Schulwebsite anmelden.",
-        "due_text": "Montag, 30. November 2026",
-        "evidence": "Wer einen Kuchen beisteuern möchte, meldet sich bitte bis Montag, 30. November 2026, über das Formular auf der Schulwebsite an.",
-        "responsibility": "unclear",
-        "title": "Kuchenspende anmelden"
+        "certainty": "certain",
+        "classification": "new",
+        "description": "Den Kuchen am 5. Dezember 2026 bis 13:30 Uhr in die Aula der Grundschule bringen.",
+        "due_text": "5. Dezember 2026, 13:30 Uhr",
+        "evidence": "Bitte bring ihn am Samstag, 5. Dezember 2026, bis 13:30 Uhr in die Aula.",
+        "responsibility": "user",
+        "title": "Schokoladenkuchen zum Adventsbasar bringen"
       }
     ]
   },
-  "updated_at": "2026-11-16T13:38:45.133265Z",
+  "updated_at": "2026-11-17T14:19:35.425692Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

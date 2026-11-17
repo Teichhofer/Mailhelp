@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "dcaf6e9b05b988f119ff6bc4",
-  "recorded_at": "2026-11-16T13:37:32.879955+00:00",
+  "recorded_at": "2026-11-17T14:18:46.262546+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -13,10 +13,12 @@
   "source": "JEV",
   "summary": {
     "deadlines": [
-      "Samstag, 21. November"
+      "Samstag, 21. November 2026, von 10:00 bis 12:30 Uhr",
+      "Freitag, 20. November 2026"
     ],
     "sentences": [
-      "Tom bittet Alex, für den Bastel-Workshop der Jugendabteilung Bastelkleber und bunten Fotokarton zu besorgen und bis Samstag, 21. November, mitzubringen."
+      "Tom bestätigt, dass Alex mit ihm den Bastel-Workshop der Jugendabteilung am 21. November 2026 von 10:00 bis 12:30 Uhr im Vereinsheim betreut.",
+      "Er bittet Alex, bis Freitag, 20. November 2026, Bastelkleber und bunten Fotokarton zu besorgen und mitzubringen."
     ]
   },
   "topics": {

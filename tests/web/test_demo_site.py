@@ -20,6 +20,7 @@ from mailhelp.web.app import WebApp
 from mailhelp.web.auth import WebAuth
 from mailhelp.web.demo_site import DEMO_NOTICE, SESSION_SECONDS, DemoSite
 from mailhelp.web.http import Request, Response
+from tests.fakes.demo_questions import asked_dataset
 
 HOST = "localhost:8765"
 FORM = "application/x-www-form-urlencoded"
@@ -42,6 +43,18 @@ def instance(tmp_path):
         server, runtimes = demo.create_demo(tmp_path, store, settings, "s" * 40, logger)
         runtimes.visitors.dataset = tmp_path / "dataset"
         yield SimpleNamespace(site=server.handler, runtimes=runtimes, logger=logger, store=store, tmp=tmp_path)
+        runtimes.close()
+
+
+@pytest.fixture
+def asked(tmp_path, monkeypatch):
+    """A demo whose dataset asks one question with a prepared answer (7.6: the shipped one asks none)."""
+    dataset = asked_dataset(tmp_path / "dataset")
+    monkeypatch.setattr(demo, "packaged", lambda: dataset)
+    with JsonStore(tmp_path / "data" / "demo") as store:
+        server, runtimes = demo.create_demo(tmp_path, store, WebSettings(enabled=True, allowed_hosts=[HOST]),
+                                            "s" * 40, Log())
+        yield SimpleNamespace(site=server.handler, runtimes=runtimes)
         runtimes.close()
 
 
@@ -231,12 +244,22 @@ def _answer_forms(page):
             if 'value="answer"' in form]
 
 
-def test_a_prepared_answer_is_offered_and_replays_the_recorded_result(instance):
+def test_the_shipped_demo_asks_nothing(instance):
+    """7.6: every card of the shipped demo can be decided at once."""
+    _response, jar = start(instance.site)
+    page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
+    assert "Offene Fragen" not in page and "Relevanz klären" not in page
+    assert "In der Demo vorbereitet" not in page and page.count("In der Demo anlegen") >= 6
+
+
+def test_a_prepared_answer_is_offered_and_replays_the_recorded_result(asked):
+    instance = asked
     _response, jar = start(instance.site)
     page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
     prepared = [form for form in _answer_forms(page) if "In der Demo vorbereitet" in form]
-    assert len(prepared) == 3
-    form = next(item for item in prepared if "16:00 Uhr" in item)
+    assert len(prepared) == 1
+    form = prepared[0]
+    assert "16:00 Uhr" in form
     fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', form))
     fields["text"] = html.unescape(re.search(r"<textarea[^>]*>(.*?)</textarea>", form, re.S).group(1))
     instance.site(request("POST", "/aktion", jar, fields))
@@ -247,10 +270,11 @@ def test_a_prepared_answer_is_offered_and_replays_the_recorded_result(instance):
     assert revised["version"] == 2 and "Wann beginnt der Termin?" not in revised["open_questions"]
 
 
-def test_a_free_answer_meets_the_demo_limit_instead_of_a_model(instance):
+def test_a_free_answer_meets_the_demo_limit_instead_of_a_model(asked):
+    instance = asked
     _response, jar = start(instance.site)
     page = instance.site(request("GET", "/", jar)).body.decode("utf-8")
-    form = next(item for item in _answer_forms(page) if "Kuchen" in item)
+    [form] = [item for item in _answer_forms(page) if "In der Demo vorbereitet" in item]
     fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', form))
     fields["text"] = "Vielleicht, mal sehen."
     instance.site(request("POST", "/aktion", jar, fields))

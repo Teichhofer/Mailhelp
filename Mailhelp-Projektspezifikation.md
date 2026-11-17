@@ -107,6 +107,11 @@ der echten Zeit (keine verschobene Demozeit).
 Seit 7.1.5: `compose.demo.yaml` betreibt die Demo als eigenen Dienst (`--demo`, Volume `demo-daten`,
 nur `MAILHELP_DEMO_*`-Variablen, internes Netz `mailhelp-demo` ohne ausgehenden Zugang).
 
+Seit 7.6.1 (Plan: [docs/Planung-7.6.md](docs/Planung-7.6.md)): Jeder Vorschlag des mitgelieferten
+Bestands steht auf `pending_confirmation` ohne offene Fragen, und keine Mail wartet auf eine
+Relevanzentscheidung; `tests/release/test_demo_flow.py` erzwingt das. `answers.json` ist deshalb
+leer. Der Mechanismus der vorbereiteten Antworten bleibt für Bestände mit Rückfragen bestehen.
+
 Ein Neustart über die Weboberfläche startet Mailhelp mit genau denselben Startparametern
 (`sys.argv`), ein Neustart im Demo-Modus also wieder die Demo. In der öffentlichen Demo ist der
 Neustart über die Oberfläche für Besucher gesperrt; neu starten kann sie nur der Betreiber.

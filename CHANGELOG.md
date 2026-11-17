@@ -1,5 +1,15 @@
 # Änderungen
 
+## 7.6.1 – Klärungsfreie Demo-Vorschläge
+
+- Die zehn relevanten Demo-Mails nennen jetzt Datum, Beginn, Ende und wer gemeint ist. Alle zehn
+  Vorschläge der Demo sind sofort bestätigbar; keine Karte stellt eine Rückfrage, keine Mail wartet
+  auf eine Relevanzentscheidung.
+- Der Demo-Bestand `standard-v1` ist über die echte Pipeline neu erzeugt (30 Mails, eine Erzeugung
+  über OpenRouter). Ein Test lässt die Prüfung scheitern, sobald eine spätere Änderung wieder eine
+  offene Frage in die Demo bringt.
+- Vorbereitete Antworten bleiben für Bestände mit Rückfragen erhalten; der mitgelieferte braucht keine.
+
 ## 7.5.5 – Vollständige Datumsbereiche und mehrtägige Klärung
 
 - Integriert den 7.4-Nachtrag in den mehrsprachigen Stand 7.5.4. Jahreslose benannte und numerische Datumsbereiche sowie Monats- und Jahreswechsel folgen der bestehenden Jahresregel für Einzeltage.

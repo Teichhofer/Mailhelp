@@ -2,16 +2,16 @@
   "action_route": {
     "action_state": "event",
     "event_count": 1,
-    "reason": "Der aktuelle Nachrichtenteil lädt konkret zu einem identifizierbaren künftigen Termin ein (Elternabend der Klasse 4b am Donnerstag, 26. November 2026, 19:30 Uhr, Raum 12). Es wird keine Anmeldung, Zu- oder Absage oder sonstige Handlung verlangt, daher genau ein Terminkandidat und keine Aufgabe.",
+    "reason": "Der aktuelle Nachrichtenteil lädt ausdrücklich zu einem identifizierbaren künftigen Treffen ein (Elternabend am Donnerstag, 26. November 2026, 19:30–21:00 Uhr, Raum 12). Es wird keine Anmeldung, Zu- oder Absage oder sonstige Handlung verlangt.",
     "reply_needed": false,
     "reply_reason": null,
     "task_count": 0
   },
-  "action_router_call_id": "c4bed4bb-3182-40ad-820f-c8525b0e1761",
+  "action_router_call_id": "06736d30-616e-49bb-b019-6f46739e732d",
   "analysis_round": 1,
   "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T13:36:55.913536Z",
+  "created_at": "2026-11-17T14:18:07.260827Z",
   "deferred_until": null,
   "display_headers": {
     "sender": "Frau Lehmann <lehmann@grundschule-lindenpark.example>",
@@ -29,16 +29,16 @@
         "certainty": "certain",
         "classification": "new",
         "date_text": "Donnerstag, 26. November 2026",
-        "description": "Besprechung zu Ausflug, Lesepaten und Terminen bis zu den Weihnachtsferien.",
+        "description": "Besprechung zu Ausflug ins Planetarium, Lesepaten und Terminen bis zu den Weihnachtsferien.",
         "duration_is_upper_bound": false,
-        "duration_minutes": 90,
-        "end_time_text": null,
-        "evidence": "Donnerstag, 26. November 2026, 19:30 Uhr\nRaum 12, Grundschule am Lindenpark",
+        "duration_minutes": null,
+        "end_time_text": "21:00 Uhr",
+        "evidence": "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr\nRaum 12, Grundschule am Lindenpark",
         "location": "Raum 12, Grundschule am Lindenpark",
         "original_date_text": null,
         "responsibility": "user",
         "time_requirement": "timed",
-        "time_text": "19:30 Uhr",
+        "time_text": "19:30",
         "timezone_offset_text": null,
         "title": "Elternabend der Klasse 4b",
         "video_link": null
@@ -57,10 +57,10 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "13db6819-d3f2-4a00-be0f-c274031bc951",
-    "35c6b090-e76d-4a2f-85cc-6e0a6ec25dd9",
-    "c4bed4bb-3182-40ad-820f-c8525b0e1761",
-    "a2d7b126-eca7-42b3-97b3-b113f6d0e945"
+    "3753c54d-1722-4d7b-90e0-ef11d14ed954",
+    "a3ae0417-2eab-40f5-adfc-86f7c6431719",
+    "06736d30-616e-49bb-b019-6f46739e732d",
+    "e8ccd35f-3fab-4625-9da0-97245aba81dd"
   ],
   "mail": {
     "calendar_events": [],
@@ -87,7 +87,7 @@
       "text_shortened": false,
       "vision": "completed"
     },
-    "text": "Liebe Eltern der Klasse 4b,\n\nich lade Sie herzlich zum Elternabend ein:\n\nDonnerstag, 26. November 2026, 19:30 Uhr\nRaum 12, Grundschule am Lindenpark\n\nWir besprechen den Ausflug ins Planetarium, die Lesepaten und die Termine bis zu den Weihnachtsferien. Der Abend dauert etwa anderthalb Stunden.\n\nViele Grüße\nJana Lehmann",
+    "text": "Liebe Eltern der Klasse 4b,\n\nich lade Sie herzlich zum Elternabend ein:\n\nDonnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr\nRaum 12, Grundschule am Lindenpark\n\nWir besprechen den Ausflug ins Planetarium, die Lesepaten und die Termine bis zu den Weihnachtsferien.\n\nViele Grüße\nJana Lehmann",
     "user_timezone": "Europe/Berlin"
   },
   "normalized_proposals": [
@@ -101,22 +101,22 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Besprechung zu Ausflug, Lesepaten und Terminen bis zu den Weihnachtsferien.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Einladung zum Elternabend der Klasse 4b\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-elternabend@demo.mailhelp.example%3E",
+      "description": "Besprechung zu Ausflug ins Planetarium, Lesepaten und Terminen bis zu den Weihnachtsferien.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Einladung zum Elternabend der Klasse 4b\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-elternabend@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
-      "duration_minutes": 90,
+      "duration_minutes": null,
       "end": "2026-11-26T21:00:00+01:00",
-      "end_origin": "mail_duration",
-      "evidence": "Donnerstag, 26. November 2026, 19:30 Uhr\nRaum 12, Grundschule am Lindenpark",
+      "end_origin": "mail_end",
+      "evidence": "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr\nRaum 12, Grundschule am Lindenpark",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_c4cccbc381d621a336ee7159",
+      "id": "p_5b1c1ebd4a9a6925ed2590c6",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -163,7 +163,7 @@
   "processing_retry": null,
   "proposal_notifications": [
     {
-      "proposal_id": "p_c4cccbc381d621a336ee7159",
+      "proposal_id": "p_5b1c1ebd4a9a6925ed2590c6",
       "proposal_version": 1,
       "status": "queued"
     }
@@ -185,8 +185,20 @@
       "caldav_task_url": "",
       "calendar_provider": "google",
       "google_calendar": "primary",
+      "google_tasks_list": "@default",
       "microsoft_tenant": "common",
       "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
       "outlook_calendar": "default",
       "removal_window_minutes": 10,
       "task_provider": "todoist",
@@ -204,22 +216,22 @@
       "confirmed_web_actor": "web:unverified-legacy",
       "created_at": null,
       "default_duration_minutes": null,
-      "description": "Besprechung zu Ausflug, Lesepaten und Terminen bis zu den Weihnachtsferien.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Einladung zum Elternabend der Klasse 4b\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-elternabend@demo.mailhelp.example%3E",
+      "description": "Besprechung zu Ausflug ins Planetarium, Lesepaten und Terminen bis zu den Weihnachtsferien.\n\nAbsender: Frau Lehmann <lehmann@grundschule-lindenpark.example>\nBetreff: Einladung zum Elternabend der Klasse 4b\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-elternabend@demo.mailhelp.example%3E",
       "due": null,
       "duplicate_check_failed": false,
       "duplicate_match": null,
       "duration_is_upper_bound": false,
-      "duration_minutes": 90,
+      "duration_minutes": null,
       "end": "2026-11-26T21:00:00+01:00",
-      "end_origin": "mail_duration",
-      "evidence": "Donnerstag, 26. November 2026, 19:30 Uhr\nRaum 12, Grundschule am Lindenpark",
+      "end_origin": "mail_end",
+      "evidence": "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr\nRaum 12, Grundschule am Lindenpark",
       "explicit_create_fallback_confirmed": false,
       "explicit_duplicate_create_confirmed_version": null,
       "explicit_non_binding_create_confirmed": false,
       "external_id": null,
       "external_link": null,
       "field_conflicts": [],
-      "id": "p_c4cccbc381d621a336ee7159",
+      "id": "p_5b1c1ebd4a9a6925ed2590c6",
       "is_cancellation": false,
       "kind": "event",
       "known_temporal_facts": null,
@@ -247,7 +259,7 @@
             "cfe23564f6adac8583d2e1bed9831dcced77b716fd9f5bd82c767a3f89e27907"
           ],
           "mail_id": "12f1bfd9a277b60d4e949fd7",
-          "proposal_id": "p_c4cccbc381d621a336ee7159",
+          "proposal_id": "p_5b1c1ebd4a9a6925ed2590c6",
           "sent_at": "2026-11-09T16:12:00+01:00",
           "subject": "einladung zum elternabend der klasse 4b"
         }
@@ -299,15 +311,15 @@
   },
   "summary": {
     "deadlines": [
-      "Donnerstag, 26. November 2026, 19:30 Uhr"
+      "Donnerstag, 26. November 2026, von 19:30 bis 21:00 Uhr"
     ],
     "sentences": [
-      "Jana Lehmann lädt die Eltern der Klasse 4b zum Elternabend am 26. November 2026 um 19:30 Uhr in Raum 12 ein.",
+      "Frau Lehmann lädt die Eltern der Klasse 4b zum Elternabend am 26. November 2026 von 19:30 bis 21:00 Uhr in Raum 12 ein.",
       "Besprochen werden der Ausflug ins Planetarium, die Lesepaten und die Termine bis zu den Weihnachtsferien."
     ]
   },
   "task_extraction": null,
-  "updated_at": "2026-11-16T13:37:08.028946Z",
+  "updated_at": "2026-11-17T14:18:22.567607Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

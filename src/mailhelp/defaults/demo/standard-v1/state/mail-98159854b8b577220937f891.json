@@ -1,14 +1,21 @@
 {
-  "action_route": null,
-  "action_router_call_id": null,
+  "action_route": {
+    "action_state": "none",
+    "event_count": 0,
+    "reason": "Reine Information an die Gruppe: Die Trikots sind da und werden beim nächsten Training verteilt; ausdrücklich keine Handlung nötig. Das „nächste reguläre Training“ ist ohne Datum, Einladung oder Bestätigung kein konkreter Terminkandidat. Keine Jimdo-Anfrage, keine Antwortbitte.",
+    "reply_needed": false,
+    "reply_reason": null,
+    "task_count": 0
+  },
+  "action_router_call_id": "56f459c3-8a50-48a6-b0bc-036eeecea780",
   "analysis_round": 1,
-  "awaiting_relevance": true,
+  "awaiting_relevance": false,
   "config_fingerprint": "09f2147602240f8d4088d01875155f583eee87e6baa82d3d44372d21b115606c",
-  "created_at": "2026-11-16T13:40:23.123745Z",
+  "created_at": "2026-11-17T14:20:25.867089Z",
   "deferred_until": null,
   "display_headers": {
-    "sender": "\"Sandra K.\" <sandra.k@post.example>",
-    "subject": "Wegen Samstag"
+    "sender": "Tom Weber <jugend@tsv-beispielstadt.example>",
+    "subject": "Neue Trikots für die Jugend"
   },
   "duplicate": {
     "outcome": "new",
@@ -28,7 +35,9 @@
   },
   "is_forwarding": false,
   "llm_call_ids": [
-    "12d2862f-71bb-4650-939a-45da4c087c26"
+    "ffe7e8cd-3bf1-4b9c-a1f4-026195cfd1b0",
+    "3bb5c622-4668-48df-aaa9-2381b45cebcc",
+    "56f459c3-8a50-48a6-b0bc-036eeecea780"
   ],
   "mail": {
     "calendar_events": [],
@@ -38,24 +47,24 @@
     "extracted_attachments": [],
     "headers": {
       "date": "Sat, 14 Nov 2026 10:02:00 +0100",
-      "from": "\"Sandra K.\" <sandra.k@post.example>",
+      "from": "Tom Weber <jugend@tsv-beispielstadt.example>",
       "in_reply_to": "",
-      "message_id": "<08-unklarer-bezug@demo.mailhelp.example>",
+      "message_id": "<08-neue-trikots@demo.mailhelp.example>",
       "references": "",
       "reply_to": "",
-      "subject": "Wegen Samstag"
+      "subject": "Neue Trikots für die Jugend"
     },
     "imap_received_at": "2026-11-14T10:02:00+01:00",
     "internal_id": "98159854b8b577220937f891",
     "message_ids": [
-      "<08-unklarer-bezug@demo.mailhelp.example>"
+      "<08-neue-trikots@demo.mailhelp.example>"
     ],
     "metadata": {
       "attachments_omitted": 0,
       "text_shortened": false,
       "vision": "completed"
     },
-    "text": "Hallo Alex,\n\nwegen Samstag: Bringst du die Sachen für den Stand mit, oder soll ich sie abholen? Gib mir bitte bis Freitag Bescheid.\n\nLiebe Grüße\nSandra",
+    "text": "Hallo zusammen,\n\ndie neuen Trikots der Jugendabteilung sind da. Wir verteilen sie beim nächsten regulären Training an die Kinder. Ihr müsst dafür nichts tun und nichts bezahlen.\n\nSportliche Grüße\nTom",
     "user_timezone": "Europe/Berlin"
   },
   "normalized_proposals": [],
@@ -80,8 +89,20 @@
       "caldav_task_url": "",
       "calendar_provider": "google",
       "google_calendar": "primary",
+      "google_tasks_list": "@default",
       "microsoft_tenant": "common",
       "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
       "outlook_calendar": "default",
       "removal_window_minutes": 10,
       "task_provider": "todoist",
@@ -90,39 +111,40 @@
   },
   "proposals": [],
   "relevance": {
-    "decision": "unclear",
-    "reason": "Die Nachricht betrifft eine persönliche Absprache für Samstag, aber der genannte Stand lässt sich keinem der übergebenen Themen eindeutig zuordnen.",
-    "topic_ids": []
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "verein"
+    ]
   },
-  "relevance_dialog": {
-    "decision": null,
-    "mail_id": "98159854b8b577220937f891",
-    "schema_version": 1,
-    "status": "open",
-    "telegram_offset": null,
-    "version": 1
-  },
+  "relevance_dialog": null,
   "schema_version": 9,
   "self_mail": false,
   "steps": {
-    "action_detection": "pending",
-    "action_router": "pending",
-    "auto_draft": "pending",
-    "completion": "pending",
-    "duplicate_precheck": "pending",
-    "event_extraction": "pending",
-    "normalization": "pending",
+    "action_detection": "completed",
+    "action_router": "completed",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "skipped",
+    "normalization": "completed",
     "preparation": "completed",
-    "proposal_building": "pending",
-    "proposal_notification": "skipped",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
     "relevance": "completed",
-    "summary": "pending",
+    "summary": "completed",
     "summary_notification": "completed",
-    "task_extraction": "pending"
+    "task_extraction": "skipped"
   },
-  "summary": null,
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Die Jugendabteilung informiert, dass die neuen Trikots da sind und beim nächsten regulären Training an die Kinder verteilt werden.",
+      "Die Angeschriebenen müssen dafür nichts tun und nichts bezahlen."
+    ]
+  },
   "task_extraction": null,
-  "updated_at": "2026-11-16T13:40:27.660256Z",
+  "updated_at": "2026-11-17T14:20:30.098320Z",
   "user_note": null,
   "validation_errors": [],
   "write_attempts": []

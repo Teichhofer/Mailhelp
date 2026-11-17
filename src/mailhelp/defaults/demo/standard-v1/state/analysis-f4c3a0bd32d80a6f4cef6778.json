@@ -1,7 +1,7 @@
 {
   "human_decision": null,
   "mail_id": "f4c3a0bd32d80a6f4cef6778",
-  "recorded_at": "2026-11-16T13:40:33.573352+00:00",
+  "recorded_at": "2026-11-17T14:20:40.256666+00:00",
   "relevance": {
     "decision": "relevant",
     "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
@@ -12,10 +12,12 @@
   "schema_version": 1,
   "source": "JEV",
   "summary": {
-    "deadlines": [],
+    "deadlines": [
+      "Dezember"
+    ],
     "sentences": [
-      "Die Schulleitung informiert die Eltern, dass der Mensa-Speiseplan für Dezember auf der Schulwebsite veröffentlicht ist.",
-      "Die Bestellungen laufen wie gewohnt weiter, und die Eltern müssen nichts tun."
+      "Die Schulleitung informiert die Eltern, dass der Mensa-Speiseplan für Dezember online veröffentlicht ist.",
+      "Die Bestellungen laufen unverändert weiter, ohne dass die Eltern etwas tun müssen."
     ]
   },
   "topics": {
