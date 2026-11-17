@@ -279,7 +279,8 @@ def test_missing_records_are_not_treated_as_empty_candidate_set(service, monkeyp
     monkeypatch.setattr(service.store, "peek_model", lambda *a: None)
     with pytest.raises(ValueError, match="Bestand|bestand"):
         service.current()
-    monkeypatch.setattr(service.store, "names", lambda prefix: ["reconciliation-merge-missing"])
+    monkeypatch.setattr(service.store, "inventory", lambda prefix="": (
+        {"reconciliation-merge-missing.json"}, {"reconciliation-merge-missing": (0, 0, 0)}))
     with pytest.raises(ValueError, match="journal"):
         service.recover()
 
@@ -531,3 +532,19 @@ def test_all_day_and_timed_facts_need_explicit_review_instead_of_a_type_error():
     current = merge_facts(first, incoming)
     assert current.start == first.start and current.end == first.end and not current.all_day
     assert any("Ganztägige" in q for q in current.open_questions)
+
+
+def test_regression_recover_lists_the_state_directory_once(service, monkeypatch):
+    """7.6.3: recover ran on every operator pass and listed thousands of files four times."""
+    import os
+    service.save(candidate(1))
+    service.save(candidate(2))
+    listings = []
+    scandir = os.scandir
+
+    def counted(path):
+        listings.append(path)
+        return scandir(path)
+    monkeypatch.setattr(os, "scandir", counted)
+    service.recover()
+    assert len(listings) == 1

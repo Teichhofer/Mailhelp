@@ -6,6 +6,7 @@ after an upgrade, so they stay byte-identical across releases.
 """
 from __future__ import annotations
 
+import re
 from typing import Protocol
 
 MAIL_PREFIX = "mail-"
@@ -39,6 +40,15 @@ def proposal(mail_id: str, proposal_id: str, version: int | str | None = None) -
     """The current proposal, or with *version* its immutable snapshot."""
     name = f"{PROPOSAL_PREFIX}{mail_id}-{proposal_id}"
     return name if version is None else f"{name}-v{version}"
+
+
+_SNAPSHOT = re.compile(r"-v\d+\Z")
+
+
+def is_proposal_snapshot(name: str) -> bool:
+    """A stored version (``…-v3``) rather than the current proposal; decided by the name alone,
+    so a scan of the current proposals never has to read the snapshots."""
+    return _SNAPSHOT.search(name) is not None
 
 
 def write_verification(operation_id: str) -> str:

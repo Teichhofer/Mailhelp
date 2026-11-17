@@ -86,3 +86,38 @@ Umsetzung von [Planung 7.6](Planung-7.6.md).
   nur die Prüfsummen von `app.css` und `dialogs.js` in den Asset-Links.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 960 Tests bestanden, 234 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.6.3 – Fehlerkorrektur: Ergebnisanzeige bei großem Bestand
+
+Der Lasttest `tests/services/test_load_result_latency.py` scheiterte im Gesamtlauf von 7.6.1. Auch
+einzeln überschritt er die Grenze in zwei von drei Läufen (Median 465–515 ms bei einer Grenze von
+500 ms). Schon 7.4 hatte ihn mit 490 ms knapp bestanden.
+
+- **Ursache 1, Telegram-Ausgang:** Warten Nachrichten auf eine offene Entscheidung, sucht jeder
+  Durchlauf des Hauptthreads die aktuelle Entscheidung neu (`outbox.shown_open_decisions`). Dabei
+  wurde jede gespeicherte Vorschlagsversion (`proposal-…-v1`) erst gelesen und dann verworfen. Bei
+  500 Vorschlägen waren das über 1.000 Dateien und rund 350 ms je Durchlauf, und eine gleichzeitig
+  eintreffende Web-Aktion wartete darauf.
+  - Versionen werden jetzt am Namen erkannt (`state_names.is_proposal_snapshot`), ebenso in
+    `/status`, in der Schreibwiederaufnahme, beim Pausenstatus und in der Systemansicht.
+  - Entschiedene Vorschläge überspringt der Ausgang über ihren zwischengespeicherten Status
+    (`store.scan` und `store.cached`). Nur offene Vorschläge werden vollständig gelesen.
+  - Der Suchlauf dauert damit 24 ms; nur der erste nach einem Start liest alles (≈ 110 ms).
+- **Ursache 2, Abgleich:** `ProposalReconciliationService.recover()` läuft bei jeder Aktion und in
+  jedem Durchlauf. Es las das Zustandsverzeichnis viermal: zweimal für die Prüfung auf isolierte
+  Dateien, je einmal für Journale und Vorschläge. Jetzt genügt eine Auflistung (`store.inventory`).
+  Nur nachdem ein Journal abgeschlossen wurde, wird neu gelistet.
+- **Regressionstests:**
+  - `test_regression_held_outbox_and_status_never_read_stored_versions` scheitert ohne die Korrektur,
+    weil Versionsdateien gelesen werden.
+  - `test_regression_recover_lists_the_state_directory_once` scheitert ohne die Korrektur mit
+    4 statt 1 Auflistung.
+- **Ergebnis:** Der Lasttest erreicht einzeln 377–453 ms im Median (Maximum ≈ 690 ms, Grenze
+  1.000 ms). Die Grenzen des Tests bleiben unverändert.
+
+**Prüfung 7.6.3:**
+
+- `python -m devtools.check full --workers 12`: 5.797 Tests bestanden, 100 % Zeilen- und
+  Branch-Abdeckung. Der Lasttest erreichte im Gesamtlauf 376 ms Median und 641 ms Maximum.
+- `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 960 Tests bestanden, 234 übersprungen,
+  JavaScript-Abdeckung 100 %.

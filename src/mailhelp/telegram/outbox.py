@@ -37,6 +37,10 @@ _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION
 _UNSHOWN = {"pending", "queued"}
 
 
+def _status(proposal: Proposal) -> ProposalStatus:
+    return proposal.status
+
+
 def revision_paused(store: JsonStore, proposal: Proposal) -> bool:
     """Return whether an answered revision waits for an operator, not the user."""
     clarification = store.load_model(
@@ -199,7 +203,12 @@ class TelegramOutbox:
         ]
         queued = self.queued_proposals()
         ordered: list[tuple[tuple[int, int, str, str], TelegramOutboxGate]] = []
-        for name in self.store.names(state_names.PROPOSAL_PREFIX):
+        # 7.6.3: a held flush runs on every operator pass. Stored versions are skipped by name and
+        # decided proposals by their cached status, so only open ones are read in full.
+        for name, signature in self.store.scan(state_names.PROPOSAL_PREFIX).items():
+            if (state_names.is_proposal_snapshot(name)
+                    or self.store.cached(name, Proposal, _status, signature) not in _OPEN):
+                continue
             proposal = self.store.load_model(name, Proposal)
             if (not isinstance(proposal, Proposal)
                     or name != proposal_name(proposal.source_mail_id, proposal.id)

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 7.6.3 – Schnellere Ergebnisanzeige bei großem Bestand
+
+- Fehlerkorrektur: Solange Telegram-Nachrichten auf eine offene Entscheidung warteten, las jeder
+  Durchlauf des Hauptthreads alle gespeicherten Vorschlagsversionen ein. Bei 500 Vorschlägen waren das
+  über 1.000 Dateien je Durchlauf; eine Web-Aktion wartete so lange. Jetzt werden Versionen am Namen
+  erkannt und entschiedene Vorschläge über ihren zwischengespeicherten Status übersprungen.
+- Der Abgleich der Vorschläge liest das Zustandsverzeichnis je Prüfung einmal statt viermal.
+- Der Lasttest „Ergebnis in 0,5 s bei 2.000 Mails“ lag zuvor knapp an seiner Grenze (Median 465–515 ms)
+  und erreicht jetzt 377–453 ms.
+
 ## 7.6.2 – Schneller Entscheidungsfluss
 
 - `1` bestätigt und `2` verwirft den ausgewählten Vorgang (wie `A` und `X`); danach ist die nächste

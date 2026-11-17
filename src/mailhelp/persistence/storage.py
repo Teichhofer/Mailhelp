@@ -255,18 +255,28 @@ class JsonStore:
         this process's writes with the file's modification time and size, so a change
         by another program is noticed as well.
         """
+        return self.inventory(prefix)[1]
+
+    def inventory(self, prefix: str = "") -> tuple[set[str], dict[str, tuple[int, int, int]]]:
+        """Like ``scan``, plus every file name with *prefix* (isolated copies too), from the same listing.
+
+        7.6.3: a caller that needs both no longer lists a directory of thousands of files twice.
+        """
         with measured_lock(self._thread_lock, "store"):
             try:
                 entries = list(os.scandir(self.directory))
             except OSError:
-                return {}
+                return set(), {}
+            files: set[str] = set()
             result: dict[str, tuple[int, int, int]] = {}
             for entry in entries:
-                name = entry.name[:-5]
-                if entry.name.endswith(".json") and name.startswith(prefix) and entry.is_file():
-                    stat = entry.stat()
+                if not entry.name.startswith(prefix) or not entry.is_file():
+                    continue
+                files.add(entry.name)
+                if entry.name.endswith(".json"):
+                    name, stat = entry.name[:-5], entry.stat()
                     result[name] = (self._generations.get(name, 0), stat.st_mtime_ns, stat.st_size)
-        return dict(sorted(result.items()))
+        return files, dict(sorted(result.items()))
 
     def cached[M: BaseModel, T](self, name: str, model: type[M], project: Callable[[M], T],
                                 signature: tuple[int, int, int] | None = None) -> T | None:

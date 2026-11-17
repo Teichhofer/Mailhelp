@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.6.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.6.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 7.6.1 macht die Demo klärungsfrei: Alle zehn Vorschläge der Beispielmails sind sofort bestätigbar, keine Karte stellt eine Rückfrage. So lässt sich der ganze Stapel in einem Zug entscheiden. Seit 7.6.2 bestätigt `1` und verwirft `2` den ausgewählten Vorgang, danach ist die nächste Karte ausgewählt; die Demo nennt die Tasten und bietet nach der letzten Karte einen Neustart an.
 

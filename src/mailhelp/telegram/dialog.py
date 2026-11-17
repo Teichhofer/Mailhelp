@@ -258,7 +258,7 @@ class TelegramDialogController:
         if self._open_relevance_dialogs():
             return True
         for name in self.store.names(state_names.PROPOSAL_PREFIX):
-            if "-v" in name:
+            if state_names.is_proposal_snapshot(name):
                 continue
             proposal = self.store.load_model(name, Proposal)
             if isinstance(proposal, Proposal) and proposal.status in {

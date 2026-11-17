@@ -92,17 +92,24 @@ class ProposalReconciliationService:
 
     def recover(self) -> None:
         with self.store.locked():
-            self._require_intact("reconciliation-merge-")
-            for name in self.store.names("reconciliation-merge-"):
+            # 7.6.3: one directory listing serves both checks; it is taken again only after a
+            # journal was finished, because finishing writes proposals.
+            files, states = self.store.inventory()
+            self._require_intact("reconciliation-merge-", files)
+            finished = False
+            for name in [name for name in states if name.startswith("reconciliation-merge-")]:
                 journal = self.store.load_model(name, ProposalMergeJournal)
                 if journal is None:
                     raise ValueError("Abgleichjournal fehlt")
                 if journal.status == "prepared":
                     self._finish(name, journal)
+                    finished = True
+            if finished:
+                files, states = self.store.inventory()
             # Runs on every operator pass: unchanged proposals are not read again (4.4.1).
-            self._require_intact("proposal-")
-            for name, signature in self.store.scan("proposal-").items():
-                if re.search(r"-v[1-9][0-9]*$", name):
+            self._require_intact("proposal-", files)
+            for name, signature in states.items():
+                if not name.startswith("proposal-") or re.search(r"-v[1-9][0-9]*$", name):
                     continue
                 reference = self.store.cached(name, Proposal, _journal_reference, signature)
                 if reference is None or name != reference[0]:
@@ -111,10 +118,11 @@ class ProposalReconciliationService:
                 if journal_name is not None and self.store.load_model(journal_name, ProposalMergeJournal) is None:
                     raise CorruptState("Maßgebliches Abgleichjournal fehlt; Ausführung blockiert")
 
-    def _require_intact(self, prefix: str) -> None:
+    def _require_intact(self, prefix: str, files: set[str] | None = None) -> None:
         """A quarantined authority cannot disappear from the inventory on restart."""
         # One directory listing; a glob per suffix took most of an operator pass (4.4.1).
-        names = {entry.name for entry in os.scandir(self.store.directory) if entry.name.startswith(prefix)}
+        listed = files if files is not None else {entry.name for entry in os.scandir(self.store.directory)}
+        names = {name for name in listed if name.startswith(prefix)}
         for name in sorted(names):
             stem, _, suffix = name.rpartition(".")
             if suffix in {"corrupt", "invalid"} and f"{stem}.json" not in names:

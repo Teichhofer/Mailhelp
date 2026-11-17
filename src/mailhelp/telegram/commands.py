@@ -135,11 +135,13 @@ class TelegramCommands:
     def _open_proposals(self) -> Iterator[tuple[Proposal, ProposalClarificationState | None]]:
         """Current versions that wait for a decision, with the state of their clarification."""
         for name in self.store.names(state_names.PROPOSAL_PREFIX):
+            if state_names.is_proposal_snapshot(name):
+                continue
             proposal = self.store.load_model(name, Proposal)
             assert proposal is not None  # listed by names() just before
-            if name != proposal_name(proposal.source_mail_id, proposal.id):
-                continue
-            if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
+            if (name != proposal_name(proposal.source_mail_id, proposal.id)
+                    or proposal.status not in {ProposalStatus.PENDING_CONFIRMATION,
+                                               ProposalStatus.NEEDS_CLARIFICATION}):
                 continue
             yield proposal, self.store.load_model(clarification_name(
                 proposal.source_mail_id, proposal.id, proposal.version), ProposalClarificationState)

@@ -9,7 +9,6 @@ reflects one consistent moment, even while the main thread keeps working.
 from __future__ import annotations
 
 import hashlib
-import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
@@ -53,7 +52,6 @@ from .service import proposal_creation_time
 from .verification_texts import VerificationSummary, summary
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
-_SNAPSHOT = re.compile(r"-v\d+\Z")
 _CHANGE_QUESTION = "Was soll geändert werden?"
 _CHANGE_EXAMPLE = "„Titel: Elternabend“ oder „Ort: Raum 3“"
 RECENT_LIMIT = 8
@@ -430,7 +428,7 @@ class ReviewViews:
             inbox = reader.raw("telegram-inbox")
             budget = reader.raw("llm-budget")
             proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX)
-                         if not _SNAPSHOT.search(name)
+                         if not state_names.is_proposal_snapshot(name)
                          if (proposal := reader.model(name, Proposal)) is not None]
         analysis: dict[str, int] = {}
         for run in runs:
@@ -547,7 +545,7 @@ class ReviewViews:
         mails: dict[str, _MailSummary | None] = {}
         result = []
         for name in reader.names(state_names.PROPOSAL_PREFIX):
-            if _SNAPSHOT.search(name):
+            if state_names.is_proposal_snapshot(name):
                 continue
             proposal = reader.model(name, Proposal)
             if proposal is None:

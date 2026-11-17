@@ -337,7 +337,7 @@ class ConfirmedWriteExecutor:
         ProposalReconciliationService(self.store).recover()
         repair = not self._repaired
         for name, signature in self.store.scan(state_names.PROPOSAL_PREFIX).items():
-            if "-v" in name:
+            if state_names.is_proposal_snapshot(name):
                 continue
             if not repair and self.store.cached(name, Proposal, _status, signature) not in _WRITE_STATES:
                 continue

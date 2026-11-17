@@ -595,3 +595,30 @@ def test_regression_queued_relevance_does_not_block_analysis(tmp_path):
         c.flush_outbox()
         assert shown(t, "Subject B")
         assert c.awaiting_relevance_decision()
+
+
+def test_regression_held_outbox_and_status_never_read_stored_versions(tmp_path):
+    """7.6.3: every held flush read each proposal snapshot (``…-v1``) only to discard it.
+
+    With 500 proposals that was over 1,000 file reads per main-thread pass, and a web action
+    arriving meanwhile waited for them (tests/services/test_load_result_latency.py).
+    """
+    import re
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        for mail_id in (A, B):
+            shown_open(store, c, item(mail_id, f"Aufgabe {mail_id[0].upper()}"))
+        assert [name for name in store.names("proposal-") if re.search(r"-v\d+\Z", name)]
+        loaded = []
+        load_model = store.load_model
+
+        def spy(name, *args, **kwargs):
+            loaded.append(name)
+            return load_model(name, *args, **kwargs)
+        store.load_model = spy
+        decisions = c.outbox.shown_open_decisions()
+        t.updates = [message(1, "/status")]
+        c.poll_once()
+        assert [gate.mail_id for gate in decisions] == [A, B]
+        assert any(name.startswith("proposal-") for name in loaded)
+        assert [name for name in loaded if name.startswith("proposal-") and re.search(r"-v\d+\Z", name)] == []
