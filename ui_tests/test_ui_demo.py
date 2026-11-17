@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import socket
 import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -163,3 +164,30 @@ def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance):
         context.close()
     finally:
         webkit.close()
+
+
+def test_the_whole_stack_is_decided_key_after_key_in_under_half_a_minute(page, instance):
+    """7.6: every card can be decided at once – 1 confirms and moves on, until nothing is open."""
+    if page.device != "desktop":
+        pytest.skip("Tastenkürzel gibt es nur auf dem Desktop; das Wischen prüft der Telefon-Test")
+    start_demo(page, instance)
+    expect(page.locator(".demo-keys-hint")).to_be_visible()
+    cards = page.locator(f"{MASTER} article.card")
+    total = cards.count()
+    assert total >= 6
+    started = time.monotonic()
+    open_card(page, page.locator("button", has_text=CONFIRM))
+    pane = DetailPane(page).root
+    for number in range(total):
+        # The next card is ready once the pane shows it with its buttons enabled.
+        expect(pane.get_by_role("button", name=CONFIRM)).to_be_enabled()
+        page.keyboard.press("1")
+        expect(cards.nth(number).locator("[data-card-command-status]")).to_have_count(1)
+    for _ in range(60):
+        page.goto(f"{instance.url}/")
+        if page.locator("#inbox-zero").count():
+            break
+        page.wait_for_timeout(500)
+    assert time.monotonic() - started < 30
+    expect(page.get_by_role("link", name="Demo zurücksetzen und nochmals testen")).to_be_visible()
+    assert page.errors == []

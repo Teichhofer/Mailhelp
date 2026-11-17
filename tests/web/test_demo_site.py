@@ -442,3 +442,21 @@ def test_json_answers_get_demo_wording_and_odd_forms_stay_unchanged():
     odd = ('<form method="post" action="/aktion" class="stack"><input type="hidden" name="kind" value="answer">'
            '<input type="hidden" name="version" value="x"><textarea name="text"></textarea></form>')
     assert _prefill(odd, {("a", "b", 1): "Antwort"}) == odd
+
+
+def test_the_open_list_names_the_keys_and_the_finished_list_offers_a_new_round():
+    """7.6.2: the quick flow – keys above the open list, a new round once everything is decided."""
+    from mailhelp.web.demo_site import AGAIN, KEYS_HINT, demo_response
+    page = ('<main id="inhalt"><div class="swipe-hint" data-swipe-hint hidden></div>'
+            '<section class="card inbox-zero"><h2 id="inbox-zero">Alles erledigt!</h2><p>Heute</p></section></main>')
+    shown = demo_response(Response.html(200, page)).body.decode("utf-8")
+    assert shown.count(KEYS_HINT) == 1 and shown.index(KEYS_HINT) < shown.index("data-swipe-hint")
+    assert shown.count(AGAIN) == 1 and shown.index("</h2>") < shown.index(AGAIN) < shown.index("<p>Heute")
+    plain = demo_response(Response.html(200, '<main id="inhalt"><h1>Mails</h1></main>')).body.decode("utf-8")
+    assert KEYS_HINT not in plain and AGAIN not in plain
+
+
+def test_the_shipped_demo_shows_the_key_hint_on_the_open_decisions(instance):
+    from mailhelp.web.demo_site import KEYS_HINT
+    _response, jar = start(instance.site)
+    assert KEYS_HINT in instance.site(request("GET", "/", jar)).body.decode("utf-8")

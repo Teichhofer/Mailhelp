@@ -1,9 +1,11 @@
 """Planung 5.0, step 21.5 (5.0.9): "A" confirms, and the shortcuts are found in the sidebar."""
+import re
+
 from playwright.sync_api import expect
 
 from checks import audit
 from conftest import item, sign_in
-from pages import Overview
+from pages import MASTER, Overview
 from tests.scenarios.web_scenario import mail_id
 
 
@@ -39,3 +41,21 @@ def test_the_sidebar_offers_the_shortcut_help(page, mailhelp):
     expect(page.get_by_role("button", name="Tastenkürzel")).to_be_visible()
     assert page.errors == []
 
+
+
+def test_two_rejects_and_moves_on_to_the_next_card(page, mailhelp):
+    """7.6.2: 1 and 2 decide like A and X; after a decision the next card is selected."""
+    if page.device != "desktop":
+        return
+    sign_in(page, mailhelp)
+    chosen = f"v-{mail_id(1)}-elternabend"
+    ids = page.locator(f"{MASTER} article.card").evaluate_all("cards => cards.map(card => card.id)")
+    item(page, f"#{chosen}")
+    page.locator("body").focus()
+    with page.expect_request("**/aktion"):
+        page.keyboard.press("2")
+    expect(Overview(page).selected).to_have_id(ids[ids.index(chosen) + 1])
+    expect(page.locator(f"{MASTER} #{chosen}")).to_contain_text(re.compile("Verworfen|Wird verarbeitet"))
+    assert mailhelp.writer.created == [] and page.errors == []
+    page.get_by_role("button", name="Tastenkürzel").click()
+    expect(page.get_by_role("dialog", name="Tastenkürzel")).to_contain_text("2 / X / D")

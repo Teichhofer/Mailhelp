@@ -55,3 +55,34 @@ Umsetzung von [Planung 7.6](Planung-7.6.md).
   statt unter 500 ms). Einzeln bestanden beide Latenztests. 7.6.1 ändert keinen Webcode.
 - `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 956 Tests bestanden, 232 übersprungen,
   JavaScript-Abdeckung 100 %.
+
+## 7.6.2 – Tasten, Abschluss und Schnelldurchlauf (Q4)
+
+- **Tasten `1` und `2`:** `1` bestätigt wie `A`, `C` und Enter, `2` verwirft wie `X` und `D`. Die
+  Hilfe „Tastenkürzel“ nennt sie. Nach einer Entscheidung per Taste wählt die Liste die nächste Karte
+  aus, sodass sich ein Stapel Taste für Taste entscheiden lässt (`dialogs.js`).
+- **Hinweis in der Demo:** Über der Liste offener Entscheidungen steht auf dem Desktop „Tipp: Mit den
+  Tasten 1 (anlegen) und 2 (verwerfen) …“. Auf Telefonen bleibt der vorhandene Wischhinweis.
+- **Abschluss:** Ist alles entschieden, zeigt die vorhandene Abschlussansicht („Alles erledigt!“ mit den
+  heutigen Ergebnissen) in der Demo zusätzlich „Demo zurücksetzen und nochmals testen“.
+- **Browsertests:**
+  - `ui_tests/test_ui_demo.py` entscheidet den ganzen Demo-Stapel per Taste `1`, bis die
+    Abschlussansicht erscheint. Das muss in unter 30 Sekunden geschehen; lokal dauert es etwa 6 Sekunden.
+  - `ui_tests/test_ui_shortcuts.py` prüft `2` und den Sprung zur nächsten Karte.
+
+**Abweichungen vom Plan:**
+
+- **Keine Taste `Z` für Rückgängig:** Entscheidungen wirken sofort, seit 2.0 gibt es keine
+  Rückgängig-Frist mehr. Ein angelegter Eintrag lässt sich wie bisher über „Eintrag wieder entfernen“
+  zurücknehmen.
+- **Keine eigene Messung „unter 50 ms je Aktion“:** Die Annahme einer Aktion prüfen weiterhin die
+  vorhandenen Lasttests. Der neue Browsertest misst den ganzen Durchlauf statt einzelner Gesten.
+- **Wischgesten unverändert:** Sie bestehen seit 6.9. Die Animation brauchte keine Änderung.
+
+**Prüfung 7.6.2:**
+
+- `python -m devtools.check full --workers 12`: 5.795 Tests bestanden, 100 % Zeilen- und
+  Branch-Abdeckung, Lasttests bestanden. Die Golden-Seiten wurden neu geschrieben. Geändert haben sich
+  nur die Prüfsummen von `app.css` und `dialogs.js` in den Asset-Links.
+- `python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 960 Tests bestanden, 234 übersprungen,
+  JavaScript-Abdeckung 100 %.

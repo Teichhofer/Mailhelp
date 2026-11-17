@@ -46,6 +46,12 @@ DEMO_LABELS = {"Simulieren": "In der Demo anlegen"}
 _MAIN = re.compile(r'<main id="inhalt"[^>]*>')
 _ANSWER_FORM = re.compile(r'<form method="post" action="/aktion" class="stack">.*?</form>', re.S)
 Prepared = dict[tuple[str, str, int], str]
+# 7.6.2: the quick flow – keys on the desktop above the open list, a new round when all is decided.
+KEYS_HINT = ('<p class="hint demo-keys-hint">Tipp: Mit den Tasten <kbd>1</kbd> (anlegen) und <kbd>2</kbd> '
+             '(verwerfen) entscheidest du die ausgewählte Karte am schnellsten.</p>')
+AGAIN = ('<p><a class="button primary" href="/demo/neu-starten">Demo zurücksetzen und nochmals testen</a></p>')
+_OPEN_LIST = re.compile(r'<div class="swipe-hint" data-swipe-hint')
+_INBOX_ZERO = re.compile(r'<h2 id="inbox-zero">.*?</h2>', re.S)
 
 
 def _field(form: str, name: str) -> str:
@@ -90,6 +96,8 @@ def demo_response(response: Response, prepared: Prepared | None = None) -> Respo
         for original, replacement in DEMO_LABELS.items():
             text = text.replace(f">{original}<", f">{replacement}<")
         text = _ANSWER_FORM.sub(lambda match: _prefill(match.group(0), prepared or {}), text)
+        text = _OPEN_LIST.sub(lambda match: KEYS_HINT + match.group(0), text, count=1)
+        text = _INBOX_ZERO.sub(lambda match: match.group(0) + AGAIN, text, count=1)
         banner = (notice(DEMO_NOTICE, "info")
                   + '<p class="hint"><a href="/demo/neu-starten">Demo neu starten</a></p>')
         text = _MAIN.sub(lambda match: match.group(0) + banner, text, count=1)

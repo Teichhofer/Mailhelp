@@ -75,8 +75,8 @@
 
   function help() {
     var list = document.createElement("dl");
-    [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["A / C / Enter", "Bestätigen"],
-     ["E", "Bearbeiten"], ["X / D", "Verwerfen"], ["?", "Diese Hilfe"]].forEach(function (pair) {
+    [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["1 / A / C / Enter", "Bestätigen"],
+     ["E", "Bearbeiten"], ["2 / X / D", "Verwerfen"], ["?", "Diese Hilfe"]].forEach(function (pair) {
       var key = document.createElement("dt"), text = document.createElement("dd");
       key.textContent = pair[0];
       text.textContent = pair[1];
@@ -118,7 +118,9 @@
       select(list[Math.min(list.length - 1, Math.max(0, list.indexOf(shared.selected) + step))]);
       return;
     }
-    var action = {a: "confirm", c: "confirm", enter: "confirm", x: "reject", d: "reject", e: "edit"}[key];
+    // 7.6.2: 1 and 2 decide with one hand next to the number row.
+    var action = {1: "confirm", a: "confirm", c: "confirm", enter: "confirm", 2: "reject", x: "reject", d: "reject",
+                  e: "edit"}[key];
     if (!action) return;
     event.preventDefault();
     var control = action === "edit" ? shared.pane.querySelector('a[href$="/bearbeiten"]')
@@ -127,8 +129,14 @@
       announce("Diese Aktion ist für den ausgewählten Vorgang nicht möglich.");
       return;
     }
-    if (action === "edit") control.click();
-    else control.form.requestSubmit();
+    if (action === "edit") {
+      control.click();
+      return;
+    }
+    control.form.requestSubmit();
+    // 7.6.2: a decision moves on to the next card, so a stack is decided key after key.
+    var next = list[list.indexOf(shared.selected) + 1];
+    if (next) select(next);
   });
 
   function filter(chip) {

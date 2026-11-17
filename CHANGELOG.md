@@ -1,5 +1,13 @@
 # Änderungen
 
+## 7.6.2 – Schneller Entscheidungsfluss
+
+- `1` bestätigt und `2` verwirft den ausgewählten Vorgang (wie `A` und `X`); danach ist die nächste
+  Karte ausgewählt, sodass sich ein Stapel Taste für Taste entscheiden lässt.
+- Die Demo nennt die beiden Tasten auf dem Desktop über der Liste. Ist alles entschieden, bietet die
+  Abschlussansicht „Demo zurücksetzen und nochmals testen“.
+- Ein Browsertest entscheidet den ganzen Demo-Stapel per Tastatur in unter 30 Sekunden.
+
 ## 7.6.1 – Klärungsfreie Demo-Vorschläge
 
 - Die zehn relevanten Demo-Mails nennen jetzt Datum, Beginn, Ende und wer gemeint ist. Alle zehn

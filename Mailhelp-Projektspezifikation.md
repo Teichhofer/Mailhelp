@@ -111,6 +111,9 @@ Seit 7.6.1 (Plan: [docs/Planung-7.6.md](docs/Planung-7.6.md)): Jeder Vorschlag d
 Bestands steht auf `pending_confirmation` ohne offene Fragen, und keine Mail wartet auf eine
 Relevanzentscheidung; `tests/release/test_demo_flow.py` erzwingt das. `answers.json` ist deshalb
 leer. Der Mechanismus der vorbereiteten Antworten bleibt für Bestände mit Rückfragen bestehen.
+Seit 7.6.2 nennt die Demo über der Liste offener Entscheidungen auf dem Desktop die Tasten `1` und
+`2`, und die Abschlussansicht ohne offene Entscheidungen bietet „Demo zurücksetzen und nochmals
+testen“ (`/demo/neu-starten`).
 
 Ein Neustart über die Weboberfläche startet Mailhelp mit genau denselben Startparametern
 (`sys.argv`), ein Neustart im Demo-Modus also wieder die Demo. In der öffentlichen Demo ist der
@@ -2699,7 +2702,8 @@ weiterhin nur in der Detailansicht. Ohne JavaScript
 bleiben die Formulare vollständig nutzbar. Tastenkürzel sind in
 Eingabefeldern und bei geöffneten Dialogen inaktiv. Seit 5.0.9 bestätigt `A` wie `C` und
 Enter; die Seitenleiste (ab 900 Pixeln, nicht in der Symbolleiste bis 1199 Pixel) enthält den
-von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Ohne JavaScript funktionieren
+von JavaScript eingefügten Knopf „? Tastenkürzel“, der die Hilfe öffnet. Seit 7.6.2 bestätigt `1` wie
+`A` und verwirft `2` wie `X`; nach einer Entscheidung per Taste ist die nächste Karte ausgewählt. Ohne JavaScript funktionieren
 alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
 die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone. Seit 5.0.10 stehen
 sie zusätzlich als Kacheln „📅 Termine“, „✅ Aufgaben“ (angelegt bzw. simuliert),

@@ -554,6 +554,9 @@ h2 { overflow-wrap: anywhere; }
   margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--text-s); }
 .swipe-hint button { flex: none; min-width: 44px; min-height: 44px; }
 @media (min-width: 1024px) { .swipe-hint:not([hidden]) { display: none; } }
+/* 7.6.2: the demo names the decision keys where they work – on the desktop. */
+.demo-keys-hint { display: none; }
+@media (min-width: 1024px) { .demo-keys-hint { display: block; } }
 .draft-box textarea { display: block; width: 100%; font: inherit; margin: 12px 0; }
 /* 7.3.2: failed mails – the report card at the top of the mail page and in the list dialog. */
 .error-card { border-left: 4px solid var(--danger); }
