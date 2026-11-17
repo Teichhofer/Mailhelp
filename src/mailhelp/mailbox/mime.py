@@ -68,6 +68,27 @@ def extract_display_headers(raw: bytes, limits: int | MimeLimits | object) -> di
     return {"from": display("From"), "subject": display("Subject")}
 
 
+def extract_list_signals(raw: bytes, limits: int | MimeLimits | object) -> dict[str, object]:
+    """7.7: the list and automation headers of a complete, bounded header block.
+
+    Untrusted and only compared, never evaluated: values are cleaned, cut and lowercased. A header
+    block that does not end within the inspected prefix yields no signals.
+    """
+    configured = _limits(limits)
+    prefix = raw[:configured.max_header_bytes + 1]
+    ends = [position + len(separator) for separator in (b"\r\n\r\n", b"\n\n")
+            if (position := prefix.find(separator)) >= 0]
+    if not ends or min(ends) > configured.max_header_bytes:
+        return {}
+    message = BytesHeaderParser(policy=policy.default).parsebytes(prefix[:min(ends)])
+
+    def value(name: str, limit: int) -> str:
+        return _clean_display(str(message.get(name, ""))).casefold()[:limit]
+
+    return {"list_id": value("List-Id", 200), "list_unsubscribe": message.get("List-Unsubscribe") is not None,
+            "precedence": value("Precedence", 50), "auto_submitted": value("Auto-Submitted", 50)}
+
+
 def _clean_display(value: str) -> str:
     """Normalize an untrusted header into one Telegram-safe display line."""
     value = unicodedata.normalize("NFKC", value)

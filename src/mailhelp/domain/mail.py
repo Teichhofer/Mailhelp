@@ -12,7 +12,7 @@ from .extraction import ActionRoute, EventExtraction, ExtractionCountConflict, S
 from .prepared import PreparedMail
 from .processing import ProcessingError, ProcessingSteps, ProposalNotification, ValidationIssue, WriteAttemptReference
 from .proposal import Proposal
-from .relevance import Relevance, RelevanceDialog, RelevanceDialogStatus
+from .relevance import ListSignals, Relevance, RelevanceDialog, RelevanceDialogStatus
 from .retry import ProcessingRetry
 
 
@@ -44,6 +44,8 @@ class MailState(StrictModel):
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
     display_headers: DisplayHeaders | None = None
+    # 7.7: list and automation headers for the prefilter; beside the mail, so no model input changes.
+    list_signals: ListSignals | None = None
     # 4.5: sent from one of the user's own addresses; user_note holds their own words.
     # A hint for reading the mail only; it never authorizes an external write.
     self_mail: bool = False

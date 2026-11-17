@@ -3,6 +3,29 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.7: Vorfilter-Regeln und VIP-Absender
+
+Plan: [docs/Planung-7.7.md](docs/Planung-7.7.md). Seit 7.7.1 hat `irrelevant-senders.json` Schema 3.
+Die Listen aus Schema 2 (`addresses`, `domains`, `mailboxes` mit `allow`) bleiben mit unveränderter
+Bedeutung: Domains gelten exakt, `allow` hebt nur die Sperre auf. Neu sind `rules` und `headers`:
+
+- Eine Regel (`SenderRule`) hat Art (`address`, `domain`, `pattern`, `subject`), Wert, Aktion
+  (`ignore`, `vip`, `allow_only`), optional ein Postfach (1–99), bei VIP optional Themen, `enabled`,
+  Notiz, Herkunft und eine stabile Kennung aus Art, Wert und Postfach.
+- Neue Domainregeln schließen Subdomains ein (`subdomains`). Muster sind Adressen mit ein bis drei `*`
+  und werden ohne reguläre Ausdrücke abgeglichen. Betreffregeln vergleichen ohne Groß-/Kleinschreibung
+  nach Unicode-Normalisierung und können eine Mail nur aussortieren.
+- `headers` schaltet die Kopfzeilen-Vorfilter `automated` (`Auto-Submitted` ≠ `no`, `Precedence`
+  `bulk`/`junk`/`list`) und `lists` (`List-Id` oder `List-Unsubscribe`, außer Ausnahmen aus
+  `list_exceptions`) je auf `off` (Standard), `trial` oder `on`.
+
+`mailbox/sender_filter.prefilter()` entscheidet für alle Aufrufer in fester Reihenfolge: VIP-Regel
+vor jeder Sperre; eine Ausnahme (`allow_only`) hebt alle Sperren und Kopfzeilen-Vorfilter für diesen
+Absender auf; dann Sperrregeln und Betreffe; zuletzt die eingeschalteten Kopfzeilen-Vorfilter. Die
+Kopfzeilen werden beim Vorbereiten als `MailState.list_signals` neben der Mail gespeichert, nicht in
+ihr, damit sich keine Eingabe an das Sprachmodell ändert. Vor dem ersten Schreiben von Schema 3 bleibt
+die bisherige Datei als `.json.v1` bzw. `.json.v2` erhalten.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der

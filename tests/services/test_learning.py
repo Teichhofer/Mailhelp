@@ -334,7 +334,8 @@ def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
         )
         assert mode.run(1) == 0
         assert store.load("irrelevant-senders") == {
-                "schema_version": 2, "mailboxes": {},
+            "schema_version": 3, "mailboxes": {}, "rules": [],
+            "headers": {"automated": "off", "lists": "off", "trial_since": {}, "list_exceptions": []},
             "addresses": ["existing@example.test", "offer@example.test"],
             "domains": ["blocked.test"],
         }
@@ -347,7 +348,8 @@ def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
         )
         assert unchanged.run(1) == 0
         assert store.load("irrelevant-senders") == {
-            "schema_version": 2, "mailboxes": {},
+            "schema_version": 3, "mailboxes": {}, "rules": [],
+            "headers": {"automated": "off", "lists": "off", "trial_since": {}, "list_exceptions": []},
             "addresses": ["existing@example.test", "offer@example.test"],
             "domains": ["blocked.test"],
         }

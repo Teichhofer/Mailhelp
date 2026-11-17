@@ -1,5 +1,18 @@
 # Änderungen
 
+## 7.7.1 – Vorfilter-Regeln: Datenmodell und Auswerter
+
+- Absenderfilter Schema 3: Neben den bisherigen Listen (Adressen, Domains, Postfach-Ausnahmen) gibt es
+  Regeln für Adressen, Domains mit Subdomains, Muster wie `no-reply@*` und Betreffe. Jede Regel kann
+  ignorieren, als VIP gelten oder nur eine Ausnahme sein. Dazu kommen die Schalter des
+  Kopfzeilen-Vorfilters (standardmäßig aus).
+- Ein gemeinsamer Auswerter (`prefilter`) entscheidet für alle Aufrufer; bestehende Listen wirken
+  nachweislich genau wie bisher. Muster werden ohne reguläre Ausdrücke abgeglichen.
+- Verteiler- und Automatik-Kopfzeilen (`List-Id`, `List-Unsubscribe`, `Precedence`, `Auto-Submitted`)
+  werden je Mail neben der Mail gespeichert; die Eingaben an das Sprachmodell bleiben unverändert.
+- Vor dem ersten Schreiben von Schema 3 bleibt die alte Datei als `irrelevant-senders.json.v1` bzw.
+  `.v2` erhalten. Die Verarbeitung ändert sich in diesem Patch noch nicht.
+
 ## 7.6.3 – Schnellere Ergebnisanzeige bei großem Bestand
 
 - Fehlerkorrektur: Solange Telegram-Nachrichten auf eine offene Entscheidung warteten, las jeder

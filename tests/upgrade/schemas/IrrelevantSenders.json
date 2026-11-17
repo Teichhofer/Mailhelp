@@ -1,5 +1,155 @@
 {
   "$defs": {
+    "HeaderPrefilter": {
+      "additionalProperties": false,
+      "description": "7.7: header filters are off after an update; a trial only counts, it never decides.",
+      "properties": {
+        "automated": {
+          "default": "off",
+          "enum": [
+            "off",
+            "trial",
+            "on"
+          ],
+          "title": "Automated",
+          "type": "string"
+        },
+        "list_exceptions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "List Exceptions",
+          "type": "array"
+        },
+        "lists": {
+          "default": "off",
+          "enum": [
+            "off",
+            "trial",
+            "on"
+          ],
+          "title": "Lists",
+          "type": "string"
+        },
+        "trial_since": {
+          "additionalProperties": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "automated",
+              "lists"
+            ]
+          },
+          "title": "Trial Since",
+          "type": "object"
+        }
+      },
+      "title": "HeaderPrefilter",
+      "type": "object"
+    },
+    "SenderRule": {
+      "additionalProperties": false,
+      "description": "7.7: one prefilter rule.\n\n``ignore`` files a mail as irrelevant, ``vip`` makes it relevant without the relevance call, and\n``allow_only`` only lifts every ignore rule and header filter for this sender.",
+      "properties": {
+        "action": {
+          "default": "ignore",
+          "enum": [
+            "ignore",
+            "vip",
+            "allow_only"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[a-f0-9]{16}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "address",
+            "domain",
+            "pattern",
+            "subject"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mailbox": {
+          "anyOf": [
+            {
+              "maximum": 99,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mailbox"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Note",
+          "type": "string"
+        },
+        "origin": {
+          "default": "manual",
+          "enum": [
+            "manual",
+            "mail",
+            "hint",
+            "telegram",
+            "migration"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "subdomains": {
+          "default": true,
+          "title": "Subdomains",
+          "type": "boolean"
+        },
+        "topic_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Topic Ids",
+          "type": "array"
+        },
+        "value": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "value",
+        "created_at"
+      ],
+      "title": "SenderRule",
+      "type": "object"
+    },
     "SenderRules": {
       "additionalProperties": false,
       "properties": {
@@ -30,7 +180,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Durable, human-readable sender prefilter learned from rejected topics.",
+  "description": "Durable, human-readable sender prefilter learned from rejected topics.\n\nSchema 3 (7.7) keeps the simple lists of schema 2 unchanged – exact addresses, exact domains and\nthe per-mailbox exceptions – and adds the rules and the header filters beside them.",
   "properties": {
     "addresses": {
       "items": {
@@ -46,6 +196,9 @@
       "title": "Domains",
       "type": "array"
     },
+    "headers": {
+      "$ref": "#/$defs/HeaderPrefilter"
+    },
     "mailboxes": {
       "additionalProperties": {
         "$ref": "#/$defs/SenderRules"
@@ -54,9 +207,17 @@
       "title": "Mailboxes",
       "type": "object"
     },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/SenderRule"
+      },
+      "maxItems": 1000,
+      "title": "Rules",
+      "type": "array"
+    },
     "schema_version": {
-      "const": 2,
-      "default": 2,
+      "const": 3,
+      "default": 3,
       "title": "Schema Version",
       "type": "integer"
     }

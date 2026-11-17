@@ -883,6 +883,37 @@
       "title": "KnownTemporalFacts",
       "type": "object"
     },
+    "ListSignals": {
+      "additionalProperties": false,
+      "description": "7.7: bounded, untrusted list and automation headers of a mail, used only by the prefilter.\n\nThey are stored beside the mail, never inside it, so no model input changes.",
+      "properties": {
+        "auto_submitted": {
+          "default": "",
+          "maxLength": 50,
+          "title": "Auto Submitted",
+          "type": "string"
+        },
+        "list_id": {
+          "default": "",
+          "maxLength": 200,
+          "title": "List Id",
+          "type": "string"
+        },
+        "list_unsubscribe": {
+          "default": false,
+          "title": "List Unsubscribe",
+          "type": "boolean"
+        },
+        "precedence": {
+          "default": "",
+          "maxLength": 50,
+          "title": "Precedence",
+          "type": "string"
+        }
+      },
+      "title": "ListSignals",
+      "type": "object"
+    },
     "MailImapIdentity": {
       "additionalProperties": false,
       "properties": {
@@ -2372,6 +2403,17 @@
       "default": false,
       "title": "Is Forwarding",
       "type": "boolean"
+    },
+    "list_signals": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ListSignals"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "llm_call_ids": {
       "items": {

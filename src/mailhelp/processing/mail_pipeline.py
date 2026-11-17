@@ -12,9 +12,9 @@ from ..domain.mail import DisplayHeaders, MailState
 from ..domain.prepared import PreparedMail
 from ..domain.processing import ProcessingStage, ProposalNotification
 from ..domain.proposal import Proposal
-from ..domain.relevance import Relevance, RelevanceDialog
+from ..domain.relevance import ListSignals, Relevance, RelevanceDialog
 from ..mailbox.imap import FetchedMail
-from ..mailbox.mime import extract_display_headers, prepare
+from ..mailbox.mime import extract_display_headers, extract_list_signals, prepare
 from ..mailbox.sender_filter import is_irrelevant_sender
 from ..notifications.briefing_identity import is_own_briefing
 from . import pipeline_failures, pipeline_proposals
@@ -182,6 +182,8 @@ class MailPipeline:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
                 self.o.save(name, state)
+            # 7.7: kept beside the mail for the prefilter; the model input stays the same.
+            state.list_signals = ListSignals.model_validate(extract_list_signals(fetched.raw, self.o.max_bytes))
             with part(run.timer, "zerlegen"):
                 state.mail = prepare(fetched.raw, self.o.max_bytes, fetched.received_at, self.o.user_timezone)
             if is_own_briefing(self.o.store, state.imap.account_id, fetched.raw):
