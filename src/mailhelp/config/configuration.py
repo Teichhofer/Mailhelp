@@ -87,7 +87,7 @@ class SenderChange(BaseModel):
 
 
 SETTINGS_FIELDS = {
-    "poll_interval_seconds", "timezone", "test_mode", "personal_info",
+    "poll_interval_seconds", "timezone", "language", "test_mode", "personal_info",
     "drafts.enabled", "drafts.folder", "auto_draft",
     "briefings.enabled", "briefings.times", "briefings.mailbox", "briefings.skip_empty",
     "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",

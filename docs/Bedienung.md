@@ -318,6 +318,13 @@ Sortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**,
 
 Auf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wischen auf dem Telefon](#wischen-auf-dem-telefon)).
 
+## Sprache
+
+Am Ende der Navigation wechselt der Link „English“ beziehungsweise „Deutsch“ die Sprache der
+Oberfläche für diesen Browser; die Wahl bleibt gespeichert. Ohne Wahl gilt die Sprache des Browsers
+oder die Einstellung `language`. Seit 7.5.1 sind Navigation und Statusbezeichnungen übersetzt, die
+übrigen Seiten folgen. Die Auswertung der Mails läuft unabhängig davon auf Deutsch.
+
 ## Fehlgeschlagene Mails
 
 Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut

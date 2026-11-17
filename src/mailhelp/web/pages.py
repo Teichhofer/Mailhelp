@@ -14,6 +14,7 @@ from datetime import datetime
 from types import MappingProxyType
 
 from ..formatting import format_datetime_local
+from ..i18n import Locale, current, tr
 from .auth import WebSession
 
 
@@ -73,7 +74,7 @@ def shows_help_button(path: str) -> bool:
 
 
 def _help_button() -> str:
-    return ('<a class="help-fab" href="/hilfe" aria-label="Hilfschat öffnen" title="Hilfschat öffnen">'
+    return (f'<a class="help-fab" href="/hilfe" aria-label="{tr("Hilfschat öffnen")}" title="{tr("Hilfschat öffnen")}">'
             + _icon(HELP_ICON) + "</a>")
 
 
@@ -88,7 +89,7 @@ def _link(href: str, active: str | None, open_count: int, *, tab: bool = False) 
     if href == "/" and open_count:
         current += ' aria-describedby="offen-zahl"'
         badge = f'<span class="nav-count" aria-hidden="true">{open_count}</span>'
-    label = TAB_LABELS.get(href, dict(NAVIGATION)[href]) if tab else dict(NAVIGATION)[href]
+    label = tr(TAB_LABELS.get(href, dict(NAVIGATION)[href]) if tab else dict(NAVIGATION)[href])
     return f'<a href="{href}"{current}>{_icon(NAVIGATION_ICONS[href])}<span class="nav-label">{label}</span>{badge}</a>'
 
 
@@ -98,18 +99,26 @@ def _navigation(active: str | None) -> tuple[str, str]:
     groups = []
     for title, routes in NAVIGATION_GROUPS:
         links = "".join(_link(href, active, open_count) for href in routes)
-        groups.append(f'<div class="nav-section"><p class="nav-section-label">{title}</p>{links}</div>')
+        groups.append(f'<div class="nav-section"><p class="nav-section-label">{tr(title)}</p>{links}</div>')
     described = ""
     if open_count:
-        noun = "offene Entscheidung" if open_count == 1 else "offene Entscheidungen"
+        noun = tr("offene Entscheidung") if open_count == 1 else tr("offene Entscheidungen")
         described = f'<span id="offen-zahl" hidden>{open_count} {noun}</span>'
     tabs = "".join(_link(href, active, open_count, tab=True) for href in TAB_BAR)
     others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION if href not in TAB_BAR)
     current = " has-current" if active is not None and active not in TAB_BAR else ""
-    more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">Mehr</span>'
+    more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">{tr("Mehr")}</span>'
             f'</summary><div class="tab-menu">{others}</div></details>')
-    return (described + '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>",
-            f'<nav class="tab-bar" aria-label="Schnellnavigation">{tabs}{more}</nav>')
+    return (described + f'<nav class="nav" aria-label="{tr("Hauptnavigation")}">' + "".join(groups)
+            + _language_switch() + "</nav>",
+            f'<nav class="tab-bar" aria-label="{tr("Schnellnavigation")}">{tabs}{more}</nav>')
+
+
+def _language_switch() -> str:
+    """7.5: the other language as a link; it keeps the page and works without JavaScript."""
+    other, name = (Locale.DE, "Deutsch") if current() == Locale.EN else (Locale.EN, "English")
+    return (f'<p class="nav-language"><a href="/sprache?wert={other.value}" lang="{other.value}" '
+            f'hreflang="{other.value}">{tr(name)}</a></p>')
 
 
 def page_head(title: str, section: str, intro: str = "", *, count: str = "",
@@ -147,7 +156,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
     window = HELP_WINDOW.get()
     widget = window() if signed_in and window is not None else ""
     return f"""<!doctype html>
-<html lang="de">
+<html lang="{current().value}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -164,7 +173,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 {_scripts()}
 </head>
 <body class="{"app-shell" if signed_in else "guest-shell"}"{data}>
-<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+<a class="skip-link" href="#inhalt">{tr("Zum Inhalt springen")}</a>
 <header class="top">
 <a class="brand" href="/"><img src="/static/icon-192.png" alt="" width="28" height="28">Mailhelp</a>
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>

@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..config import Settings
+from ..i18n import Locale
 from ..persistence.storage import JsonStore
 from ..review.inbox import CommandInbox
 from ..review.views import ReviewViews
@@ -52,6 +53,7 @@ def create_web(settings: Settings, secret: str | None, store: JsonStore,
     auth = WebAuth(store, secret, settings.web.session_days, notify)
     app = WebApp(settings.web.allowed_hosts,
                  settings.web.port if settings.web.lan_access else None)
+    app.default_locale = Locale(settings.language)
     views = ReviewViews(store, settings.timezone, settings.test_mode)
     site = MailhelpSite(app, auth, settings.web, settings.timezone, logger, views, commands,
                  link_base=lambda: base_url(settings),

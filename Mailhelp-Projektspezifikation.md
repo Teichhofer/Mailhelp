@@ -3,6 +3,14 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.5: Mehrsprachigkeit
+
+Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der
+menschlichen Oberfläche; der deutsche Text ist der Schlüssel, Englisch steht in `i18n/en.py`, eine
+fehlende Übersetzung zeigt den deutschen Text. Die Sprache gilt je Anfrage: Cookie `mailhelp_lang`,
+sonst `Accept-Language`, sonst `language` aus `config.yaml` (Standard `de`). `language` zählt nicht zum
+Analyse-Fingerabdruck. KI-Prompts, Themen, Extraktion und gespeicherte Zustände bleiben deutsch.
+
 ## Ergänzung 7.4: Mehrtägige Termine
 
 Plan: [docs/Planung-7.4.md](docs/Planung-7.4.md). Seit 7.4.1 erkennt die Normalisierung Datumsbereiche

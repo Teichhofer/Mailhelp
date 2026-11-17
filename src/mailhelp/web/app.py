@@ -6,7 +6,9 @@ import hashlib
 import re
 from collections.abc import Callable
 from importlib.resources import files
+from urllib.parse import parse_qs, urlsplit
 
+from ..i18n import COOKIE, LOCALE, Locale, negotiate, parse
 from .http import Request, Response, rejected
 from .pages import ASSET_URLS, PAGE_SCRIPTS
 
@@ -58,7 +60,10 @@ class WebApp:
         version = hashlib.sha256(b"\0".join(self.assets[name] for name in SHELL_FILES)).hexdigest()[:16]
         self.assets["sw.js"] = self.assets["sw.js"].replace(SHELL_VERSION, version.encode())
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
+        # 7.5: the configured language; a browser's choice or its Accept-Language comes first.
+        self.default_locale = Locale.DE
         self.route("GET", "/health", self.health)
+        self.route("GET", "/sprache", self.language)
         self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
         self.route("GET", r"/(?P<name>manifest\.webmanifest|sw\.js|offline\.html)", self.root_file)
 
@@ -78,9 +83,12 @@ class WebApp:
                 path_known = True
                 continue
             token = ASSET_URLS.set(self.asset_urls)
+            language = LOCALE.set(negotiate(request.cookies().get(COOKIE), request.header("accept-language"),
+                                            self.default_locale))
             try:
                 return handler(request, **match.groupdict())
             finally:
+                LOCALE.reset(language)
                 ASSET_URLS.reset(token)
         if path_known:
             response = Response.text(405, "Methode nicht erlaubt.")
@@ -88,6 +96,18 @@ class WebApp:
                 method for method, pattern, _ in self._routes if pattern.fullmatch(request.path)))
             return response
         return Response.text(404, "Nicht gefunden.")
+
+    @staticmethod
+    def language(request: Request) -> Response:
+        """7.5: remember the chosen language in a cookie and return to the page it was chosen on."""
+        chosen = parse(parse_qs(request.query, max_num_fields=2).get("wert", [""])[0])
+        referer = urlsplit(request.header("referer") or "")
+        back = referer.path if referer.netloc == request.host and referer.path.startswith("/") else "/"
+        target = back + (f"?{referer.query}" if referer.query and back != "/" else "")
+        response = Response.redirect(target if not target.startswith("//") else "/")
+        if chosen is not None:
+            response.cookies.append(f"{COOKIE}={chosen.value}; Path=/; SameSite=Lax; Max-Age=31536000")
+        return response
 
     @staticmethod
     def health(_request: Request) -> Response:

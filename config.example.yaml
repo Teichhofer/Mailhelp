@@ -30,6 +30,8 @@ llm:
 # Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
+# 7.5: Sprache der Oberfläche, de (Standard) oder en; KI-Prompts und Auswertung bleiben deutsch.
+language: de
 briefings:
   # Benötigt web.enabled; eigenständig neben daily_briefing und Antwortentwürfen.
   # Ordner: drafts.folder, sonst drafts_folder des gewählten Postfachs.

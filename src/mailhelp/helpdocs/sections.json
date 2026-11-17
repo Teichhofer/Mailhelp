@@ -108,12 +108,13 @@
   "setting_ids": [
    "imap.batch_size",
    "imap.global_newest_first",
+   "language",
    "poll_interval_seconds",
    "test_mode",
    "timezone"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Abrufintervall (Sekunden) (`poll_interval_seconds`) | Abstand zwischen Mailabrufen: 5–86400 Sekunden. 60 prüft etwa jede Minute, 300 etwa alle fünf Minuten. Kleinere Werte erkennen neue Mails früher, größere entlasten den Mailserver. Ein laufender Durchlauf kann den nächsten Abruf verzögern. | Im laufenden Betrieb |\n| Trockenlauf (`test_mode`) | ja (true) aktiviert den Trockenlauf: bestätigte Kalender- und Todoist-Aktionen werden simuliert; Testdaten werden getrennt gespeichert. nein (false) aktiviert echte Schreibaktionen nach ausdrücklicher Bestätigung. Der Trockenlauf verhindert nicht sämtliche Netzwerkzugriffe, etwa Mailabruf und KI-Aufrufe. | Nach Neustart |\n| Zeitzone (`timezone`) | Zeitzone für lokale Datums- und Zeitangaben, z. B. Europe/Berlin mit automatischer Sommerzeit oder UTC ohne Zeitumstellung. Verwende einen gültigen IANA-Zeitzonennamen. Eine andere Zone verändert die Interpretation lokaler Terminzeiten und deren Anzeige. | Nach Neustart |\n| Mails je Abrufdurchlauf (`imap.batch_size`) | Höchstens so viele neue Mails nimmt ein Abrufdurchlauf über alle Postfächer auf: 1–1000; Standard 25. Größere Werte arbeiten Rückstände schneller ab, verlängern aber einen einzelnen Durchlauf; kleinere verteilen die Arbeit auf mehr Durchläufe. --max-mails ersetzt den Wert für einen einzelnen Lauf. | Nach Neustart |\n| Neueste Mails zuerst (alle Postfächer) (`imap.global_newest_first`) | ja (true) wählt je Durchlauf die neuesten Mails über alle Postfächer und Ordner nach Empfangszeit. nein (false) arbeitet Postfach für Postfach und Ordner für Ordner in der konfigurierten Reihenfolge. Die Einstellung bestimmt nur die Reihenfolge, nicht welche Mails verarbeitet werden. | Nach Neustart |",
+  "text": "| Einstellung / Schlüssel | Wirkung und Werte | Übernahme |\n| --- | --- | --- |\n| Abrufintervall (Sekunden) (`poll_interval_seconds`) | Abstand zwischen Mailabrufen: 5–86400 Sekunden. 60 prüft etwa jede Minute, 300 etwa alle fünf Minuten. Kleinere Werte erkennen neue Mails früher, größere entlasten den Mailserver. Ein laufender Durchlauf kann den nächsten Abruf verzögern. | Im laufenden Betrieb |\n| Trockenlauf (`test_mode`) | ja (true) aktiviert den Trockenlauf: bestätigte Kalender- und Todoist-Aktionen werden simuliert; Testdaten werden getrennt gespeichert. nein (false) aktiviert echte Schreibaktionen nach ausdrücklicher Bestätigung. Der Trockenlauf verhindert nicht sämtliche Netzwerkzugriffe, etwa Mailabruf und KI-Aufrufe. | Nach Neustart |\n| Sprache der Oberfläche (`language`) | Standardsprache der Weboberfläche: de (Deutsch) oder en (Englisch). Ein Browser, der eine Sprache gewählt hat oder Englisch bevorzugt, sieht diese. Die KI-Prompts, Themen und die Auswertung der Mails bleiben deutsch. Der Wechsel wirkt nach einem Neustart. | Nach Neustart |\n| Zeitzone (`timezone`) | Zeitzone für lokale Datums- und Zeitangaben, z. B. Europe/Berlin mit automatischer Sommerzeit oder UTC ohne Zeitumstellung. Verwende einen gültigen IANA-Zeitzonennamen. Eine andere Zone verändert die Interpretation lokaler Terminzeiten und deren Anzeige. | Nach Neustart |\n| Mails je Abrufdurchlauf (`imap.batch_size`) | Höchstens so viele neue Mails nimmt ein Abrufdurchlauf über alle Postfächer auf: 1–1000; Standard 25. Größere Werte arbeiten Rückstände schneller ab, verlängern aber einen einzelnen Durchlauf; kleinere verteilen die Arbeit auf mehr Durchläufe. --max-mails ersetzt den Wert für einen einzelnen Lauf. | Nach Neustart |\n| Neueste Mails zuerst (alle Postfächer) (`imap.global_newest_first`) | ja (true) wählt je Durchlauf die neuesten Mails über alle Postfächer und Ordner nach Empfangszeit. nein (false) arbeitet Postfach für Postfach und Ordner für Ordner in der konfigurierten Reihenfolge. Die Einstellung bestimmt nur die Reihenfolge, nicht welche Mails verarbeitet werden. | Nach Neustart |",
   "title": "Mailabruf und Betrieb"
  },
  {
@@ -1315,6 +1316,19 @@
   "source": "docs/Bedienung.md",
   "text": "Auf dem Telefon stehen oben nur die Schnellfilter; **Suchen und sortieren** klappt Suche,\nSortierung und Gruppierung auf. Die Leiste unten führt zu **Offen**, **Mails**, **Abgleich** und\n**Verlauf**; **Status** und die übrigen Bereiche liegen unter **Mehr**.\n\nAuf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wischen auf dem Telefon](#wischen-auf-dem-telefon)).",
   "title": "Bedienung auf dem Telefon"
+ },
+ {
+  "id": "bedienung/sprache",
+  "path": [
+   "Alltagsbedienung",
+   "Sprache"
+  ],
+  "setting_ids": [
+   "language"
+  ],
+  "source": "docs/Bedienung.md",
+  "text": "Am Ende der Navigation wechselt der Link „English“ beziehungsweise „Deutsch“ die Sprache der\nOberfläche für diesen Browser; die Wahl bleibt gespeichert. Ohne Wahl gilt die Sprache des Browsers\noder die Einstellung `language`. Seit 7.5.1 sind Navigation und Statusbezeichnungen übersetzt, die\nübrigen Seiten folgen. Die Auswertung der Mails läuft unabhängig davon auf Deutsch.",
+  "title": "Sprache"
  },
  {
   "id": "bedienung/fehlgeschlagene-mails",

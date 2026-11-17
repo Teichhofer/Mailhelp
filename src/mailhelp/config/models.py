@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
@@ -51,6 +52,8 @@ class Settings(ConfigModel):
     llm: LlmConnection = Field(default_factory=LlmConnection)
     notifications: NotificationSettings | None = None
     timezone: str
+    # 7.5: language of the web interface, Telegram and messages; prompts stay German.
+    language: Literal["de", "en"] = "de"
     poll_interval_seconds: int = Field(ge=5, le=86400)
     test_mode: bool = False
     data_directory: Path

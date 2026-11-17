@@ -13,6 +13,7 @@ from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 from .settings_search import anchor, search
 
 SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
+                  "language": "Sprache der Oberfläche",
                   "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
                   "limits.max_mail_bytes": "Maximale Mailgröße (Bytes)",
                   "limits.max_attachment_bytes": "Texterkennung: maximale Anhanggröße (Bytes)",
@@ -30,7 +31,7 @@ SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezon
 TEXT_SETTINGS = {"personal_info": ("Zum Beispiel Name, Rolle, Signatur oder gewünschte Anrede. Die Angaben gehen "
                                    "nur in Antwort-Entwürfe ein und werden dafür an das KI-Modell übergeben.")}
 SETTING_GROUPS = (
-    ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode", "imap.")),
+    ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "language", "test_mode", "imap.")),
     ("Antworten", ("personal_info", "smart_reply", "auto_draft", "drafts.")),
     ("Telegram", ("telegram.",)),
     ("Bildauswertung", ("vision.",)),
@@ -122,6 +123,7 @@ EXTRA_LABELS = {
 }
 LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 PROVIDER_CHOICES = {
+    "language": (("de", "Deutsch"), ("en", "English")),
     "targets.calendar_provider": (("google", "Google Kalender"), ("caldav", "CalDAV (Nextcloud, iCloud, …)"),
                                   ("outlook", "Outlook / Microsoft 365")),
     "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),

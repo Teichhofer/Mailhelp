@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.5.1 – Sprachkern und Spracheinstellung
+
+- Neue Einstellung `language` (de, en) und Sprachwahl im Browser über einen Link in der Navigation;
+  der Browser darf seine Sprache auch über `Accept-Language` vorgeben.
+- Seitenrahmen, Navigation und Statusbezeichnungen erscheinen auf Englisch; weitere Bereiche folgen.
+- KI-Prompts, Themen und die Auswertung der Mails bleiben deutsch.
+
 ## 7.4.1 – Mehrtägige Termine und Datumsbereiche
 
 - Datumsbereiche mit Wochentagen, Kurzformen (`07./08.01.2027`) und über Monats- und Jahresgrenzen

@@ -2,7 +2,7 @@
 
 **Zielversion:** 7.5, Umsetzung in Patchversionen ab 7.5.1  
 **Stand:** 16. November 2026  
-**Status:** Geplant; noch nicht implementiert.  
+**Status:** In Umsetzung ab 7.5.1 (17. November 2026); Stand in [Release 7.5](Release-7.5.md).  
 **Ausgangsstand:** Nach Umsetzung von 7.2 (Aufgabenziele), 7.3 (Fehlerverwaltung) und 7.4 (Mehrtägige Termine).  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Architektur](Architektur.md).
 

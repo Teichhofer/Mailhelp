@@ -372,3 +372,22 @@ def test_a_request_knows_the_address_of_its_client(running):
 
     server, _ = running(remember)
     assert call(server, "GET", "/")[0] == 200 and seen == ["127.0.0.1"]
+
+
+def test_7_5_language_choice_cookie_browser_and_safe_return():
+    """7.5.1: /sprache remembers the choice and returns only to a page of this host."""
+    from mailhelp.i18n import Locale
+    from mailhelp.web.app import WebApp
+    app = WebApp(["mailhelp.test"])
+    app.default_locale = Locale.EN
+    def ask(path, **headers):
+        route, _, query = path.partition("?")
+        return app(Request("GET", route, {"host": "mailhelp.test", **headers}, query=query))
+    chosen = ask("/sprache?wert=de", referer="https://mailhelp.test/mails?state=failed")
+    assert chosen.status == 303 and chosen.headers["Location"] == "/mails?state=failed"
+    assert chosen.cookies == ["mailhelp_lang=de; Path=/; SameSite=Lax; Max-Age=31536000"]
+    assert ask("/sprache?wert=en", referer="https://evil.example/x").headers["Location"] == "/"
+    assert ask("/sprache?wert=en", referer="https://mailhelp.test//evil.example/x").headers["Location"] == "/"
+    assert ask("/sprache?wert=en", referer="https://mailhelp.test/").headers["Location"] == "/"
+    unknown = ask("/sprache?wert=fr")
+    assert unknown.headers["Location"] == "/" and unknown.cookies == []

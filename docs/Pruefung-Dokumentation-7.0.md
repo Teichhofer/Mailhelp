@@ -123,6 +123,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/serie/…` | Termine einer Serie gemeinsam bestätigen | [Bedienung](Bedienung.md) |
 | `/aktion/…` | Fortschritt einer Aktion | [Bedienung](Bedienung.md) |
 | `/mails` | Mailarchiv | [Bedienung](Bedienung.md) |
+| `/sprache` | Sprachwahl der Oberfläche (7.5.1, setzt nur ein Cookie) | [Bedienung](Bedienung.md) |
 | `/mails/fehler/alle` | Sammelaktion für fehlgeschlagene Mails (7.3.3) | [Bedienung](Bedienung.md) |
 | `/mail/…` | Mail mit Verarbeitungsweg, Anhängen und Originalen | [Bedienung](Bedienung.md) |
 | `/abgleich` | Vorschlagsabgleich | [Bedienung](Bedienung.md) |
@@ -169,7 +170,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **272 Einstellungen**, davon **272** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **273 Einstellungen**, davon **273** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -245,6 +246,7 @@ Erzeugt mit `python -m devtools.inventory`: **272 Einstellungen**, davon **272**
 | `iserv.accounts[].label` | str | 'Elternbriefe' | Länge ≥ 1, Länge ≤ 40 | IServ-Seite | ja |
 | `iserv.accounts[].mailbox` | int | 1 | ≥ 1, ≤ 99 | IServ-Seite | ja |
 | `iserv.accounts[].server` | str | Pflicht | Länge ≥ 1, Länge ≤ 253 | IServ-Seite | ja |
+| `language` | Auswahl: de, en | 'de' |  | Weboberfläche | ja |
 | `learning.decision_llm_content` | bool | False |  | Weboberfläche | ja |
 | `learning.learning_run_hint_rejections` | int | 20 | ≥ 1, ≤ 500 | Datei | ja |
 | `learning.learning_run_hints_enabled` | bool | True |  | Datei | ja |

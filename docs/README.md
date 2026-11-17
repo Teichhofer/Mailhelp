@@ -46,7 +46,7 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Planung 7.2](Planung-7.2.md), [Release 7.2](Release-7.2.md) | Notion und Google Tasks als Aufgabenziele |
 | [Planung 7.3](Planung-7.3.md), [Release 7.3](Release-7.3.md) | Verwaltung fehlgeschlagener Mails |
 | [Planung 7.4](Planung-7.4.md), [Release 7.4](Release-7.4.md) | Mehrtägige Termine und Datumsbereiche |
-| [Planung 7.5](Planung-7.5.md) | Mehrsprachigkeit und englische Lokalisierung |
+| [Planung 7.5](Planung-7.5.md), [Release 7.5](Release-7.5.md) | Mehrsprachigkeit und englische Lokalisierung |
 | [Planung 7.6](Planung-7.6.md) | Klärungsfreie Demo-Vorschläge und Flow-Optimierung |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),

@@ -13,7 +13,7 @@ import mailhelp
 
 PACKAGE = Path(mailhelp.__file__).parent
 LAYERS = (
-    ("mailhelp", "domain", "text", "state_names", "paths", "formatting", "log_reduction"),
+    ("mailhelp", "domain", "text", "state_names", "paths", "formatting", "log_reduction", "i18n"),
     ("logging", "persistence", "support"),
     ("config",),
     ("external", "llm"),

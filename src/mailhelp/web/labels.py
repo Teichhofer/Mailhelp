@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from html import escape
 
+from ..i18n import tr
 from ..review.commands import CommandKind
 from ..review.views import STATUS_LABELS, german_number
 
@@ -75,9 +76,10 @@ def status_badge(status: object, prefix: str = "") -> str:
 
 
 def label(names: Mapping[str, str], value: object) -> str:
-    """The German name of *value*; unknown values stay recognisable but are marked as such."""
+    """The name of *value* in the active language; unknown values stay recognisable but are marked."""
     text = str(value)
-    return names.get(text) or f"unbekannt ({text})"
+    name = names.get(text)
+    return tr(name) if name else tr("unbekannt ({value})", value=text)
 
 
 def count_text(number: int, one: str, many: str) -> str:

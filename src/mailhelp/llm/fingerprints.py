@@ -41,7 +41,9 @@ from ..persistence.storage import JsonStore
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info",
                         "activity_report", "notifications", "briefings",
-                        "event_defaults", "proposal_reconciliation", "target_profiles"})
+                        "event_defaults", "proposal_reconciliation", "target_profiles",
+                        # 7.5: the interface language never changes an analysis.
+                        "language"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
                      # 3.5.3: learning records of manual decisions.
                      ("retention", "decision_learning_days"), ("learning", "decision_llm_content"),
