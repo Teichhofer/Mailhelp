@@ -25,7 +25,7 @@ from ..config import Settings, WebSettings, read_yaml
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalStatus
-from ..i18n import current, tr
+from ..i18n import current, msg, tr
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
@@ -88,6 +88,7 @@ class MailhelpSite:
         self.lifecycle = lifecycle
         self.link_base = link_base or (lambda: f"http://127.0.0.1:{settings.port}")
         self.llm_calls_per_minute, self.clock = llm_calls_per_minute, clock
+        self.settle_seconds: float | None = None
         # The web interface starts together with Mailhelp.
         self.started_at = clock()
         self.configured_timezone, self.logger = configured_timezone, logger
@@ -171,16 +172,15 @@ class MailhelpSite:
 
     # --- helpers ------------------------------------------------------------------
 
-
     def _form(self, request: Request) -> dict[str, str] | Response:
         content_type = (request.header("content-type") or "").split(";")[0].strip().lower()
         if content_type != FORM_TYPE:
-            return Response.text(415, tr("Nur Formulardaten werden angenommen."))
+            return Response.text(415, msg("Nur Formulardaten werden angenommen."))
         try:
             return request.form(max_num_fields=200 if request.path in {"/themen/lernen", "/lernen/entscheidungen"} else
                                 120 if request.path.startswith("/serie/") else 20)
         except (UnicodeDecodeError, ValueError):
-            return Response.text(400, tr("Ungültige Formulardaten."))
+            return Response.text(400, msg("Ungültige Formulardaten."))
 
     @staticmethod
     def _forbidden() -> Response:
@@ -190,6 +190,7 @@ class MailhelpSite:
 
     def signed_in(self, handler: Handler) -> Handler:
         """Require a live session; a POST also requires its CSRF token."""
+
         def guarded(request: Request, **arguments: str) -> Response:
             fast = request.path in {"/", "/offen", "/aktion", "/api/stand"} or request.path.startswith("/api/aktion/")
             authenticate = self.auth.authenticate_fast if fast else self.auth.authenticate
@@ -198,7 +199,7 @@ class MailhelpSite:
                 if request.path.startswith("/api/push/"):
                     return Response.json(401, {"code": "session_expired"})
                 if request.wants_json():
-                    return Response.json(401, {"error": "nicht angemeldet"})
+                    return Response.json(401, {"error": msg("nicht angemeldet")})
                 if request.method == "GET":
                     return Response.redirect("/anmelden")
                 return self._forbidden()
@@ -216,6 +217,7 @@ class MailhelpSite:
                     return self._forbidden()
                 return self._counted(handler, request, session, form, **arguments)
             return self._counted(handler, request, session, **arguments)
+
         return guarded
 
     def _counted(self, handler: Handler, request: Request, *values: object, **arguments: str) -> Response:
@@ -237,23 +239,9 @@ class MailhelpSite:
             HELP_WINDOW.reset(window)
             OPEN_DECISIONS.reset(token)
 
-
     # --- pairing ------------------------------------------------------------------
 
-
-
-
-
     # --- sessions -----------------------------------------------------------------
-
-
-
-
-
-
-
-
-
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
@@ -271,15 +259,25 @@ class MailhelpSite:
         monthly = None
         if metrics is not None:
             monthly = metrics.month_cost(now, self.configured_timezone)
-        info = replace(info, runtime=runtime,
-                       monthly_cost=monthly,
-                       last_polls=tuple((account.label,
-                           (runtime or {}).get("accounts", {}).get(account.key, {}).get(
-                               "checked_at", "Noch nicht geprüft"))
-                           for account in accounts if account.key.startswith("imap:") and account.enabled),
-                       services=tuple(metrics.expected_services()) if metrics is not None else (),
-                       accounts=tuple(account_rows(accounts, runtime or {}, ZoneInfo(self.configured_timezone))),
-                       fingerprint=self._status_fingerprint(overview, system, runtime, accounts))
+        info = replace(
+            info,
+            runtime=runtime,
+            monthly_cost=monthly,
+            last_polls=tuple(
+                (
+                    account.label,
+                    (runtime or {})
+                    .get("accounts", {})
+                    .get(account.key, {})
+                    .get("checked_at", msg("Noch nicht geprüft")),
+                )
+                for account in accounts
+                if account.key.startswith("imap:") and account.enabled
+            ),
+            services=tuple(metrics.expected_services()) if metrics is not None else (),
+            accounts=tuple(account_rows(accounts, runtime or {}, ZoneInfo(self.configured_timezone))),
+            fingerprint=self._status_fingerprint(overview, system, runtime, accounts),
+        )
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone, system, info))
 
     def _status_accounts(self) -> tuple[AccountInfo, ...]:
@@ -321,7 +319,7 @@ class MailhelpSite:
                 conflict_id=form.get("conflict_id") or None, variant=form.get("variant") or None,
                 reason=form.get("reason") or None)
         except (ValueError, ValidationError):
-            return self._reply(request, 422, tr("Die Aktion ist unvollständig oder ungültig."))
+            return self._reply(request, 422, msg("Die Aktion ist unvollständig oder ungültig."))
         stale = self._stale(command)
         try:
             existing = self.commands.existing(command)
@@ -344,7 +342,7 @@ class MailhelpSite:
             return self._reply(request, 503, tr("Die Aktion konnte nicht sicher gespeichert werden. "
                                "Bitte denselben Versuch erneut senden."))
         self.commands.note_acceptance(entry, (time.perf_counter() - started) * 1000, new)
-        location = f"/aktion/{entry.id}"
+        location = '/aktion/{p0}'.format(p0=f'{entry.id}')
         if request.wants_json():
             response = Response.json(202, {"id": entry.id, "status": entry.status.value,
                                            "status_url": location})
@@ -353,9 +351,9 @@ class MailhelpSite:
         anchor = f"v-{command.mail_id}-{command.proposal_id}" if command.proposal_id else f"r-{command.mail_id}"
         if command.kind in {CommandKind.RETRY_MAIL, CommandKind.FILE_MAIL}:
             # 7.3: from the failure list, the result leads back to it (a fixed value, never a path).
-            back = "?zurueck=fehlerliste" if form.get("zurueck") == "fehlerliste" else ""
+            back = msg("?zurueck=fehlerliste") if form.get("zurueck") == "fehlerliste" else ""
             return Response.redirect(location + back)
-        return Response.redirect(f"/?aktion={entry.id}#{anchor}")
+        return Response.redirect('/?aktion={p0}#{p1}'.format(p0=f'{entry.id}', p1=f'{anchor}'))
 
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
@@ -382,7 +380,8 @@ class MailhelpSite:
                 return tr("Dieser Eintrag wird bereits geprüft oder wurde inzwischen geändert.")
             return None
         if command.kind == CommandKind.REJECT_REASON:
-            if current is not None and (command.version != current.version or current.status != ProposalStatus.REJECTED):
+            if current is not None and (command.version != current.version
+                                        or current.status != ProposalStatus.REJECTED):
                 return tr("Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen.")
             return None
         if command.kind == CommandKind.REMOVE_CREATED:
@@ -423,21 +422,28 @@ class MailhelpSite:
                 # Back to where the change was made; that page shows the result.
                 mail_id = command.patch.get("mail_id")
                 target = f"/mail/{mail_id}" if mail_id else SENDERS_PATH
-                return Response.redirect(f"{target}?ergebnis={entry.id}")
+                return Response.redirect('{p0}?ergebnis={p1}'.format(p0=f'{target}', p1=f'{entry.id}'))
             return Response.html(
-                200, layout(tr("Ergebnis"), notice(entry.result.message, result_kind(entry.result.status))
-                            + f'<a href="/einstellungen">{tr("Zurück")}</a>')
+                200,
+                layout(
+                    msg("Ergebnis"),
+                    notice(entry.result.message, result_kind(entry.result.status))
+                    + f'<a href="/einstellungen">{tr("Zurück")}</a>',
+                ),
             )
-        if entry.result is not None and command.kind in {CommandKind.RECHECK_MAIL, CommandKind.RETRY_MAIL,
-                                                        CommandKind.FILE_MAIL}:
+        if entry.result is not None and command.kind in {
+            CommandKind.RECHECK_MAIL,
+            CommandKind.RETRY_MAIL,
+            CommandKind.FILE_MAIL,
+        }:
             if "zurueck=fehlerliste" in request.query.split("&"):
-                return Response.redirect(f"/mails?state=failed&ergebnis={entry.id}")
-            return Response.redirect(f"/mail/{command.mail_id}?ergebnis={entry.id}")
+                return Response.redirect('/mails?state=failed&ergebnis={p0}'.format(p0=f'{entry.id}'))
+            return Response.redirect('/mail/{p0}?ergebnis={p1}'.format(p0=f'{command.mail_id}', p1=f'{entry.id}'))
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):
             # Done: back to the overview; the anchor selects the card that shows the result.
-            return Response.redirect(f"/?ergebnis={entry.id}#{anchor(entry)}")
+            return Response.redirect('/?ergebnis={p0}#{p1}'.format(p0=f'{entry.id}', p1=f'{anchor(entry)}'))
         return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
 
     def command_status(self, request: Request, session: WebSession, entry_id: str) -> Response:
@@ -445,8 +451,13 @@ class MailhelpSite:
         entry = self.commands.get(entry_id)
         if entry is None or not visible(entry, f"web:{session.id}"):
             return Response.json(404, {"error": tr("Diese Aktion ist nicht (mehr) bekannt.")})
-        return Response.json(200, {"status": entry.status.value,
-                                   "target": f"/aktion/{entry.id}" if entry.result is not None else None})
+        return Response.json(
+            200,
+            {
+                "status": entry.status.value,
+                "target": '/aktion/{p0}'.format(p0=f'{entry.id}') if entry.result is not None else None,
+            },
+        )
 
     def acknowledge(self, request: Request, session: WebSession, form: dict[str, str], entry_id: str) -> Response:
         entry = self.commands.get(entry_id)
@@ -457,7 +468,7 @@ class MailhelpSite:
 
     def _settled(self, entry: CommandEntry) -> CommandEntry:
         """Wait briefly for a quick result so the page usually needs no reload."""
-        deadline = time.monotonic() + SETTLE_SECONDS
+        deadline = time.monotonic() + (SETTLE_SECONDS if self.settle_seconds is None else self.settle_seconds)
         while entry.result is None and time.monotonic() < deadline:
             time.sleep(0.05)
             entry = self.commands.get(entry.id) or entry
@@ -475,10 +486,6 @@ class MailhelpSite:
                 overview, self.views.system(self.clock()),
                 metrics.runtime() if metrics is not None else None, self._status_accounts())})
         return Response.json(200, {"fingerprint": overview.fingerprint})
-
-
-
-
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

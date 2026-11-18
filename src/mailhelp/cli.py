@@ -1,4 +1,5 @@
 """Kommandozeileneinstieg und kontrollierter Signal-Shutdown."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,7 +12,7 @@ import sys
 from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from .app import bootstrap, demo
 from .app.composition import build_application, build_logger
@@ -20,6 +21,7 @@ from .config.loader import MissingConfiguration
 from .external import providers
 from .external.contracts import OAuthTokenError
 from .external.oauth import google_scopes
+from .i18n import LOCALE, Locale, stored, tr, use_locale
 from .llm.decision_test import run_decision_test
 from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
@@ -73,7 +75,7 @@ def _ollama_address(value: str) -> tuple[str, int]:
 def _positive_int(value: str) -> int:
     parsed = int(value)
     if parsed < 1:
-        raise argparse.ArgumentTypeError("muss mindestens 1 sein")
+        raise argparse.ArgumentTypeError(tr("muss mindestens 1 sein"))
     return parsed
 
 
@@ -154,7 +156,7 @@ def _restart() -> int:
         try:
             os.execv(sys.executable, command)
         except OSError as exc:
-            print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
+            print(tr("Neustart fehlgeschlagen: {error}", error=exc), file=sys.stderr)
         return 1
     if os.environ.get(RESTART_CHILD):
         return RESTART_EXIT_CODE
@@ -164,7 +166,7 @@ def _restart() -> int:
         try:
             child = subprocess.Popen(command, env={**os.environ, RESTART_CHILD: "1"})
         except OSError as exc:
-            print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
+            print(tr("Neustart fehlgeschlagen: {error}", error=exc), file=sys.stderr)
             return 1
         result = _wait(child)
     return result
@@ -180,19 +182,27 @@ def _wait(child: subprocess.Popen[bytes]) -> int:
 
 
 def main() -> int:
+    early = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    early.add_argument("--language", choices=["de", "en"])
+    language, _unknown = early.parse_known_args()
+    with use_locale(Locale(language.language or "de")):
+        return _localized_main()
+
+
+def _localized_main() -> int:
     """Run the CLI; Ctrl+C and a second instance end quietly instead of with a traceback."""
     try:
         result = _main()
         return _restart() if result == RESTART_EXIT_CODE else result
     except KeyboardInterrupt:
-        print("\nBeenden angefordert.")
+        print(tr("\nBeenden angefordert."))
         return 130
     except AlreadyRunning as exc:
         # An expected operating situation, not a crash.
-        print(ALREADY_RUNNING.format(directory=exc.directory), file=sys.stderr)
+        print(tr(ALREADY_RUNNING, directory=exc.directory), file=sys.stderr)
         return 1
     except MissingConfiguration as exc:
-        print(MISSING_CONFIGURATION.format(path=exc.path, directory=exc.path.parent), file=sys.stderr)
+        print(tr(MISSING_CONFIGURATION, path=exc.path, directory=exc.path.parent), file=sys.stderr)
         return 2
     except WebServerError as exc:
         print(str(exc), file=sys.stderr)
@@ -202,8 +212,11 @@ def main() -> int:
 def _check_demo_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     """7.1: the demo is a mode of its own; no other mode or option may change it."""
     defaults = vars(parser.parse_args([]))
-    others = sorted("--" + name.replace("_", "-") for name, value in vars(args).items()
-                    if name not in {"demo", "config_directory"} and value != defaults[name])
+    others = sorted(
+        "--" + name.replace("_", "-")
+        for name, value in vars(args).items()
+        if name not in {"demo", "config_directory", "language"} and value != defaults[name]
+    )
     if others:
         parser.error("--demo lässt sich nicht mit anderen Optionen kombinieren: " + ", ".join(others))
 
@@ -211,7 +224,7 @@ def _check_demo_options(parser: argparse.ArgumentParser, args: argparse.Namespac
 def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | None:
     if demo.is_demo_directory(args.config_directory):
         # 7.1: a demo directory is never opened as a production installation.
-        print(DEMO_DIRECTORY.format(directory=args.config_directory), file=sys.stderr)
+        print(tr(DEMO_DIRECTORY, directory=args.config_directory), file=sys.stderr)
         return 2
     if args.pair:
         request_local_code(args.config_directory)
@@ -222,18 +235,33 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
             converted, waiting = prepare_rollback(store)
         if waiting:
-            print(f"Rückkehr nicht vorbereitet: {waiting} „Erneut prüfen“-Aktion(en) warten noch. "
-                  "Mailhelp kurz laufen lassen und erneut versuchen.", file=sys.stderr)
+            print(
+                tr(
+                    (
+                        "Rückkehr nicht vorbereitet: {p0} „Erneut prüfen“-Aktion(en) warten noch. "
+                        "Mailhelp kurz laufen lassen und erneut versuchen."
+                    ),
+                    p0=f"{waiting}",
+                ),
+                file=sys.stderr,
+            )
             return 1
-        print(f"Rückkehr vorbereitet: {converted} Eintrag/Einträge von „wird geprüft“ auf „angelegt“ "
-              "umgestellt (externe ID bleibt; nichts wird erneut angelegt).")
+        print(
+            tr(
+                (
+                    "Rückkehr vorbereitet: {p0} Eintrag/Einträge von „wird geprüft“ auf "
+                    "„angelegt“ umgestellt (externe ID bleibt; nichts wird erneut angelegt)."
+                ),
+                p0=f"{converted}",
+            )
+        )
         return 0
     if args.reset_web_password:
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
         namespace = "test" if settings.test_mode else "production"
         with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
             WebPassword(store).reset()
-        print("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern.")
+        print(tr("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern."))
         return 0
     one_shot = any((args.check, args.check_access, args.google_auth, args.microsoft_login, args.clear,
                     args.max_mails is not None, args.ollama is not None, args.ollama_model is not None,
@@ -245,8 +273,14 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
     return None
 
 
+class LanguageParser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        super().error(stored(message))
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
+    parser = LanguageParser(description=tr("Mailhelp E-Mail-Assistent"))
+    parser.add_argument("--language", choices=["de", "en"], help=tr("Sprache für diesen Aufruf (de oder en)"))
     parser.add_argument(
         "--config-directory", type=Path, default=_default_config_directory(),
         help=("Verzeichnis mit config.yaml, prompts.yaml, topics.yaml und "
@@ -269,6 +303,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
     _add_access_arguments(parser)
     _add_learning_arguments(parser)
+    for action in parser._actions:
+        if action.help is not None:
+            action.help = tr(action.help)
     return parser
 
 
@@ -352,27 +389,35 @@ def _add_learning_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _check_decision_test_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.decision_test_file is not None and args.decision_test is None:
-        parser.error("--decision-test-file ist nur zusammen mit --decision-test zulässig")
-    if args.decision_test is None and (args.decision_test_laya is not None
-                                       or args.decision_test_relevance_only):
-        parser.error("--decision-test-laya und --decision-test-relevance-only "
-                     "sind nur zusammen mit --decision-test zulässig")
+        parser.error(tr("--decision-test-file ist nur zusammen mit --decision-test zulässig"))
+    if args.decision_test is None and (args.decision_test_laya is not None or args.decision_test_relevance_only):
+        parser.error(
+            tr("--decision-test-laya und --decision-test-relevance-only sind nur zusammen mit --decision-test zulässig")
+        )
     if args.decision_test_laya_model is not None and args.decision_test_laya is None:
-        parser.error("--decision-test-laya-model ist nur zusammen mit --decision-test-laya zulässig")
-    if args.decision_test is not None and any((
-        args.check, args.check_access, args.show_imap_credentials, args.max_mails is not None,
-        args.learn is not None, args.clear, args.yes, args.log_directory is not None,
-    )):
-        parser.error("--decision-test ist nicht mit anderen Modi, --max-mails oder --log-directory kombinierbar")
+        parser.error(tr("--decision-test-laya-model ist nur zusammen mit --decision-test-laya zulässig"))
+    if args.decision_test is not None and any(
+        (
+            args.check,
+            args.check_access,
+            args.show_imap_credentials,
+            args.max_mails is not None,
+            args.learn is not None,
+            args.clear,
+            args.yes,
+            args.log_directory is not None,
+        )
+    ):
+        parser.error(tr("--decision-test ist nicht mit anderen Modi, --max-mails oder --log-directory kombinierbar"))
     if args.decision_test is not None and args.ollama is None:
-        parser.error("--decision-test benötigt --ollama HOST:PORT")
+        parser.error(tr("--decision-test benötigt --ollama HOST:PORT"))
 
 
 def _check_mode_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.yes and not args.clear:
-        parser.error("--yes ist nur zusammen mit --clear zulässig")
+        parser.error(tr("--yes ist nur zusammen mit --clear zulässig"))
     if args.show_imap_credentials and not args.check_access:
-        parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
+        parser.error(tr("--show-imap-credentials ist nur zusammen mit --check-access zulässig"))
 
 
 ALL_MAILBOXES = "alle"
@@ -381,7 +426,7 @@ ALL_MAILBOXES = "alle"
 def _profile_choice(value: str) -> int:
     number = int(value)
     if not 1 <= number <= 99:
-        raise argparse.ArgumentTypeError("Profilnummer muss zwischen 1 und 99 liegen")
+        raise argparse.ArgumentTypeError(tr("Profilnummer muss zwischen 1 und 99 liegen"))
     return number
 
 
@@ -392,7 +437,7 @@ def _mailbox_choice(value: str) -> int | str:
     try:
         return int(value)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("Nummer eines Postfachs oder „alle“ erwartet") from exc
+        raise argparse.ArgumentTypeError(tr("Nummer eines Postfachs oder „alle“ erwartet")) from exc
 
 
 def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespace,
@@ -402,28 +447,28 @@ def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespac
     if args.mailbox is None and not reads_mail:
         return None
     if not reads_mail:
-        parser.error("--mailbox ist nur zusammen mit --learn oder --decision-test zulässig")
+        parser.error(tr("--mailbox ist nur zusammen mit --learn oder --decision-test zulässig"))
     enabled = settings.imap.enabled_mailboxes()
     if args.mailbox == ALL_MAILBOXES:
         return enabled
     if args.mailbox is None:
         if len(enabled) > 1:
-            parser.error("Mehrere Postfächer aktiviert: --mailbox NUMMER oder --mailbox alle angeben")
+            parser.error(tr("Mehrere Postfächer aktiviert: --mailbox NUMMER oder --mailbox alle angeben"))
         return enabled
     selected = [mailbox for mailbox in enabled if mailbox.id == args.mailbox]
     if not selected:
-        parser.error(f"--mailbox {args.mailbox}: kein aktiviertes Postfach mit dieser Nummer")
+        parser.error(tr("--mailbox {mailbox}: kein aktiviertes Postfach mit dieser Nummer", mailbox=args.mailbox))
     return selected
 
 
 def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts: PromptConfig) -> LocalLlm | None:
     local_llm = None
     if args.ollama_model is not None and args.ollama is None:
-        parser.error("--ollama-model ist nur zusammen mit --ollama zulässig")
+        parser.error(tr("--ollama-model ist nur zusammen mit --ollama zulässig"))
     if args.ollama is not None:
         model = args.ollama_model or (prompts.ollama.model if prompts.ollama else None)
         if not model:
-            parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
+            parser.error(tr("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml"))
         host, port = args.ollama
         local_llm = LocalLlm(host, port, model=model,
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX,
@@ -435,15 +480,19 @@ def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompt
 def _clear(args: argparse.Namespace, settings: Settings) -> int:
     if not args.yes:
         answer = input(
-            "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
-            "unwiderruflich gelöscht.\n"
-            f"Zum Fortfahren exakt {CLEAR_CONFIRMATION!r} eingeben: "
+            tr(
+                (
+                    "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
+                    "unwiderruflich gelöscht.\nZum Fortfahren exakt {p0} eingeben: "
+                ),
+                p0=f"{CLEAR_CONFIRMATION!r}",
+            )
         )
         if answer != CLEAR_CONFIRMATION:
-            print("Löschen abgebrochen.")
+            print(tr("Löschen abgebrochen."))
             return 1
     clear_runtime_data(settings, args.log_directory, args.config_directory)
-    print("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht.")
+    print(tr("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht."))
     return 0
 
 
@@ -452,7 +501,7 @@ def _microsoft_login(settings: Settings, secrets: Secrets, directory: Path, prof
     settings = settings.model_copy(update={"targets": target_profiles(settings)[profile_id]})
     secrets = secrets.for_profile(profile_id)
     if not secrets.microsoft_client_id.get_secret_value():
-        print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
+        print(tr("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung."), file=sys.stderr)
         return 1
     options: dict[str, Any] = {"profile_id": profile_id} if profile_id != 1 else {}
     tokens = providers.microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds,
@@ -460,7 +509,7 @@ def _microsoft_login(settings: Settings, secrets: Secrets, directory: Path, prof
     try:
         tokens.device_login(print)
     except OAuthTokenError as exc:
-        print(f"FEHLER: {exc}", file=sys.stderr)
+        print(tr("FEHLER: {error}", error=exc), file=sys.stderr)
         return 1
     finally:
         tokens.close()
@@ -486,11 +535,13 @@ def _log_start(logger: JsonlLogger, args: argparse.Namespace, local_llm: LocalLl
 def _show_imap_credentials(secrets: Secrets) -> None:
     # JSON quoting makes control characters visible instead of allowing a
     # secret loaded from the environment to manipulate the terminal.
-    print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
+    print(tr("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben."))
     for number, credentials in sorted(secrets.imap.items()):
-        prefix = "" if len(secrets.imap) == 1 else f"Postfach {number} – "
-        print(f"{prefix}IMAP-Benutzername: {json.dumps(credentials.username, ensure_ascii=False)}")
-        print(f"{prefix}IMAP-Passwort: {json.dumps(credentials.password.get_secret_value(), ensure_ascii=False)}")
+        prefix = "" if len(secrets.imap) == 1 else tr("Postfach {p0} – ", p0=f"{number}")
+        print(tr("{prefix}IMAP-Benutzername: {value}", prefix=prefix,
+                 value=json.dumps(credentials.username, ensure_ascii=False)))
+        print(tr("{prefix}IMAP-Passwort: {value}", prefix=prefix,
+                 value=json.dumps(credentials.password.get_secret_value(), ensure_ascii=False)))
 
 
 def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics: list[Topic],
@@ -506,7 +557,7 @@ def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics:
         if args.check_access:
             results = application.check_access()
             for name, error in results.items():
-                print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
+                print(f"{'OK' if error is None else tr('FEHLER')}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
         if args.learn is not None:
             assert mailboxes is not None  # _selected_mailboxes returns the list whenever --learn is set
@@ -539,7 +590,7 @@ def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics:
         else:
             fatal_error = application.run(max_mails=args.max_mails)
         if fatal_error is not None:
-            print(f"FATALER FEHLER: {fatal_error}", file=sys.stderr)
+            print(tr("FATALER FEHLER: {error}", error=fatal_error), file=sys.stderr)
             return 1
         lifecycle = getattr(application, "lifecycle", None)
         reload_service = getattr(application, "reload", None)
@@ -552,9 +603,9 @@ def _run(args: argparse.Namespace, settings: Settings, secrets: Secrets, topics:
 
 def _check_oauth_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.profile is not None and not (args.microsoft_login or args.google_auth):
-        parser.error("--profile benötigt --google-auth oder --microsoft-login")
+        parser.error(tr("--profile benötigt --google-auth oder --microsoft-login"))
     if args.microsoft_login and args.google_auth:
-        parser.error("Nur einen OAuth-Einrichtungsmodus wählen")
+        parser.error(tr("Nur einen OAuth-Einrichtungsmodus wählen"))
 
 
 def _main() -> int:
@@ -574,21 +625,34 @@ def _main() -> int:
     loaded = (load_all(args.config_directory, oauth_profile=args.profile or 1)
               if args.google_auth else load_all(args.config_directory))
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
+    # main() owns the locale scope, including its final error messages and restoration.
+    LOCALE.set(Locale(args.language or getattr(settings, "language", "de")))
+    return _configured_main(parser, args, shutdown, loaded)
+
+
+def _configured_main(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+    shutdown: _SignalShutdown,
+    loaded: tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str],
+) -> int:
+    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
     if args.google_auth or args.microsoft_login:
         number = args.profile or 1
         if number not in target_profiles(settings):
-            parser.error("Zielprofil ist nicht konfiguriert")
+            parser.error(tr("Zielprofil ist nicht konfiguriert"))
     if args.google_auth:
         scopes = google_scopes(target_profiles(settings)[number], calendar_list=False)
         if not scopes:
-            print(f"FEHLER: Profil {number} verwendet weder Google Kalender noch Google Tasks.", file=sys.stderr)
+            print(tr("FEHLER: Profil {number} verwendet weder Google Kalender noch Google Tasks.", number=number),
+                  file=sys.stderr)
             return 2
         try:
             google_login.login(secrets.for_profile(number), args.config_directory, number, scopes=scopes)
         except OAuthTokenError as exc:
-            print(f"FEHLER: {exc}", file=sys.stderr)
+            print(tr("FEHLER: {error}", error=exc), file=sys.stderr)
             return 1
-        print(f"Google-Anmeldung für Profil {number} gespeichert.")
+        print(tr("Google-Anmeldung für Profil {p0} gespeichert.", p0=f"{number}"))
         return 0
     if args.microsoft_login:
         return (_microsoft_login(settings, secrets, args.config_directory, args.profile)
@@ -616,7 +680,7 @@ def _main() -> int:
     if args.check:
         if local_llm is None:
             load_relevance_prompts(args.config_directory)
-        print("Konfiguration ist gültig.")
+        print(tr("Konfiguration ist gültig."))
         return 0
     if args.show_imap_credentials:
         _show_imap_credentials(secrets)

@@ -1,0 +1,395 @@
+{
+  "entries": [
+    {
+      "content_fingerprint": "97242460fc33d6cc103188acb3ae23121760188dbba90d04fb9f0fab5c90e851",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 1,
+        "uidvalidity": 1
+      },
+      "mail_id": "7787d5fcb1671712f6703180",
+      "message_ids": [
+        "<01-parent-meeting@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "058b36850401dd3e9585721a63418ffab4cb16cfef017e2462beffb4c7879b1a",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 2,
+        "uidvalidity": 1
+      },
+      "mail_id": "d58c9361ba5ff5f219ab0709",
+      "message_ids": [
+        "<02-planetarium-trip@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "f4cbf953017ca4c9cb6466eb503507f608ace221799f6e9e7f7393de7828ef2b",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 3,
+        "uidvalidity": 1
+      },
+      "mail_id": "ee539959a882bf00c2a280c9",
+      "message_ids": [
+        "<03-craft-workshop@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "7df43c0be1e8bb048645fee49c3ff9b35f2ee71b6012d822ab3be677c4b75fab",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 4,
+        "uidvalidity": 1
+      },
+      "mail_id": "fce700a0183187c01a3a3add",
+      "message_ids": [
+        "<04-winter-fair@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "e828034f4f8b641f9029081a78cfe2d76f34aeba98922fd66c20f3ebbdd86d22",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 5,
+        "uidvalidity": 1
+      },
+      "mail_id": "a09596f6a4b2c37b574c2b9c",
+      "message_ids": [
+        "<11-black-week@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "9d5ee890a41ded8c305658e844081690eb8165a67a17365908b87df8a075ed58",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 6,
+        "uidvalidity": 1
+      },
+      "mail_id": "c39f5d3c9638dfd9b8574fe3",
+      "message_ids": [
+        "<12-newsletter@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "7cfe8f15be7dd30456e16df9b5e7d1e7e5f25f4b2c2916bf8e66dbe153652ca2",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 7,
+        "uidvalidity": 1
+      },
+      "mail_id": "e427c0b1884245a7c6afc99a",
+      "message_ids": [
+        "<13-shipping@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "d6ea84195727e8229c7482007fbe6d4b56becc2ede078cde343ac9fe059dbbbe",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 8,
+        "uidvalidity": 1
+      },
+      "mail_id": "ce344a8b1121ef42e44efd3b",
+      "message_ids": [
+        "<14-receipt@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "c22ed52f5bf3520eeb48243df28ef52743f3ebe19414b39497743a9827ed2124",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 9,
+        "uidvalidity": 1
+      },
+      "mail_id": "84f5a64e068d7e8e1c37d961",
+      "message_ids": [
+        "<15-public-concert@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "c903ae11577c8c624835906f756debb455ba686d45ff12e943d6503e32c7b302",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 10,
+        "uidvalidity": 1
+      },
+      "mail_id": "1e797668fc48355d430cb6fc",
+      "message_ids": [
+        "<05-reading-mentors@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "b710a1f54cd46ccb92de5daaf707d9db17d9d1d59854b90f835dd23577b62216",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 11,
+        "uidvalidity": 1
+      },
+      "mail_id": "bd0a75f186cd9034726d0b92",
+      "message_ids": [
+        "<06-admission-fee@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "6fe97fd6f7f8f67abcadf56d39fbd37944b11e485097dfd45d82d858abd2c133",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 12,
+        "uidvalidity": 1
+      },
+      "mail_id": "f292b86e03a900e174975c2d",
+      "message_ids": [
+        "<16-password@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "deb4cc2f7cd79bc357a03866e35b57af8f318dc0cc189e9116b2b026930d35d1",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 13,
+        "uidvalidity": 1
+      },
+      "mail_id": "1be3412835d40d2687655ecc",
+      "message_ids": [
+        "<17-social@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "faa88b127cb2d0378aa2a7cff7420738ac4582104f5c4b09b0812c330667629a",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 14,
+        "uidvalidity": 1
+      },
+      "mail_id": "43c388e7f229d1d1614e34fc",
+      "message_ids": [
+        "<18-travel@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "aa3a1db5758033366ce79191586e328ef6bade3d6de5ce357bf483e30b7f795e",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 15,
+        "uidvalidity": 1
+      },
+      "mail_id": "2284a4e2bb6fc913045f208f",
+      "message_ids": [
+        "<19-fashion@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "de9b17a27733260d37cbc8f9625825d0c0f8807edb6b392fa40ef0a5d7698598",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 16,
+        "uidvalidity": 1
+      },
+      "mail_id": "e67b9e94d97d0da3c86d51af",
+      "message_ids": [
+        "<20-streaming@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "7ab7881f029f2e333fdd73efaf410ccc3af16be1658574ffaf1cae6d669ec950",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 17,
+        "uidvalidity": 1
+      },
+      "mail_id": "49b82aab10762d5efe6fe2b7",
+      "message_ids": [
+        "<07-violin-recital@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "37c65688fe9c6354a711486a75ef5beaf9a25ea01d7a8a9b2d5338b0da525f32",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 18,
+        "uidvalidity": 1
+      },
+      "mail_id": "e22c75f7c6c4f2d3c3c7dd3a",
+      "message_ids": [
+        "<21-survey@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "b31a10935105e5add57a9af760c98db1030dba5b6f3ecf73bdefffc1f7d41151",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 19,
+        "uidvalidity": 1
+      },
+      "mail_id": "0a697b94aff8006adda8c4c2",
+      "message_ids": [
+        "<22-property@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "8d43c27b2b5bfda4b982d8615b045521d3aab320140991d4685c5973c3e6ac79",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 20,
+        "uidvalidity": 1
+      },
+      "mail_id": "49fb743f9752c1a8ddbec871",
+      "message_ids": [
+        "<23-delivery-complete@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "65479655ae87cf914ef1ad7d26dc6b3fd4235733d124eb176fc0fb24ad557532",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 21,
+        "uidvalidity": 1
+      },
+      "mail_id": "dcc0cb749a551e2f31982414",
+      "message_ids": [
+        "<24-software@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "672f55d698fb64bed9c4068eec0ef9b516596c2fae1f1a2880e8c6510edc24f9",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 22,
+        "uidvalidity": 1
+      },
+      "mail_id": "ca965c2c25a8eea3f2f3e816",
+      "message_ids": [
+        "<25-hotel@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "3be6dcdd0012c480835d898f15d8506be3473f8ce81402029e7dc8b5c1e894cb",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 23,
+        "uidvalidity": 1
+      },
+      "mail_id": "9403fc4583a39f092914580c",
+      "message_ids": [
+        "<08-team-jerseys@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "f90626c3b9e88406cbad44a6fe4faf9aaf5a45173728e46e51aaa33f3ae5b954",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 24,
+        "uidvalidity": 1
+      },
+      "mail_id": "17ce08ebd25359f154b937b0",
+      "message_ids": [
+        "<09-cafeteria-menu@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "004fce967eec666507a6f6f9c974d0962ff47c3f9df15dbc64747f3cf1f34645",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 25,
+        "uidvalidity": 1
+      },
+      "mail_id": "dba88bf16722f8a40469b283",
+      "message_ids": [
+        "<26-insurance@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "c3c31bf601e5e96429f80a9a25bf0b1b8dc348645ca7116f9ea0b12bb8041fc4",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 26,
+        "uidvalidity": 1
+      },
+      "mail_id": "312c6cf595de8568a7237960",
+      "message_ids": [
+        "<27-sports-sale@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "ef204876f63c76bc69be05c10cffc8c841607e5003a770e977b042b0b4b5cc94",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 27,
+        "uidvalidity": 1
+      },
+      "mail_id": "23456312d486acc45aac4d8d",
+      "message_ids": [
+        "<28-digest@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "e2a1db64143ccbd4e760a0d3255c8e7dc728afe06b36448e7045af1fa915c463",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 28,
+        "uidvalidity": 1
+      },
+      "mail_id": "807666e80cfbb55d79c14859",
+      "message_ids": [
+        "<29-food-sale@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "78202faed0063b56b084fefe1c2e672949f8fbb0ea362640f24f83e4611dbdad",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 29,
+        "uidvalidity": 1
+      },
+      "mail_id": "ab6d5a00de8c7034d1ffc837",
+      "message_ids": [
+        "<30-job-alert@demo.mailhelp.example>"
+      ]
+    },
+    {
+      "content_fingerprint": "4dcd9f9a978cc2103b5e73438ae9125b2b4a42744c3ac748a0d64667526e86fd",
+      "imap": {
+        "account_id": "7dd71995bcad890030cfa19b",
+        "folder": "INBOX",
+        "uid": 30,
+        "uidvalidity": 1
+      },
+      "mail_id": "216c6d0b7e769d30b0c94145",
+      "message_ids": [
+        "<10-library-return@demo.mailhelp.example>"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

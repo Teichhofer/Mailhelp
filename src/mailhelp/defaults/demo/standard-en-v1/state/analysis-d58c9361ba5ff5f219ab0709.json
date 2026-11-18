@@ -1,0 +1,30 @@
+{
+  "human_decision": null,
+  "mail_id": "d58c9361ba5ff5f219ab0709",
+  "recorded_at": "2026-11-17T21:38:38.747024+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "2026-12-04, 08:30–13:00",
+      "2026-11-20"
+    ],
+    "sentences": [
+      "Jane Lewis confirms Alex as a chaperone for class 4B's planetarium trip on 2026-12-04 from 08:30 to 13:00, meeting in the school courtyard.",
+      "Jane asks Alex to hand in Mia's signed consent form to the school office by 2026-11-20."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

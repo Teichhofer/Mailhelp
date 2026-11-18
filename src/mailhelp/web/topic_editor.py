@@ -1,4 +1,5 @@
 """Two-step topic editing; only an explicitly confirmed AdminCommand is queued."""
+
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..i18n import msg, tr
 from ..persistence.storage import CorruptState, JsonStore
 from ..review.inbox import CommandConflict
 from ..rule_learning.models import RuleTopic
@@ -20,22 +22,40 @@ from .pages import e, layout
 from .rule_compare import compare
 from .topic_drafts import TopicDraft, TopicFieldError, draft_id, owner, proposed_id
 
+_FORM_TEXT_1 = msg(
+    '<section id="form-errors" class="notice notice-error" tabindex="-1" autofocus '
+    'aria-labelledby="form-errors-title"><h2 id="form-errors-title">Eingaben '
+    "prüfen</h2><ul>"
+)
+
 if TYPE_CHECKING:
     from .site import MailhelpSite
 
-KINDS = {"relevant": ("relevant", "topics.yaml", "Relevante Themen"),
-         "ausschluss": ("irrelevant", "irrelevant_topics.yaml", "Ausschlussthemen")}
+KINDS = {
+    "relevant": ("relevant", 'topics.yaml', msg("Relevante Themen")),
+    "ausschluss": ("irrelevant", 'irrelevant_topics.yaml', msg("Ausschlussthemen")),
+}
 
 
 def topic_link(kind: str, identity: str) -> str:
-    return f"/themen/{kind}/{identity}" + ("?vorhanden=1" if identity == "neu" else "")
+    return f'/themen/{kind}/{identity}' + ("?vorhanden=1" if identity == "neu" else "")
 
 
-LABELS = {"id": "Themen-ID", "name": "Name", "description": "Beschreibung", "examples": "Beispiele",
-          "exclusions": "Ausschlüsse", "enabled": "Aktiv", "mailboxes": "Geltungsbereich"}
-HELP = {"name": "Höchstens 200 Zeichen.", "description": "Woran erkennt man das Thema? Höchstens 1000 Zeichen.",
-        "examples": "Ein typischer Betreff oder Satz je Zeile; höchstens 30 Einträge mit je 500 Zeichen.",
-        "exclusions": "Was trotz Ähnlichkeit nicht dazugehört, je Zeile; höchstens 30 Einträge mit je 500 Zeichen."}
+LABELS = {
+    "id": msg("Themen-ID"),
+    "name": msg("Name"),
+    "description": msg("Beschreibung"),
+    "examples": msg("Beispiele"),
+    "exclusions": msg("Ausschlüsse"),
+    "enabled": msg("Aktiv"),
+    "mailboxes": msg("Geltungsbereich"),
+}
+HELP = {
+    "name": msg("Höchstens 200 Zeichen."),
+    "description": msg("Woran erkennt man das Thema? Höchstens 1000 Zeichen."),
+    "examples": msg("Ein typischer Betreff oder Satz je Zeile; höchstens 30 Einträge mit je 500 Zeichen."),
+    "exclusions": msg("Was trotz Ähnlichkeit nicht dazugehört, je Zeile; höchstens 30 Einträge mit je 500 Zeichen."),
+}
 
 
 def entries(text: str) -> list[str]:
@@ -46,14 +66,14 @@ def entries(text: str) -> list[str]:
 def validation_message(error: ErrorDetails) -> str:
     kind, context = error["type"], error.get("ctx", {})
     if kind == "string_too_short":
-        return f'Bitte mindestens {context["min_length"]} Zeichen eingeben.'
+        return tr("Bitte mindestens {p0} Zeichen eingeben.", p0=f"{context['min_length']}")
     if kind == "string_too_long":
-        return f'Höchstens {context["max_length"]} Zeichen sind erlaubt.'
+        return tr("Höchstens {p0} Zeichen sind erlaubt.", p0=context["max_length"])
     if kind == "too_long":
-        return f'Höchstens {context["max_length"]} Einträge sind erlaubt.'
+        return tr("Höchstens {p0} Einträge sind erlaubt.", p0=context["max_length"])
     if kind == "value_error":
         return str(error["msg"]).removeprefix("Value error, ")
-    return "Ungültige Angabe. Bitte Format und Feldhilfe beachten."
+    return msg("Ungültige Angabe. Bitte Format und Feldhilfe beachten.")
 
 
 class TopicEditor:
@@ -92,7 +112,7 @@ class TopicEditor:
 
     def show(self, request: Request, session: Any, kind: str, identity: str) -> Response:
         if self.archive.configuration is None:
-            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
+            return self.site._reply(request, 503, msg("Themenverwaltung nicht verfügbar."))
         try:
             parameters = self.archive.parameters(request)
             original = "" if identity == "neu" and parameters.get("vorhanden") != "1" else identity
@@ -103,9 +123,9 @@ class TopicEditor:
         except TopicFieldError as error:
             return self.site._reply(request, error.status, str(error))
         except PermissionError:
-            return self.site._reply(request, 403, "Kein eigener Themenentwurf.")
+            return self.site._reply(request, 403, msg("Kein eigener Themenentwurf."))
         except (ValueError, KeyError, OSError, CorruptState, yaml.YAMLError):
-            return self.site._reply(request, 400, "Themendatei oder Entwurf nicht lesbar.")
+            return self.site._reply(request, 400, msg("Themendatei oder Entwurf nicht lesbar."))
 
     @staticmethod
     def values(topic: Any) -> dict[str, str]:
@@ -118,58 +138,49 @@ class TopicEditor:
     def form(self, session: Any, kind: str, original: str, before: Any, revision: str, version: int,
              values: dict[str, str], errors: dict[str, str] | None = None, status: int = 200) -> Response:
         errors = errors or {}
-        title = e(before.name) if before is not None else "Neues Thema"
-        body = ('<div class="page-heading"><p class="eyebrow">'
-                + ("Thema bearbeiten" if original else KINDS[kind][2]) + f'</p><h1>{title}</h1></div>'
-                f'<p><a href="/themen?art={kind}">Zur Themenübersicht</a></p>'
-                f'<p>Geltungsbereich: {e(self.catalog.scope(before) if before else "alle Postfächer")}</p>')
+        title = e(before.name) if before is not None else msg("Neues Thema")
+        body = (
+            '<div class="page-heading"><p class="eyebrow">'
+            + (msg("Thema bearbeiten") if original else KINDS[kind][2])
+            + tr(
+                (
+                    '</p><h1>{p0}</h1></div><p><a href="/themen?art={p1}">Zur '
+                    "Themenübersicht</a></p><p>Geltungsbereich: {p2}</p>"
+                ),
+                p0=title,
+                p1=kind,
+                p2=e(self.catalog.scope(before) if before else msg("alle Postfächer")),
+            )
+        )
         if errors:
-            body += ('<section id="form-errors" class="notice notice-error" tabindex="-1" autofocus '
-                     'aria-labelledby="form-errors-title"><h2 id="form-errors-title">Eingaben prüfen</h2><ul>')
+            body += tr(_FORM_TEXT_1)
             for key, message in errors.items():
                 body += (f'<li>{e(message)}</li>' if key == "__all__" else
                          f'<li><a href="#topic-{key}">{e(LABELS[key])}: {e(message)}</a></li>')
             body += '</ul></section>'
         if status == 409:
-            href = topic_link(kind, original) if original else f"/themen/{kind}/neu"
-            body += f'<p><a href="{href}">Neu laden</a></p>'
-        fields = ""
-        for key in ("name", "id", "description", "examples", "exclusions"):
-            fields += '<div class="topic-field">'
-            if key == "id" and original:
-                fields += f'<p>Themen-ID: <code>{e(original)}</code></p>' + field("id", "", original, hidden=True)
-            else:
-                invalid = ' aria-invalid="true"' if key in errors else ""
-                invalid += (f' aria-describedby="topic-{key}-help'
-                            + (f' topic-{key}-error' if key in errors else "") + '"')
-                fields += f'<label for="topic-{key}">{LABELS[key]}</label>'
-                value = values.get(key, "")
-                fields += (f'<textarea id="topic-{key}" name="{key}" rows="4"{invalid}>{e(value)}</textarea>'
-                           if key in {"description", "examples", "exclusions"} else
-                           f'<input id="topic-{key}" name="{key}" value="{e(value)}"{invalid} '
-                           f'{"maxlength=64" if key == "id" else "maxlength=200"}>')
-                help_text = HELP.get(key, "Aus dem Namen vorgeschlagen; vor dem Speichern änderbar.")
-                fields += f'<p class="meta" id="topic-{key}-help">{e(help_text)}</p>'
-            if key in errors:
-                fields += (f'<p id="topic-{key}-error" class="notice notice-error" role="alert">'
-                           f'{e(LABELS[key])}: {e(errors[key])}</p>')
-            fields += '</div>'
-        invalid = ' aria-invalid="true" aria-describedby="topic-enabled-error"' if "enabled" in errors else ""
-        fields += (f'<label for="topic-enabled"><input id="topic-enabled" type="checkbox" name="enabled" value="yes"'
-                   f'{invalid}'
-                   f'{" checked" if values.get("enabled") == "yes" else ""}> Aktiv</label>')
-        if "enabled" in errors:
-            fields += (f'<p id="topic-enabled-error" class="notice notice-error" role="alert">'
-                       f'Aktiv: {e(errors["enabled"])}</p>')
-        body += post_form("/themen/pruefen", self.site.auth.csrf_token(session.id), fields, "Änderung prüfen",
-                          kind=kind, original_id=original, expected_hash=revision, draft_version=version)
+            href = topic_link(kind, original) if original else '/themen/{p0}/neu'.format(p0=f'{kind}')
+            body += tr('<p><a href="{p0}">Neu laden</a></p>', p0=href)
+        fields = _topic_fields(original, values, errors)
+        body += post_form(
+            "/themen/pruefen",
+            self.site.auth.csrf_token(session.id),
+            fields,
+            msg("Änderung prüfen"),
+            kind=kind,
+            original_id=original,
+            expected_hash=revision,
+            draft_version=version,
+        )
         representation: dict[str, Any] = {key: values.get(key, "") for key in ("id", "name", "description")}
         representation.update({key: values.get(key, "").splitlines() for key in ("examples", "exclusions")})
         representation.update(enabled=values.get("enabled") == "yes", mailboxes=before.mailboxes if before else None)
-        body += ('<details><summary>Erweitert</summary><p>Themen-YAML nur zum Lesen und Kopieren.</p><pre>'
-                 + e(yaml.safe_dump(representation, allow_unicode=True, sort_keys=False))
-                 + '</pre></details><script src="/static/topics.js" defer></script>')
-        return Response.html(status, layout("Thema bearbeiten", body, active="/einstellungen"))
+        body += (
+            tr("<details><summary>Erweitert</summary><p>Themen-YAML nur zum Lesen und Kopieren.</p><pre>")
+            + e(yaml.safe_dump(representation, allow_unicode=True, sort_keys=False))
+            + '</pre></details><script src="/static/topics.js" defer></script>'
+        )
+        return Response.html(status, layout(msg("Thema bearbeiten"), body, active="/einstellungen"))
 
     def validated(self, kind: str, original: str, before: Any, documents: Any,
                   values: dict[str, str], revision: str, actor: str, key: str) -> RuleTopic:
@@ -218,63 +229,87 @@ class TopicEditor:
 
     def preview(self, request: Request, session: Any, form: dict[str, str]) -> Response:
         if self.archive.configuration is None:
-            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
+            return self.site._reply(request, 503, msg("Themenverwaltung nicht verfügbar."))
         values = {key: form.get(key, "").replace("\r\n", "\n") for key in LABELS if key != "mailboxes"}
         try:
             with self.store.locked():
                 identity, state = self.prepare(session, form, values)
             return self.review(session, identity, state)
         except PermissionError:
-            return self.site._reply(request, 403, "Sitzung nicht mehr gültig.")
+            return self.site._reply(request, 403, msg("Sitzung nicht mehr gültig."))
         except ValidationError as error:
             errors = {str(item["loc"][0]): validation_message(item) for item in error.errors()}
             status = 422
         except TopicFieldError as error:
             errors, status = {error.field: str(error)}, error.status
         except (KeyError, ValueError):
-            errors, status = {"__all__": "Ungültiges oder veraltetes Formular."}, 422
+            errors, status = {"__all__": msg("Ungültiges oder veraltetes Formular.")}, 422
         except (OSError, CorruptState, yaml.YAMLError):
-            errors, status = {"__all__": "Entwurf nicht gespeichert: Themendatei oder Ablage nicht lesbar."}, 503
+            errors, status = {"__all__": msg("Entwurf nicht gespeichert: Themendatei oder Ablage nicht lesbar.")}, 503
         try:
             before, revision, _documents = self.context(form["kind"], form["original_id"])
             state = self.load(draft_id("web:" + session.id, form["kind"], form["original_id"]), "web:" + session.id)
         except (ValueError, KeyError, OSError, CorruptState, yaml.YAMLError):
-            return self.site._reply(request, status, errors.get("__all__", "Themenangaben prüfen."))
+            return self.site._reply(request, status, errors.get("__all__", msg("Themenangaben prüfen.")))
         return self.form(session, form["kind"], form["original_id"], before, revision, state.version,
                          values, errors, status)
 
     def review(self, session: Any, identity: str, state: TopicDraft) -> Response:
         if state.topic is None:
-            return self.site._reply(Request("GET", "/themen"), 422, "Kein gültiger Prüfentwurf; neu laden.")
+            return self.site._reply(Request("GET", "/themen"), 422, msg("Kein gültiger Prüfentwurf; neu laden."))
         if state.before is not None and state.topic.model_dump() == state.before.model_dump():
-            return Response.html(200, layout("Unverändert", '<div class="page-heading"><p class="eyebrow">'
-                + KINDS[state.kind][2] + '</p><h1>Keine Änderung</h1><p>Es gibt nichts zu bestätigen.</p></div>'
-                '<p><a href="/themen">Zur Themenübersicht</a></p>',
-                active="/einstellungen"))
+            return Response.html(
+                200,
+                layout(
+                    tr("Unverändert"),
+                    '<div class="page-heading"><p class="eyebrow">'
+                    + KINDS[state.kind][2]
+                    + tr(
+                        "</p><h1>Keine Änderung</h1><p>Es gibt nichts zu "
+                        'bestätigen.</p></div><p><a href="/themen">Zur '
+                        "Themenübersicht</a></p>"
+                    ),
+                    active="/einstellungen",
+                ),
+            )
         before = state.before.model_dump(mode="json") if state.before is not None else None
-        body = ('<div class="page-heading"><p class="eyebrow">' + KINDS[state.kind][2] + '</p>'
-                '<h1>Änderung prüfen</h1><p>Bisherige und neue Regel im Vergleich. Gespeichert wird erst nach '
-                f'deiner ausdrücklichen Bestätigung.</p></div><p>Themen-ID: <code>{e(state.topic.id)}</code></p>'
-                + compare(before, state.topic.model_dump(mode="json")))
+        body = (
+            '<div class="page-heading"><p class="eyebrow">'
+            + KINDS[state.kind][2]
+            + tr(
+                (
+                    "</p><h1>Änderung prüfen</h1><p>Bisherige und neue Regel im "
+                    "Vergleich. Gespeichert wird erst nach deiner ausdrücklichen "
+                    "Bestätigung.</p></div><p>Themen-ID: <code>{p0}</code></p>"
+                ),
+                p0=e(state.topic.id),
+            )
+            + compare(before, state.topic.model_dump(mode="json"))
+        )
         body += '<form method="post" action="/themen/speichern" class="stack confirm-bar">'
         for key, value in {"csrf": self.site.auth.csrf_token(session.id), "key": state.key, "draft_id": identity,
                            "draft_version": state.version, "expected_hash": state.expected_hash}.items():
             body += field(key, "", value, hidden=True)
         href = topic_link(state.kind, state.original_id) if state.original_id else "/themen/" + state.kind + "/neu"
-        body += ('<label><input type="checkbox" name="confirm" value="yes" required> '
-                 'Änderung ausdrücklich speichern</label><button class="button">Änderung speichern</button></form>'
-                 f'<p><a href="{href}">'
-                 'Weiter bearbeiten</a></p>')
-        return Response.html(200, layout("Änderung prüfen", body, active="/einstellungen"))
+        body += tr(
+            (
+                '<label><input type="checkbox" name="confirm" value="yes" '
+                "required> Änderung ausdrücklich speichern</label><button "
+                'class="button">Änderung speichern</button></form><p><a '
+                'href="{p0}">Weiter bearbeiten</a></p>'
+            ),
+            p0=href,
+        )
+        return Response.html(200, layout(msg("Änderung prüfen"), body, active="/einstellungen"))
 
     def resume(self, request: Request, session: Any, identity: str) -> Response:
         try:
             state = self.load(identity, "web:" + session.id)
             return self.review(session, identity, state)
         except PermissionError:
-            return self.site._reply(request, 403, "Kein eigener Entwurf.")
+            return self.site._reply(request, 403, msg("Kein eigener Entwurf."))
         except (OSError, CorruptState):
-            return self.site._reply(request, 503, "Entwurf nicht lesbar.")
+            return self.site._reply(request, 503, msg("Entwurf nicht lesbar."))
 
     def command(self, actor: str, state: TopicDraft, form: dict[str, str]) -> AdminCommand:
         self.check(actor)
@@ -300,15 +335,15 @@ class TopicEditor:
             response: Response = self.archive.queue(request, command)
             return response
         except PermissionError:
-            return self.site._reply(request, 403, "Sitzung oder Entwurf nicht gültig.")
+            return self.site._reply(request, 403, msg("Sitzung oder Entwurf nicht gültig."))
         except (ConfigurationConflict, CommandConflict):
-            return self.site._reply(request, 409, "Datei oder Befehl geändert; bitte neu laden.")
+            return self.site._reply(request, 409, msg("Datei oder Befehl geändert; bitte neu laden."))
         except TopicFieldError as error:
             return self.site._reply(request, error.status, str(error))
         except (ValueError, KeyError):
-            return self.site._reply(request, 422, "Ungültige Themenbestätigung.")
+            return self.site._reply(request, 422, msg("Ungültige Themenbestätigung."))
         except (OSError, CorruptState):
-            return self.site._reply(request, 503, "Speichern unterbrochen; dieselbe Bestätigung erneut senden.")
+            return self.site._reply(request, 503, msg("Speichern unterbrochen; dieselbe Bestätigung erneut senden."))
 
     def drafts(self, actor: str) -> list[tuple[str, str, str, str]]:
         """Own previews still waiting for confirmation; a preview of an older file revision is stale."""
@@ -327,3 +362,45 @@ class TopicEditor:
             except (PermissionError, CorruptState, TopicFieldError, CommandConflict):
                 continue
         return found
+
+
+def _topic_fields(original: str, values: dict[str, str], errors: dict[str, str]) -> str:
+    fields = ""
+    for key in ("name", "id", "description", "examples", "exclusions"):
+        fields += '<div class="topic-field">'
+        if key == "id" and original:
+            fields += tr(
+                "<p>Themen-ID: <code>{p0}</code></p>",
+                p0=e(original),
+            ) + field("id", "", original, hidden=True)
+        else:
+            invalid = ' aria-invalid="true"' if key in errors else ""
+            invalid += (f' aria-describedby="topic-{key}-help'
+                        + (f' topic-{key}-error' if key in errors else "") + '"')
+            fields += f'<label for="topic-{key}">{LABELS[key]}</label>'
+            value = values.get(key, "")
+            fields += (f'<textarea id="topic-{key}" name="{key}" rows="4"{invalid}>{e(value)}</textarea>'
+                       if key in {"description", "examples", "exclusions"} else
+                       f'<input id="topic-{key}" name="{key}" value="{e(value)}"{invalid} '
+                       f'{"maxlength=64" if key == "id" else "maxlength=200"}>')
+            help_text = HELP.get(key, msg("Aus dem Namen vorgeschlagen; vor dem Speichern änderbar."))
+            fields += f'<p class="meta" id="topic-{key}-help">{e(help_text)}</p>'
+        if key in errors:
+            fields += (f'<p id="topic-{key}-error" class="notice notice-error" role="alert">'
+                       f'{e(LABELS[key])}: {e(errors[key])}</p>')
+        fields += '</div>'
+    invalid = ' aria-invalid="true" aria-describedby="topic-enabled-error"' if "enabled" in errors else ""
+    fields += tr(
+        (
+            '<label for="topic-enabled"><input id="topic-enabled" '
+            'type="checkbox" name="enabled" value="yes"{p0}{p1}> Aktiv</label>'
+        ),
+        p0=invalid,
+        p1=" checked" if values.get("enabled") == "yes" else "",
+    )
+    if "enabled" in errors:
+        fields += tr(
+            ('<p id="topic-enabled-error" class="notice notice-error" role="alert">Aktiv: {p0}</p>'),
+            p0=e(errors["enabled"]),
+        )
+    return fields

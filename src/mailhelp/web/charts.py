@@ -4,6 +4,7 @@ The content security policy allows neither inline scripts nor inline styles, so 
 SVG with presentation attributes and CSS classes; colours follow the light and dark theme of app.css.
 Each chart carries a title and description for assistive technology and its values as a table.
 """
+
 from __future__ import annotations
 
 import math
@@ -14,8 +15,23 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..formatting import duration_text
+from ..i18n import Locale, current, msg, tr
+from ..i18n.formatting import decimal
 from ..review.views import STAGE_LABELS
 from .pages import e
+
+_SCATTER_CHART_TEXT_1 = msg(
+    '<text class="chart-legend" {p0} x="{p1}" y="{p2}" text-anchor="end"><tspan '
+    'class="chart-ok-text" fill="{p3}">● erfolgreich</tspan><tspan '
+    'class="chart-failed-text" fill="{p4}" dx="12">× fehlgeschlagen</tspan><tspan '
+    'class="chart-trend-text" fill="{p5}" dx="12">— Median je {p6}</tspan></text>'
+)
+
+_STATISTICS_CHARTS_TEXT_1 = msg(
+    '<details class="chart-section" id="diagramme" open '
+    "data-fold-phone><summary><h2>Verlauf und Verteilung</h2></summary><div "
+    'class="chart-grid-layout">'
+)
 
 WIDTH, HEIGHT, LEFT, BOTTOM, TOP = 640, 220, 56, 28, 12
 # 5.9.9: call durations as a logarithmic scatter plot; at most this many points are drawn.
@@ -32,7 +48,7 @@ Series = tuple[str, str, list[float]]
 
 
 def _number(value: float, digits: int) -> str:
-    return f"{value:,.{digits}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
+    return decimal(float(value), digits)
 
 
 def _scale(maximum: float) -> float:
@@ -43,28 +59,49 @@ def _scale(maximum: float) -> float:
     return next((magnitude * factor for factor in (1, 2, 2.5, 5) if magnitude * factor >= maximum), magnitude * 10)
 
 
-HINT = "Balken für Details berühren, mit der Maus zeigen oder per Tab fokussieren."
+HINT = msg("Balken für Details berühren, mit der Maus zeigen oder per Tab fokussieren.")
 
 
 def _figure(ident: str, title: str, description: str, svg: str, header: list[str], rows: list[list[str]],
             height: float = HEIGHT, hint: str = HINT, subtitle: str = "") -> str:
-    table = ('<details><summary>Werte als Tabelle</summary><div class="table-scroll" tabindex="0" '
-             f'role="region" aria-label="Wertetabelle: {e(title)}"><table><thead><tr>'
-             + "".join(f"<th>{e(cell)}</th>" for cell in header) + "</tr></thead><tbody>"
-             + "".join("<tr>" + "".join(f"<td>{e(cell)}</td>" for cell in row) + "</tr>" for row in rows)
-             + "</tbody></table></div></details>")
-    return (f'<figure class="chart" aria-labelledby="{ident}-title"><figcaption>'
-            f'<span id="{ident}-title">{e(title)}</span><button type="button" class="button small chart-zoom" '
-            f'aria-label="{e(title)} vergrößern" aria-haspopup="dialog" hidden>Vergrößern</button></figcaption>'
-            + (f'<p class="meta chart-subtitle">{e(subtitle)}</p>' if subtitle else "") +
-            f'<div class="chart-plot" tabindex="0" role="group" aria-label="Diagramm: {e(title)}">'
-            f'<svg viewBox="0 0 {WIDTH} {height:.0f}" role="group" '
-            f'aria-labelledby="{ident}-svg-title '
-            f'{ident}-svg-desc" preserveAspectRatio="xMidYMid meet"><title id="{ident}-svg-title">{e(title)}</title>'
-            f'<desc id="{ident}-svg-desc">{e(description)}</desc>{svg}</svg>'
-            '<div class="chart-detail" tabindex="0" role="group" aria-label="Balkendetails">'
-            f'<p class="chart-hint" aria-hidden="true">{e(hint)}</p>'
-            f'<p class="chart-tooltip" role="tooltip" hidden></p></div></div>{table}</figure>')
+    table = (
+        tr(
+            (
+                "<details><summary>Werte als Tabelle</summary><div "
+                'class="table-scroll" tabindex="0" role="region" '
+                'aria-label="Wertetabelle: {p0}"><table><thead><tr>'
+            ),
+            p0=e(title),
+        )
+        + "".join(f"<th>{e(cell)}</th>" for cell in header)
+        + "</tr></thead><tbody>"
+        + "".join("<tr>" + "".join(f"<td>{e(cell)}</td>" for cell in row) + "</tr>" for row in rows)
+        + "</tbody></table></div></details>"
+    )
+    return (
+        tr(
+            (
+                '<figure class="chart" '
+                'aria-labelledby="{p0}-title"><figcaption><span '
+                'id="{p1}-title">{p2}</span><button type="button" class="button '
+                'small chart-zoom" aria-label="{p3} vergrößern" '
+                'aria-haspopup="dialog" hidden>Vergrößern</button></figcaption>'
+            ),
+            p0=ident,
+            p1=ident,
+            p2=e(title),
+            p3=e(title),
+        )
+        + (f'<p class="meta chart-subtitle">{e(subtitle)}</p>' if subtitle else "")
+        + f'<div class="chart-plot" tabindex="0" role="group" aria-label="Diagramm: {e(title)}">'
+        f'<svg viewBox="0 0 {WIDTH} {height:.0f}" role="group" '
+        f'aria-labelledby="{ident}-svg-title '
+        f'{ident}-svg-desc" preserveAspectRatio="xMidYMid meet"><title id="{ident}-svg-title">{e(title)}</title>'
+        f'<desc id="{ident}-svg-desc">{e(description)}</desc>{svg}</svg>'
+        '<div class="chart-detail" tabindex="0" role="group" aria-label="Balkendetails">'
+        f'<p class="chart-hint" aria-hidden="true">{e(hint)}</p>'
+        f'<p class="chart-tooltip" role="tooltip" hidden></p></div></div>{table}</figure>'
+    )
 
 
 def _point(detail: str) -> str:
@@ -167,7 +204,7 @@ def bar_list(ident: str, title: str, description: str, items: list[tuple[str, fl
     """
     items = sorted(items, key=lambda item: -item[1])
     if len(items) > MAX_BARS:
-        items = [*items[:MAX_BARS - 1], ("Weitere", sum(value for _, value in items[MAX_BARS - 1:]))]
+        items = [*items[: MAX_BARS - 1], (msg("Weitere"), sum(value for _, value in items[MAX_BARS - 1 :]))]
     top = _scale(max((value for _, value in items), default=0))
     # A fixed row height: few entries make a short chart instead of thick bars.
     row_height = BAR_ROW
@@ -251,8 +288,11 @@ def _call_mark(record: dict[str, Any], x: float, y: float, zone: ZoneInfo) -> st
     failed = record["status"] != "success"
     stage = STAGE_LABELS.get(record["stage"], record["stage"])
     model = record.get("model", "").rsplit("/", 1)[-1]
-    detail = (f"{moment:%d.%m. %H:%M} · {stage} · {_seconds_text(record['duration_ms'] / 1000)}"
-              + (f" · {model}" if model else "") + (" · Fehler" if failed else ""))
+    detail = (
+        f"{moment:%d.%m. %H:%M} · {stage} · {_seconds_text(record['duration_ms'] / 1000)}"
+        + (f" · {model}" if model else "")
+        + (msg(" · Fehler") if failed else "")
+    )
     if failed:
         return (f'<path class="chart-cross" stroke="{FILLS["chart-cross"]}" stroke-width="1.6" '
                 f'd="M{x - 3:.1f} {y - 3:.1f}L{x + 3:.1f} {y + 3:.1f}M{x - 3:.1f} {y + 3:.1f}L{x + 3:.1f} {y - 3:.1f}" '
@@ -262,7 +302,7 @@ def _call_mark(record: dict[str, Any], x: float, y: float, zone: ZoneInfo) -> st
 
 
 def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: datetime,
-                  title: str = "Aufrufdauer", what: str = "jedes KI-Aufrufs") -> str:
+                  title: str = msg("Aufrufdauer"), what: str = msg("jedes KI-Aufrufs")) -> str:
     """5.9.9: every call at its exact time on a logarithmic duration axis, with the median per period.
 
     Points are not focusable (thousands of tab stops); the value table is the keyboard path.
@@ -284,13 +324,10 @@ def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: Zo
 
     def y_of(value: float) -> float:
         return TOP + plot_height * (1 - (math.log10(max(value, FLOOR)) + 1) / decades)
+
     svg = _duration_grid(top, y_of)
-    every = max(1, round(len(labels) / 10))
     slot = plot_width / max(len(labels), 1)
-    for index, label in enumerate(labels):
-        if index % every == 0:
-            svg += (f'<text class="chart-axis" {AXIS} x="{LEFT + slot * index + slot / 2:.1f}" y="{HEIGHT - 8}" '
-                    f'text-anchor="middle">{e(label)}</text>')
+    svg += _scatter_axis(labels, slot)
     for record in shown:
         moment = datetime.fromisoformat(record["started_at"]).astimezone(zone)
         x = LEFT + plot_width * (moment - start).total_seconds() / span.total_seconds()
@@ -303,29 +340,42 @@ def scatter_chart(ident: str, records: list[dict[str, Any]], days: int, zone: Zo
         median = _median([record["duration_ms"] / 1000 for record in group])
         path += f'{"L" if pen else "M"}{LEFT + slot * index + slot / 2:.1f} {y_of(median):.1f} '
         pen = True
-    period = "Stunde" if days == 1 else "Tag"
+    period = msg("Stunde") if days == 1 else msg("Tag")
     if path:
         svg += (f'<path class="chart-trend-line" stroke="{FILLS["chart-trend"]}" stroke-width="1.8" fill="none" '
                 f'd="{path.strip()}"><title>Median je {period}</title></path>')
-    svg += (f'<text class="chart-legend" {AXIS} x="{WIDTH - 8}" y="{TOP + 2}" text-anchor="end">'
-            f'<tspan class="chart-ok-text" fill="{FILLS["chart-ok"]}">● erfolgreich</tspan>'
-            f'<tspan class="chart-failed-text" fill="{FILLS["chart-failed"]}" dx="12">× fehlgeschlagen</tspan>'
-            f'<tspan class="chart-trend-text" fill="{FILLS["chart-trend"]}" dx="12">— Median je {period}</tspan>'
-            '</text>')
-    rows = []
-    for label, group in zip(labels, groups, strict=True):
-        values = [record["duration_ms"] / 1000 for record in group]
-        failures = sum(record["status"] != "success" for record in group)
-        figures = ((_seconds_text(_median(values)), _seconds_text(_quantile(values, 0.95)),
-                    _seconds_text(max(values))) if values else ("—", "—", "—"))
-        rows.append([label, count(len(group)), count(failures), *figures])
-    subtitle = (f"{count(len(shown))} von {count(len(inside))} Aufrufen dargestellt"
-                if len(shown) < len(inside) else "")
-    return _figure(ident, title, f"Dauer {what} zum genauen Zeitpunkt auf logarithmischer "
-                   f"Achse mit dem Median je {period}.", svg,
-                   ["", "Aufrufe", "Fehler", "Median", "95 %", "Maximum"], rows,
-                   hint="Punkte für Details berühren oder mit der Maus zeigen; alle Werte in der Tabelle.",
-                   subtitle=subtitle)
+    svg += tr(
+        (
+            _SCATTER_CHART_TEXT_1
+        ),
+        p0=f"{AXIS}",
+        p1=f"{WIDTH - 8}",
+        p2=f"{TOP + 2}",
+        p3=f"{FILLS['chart-ok']}",
+        p4=f"{FILLS['chart-failed']}",
+        p5=f"{FILLS['chart-trend']}",
+        p6=f"{period}",
+    )
+    rows = _scatter_rows(labels, groups)
+    subtitle = (
+        tr("{p0} von {p1} Aufrufen dargestellt", p0=f"{count(len(shown))}", p1=f"{count(len(inside))}")
+        if len(shown) < len(inside)
+        else ""
+    )
+    return _figure(
+        ident,
+        title,
+        tr(
+            "Dauer {p0} zum genauen Zeitpunkt auf logarithmischer Achse mit dem Median je {p1}.",
+            p0=f"{what}",
+            p1=f"{period}",
+        ),
+        svg,
+        ["", msg("Aufrufe"), msg("Fehler"), "Median", "95 %", "Maximum"],
+        rows,
+        hint=msg("Punkte für Details berühren oder mit der Maus zeigen; alle Werte in der Tabelle."),
+        subtitle=subtitle,
+    )
 
 
 def _buckets(records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: datetime
@@ -334,11 +384,14 @@ def _buckets(records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: date
     local_now = now.astimezone(zone)
     if days == 1:
         start = local_now.replace(minute=0, second=0, microsecond=0) - timedelta(hours=23)
-        labels = [f"{(start + timedelta(hours=hour)):%H} Uhr" for hour in range(24)]
+        # No catalogue template "{p0} Uhr": as a template it would also match stored texts as a whole.
+        suffix = " Uhr" if current() == Locale.DE else ""
+        labels = [f"{start + timedelta(hours=hour):%H}{suffix}" for hour in range(24)]
 
         def hour(record: dict[str, Any]) -> int | None:
             index = int((datetime.fromisoformat(record["started_at"]).astimezone(zone) - start).total_seconds() // 3600)
             return index if 0 <= index < 24 else None
+
         return labels, hour
     first = local_now.date() - timedelta(days=days - 1)
     labels = [f"{first + timedelta(days=offset):%d.%m.}" for offset in range(days)]
@@ -346,6 +399,7 @@ def _buckets(records: list[dict[str, Any]], days: int, zone: ZoneInfo, now: date
     def day(record: dict[str, Any]) -> int | None:
         index = (datetime.fromisoformat(record["started_at"]).astimezone(zone).date() - first).days
         return index if 0 <= index < days else None
+
     return labels, day
 
 
@@ -370,17 +424,31 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
         return ""
     tz = ZoneInfo(zone)
     # 6.2.10: on phones app.js folds the charts below the figures; without JavaScript they stay open.
-    body = ('<details class="chart-section" id="diagramme" open data-fold-phone><summary><h2>Verlauf und Verteilung'
-            '</h2></summary><div class="chart-grid-layout">')
+    body = tr(_STATISTICS_CHARTS_TEXT_1)
     if records:
         body += _call_charts(records, days, tz, now)
     if totals:
-        runs = [{"started_at": row["started_at"], "duration_ms": row["duration_ms"], "status": "success",
-                 "stage": "Durchlauf"} for row in totals]
-        body += scatter_chart("chart-runs", runs, days, tz, now, title="Durchlaufzeit je Mail",
-                              what="jeder vollständig verarbeiteten Mail ohne Wartezeit auf Entscheidungen")
+        runs = [
+            {
+                "started_at": row["started_at"],
+                "duration_ms": row["duration_ms"],
+                "status": "success",
+                "stage": msg("Durchlauf"),
+            }
+            for row in totals
+        ]
+        body += scatter_chart(
+            "chart-runs",
+            runs,
+            days,
+            tz,
+            now,
+            title=msg("Durchlaufzeit je Mail"),
+            what=msg("jeder vollständig verarbeiteten Mail ohne Wartezeit auf Entscheidungen"),
+        )
     # Late: pipeline imports the chart helpers at load time.
     from .pipeline import pipeline_plan, ranking, stage_times, wall_ranking
+
     if walls:
         body += wall_ranking(walls, link)
     if records:
@@ -388,11 +456,18 @@ def statistics_charts(records: list[dict[str, Any]], days: int, zone: str, now: 
     body += pipeline_plan(records, walls or None)
     parts = (steps or {}).get("parts") or {}
     if parts:
-        names = {"zerlegen": "Mail zerlegen", "anhaenge": "Anhänge und Vorschauen", "bilderkennung": "Bilderkennung"}
-        body += bar_list("chart-parts", "Aufbereitung im Detail",
-                         "Summierte Dauer der Teile der Aufbereitung, größter zuerst.",
-                         [(names.get(key, key), value / 1000) for key, value in parts.items()],
-                         lambda value: duration_text(value))
+        names = {
+            "zerlegen": "Mail zerlegen",
+            "anhaenge": msg("Anhänge und Vorschauen"),
+            "bilderkennung": msg("Bilderkennung"),
+        }
+        body += bar_list(
+            "chart-parts",
+            "Aufbereitung im Detail",
+            msg("Summierte Dauer der Teile der Aufbereitung, größter zuerst."),
+            [(names.get(key, key), value / 1000) for key, value in parts.items()],
+            lambda value: duration_text(value),
+        )
     if records:
         body += _model_costs(records)
     return body + "</div></details>"
@@ -407,23 +482,34 @@ def _call_charts(records: list[dict[str, Any]], days: int, tz: ZoneInfo, now: da
             continue
         (succeeded if record["status"] == "success" else failed)[index] += 1
         costs[index] += float(Decimal(record["cost_usd"])) if record["cost_usd"] is not None else 0.0
-    period = "Stunde" if days == 1 else "Tag"
-    body = column_chart("chart-calls", f"KI-Aufrufe je {period}",
-                        f"Erfolgreiche und fehlgeschlagene Aufrufe je {period} im gewählten Zeitraum.", labels,
-                        [("erfolgreich", "chart-ok", succeeded), ("fehlgeschlagen", "chart-failed", failed)], count)
+    period = msg("Stunde") if days == 1 else msg("Tag")
+    body = column_chart(
+        "chart-calls",
+        tr("KI-Aufrufe je {p0}", p0=f"{period}"),
+        tr("Erfolgreiche und fehlgeschlagene Aufrufe je {p0} im gewählten Zeitraum.", p0=period),
+        labels,
+        [('erfolgreich', "chart-ok", succeeded), ('fehlgeschlagen', "chart-failed", failed)],
+        count,
+    )
     average, trend = cost_lines(records, costs, bucket, days)
-    summary = [["Summe", dollars(sum(costs))]]
+    summary = [[msg("Summe"), dollars(sum(costs))]]
     if average is not None:
-        since = "erster erfasster Stunde" if days == 1 else "erstem erfassten Tag"
+        since = msg("erster erfasster Stunde") if days == 1 else msg("erstem erfassten Tag")
         summary.append([f"Durchschnitt (ab {since})", dollars(average)])
     if trend is not None:
         for row in summary:
             row.append("")
-    body += column_chart("chart-costs", f"Gemeldete Cloudkosten je {period}",
-                         f"Vom Anbieter gemeldete Kosten in US-Dollar je {period}; Aufrufe ohne Angabe fehlen.",
-                         labels, [("Kosten", "chart-cost", costs)], dollars,
-                         average=(f"Ø {dollars(average)} je {period}", average) if average is not None else None,
-                         trend=("7-Tage-Mittel", trend) if trend is not None else None, summary=summary)
+    body += column_chart(
+        "chart-costs",
+        tr("Gemeldete Cloudkosten je {p0}", p0=f"{period}"),
+        tr("Vom Anbieter gemeldete Kosten in US-Dollar je {p0}; Aufrufe ohne Angabe fehlen.", p0=f"{period}"),
+        labels,
+        [(msg("Kosten"), "chart-cost", costs)],
+        dollars,
+        average=(f"Ø {dollars(average)} je {period}", average) if average is not None else None,
+        trend=(msg("7-Tage-Mittel"), trend) if trend is not None else None,
+        summary=summary,
+    )
     return body + scatter_chart("chart-durations", records, days, tz, now)
 
 
@@ -435,9 +521,35 @@ def _model_costs(records: list[dict[str, Any]]) -> str:
             by_model[model] = by_model.get(model, 0.0) + float(Decimal(record["cost_usd"]))
     if not by_model:
         return ""
-    return bar_list("chart-models", "Gemeldete Kosten je Modell",
-                    "Summe der gemeldeten Kosten in US-Dollar je Modell, größtes zuerst.",
-                    list(by_model.items()), dollars, css="chart-cost")
+    return bar_list(
+        "chart-models",
+        msg("Gemeldete Kosten je Modell"),
+        msg("Summe der gemeldeten Kosten in US-Dollar je Modell, größtes zuerst."),
+        list(by_model.items()),
+        dollars,
+        css="chart-cost",
+    )
 
 
 __all__ = ["bar_list", "column_chart", "scatter_chart", "statistics_charts", "thin"]
+
+
+def _scatter_rows(labels: list[str], groups: list[list[dict[str, Any]]]) -> list[list[str]]:
+    rows = []
+    for label, group in zip(labels, groups, strict=True):
+        values = [record["duration_ms"] / 1000 for record in group]
+        failures = sum(record["status"] != "success" for record in group)
+        figures = ((_seconds_text(_median(values)), _seconds_text(_quantile(values, 0.95)),
+                    _seconds_text(max(values))) if values else ("—", "—", "—"))
+        rows.append([label, count(len(group)), count(failures), *figures])
+    return rows
+
+
+def _scatter_axis(labels: list[str], slot: float) -> str:
+    svg = ""
+    every = max(1, round(len(labels) / 10))
+    for index, label in enumerate(labels):
+        if index % every == 0:
+            svg += (f'<text class="chart-axis" {AXIS} x="{LEFT + slot * index + slot / 2:.1f}" y="{HEIGHT - 8}" '
+                    f'text-anchor="middle">{e(label)}</text>')
+    return svg

@@ -5,15 +5,16 @@ every rule is managed under ``/einstellungen/absender``. Every change is an idem
 :class:`AdminCommand` executed by the main thread; changes from the rules page are bound to the
 version of the rule file they were made on.
 """
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qs
 
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, RuleChange, SenderChange, file_hash
 from ..domain.relevance import PrefilterHits
-from ..i18n import tr
-from ..mailbox.sender_filter import FREEMAIL, HITS, new_rule, rule_hits, sender_addresses, sender_entry
+from ..i18n import msg, tr
+from ..mailbox.sender_filter import FREEMAIL, HITS, RuleKind, new_rule, rule_hits, sender_addresses, sender_entry
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout
@@ -39,17 +40,18 @@ class SenderSite:
         self.site = site
         site.app.route("GET", OLD_PATH, site.signed_in(lambda request, session: Response.redirect(LIST_PATH)))
         for method, path, handler in (
-                ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-ignorieren", self.ignore),
-                ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-zulassen", self.allow),
-                ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/domain-ignorieren", self.ignore_domain),
-                ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-vip", self.make_vip),
-                ("GET", LIST_PATH, self.list),
-                ("POST", f"{LIST_PATH}/entfernen", self.remove),
-                ("POST", RULE_PATH, self.add_rule),
-                ("POST", rf"{RULE_PATH}/(?P<step>entfernen|enable|disable)", self.change_rule),
-                ("POST", f"{LIST_PATH}/ausnahme-vip", self.promote),
-                ("POST", f"{LIST_PATH}/kopfzeilen", self.header_mode),
-                ("POST", rf"{LIST_PATH}/verteiler/(?P<step>hinzufuegen|entfernen)", self.list_exception)):
+            ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-ignorieren", self.ignore),
+            ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-zulassen", self.allow),
+            ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/domain-ignorieren", self.ignore_domain),
+            ("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/absender-vip", self.make_vip),
+            ("GET", LIST_PATH, self.list),
+            ("POST", '{p0}/entfernen'.format(p0=f'{LIST_PATH}'), self.remove),
+            ("POST", RULE_PATH, self.add_rule),
+            ("POST", tr("{p0}/(?P<step>entfernen|enable|disable)", p0=f"{RULE_PATH}"), self.change_rule),
+            ("POST", '{p0}/ausnahme-vip'.format(p0=f'{LIST_PATH}'), self.promote),
+            ("POST", '{p0}/kopfzeilen'.format(p0=f'{LIST_PATH}'), self.header_mode),
+            ("POST", tr("{p0}/verteiler/(?P<step>hinzufuegen|entfernen)", p0=f"{LIST_PATH}"), self.list_exception),
+        ):
             site.app.route(method, path, site.signed_in(handler))
 
     @property
@@ -73,12 +75,12 @@ class SenderSite:
                                    idempotency_key=form.get("key", ""), expected_hash=stand,
                                    patch=patch, acknowledged=True)
         except ValueError:
-            return self.site._reply(request, 422, tr("Die Aktion ist unvollständig oder ungültig."))
+            return self.site._reply(request, 422, msg("Die Aktion ist unvollständig oder ungültig."))
         return self.site.archive.queue(request, command)
 
     def _unavailable(self, request: Request) -> Response | None:
         if self.configuration is None or self.configuration.senders is None:
-            return self.site._reply(request, 503, tr("Absenderverwaltung nicht verfügbar."))
+            return self.site._reply(request, 503, msg("Absenderverwaltung nicht verfügbar."))
         return None
 
     def _mail_addresses(self, request: Request, mail_id: str) -> list[str] | Response:
@@ -126,8 +128,13 @@ class SenderSite:
 
     def _preview(self, values: dict[str, str]) -> tuple[str, bool]:
         try:
-            rule = new_rule(values.get("art", ""), values.get("wert", ""), values.get("aktion", "ignore"),  # type: ignore[arg-type]
-                            self.site.clock(), mailbox=int(values["postfach"]) if values.get("postfach") else None)
+            rule = new_rule(
+                cast(RuleKind, values.get("art", "")),
+                values.get("wert", ""),
+                values.get("aktion", "ignore"),  # type: ignore[arg-type]
+                self.site.clock(),
+                mailbox=int(values["postfach"]) if values.get("postfach") else None,
+            )
         except (ValueError, KeyError):
             return (tr("Diese Regel ist ungültig. Muster dürfen nur * als Platzhalter enthalten, höchstens dreimal."),
                     False)
@@ -147,7 +154,7 @@ class SenderSite:
         hits = self.site.views.store.peek_model(HITS, PrefilterHits, PrefilterHits())
         page = senders_page(self.configuration.blocked_senders(), hits, self.site.auth.csrf_token(session.id),
                             self._stand(), self.site.configured_timezone, message, kind, values, preview, savable)
-        return Response.html(200, layout(tr("Absender-Regeln"), page, active="/einstellungen"))
+        return Response.html(200, layout(msg("Absender-Regeln"), page, active="/einstellungen"))
 
     def remove(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Remove an entry of the simple lists of schema 2; new entries are rules (7.7.3)."""
@@ -168,7 +175,7 @@ class SenderSite:
         try:
             patch = RuleChange(**fields).model_dump(exclude_none=True)
         except ValueError:
-            return self.site._reply(request, 422, tr("Die Aktion ist unvollständig oder ungültig."))
+            return self.site._reply(request, 422, msg("Die Aktion ist unvollständig oder ungültig."))
         return self._submit(request, session, form, patch, form.get("stand") or None)
 
     def add_rule(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
@@ -188,7 +195,6 @@ class SenderSite:
         return self._rule_command(request, session, form, {
             "rule_action": "promote", "value": form.get("adresse", ""),
             "mailbox_id": int(mailbox) if mailbox.isdigit() else None})
-
 
     def header_mode(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return self._rule_command(request, session, form, {

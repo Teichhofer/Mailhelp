@@ -1,4 +1,5 @@
 """Own-device diagnosis and explicit, versioned profile changes for Web Push."""
+
 from __future__ import annotations
 
 import re
@@ -9,6 +10,7 @@ from urllib.parse import parse_qs
 from ..config import Settings, read_yaml
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..config.notifications import effective_profile
+from ..i18n import msg, tr
 from ..mailbox.mailbox_settings import effective_settings
 from ..runtime.setup import profile_patch
 from .actions import new_key
@@ -16,14 +18,38 @@ from .auth import WebSession
 from .http import Request, Response
 from .pages import e, layout
 
+_CONTROLS_TEXT_1 = msg(
+    '<section class="card"><h2>Benachrichtigungen</h2><div id="push-controls" '
+    'data-csrf="{p0}" data-offered="{p1}"><ol>{p2}</ol><div class="actions">{p3}</div><p '
+    'id="push-status" role="status">{p4}</p>{p5}{p6}<p>{p7} Vorschläge warten schon. <a '
+    'href="/offen">Offen lesen</a></p><noscript>Push aktivieren benötigt JavaScript. Die '
+    'Serverstufen stehen oben.</noscript></div><p><a href="/briefing">Tagesüberblick '
+    "lesen</a></p></section>"
+)
+
+_CONTROLS_TEXT_2 = msg(
+    '<button type="button" class="button primary" id="push-enable">Push '
+    'aktivieren</button><button type="button" class="button" id="push-disable">Push '
+    'deaktivieren</button><button type="button" class="button" id="push-test" '
+    "disabled>Test-Push an dieses Gerät senden</button>"
+)
+
 if TYPE_CHECKING:
     from .experience import ExperienceSite
     from .site import MailhelpSite
 
-SERVER_OFF = 'Web-Push ist am Server ausgeschaltet. Unter Einrichtung einschalten und Mailhelp neu starten.'
-STAGES = ('Server bietet Push an', 'Sichere Verbindung', 'Browser kann Push', 'Berechtigung',
-          'Hintergrunddienst aktiv', 'Abonnement passt zum Server', 'Am Server gespeichert',
-          'Neue Vorschläge werden per Push gemeldet', 'Letzte Zustellung')
+SERVER_OFF = msg("Web-Push ist am Server ausgeschaltet. Unter Einrichtung einschalten und Mailhelp neu starten.")
+STAGES = (
+    msg("Server bietet Push an"),
+    msg("Sichere Verbindung"),
+    msg("Browser kann Push"),
+    msg("Berechtigung"),
+    msg("Hintergrunddienst aktiv"),
+    msg("Abonnement passt zum Server"),
+    msg("Am Server gespeichert"),
+    msg("Neue Vorschläge werden per Push gemeldet"),
+    msg("Letzte Zustellung"),
+)
 
 
 class PushSite:
@@ -64,11 +90,20 @@ class PushSite:
         push = self.feature.push
         if push is None:
             return ()
-        return tuple(text for condition, text in (
-            (push.subject == 'mailto:admin@example.invalid',
-             'Web-Push: VAPID-Absender ist ein Beispielwert. Kontaktadresse unter Einrichtung eintragen.'),
-            (push.key_changed, 'Web-Push: Serverschlüssel wurde geändert. Geräte müssen neu aktiviert werden.'))
-            if condition)
+        return tuple(
+            text
+            for condition, text in (
+                (
+                    push.subject == "mailto:admin@example.invalid",
+                    msg("Web-Push: VAPID-Absender ist ein Beispielwert. Kontaktadresse unter Einrichtung eintragen."),
+                ),
+                (
+                    push.key_changed,
+                    msg("Web-Push: Serverschlüssel wurde geändert. Geräte müssen neu aktiviert werden."),
+                ),
+            )
+            if condition
+        )
 
     def controls(self, csrf: str, actor: str | None) -> str:
         state = self.snapshot(actor)
@@ -76,7 +111,7 @@ class PushSite:
         channels = all(p['decisions'] for p in state['profiles'])
         rows = []
         for number, title in enumerate(STAGES, 1):
-            value = 'noch nicht geprüft'
+            value = msg("noch nicht geprüft")
             if number == 1:
                 value = '✓' if state['offered'] else '✗'
             if number == 7:
@@ -84,35 +119,49 @@ class PushSite:
             if number == 8:
                 value = '✓' if channels else '✗'
             if number == 9:
-                value = {'accepted': 'Zuletzt an den Anbieter übergeben',
-                         'provider_rejected': 'Vom Anbieter abgelehnt – neu aktivieren.',
-                         'expired': 'Abonnement abgelaufen – neu aktivieren.'}.get(
-                             device['last_code'], 'noch nicht geprüft')
+                value = {
+                    "accepted": msg("Zuletzt an den Anbieter übergeben"),
+                    "provider_rejected": msg("Vom Anbieter abgelehnt – neu aktivieren."),
+                    "expired": msg("Abonnement abgelaufen – neu aktivieren."),
+                }.get(device["last_code"], msg("noch nicht geprüft"))
             rows.append(f'<li data-push-stage="{number}">{title}: <span>{e(value)}</span></li>')
         actions = ''
-        if state['offered']:
-            actions = ('<button type="button" class="button primary" id="push-enable">Push aktivieren</button>'
-                       '<button type="button" class="button" id="push-disable">Push deaktivieren</button>'
-                       '<button type="button" class="button" id="push-test" disabled>'
-                       'Test-Push an dieses Gerät senden</button>')
-        message = ('Push-Zustand wird geprüft.' if state['offered'] else SERVER_OFF)
-        links = '<a class="button" href="/einrichtung">Einrichtung öffnen</a>'
-        if state['offered'] and device['registered'] and not channels:
-            message = 'Neue Vorschläge werden nicht per Push gemeldet.'
-            links += ' <a class="button" href="/push/kanaele">Web-Push für neue Vorschläge einschalten</a>'
-        for profile in state['profiles']:
-            if not profile['decisions']:
-                links += (f'<p>{e(profile["label"])}: Neue Vorschläge werden nicht per Push gemeldet. '
-                          f'<a href="/push/kanaele?postfach={profile["mailbox"]}">Web-Push einschalten</a></p>')
-        warning = ('<p class="notice warn">VAPID-Absender ist ein Beispielwert. '
-                   'Eine gültige Kontaktadresse unter Einrichtung eintragen.</p>' if state['subject_example'] else '')
-        return ('<section class="card"><h2>Benachrichtigungen</h2>'
-                f'<div id="push-controls" data-csrf="{e(csrf)}" data-offered="{str(state["offered"]).lower()}">'
-                f'<ol>{"".join(rows)}</ol><div class="actions">{actions}</div>'
-                f'<p id="push-status" role="status">{e(message)}</p>{links}{warning}'
-                f'<p>{state["waiting"]} Vorschläge warten schon. <a href="/offen">Offen lesen</a></p>'
-                '<noscript>Push aktivieren benötigt JavaScript. Die Serverstufen stehen oben.</noscript>'
-                '</div><p><a href="/briefing">Tagesüberblick lesen</a></p></section>')
+        if state["offered"]:
+            actions = tr(_CONTROLS_TEXT_2)
+        message = msg("Push-Zustand wird geprüft.") if state["offered"] else SERVER_OFF
+        links = tr('<a class="button" href="/einrichtung">Einrichtung öffnen</a>')
+        if state["offered"] and device["registered"] and not channels:
+            message = msg("Neue Vorschläge werden nicht per Push gemeldet.")
+            links += tr(' <a class="button" href="/push/kanaele">Web-Push für neue Vorschläge einschalten</a>')
+        for profile in state["profiles"]:
+            if not profile["decisions"]:
+                links += tr(
+                    (
+                        "<p>{p0}: Neue Vorschläge werden nicht per Push gemeldet. <a "
+                        'href="/push/kanaele?postfach={p1}">Web-Push einschalten</a></p>'
+                    ),
+                    p0=e(profile["label"]),
+                    p1=profile["mailbox"],
+                )
+        warning = (
+            tr(
+                '<p class="notice warn">VAPID-Absender ist ein Beispielwert. Eine '
+                "gültige Kontaktadresse unter Einrichtung eintragen.</p>"
+            )
+            if state["subject_example"]
+            else ""
+        )
+        return tr(
+            (_CONTROLS_TEXT_1),
+            p0=e(csrf),
+            p1=str(state["offered"]).lower(),
+            p2="".join(rows),
+            p3=actions,
+            p4=e(message),
+            p5=links,
+            p6=warning,
+            p7=state["waiting"],
+        )
 
     def _channel_command(self, session: WebSession, fields: dict[str, str]) -> tuple[AdminCommand, dict[str, Any]]:
         configuration = self.site.archive.configuration
@@ -153,20 +202,39 @@ class PushSite:
         try:
             command, before = self._channel_command(session, fields)
         except (ValueError, StopIteration, LookupError, OSError):
-            return Response.text(422, 'Profil nicht verfügbar; Einstellungen prüfen.')
+            return Response.text(422, msg("Profil nicht verfügbar; Einstellungen prüfen."))
         hidden = {'csrf': self.site.auth.csrf_token(session.id), 'key': command.idempotency_key,
                   'expected_hash': command.expected_hash, 'postfach': fields.get('postfach', '0'), 'confirm': 'yes'}
-        details = ''.join(f'<li>{e(category)}: bisher {e(before[category])}; '
-                          f'neu {e(list(dict.fromkeys(before[category] + ["web_push"])))}</li>'
-                          for category in ('decisions', 'daily_briefing'))
+        details = "".join(
+            tr(
+                "<li>{p0}: bisher {p1}; neu {p2}</li>",
+                p0=e(category),
+                p1=e(before[category]),
+                p2=e(list(dict.fromkeys(before[category] + ["web_push"]))),
+            )
+            for category in ("decisions", "daily_briefing")
+        )
         inputs = ''.join(f'<input type="hidden" name="{name}" value="{e(value)}">'
                          for name, value in hidden.items())
-        return Response.html(200, layout('Web-Push bestätigen', '<h1>Web-Push für neue Vorschläge einschalten</h1>'
-            '<p>Entscheidungen und Tagesüberblick zusätzlich per Web-Push melden. '
-            'Bisherige Kanäle bleiben erhalten.</p>'
-            f'<ul>{details}</ul><form method="post" action="/push/kanaele">{inputs}'
-            '<button type="submit" class="button primary">Änderung bestätigen</button></form>'
-            '<a href="/einstellungen?bereich=benachrichtigungen">Abbrechen</a>'))
+        return Response.html(
+            200,
+            layout(
+                tr("Web-Push bestätigen"),
+                tr(
+                    (
+                        "<h1>Web-Push für neue Vorschläge "
+                        "einschalten</h1><p>Entscheidungen und Tagesüberblick zusätzlich "
+                        "per Web-Push melden. Bisherige Kanäle bleiben "
+                        'erhalten.</p><ul>{p0}</ul><form method="post" '
+                        'action="/push/kanaele">{p1}<button type="submit" class="button '
+                        'primary">Änderung bestätigen</button></form><a '
+                        'href="/einstellungen?bereich=benachrichtigungen">Abbrechen</a>'
+                    ),
+                    p0=details,
+                    p1=inputs,
+                ),
+            ),
+        )
 
     def apply_channels(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:
@@ -174,9 +242,9 @@ class PushSite:
                 raise ValueError('Bestätigung fehlt')
             command, _ = self._channel_command(session, form)
         except ConfigurationConflict:
-            return Response.text(409, 'Einstellungen geändert; Vorschau erneut öffnen.')
+            return Response.text(409, msg("Einstellungen geändert; Vorschau erneut öffnen."))
         except (ValueError, StopIteration, LookupError, OSError):
-            return Response.text(422, 'Änderung nicht bestätigt oder Profil nicht verfügbar.')
+            return Response.text(422, msg("Änderung nicht bestätigt oder Profil nicht verfügbar."))
         return self.site.archive.queue(request, command)
 
     def test(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:

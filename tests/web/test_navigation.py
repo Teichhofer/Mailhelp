@@ -16,7 +16,9 @@ def test_the_phone_bar_holds_four_routes_and_the_rest_under_more():
     assert 'aria-label="Schnellnavigation"' in tabs
     menu = tabs[tabs.index('<details class="tab-more">'):]
     assert re.findall(r'href="([^"]+)"', tabs[:tabs.index('<details')]) == list(TAB_BAR)
-    assert re.findall(r'href="([^"]+)"', menu) == [href for href, _ in NAVIGATION if href not in TAB_BAR]
+    # 7.8: the language switch is the last entry under "Mehr", so phones reach it, too.
+    assert re.findall(r'href="([^"]+)"', menu) == [href for href, _ in NAVIGATION if href not in TAB_BAR] + [
+        "/sprache?wert=en"]
     assert '<summary>' in menu and '<span class="nav-label">Mehr</span>' in menu
     assert html.count('aria-current="page"') == 2  # sidebar and phone bar
     # Without open decisions there is neither a count nor a description.

@@ -1,0 +1,141 @@
+{
+  "action_route": null,
+  "action_router_call_id": null,
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "2dd75913b455ed71b35c2ee1b61c5703bdd2ce89915d7bdecbf85e4930483c1a",
+  "created_at": "2026-11-17T21:39:39.985101Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Public updates <news@social.example>",
+    "subject": "New activity on your social feed"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": null,
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "1be3412835d40d2687655ecc",
+  "imap": {
+    "account_id": "7dd71995bcad890030cfa19b",
+    "folder": "INBOX",
+    "uid": 13,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "list_signals": {
+    "auto_submitted": "",
+    "list_id": "",
+    "list_unsubscribe": false,
+    "precedence": ""
+  },
+  "llm_call_ids": [
+    "d2caf8c6-bee8-4624-a9be-42e087a6e257"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Fri, 13 Nov 2026 09:17:00 +0100",
+    "date_header_parsed": "2026-11-13T09:17:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Fri, 13 Nov 2026 09:17:00 +0100",
+      "from": "Public updates <news@social.example>",
+      "in_reply_to": "",
+      "message_id": "<17-social@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "New activity on your social feed"
+    },
+    "imap_received_at": "2026-11-13T09:17:00+01:00",
+    "internal_id": "1be3412835d40d2687655ecc",
+    "message_ids": [
+      "<17-social@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "There are new public posts to discover. This is an automatic platform notification.",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [],
+  "prefilter_rule": null,
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "f6f4ea4858c60f0354d93b265f98174045db84390dccdd4dbb6b3abbee7ffe9c",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "google_tasks_list": "@default",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [],
+  "relevance": {
+    "decision": "irrelevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": []
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "skipped",
+    "action_router": "skipped",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "skipped",
+    "event_extraction": "skipped",
+    "normalization": "skipped",
+    "preparation": "completed",
+    "proposal_building": "skipped",
+    "proposal_notification": "skipped",
+    "relevance": "completed",
+    "summary": "skipped",
+    "summary_notification": "skipped",
+    "task_extraction": "skipped"
+  },
+  "summary": null,
+  "task_extraction": null,
+  "updated_at": "2026-11-17T21:39:40.232360Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

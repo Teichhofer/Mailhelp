@@ -6,6 +6,7 @@ import json
 import secrets
 from typing import Any
 
+from ..i18n import msg, tr
 from ..runtime.learning_jobs import LearningConflict, LearningSelection
 from .http import Response
 from .labels import count_text
@@ -13,14 +14,36 @@ from .learning_pages import heading
 from .learning_setup import setup_form
 from .pages import e, layout, notice
 
+_REVIEW_TEXT_1 = msg(
+    '<input type="hidden" name="name" value="{p0}"><label><input type="checkbox" '
+    'name="selected"{p1}>{p2}</label><button class="button">Ordnerauswahl '
+    "speichern</button>"
+)
+
+_REVIEW_TEXT_2 = msg(
+    "<p>Alle gespeicherten Auswahlen gemeinsam übernehmen?</p><button "
+    'class="button">Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen</button>'
+)
+
+_REVIEW_TEXT_3 = msg(
+    '<h3>{p0}</h3><input type="hidden" name="index" value="{p1}"><label>Titel<input '
+    'name="name" value="{p2}" required></label><label '
+    'for="learning-description-{p3}">Beschreibung</label><textarea '
+    'id="learning-description-{p4}" name="description" required>{p5}</textarea><label '
+    'for="learning-kind-{p6}">Übernahme</label><select id="learning-kind-{p7}" '
+    'name="kind">{p8}</select><label><input type="checkbox" name="global"{p9}>Für alle '
+    'Postfächer</label><label><input type="checkbox" name="block_senders"{p10}>Absender '
+    "bei Ausschlussthema ignorieren</label><ul>"
+)
+
 LABELS = {
-    "empty": "Bereit",
-    "running": "Läuft",
-    "paused": "Pausiert",
-    "cancelled": "Abgebrochen",
-    "review": "Ergebnisse prüfen",
-    "committing": "Übernahme wird abgeschlossen",
-    "done": "Übernommen",
+    "empty": msg("Bereit"),
+    "running": msg("Läuft"),
+    "paused": msg("Pausiert"),
+    "cancelled": msg("Abgebrochen"),
+    "review": msg("Ergebnisse prüfen"),
+    "committing": msg("Übernahme wird abgeschlossen"),
+    "done": msg("Übernommen"),
 }
 
 
@@ -44,37 +67,56 @@ class LearningSite:
 
     def home(self, request: Any, session: Any) -> Response:
         state = self.jobs.state()
-        content = (
-            heading("Aus dem Postfach lernen", "Entdecke neue Themen in vorhandenen Mails. "
-                    "Prüfe erst Auswahl und Kosten, dann gib den lesenden Lauf ausdrücklich frei.")
-            + f'<p role="status">{e(LABELS[state.status])}: {count_text(state.cursor, "Mail", "Mails")} geprüft, '
-            f'{state.failures} Fehler.</p>'
+        content = heading(
+            msg("Aus dem Postfach lernen"),
+            msg(
+                
+                    "Entdecke neue Themen in vorhandenen Mails. Prüfe erst Auswahl und Kosten, "
+                    "dann gib den lesenden Lauf ausdrücklich frei."
+                
+            ),
+        ) + tr(
+            '<p role="status">{p0}: {p1} geprüft, {p2} Fehler.</p>',
+            p0=e(LABELS[state.status]),
+            p1=count_text(state.cursor, "Mail", "Mails"),
+            p2=state.failures,
         )
         content += notice(state.message) if state.message else ""
         stale = self.jobs.stale(state)
         if stale:
-            content += notice("Die Konfiguration wurde seit dem Start geändert. Dieser Lauf kann nicht fortgesetzt "
-                              "werden; ein neuer Lernlauf ersetzt ihn.", "warn")
+            content += notice(
+                tr(
+                    "Die Konfiguration wurde seit dem Start geändert. Dieser Lauf "
+                    "kann nicht fortgesetzt werden; ein neuer Lernlauf ersetzt ihn."
+                ),
+                "warn",
+            )
         if state.status in {"empty", "done", "cancelled", "review"} or stale:
             content += self.start_form(request, session, state)
         actions = {
-            "running": (("pause", "Pausieren"), ("cancel", "Abbrechen")),
-            "paused": ((("cancel", "Abbrechen"),) if stale else (("resume", "Fortsetzen"), ("cancel", "Abbrechen"))),
-            "review": (("cancel", "Verwerfen"),),
+            "running": (("pause", msg("Pausieren")), ("cancel", "Abbrechen")),
+            "paused": (
+                (("cancel", "Abbrechen"),) if stale else (("resume", msg("Fortsetzen")), ("cancel", "Abbrechen"))
+            ),
+            "review": (("cancel", msg("Verwerfen")),),
         }.get(state.status, ())
         for action, label in actions:
             content += self.form(session, state, action, f'<button class="button">{label}</button>')
         if state.selection is not None:
             cost = state.reserved_tokens * state.selection.usd_per_million_tokens / 1000000
-            content += f"<p>Reserviert: {state.reserved_tokens} Tokens, {cost:.6f} USD des gewählten Budgets.</p>"
+            content += tr(
+                "<p>Reserviert: {p0} Tokens, {p1} USD des gewählten Budgets.</p>",
+                p0=state.reserved_tokens,
+                p1=f"{cost:.6f}",
+            )
         if state.status == "review":
             content += self.review(session, state)
         if state.status == "done":
-            content += '<p><a class="button" href="/dienst/neu-laden">Konfiguration neu laden</a></p>'
+            content += tr('<p><a class="button" href="/dienst/neu-laden">Konfiguration neu laden</a></p>')
         return Response.html(
             200,
             layout(
-                "Lernmodus",
+                msg("Lernmodus"),
                 content,
                 active="/lernen",
                 refresh=3 if state.status == "running" else None,
@@ -99,75 +141,105 @@ class LearningSite:
                     raise ValueError("Postfach nicht verfügbar")
                 tokens, ceiling = self.worker.estimate(selection), self.worker.maximum(selection)
                 price = selection.usd_per_million_tokens / 1000000
-                content += (
-                    f"<p>Auswahl: Postfach {selection.mailbox}, {selection.count} Mails, "
-                    f"Ordner {e(', '.join(selection.folders))}.</p>"
-                    f"<p>Typische Schätzung: {tokens} Tokens, etwa {tokens * price:.6f} USD zur Preisannahme. "
-                    f"Ungünstigster Fall (jede Mail an der Größengrenze, alle Wiederholungen): {ceiling} Tokens, "
-                    f"{ceiling * price:.6f} USD. Das Budget wird vor jedem Aufruf geprüft; der Lauf hält an, "
-                    "bevor es überschritten würde.</p>"
+                content += tr(
+                    (
+                        "<p>Auswahl: Postfach {p0}, {p1} Mails, Ordner "
+                        "{p2}.</p><p>Typische Schätzung: {p3} Tokens, etwa {p4} USD zur "
+                        "Preisannahme. Ungünstigster Fall (jede Mail an der Größengrenze, "
+                        "alle Wiederholungen): {p5} Tokens, {p6} USD. Das Budget wird vor "
+                        "jedem Aufruf geprüft; der Lauf hält an, bevor es überschritten "
+                        "würde.</p>"
+                    ),
+                    p0=selection.mailbox,
+                    p1=selection.count,
+                    p2=e(", ".join(selection.folders)),
+                    p3=tokens,
+                    p4=f"{tokens * price:.6f}",
+                    p5=ceiling,
+                    p6=f"{ceiling * price:.6f}",
                 )
                 if tokens * price > selection.budget_usd:
                     # The start would be refused; say what is needed instead of offering the button.
-                    content += notice(f"Das Budget reicht für die typische Schätzung nicht aus. Bitte mindestens "
-                                      f"{tokens * price:.6f} USD angeben.", "error")
+                    content += notice(
+                        tr(
+                            (
+                                "Das Budget reicht für die typische Schätzung nicht aus. Bitte "
+                                "mindestens {p0} USD angeben."
+                            ),
+                            p0=f"{tokens * price:.6f}",
+                        ),
+                        "error",
+                    )
                 else:
                     content += self.form(
                         session,
                         state,
                         "start",
-                        f'<input type="hidden" name="selection" value="{e(selection.model_dump_json())}">'
-                        '<button class="button">Lesenden Lernlauf kostenpflichtig starten</button>',
+                        tr(
+                            (
+                                '<input type="hidden" name="selection" value="{p0}"><button '
+                                'class="button">Lesenden Lernlauf kostenpflichtig starten</button>'
+                            ),
+                            p0=f"{e(selection.model_dump_json())}",
+                        ),
                     )
             except (ValueError, KeyError):
-                content += notice("Angaben für die Schätzung prüfen.", "error")
+                content += notice(tr("Angaben für die Schätzung prüfen."), "error")
         return content
 
     def review(self, session: Any, state: Any) -> str:
-        content = "<h2>Themen, Ausschlüsse und Belege</h2>"
+        content = tr("<h2>Themen, Ausschlüsse und Belege</h2>")
         for index, card in enumerate(state.cards):
             choice = state.choices.get(str(index), {})
             kind = choice.get("kind", "skip")
             options = "".join(
                 f'<option value="{value}"{" selected" if kind == value else ""}>{label}</option>'
                 for value, label in (
-                    ("skip", "Nicht übernehmen"),
-                    ("relevant", "Thema"),
-                    ("irrelevant", "Ausschlussthema"),
+                    ("skip", msg("Nicht übernehmen")),
+                    ("relevant", msg("Thema")),
+                    ("irrelevant", msg("Ausschlussthema")),
                 )
             )
             body = (
-                f'<h3>{e(card.category.name)}</h3><input type="hidden" name="index" value="{index}">'
-                f'<label>Titel<input name="name" value="{e(choice.get("name", card.category.name))}" required></label>'
-                f'<label for="learning-description-{index}">Beschreibung</label>'
-                f'<textarea id="learning-description-{index}" name="description" required>'
-                f"{e(choice.get('description', card.category.description))}</textarea>"
-                f'<label for="learning-kind-{index}">Übernahme</label>'
-                f'<select id="learning-kind-{index}" name="kind">{options}</select>'
-                f'<label><input type="checkbox" name="global"{" checked" if choice.get("global") else ""}>'
-                'Für alle Postfächer</label><label><input type="checkbox" name="block_senders"'
-                f"{' checked' if choice.get('block_senders') else ''}>Absender bei Ausschlussthema ignorieren</label>"
-                "<ul>" + "".join(f"<li>{e(item)}</li>" for item in card.evidence) + "</ul>"
-                f'<p>Absender: {e(", ".join(card.senders))}</p>'
-                '<button class="button">Auswahl als Entwurf speichern</button>'
+                tr(
+                    (_REVIEW_TEXT_3),
+                    p0=e(card.category.name),
+                    p1=index,
+                    p2=e(choice.get("name", card.category.name)),
+                    p3=index,
+                    p4=index,
+                    p5=e(choice.get("description", card.category.description)),
+                    p6=index,
+                    p7=index,
+                    p8=options,
+                    p9=" checked" if choice.get("global") else "",
+                    p10=" checked" if choice.get("block_senders") else "",
+                )
+                + "".join(f"<li>{e(item)}</li>" for item in card.evidence)
+                + tr(
+                    ('</ul><p>Absender: {p0}</p><button class="button">Auswahl als Entwurf speichern</button>'),
+                    p0=e(", ".join(card.senders)),
+                )
             )
             content += '<section class="card">' + self.form(session, state, "edit", body) + "</section>"
-        content += "<h2>Zusätzliche Abrufordner</h2>"
+        content += tr("<h2>Zusätzliche Abrufordner</h2>")
         for name, selected in state.folders.items():
             content += self.form(
                 session,
                 state,
                 "folder",
-                f'<input type="hidden" name="name" value="{e(name)}">'
-                f'<label><input type="checkbox" name="selected"{" checked" if selected else ""}>{e(name)}</label>'
-                '<button class="button">Ordnerauswahl speichern</button>',
+                tr(
+                    (_REVIEW_TEXT_1),
+                    p0=e(name),
+                    p1=" checked" if selected else "",
+                    p2=e(name),
+                ),
             )
         return content + self.form(
             session,
             state,
             "apply",
-            "<p>Alle gespeicherten Auswahlen gemeinsam übernehmen?</p>"
-            '<button class="button">Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen</button>',
+            tr(_REVIEW_TEXT_2),
         )
 
     def status(self, request: Any, session: Any) -> Response:
@@ -196,14 +268,16 @@ class LearningSite:
             # The reason is one of Mailhelp's own fixed texts, never mail content.
             return self._rejected(type(exc).__name__, str(exc))
         except (ValueError, KeyError, TypeError) as exc:
-            return self._rejected(type(exc).__name__, "Auswahl ungültig oder inzwischen geändert.")
+            return self._rejected(type(exc).__name__, msg("Auswahl ungültig oder inzwischen geändert."))
         return Response.redirect("/lernen/postfach")
 
     def _rejected(self, error_class: str, reason: str) -> Response:
         self.site.logger.event("WARNING", "learning", "action_rejected", error_class=error_class, reason=reason)
         return Response.html(
             409,
-            layout("Lernstand prüfen",
-                   notice(reason, "error") + '<p><a href="/lernen/postfach">Lernlauf neu laden</a></p>',
-                   active="/lernen"),
+            layout(
+                tr("Lernstand prüfen"),
+                notice(reason, "error") + tr('<p><a href="/lernen/postfach">Lernlauf neu laden</a></p>'),
+                active="/lernen",
+            ),
         )

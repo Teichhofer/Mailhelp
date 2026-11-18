@@ -31,3 +31,18 @@ def test_language623_core_pages_show_no_internal_values(page, mailhelp):
 
 def test_language623_the_check_finds_what_it_looks_for():
     assert findings("2026-11-13T09:48:58Z · rejected · Verworfen") == ["2026-11-13T09:48", "rejected"]
+
+
+def test78_old_pages_without_a_message_dictionary_keep_the_german_fallback(page, mailhelp):
+    if page.device != "desktop":
+        return
+    sign_in(page, mailhelp)
+    def old_page(route):
+        response = route.fetch()
+        body = re.sub(r' data-ui-texts="[^"]*"', '', response.text())
+        route.fulfill(response=response, body=body)
+    page.page.route(mailhelp.url + "/status", old_page, times=1)
+    page.goto(mailhelp.url + "/status")
+    assert page.evaluate("document.body.dataset.uiTexts") is None
+    assert page.evaluate("mailhelpText('● Verbunden')") == "● Verbunden"
+    assert page.errors == []

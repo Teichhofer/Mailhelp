@@ -87,6 +87,36 @@ von Tokens und Euro der echten Relevanzaufrufe des Zeitraums (Cloud über `usd_p
 Laufzeit, Leistung und Strompreis) mal vermiedene Aufrufe – ohne Vergleichsaufrufe „nicht schätzbar“ –,
 die fünf Regeln mit den meisten Treffern und Regeln, die älter als 90 Tage sind und seitdem nicht trafen.
 
+## Ergänzung 7.8: Sprachvertrag und Demo-Bestände
+
+Die Oberflächensprache gilt pro Anfrage und wird auch bei Fehlern zurückgesetzt. Native Einstiege
+`/de/` und `/en/` setzen einen hostgebundenen Sprachcookie (ein Jahr, Path `/`, SameSite=Lax,
+Secure bei HTTPS). Der Cookie hat Vorrang vor gewichteten Browserangaben; `q=0` wird ausgelassen.
+Ohne passende Wahl gilt die konfigurierte Sprache. `--language de|en` gilt bereits für CLI-Hilfe
+und Argumentfehler, ohne hierfür Konfiguration oder externe Dienste aufzubauen.
+
+Die unveränderlichen Demo-Bestände `standard-v1` und `standard-en-v1` werden vor Verwendung anhand
+von Manifest, vollständiger Dateimenge und SHA-256 geprüft. Schema 2 prüft zusätzlich Herkunft,
+Originalmail-Zuordnung und Vorschlagsreferenzen. Englisch enthält zehn relevante und zwanzig
+irrelevante Mails mit sechs Terminen und fünf Aufgaben ohne Rückfragen. Die englischen Originale
+durchlaufen bei der Entwicklung denselben Verarbeitungspfad; der laufende Demodienst nutzt keine KI.
+
+Besucherindex-Schema 2 hält Sprache, Bestands-ID, Revision, Generation, Referenzzeit und Zeitzone.
+Der Übergang von Schema 1 sichert den ursprünglichen Index und erhält Bereiche und Entscheidungen.
+Manifest und vorbereitete Antworten liegen zusätzlich im jeweiligen Bereich. Der UI-Sprachwechsel
+verändert diese Zuordnung nicht. Ein bestätigter Reset bindet Schlüssel, Sitzung, Zielbestand und
+Quellgeneration, bereitet die vollständige Kopie vor und aktiviert sie atomar über den Index.
+Kopierfehler erhalten die alte Generation; alte Formulare und wartende Aktionen werden verworfen.
+Worker, Start, Reset und Bereinigung verwenden dieselbe Lebenszyklussperre. Statische Ressourcen
+werden im Prozess geteilt; Zustände und Aktionen bleiben besucherspezifisch. Sicherheitsfristen
+verwenden Echtzeit, die vorbereiteten fachlichen Daten die festgehaltene Referenzzeit.
+
+Die sieben englischen Hilfequellen besitzen dieselben kanonischen Abschnitts-IDs. Suche, Caches,
+Chatverlauf und Worker-Aufträge sind sprachbezogen. Die Anwendung gibt die Antwortsprache als
+kontrolliertes Feld an den `settings_help`-Prompt; Sprachwechsel umgehen keine Ratenbegrenzung.
+PWA-Manifeste und Offline-Seiten sind zweisprachig; neutrale Push-Texte folgen der zuletzt auf dem
+Gerät gewählten Sprache. Offline-Schreibaufträge werden weiterhin nicht gespeichert oder wiederholt.
+
 ## Ergänzung 7.5: Mehrsprachigkeit
 
 Plan: [docs/Planung-7.5.md](docs/Planung-7.5.md). Seit 7.5.1 übersetzt `mailhelp.i18n.tr()` Texte der

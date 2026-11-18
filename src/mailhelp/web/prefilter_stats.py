@@ -4,6 +4,7 @@ The saving is always an estimate: the median tokens and costs of the real releva
 same period, per provider, times the avoided calls. Without real calls to compare with the page
 says so instead of showing zero.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -13,7 +14,7 @@ from typing import Any
 
 from ..domain.mail import MailState
 from ..domain.relevance import IrrelevantSenders, PrefilterHits, RuleHits, SenderRule
-from ..i18n import tr
+from ..i18n import msg, tr
 from ..mailbox.sender_filter import AUTOMATED, LISTS
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.perspective import SELF_NOTE_REASON
@@ -21,11 +22,20 @@ from ..state_names import MAIL_PREFIX, is_mail_state
 from .pages import e
 
 CATEGORIES = {
-    "vip": "VIP-Absender", "rule": "Sperrregel", "header": "Kopfzeilen-Vorfilter", "briefing": "Eigenes Briefing",
-    "iserv": "IServ-Konto", "no_topic": "Postfach ohne Thema", "self_mail": "Eigene Notiz",
+    "vip": msg("VIP-Absender"),
+    "rule": msg("Sperrregel"),
+    "header": msg("Kopfzeilen-Vorfilter"),
+    "briefing": msg("Eigenes Briefing"),
+    "iserv": msg("IServ-Konto"),
+    "no_topic": msg("Postfach ohne Thema"),
+    "self_mail": msg("Eigene Notiz"),
 }
-REASONS = {"Eigenes Postfach-Briefing": "briefing", "IServ-Elternbrief: immer relevant": "iserv",
-           "Kein relevantes Thema für dieses Postfach": "no_topic", SELF_NOTE_REASON: "self_mail"}
+REASONS = {
+    "Eigenes Postfach-Briefing": 'briefing',
+    "IServ-Elternbrief: immer relevant": 'iserv',
+    "Kein relevantes Thema für dieses Postfach": 'no_topic',
+    SELF_NOTE_REASON: 'self_mail',
+}
 # Rules without a hit for this long are offered for tidying up.
 STALE_DAYS = 90
 
@@ -76,7 +86,7 @@ def _rule_label(blocked: IrrelevantSenders, rule_id: str) -> str:
         return rule.value
     legacy = {SenderRule.identity("address", value, None): value for value in blocked.addresses}
     legacy |= {SenderRule.identity("domain", value, None): value for value in blocked.domains}
-    names = {AUTOMATED: tr("Automatische Systemmails"), LISTS: tr("Newsletter und Verteiler")}
+    names = {AUTOMATED: msg("Automatische Systemmails"), LISTS: msg("Newsletter und Verteiler")}
     return legacy.get(rule_id) or names.get(rule_id) or rule_id
 
 

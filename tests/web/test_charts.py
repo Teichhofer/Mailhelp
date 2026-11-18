@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from mailhelp.i18n import Locale, stored, use_locale
 from mailhelp.web.archive_pages import statistics_page
 from mailhelp.web.charts import _number, _scale, bar_list, column_chart, count, statistics_charts
 
@@ -52,6 +53,14 @@ def test_last_day_is_shown_per_hour_and_older_records_are_left_out():
     assert "KI-Aufrufe je Stunde" in html and "<td>14 Uhr</td><td>1</td><td>0</td>" in html
     assert "<td>13 Uhr</td><td>0</td><td>1</td>" in html
     assert html.count("<tr><td>") >= 24 + 24 + len(("< 1 s", "1–2 s"))
+
+
+def test_english_hours_are_plain_and_add_no_template_for_stored_texts():
+    with use_locale(Locale.EN):
+        html = statistics_charts([record(0.2)], 1, "Europe/Berlin", NOW)
+        assert "<td>14</td><td>1</td><td>0</td>" in html and " Uhr" not in html
+        # 7.8.1 regression: a catalogue entry "{p0} Uhr" swallowed the final "Uhr" of a stored text.
+        assert stored("Beginn 11.12.2026 18:00 Uhr") == "Beginn Dec 11, 2026, 18:00"
 
 
 def test_period_is_shown_per_day_with_costs_durations_steps_and_models():

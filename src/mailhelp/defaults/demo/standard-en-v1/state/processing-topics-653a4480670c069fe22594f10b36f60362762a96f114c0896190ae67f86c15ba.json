@@ -1,0 +1,59 @@
+{
+  "policy": "3c1fa8b3afd7cd7e3d42ed6ddd0ad99e17b0c483f3dd4bbc150984958525f758",
+  "schema_version": 1,
+  "topics": [
+    {
+      "description": "Messages from Maple Park Elementary School and Mia's class teacher or school office.",
+      "enabled": true,
+      "examples": [
+        "Parent meeting",
+        "Consent form",
+        "School trip",
+        "School information"
+      ],
+      "exclusions": [],
+      "id": "school",
+      "mailboxes": null,
+      "name": "School and class 4B"
+    },
+    {
+      "description": "Messages from Oakville Sports Club and its youth section.",
+      "enabled": true,
+      "examples": [
+        "Training",
+        "Workshop",
+        "Bring materials"
+      ],
+      "exclusions": [
+        "Third-party advertising"
+      ],
+      "id": "sports",
+      "mailboxes": null,
+      "name": "Oakville Sports Club"
+    },
+    {
+      "description": "Oakville Music School messages about Mia's violin lessons.",
+      "enabled": true,
+      "examples": [
+        "Recital",
+        "Lesson"
+      ],
+      "exclusions": [],
+      "id": "music",
+      "mailboxes": null,
+      "name": "Music school"
+    },
+    {
+      "description": "Messages from the Maple Park PTA about volunteering and school events.",
+      "enabled": true,
+      "examples": [
+        "Winter fair",
+        "Cake donation"
+      ],
+      "exclusions": [],
+      "id": "pta",
+      "mailboxes": null,
+      "name": "PTA and school events"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "human_decision": null,
+  "mail_id": "bd0a75f186cd9034726d0b92",
+  "recorded_at": "2026-11-17T21:39:36.452962+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "2026-11-25"
+    ],
+    "sentences": [
+      "The school office asks parents of class 4B to transfer EUR 12 for their child's planetarium admission by 2026-11-25. The payment has not yet been made and should go to the class account with Planetarium and the child's name as reference."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

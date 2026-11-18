@@ -1,0 +1,26 @@
+{
+  "human_decision": null,
+  "mail_id": "9403fc4583a39f092914580c",
+  "recorded_at": "2026-11-17T21:39:53.330360+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "sports"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Tom Walker informs parents that the new youth team jerseys have arrived and will be handed out at the next regular training session, with no payment or action required from parents."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

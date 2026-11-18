@@ -1,0 +1,333 @@
+{
+  "action_route": {
+    "action_state": "event",
+    "event_count": 1,
+    "reason": "The current message announces a specific parent meeting for class 4B on 2026-11-26, 19:30–21:00 in Room 12, so it is one event candidate. It contains no explicit request for a reply, RSVP, preparation, or other action.",
+    "reply_needed": false,
+    "reply_reason": null,
+    "task_count": 0
+  },
+  "action_router_call_id": "70919748-50cc-4b9c-8990-b058a15ec317",
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "2dd75913b455ed71b35c2ee1b61c5703bdd2ce89915d7bdecbf85e4930483c1a",
+  "created_at": "2026-11-17T21:38:22.257105Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Jane Lewis <lewis@maple-park-school.example>",
+    "subject": "Class 4B parent meeting"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": {
+    "events": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "date_text": "2026-11-26",
+        "description": "Meeting for parents of class 4B to discuss the planetarium trip, reading mentors and the school calendar.",
+        "duration_is_upper_bound": false,
+        "duration_minutes": null,
+        "end_time_text": "21:00",
+        "evidence": "Our parent meeting is on 2026-11-26, 19:30–21:00, in Room 12, Maple Park Elementary School.",
+        "location": "Room 12, Maple Park Elementary School",
+        "original_date_text": null,
+        "responsibility": "user",
+        "time_requirement": "timed",
+        "time_text": "19:30",
+        "timezone_offset_text": null,
+        "title": "Class 4B parent meeting",
+        "video_link": null
+      }
+    ],
+    "schema_version": 1
+  },
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "7787d5fcb1671712f6703180",
+  "imap": {
+    "account_id": "7dd71995bcad890030cfa19b",
+    "folder": "INBOX",
+    "uid": 1,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "list_signals": {
+    "auto_submitted": "",
+    "list_id": "",
+    "list_unsubscribe": false,
+    "precedence": ""
+  },
+  "llm_call_ids": [
+    "8370e6db-a2f4-4959-8f73-751a115200e9",
+    "4bea578f-efed-46c7-989c-79247a875d09",
+    "70919748-50cc-4b9c-8990-b058a15ec317",
+    "a65d84a2-282f-45c4-9e58-95aecdf55725"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Mon, 09 Nov 2026 16:12:00 +0100",
+    "date_header_parsed": "2026-11-09T16:12:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Mon, 09 Nov 2026 16:12:00 +0100",
+      "from": "Jane Lewis <lewis@maple-park-school.example>",
+      "in_reply_to": "",
+      "message_id": "<01-parent-meeting@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "Class 4B parent meeting"
+    },
+    "imap_received_at": "2026-11-09T16:12:00+01:00",
+    "internal_id": "7787d5fcb1671712f6703180",
+    "message_ids": [
+      "<01-parent-meeting@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "Dear parents of class 4B,\nOur parent meeting is on 2026-11-26, 19:30–21:00, in Room 12, Maple Park Elementary School. We will discuss the planetarium trip, reading mentors and the school calendar. All times are Europe/Berlin.\nJane Lewis",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "base_title": "Class 4B parent meeting",
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Meeting for parents of class 4B to discuss the planetarium trip, reading mentors and the school calendar.\n\nAbsender: Jane Lewis <lewis@maple-park-school.example>\nBetreff: Class 4B parent meeting\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-parent-meeting@demo.mailhelp.example%3E",
+      "due": null,
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-11-26T21:00:00+01:00",
+      "end_origin": "mail_end",
+      "evidence": "Our parent meeting is on 2026-11-26, 19:30–21:00, in Room 12, Maple Park Elementary School.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_e5ab381f784aed31ba3cb9f8",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": "Room 12, Maple Park Elementary School",
+      "mail_link": "message://%3C01-parent-meeting@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": "caa8bb5a93661185a41c478391e2cd64f9222a606248bf00f329ec3f4705d532",
+      "simulation_notified": false,
+      "source_mail_id": "7787d5fcb1671712f6703180",
+      "sources": [],
+      "start": "2026-11-26T19:30:00+01:00",
+      "status": "pending_confirmation",
+      "target": "primary",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "google",
+      "temporal_fact": {
+        "normalized_date": "2026-11-26",
+        "raw_text": "2026-11-26",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Class 4B parent meeting",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "prefilter_rule": null,
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_e5ab381f784aed31ba3cb9f8",
+      "proposal_version": 1,
+      "status": "queued"
+    }
+  ],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "f6f4ea4858c60f0354d93b265f98174045db84390dccdd4dbb6b3abbee7ffe9c",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "google_tasks_list": "@default",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [
+    {
+      "all_day": false,
+      "base_title": "Class 4B parent meeting",
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Meeting for parents of class 4B to discuss the planetarium trip, reading mentors and the school calendar.\n\nAbsender: Jane Lewis <lewis@maple-park-school.example>\nBetreff: Class 4B parent meeting\nMail-Datum: 2026-11-09T16:12:00+01:00\n📧 Original-E-Mail öffnen: message://%3C01-parent-meeting@demo.mailhelp.example%3E",
+      "due": null,
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-11-26T21:00:00+01:00",
+      "end_origin": "mail_end",
+      "evidence": "Our parent meeting is on 2026-11-26, 19:30–21:00, in Room 12, Maple Park Elementary School.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_e5ab381f784aed31ba3cb9f8",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": "Room 12, Maple Park Elementary School",
+      "mail_link": "message://%3C01-parent-meeting@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": "caa8bb5a93661185a41c478391e2cd64f9222a606248bf00f329ec3f4705d532",
+      "simulation_notified": false,
+      "source_mail_id": "7787d5fcb1671712f6703180",
+      "sources": [
+        {
+          "anchors": [
+            "831d2d66e810eda8b0aae1951abf25f768c7f9e3f8b46a5ca0df791ef1150846"
+          ],
+          "mail_id": "7787d5fcb1671712f6703180",
+          "proposal_id": "p_e5ab381f784aed31ba3cb9f8",
+          "sent_at": "2026-11-09T16:12:00+01:00",
+          "subject": "class 4b parent meeting"
+        }
+      ],
+      "start": "2026-11-26T19:30:00+01:00",
+      "status": "pending_confirmation",
+      "target": "primary",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "google",
+      "temporal_fact": {
+        "normalized_date": "2026-11-26",
+        "raw_text": "2026-11-26",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Class 4B parent meeting",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "completed",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "skipped"
+  },
+  "summary": {
+    "deadlines": [
+      "2026-11-26, 19:30–21:00"
+    ],
+    "sentences": [
+      "Jane Lewis tells class 4B parents the parent meeting is on 2026-11-26, 19:30–21:00 in Room 12.",
+      "The meeting will cover the planetarium trip, reading mentors, and the school calendar."
+    ]
+  },
+  "task_extraction": null,
+  "updated_at": "2026-11-17T21:38:32.490544Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

@@ -1,5 +1,6 @@
 """5.3 H5/H6: the current guides name only controls that exist and link only to existing sections."""
 import re
+import ast
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 GUIDES = ["docs/Ersteinrichtung.md", "docs/Konten-verwalten.md", "docs/Ziele-einrichten.md", "docs/Bedienung.md",
           "docs/Fehlerbehebung.md", "docs/Betrieb.md"]
-SOURCE = " ".join(" ".join(path.read_text(encoding="utf-8").split())
+SOURCE = " ".join(" ".join([path.read_text(encoding="utf-8"), *(node.value for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))) if isinstance(node, ast.Constant) and isinstance(node.value, str))])
                   for path in (ROOT / "src" / "mailhelp").rglob("*.py"))
 
 

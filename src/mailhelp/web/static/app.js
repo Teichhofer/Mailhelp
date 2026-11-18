@@ -18,6 +18,11 @@ function randomHexKey() {
   return hex;
 }
 
+var MAILHELP_TEXTS = JSON.parse(document.body.dataset.uiTexts || "{}");
+function mailhelpText(text) {
+  return MAILHELP_TEXTS[text] || text;
+}
+
 (function () {
   var HEALTH_INTERVAL = 30000;
   var REFRESH_INTERVAL = 15000;
@@ -26,9 +31,9 @@ function randomHexKey() {
     // Every page rendered by Mailhelp contains this status element.
     var badge = document.getElementById("verbindung");
     var texts = {
-      online: "● Verbunden",
-      offline: "PC nicht erreichbar",
-      update: "Neue Daten – bitte neu laden"
+      online: mailhelpText("● Verbunden"),
+      offline: mailhelpText("PC nicht erreichbar"),
+      update: mailhelpText("Neue Daten – bitte neu laden")
     };
     badge.hidden = false;
     badge.dataset.state = state;
@@ -88,7 +93,7 @@ function randomHexKey() {
     buttons.forEach(function (button) { button.disabled = true; });
     if (event.target.classList.contains("draft-intents")) {
       // The model needs a moment; the page reloads with the draft.
-      event.target.querySelector('[role="status"]').textContent = "Entwurf wird erstellt …";
+      event.target.querySelector('[role="status"]').textContent = mailhelpText("Entwurf wird erstellt …");
     }
   }
 
@@ -99,7 +104,7 @@ function randomHexKey() {
         fetch(command.dataset.commandStatus, {cache: "no-store", credentials: "same-origin", headers: {Accept: "application/json"}})
           .then(function (response) {
             if (response.status === 401) return {target: "/anmelden"};
-            if (!response.ok) throw new Error("Status gerade nicht verfügbar.");
+            if (!response.ok) throw new Error(mailhelpText("Status gerade nicht verfügbar."));
             return response.json();
           })
           .then(function (result) {
@@ -107,7 +112,7 @@ function randomHexKey() {
             else window.setTimeout(progress, 1000);
           })
           .catch(function () {
-            command.textContent = "Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft.";
+            command.textContent = mailhelpText("Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft.");
             window.setTimeout(progress, 2000);
           });
       }
@@ -134,7 +139,7 @@ function randomHexKey() {
     window.setInterval(checkHealth, HEALTH_INTERVAL);
     if ("serviceWorker" in navigator) {
       // Without the worker only the offline page is missing; everything else works.
-      navigator.serviceWorker.register("/sw.js").catch(function () { return null; });
+      navigator.serviceWorker.register("/sw.js?lang=" + document.documentElement.lang).catch(function () { return null; });
     }
     if (document.body.dataset.fingerprint) {
       document.addEventListener("visibilitychange", whenVisible);

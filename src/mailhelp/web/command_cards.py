@@ -1,4 +1,5 @@
 """Durable command feedback shared by every paired device of the same person."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -95,14 +96,16 @@ class CommandCards:
                 and entry.result.status == ResultStatus.DONE
                 and command.proposal_id is not None):
             current_reason = command.reason if command.kind == CommandKind.REJECT_REASON else None
-            parts = [reject_reason_block(self.csrf, command.mail_id, command.proposal_id, command.version, current_reason)]
+            parts = [reject_reason_block(self.csrf, command.mail_id, command.proposal_id,
+                                         command.version, current_reason)]
             if self.sender_hint_lookup is not None:
                 hint = self.sender_hint_lookup(command.mail_id)
                 if hint is not None:
                     parts.append(
                         f'<div class="sender-hint-notice notice warn" data-sender-hint>'
                         f'<p>{e(hint.trigger_sentence)}</p>'
-                        f'<p class="card-links"><a class="button primary small" href="/lernen/absender-hinweis?sender={quote(hint.sender)}">'
+                        f'<p class="card-links"><a class="button primary small" '
+                        f'href="/lernen/absender-hinweis?sender={quote(hint.sender)}">'
                         f'{tr("Ansehen")}</a></p>'
                         f'</div>'
                     )
@@ -134,9 +137,12 @@ class CommandCards:
             entry = entries[-1]
             command = entry.command
             assert isinstance(command, ReviewCommand)
-            link = (f'/vorschlag/{command.mail_id}/{command.proposal_id}' if command.proposal_id
-                    else f'/mail/{command.mail_id}')
+            link = (
+                '/vorschlag/{p0}/{p1}'.format(p0=f'{command.mail_id}', p1=f'{command.proposal_id}')
+                if command.proposal_id
+                else f"/mail/{command.mail_id}"
+            )
             parts.append(f'<article class="card" id="{anchor(entry)}"><h2>{tr("Deine Aktion")}</h2>'
                          + self.render(entries, partial(self._detached_actions, entry))
                          + f'<p class="card-links"><a data-detail href="{link}">{tr("Details")}</a></p></article>')
-        return ''.join(parts)
+        return "".join(parts)

@@ -17,6 +17,13 @@ from tests.fakes.shared_action_normalization import reminder as reminder
 from tests.fakes.shared_action_normalization import task as task
 
 
+@pytest.mark.parametrize("raw", ["2026-12-05 at 25:30", "2026-03-29 at 02:30"])
+def test_explicit_task_clocks_never_guess_invalid_or_nonexistent_times(raw):
+    result = normalize_task_due(task(due_text=raw), context())
+    assert not result.resolved and result.value is None
+    assert result.raw_value == raw and result.temporal_fact.raw_text == raw
+
+
 def test_gemeinderat_is_one_exclusive_all_day_interval_and_responsibility_stays_separate():
     result = normalize_event(event(responsibility="unclear"), context())
     assert result.value == TemporalValue(date(2026, 9, 22), date(2026, 9, 23), True)
@@ -281,6 +288,14 @@ def test_task_due_checks_mail_context_and_does_not_override_responsibility():
     unclear = normalize_task_due(task(responsibility="unclear"), context())
     assert invalid.reason == NormalizationReason.INVALID_CONTEXT
     assert unclear.value == date(2026, 9, 22) and not unclear.confirmation_ready
+
+
+@pytest.mark.parametrize("raw", ["2026-12-05 at 13:30", "2026-12-05 13:30", "05.12.2026 um 13:30 Uhr"])
+def test_task_deadline_preserves_an_explicit_clock_time(raw):
+    from zoneinfo import ZoneInfo
+    result = normalize_task_due(task(due_text=raw), context())
+    assert result.value == datetime(2026, 12, 5, 13, 30, tzinfo=ZoneInfo("Europe/Berlin"))
+    assert result.raw_value == raw and result.confirmation_ready
 
 
 def test_yearless_german_date_uses_only_validated_context_and_records_source():

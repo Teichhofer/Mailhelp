@@ -1,4 +1,5 @@
 """Versioned, session-owned topic previews contain no authorization to execute a write."""
+
 from __future__ import annotations
 
 import hashlib
@@ -21,7 +22,7 @@ def draft_id(actor: str, kind: str, original: str) -> str:
 
 
 def proposed_id(name: str) -> str:
-    return re.sub(r"[^a-z0-9_-]+", "-", normalize(name)).strip("-_")[:64].strip("-_") or "thema"
+    return re.sub(r"[^a-z0-9_-]+", "-", normalize(name)).strip("-_")[:64].strip("-_") or 'thema'
 
 
 class TopicDraft(BaseModel):

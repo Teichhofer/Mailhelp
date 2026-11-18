@@ -1,4 +1,5 @@
 """5.3 (H7): the local reader of the packaged help sections, also without the help chat."""
+
 from __future__ import annotations
 
 import hashlib
@@ -8,6 +9,7 @@ from urllib.parse import parse_qs, quote
 from ..helpdocs import HelpBase, HelpUnavailable, concise, load, same_text
 from ..helpdocs.chat import MESSAGES, ChatRefused
 from ..helpdocs.markdown import render
+from ..i18n import Locale, current, msg, tr
 from .actions import new_key
 from .auth import WebSession
 from .help_window import HelpWindow
@@ -23,6 +25,7 @@ class HelpSite:
     def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         self._base: HelpBase | None = None
+        self._english_base: HelpBase | None = None
         # The help chat (H9); without it the documentation stays readable.
         self.chat: Any = None
         self.window = HelpWindow(self)
@@ -38,14 +41,30 @@ class HelpSite:
 
     def base(self) -> HelpBase:
         """The packaged help, loaded once; an unusable resource raises HelpUnavailable."""
+        if current() == Locale.EN:
+            if self._english_base is None:
+                self._english_base = load(locale=Locale.EN)
+            return self._english_base
         if self._base is None:
             self._base = load()
         return self._base
 
     def _unavailable(self) -> Response:
-        return Response.html(503, layout("Hilfe", '<h1>Hilfe</h1>' + notice(
-            "Die mitgelieferte Dokumentation ist nicht verfügbar oder gehört zu einer anderen Version. "
-            "Einstellungen und Suche funktionieren weiterhin.", "warn")))
+        return Response.html(
+            503,
+            layout(
+                "Hilfe",
+                "<h1>Hilfe</h1>"
+                + notice(
+                    tr(
+                        "Die mitgelieferte Dokumentation ist nicht verfügbar oder gehört "
+                        "zu einer anderen Version. Einstellungen und Suche funktionieren "
+                        "weiterhin."
+                    ),
+                    "warn",
+                ),
+            ),
+        )
 
     def index(self, request: Request, session: WebSession) -> Response:
         try:
@@ -59,7 +78,7 @@ class HelpSite:
                 f'<li><a href="/hilfe/dokumentation/{e(item.id)}">{e(label)}</a></li>')
         body = "".join(f"<section><h2>{e(title)}</h2><ul>{''.join(links)}</ul></section>"
                        for title, links in groups.items())
-        return Response.html(200, layout("Hilfe", f'<h1>Hilfe und Dokumentation</h1>{body}'))
+        return Response.html(200, layout("Hilfe", tr("<h1>Hilfe und Dokumentation</h1>{p0}", p0=body)))
 
     def section(self, request: Request, session: WebSession, section: str) -> Response:
         try:
@@ -68,14 +87,29 @@ class HelpSite:
             return self._unavailable()
         item = base.get(section)
         if item is None:
-            return Response.html(404, layout("Hilfe", "<h1>Hilfe</h1>" + notice(
-                "Diesen Abschnitt gibt es nicht.", "warn")))
+            return Response.html(
+                404, layout("Hilfe", "<h1>Hilfe</h1>" + notice(tr("Diesen Abschnitt gibt es nicht."), "warn"))
+            )
         trail = " › ".join(item.path)
-        return Response.html(200, layout(item.title, (
-            f'<p class="eyebrow">{e(trail)}</p><h1>{e(item.title)}</h1>'
-            f'<pre class="help-text">{e(item.text)}</pre>'
-            f'<p class="meta">Quelle: {e(item.source)} · <a href="/hilfe/dokumentation">Alle Abschnitte</a></p>')))
-
+        return Response.html(
+            200,
+            layout(
+                item.title,
+                (
+                    tr(
+                        (
+                            '<p class="eyebrow">{p0}</p><h1>{p1}</h1><pre '
+                            'class="help-text">{p2}</pre><p class="meta">Quelle: {p3} · <a '
+                            'href="/hilfe/dokumentation">Alle Abschnitte</a></p>'
+                        ),
+                        p0=e(trail),
+                        p1=e(item.title),
+                        p2=e(item.text),
+                        p3=e(item.source),
+                    )
+                ),
+            ),
+        )
 
     # --- 5.3 (H10): the visible help chat ---------------------------------------------------------
     def _sources(self, turn: Any) -> str:
@@ -88,7 +122,7 @@ class HelpSite:
             item = base.get(source_id) if base is not None and base.revision == turn.revision else None
             if item is None:
                 # Never label an old answer with a section of another documentation revision.
-                links.append(f"<li>{e(source_id)} (frühere Dokumentationsfassung)</li>")
+                links.append(tr("<li>{p0} (frühere Dokumentationsfassung)</li>", p0=e(source_id)))
             else:
                 links.append(f'<li><a href="/hilfe/dokumentation/{e(item.id)}">{e(" › ".join(item.path))}</a></li>')
         entries = {entry.id: entry for entry in catalog()}
@@ -96,9 +130,9 @@ class HelpSite:
                     for key in turn.setting_ids if key in entries]
         parts = ""
         if links:
-            parts += f'<p class="meta">Quellen</p><ul class="help-sources">{"".join(links)}</ul>'
+            parts += tr('<p class="meta">Quellen</p><ul class="help-sources">{p0}</ul>', p0=f"{''.join(links)}")
         if settings:
-            parts += f'<p class="meta">Einstellungen</p><ul class="help-sources">{"".join(settings)}</ul>'
+            parts += tr(('<p class="meta">Einstellungen</p><ul class="help-sources">{p0}</ul>'), p0="".join(settings))
         return parts
 
     @staticmethod
@@ -112,9 +146,16 @@ class HelpSite:
         # Mailhelp's own short notices (no matching section) are always shown in full.
         if turn.local or same_text(short, turn.answer):
             return f'<div class="help-answer">{render(turn.answer)}</div>'
-        return (f'<div class="help-answer help-answer-short">{render(short)}</div>'
-                '<details class="help-answer-full"><summary>Ausführliche Antwort anzeigen</summary>'
-                f'<div class="help-answer-text">{render(turn.answer)}</div></details>')
+        return tr(
+            (
+                '<div class="help-answer help-answer-short">{p0}</div><details '
+                'class="help-answer-full"><summary>Ausführliche Antwort '
+                "anzeigen</summary><div "
+                'class="help-answer-text">{p1}</div></details>'
+            ),
+            p0=render(short),
+            p1=render(turn.answer),
+        )
 
     def setting(self, value: str) -> str:
         return value if any(item.key == value and value for item in catalog()) else ""
@@ -127,24 +168,37 @@ class HelpSite:
             if entry is not None:
                 reference = (f'<input type="hidden" name="einstellung" value="{e(setting)}">'
                              f'<p class="meta">Bezug: {e(entry.label)} (<code>{e(setting)}</code>)</p>')
-        return ('<form method="post" action="/hilfe/frage" class="stack help-form">'
-                f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-                f'<input type="hidden" name="key" value="{new_key()}">'
-                f'<input type="hidden" name="version" value="{version}">{reference}'
-                f'<input type="hidden" name="return_to" value="{e(target)}">'
-                f'<input type="hidden" name="window_version" value="{window_version}">'
-                '<label for="help-question">Deine Frage zu Einstellungen und Bedienung</label>'
-                f'<textarea id="help-question" name="frage" rows="3" maxlength="8000" required>{e(draft)}</textarea>'
-                # 5.5.1: one quiet line until opened; the full notice stays one click away.
-                '<details class="help-cost-hint"><summary>Kostenpflichtig</summary>'
-                '<p class="meta">Frage, kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an '
-                'den aktiven KI-Anbieter und können Kosten verursachen. Keine Passwörter oder Tokens eingeben. '
-                'Der Hilfschat erklärt nur; er ändert keine Einstellungen.</p></details>'
-                '<button class="button primary" type="submit">Frage senden</button></form>')
+        return tr(
+            (
+                '<form method="post" action="/hilfe/frage" class="stack '
+                'help-form"><input type="hidden" name="csrf" value="{p0}"><input '
+                'type="hidden" name="key" value="{p1}"><input type="hidden" '
+                'name="version" value="{p2}">{p3}<input type="hidden" '
+                'name="return_to" value="{p4}"><input type="hidden" '
+                'name="window_version" value="{p5}"><label '
+                'for="help-question">Deine Frage zu Einstellungen und '
+                'Bedienung</label><textarea id="help-question" name="frage" '
+                'rows="3" maxlength="8000" required>{p6}</textarea><details '
+                'class="help-cost-hint"><summary>Kostenpflichtig</summary><p '
+                'class="meta">Frage, kurzer Verlauf und passende Abschnitte der '
+                "Mailhelp-Dokumentation gehen an den aktiven KI-Anbieter und "
+                "können Kosten verursachen. Keine Passwörter oder Tokens "
+                "eingeben. Der Hilfschat erklärt nur; er ändert keine "
+                'Einstellungen.</p></details><button class="button primary" '
+                'type="submit">Frage senden</button></form>'
+            ),
+            p0=e(csrf),
+            p1=new_key(),
+            p2=version,
+            p3=reference,
+            p4=e(target),
+            p5=window_version,
+            p6=e(draft),
+        )
 
     def page(self, request: Request, session: WebSession) -> Response:
         setting = self.setting(parse_qs(request.query).get("einstellung", [""])[0][:200])
-        suffix = "&einstellung=" + quote(setting) if setting else ""
+        suffix = msg("&einstellung=") + quote(setting) if setting else ""
         return Response.redirect("/einstellungen?hilfe=offen" + suffix)
 
     def conversation(self, session: WebSession, setting: str = "", draft: str = "",
@@ -152,30 +206,51 @@ class HelpSite:
         """One shared fragment, also rendered into ordinary HTML form responses."""
         csrf = self.site.auth.csrf_token(session.id)
         if self.chat is None:
-            return (notice("Der Hilfschat ist in dieser Installation nicht aktiv. Die Dokumentation bleibt lesbar.")
-                    + '<a href="/hilfe/dokumentation">Alle Abschnitte</a>'
-                    + self._form(csrf, 1, setting, draft, target, self.window.state(session).version))
+            return (
+                notice(tr("Der Hilfschat ist in dieser Installation nicht aktiv. Die Dokumentation bleibt lesbar."))
+                + tr('<a href="/hilfe/dokumentation">Alle Abschnitte</a>')
+                + self._form(csrf, 1, setting, draft, target, self.window.state(session).version)
+            )
         state = self.chat.state(session.id)
         turns = "".join(
-            f'<article class="help-turn"><p class="help-question"><strong>Frage:</strong> {e(turn.question)}</p>'
-            f'{self._answer(turn)}{self._sources(turn)}</article>' for turn in state.turns)
+            tr(
+                (
+                    '<article class="help-turn"><p '
+                    'class="help-question"><strong>Frage:</strong> '
+                    "{p0}</p>{p1}{p2}</article>"
+                ),
+                p0=e(turn.question),
+                p1=self._answer(turn),
+                p2=self._sources(turn),
+            )
+            for turn in state.turns
+        )
         current = [job for job in state.jobs if job.chat_version == state.version]  # cleared ones stay hidden
         pending = next((job for job in current if job.status in {"queued", "running"}), None)
         last = current[-1] if current else None
         progress = ""
         if pending is not None:
-            progress = (f'<p class="notice info" role="status" data-help-job="{e(pending.id)}">'
-                        "Antwort wird vorbereitet …</p>")
+            progress = tr(
+                ('<p class="notice info" role="status" data-help-job="{p0}">Antwort wird vorbereitet …</p>'),
+                p0=e(pending.id),
+            )
         elif last is not None and last.status in {"failed", "interrupted"}:
             progress = notice(MESSAGES.get(last.error or "failed", MESSAGES["failed"]), "warn")
         clear = ""
         if state.turns or current:
-            clear = ('<form method="post" action="/hilfe/leeren">'
-                     f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-                     f'<input type="hidden" name="version" value="{state.version}">'
-                     f'<input type="hidden" name="key" value="{new_key()}">'
-                     f'<input type="hidden" name="return_to" value="{e(target)}">'
-                     '<button class="button" type="submit">Chat leeren</button></form>')
+            clear = tr(
+                (
+                    '<form method="post" action="/hilfe/leeren"><input type="hidden" '
+                    'name="csrf" value="{p0}"><input type="hidden" name="version" '
+                    'value="{p1}"><input type="hidden" name="key" value="{p2}"><input '
+                    'type="hidden" name="return_to" value="{p3}"><button '
+                    'class="button" type="submit">Chat leeren</button></form>'
+                ),
+                p0=e(csrf),
+                p1=state.version,
+                p2=new_key(),
+                p3=e(target),
+            )
         return (f'<div class="help-chat" id="chat">{turns}{progress}</div>'
                 + self._form(csrf, state.version, setting, draft, target, self.window.state(session).version)
                 + clear)
@@ -194,9 +269,9 @@ class HelpSite:
         try:
             state = self.window.change(session, form)
         except PermissionError:
-            return Response.json(403, {"error": "Sitzung abgelaufen."})
+            return Response.json(403, {"error": msg("Sitzung abgelaufen.")})
         except ValueError:
-            return Response.json(409, {"error": "Fensterstand veraltet oder ungültig."})
+            return Response.json(409, {"error": msg("Fensterstand veraltet oder ungültig.")})
         if request.wants_json():
             return Response.json(200, {"ui": state.model_dump()})
         return Response.redirect(self.window.target(form.get("return_to", "")))
@@ -212,14 +287,21 @@ class HelpSite:
                 form.get("einstellung", ""))), "error": text})
         target = self.window.target(form.get("return_to", ""))
         if text:
-            return Response.html(status, layout("Einstellungen", '<h1>Einstellungen</h1>' + notice(text, "warn")
-                                 + f'<p><a href="{e(target)}">Zurück zu den Einstellungen</a></p>',
-                                 active="/einstellungen"))
+            return Response.html(
+                status,
+                layout(
+                    msg("Einstellungen"),
+                    tr("<h1>Einstellungen</h1>")
+                    + notice(text, "warn")
+                    + tr('<p><a href="{p0}">Zurück zu den Einstellungen</a></p>', p0=e(target)),
+                    active="/einstellungen",
+                ),
+            )
         return Response.redirect(target)
 
     def ask(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.chat is None:
-            return self._chat_result(request, session, form, "Der Hilfschat ist nicht aktiv.", 503)
+            return self._chat_result(request, session, form, msg("Der Hilfschat ist nicht aktiv."), 503)
         try:
             version = int(form.get("version", "0"))
             self.chat.submit(session.id, form.get("frage", ""), form.get("key", ""), version,
@@ -227,7 +309,7 @@ class HelpSite:
         except ValueError as error:
             code = error.code if isinstance(error, ChatRefused) else "invalid"
             status = {"rate_limited": 429, "full": 503, "busy": 409, "stale": 409, "conflict": 409}.get(code, 422)
-            text = str(error) if isinstance(error, ChatRefused) else "Die Frage ist unvollständig."
+            text = str(error) if isinstance(error, ChatRefused) else msg("Die Frage ist unvollständig.")
             return self._chat_result(request, session, form, text, status)
         return self._chat_result(request, session, form)
 
@@ -242,5 +324,5 @@ class HelpSite:
     def status(self, request: Request, session: WebSession, job_id: str) -> Response:
         job = None if self.chat is None else self.chat.job(session.id, job_id)
         if job is None:
-            return Response.json(404, {"error": "unbekannt"})
+            return Response.json(404, {"error": msg("unbekannt")})
         return Response.json(200, {"status": job.status, "error": job.error})

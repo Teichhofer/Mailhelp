@@ -453,7 +453,7 @@ Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277**
 | `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | ja |
 | `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | ja |
 
-**25 Kommandozeilenoptionen** (`mailhelp --help`):
+**26 Kommandozeilenoptionen** (`mailhelp --help`):
 
 | Option | Bedeutung laut Hilfe |
 | --- | --- |
@@ -469,6 +469,7 @@ Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277**
 | `--demo, -demo` | Demo-Modus mit vorbereiteten Beispieldaten in einem eigenen, leeren Verzeichnis starten |
 | `--google-auth` | Google-Anmeldung im lokalen Browser |
 | `--ignore-historical-start` | konfiguriertes imap.historical_start und den gespeicherten historischen Startpunkt für diesen Abruf aufheben |
+| `--language` | Sprache für diesen Aufruf (de oder en) |
 | `--learn` | ANZAHL Mails frei klassifizieren und Themen interaktiv im Terminal lernen |
 | `--log-directory` | Logverzeichnis aus config.yaml für diesen Aufruf überschreiben |
 | `--mailbox` | Postfach (imap.mailboxes.id) oder alle aktivierten Postfächer für --learn und --decision-test; bei mehreren aktivierten Postfächern erforderlich |

@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..config import Settings
-from ..i18n import Locale
+from ..i18n import Locale, msg, tr
 from ..persistence.storage import JsonStore
 from ..review.inbox import CommandInbox
 from ..review.views import ReviewViews
@@ -31,13 +31,24 @@ class WebComponents:
         """Telegram message of /web: link to the login page with a fresh one-time code."""
         base = self.base_url()
         code = self.auth.issue_code()
-        text = (f"🌐 Mailhelp-Weboberfläche öffnen:\n{base}/anmelden?code={code}\n\n"
-                f"Code: {code} – 10 Minuten gültig, für ein Gerät. Nicht weitergeben.")
+        text = tr(
+            (
+                "🌐 Mailhelp-Weboberfläche öffnen:\n{p0}/anmelden?code={p1}\n\nCode: {p2} – 10 "
+                "Minuten gültig, für ein Gerät. Nicht weitergeben."
+            ),
+            p0=base,
+            p1=code,
+            p2=code,
+        )
         if base.startswith("http://127.0.0.1"):
-            text += ("\n\nDieser Link funktioniert nur am PC. Fürs Telefon im selben WLAN "
-                     "web.lan_access: true und web.host: 0.0.0.0 setzen (oder Tailscale Serve einrichten).")
+            text += msg(
+                
+                    "\n\nDieser Link funktioniert nur am PC. Fürs Telefon im selben WLAN "
+                    "web.lan_access: true und web.host: 0.0.0.0 setzen (oder Tailscale Serve einrichten)."
+                
+            )
         elif base.startswith("http://"):
-            text += "\n\nNur im selben Netzwerk wie der PC erreichbar."
+            text += msg("\n\nNur im selben Netzwerk wie der PC erreichbar.")
         return text
 
     def authorize(self, actor: str) -> bool:

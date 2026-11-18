@@ -1,4 +1,5 @@
 """6.1.8: the slowest runs of one processing step (or of whole mails) – read only, like the call list."""
+
 from __future__ import annotations
 
 import math
@@ -9,19 +10,27 @@ from urllib.parse import urlencode
 
 from ..domain.processing import ProcessingStage
 from ..formatting import duration_text, format_datetime_local
+from ..i18n import msg, tr
 from ..review.views import STAGE_LABELS
 from ..support.stage_metrics import TOTAL
 from .calls_page import PAGE_SIZE, describe, filters
 from .labels import count_text
 from .pages import e, page_head
 
+_STAGE_PAGE_TEXT_1 = msg(
+    '<p class="meta">{p0}</p><section class="card '
+    'calls-explanation"><p>{p1}</p></section><p class="calls-pages">Sortierung: '
+)
+
 STAGES = {stage.value for stage in ProcessingStage} | {TOTAL}
-SORTS = {"duration": "Dauer", "time": "Zeit"}
-OUTCOMES = {"completed": "abgeschlossen", "deferred": "zurückgestellt", "failed": "fehlgeschlagen"}
+SORTS = {"duration": msg("Dauer"), "time": msg("Zeit")}
+OUTCOMES = {"completed": msg("abgeschlossen"), "deferred": msg("zurückgestellt"), "failed": msg("fehlgeschlagen")}
 
 
 def title(stage: str) -> str:
-    return "Durchlaufzeit je Mail" if stage == TOTAL else f"Schritt „{STAGE_LABELS.get(stage, stage)}“"
+    return (
+        msg("Durchlaufzeit je Mail") if stage == TOTAL else tr("Schritt „{p0}“", p0=f"{STAGE_LABELS.get(stage, stage)}")
+    )
 
 
 def _link(params: dict[str, Any], **extra: str) -> str:
@@ -32,15 +41,18 @@ def _row(row: dict[str, Any], zone: str, subject: Callable[[str], str | None], t
     mail = "—"
     if row.get("mail_id"):
         name = subject(row["mail_id"])
-        mail = (f'<a href="/mail/{e(row["mail_id"])}">{e(name)}</a>' if name is not None
-                else "Mail nicht mehr gespeichert")
+        mail = (
+            f'<a href="/mail/{e(row["mail_id"])}">{e(name)}</a>'
+            if name is not None
+            else msg("Mail nicht mehr gespeichert")
+        )
     cells = [e(format_datetime_local(datetime.fromisoformat(row["started_at"]), zone)),
              e(duration_text(row["duration_ms"] / 1000, precise=True)),
              e(duration_text(row["llm_ms"] / 1000, precise=True))]
     if total:
         cells.append(e(duration_text(row["waiting_ms"] / 1000)))
     else:
-        cells.append(e(OUTCOMES[row["outcome"]] + (" · fortgesetzt" if row["resumed"] else "")))
+        cells.append(e(OUTCOMES[row["outcome"]] + (msg(" · fortgesetzt") if row["resumed"] else "")))
     cells.append(mail)
     return "<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>"
 
@@ -52,32 +64,74 @@ def stage_page(stage: str, params: dict[str, Any], sort: str, page: int, steps: 
     rows.sort(key=(lambda row: (-row["duration_ms"], row["started_at"])) if sort == "duration"
               else (lambda row: row["started_at"]), reverse=sort == "time")
     back = "/auswertung" + ("?" + urlencode(filters(params)) if filters(params) else "")
-    explanation = ("Zeit vom ersten bis zum letzten Schritt einer Mail ohne die Wartezeit auf Entscheidungen; "
-                   "die Wartezeit steht daneben." if total else
-                   "Dauer dieses Schritts je Mail; „davon KI“ ist die Zeit der KI-Aufrufe in diesem Schritt.")
-    body = (page_head(title(stage), "Auswertung", back=(back, "Zurück zur Auswertung"))
-            + f'<p class="meta">{e(describe(params, labels))}</p>'
-            f'<section class="card calls-explanation"><p>{e(explanation)}</p></section>'
-            '<p class="calls-pages">Sortierung: ' + " · ".join(
-                (f"<strong>{label}</strong>" if key == sort else f'<a href="{e(_link(params, stage=stage, sort=key))}">'
-                 f"{label}</a>") for key, label in SORTS.items()) + "</p>")
+    explanation = (
+        msg(
+            
+                "Zeit vom ersten bis zum letzten Schritt einer Mail ohne die Wartezeit auf "
+                "Entscheidungen; die Wartezeit steht daneben."
+            
+        )
+        if total
+        else msg("Dauer dieses Schritts je Mail; „davon KI“ ist die Zeit der KI-Aufrufe in diesem Schritt.")
+    )
+    body = (
+        page_head(title(stage), msg("Auswertung"), back=(back, msg("Zurück zur Auswertung")))
+        + tr(
+            (_STAGE_PAGE_TEXT_1),
+            p0=e(describe(params, labels)),
+            p1=e(explanation),
+        )
+        + " · ".join(
+            (
+                f"<strong>{label}</strong>"
+                if key == sort
+                else f'<a href="{e(_link(params, stage=stage, sort=key))}">{label}</a>'
+            )
+            for key, label in SORTS.items()
+        )
+        + "</p>"
+    )
     if not rows:
-        return body + '<p class="empty">Für diese Auswahl gibt es keine gemessenen Durchläufe.</p>'
+        return body + tr('<p class="empty">Für diese Auswahl gibt es keine gemessenen Durchläufe.</p>')
     count = max(1, math.ceil(len(rows) / PAGE_SIZE))
     page = min(page, count)
-    navigation = [f"{count_text(len(rows), 'Durchlauf', 'Durchläufe')} · Seite {page} von {count}"]
+    navigation = [
+        tr(
+            "{p0} · Seite {p1} von {p2}",
+            p0=f"{count_text(len(rows), msg('Durchlauf'), 'Durchläufe')}",
+            p1=f"{page}",
+            p2=f"{count}",
+        )
+    ]
     if page > 1:
-        navigation.append(f'<a href="{e(_link(params, stage=stage, sort=sort, page=str(page - 1)))}">'
-                          "‹ Vorherige Seite</a>")
+        navigation.append(
+            tr(
+                '<a href="{p0}">‹ Vorherige Seite</a>',
+                p0=e(_link(params, stage=stage, sort=sort, page=str(page - 1))),
+            )
+        )
     if page < count:
-        navigation.append(f'<a href="{e(_link(params, stage=stage, sort=sort, page=str(page + 1)))}">'
-                          "Nächste Seite ›</a>")
+        navigation.append(
+            tr(
+                '<a href="{p0}">Nächste Seite ›</a>',
+                p0=e(_link(params, stage=stage, sort=sort, page=str(page + 1))),
+            )
+        )
     pages = f'<p class="calls-pages">{" · ".join(navigation)}</p>'
-    header = ("Beginn", "Dauer", "davon KI", "Wartezeit" if total else "Ergebnis", "Mail")
+    header = (msg("Beginn"), msg("Dauer"), msg("davon KI"), msg("Wartezeit") if total else msg("Ergebnis"), "Mail")
     shown = rows[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]
-    table = ('<div class="table-scroll" tabindex="0" role="region" aria-label="Durchläufe"><table class="calls-table">'
-             "<thead><tr>" + "".join(f'<th scope="col">{name}</th>' for name in header) + "</tr></thead><tbody>"
-             + "".join(_row(row, zone, subject, total) for row in shown) + "</tbody></table></div>")
+    table = (
+        tr(
+            
+                '<div class="table-scroll" tabindex="0" role="region" '
+                'aria-label="Durchläufe"><table class="calls-table"><thead><tr>'
+            
+        )
+        + "".join((f'<th scope="col">{name}</th>') for name in header)
+        + "</tr></thead><tbody>"
+        + "".join(_row(row, zone, subject, total) for row in shown)
+        + "</tbody></table></div>"
+    )
     return body + pages + table + pages
 
 

@@ -3,6 +3,7 @@
 A report never writes to the mailbox, the calendar or Todoist; it only reads and
 asks the model.  The paid run starts with an explicit action on the report page.
 """
+
 from __future__ import annotations
 
 import re
@@ -20,6 +21,7 @@ from ..activity.models import ActivityReport, ReportDefinition, ReportMail
 from ..activity.presentation import ReportFilter, fingerprint
 from ..activity.service import ActivityService, ReportConflict, event_values
 from ..domain.proposal import ProposalStatus
+from ..i18n import msg, tr
 from .activity_pages import disabled_page, list_page, mail_page, new_page, report_page
 from .auth import WebSession
 from .http import Request, Response
@@ -39,7 +41,7 @@ class ActivitySite:
         # Set by the runtime when activity_report.enabled and both prompts exist.
         self.service: ActivityService | None = None
         # Per mailbox number (3.1); the runtime replaces them with the configured mailboxes.
-        self.mailboxes: Callable[[], list[tuple[int, str]]] = lambda: [(1, "Postfach")]
+        self.mailboxes: Callable[[], list[tuple[int, str]]] = lambda: [(1, msg("Postfach"))]
         self.suggest_folders: Callable[[int], list[str]] = lambda mailbox: ["INBOX"]
         self.available_folders: Callable[[int], list[str]] = lambda mailbox: ["INBOX"]
         self.with_unscheduled = True
@@ -73,16 +75,23 @@ class ActivitySite:
         return Response.html(404, disabled_page())
 
     def _missing(self, request: Request) -> Response:
-        return self.site._reply(request, 404, "Dieser Bericht ist nicht (mehr) vorhanden.")
+        return self.site._reply(request, 404, msg("Dieser Bericht ist nicht (mehr) vorhanden."))
 
     def reports(self, request: Request, session: WebSession) -> Response:
         system = self.site.views.system()
         rejected = system.proposals.get(ProposalStatus.REJECTED, 0) - system.already_done
-        decisions = (f'<section class="card"><h2>Manuelle Entscheidungen im aktuellen Bestand</h2>'
-                     f'<p><span class="badge ok">Schon erledigt: {system.already_done}</span> '
-                     f'<span class="badge">Verworfen: {rejected}</span></p>'
-                     '<p>Schon erledigte Aufgaben bleiben relevant. Diese Bestandszahlen sind unabhängig '
-                     'vom Zeitraum eines Tätigkeitsberichts.</p></section>')
+        decisions = tr(
+            (
+                '<section class="card"><h2>Manuelle Entscheidungen im aktuellen '
+                'Bestand</h2><p><span class="badge ok">Schon erledigt: '
+                '{p0}</span> <span class="badge">Verworfen: '
+                "{p1}</span></p><p>Schon erledigte Aufgaben bleiben relevant. "
+                "Diese Bestandszahlen sind unabhängig vom Zeitraum eines "
+                "Tätigkeitsberichts.</p></section>"
+            ),
+            p0=system.already_done,
+            p1=rejected,
+        )
         if self.service is None:
             return Response.html(200, disabled_page(decisions=decisions))
         return Response.html(200, list_page(self.service.store.reports(), decisions=decisions))
@@ -107,7 +116,7 @@ class ActivitySite:
                                            mailbox=mailbox))
 
     def create(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
-        assert self.service is not None  # secured() establishes the enabled service.
+        assert self.service is not None
         mailbox = self._mailbox(form.get("mailbox", ""))
         try:
             folders = [line.strip() for line in form.get("folders", "").splitlines() if line.strip()]
@@ -119,13 +128,18 @@ class ActivitySite:
             if not set(folders) <= set(self.available_folders(mailbox)):
                 raise ValueError("Unbekannter Ordner")
         except (ValueError, ValidationError):
-            message = ("Bitte Titel, ein Thema mit mindestens 10 Zeichen, einen Zeitraum von höchstens drei "
-                       "Jahren und jeden Ordner nur einmal angeben.")
+            message = msg(
+                
+                    "Bitte Titel, ein Thema mit mindestens 10 Zeichen, einen Zeitraum von "
+                    "höchstens drei Jahren und jeden Ordner nur einmal angeben."
+                
+            )
             return Response.html(422, new_page(self._csrf(session), [], form, message, mailboxes=self.mailboxes(),
                                                mailbox=mailbox))
         except OSError:
-            return self.site._reply(request, 503,
-                                    "Die Ordnerliste ist gerade nicht erreichbar. Bitte erneut versuchen.")
+            return self.site._reply(
+                request, 503, msg("Die Ordnerliste ist gerade nicht erreichbar. Bitte erneut versuchen.")
+            )
         configuration = self.site.archive.configuration
         blocked = configuration.blocked_senders() if configuration is not None else None
         try:
@@ -134,7 +148,7 @@ class ActivitySite:
         except ReportConflict as exc:
             return self.site._reply(request, 409, str(exc))
         self.site.logger.event("INFO", "activity", "report_created", report_id=report.id)
-        return Response.redirect(f"/berichte/{report.id}")
+        return Response.redirect('/berichte/{p0}'.format(p0=f'{report.id}'))
 
     def report(self, request: Request, session: WebSession, report_id: str) -> Response:
         if self.service is None:
@@ -153,7 +167,7 @@ class ActivitySite:
         # The id comes from the query string; only the route format may reach the store.
         report = self.service.store.load(report_id) if re.fullmatch(r"[a-f0-9]{32}", report_id) else None
         if report is None:
-            return Response.json(404, {"error": "Bericht nicht vorhanden"})
+            return Response.json(404, {"error": msg("Bericht nicht vorhanden")})
         return Response.json(200, {"fingerprint": fingerprint(report, self.service.store.mails(report_id))})
 
     def act(self, request: Request, session: WebSession, form: dict[str, str], report_id: str) -> Response:
@@ -165,20 +179,25 @@ class ActivitySite:
                 self.service.delete(report_id, version, form.get("key", ""))
             elif action == "repeat":
                 report = self.service.repeat(report_id, version, form.get("key", ""), form.get("topic", ""))
-                return Response.redirect(f"/berichte/{report.id}")
+                return Response.redirect('/berichte/{p0}'.format(p0=f'{report.id}'))
             else:
                 self.service.act(report_id, version, form.get("key", ""), action)
         except ValueError as exc:
             # ReportConflict is a ValueError: stale form, wrong status or replay with other content.
             if isinstance(exc, ReportConflict):
                 return self.site._reply(request, 409, str(exc))
-            return self.site._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
+            return self.site._reply(request, 422, msg("Die Aktion ist unvollständig oder ungültig."))
         self.site.logger.event("INFO", "activity", "report_action", report_id=report_id, action=action)
         if action == "delete":
-            return Response.html(200, layout("Bericht gelöscht", notice("Der Bericht wurde gelöscht.")
-                                             + '<p><a href="/berichte">Zu den Berichten</a></p>',
-                                             active="/berichte"))
-        return Response.redirect(f"/berichte/{report_id}")
+            return Response.html(
+                200,
+                layout(
+                    tr("Bericht gelöscht"),
+                    notice(tr("Der Bericht wurde gelöscht.")) + tr('<p><a href="/berichte">Zu den Berichten</a></p>'),
+                    active="/berichte",
+                ),
+            )
+        return Response.redirect('/berichte/{p0}'.format(p0=f'{report_id}'))
 
     def _mail(self, report_id: str, index: str) -> tuple[ActivityReport | None, ReportMail | None]:
         assert self.service is not None
@@ -219,8 +238,8 @@ class ActivitySite:
         except ReportConflict as exc:
             return self.site._reply(request, 409, str(exc))
         except (ValueError, ValidationError):
-            return self.site._reply(request, 422, "Bitte Termin, gültiges Datum und Uhrzeiten als HH:MM angeben.")
-        return Response.redirect(f"/berichte/{report_id}/mail/{index}")
+            return self.site._reply(request, 422, msg("Bitte Termin, gültiges Datum und Uhrzeiten als HH:MM angeben."))
+        return Response.redirect('/berichte/{p0}/mail/{p1}'.format(p0=f'{report_id}', p1=f'{index}'))
 
     def export(self, request: Request, session: WebSession, report_id: str) -> Response:
         if self.service is None:

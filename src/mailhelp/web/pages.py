@@ -14,8 +14,9 @@ from datetime import datetime
 from types import MappingProxyType
 
 from ..formatting import format_datetime_local
-from ..i18n import Locale, current, stored, tr
+from ..i18n import Locale, current, heading, msg, stored, tr
 from .auth import WebSession
+from .js_texts import messages
 
 
 def e(value: object) -> str:
@@ -23,15 +24,23 @@ def e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
-              ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"),
-              ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"), ("/abgleich", "Vorschlagsabgleich"),
-              ("/lernen", "Lernen"))
+NAVIGATION = (
+    ("/", "Offen"),
+    ("/mails", "Mails"),
+    ("/verlauf", msg("Verlauf")),
+    ("/status", "Status"),
+    ("/auswertung", msg("Auswertung")),
+    ("/berichte", msg("Berichte")),
+    ("/einstellungen", msg("Einstellungen")),
+    ("/geraete", msg("Geräte")),
+    ("/abgleich", msg("Vorschlagsabgleich")),
+    ("/lernen", msg("Lernen")),
+)
 
 NAVIGATION_GROUPS = (
-    ("Arbeitsbereich", ("/", "/mails", "/abgleich")),
-    ("Einblicke", ("/verlauf", "/berichte", "/auswertung", "/status")),
-    ("Verwaltung", ("/einstellungen", "/lernen", "/geraete")),
+    (msg("Arbeitsbereich"), ("/", "/mails", "/abgleich")),
+    (msg("Einblicke"), ("/verlauf", "/berichte", "/auswertung", "/status")),
+    (msg("Verwaltung"), ("/einstellungen", "/lernen", "/geraete")),
 )
 NAVIGATION_ICONS = {
     "/": "M4 4h16v16H4z M8 12l3 3 5-6",
@@ -51,7 +60,7 @@ NAVIGATION_ICONS = {
 # 6.2.8 (E3): the reconciliation is daily work and takes the place of the status page.
 TAB_BAR = ("/", "/mails", "/abgleich", "/verlauf")
 # Labels that would not fit a fifth of a 320 px phone bar.
-TAB_LABELS = {"/abgleich": "Abgleich"}
+TAB_LABELS = {"/abgleich": msg("Abgleich")}
 MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
 
 # Open decisions of the current request, set once by the session guard (5.0.1).
@@ -87,9 +96,9 @@ def _link(href: str, active: str | None, open_count: int, *, tab: bool = False) 
     current = ' aria-current="page"' if href == active else ""
     badge = ""
     if href == "/" and open_count:
-        current += ' aria-describedby="offen-zahl"'
+        current += msg(' aria-describedby="offen-zahl"')
         badge = f'<span class="nav-count" aria-hidden="true">{open_count}</span>'
-    label = tr(TAB_LABELS.get(href, dict(NAVIGATION)[href]) if tab else dict(NAVIGATION)[href])
+    label = heading(TAB_LABELS.get(href, dict(NAVIGATION)[href]) if tab else dict(NAVIGATION)[href])
     return f'<a href="{href}"{current}>{_icon(NAVIGATION_ICONS[href])}<span class="nav-label">{label}</span>{badge}</a>'
 
 
@@ -108,7 +117,7 @@ def _navigation(active: str | None) -> tuple[str, str]:
     others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION if href not in TAB_BAR)
     current = " has-current" if active is not None and active not in TAB_BAR else ""
     more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">{tr("Mehr")}</span>'
-            f'</summary><div class="tab-menu">{others}</div></details>')
+            f'</summary><div class="tab-menu">{others}{_language_switch()}</div></details>')
     return (described + f'<nav class="nav" aria-label="{tr("Hauptnavigation")}">' + "".join(groups)
             + _language_switch() + "</nav>",
             f'<nav class="tab-bar" aria-label="{tr("Schnellnavigation")}">{tabs}{more}</nav>')
@@ -148,8 +157,11 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
     navigation = tab_bar = ""
     if signed_in:
         navigation, tab_bar = _navigation(active)
+    else:
+        navigation = _language_switch()
     meta_refresh = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
-    data = f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
+    data = f' data-ui-texts="{e(messages(current()))}"'
+    data += f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
     if state_url:
         # Pages with their own refresh signal (e.g. the status page).
         data += f' data-state-url="{e(state_url)}"'
@@ -163,8 +175,8 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#047857">
 {meta_refresh}<title>{e(title)} · Mailhelp</title>
-<link rel="stylesheet" href="{ASSET_URLS.get().get('app.css', '/static/app.css')}">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="{ASSET_URLS.get().get("app.css", "/static/app.css")}">
+<link rel="manifest" href="/manifest{"-en" if current() == Locale.EN else ""}.webmanifest">
 <link rel="icon" href="/static/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -197,15 +209,24 @@ def notice(text: str, kind: str = "info") -> str:
 
 # Where pairing codes appear: the Telegram chat or, without Telegram (2.0), the PC console.
 LOGIN_CHANNELS = {
-    "telegram": {"sent": "Der Code wurde an deinen Telegram-Chat gesendet.", "label": "Code aus Telegram",
-                 "intro": "Mailhelp sendet dir einen einmaligen Code in deinen Telegram-Chat.",
-                 "button": "Code per Telegram senden", "again": "Neuen Code senden"},
-    "console": {"sent": "Der Code steht im aufrufenden Terminal von <code>mailhelp --pair</code> "
-                        "(bei Docker: <code>docker compose exec mailhelp mailhelp --pair "
-                        "--config-directory /config</code>).",
-                "label": "Code aus der Mailhelp-Konsole",
-                "intro": "Am lokalen Host mailhelp --pair starten und den Einmalcode hier eingeben.",
-                "button": "Code in der Konsole anzeigen", "again": "Neuen Code anzeigen"},
+    "telegram": {
+        "sent": msg("Der Code wurde an deinen Telegram-Chat gesendet."),
+        "label": msg("Code aus Telegram"),
+        "intro": msg("Mailhelp sendet dir einen einmaligen Code in deinen Telegram-Chat."),
+        "button": msg("Code per Telegram senden"),
+        "again": msg("Neuen Code senden"),
+    },
+    "console": {
+        "sent": msg(
+            "Der Code steht im aufrufenden Terminal von <code>mailhelp --pair</code> "
+            "(bei Docker: <code>docker compose exec mailhelp mailhelp --pair "
+            "--config-directory /config</code>)."
+        ),
+        "label": msg("Code aus der Mailhelp-Konsole"),
+        "intro": msg("Am lokalen Host mailhelp --pair starten und den Einmalcode hier eingeben."),
+        "button": msg("Code in der Konsole anzeigen"),
+        "again": msg("Neuen Code anzeigen"),
+    },
 }
 
 
@@ -215,40 +236,64 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
     message = notice(error, "error") if error else ""
     text = LOGIN_CHANNELS[channel]
     if code_requested or code:
-        body = f"""<p>{text["sent"]} Er gilt 10 Minuten.</p>
-<form method="post" action="/anmelden" class="stack">
-<input type="hidden" name="csrf" value="{e(csrf)}">
-<label for="code">{text["label"]}</label>
-<input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{4,5}}"
- maxlength="5" required autofocus value="{e(code)}">
-<label for="geraet">Gerätename <span class="hint">(optional)</span></label>
-<input id="geraet" name="geraet" maxlength="60" autocomplete="off" placeholder="z. B. iPhone">
-<button class="button primary" type="submit">Gerät koppeln</button>
-</form>
-<form method="post" action="/anmelden/code" class="secondary-form">
-<input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button link" type="submit">{text["again"]}</button>
-</form>"""
+        body = tr(
+            (
+                '<p>{p0} Er gilt 10 Minuten.</p>\n<form method="post" action="/anmelden" '
+                'class="stack">\n<input type="hidden" name="csrf" value="{p1}">\n<label '
+                'for="code">{p2}</label>\n<input id="code" name="code" inputmode="numeric" '
+                'autocomplete="one-time-code" pattern="[0-9 ]{{4,5}}"\n maxlength="5" '
+                'required autofocus value="{p3}">\n<label for="geraet">Gerätename <span '
+                'class="hint">(optional)</span></label>\n<input id="geraet" name="geraet" '
+                'maxlength="60" autocomplete="off" placeholder="z. B. iPhone">\n<button '
+                'class="button primary" type="submit">Gerät koppeln</button>\n</form>\n<form '
+                'method="post" action="/anmelden/code" class="secondary-form">\n<input '
+                'type="hidden" name="csrf" value="{p4}">\n<button class="button link" '
+                'type="submit">{p5}</button>\n</form>'
+            ),
+            p0=f"{text['sent']}",
+            p1=f"{e(csrf)}",
+            p2=f"{text['label']}",
+            p3=f"{e(code)}",
+            p4=f"{e(csrf)}",
+            p5=f"{text['again']}",
+        )
     else:
-        body = f"""<p>Dieses Gerät ist noch nicht gekoppelt. {text["intro"]}</p>
-<form method="post" action="/anmelden/code" class="stack">
-<input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button primary" type="submit">{text["button"]}</button>
-</form>"""
-    body += ('<details><summary>Code aus dem Terminal verwenden</summary>'
-             '<p>Am Host <code>mailhelp --pair</code> ausführen; bei Docker '
-             '<code>docker compose exec mailhelp mailhelp --pair --config-directory /config</code>. '
-             'Der Code funktioniert auch ohne Telegram.</p></details>')
+        body = tr(
+            (
+                '<p>Dieses Gerät ist noch nicht gekoppelt. {p0}</p>\n<form method="post" '
+                'action="/anmelden/code" class="stack">\n<input type="hidden" name="csrf" '
+                'value="{p1}">\n<button class="button primary" type="submit">{p2}</button>\n</form>'
+            ),
+            p0=f"{text['intro']}",
+            p1=f"{e(csrf)}",
+            p2=f"{text['button']}",
+        )
+    body += tr(
+        
+            "<details><summary>Code aus dem Terminal verwenden</summary><p>Am Host "
+            "<code>mailhelp --pair</code> ausführen; bei Docker <code>docker compose "
+            "exec mailhelp mailhelp --pair --config-directory /config</code>. Der Code "
+            "funktioniert auch ohne Telegram.</p></details>"
+        
+    )
     if password_available:
-        body += (f'<form method="post" action="/anmelden/passwort" class="stack">'
-                 f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-                 '<label for="password">Web-Passwort</label>'
-                 '<input id="password" type="password" name="password" maxlength="1024" '
-                 'autocomplete="current-password" required><button type="submit">Anmelden</button></form>')
-    return layout("Anmelden", f"""<section class="card narrow">
-<h1>Gerät koppeln</h1>
-{message}{body}
-</section>""", signed_in=False)
+        body += tr(
+            (
+                '<form method="post" action="/anmelden/passwort" class="stack"><input '
+                'type="hidden" name="csrf" value="{p0}"><label '
+                'for="password">Web-Passwort</label><input id="password" type="password" '
+                'name="password" maxlength="1024" autocomplete="current-password" '
+                'required><button type="submit">Anmelden</button></form>'
+            ),
+            p0=f"{e(csrf)}",
+        )
+    return layout(
+        "Anmelden",
+        tr(
+            '<section class="card narrow">\n<h1>Gerät koppeln</h1>\n{p0}{p1}\n</section>', p0=f"{message}", p1=f"{body}"
+        ),
+        signed_in=False,
+    )
 
 
 def _local(value: datetime, configured_timezone: str) -> str:
@@ -260,36 +305,56 @@ def devices_page(sessions: list[WebSession], current: WebSession, csrf: str,
     rows = []
     for session in sessions:
         own = session.id == current.id
-        label = " <span class=\"badge\">dieses Gerät</span>" if own else ""
+        label = tr(' <span class="badge">dieses Gerät</span>') if own else ""
         # 5.4.1: forms that end this browser's session also erase its local help draft.
         ends = " data-ends-session" if own else ""
-        rows.append(f"""<li class="device">
-<div><strong>{e(session.device)}</strong>{label}<br>
-<span class="meta">Zuletzt aktiv: {e(_local(session.last_used_at, configured_timezone))} ·
-gültig bis {e(_local(session.expires_at, configured_timezone))}</span></div>
-<form method="post" action="/geraete/{e(session.id)}/abmelden"{ends}>
-<input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button danger small" type="submit">Abmelden</button>
-</form>
-</li>""")
-    content = page_head("Geräte", "Verwaltung", "Browser, die mit Mailhelp gekoppelt sind.") + f"""
-{notice(message) if message else ""}
-<ul class="devices">{"".join(rows)}</ul>
-<form method="post" action="/geraete/alle-abmelden" class="stack" data-ends-session>
-<input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button danger" type="submit">Alle Geräte abmelden</button>
-</form>
-<p class="meta">Auch per Telegram: <code>/web_abmelden</code> meldet alle Geräte ab.</p>"""
-    content += '<p><a href="/einstellungen/web-passwort">Web-Passwort festlegen oder ändern</a></p>'
-    return layout("Geräte", content, active="/geraete")
+        rows.append(
+            tr(
+                (
+                    '<li class="device">\n<div><strong>{p0}</strong>{p1}<br>\n<span '
+                    'class="meta">Zuletzt aktiv: {p2} ·\ngültig bis {p3}</span></div>\n<form '
+                    'method="post" action="/geraete/{p4}/abmelden"{p5}>\n<input type="hidden" '
+                    'name="csrf" value="{p6}">\n<button class="button danger small" '
+                    'type="submit">Abmelden</button>\n</form>\n</li>'
+                ),
+                p0=f"{e(session.device)}",
+                p1=f"{label}",
+                p2=f"{e(_local(session.last_used_at, configured_timezone))}",
+                p3=f"{e(_local(session.expires_at, configured_timezone))}",
+                p4=f"{e(session.id)}",
+                p5=f"{ends}",
+                p6=f"{e(csrf)}",
+            )
+        )
+    content = page_head(msg("Geräte"), msg("Verwaltung"), msg("Browser, die mit Mailhelp gekoppelt sind.")) + tr(
+        (
+            '\n{p0}\n<ul class="devices">{p1}</ul>\n<form method="post" '
+            'action="/geraete/alle-abmelden" class="stack" data-ends-session>\n<input '
+            'type="hidden" name="csrf" value="{p2}">\n<button class="button danger" '
+            'type="submit">Alle Geräte abmelden</button>\n</form>\n<p class="meta">Auch '
+            "per Telegram: <code>/web_abmelden</code> meldet alle Geräte ab.</p>"
+        ),
+        p0=f"{(notice(message) if message else '')}",
+        p1=f"{''.join(rows)}",
+        p2=f"{e(csrf)}",
+    )
+    content += tr('<p><a href="/einstellungen/web-passwort">Web-Passwort festlegen oder ändern</a></p>')
+    return layout(msg("Geräte"), content, active="/geraete")
 
 
 def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
-    return layout(title, f"""<section class="card narrow">
-<h1>{e(title)}</h1>
-{notice(text, "error")}
-<p><a class="button" href="/">Zur Übersicht</a></p>
-</section>""", signed_in=signed_in)
+    return layout(
+        title,
+        tr(
+            (
+                '<section class="card narrow">\n<h1>{p0}</h1>\n{p1}\n<p><a class="button" '
+                'href="/">Zur Übersicht</a></p>\n</section>'
+            ),
+            p0=f"{e(title)}",
+            p1=f"{notice(text, 'error')}",
+        ),
+        signed_in=signed_in,
+    )
 
 
 __all__ = ["HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout",

@@ -633,12 +633,15 @@ def recover_task_due(task: ExtractedTask) -> ExtractedTask:
 
 
 def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> NormalizationResult:
-    """Normalize the supported date-only task deadline form."""
+    """Normalize a date or an explicit local date and clock time without dropping the clock."""
     responsibility = task.responsibility
     if task.due_text is None:
         return _failure(NormalizationReason.MISSING_DATE, None, responsibility,
                         "Soll die Aufgabe eine Fälligkeit haben?")
-    parsed = _parse_date(deadline_core(task.due_text), responsibility, context, task.evidence)
+    core = deadline_core(task.due_text)
+    timed = re.fullmatch(r"(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})(?:[ T]| at | um )"
+                         r"(\d{1,2}:\d{2}(?::\d{2})?)(?: Uhr)?", core, re.I)
+    parsed = _parse_date(timed[1] if timed is not None else core, responsibility, context, task.evidence)
     if isinstance(parsed, NormalizationResult):
         # Questions and diagnostics always quote the unchanged extraction.
         parsed = _parse_date(task.due_text, responsibility, context, task.evidence)
@@ -649,5 +652,14 @@ def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> Normali
     checked = _context_zone(context, responsibility)
     if isinstance(checked, NormalizationResult):
         return replace(checked, temporal_fact=fact)
-    return NormalizationResult(parsed_day, None, task.due_text, None, responsibility,
+    value: date | datetime = parsed_day
+    if timed is not None:
+        clock = _parse_time(timed[2], responsibility)
+        if isinstance(clock, NormalizationResult):
+            return replace(clock, raw_value=task.due_text, temporal_fact=fact)
+        localized = _localize(parsed_day, clock, checked, responsibility)
+        if isinstance(localized, NormalizationResult):
+            return replace(localized, raw_value=task.due_text, temporal_fact=fact)
+        value = localized
+    return NormalizationResult(value, None, task.due_text, None, responsibility,
                                temporal_fact=fact)

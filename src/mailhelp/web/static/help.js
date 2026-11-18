@@ -56,10 +56,10 @@
       headers: {Accept: "application/json"}}).then(function (response) {
       if (response.status === 401 || response.status === 403) {
         stopped = true; state.opened = false; panel.hidden = true; content.textContent = ""; forget();
-        throw new Error("Sitzung abgelaufen. Bitte erneut anmelden.");
+        throw new Error(mailhelpText("Sitzung abgelaufen. Bitte erneut anmelden."));
       }
       return response.json().then(function (data) {
-        if (!response.ok) throw new Error(data.error || "Anfrage fehlgeschlagen. Bitte erneut versuchen.");
+        if (!response.ok) throw new Error(data.error || mailhelpText("Anfrage fehlgeschlagen. Bitte erneut versuchen."));
         return data;
       });
     });
@@ -136,7 +136,7 @@
         var following = restored && content.scrollTop + content.clientHeight >= content.scrollHeight - 4;
         var scroll = restored ? content.scrollTop : state.scroll;
         content.innerHTML = data.html;
-        if (stamp) message.textContent = "Gespräch aktualisiert.";
+        if (stamp) message.textContent = mailhelpText("Gespräch aktualisiert.");
         stamp = data.stamp;
         restoreDraft(); content.scrollTop = following ? content.scrollHeight : scroll;
         if (!content.hidden) { restored = true; state.scroll = content.scrollTop; }
@@ -182,7 +182,7 @@
   function jsonDocument(url) {
     var current = ++docSequence;
     fetch(url, {cache: "no-store", credentials: "same-origin"}).then(function (response) {
-      if (!response.ok || response.redirected) throw new Error("Dokumentation nicht verfügbar. Bitte Anmeldung prüfen.");
+      if (!response.ok || response.redirected) throw new Error(mailhelpText("Dokumentation nicht verfügbar. Bitte Anmeldung prüfen."));
       return response.text();
     }).then(function (html) {
       if (current !== docSequence) return;
@@ -222,7 +222,7 @@
       remember().catch(failure); return;
     }
     if (busy) return;
-    busy = true; message.textContent = "Anfrage wird gesendet …";
+    busy = true; message.textContent = mailhelpText("Anfrage wird gesendet …");
     var body = credentials(form), clear = form.action.endsWith("/hilfe/leeren");
     json(form.action, body).then(function (data) {
       state.draft = ""; content.innerHTML = data.html; stamp = "";

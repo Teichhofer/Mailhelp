@@ -1,0 +1,27 @@
+{
+  "human_decision": null,
+  "mail_id": "17ce08ebd25359f154b937b0",
+  "recorded_at": "2026-11-17T21:40:00.398365+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "The school office informs parents that next week's Maple Park cafeteria menu features vegetable pasta, rice bowls and soup, with an existing meal plan unchanged.",
+      "No order, reply or payment is required."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

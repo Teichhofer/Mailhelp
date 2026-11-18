@@ -1,4 +1,5 @@
 """Search over stored mails and the stored analysis of one mail."""
+
 from __future__ import annotations
 
 import re
@@ -6,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from .. import state_names
 from ..domain.mail import MailState
+from ..i18n import heading, msg, tr
 from ..persistence.archive import AnalysisSnapshot
 from ..persistence.storage import CorruptState
 from ..review.consistency import hints
@@ -28,8 +30,9 @@ def _batch_result(queued: str, total: str) -> str:
     if not (queued.isdigit() and total.isdigit()):
         return ""
     skipped = int(total) - int(queued)
-    text = f"{queued} Mails eingereiht." + (
-        f" {skipped} übersprungen (bereits eingereiht oder inzwischen geändert)." if skipped > 0 else "")
+    text = tr("{p0} Mails eingereiht.", p0=f"{queued}") + (
+        tr(" {p0} übersprungen (bereits eingereiht oder inzwischen geändert).", p0=skipped) if skipped > 0 else ""
+    )
     return notice(text, "ok" if skipped <= 0 else "info")
 
 
@@ -46,14 +49,14 @@ class MailArchiveSite:
                 parameters.pop("eingereiht", ""), parameters.pop("von", ""))
             query = ArchiveQuery.model_validate(parameters)
         except ValueError:
-            return self.site._reply(request, 422, "Ungültige Suche oder Filter.")
+            return self.site._reply(request, 422, msg("Ungültige Suche oder Filter."))
         items, total = queries.search(query)
         topics = sorted({topic for item in queries.items() for topic in item["topics"]})
         if query.state == "failed":
             result += batch_links(items)
         page = mail_list_page(query, items, total, queries.damaged, topics, self.site.configured_timezone,
                               queries.mailboxes, self.site.auth.csrf_token(session.id), result=result)
-        return Response.html(200, layout("Mails", page, active="/mails"))
+        return Response.html(200, layout(heading("Mails"), page, active="/mails"))
 
     def _result(self, entry_id: str, session: WebSession) -> str:
         """7.3: the result of this browser's action from the failure list (?ergebnis=<id>)."""
@@ -69,15 +72,16 @@ class MailArchiveSite:
             snapshot = store.peek_model(f"analysis-{mail_id}", AnalysisSnapshot)
             record = snapshot.model_dump(mode="json") if snapshot is not None else {}
         except CorruptState:
-            return notice("Analyse beschädigt; bitte Protokolle prüfen.", "error")
+            return notice(tr("Analyse beschädigt; bitte Protokolle prüfen."), "error")
         if state is None:
             return ""
         controls = ""
         if state.processing_filed:
-            controls = notice("Nicht verarbeitet – bewusst abgelegt.", "info")
+            controls = notice(tr("Nicht verarbeitet – bewusst abgelegt."), "info")
         elif state.error is not None:
-            controls = ('<p>Diese Mail hat einen Verarbeitungsfehler; Ursache und Aktionen stehen oben im '
-                        'Fehlerbericht.</p>')
+            controls = tr(
+                "<p>Diese Mail hat einen Verarbeitungsfehler; Ursache und Aktionen stehen oben im Fehlerbericht.</p>"
+            )
         return controls + analysis_section(mail_id, state, record)
 
     def failure_card(self, mail_id: str, subject: str, csrf: str) -> str:
@@ -90,23 +94,41 @@ class MailArchiveSite:
         report = error_report(state, subject, self.site.configured_timezone) if state is not None else None
         if state is None or report is None:
             return ""
-        facts = [("Betroffener Schritt", report.stage_label),
-                 ("Fehlerursache", f"{report.label}. {report.explanation}"),
-                 ("Empfehlung", report.advice), ("Wiederholung", report.retry), ("Fehler aufgetreten", report.occurred),
-                 ("Erster Fehlversuch", report.first_failed), ("Letzter Versuch", report.last_failed)]
+        facts = [
+            (msg("Betroffener Schritt"), report.stage_label),
+            ("Fehlerursache", f"{report.label}. {report.explanation}"),
+            ("Empfehlung", report.advice),
+            (msg("Wiederholung"), report.retry),
+            (msg("Fehler aufgetreten"), report.occurred),
+            ("Erster Fehlversuch", report.first_failed),
+            (msg("Letzter Versuch"), report.last_failed),
+        ]
         facts += [("Feldpfade", ", ".join(report.paths))] if report.paths else []
-        facts += [("Modellaufrufe", ", ".join(report.call_ids))] if report.call_ids else []
+        facts += [(msg("Modellaufrufe"), ", ".join(report.call_ids))] if report.call_ids else []
         rows = "".join(f"<dt>{e(name)}</dt><dd>{e(value)}</dd>" for name, value in facts)
         actions = failure_forms(csrf, state.id, state.analysis_round,
                                 retryable=not state.missing_analysis_steps and not retry_pending(state))
-        return (f'<section class="card error-card" id="fehlerbericht" aria-labelledby="fehlerbericht-titel">'
-                f'<h2 id="fehlerbericht-titel">Verarbeitungsfehler</h2>'
-                f'<p>{e(report.label)} – Stufe: {e(report.stage_label)}. {e(report.retry)}</p>{actions}'
-                f'<details class="error-report"><summary>Fehlerbericht anzeigen</summary>'
-                f'<dl class="facts">{rows}</dl><div class="report-box">'
-                f'<textarea readonly rows="8" aria-label="Fehlerbericht als Text">{e(report.text())}</textarea>'
-                f'<button class="button small" type="button" data-copy-report>Bericht kopieren</button>'
-                f'<p class="meta" role="status" data-copy-status></p></div></details></section>')
+        return tr(
+            (
+                '<section class="card error-card" id="fehlerbericht" '
+                'aria-labelledby="fehlerbericht-titel"><h2 '
+                'id="fehlerbericht-titel">Verarbeitungsfehler</h2><p>{p0} – '
+                "Stufe: {p1}. {p2}</p>{p3}<details "
+                'class="error-report"><summary>Fehlerbericht '
+                'anzeigen</summary><dl class="facts">{p4}</dl><div '
+                'class="report-box"><textarea readonly rows="8" '
+                'aria-label="Fehlerbericht als Text">{p5}</textarea><button '
+                'class="button small" type="button" data-copy-report>Bericht '
+                'kopieren</button><p class="meta" role="status" '
+                "data-copy-status></p></div></details></section>"
+            ),
+            p0=e(report.label),
+            p1=e(report.stage_label),
+            p2=e(report.retry),
+            p3=actions,
+            p4=rows,
+            p5=e(report.text()),
+        )
 
     def processing_path(self, mail_id: str) -> str:
         """5.1.1: the stored processing path of a mail, explained without a model call."""
@@ -115,7 +137,7 @@ class MailArchiveSite:
             state = store.peek_model(state_names.mail(mail_id), MailState)
             snapshot = store.peek_model(f"analysis-{mail_id}", AnalysisSnapshot)
         except CorruptState:
-            return notice("Verarbeitungsweg beschädigt; bitte Protokolle prüfen.", "error")
+            return notice(tr("Verarbeitungsweg beschädigt; bitte Protokolle prüfen."), "error")
         if state is None:
             return ""
         topics = snapshot.topics if snapshot is not None else {}

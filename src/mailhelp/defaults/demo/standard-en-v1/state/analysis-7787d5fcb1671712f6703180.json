@@ -1,0 +1,29 @@
+{
+  "human_decision": null,
+  "mail_id": "7787d5fcb1671712f6703180",
+  "recorded_at": "2026-11-17T21:38:26.656519+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "2026-11-26, 19:30–21:00"
+    ],
+    "sentences": [
+      "Jane Lewis tells class 4B parents the parent meeting is on 2026-11-26, 19:30–21:00 in Room 12.",
+      "The meeting will cover the planetarium trip, reading mentors, and the school calendar."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

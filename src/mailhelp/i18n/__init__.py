@@ -13,11 +13,12 @@ from __future__ import annotations
 
 import re
 import string
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import StrEnum
 from functools import cache
+from types import MappingProxyType
 
 from .en import EN
 
@@ -28,6 +29,7 @@ class Locale(StrEnum):
 
 
 LOCALE: ContextVar[Locale] = ContextVar("mailhelp_locale", default=Locale.DE)
+WORDING: ContextVar[Mapping[str, str]] = ContextVar("mailhelp_wording", default=MappingProxyType({}))
 COOKIE = "mailhelp_lang"
 
 
@@ -37,8 +39,39 @@ def current() -> Locale:
 
 def tr(text: str, **params: object) -> str:
     """*text* in the active language; placeholders are filled after the lookup."""
+    text = WORDING.get().get(text, text)
     translated = EN.get(text, text) if LOCALE.get() == Locale.EN else text
     return translated.format(**params) if params else translated
+
+
+def heading(text: str) -> str:
+    """*text* translated as a title: a count word like "Mails" becomes "Emails", not "emails"."""
+    translated = tr(text)
+    return translated[:1].upper() + translated[1:]
+
+
+class Message(str):
+    """An owned label: translate at rendering, retaining its German identity in tables and JSON.
+
+    Plain strings from mails or users never get this marker. Labels can consequently remain in
+    immutable module-level tables without capturing the language of the importing thread.
+    """
+
+    def __str__(self) -> str:
+        return tr(super().__str__())
+
+    def __format__(self, spec: str) -> str:
+        return format(str(self), spec)
+
+    def __add__(self, other: str) -> str:
+        return str(self) + other
+
+    def __radd__(self, other: str) -> str:
+        return other + str(self)
+
+
+def msg(text: str) -> str:
+    return Message(text)
 
 
 def de(text: str, **params: object) -> str:
@@ -108,23 +141,30 @@ def stored(text: str) -> str:
     placeholders, whose values are translated the same way; German dates and times are rewritten.
     Anything unknown stays as it is, also English text.
     """
+    text = WORDING.get().get(text, text)
     if LOCALE.get() != Locale.EN:
         return text
     return _translate(text)
 
 
 @contextmanager
-def use_locale(locale: Locale) -> Iterator[None]:
+def use_locale(locale: Locale, *, wording: Mapping[str, str] | None = None) -> Iterator[None]:
     token = LOCALE.set(locale)
+    words = WORDING.set(wording) if wording is not None else None
     try:
         yield
     finally:
+        if words is not None:
+            WORDING.reset(words)
         LOCALE.reset(token)
 
 
 def parse(value: str | None) -> Locale | None:
     """``de``/``en`` (also ``en-GB`` and the like) as a supported language, else ``None``."""
-    primary = (value or "").strip().split("-")[0].casefold()
+    tag = (value or "").strip()
+    if re.fullmatch(r"[a-z]{2,8}(?:-[a-z0-9]{1,8})*", tag, re.I) is None:
+        return None
+    primary = tag.split("-")[0].casefold()
     return Locale(primary) if primary in {Locale.DE, Locale.EN} else None
 
 
@@ -133,11 +173,19 @@ def negotiate(cookie: str | None, accept_language: str | None, default: Locale) 
     chosen = parse(cookie)
     if chosen is not None:
         return chosen
-    for part in (accept_language or "").split(","):
-        found = parse(part.split(";")[0])
-        if found is not None:
-            return found
-    return default
+    selected, quality = default, 0.0
+    for part in (accept_language or "")[:8192].split(",")[:64]:
+        match = re.fullmatch(
+            r"\s*([a-z]{2,8}(?:-[a-z0-9]{1,8})*)\s*(?:;\s*q=(0(?:\.\d{0,3})?|1(?:\.0{0,3})?))?\s*",
+            part, re.I)
+        if match is None:
+            continue
+        found = parse(match[1])
+        weight = float(match[2]) if match[2] is not None else 1.0
+        if found is not None and weight > quality:
+            selected, quality = found, weight
+    return selected
 
 
-__all__ = ["COOKIE", "LOCALE", "Locale", "current", "de", "negotiate", "parse", "stored", "tr", "use_locale"]
+__all__ = ["COOKIE", "LOCALE", "Locale", "Message", "current", "de", "heading", "msg", "negotiate", "parse", "stored",
+           "tr", "use_locale"]

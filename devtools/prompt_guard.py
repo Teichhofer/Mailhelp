@@ -20,6 +20,8 @@ def _evaluated(name: str, text: str) -> str:
         return text
     for step in NOT_EVALUATED:
         text = re.sub(rf"(?ms)^  {step}:\n.*?(?=^  [a-z_]+:\n|^\S|\Z)", "", text)
+    # Development-only profiles are excluded by PromptConfig and never enter a production analysis.
+    text = re.sub(r"(?ms)^demo_profiles:\n.*?(?=^\S|\Z)", "", text)
     return text
 
 

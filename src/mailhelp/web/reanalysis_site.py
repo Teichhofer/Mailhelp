@@ -5,6 +5,7 @@ CSRF token are checked by the site, the analysis round and the shown proposal
 versions are checked again when the action runs, and an idempotency key makes a
 repeated click harmless. Adopting a result never approves an external write.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from .. import state_names
 from ..domain.mail import MailState
 from ..domain.reanalysis import ACTIVE, ReanalysisJob, ReanalysisStatus, adoption_pending
+from ..i18n import msg, tr
 from ..processing.reanalysis import ReanalysisRefused
 from ..processing.reanalysis_adoption import Change, Comparison
 from .auth import WebSession
@@ -24,45 +26,56 @@ if TYPE_CHECKING:
     from .site import MailhelpSite
 
 STATUS_TEXT = {
-    ReanalysisStatus.QUEUED: "Wartet auf den Start.",
-    ReanalysisStatus.RUNNING: "Läuft – die Seite zeigt das Ergebnis nach dem Neuladen.",
-    ReanalysisStatus.COMPLETED: "Abgeschlossen.",
-    ReanalysisStatus.FAILED: "Fehlgeschlagen.",
-    ReanalysisStatus.CANCELLED: "Abgebrochen.",
+    ReanalysisStatus.QUEUED: msg("Wartet auf den Start."),
+    ReanalysisStatus.RUNNING: msg("Läuft – die Seite zeigt das Ergebnis nach dem Neuladen."),
+    ReanalysisStatus.COMPLETED: msg("Abgeschlossen."),
+    ReanalysisStatus.FAILED: msg("Fehlgeschlagen."),
+    ReanalysisStatus.CANCELLED: msg("Abgebrochen."),
 }
 ERROR_TEXT = {
-    "mail_missing": "Die Mail ist im Postfach nicht mehr abrufbar.",
-    "uidvalidity_changed": "Das Postfach wurde neu nummeriert; die ursprüngliche Mail ist nicht mehr eindeutig.",
-    "mailbox_unavailable": "Das Postfach ist nicht erreichbar.",
-    "budget_exhausted": "Das Aufrufbudget dieser Nachanalyse ist aufgebraucht.",
-    "model_failed": "Das Modell hat wiederholt keine verwertbare Antwort geliefert.",
-    "stale_round": "Die Mail wurde inzwischen erneut ausgewertet.",
-    "session_ended": "Die Sitzung, die die Nachanalyse gestartet hat, wurde beendet.",
+    "mail_missing": msg("Die Mail ist im Postfach nicht mehr abrufbar."),
+    "uidvalidity_changed": msg("Das Postfach wurde neu nummeriert; die ursprüngliche Mail ist nicht mehr eindeutig."),
+    "mailbox_unavailable": msg("Das Postfach ist nicht erreichbar."),
+    "budget_exhausted": msg("Das Aufrufbudget dieser Nachanalyse ist aufgebraucht."),
+    "model_failed": msg("Das Modell hat wiederholt keine verwertbare Antwort geliefert."),
+    "stale_round": msg("Die Mail wurde inzwischen erneut ausgewertet."),
+    "session_ended": msg("Die Sitzung, die die Nachanalyse gestartet hat, wurde beendet."),
 }
 REFUSED_TEXT = {
-    "disabled": "Die Nachanalyse ist in den Einstellungen ausgeschaltet.",
-    "stale": "Die Mail wurde inzwischen erneut ausgewertet. Bitte die Seite neu laden.",
-    "processing": "Die Mail wird gerade noch verarbeitet.",
-    "daily_limit": "Das Tageslimit für Nachanalysen ist erreicht.",
-    "key_conflict": "Das Formular gehört zu einer anderen Mail. Bitte die Seite neu laden.",
-    "not_completed": "Diese Nachanalyse ist nicht abgeschlossen.",
-    "already_adopted": "Dieses Ergebnis wurde bereits übernommen.",
-    "mail_missing": "Die Mail ist nicht mehr vorhanden.",
-    "session_ended": "Die Sitzung wurde inzwischen beendet. Bitte erneut anmelden und neu starten.",
+    "disabled": msg("Die Nachanalyse ist in den Einstellungen ausgeschaltet."),
+    "stale": msg("Die Mail wurde inzwischen erneut ausgewertet. Bitte die Seite neu laden."),
+    "processing": msg("Die Mail wird gerade noch verarbeitet."),
+    "daily_limit": msg("Das Tageslimit für Nachanalysen ist erreicht."),
+    "key_conflict": msg("Das Formular gehört zu einer anderen Mail. Bitte die Seite neu laden."),
+    "not_completed": msg("Diese Nachanalyse ist nicht abgeschlossen."),
+    "already_adopted": msg("Dieses Ergebnis wurde bereits übernommen."),
+    "mail_missing": msg("Die Mail ist nicht mehr vorhanden."),
+    "session_ended": msg("Die Sitzung wurde inzwischen beendet. Bitte erneut anmelden und neu starten."),
 }
 # Refusals after which this result can no longer be adopted; a new analysis is offered.
 FINAL_REFUSALS = {"stale", "already_adopted", "mail_missing"}
 CHANGE_TEXT = {
-    Change.UNCHANGED: "Unverändert",
-    Change.NEW: "Neu – wird als unbestätigter Vorschlag übernommen",
-    Change.CHANGED: "Geändert – wird als neue Version übernommen",
-    Change.PROTECTED: "Bereits angelegt oder in Anlage – bleibt unverändert",
-    Change.REJECTED: "Früher verworfen – bleibt verworfen",
-    Change.MISSING: "Nicht mehr erkannt – bleibt erhalten",
+    Change.UNCHANGED: msg("Unverändert"),
+    Change.NEW: msg("Neu – wird als unbestätigter Vorschlag übernommen"),
+    Change.CHANGED: msg("Geändert – wird als neue Version übernommen"),
+    Change.PROTECTED: msg("Bereits angelegt oder in Anlage – bleibt unverändert"),
+    Change.REJECTED: msg("Früher verworfen – bleibt verworfen"),
+    Change.MISSING: msg("Nicht mehr erkannt – bleibt erhalten"),
 }
-FIELD_NAMES = {"kind": "Art", "title": "Titel", "description": "Beschreibung", "due": "Frist", "start": "Beginn",
-               "end": "Ende", "all_day": "Ganztägig", "location": "Ort", "responsibility": "Zuständigkeit",
-               "certainty": "Sicherheit", "classification": "Einordnung", "open_questions": "Offene Fragen"}
+FIELD_NAMES = {
+    "kind": msg("Art"),
+    "title": msg("Titel"),
+    "description": msg("Beschreibung"),
+    "due": msg("Frist"),
+    "start": msg("Beginn"),
+    "end": msg("Ende"),
+    "all_day": msg("Ganztägig"),
+    "location": msg("Ort"),
+    "responsibility": msg("Zuständigkeit"),
+    "certainty": msg("Sicherheit"),
+    "classification": msg("Einordnung"),
+    "open_questions": msg("Offene Fragen"),
+}
 
 
 class ReanalysisSite:
@@ -91,8 +104,11 @@ class ReanalysisSite:
             return ""
         jobs = self.worker.jobs.for_mail(mail_id)
         latest = jobs[-1] if jobs else None
-        body = ('<section class="card reanalysis" id="nachanalyse" aria-labelledby="nachanalyse-titel">'
-                '<h2 id="nachanalyse-titel">Aufgabe oder Termin übersehen?</h2>')
+        body = tr(
+            '<section class="card reanalysis" id="nachanalyse" '
+            'aria-labelledby="nachanalyse-titel"><h2 '
+            'id="nachanalyse-titel">Aufgabe oder Termin übersehen?</h2>'
+        )
         if latest is not None and latest.source_round == state.analysis_round:
             body += self._job(latest, csrf)
             if latest.status in ACTIVE or self._awaiting_adoption(latest):
@@ -111,34 +127,61 @@ class ReanalysisSite:
     def _offer(self, state: MailState, csrf: str) -> str:
         settings = self.worker.jobs.settings
         if not settings.enabled:
-            return "<p>Die Nachanalyse ist in den Einstellungen ausgeschaltet.</p>"
+            return tr("<p>Die Nachanalyse ist in den Einstellungen ausgeschaltet.</p>")
         today = sum(job.created_at.date() == self.worker.jobs.clock().date() for job in self.worker.jobs.all())
         left = max(0, settings.max_jobs_per_day - today)
-        return (f'<p>Mailhelp analysiert diese Mail (Analyserunde {state.analysis_round}) mit den aktuellen '
-                'Einstellungen erneut. Bestehende Vorschläge und Entscheidungen bleiben erhalten; neue Befunde '
-                'erscheinen nur als unbestätigte Vorschläge, nichts wird automatisch angelegt.</p>'
-                f'<p class="meta">Budget: höchstens {settings.max_llm_calls_per_job} kostenpflichtige Modellaufrufe; '
-                f'heute noch {left} von {settings.max_jobs_per_day} Nachanalysen möglich. Die tatsächlichen '
-                'Kosten zeigt die Auswertung.</p>'
-                f'<form method="post" action="/mail/{state.id}/nachanalyse">'
-                + self._hidden(csrf, round=state.analysis_round)
-                + '<label for="nachanalyse-hinweis">Hinweis für die Analyse (optional)</label>'
-                '<textarea id="nachanalyse-hinweis" name="hint" rows="2" maxlength="500" '
-                'placeholder="z. B. Bitte die Rückmeldefrist prüfen"></textarea>'
-                + ('<button class="button primary" type="submit" disabled>Tageslimit erreicht</button>' if not left
-                   else '<button class="button primary" type="submit">Erneut analysieren</button>')
-                + '</form>')
+        return (
+            tr(
+                (
+                    "<p>Mailhelp analysiert diese Mail (Analyserunde {p0}) mit den "
+                    "aktuellen Einstellungen erneut. Bestehende Vorschläge und "
+                    "Entscheidungen bleiben erhalten; neue Befunde erscheinen nur als "
+                    "unbestätigte Vorschläge, nichts wird automatisch angelegt.</p><p "
+                    'class="meta">Budget: höchstens {p1} kostenpflichtige '
+                    "Modellaufrufe; heute noch {p2} von {p3} Nachanalysen möglich. "
+                    "Die tatsächlichen Kosten zeigt die Auswertung.</p><form "
+                    'method="post" action="/mail/{p4}/nachanalyse">'
+                ),
+                p0=state.analysis_round,
+                p1=settings.max_llm_calls_per_job,
+                p2=left,
+                p3=settings.max_jobs_per_day,
+                p4=state.id,
+            )
+            + self._hidden(csrf, round=state.analysis_round)
+            + tr(
+                '<label for="nachanalyse-hinweis">Hinweis für die Analyse '
+                '(optional)</label><textarea id="nachanalyse-hinweis" name="hint" '
+                'rows="2" maxlength="500" placeholder="z. B. Bitte die '
+                'Rückmeldefrist prüfen"></textarea>'
+            )
+            + (
+                tr('<button class="button primary" type="submit" disabled>Tageslimit erreicht</button>')
+                if not left
+                else tr('<button class="button primary" type="submit">Erneut analysieren</button>')
+            )
+            + "</form>"
+        )
 
     def _job(self, job: ReanalysisJob, csrf: str) -> str:
         text = STATUS_TEXT[job.status]
         if job.error is not None:
             text += " " + ERROR_TEXT[job.error.value]
-        body = (f'<p role="status"><strong>Nachanalyse:</strong> {e(text)} '
-                f'<span class="meta">{job.llm_calls} von {job.max_llm_calls} Modellaufrufen</span></p>')
+        body = tr(
+            (
+                '<p role="status"><strong>Nachanalyse:</strong> {p0} <span '
+                'class="meta">{p1} von {p2} Modellaufrufen</span></p>'
+            ),
+            p0=e(text),
+            p1=job.llm_calls,
+            p2=job.max_llm_calls,
+        )
         if job.status in ACTIVE:
-            body += (f'<form method="post" action="/mail/{job.mail_id}/nachanalyse/{job.id}/abbrechen">'
-                     + self._hidden(csrf)
-                     + '<button class="button" type="submit">Nachanalyse abbrechen</button></form>')
+            body += (
+                f'<form method="post" action="/mail/{job.mail_id}/nachanalyse/{job.id}/abbrechen">'
+                + self._hidden(csrf)
+                + tr('<button class="button" type="submit">Nachanalyse abbrechen</button></form>')
+            )
         if job.status == ReanalysisStatus.COMPLETED:
             comparison = self.worker.adoption.comparison(job.id)
             if comparison is not None:
@@ -150,26 +193,42 @@ class ReanalysisSite:
         for item in comparison.items:
             shown = item.candidate or item.existing
             assert shown is not None
-            fields = (f' <span class="meta">Geändert: {e(", ".join(FIELD_NAMES[name] for name in item.fields))}</span>'
-                      if item.fields else "")
+            fields = (
+                tr(
+                    ' <span class="meta">Geändert: {p0}</span>',
+                    p0=e(", ".join(FIELD_NAMES[name] for name in item.fields)),
+                )
+                if item.fields
+                else ""
+            )
             rows += (f'<li class="change-{item.change.value}"><strong>{e(shown.title)}</strong> · '
                      f'{e(CHANGE_TEXT[item.change])}{fields}</li>')
-        body = f'<h3>Vorher und nachher</h3><ul class="reanalysis-changes">{rows or "<li>Keine Vorschläge.</li>"}</ul>'
+        body = tr(
+            ('<h3>Vorher und nachher</h3><ul class="reanalysis-changes">{p0}</ul>'),
+            p0=rows or tr("<li>Keine Vorschläge.</li>"),
+        )
         if job.adopted_at is not None:
-            return body + "<p>Übernommen. Die Vorschläge warten auf deine Bestätigung.</p>"
+            return body + tr("<p>Übernommen. Die Vorschläge warten auf deine Bestätigung.</p>")
         if adoption_pending(job):
-            return body + '<p role="status">Die Übernahme wird ausgeführt – bitte die Seite gleich neu laden.</p>'
+            return body + tr('<p role="status">Die Übernahme wird ausgeführt – bitte die Seite gleich neu laden.</p>')
         if job.adoption_error is not None:
-            body += notice(REFUSED_TEXT.get(job.adoption_error, "Die Übernahme wurde abgelehnt."), "warn")
+            body += notice(REFUSED_TEXT.get(job.adoption_error, msg("Die Übernahme wurde abgelehnt.")), "warn")
             if job.adoption_error in FINAL_REFUSALS:
                 return body
         if not comparison.adoptable:
-            return body + "<p>Die Nachanalyse ergab nichts Neues; es gibt nichts zu übernehmen.</p>"
-        return (body + f'<form method="post" action="/mail/{job.mail_id}/nachanalyse/{job.id}/uebernehmen">'
-                + self._hidden(csrf, round=comparison.analysis_round,
-                               versions=json.dumps(comparison.versions, sort_keys=True))
-                + '<p class="meta">Die Übernahme legt nichts an. Jeder Vorschlag braucht danach deine Bestätigung.</p>'
-                  '<button class="button primary" type="submit">Ergebnis übernehmen</button></form>')
+            return body + tr("<p>Die Nachanalyse ergab nichts Neues; es gibt nichts zu übernehmen.</p>")
+        return (
+            body
+            + f'<form method="post" action="/mail/{job.mail_id}/nachanalyse/{job.id}/uebernehmen">'
+            + self._hidden(
+                csrf, round=comparison.analysis_round, versions=json.dumps(comparison.versions, sort_keys=True)
+            )
+            + tr(
+                '<p class="meta">Die Übernahme legt nichts an. Jeder Vorschlag '
+                'braucht danach deine Bestätigung.</p><button class="button '
+                'primary" type="submit">Ergebnis übernehmen</button></form>'
+            )
+        )
 
     def _reply(self, request: Request, message: str) -> Response:
         return self.site._reply(request, 409, message)
@@ -184,9 +243,11 @@ class ReanalysisSite:
                                    actor=f"web:{session.id}")
         except (KeyError, ValueError) as exc:
             reason = exc.reason if isinstance(exc, ReanalysisRefused) else ""
-            return self._reply(request, REFUSED_TEXT.get(reason, "Das Formular ist unvollständig. Bitte neu laden."))
+            return self._reply(
+                request, REFUSED_TEXT.get(reason, msg("Das Formular ist unvollständig. Bitte neu laden."))
+            )
         self.worker.wake()
-        return Response.redirect(f"/mail/{mail_id}#nachanalyse")
+        return Response.redirect('/mail/{p0}#nachanalyse'.format(p0=f'{mail_id}'))
 
     def cancel(self, request: Request, session: WebSession, form: dict[str, str], mail_id: str,
                job_id: str) -> Response:
@@ -194,7 +255,7 @@ class ReanalysisSite:
         if job is None or job.mail_id != mail_id:
             return self._reply(request, REFUSED_TEXT["mail_missing"])
         self.worker.jobs.cancel(job_id)
-        return Response.redirect(f"/mail/{mail_id}#nachanalyse")
+        return Response.redirect('/mail/{p0}#nachanalyse'.format(p0=f'{mail_id}'))
 
     def adopt(self, request: Request, session: WebSession, form: dict[str, str], mail_id: str,
               job_id: str) -> Response:
@@ -210,7 +271,8 @@ class ReanalysisSite:
                                               actor=f"web:{session.id}")
         except (KeyError, ValueError) as exc:
             reason = exc.reason if isinstance(exc, ReanalysisRefused) else ""
-            return self._reply(request, REFUSED_TEXT.get(reason, "Das Formular ist unvollständig. Bitte neu laden."))
+            return self._reply(
+                request, REFUSED_TEXT.get(reason, msg("Das Formular ist unvollständig. Bitte neu laden."))
+            )
         self.worker.wake()
-        return Response.redirect(f"/mail/{mail_id}#nachanalyse")
-
+        return Response.redirect('/mail/{p0}#nachanalyse'.format(p0=f'{mail_id}'))

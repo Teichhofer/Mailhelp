@@ -35,6 +35,7 @@ from ..domain.proposal import (
 from ..domain.proposal_sources import ProposalMatchDecision
 from ..domain.relevance import Relevance
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..i18n import current
 from ..llm.adapter import RetryableError
 from ..llm.openrouter import InvalidJson, ProviderResponseInvalid
 from ..notifications.drafts import ReplyDraft
@@ -399,7 +400,7 @@ class Analyzer:
         """5.3: an answer from the given help sections only, over the active model path."""
         # Late: against the layer direction, named in tests/unit/test_layers.py.
         from ..helpdocs import HelpAnswer, answer_validator
-        payload = {"question": question, "history": history, "settings": settings,
+        payload = {"question": question, "history": history, "settings": settings, "language": current().value,
                    "sources": [{"id": item.id, "title": " › ".join(item.path), "text": item.text} for item in sources]}
         validate = answer_validator([item.id for item in sources], [item["id"] for item in settings])
         return self._classified_run("settings_help", payload, validate, schema=HelpAnswer, before_call=before_call)

@@ -1,4 +1,5 @@
 """Host-authorized CLI pairing without credentials in logs or browser requests."""
+
 from __future__ import annotations
 
 import hashlib
@@ -15,6 +16,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from ..config import Settings, _dotenv, read_yaml
+from ..i18n import tr
 
 if TYPE_CHECKING:
     from .auth import WebAuth
@@ -62,4 +64,4 @@ def request_local_code(directory: Path) -> None:
         code = response.json()["code"]
         if not isinstance(code, str) or not re.fullmatch(r"[0-9]{4}", code):
             raise ValueError("Lokaler Dienst hat keinen gültigen Einmalcode geliefert")
-    print(f"Einmalcode: {code} – 10 Minuten gültig. In /anmelden eingeben.", flush=True)
+    print(tr("Einmalcode: {p0} – 10 Minuten gültig. In /anmelden eingeben.", p0=code), flush=True)

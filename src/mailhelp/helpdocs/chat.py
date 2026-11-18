@@ -17,6 +17,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from ..config import HelpChatSettings
+from ..i18n import Locale, current, stored, use_locale
 from ..llm.adapter import PermanentError, RetryableError
 from ..llm.openrouter import RateLimitExceeded
 from ..logging import EventLogger, NullLogger
@@ -86,6 +87,7 @@ class Job(BaseModel):
     error: str | None = None
     created_at: datetime
     updated_at: datetime
+    locale: Locale = Locale.DE
 
 
 class ChatState(BaseModel):
@@ -101,9 +103,10 @@ def _hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def chat_name(session_id: str) -> str:
+def chat_name(session_id: str, locale: Locale | None = None) -> str:
     """The state name of one session's chat; the session id itself is never stored."""
-    return PREFIX + _hash(session_id)[:32]
+    selected = locale or current()
+    return PREFIX + _hash(session_id + ("\0en" if selected == Locale.EN else ""))[:32]
 
 
 class HelpChat:
@@ -124,9 +127,9 @@ class HelpChat:
         self._stop = threading.Event()
 
     # --- state -------------------------------------------------------------------------------
-    def state(self, session_id: str) -> ChatState:
+    def state(self, session_id: str, *, locale: Locale | None = None) -> ChatState:
         try:
-            value = self.store.load_model(chat_name(session_id), ChatState)
+            value = self.store.load_model(chat_name(session_id, locale), ChatState)
         except CorruptState:
             value = None
         return value or ChatState(updated_at=self.now())
@@ -159,13 +162,14 @@ class HelpChat:
             if any(job.status in OPEN for job in state.jobs):
                 raise ChatRefused("busy", "Es wird noch eine Frage beantwortet.")
             now = self.now()
-            recent = [job for job in state.jobs if job.created_at > now - timedelta(seconds=60)]
+            recent = [job for locale in Locale for job in self.state(session_id, locale=locale).jobs
+                      if job.created_at > now - timedelta(seconds=60)]
             if len(recent) >= settings.requests_per_minute_per_session:
                 raise ChatRefused("rate_limited", "Zu viele Fragen in kurzer Zeit; bitte eine Minute warten.")
             if sum(1 for job in self._queued()) >= MAX_QUEUED:
                 raise ChatRefused("full", "Die Hilfe ist gerade ausgelastet; bitte gleich erneut fragen.")
             job = Job(id=secrets.token_hex(16), key_hash=key_hash, content_hash=content, chat_version=state.version,
-                      question=question, setting_id=setting_id, created_at=now, updated_at=now)
+                      question=question, setting_id=setting_id, created_at=now, updated_at=now, locale=current())
             jobs = [item for item in state.jobs if item.created_at > now - KEEP][-20:] + [job]
             self._save(session_id, state.model_copy(update={"jobs": jobs}))
             self.sessions[job.id] = session_id
@@ -193,14 +197,15 @@ class HelpChat:
     def _queued(self) -> list[tuple[str, Job]]:
         found = []
         for job_id, session_id in list(self.sessions.items()):
-            job = self.job(session_id, job_id)
-            if job is not None and job.status == "queued":
-                found.append((session_id, job))
+            for locale in Locale:
+                job = next((item for item in self.state(session_id, locale=locale).jobs if item.id == job_id), None)
+                if job is not None and job.status == "queued":
+                    found.append((session_id, job))
         return sorted(found, key=lambda item: item[1].created_at)
 
     def _finish(self, session_id: str, job: Job, status: Status, error: str | None = None,
                 turn: Turn | None = None) -> None:
-        with self.lock, self.store.locked():
+        with use_locale(job.locale), self.lock, self.store.locked():
             state = self.state(session_id)
             jobs = [item.model_copy(update={"status": status, "error": error, "updated_at": self.now()})
                     if item.id == job.id else item for item in state.jobs]
@@ -218,13 +223,14 @@ class HelpChat:
             if not queued:
                 return False
             session_id, job = queued[0]
-            with self.store.locked():
+            with use_locale(job.locale), self.store.locked():
                 state = self.state(session_id)
                 running = [item.model_copy(update={"status": "running", "updated_at": self.now()})
                            if item.id == job.id else item for item in state.jobs]
                 self._save(session_id, state.model_copy(update={"jobs": running}))
         history = [turn.question for turn in state.turns if state.version == job.chat_version]
-        self._answer(session_id, job, history, state)
+        with use_locale(job.locale):
+            self._answer(session_id, job, history, state)
         return True
 
     def _answer(self, session_id: str, job: Job, history: list[str], state: ChatState) -> None:
@@ -244,7 +250,7 @@ class HelpChat:
                               budget=settings.max_context_bytes)
         if not sources:
             self._finish(session_id, job, "completed", turn=Turn(
-                question=job.question, answer=MESSAGES["not_found"], revision=base.revision, local=True,
+                question=job.question, answer=stored(MESSAGES["not_found"]), revision=base.revision, local=True,
                 needs_clarification=True))
             return
         analyzer = self.analyzer()
@@ -279,7 +285,7 @@ class HelpChat:
     def cleanup(self) -> int:
         """Chats of ended sessions (logout, revocation) and chats idle for 24 hours are deleted."""
         self.cleanup_extra()
-        keep = {chat_name(session_id) for session_id in self.active_sessions()}
+        keep = {chat_name(session_id, locale) for session_id in self.active_sessions() for locale in Locale}
         removed = 0
         for name in self.store.names(PREFIX):
             try:

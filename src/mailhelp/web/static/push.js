@@ -11,28 +11,28 @@
   var testButton = document.getElementById("push-test");
   var latest = null, busy = false, arrived = false, testing = false, receiptTimer = null;
   var MESSAGES = {
-    push_disabled: "Web-Push ist auf dem Server nicht eingeschaltet. Unter Einrichtung einschalten und neu starten.",
-    session_expired: "Nicht gespeichert: Anmeldung abgelaufen. Bitte neu anmelden.",
-    provider_not_allowed: "Dieser Push-Anbieter ist nicht erlaubt. Einen unterstützten Browser verwenden.",
-    invalid_subscription: "Das Browser-Abonnement ist ungültig. Websitedaten löschen und neu aktivieren.",
-    key_conflict: "Der Serverschlüssel wurde geändert. Seite neu laden und Push neu aktivieren.",
-    permission_denied: "Benachrichtigungen sind für diese Seite blockiert. In den Browsereinstellungen erlauben.",
-    worker_failed: "Der Hintergrunddienst startet nicht. Seite neu laden; hilft das nicht, Websitedaten für Mailhelp löschen.",
-    worker_timeout: "Der Hintergrunddienst startet nicht innerhalb von zehn Sekunden. Seite neu laden.",
-    key_replace_failed: "Das alte Abonnement konnte nicht abgemeldet werden. Websitedaten löschen und neu aktivieren.",
-    unsubscribe_failed: "Am Server deaktiviert; das Browser-Abonnement konnte nicht entfernt werden. Websitedaten löschen.",
-    activation_failed: "Das Browser-Abonnement konnte nicht angelegt werden. Benachrichtigungseinstellungen prüfen.",
-    network: "Mailhelp ist nicht erreichbar. Verbindung prüfen und erneut versuchen.",
+    push_disabled: mailhelpText("Web-Push ist auf dem Server nicht eingeschaltet. Unter Einrichtung einschalten und neu starten."),
+    session_expired: mailhelpText("Nicht gespeichert: Anmeldung abgelaufen. Bitte neu anmelden."),
+    provider_not_allowed: mailhelpText("Dieser Push-Anbieter ist nicht erlaubt. Einen unterstützten Browser verwenden."),
+    invalid_subscription: mailhelpText("Das Browser-Abonnement ist ungültig. Websitedaten löschen und neu aktivieren."),
+    key_conflict: mailhelpText("Der Serverschlüssel wurde geändert. Seite neu laden und Push neu aktivieren."),
+    permission_denied: mailhelpText("Benachrichtigungen sind für diese Seite blockiert. In den Browsereinstellungen erlauben."),
+    worker_failed: mailhelpText("Der Hintergrunddienst startet nicht. Seite neu laden; hilft das nicht, Websitedaten für Mailhelp löschen."),
+    worker_timeout: mailhelpText("Der Hintergrunddienst startet nicht innerhalb von zehn Sekunden. Seite neu laden."),
+    key_replace_failed: mailhelpText("Das alte Abonnement konnte nicht abgemeldet werden. Websitedaten löschen und neu aktivieren."),
+    unsubscribe_failed: mailhelpText("Am Server deaktiviert; das Browser-Abonnement konnte nicht entfernt werden. Websitedaten löschen."),
+    activation_failed: mailhelpText("Das Browser-Abonnement konnte nicht angelegt werden. Benachrichtigungseinstellungen prüfen."),
+    network: mailhelpText("Mailhelp ist nicht erreichbar. Verbindung prüfen und erneut versuchen."),
     rate_limited: "Zu viele Testaufrufe. Eine Minute warten.",
-    test_timeout: "Der Test hat das Zeitlimit erreicht. Prüfstand neu laden und später erneut testen.",
-    test_failed: "Der Test konnte nicht ausgeführt werden. Verbindungen prüfen und erneut testen.",
-    test_stale: "Der Prüfstand wurde geändert. Seite neu laden und erneut testen."
-    ,provider_rejected: "Vom Anbieter abgelehnt. Gerät neu aktivieren und Kontaktadresse des Servers prüfen."
+    test_timeout: mailhelpText("Der Test hat das Zeitlimit erreicht. Prüfstand neu laden und später erneut testen."),
+    test_failed: mailhelpText("Der Test konnte nicht ausgeführt werden. Verbindungen prüfen und erneut testen."),
+    test_stale: mailhelpText("Der Prüfstand wurde geändert. Seite neu laden und erneut testen.")
+    ,provider_rejected: mailhelpText("Vom Anbieter abgelehnt. Gerät neu aktivieren und Kontaktadresse des Servers prüfen.")
     ,expired: "Das Abonnement ist abgelaufen. Push neu aktivieren."
-    ,retryable: "Der Push-Anbieter ist vorübergehend nicht erreichbar. Später erneut testen."
-    ,device_not_registered: "Auf diesem Gerät zuerst Push aktivieren."
-    ,invalid_request: "Die Testanfrage ist unvollständig. Seite neu laden."
-    ,csrf_rejected: "Die Sicherheitsprüfung ist abgelaufen. Seite neu laden und erneut versuchen."
+    ,retryable: mailhelpText("Der Push-Anbieter ist vorübergehend nicht erreichbar. Später erneut testen.")
+    ,device_not_registered: mailhelpText("Auf diesem Gerät zuerst Push aktivieren.")
+    ,invalid_request: mailhelpText("Die Testanfrage ist unvollständig. Seite neu laden.")
+    ,csrf_rejected: mailhelpText("Die Sicherheitsprüfung ist abgelaufen. Seite neu laden und erneut versuchen.")
   };
 
   function stage(number, text) {
@@ -41,15 +41,15 @@
 
   function prerequisite() {
     stage(2, window.isSecureContext ? "✓" : "✗");
-    if (!window.isSecureContext) return "Diese Adresse ist nicht per HTTPS erreichbar. Mailhelp über die HTTPS-Adresse öffnen.";
+    if (!window.isSecureContext) return mailhelpText("Diese Adresse ist nicht per HTTPS erreichbar. Mailhelp über die HTTPS-Adresse öffnen.");
     var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     if (ios && !(navigator.standalone || window.matchMedia("(display-mode: standalone)").matches)) {
       stage(3, "✗");
-      return "Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und von dort öffnen.";
+      return mailhelpText("Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und von dort öffnen.");
     }
     var supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     stage(3, supported ? "✓" : "✗");
-    return supported ? "" : "Dieser Browser unterstützt kein Web-Push.";
+    return supported ? "" : mailhelpText("Dieser Browser unterstützt kein Web-Push.");
   }
 
   function json(path, options) {
@@ -63,7 +63,7 @@
   }
 
   function worker() {
-    stage(5, "wird geprüft");
+    stage(5, mailhelpText("wird geprüft"));
     return new Promise(function (resolve, reject) {
       var timer = window.setTimeout(function () { reject(new Error("worker_timeout")); }, 10000);
       navigator.serviceWorker.register("/sw.js").then(function () { return navigator.serviceWorker.ready; })
@@ -105,9 +105,9 @@
       stage(1, data.offered ? "✓" : "✗");
       stage(7, data.device.registered ? "✓" : "✗");
       var channels = data.profiles.every(function (profile) { return profile.decisions; });
-      stage(8, channels ? "✓" : "Neue Vorschläge werden nicht per Push gemeldet.");
-      stage(9, data.device.last_code === "accepted" ? "Zuletzt an den Anbieter übergeben: " + data.device.last_at :
-        data.device.last_code === "provider_rejected" ? "Vom Anbieter abgelehnt – neu aktivieren." : "noch nicht geprüft");
+      stage(8, channels ? "✓" : mailhelpText("Neue Vorschläge werden nicht per Push gemeldet."));
+      stage(9, data.device.last_code === "accepted" ? mailhelpText("Zuletzt an den Anbieter übergeben: ") + data.device.last_at :
+        data.device.last_code === "provider_rejected" ? "Vom Anbieter abgelehnt – neu aktivieren." : mailhelpText("noch nicht geprüft"));
       if (!data.offered) throw new Error("push_disabled");
       var missing = prerequisite();
       if (missing) { status.textContent = missing; return; }
@@ -120,12 +120,12 @@
         return registration.pushManager.getSubscription();
       }).then(function (subscription) {
         var matching = !!subscription && sameKey(subscription, data.public_key);
-        stage(6, matching ? "✓" : "Dieses Gerät muss neu aktiviert werden.");
+        stage(6, matching ? "✓" : mailhelpText("Dieses Gerät muss neu aktiviert werden."));
         var active = matching && data.device.registered && data.device.key_matches && !data.device.rejected;
         testButton.disabled = !active || !data.test_available;
         enableButton.textContent = active ? "Push aktivieren" : "Neu aktivieren";
-        status.textContent = active ? (channels ? "Push ist auf diesem Gerät aktiviert." :
-          "Neue Vorschläge werden nicht per Push gemeldet.") : "Dieses Gerät muss neu aktiviert werden.";
+        status.textContent = active ? (channels ? mailhelpText("Push ist auf diesem Gerät aktiviert.") :
+          mailhelpText("Neue Vorschläge werden nicht per Push gemeldet.")) : mailhelpText("Dieses Gerät muss neu aktiviert werden.");
       });
     });
   }
@@ -167,7 +167,7 @@
     }).then(function () {
       busy = false;
       enableButton.disabled = disableButton.disabled = false;
-      if (!enable) status.textContent = "Push ist auf diesem Gerät deaktiviert.";
+      if (!enable) status.textContent = mailhelpText("Push ist auf diesem Gerät deaktiviert.");
     }).catch(failure);
   }
 
@@ -180,23 +180,23 @@
     if (testing && event.data && event.data.type === "mailhelp-push-received" && event.data.kind === "test") {
       arrived = true;
       window.clearTimeout(receiptTimer);
-      status.textContent = "Test-Push: auf diesem Gerät angekommen. Systemmeldung bitte prüfen.";
+      status.textContent = mailhelpText("Test-Push: auf diesem Gerät angekommen. Systemmeldung bitte prüfen.");
     }
   });
   testButton.addEventListener("click", function () {
     testing = true;
     arrived = false;
     testButton.disabled = true;
-    status.textContent = "Test-Push wird an den Anbieter übergeben.";
+    status.textContent = mailhelpText("Test-Push wird an den Anbieter übergeben.");
     var body = new URLSearchParams({csrf: controls.dataset.csrf, key: randomHexKey(), version: latest.diagnostic_version});
     json("/api/push/test", {method: "POST", body: body}).then(function (result) {
       latest.diagnostic_version = result.diagnostic_version;
       if (result.code !== "accepted") throw new Error(result.code);
       if (!arrived) {
-        status.textContent = "An den Anbieter übergeben. Warte auf dieses Gerät.";
+        status.textContent = mailhelpText("An den Anbieter übergeben. Warte auf dieses Gerät.");
         receiptTimer = window.setTimeout(function () {
           testing = false;
-          status.textContent = "Der Anbieter hat angenommen, das Gerät hat nichts angezeigt. Fokus-Modus, Systemeinstellungen und Energiesparen prüfen.";
+          status.textContent = mailhelpText("Der Anbieter hat angenommen, das Gerät hat nichts angezeigt. Fokus-Modus, Systemeinstellungen und Energiesparen prüfen.");
         }, 20000);
       }
       testButton.disabled = false;

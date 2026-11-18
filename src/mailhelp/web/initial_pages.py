@@ -1,31 +1,88 @@
 """Five-step initial setup, with empty secret inputs on every render."""
+
 from __future__ import annotations
 
 from typing import Any
 
+from ..i18n import msg, tr
 from ..runtime.initial_setup import FIELDS, SECRET_FIELDS, InitialDraft
 from ..runtime.setup_messages import CATALOGUE, CheckResult
 from .forms import field, post_form, select
 from .pages import e, layout
 
-TITLES = ("Web-Zugang und Zeitzone", "Postfach", "KI-Anbieter", "Kalender und Aufgaben", "Abschluss")
+_INITIAL_PAGE_TEXT_1 = msg(
+    "<p>Die Verbindungen werden erneut lesend geprüft. Danach wird die Konfiguration "
+    "aktiviert und der Normalbetrieb im selben Prozess gestartet. Anschließend steht der "
+    'Web-Lernmodus bereit.</p><label><input type="checkbox" name="confirm" value="yes" '
+    "required> Konfiguration speichern und Normalbetrieb starten</label>"
+)
+
+_INITIAL_PAGE_TEXT_2 = msg(
+    '<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check formnovalidate>Prüfen</button>'
+)
+
+_INITIAL_PAGE_TEXT_3 = msg(
+    '<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check '
+    "formnovalidate>Alles prüfen</button>"
+)
+
+_INITIAL_PAGE_TEXT_4 = msg(
+    '<p><a href="/hilfe/google-playground">Google: Anleitung zum OAuth 2.0 '
+    "Playground</a></p><p>Zuerst Clientdaten speichern; dann bei Bedarf direkt "
+    'verbinden:</p><p><a href="/auth/google/start">Google verbinden</a> · <a '
+    'href="/auth/microsoft">Microsoft verbinden</a> · <a '
+    'href="/auth/google/kalender">Google-Kalender auswählen</a> · <a '
+    'href="/auth/google/aufgabenlisten">Google-Tasks-Liste auswählen</a></p>'
+)
+
+_INITIAL_PAGE_TEXT_5 = msg(
+    '<label>Web-Passwort (mindestens 12 Zeichen)<input type="password" name="password" '
+    'minlength="12" maxlength="1024" autocomplete="new-password"></label>'
+)
+
+TITLES = (
+    msg("Web-Zugang und Zeitzone"),
+    msg("Postfach"),
+    msg("KI-Anbieter"),
+    msg("Kalender und Aufgaben"),
+    msg("Abschluss"),
+)
 LABELS = {
-    "timezone": "Zeitzone", "imap.host": "IMAP-Server", "imap.port": "Port",
-    "imap.connection_mode": "Verschlüsselung", "imap.primary_folder": "Posteingang",
-    "imap.drafts_folder": "Entwurfsordner", "llm.provider": "KI-Anbieter",
-    "llm.ollama_address": "Ollama-Adresse (HOST:PORT)", "targets.calendar_provider": "Kalenderdienst",
-    "targets.task_provider": "Aufgabendienst", "targets.google_calendar": "Google-Kalender-ID",
-    "targets.todoist_project": "Todoist-Projekt-ID", "targets.caldav_calendar_url": "CalDAV-Kalenderadresse",
-    "targets.caldav_task_url": "CalDAV-Aufgabenadresse", "targets.outlook_calendar": "Outlook-Kalender-ID",
-    "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
-    "targets.google_tasks_list": "Google-Tasks-Liste",
-    "web.google_redirect_uri": "Google-Rückleitungsadresse (Webanwendungs-Client)",
+    "timezone": msg("Zeitzone"),
+    "imap.host": msg("IMAP-Server"),
+    "imap.port": msg("Port"),
+    "imap.connection_mode": msg("Verschlüsselung"),
+    "imap.primary_folder": msg("Posteingang"),
+    "imap.drafts_folder": msg("Entwurfsordner"),
+    "llm.provider": msg("KI-Anbieter"),
+    "llm.ollama_address": msg("Ollama-Adresse (HOST:PORT)"),
+    "targets.calendar_provider": msg("Kalenderdienst"),
+    "targets.task_provider": msg("Aufgabendienst"),
+    "targets.google_calendar": msg("Google-Kalender-ID"),
+    "targets.todoist_project": msg("Todoist-Projekt-ID"),
+    "targets.caldav_calendar_url": msg("CalDAV-Kalenderadresse"),
+    "targets.caldav_task_url": msg("CalDAV-Aufgabenadresse"),
+    "targets.outlook_calendar": msg("Outlook-Kalender-ID"),
+    "targets.microsoft_todo_list": msg("Microsoft-To-Do-Liste"),
+    "targets.microsoft_tenant": msg("Microsoft-Mandant"),
+    "targets.google_tasks_list": msg("Google-Tasks-Liste"),
+    "web.google_redirect_uri": msg("Google-Rückleitungsadresse (Webanwendungs-Client)"),
     # 6.1: names in the links of the check result.
-    "password": "Web-Passwort", "model": "Ollama-Modell",
+    "password": msg("Web-Passwort"),
+    "model": msg("Ollama-Modell"),
 }
-CHOICES = {"imap.connection_mode": ("ssl", "starttls", "plain"), "llm.provider": ("openrouter", "ollama"),
-           "targets.calendar_provider": ("google", "caldav", "outlook"),
-           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders", "google_tasks")}
+CHOICES = {
+    "imap.connection_mode": ("ssl", 'starttls', 'plain'),
+    "llm.provider": ("openrouter", 'ollama'),
+    "targets.calendar_provider": ("google", 'caldav', 'outlook'),
+    "targets.task_provider": (
+        "todoist",
+        'microsoft_todo',
+        'caldav',
+        'apple_reminders',
+        'google_tasks',
+    ),
+}
 
 
 def _found(check: CheckResult | None) -> dict[str, Any] | None:
@@ -44,21 +101,35 @@ def check_box(results: list[CheckResult]) -> str:
     failed = any(not result.ok for result in results)
     warned = any(result.warnings for result in results)
     kind = "error" if failed else "warn" if warned else "ok"
-    title = ("Prüfung fehlgeschlagen" if failed else "Geprüft – mit Hinweisen" if warned
-             else "Geprüft – alles in Ordnung")
+    title = (
+        msg("Prüfung fehlgeschlagen")
+        if failed
+        else msg("Geprüft – mit Hinweisen")
+        if warned
+        else msg("Geprüft – alles in Ordnung")
+    )
     role = "alert" if failed else "status"
     body = (f'<section class="notice notice-{kind} check-result" id="pruefergebnis" role="{role}" tabindex="-1" '
             f'aria-labelledby="pruefergebnis-titel"><h2 id="pruefergebnis-titel">{title}</h2>')
     for result in results:
         if len(results) > 1:
             mark = "✓" if result.ok else "✗"
-            body += (f'<h3>{mark} Schritt {result.step}: {e(TITLES[result.step - 1])} '
-                     f'<a href="/einrichtung/schritt/{result.step}">Zu Schritt {result.step}</a></h3>')
+            body += tr(
+                ('<h3>{p0} Schritt {p1}: {p2} <a href="/einrichtung/schritt/{p3}">Zu Schritt {p4}</a></h3>'),
+                p0=mark,
+                p1=result.step,
+                p2=e(TITLES[result.step - 1]),
+                p3=result.step,
+                p4=result.step,
+            )
         for item in result.findings:
             message = CATALOGUE[item.code]
             label = LABELS.get(item.field or "", item.field or "")
-            target = (f' <a href="#feld-{_slug(item.field)}">Feld „{e(label)}“</a>'
-                      if item.field and item.severity != "ok" else "")
+            target = (
+                tr(' <a href="#feld-{p0}">Feld „{p1}“</a>', p0=f"{_slug(item.field)}", p1=f"{e(label)}")
+                if item.field and item.severity != "ok"
+                else ""
+            )
             detail = f' <span class="meta">({e(item.detail)})</span>' if item.detail else ""
             body += (f'<div class="check-finding {item.severity}" id="meldung-{_slug(item.field or item.code)}">'
                      f'<p><strong>{e(message.cause)}</strong>{detail}{target}</p>')
@@ -80,7 +151,7 @@ def _identify(controls: str, step: int, results: list[CheckResult]) -> str:
         marker = f'name="{name}"'
         if marker not in controls:
             continue
-        extra = f' id="feld-{_slug(name)}"'
+        extra = tr(' id="feld-{p0}"', p0=f"{_slug(name)}")
         if name in wrong:
             extra += f' aria-invalid="true" aria-describedby="meldung-{_slug(name)}"'
         controls = controls.replace(marker, marker + extra, 1)
@@ -97,48 +168,54 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
         f'<a class="button" href="/einrichtung/schritt/{index}">{index}. {e(title)}</a>'
         if index <= state.completed_step + 1 else f'<span>{index}. {e(title)}</span>'
         for index, title in enumerate(TITLES, 1)) + '</nav>'
-    body = f'<h1>Mailhelp einrichten: {e(TITLES[step - 1])}</h1><p>Schritt {step} von 5</p>{navigation}'
+    body = tr(
+        "<h1>Mailhelp einrichten: {p0}</h1><p>Schritt {p1} von 5</p>{p2}",
+        p0=e(TITLES[step - 1]),
+        p1=step,
+        p2=navigation,
+    )
     controls = ""
     if step == 5:
-        controls = ('<p>Die Verbindungen werden erneut lesend geprüft. Danach wird die Konfiguration aktiviert '
-                    'und der Normalbetrieb im selben Prozess gestartet. '
-                    'Anschließend steht der Web-Lernmodus bereit.</p>'
-                    '<label><input type="checkbox" name="confirm" value="yes" required> '
-                    'Konfiguration speichern und Normalbetrieb starten</label>')
+        controls = tr(_INITIAL_PAGE_TEXT_1)
     else:
         check = checks[0] if checks else None
         controls = _fields(state, step, values, _found(check))
         for name in SECRET_FIELDS[step]:
-            controls += (f'<label>{e(name)}<input type="password" name="{e(name)}" maxlength="4096" '
-                         'autocomplete="new-password" placeholder="Leer: gespeicherten Wert behalten"></label>')
+            controls += tr(
+                (
+                    '<label>{p0}<input type="password" name="{p1}" maxlength="4096" '
+                    'autocomplete="new-password" placeholder="Leer: gespeicherten Wert behalten"></label>'
+                ),
+                p0=f"{e(name)}",
+                p1=f"{e(name)}",
+            )
         if step == 1:
-            controls += ('<label>Web-Passwort (mindestens 12 Zeichen)<input type="password" name="password" '
-                         'minlength="12" maxlength="1024" autocomplete="new-password"></label>')
+            controls += tr(_INITIAL_PAGE_TEXT_5)
         if step == 3:
             found = _found(checks[0] if checks else None)
             models = (found or {}).get("models", [])
-            controls += (select("model", "Ollama-Modell", state.model, [(name, name) for name in models])
-                         if models and state.config.get("llm", {}).get("provider") == "ollama"
-                         else field("model", "Ollama-Modell (nur für lokalen Betrieb)", state.model))
+            controls += (
+                select("model", msg("Ollama-Modell"), state.model, [(name, name) for name in models])
+                if models and state.config.get("llm", {}).get("provider") == "ollama"
+                else field("model", msg("Ollama-Modell (nur für lokalen Betrieb)"), state.model)
+            )
         # 6.1: every step can be checked; checking changes nothing.
         # formnovalidate: the server explains a too short password instead of a bare browser bubble.
-        controls += ('<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check '
-                     'formnovalidate>Prüfen</button>')
+        controls += tr(_INITIAL_PAGE_TEXT_2)
     if step == 5:
-        controls += ('<button type="submit" class="button" formaction="/einrichtung/pruefen" data-check '
-                     'formnovalidate>Alles prüfen</button>')
+        controls += tr(_INITIAL_PAGE_TEXT_3)
     controls = _identify(controls, step, checks or [])
     body += check_box(checks or []) + '<p class="meta" role="status" data-check-status></p>'
-    body += post_form("/einrichtung/speichern", csrf, controls,
-                      "Speichern und starten" if step == 5 else "Speichern und weiter",
-                      version=state.version, step=step)
+    body += post_form(
+        "/einrichtung/speichern",
+        csrf,
+        controls,
+        msg("Speichern und starten") if step == 5 else msg("Speichern und weiter"),
+        version=state.version,
+        step=step,
+    )
     if step == 4:
-        body += ('<p><a href="/hilfe/google-playground">Google: Anleitung zum OAuth 2.0 Playground</a></p>'
-                 '<p>Zuerst Clientdaten speichern; dann bei Bedarf direkt verbinden:</p>'
-                 '<p><a href="/auth/google/start">Google verbinden</a> · '
-                 '<a href="/auth/microsoft">Microsoft verbinden</a> · '
-                 '<a href="/auth/google/kalender">Google-Kalender auswählen</a> · '
-                 '<a href="/auth/google/aufgabenlisten">Google-Tasks-Liste auswählen</a></p>')
+        body += tr(_INITIAL_PAGE_TEXT_4)
     return layout("Ersteinrichtung", '<section class="card">' + body + '</section>', signed_in=False,
                   after='<script src="/static/setup.js" defer></script>')
 

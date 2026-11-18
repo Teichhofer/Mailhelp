@@ -58,6 +58,51 @@ def ask(context, question=QUESTION, key="k1", session="s1", version=1, setting=N
     return context.service.submit(session, question, key, version, setting)
 
 
+def test78_english_jobs_keep_language_sources_and_history_separate(chat):
+    from mailhelp.i18n import Locale, current, use_locale
+    seen = []
+    chat.service.base = lambda: load(locale=current())
+    def answer(question, sources, history, settings, *, before_call):
+        before_call()
+        seen.append((current(), sources, history, settings))
+        return "english", HelpAnswer(answer="The polling interval controls retrieval.", source_ids=[sources[0].id])
+    chat.analyzer.settings_help = answer
+    with use_locale(Locale.EN):
+        job = ask(chat, "How do I change the polling interval?")
+        assert job.locale == Locale.EN
+    assert chat.service.run_once()
+    assert current() == Locale.DE and chat.service.state("s1").turns == []
+    assert chat.service.state("s1", locale=Locale.EN).turns[0].answer.startswith("The polling")
+    assert seen[0][0] == Locale.EN and all(s.source.startswith("docs/en/") for s in seen[0][1])
+    assert seen[0][2] == []
+    with use_locale(Locale.EN):
+        assert chat.service.job("s2", job.id) is None
+        assert chat.service.job("s1", job.id).status == "completed"
+        local = ask(chat, "bananabread", key="local")
+    assert chat.service.run_once()
+    with use_locale(Locale.EN):
+        state = chat.service.state("s1")
+        assert state.turns[-1].local and "no matching section" in state.turns[-1].answer
+    assert len(seen) == 1
+    assert chat.service.cleanup() == 0
+    chat.active.remove("s1")
+    assert chat.service.cleanup() == 1
+
+
+def test78_rate_limits_apply_across_languages_and_recovery_never_resends(chat):
+    from mailhelp.i18n import Locale, use_locale
+    with use_locale(Locale.EN):
+        job = ask(chat, "How do I change polling?")
+    chat.settings.requests_per_minute_per_session = 1
+    with pytest.raises(ChatRefused) as refused:
+        ask(chat, key="german")
+    assert refused.value.code == "rate_limited"
+    assert chat.service.recover() == 1
+    with use_locale(Locale.EN):
+        assert chat.service.job("s1", job.id).status == "interrupted"
+    assert not chat.service.run_once() and chat.analyzer.calls == []
+
+
 def test_a_question_is_answered_with_sources_and_secrets_removed(chat):
     job = ask(chat, "Mein Token geheim-12345 – " + QUESTION)
     assert job.status == "queued" and "geheim-12345" not in job.question

@@ -1,0 +1,323 @@
+{
+  "action_route": {
+    "action_state": "task",
+    "event_count": 0,
+    "reason": "The current message asks parents to transfer EUR 12 for planetarium admission by 2026-11-25, which is a concrete payment task with a deadline. No specific calendar event is stated.",
+    "reply_needed": false,
+    "reply_reason": null,
+    "task_count": 1
+  },
+  "action_router_call_id": "782d249e-b924-461b-9447-124484e19711",
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "2dd75913b455ed71b35c2ee1b61c5703bdd2ce89915d7bdecbf85e4930483c1a",
+  "created_at": "2026-11-17T21:39:30.475997Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "School office <office@maple-park-school.example>",
+    "subject": "Planetarium admission: please transfer EUR 12"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": null,
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "bd0a75f186cd9034726d0b92",
+  "imap": {
+    "account_id": "7dd71995bcad890030cfa19b",
+    "folder": "INBOX",
+    "uid": 11,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "list_signals": {
+    "auto_submitted": "",
+    "list_id": "",
+    "list_unsubscribe": false,
+    "precedence": ""
+  },
+  "llm_call_ids": [
+    "5aa7d905-6e2c-4394-a8b6-38315318a8e8",
+    "0b129c09-6caa-4dbe-a37b-1ca4382ba085",
+    "782d249e-b924-461b-9447-124484e19711",
+    "a433b864-8968-46fa-89a2-874c9f743156"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Fri, 13 Nov 2026 08:15:00 +0100",
+    "date_header_parsed": "2026-11-13T08:15:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Fri, 13 Nov 2026 08:15:00 +0100",
+      "from": "School office <office@maple-park-school.example>",
+      "in_reply_to": "",
+      "message_id": "<06-admission-fee@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "Planetarium admission: please transfer EUR 12"
+    },
+    "imap_received_at": "2026-11-13T08:15:00+01:00",
+    "internal_id": "bd0a75f186cd9034726d0b92",
+    "message_ids": [
+      "<06-admission-fee@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "Dear parents of class 4B,\nPlease transfer EUR 12 for your child's planetarium admission to the class account by 2026-11-25. Use Planetarium and your child's name as the reference. This is the payment request; it has not yet been paid.\nSchool office",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Pay the class 4B planetarium admission fee to the class account, using 'Planetarium' and the child's name as the payment reference.\n\nAbsender: School office <office@maple-park-school.example>\nBetreff: Planetarium admission: please transfer EUR 12\nMail-Datum: 2026-11-13T08:15:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C06-admission-fee@demo.mailhelp.example%3E)",
+      "due": "2026-11-25",
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Please transfer EUR 12 for your child's planetarium admission to the class account by 2026-11-25.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_de003bde983a8b582fc07021",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C06-admission-fee@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "bd0a75f186cd9034726d0b92",
+      "sources": [],
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": {
+        "normalized_date": "2026-11-25",
+        "raw_text": "2026-11-25",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Transfer EUR 12 planetarium admission fee",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "prefilter_rule": null,
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_de003bde983a8b582fc07021",
+      "proposal_version": 1,
+      "status": "queued"
+    }
+  ],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "f6f4ea4858c60f0354d93b265f98174045db84390dccdd4dbb6b3abbee7ffe9c",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "google_tasks_list": "@default",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Pay the class 4B planetarium admission fee to the class account, using 'Planetarium' and the child's name as the payment reference.\n\nAbsender: School office <office@maple-park-school.example>\nBetreff: Planetarium admission: please transfer EUR 12\nMail-Datum: 2026-11-13T08:15:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C06-admission-fee@demo.mailhelp.example%3E)",
+      "due": "2026-11-25",
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Please transfer EUR 12 for your child's planetarium admission to the class account by 2026-11-25.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_de003bde983a8b582fc07021",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C06-admission-fee@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "bd0a75f186cd9034726d0b92",
+      "sources": [
+        {
+          "anchors": [
+            "cfad6a771da261ca8c922fcf5bd7a69a5824ec0154bcbc67271d290d719f9cbf"
+          ],
+          "mail_id": "bd0a75f186cd9034726d0b92",
+          "proposal_id": "p_de003bde983a8b582fc07021",
+          "sent_at": "2026-11-13T08:15:00+01:00",
+          "subject": "planetarium admission: please transfer eur 12"
+        }
+      ],
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": {
+        "normalized_date": "2026-11-25",
+        "raw_text": "2026-11-25",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Transfer EUR 12 planetarium admission fee",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "skipped",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "completed"
+  },
+  "summary": {
+    "deadlines": [
+      "2026-11-25"
+    ],
+    "sentences": [
+      "The school office asks parents of class 4B to transfer EUR 12 for their child's planetarium admission by 2026-11-25. The payment has not yet been made and should go to the class account with Planetarium and the child's name as reference."
+    ]
+  },
+  "task_extraction": {
+    "schema_version": 1,
+    "tasks": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "description": "Pay the class 4B planetarium admission fee to the class account, using 'Planetarium' and the child's name as the payment reference.",
+        "due_text": "2026-11-25",
+        "evidence": "Please transfer EUR 12 for your child's planetarium admission to the class account by 2026-11-25.",
+        "responsibility": "user",
+        "title": "Transfer EUR 12 planetarium admission fee"
+      }
+    ]
+  },
+  "updated_at": "2026-11-17T21:39:39.672181Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

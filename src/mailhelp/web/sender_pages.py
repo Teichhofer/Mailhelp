@@ -1,20 +1,21 @@
 """HTML of the sender rules page and of the sender actions on a mail page (1.4, 7.7.3)."""
+
 from __future__ import annotations
 
 import secrets
 
 from ..domain.relevance import HeaderPrefilter, IrrelevantSenders, PrefilterHits, RuleHits, SenderRule, SenderRules
 from ..formatting import format_datetime_local
-from ..i18n import tr
+from ..i18n import msg, tr
 from ..mailbox.sender_filter import AUTOMATED, FREEMAIL, LISTS, HeaderFilter, prefilter, sender_addresses
 from .pages import e, notice
 
 LIST_PATH = "/einstellungen/absender"
 # 7.7.3: the page of 1.4; it leads to the new page.
 OLD_PATH = "/einstellungen/ignorierte-absender"
-RULE_PATH = f"{LIST_PATH}/regel"
-KIND_LABELS = {"address": "Adresse", "domain": "Domain", "pattern": "Muster", "subject": "Betreff"}
-ACTION_LABELS = {"ignore": "Ignorieren", "vip": "VIP – immer relevant", "allow_only": "Nur Ausnahme"}
+RULE_PATH = '{p0}/regel'.format(p0=f'{LIST_PATH}')
+KIND_LABELS = {"address": msg("Adresse"), "domain": msg("Domain"), "pattern": msg("Muster"), "subject": msg("Betreff")}
+ACTION_LABELS = {"ignore": msg("Ignorieren"), "vip": msg("VIP – immer relevant"), "allow_only": msg("Nur Ausnahme")}
 
 
 def action_form(action: str, csrf: str, label: str, style: str = "button small", body: str = "",
@@ -34,8 +35,9 @@ def sender_actions(mail_id: str, sender: str, blocked: IrrelevantSenders, csrf: 
     match = prefilter(sender, "", None, blocked)
     manage = f'<a href="{LIST_PATH}">{tr("Regeln verwalten")}</a>'
     if set(addresses) & set(blocked.addresses):
-        content = (f'<span class="badge danger">{tr("Absender wird ignoriert")}</span>'
-                   + action_form(f"/mail/{mail_id}/absender-zulassen", csrf, tr("Absender wieder zulassen")))
+        content = f'<span class="badge danger">{tr("Absender wird ignoriert")}</span>' + action_form(
+            '/mail/{p0}/absender-zulassen'.format(p0=f'{mail_id}'), csrf, tr("Absender wieder zulassen")
+        )
     elif match is not None and match.action == "vip":
         content = f'<span class="badge ok">⭐ {tr("VIP-Absender")}</span> {manage}'
     elif match is not None:
@@ -44,16 +46,38 @@ def sender_actions(mail_id: str, sender: str, blocked: IrrelevantSenders, csrf: 
         content = f'<span class="badge danger">{label}</span> {manage}'
     else:
         domains = sorted({address.rsplit("@", 1)[1] for address in addresses} - FREEMAIL)
-        content = (action_form(f"/mail/{mail_id}/absender-ignorieren", csrf, "🚫 " + tr("Absender ignorieren"),
-                               "button small danger")
-                   + (action_form(f"/mail/{mail_id}/domain-ignorieren", csrf,
-                                  "🌐 " + tr("Domain {domain} ignorieren", domain=domains[0]), "button small")
-                      if len(domains) == 1 else "")
-                   + action_form(f"/mail/{mail_id}/absender-vip", csrf, "⭐ " + tr("Als VIP einstufen"), "button small")
-                   + '<p class="meta">' + tr("Neue Mails von {senders} werden dann ohne KI-Aufruf und ohne "
-                                             "Benachrichtigung aussortiert.", senders=", ".join(addresses))
-                   + " " + tr("Als VIP gelten sie ohne Relevanzprüfung als relevant; jeder Eintrag braucht "
-                              "weiterhin deine Bestätigung.") + "</p>")
+        content = (
+            action_form(
+                '/mail/{p0}/absender-ignorieren'.format(p0=f'{mail_id}'),
+                csrf,
+                "🚫 " + tr("Absender ignorieren"),
+                "button small danger",
+            )
+            + (
+                action_form(
+                    '/mail/{p0}/domain-ignorieren'.format(p0=f'{mail_id}'),
+                    csrf,
+                    "🌐 " + tr("Domain {domain} ignorieren", domain=domains[0]),
+                    "button small",
+                )
+                if len(domains) == 1
+                else ""
+            )
+            + action_form(
+                '/mail/{p0}/absender-vip'.format(p0=f'{mail_id}'), csrf, "⭐ " + tr("Als VIP einstufen"), "button small"
+            )
+            + '<p class="meta">'
+            + tr(
+                "Neue Mails von {senders} werden dann ohne KI-Aufruf und ohne Benachrichtigung aussortiert.",
+                senders=", ".join(addresses),
+            )
+            + " "
+            + tr(
+                "Als VIP gelten sie ohne Relevanzprüfung als relevant; jeder Eintrag braucht "
+                "weiterhin deine Bestätigung."
+            )
+            + "</p>"
+        )
     return f'<div class="sender-actions">{content}</div>'
 
 
@@ -64,16 +88,19 @@ def _when(hits: RuleHits, zone: str) -> str:
 
 
 def _rule_row(rule: SenderRule, hits: RuleHits, csrf: str, stand: str, zone: str) -> str:
-    scope = tr("Postfach {number}", number=rule.mailbox) if rule.mailbox else tr("alle Postfächer")
+    scope = tr("Postfach {number}", number=rule.mailbox) if rule.mailbox else msg("alle Postfächer")
     state = "" if rule.enabled else f' <span class="badge">{tr("aus")}</span>'
     switch = ("disable", tr("Ausschalten")) if rule.enabled else ("enable", tr("Einschalten"))
     meta = tr("{scope} · Treffer: {count} · zuletzt: {when}", scope=scope, count=hits.count, when=_when(hits, zone))
     note = f' · {e(rule.note)}' if rule.note else ""
-    return (f'<li><span class="sender-entry">{e(rule.value)}</span>'
-            f'<span class="badge accent">{tr(KIND_LABELS[rule.kind])}</span>{state}'
-            f'<span class="meta">{meta}{note}</span>'
-            + action_form(f"{RULE_PATH}/{switch[0]}", csrf, switch[1], stand=stand, regel=rule.id)
-            + action_form(f"{RULE_PATH}/entfernen", csrf, tr("Entfernen"), stand=stand, regel=rule.id) + "</li>")
+    return (
+        f'<li><span class="sender-entry">{e(rule.value)}</span>'
+        f'<span class="badge accent">{tr(KIND_LABELS[rule.kind])}</span>{state}'
+        f'<span class="meta">{meta}{note}</span>'
+        + action_form(f"{RULE_PATH}/{switch[0]}", csrf, switch[1], stand=stand, regel=rule.id)
+        + action_form('{p0}/entfernen'.format(p0=f'{RULE_PATH}'), csrf, tr("Entfernen"), stand=stand, regel=rule.id)
+        + "</li>"
+    )
 
 
 def _legacy_rows(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, zone: str) -> list[str]:
@@ -82,18 +109,31 @@ def _legacy_rows(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, zon
     for value, kind in entries:
         count = hits.rules.get(SenderRule.identity(kind, value, None), RuleHits())
         meta = tr("alle Postfächer · Treffer: {count} · zuletzt: {when}", count=count.count, when=_when(count, zone))
-        rows.append(f'<li><span class="sender-entry">{e(value)}</span>'
-                    f'<span class="badge accent">{tr(KIND_LABELS[kind])}</span><span class="meta">{meta}</span>'
-                    + action_form(f"{LIST_PATH}/entfernen", csrf, tr("Entfernen"), eintrag=value) + "</li>")
+        rows.append(
+            f'<li><span class="sender-entry">{e(value)}</span>'
+            f'<span class="badge accent">{tr(KIND_LABELS[kind])}</span><span class="meta">{meta}</span>'
+            + action_form('{p0}/entfernen'.format(p0=f'{LIST_PATH}'), csrf, tr("Entfernen"), eintrag=value)
+            + "</li>"
+        )
     return rows
 
 
 def _exceptions(mailboxes: dict[str, SenderRules], csrf: str, stand: str) -> list[str]:
-    return [f'<li><span class="sender-entry">{e(address)}</span>'
-            f'<span class="meta">{tr("Postfach {number}", number=number)} · {tr("hebt nur die Sperre auf")}</span>'
-            + action_form(f"{LIST_PATH}/ausnahme-vip", csrf, tr("Als VIP übernehmen"), stand=stand, postfach=number,
-                          adresse=address) + "</li>"
-            for number, scope in sorted(mailboxes.items(), key=lambda item: int(item[0])) for address in scope.allow]
+    return [
+        f'<li><span class="sender-entry">{e(address)}</span>'
+        f'<span class="meta">{tr("Postfach {number}", number=number)} · {tr("hebt nur die Sperre auf")}</span>'
+        + action_form(
+            '{p0}/ausnahme-vip'.format(p0=f'{LIST_PATH}'),
+            csrf,
+            tr("Als VIP übernehmen"),
+            stand=stand,
+            postfach=number,
+            adresse=address,
+        )
+        + "</li>"
+        for number, scope in sorted(mailboxes.items(), key=lambda item: int(item[0]))
+        for address in scope.allow
+    ]
 
 
 def _section(title: str, explanation: str, rows: list[str], empty: str) -> str:
@@ -105,17 +145,20 @@ def rule_form(csrf: str, stand: str, values: dict[str, str], preview: str | None
     def options(labels: dict[str, str], chosen: str) -> str:
         return "".join(f'<option value="{key}"{" selected" if key == chosen else ""}>{tr(label)}</option>'
                        for key, label in labels.items())
+
     hint = tr("z. B. newsletter@shop.de, shop.de, no-reply@* oder einen Betreff")
     kinds = options(KIND_LABELS, values.get("art", "address"))
     actions = options(ACTION_LABELS, values.get("aktion", "ignore"))
-    fields = (f'<label>{tr("Art")}<select name="art">{kinds}</select></label>'
-              f'<label>{tr("Wert")}<input type="text" name="wert" maxlength="320" required autocomplete="off" '
-              f'value="{e(values.get("wert", ""))}" placeholder="{hint}"></label>'
-              f'<label>{tr("Wirkung")}<select name="aktion">{actions}</select></label>'
-              f'<label>{tr("Nur für Postfach (leer: alle)")}<input type="number" name="postfach" min="1" max="99" '
-              f'value="{e(values.get("postfach", ""))}"></label>'
-              f'<label>{tr("Notiz")}<input type="text" name="notiz" maxlength="200" '
-              f'value="{e(values.get("notiz", ""))}"></label>')
+    fields = (
+        f'<label>{msg("Art")}<select name="art">{kinds}</select></label>'
+        f'<label>{tr("Wert")}<input type="text" name="wert" maxlength="320" required autocomplete="off" '
+        f'value="{e(values.get("wert", ""))}" placeholder="{hint}"></label>'
+        f'<label>{tr("Wirkung")}<select name="aktion">{actions}</select></label>'
+        f'<label>{tr("Nur für Postfach (leer: alle)")}<input type="number" name="postfach" min="1" max="99" '
+        f'value="{e(values.get("postfach", ""))}"></label>'
+        f'<label>{tr("Notiz")}<input type="text" name="notiz" maxlength="200" '
+        f'value="{e(values.get("notiz", ""))}"></label>'
+    )
     shown = notice(preview, "info") if preview else ""
     preview_form = (f'<form method="get" action="{LIST_PATH}" class="stack">{fields}'
                     f'<button class="button" name="vorschau" value="1">{tr("Treffer prüfen")}</button></form>')
@@ -131,7 +174,8 @@ def senders_page(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, sta
 
     def rows(action: str) -> list[str]:
         return [_rule_row(rule, hits.rules.get(rule.id, RuleHits()), csrf, stand, zone) for rule in rules[action]]
-    body = f'<p><a href="/einstellungen">← {tr("Einstellungen")}</a></p><h1>{tr("Absender-Regeln")}</h1>'
+
+    body = f'<p><a href="/einstellungen">← {msg("Einstellungen")}</a></p><h1>{msg("Absender-Regeln")}</h1>'
     if message:
         body += notice(message, message_kind)
     body += ('<p>' + tr("Diese Regeln entscheiden vor jedem KI-Aufruf. Ein VIP-Absender spart nur die "
@@ -151,12 +195,18 @@ def senders_page(blocked: IrrelevantSenders, hits: PrefilterHits, csrf: str, sta
 
 
 HEADERS: dict[HeaderFilter, tuple[str, str, str]] = {
-    "automated": (AUTOMATED, "Automatische Systemmails",
-                  "Auto-Submitted (z. B. Abwesenheitsnotizen) oder Precedence: bulk, junk, list."),
-    "lists": (LISTS, "Newsletter und Verteiler",
-              "List-Id oder List-Unsubscribe – auch Rundbriefe von Schule oder Verein."),
+    "automated": (
+        AUTOMATED,
+        msg("Automatische Systemmails"),
+        msg("Auto-Submitted (z. B. Abwesenheitsnotizen) oder Precedence: bulk, junk, list."),
+    ),
+    "lists": (
+        LISTS,
+        msg("Newsletter und Verteiler"),
+        msg("List-Id oder List-Unsubscribe – auch Rundbriefe von Schule oder Verein."),
+    ),
 }
-MODES = {"off": "aus", "trial": "Probelauf", "on": "an"}
+MODES = {"off": msg("aus"), "trial": msg("Probelauf"), "on": msg("an")}
 
 
 def header_section(headers: HeaderPrefilter, hits: PrefilterHits, csrf: str, stand: str, zone: str) -> str:
@@ -174,21 +224,53 @@ def header_section(headers: HeaderPrefilter, hits: PrefilterHits, csrf: str, sta
                                              "(zuletzt: {when}). Entschieden hat weiter die KI.",
                                              since=format_datetime_local(headers.trial_since[key], zone),
                                              count=counted.count, when=_when(counted, zone)) + "</p>"
-        rows.append(f'<li><span class="meta">{tr(explanation)}</span>{trial}'
-                    + action_form(f"{LIST_PATH}/kopfzeilen", csrf, tr("Übernehmen"), "button small", select,
-                                  stand=stand, filter=key) + "</li>")
-    exceptions = [f'<li><span class="sender-entry">{e(item)}</span>'
-                  + action_form(f"{LIST_PATH}/verteiler/entfernen", csrf, tr("Entfernen"), stand=stand, verteiler=item)
-                  + "</li>" for item in headers.list_exceptions]
-    field = (f'<label>{tr("List-Id")}<input type="text" name="verteiler" maxlength="200" required '
-             'autocomplete="off" placeholder="&lt;eltern.schule.de&gt;"></label>')
-    return (f'<h2>{tr("Kopfzeilen-Vorfilter")}</h2><p class="meta">'
-            + tr("Standardmäßig aus. Ein Probelauf zählt nur, was aussortiert würde; erst „an“ spart KI-Aufrufe.")
-            + f'</p><ul class="sender-list">{"".join(rows)}</ul>'
-            + _section(tr("Verteiler-Ausnahmen"), tr("Diese Verteiler sortiert der Filter für Newsletter nie aus."),
-                       exceptions, tr("Keine Verteiler-Ausnahmen."))
-            + action_form(f"{LIST_PATH}/verteiler/hinzufuegen", csrf, tr("Ausnahme hinzufügen"), "button small",
-                          field, stand=stand))
+        rows.append(
+            f'<li><span class="meta">{tr(explanation)}</span>{trial}'
+            + action_form(
+                '{p0}/kopfzeilen'.format(p0=f'{LIST_PATH}'),
+                csrf,
+                tr("Übernehmen"),
+                "button small",
+                select,
+                stand=stand,
+                filter=key,
+            )
+            + "</li>"
+        )
+    exceptions = [
+        f'<li><span class="sender-entry">{e(item)}</span>'
+        + action_form(
+            '{p0}/verteiler/entfernen'.format(p0=f'{LIST_PATH}'), csrf, tr("Entfernen"), stand=stand, verteiler=item
+        )
+        + "</li>"
+        for item in headers.list_exceptions
+    ]
+    field = tr(
+        (
+            '<label>{p0}<input type="text" name="verteiler" maxlength="200" required '
+            'autocomplete="off" placeholder="&lt;eltern.schule.de&gt;"></label>'
+        ),
+        p0=f"{tr('List-Id')}",
+    )
+    return (
+        f'<h2>{tr("Kopfzeilen-Vorfilter")}</h2><p class="meta">'
+        + tr("Standardmäßig aus. Ein Probelauf zählt nur, was aussortiert würde; erst „an“ spart KI-Aufrufe.")
+        + f'</p><ul class="sender-list">{"".join(rows)}</ul>'
+        + _section(
+            tr("Verteiler-Ausnahmen"),
+            tr("Diese Verteiler sortiert der Filter für Newsletter nie aus."),
+            exceptions,
+            tr("Keine Verteiler-Ausnahmen."),
+        )
+        + action_form(
+            '{p0}/verteiler/hinzufuegen'.format(p0=f'{LIST_PATH}'),
+            csrf,
+            tr("Ausnahme hinzufügen"),
+            "button small",
+            field,
+            stand=stand,
+        )
+    )
 
 
 def preview_text(matched: int, total: int, conflict: bool) -> str:

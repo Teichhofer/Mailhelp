@@ -30,7 +30,8 @@ llm:
 # Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
-# 7.5: Sprache der Oberfläche, de (Standard) oder en; KI-Prompts und Auswertung bleiben deutsch.
+# 7.8: Standardsprache de/en für Oberfläche, Telegram und CLI; Browserwahl hat im Web Vorrang.
+# Originalmails und normale Analyse-Prompts bleiben unverändert; --language gilt für einen CLI-Aufruf.
 language: de
 briefings:
   # Benötigt web.enabled; eigenständig neben daily_briefing und Antwortentwürfen.

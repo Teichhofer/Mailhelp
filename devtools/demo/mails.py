@@ -158,10 +158,10 @@ IRRELEVANT = (
 MAILS = RELEVANT + IRRELEVANT
 
 
-def message(mail: DemoMail) -> bytes:
+def message(mail: DemoMail, recipient: str = RECIPIENT) -> bytes:
     item = EmailMessage()
     item["From"] = mail.sender
-    item["To"] = RECIPIENT
+    item["To"] = recipient
     item["Subject"] = mail.subject
     item["Date"] = format_datetime(datetime.strptime(mail.sent, "%Y-%m-%d %H:%M").replace(tzinfo=ZONE))
     item["Message-ID"] = f"<{mail.name}@demo.mailhelp.example>"

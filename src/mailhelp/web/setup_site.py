@@ -1,4 +1,5 @@
 """Accessible HTML setup, diagnostics, notification profile and delivery history."""
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ import yaml
 from ..config import Settings
 from ..config.configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
 from ..config.notifications import CATEGORIES, effective_profile
+from ..i18n import msg, tr
 from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
 from .auth import PairingLimited, WebSession
 from .forms import post_form
@@ -17,11 +19,36 @@ from .http import Request, Response
 from .local_pairing import issue
 from .pages import e, layout
 
+_SETUP_TEXT_1 = msg(
+    "<p>Windows 11 oder Docker unter Linux. Zugangsdaten unter <a "
+    'href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen (oder in .env bzw. der '
+    "Prozessumgebung). Entwurf speichern verändert die aktive Konfiguration noch "
+    "nicht.</p>"
+)
+
+_SETUP_TEXT_2 = msg(
+    "<p>Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose des Entwurfs. "
+    "Verbindungseinstellungen benötigen nach Übernahme einen Neustart. Übernahme "
+    "autorisiert keine Kalendertermine oder Aufgaben.</p>"
+)
+
+_SETUP_TEXT_3 = msg(
+    "<p>Welche Modelle mit welchen Parametern arbeiten, zeigt <a "
+    'href="/einstellungen?bereich=ki">Einstellungen → KI und Auswertung</a>; geändert '
+    "werden sie in <code>prompts.yaml</code>. Tests unter Diagnose starten.</p>"
+)
+
 if TYPE_CHECKING:
     from .site import MailhelpSite
 
-STEPS = ("Betriebsart", "Postfach", "Analyse und Ziele", "Web und Geräte", "Benachrichtigungen",
-         "Prüfen und übernehmen")
+STEPS = (
+    msg("Betriebsart"),
+    msg("Postfach"),
+    msg("Analyse und Ziele"),
+    msg("Web und Geräte"),
+    msg("Benachrichtigungen"),
+    msg("Prüfen und übernehmen"),
+)
 FIELDS = {
     1: ("timezone", "telegram.enabled"),
     2: ("imap.host", "imap.port", "imap.connection_mode", "imap.folders", "imap.primary_folder", "imap.drafts_folder",
@@ -37,28 +64,42 @@ FIELDS = {
         "daily_briefing.time"),
     6: (),
 }
-LABELS = {"event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
-          "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin (Minuten)",
-          "timezone": "Zeitzone (IANA)", "telegram.enabled": "Telegram verwenden",
-          "imap.host": "IMAP-Server", "imap.port": "IMAP-Port", "imap.connection_mode": "IMAP-Verbindungsart",
-          "imap.folders": "Quellordner (JSON-Liste)", "imap.primary_folder": "Hauptordner",
-          "imap.drafts_folder": "Entwurfsordner",
-          "imap.historical_start": "Ältere Mails nicht verarbeiten vor (ISO 8601; null: keine Grenze)",
-          "imap.label": "Anzeigename", "imap.enabled": "Postfach abrufen",
-          "targets.google_calendar": "Google-Kalender",
-          "targets.todoist_project": "Todoist-Projekt", "targets.calendar_provider": "Kalenderdienst",
-          "targets.task_provider": "Aufgabendienst", "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
-          "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)", "targets.outlook_calendar": "Outlook-Kalender",
-          "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
-          "targets.google_tasks_list": "Google-Tasks-Liste",
-          "push.enabled": "Web-Push am Server aktivieren",
-          "push.subject": "VAPID-Kontaktadresse (mailto:name@domain)",
-          "notifications.quiet_hours.enabled": "Ruhezeiten aktivieren", "notifications.quiet_hours.start": "Ruhe ab",
-          "notifications.quiet_hours.end": "Ruhe bis", "notifications.quiet_hours.allow_system_errors":
-          "Betriebsprobleme von Ruhezeiten ausnehmen", "notifications.batching.enabled": "Meldungen bündeln",
-          "notifications.batching.window_seconds": "Bündelungsfenster (Sekunden)",
-          "notifications.telegram_content": "Telegram-Inhalte", "daily_briefing.enabled": "Tagesüberblick aktivieren",
-          "daily_briefing.time": "Tagesüberblick um"}
+LABELS = {
+    "event_defaults.video_duration_minutes": msg("Standarddauer Videokonferenz (Minuten)"),
+    "event_defaults.in_person_duration_minutes": msg("Standarddauer Präsenztermin (Minuten)"),
+    "timezone": msg("Zeitzone (IANA)"),
+    "telegram.enabled": msg("Telegram verwenden"),
+    "imap.host": msg("IMAP-Server"),
+    "imap.port": msg("IMAP-Port"),
+    "imap.connection_mode": msg("IMAP-Verbindungsart"),
+    "imap.folders": msg("Quellordner (JSON-Liste)"),
+    "imap.primary_folder": msg("Hauptordner"),
+    "imap.drafts_folder": msg("Entwurfsordner"),
+    "imap.historical_start": msg("Ältere Mails nicht verarbeiten vor (ISO 8601; null: keine Grenze)"),
+    "imap.label": msg("Anzeigename"),
+    "imap.enabled": msg("Postfach abrufen"),
+    "targets.google_calendar": msg("Google-Kalender"),
+    "targets.todoist_project": msg("Todoist-Projekt"),
+    "targets.calendar_provider": msg("Kalenderdienst"),
+    "targets.task_provider": msg("Aufgabendienst"),
+    "targets.caldav_calendar_url": msg("CalDAV-Kalender (Adresse)"),
+    "targets.caldav_task_url": msg("CalDAV-Aufgabenliste (Adresse)"),
+    "targets.outlook_calendar": msg("Outlook-Kalender"),
+    "targets.microsoft_todo_list": msg("Microsoft-To-Do-Liste"),
+    "targets.microsoft_tenant": msg("Microsoft-Mandant"),
+    "targets.google_tasks_list": msg("Google-Tasks-Liste"),
+    "push.enabled": msg("Web-Push am Server aktivieren"),
+    "push.subject": msg("VAPID-Kontaktadresse (mailto:name@domain)"),
+    "notifications.quiet_hours.enabled": msg("Ruhezeiten aktivieren"),
+    "notifications.quiet_hours.start": msg("Ruhe ab"),
+    "notifications.quiet_hours.end": msg("Ruhe bis"),
+    "notifications.quiet_hours.allow_system_errors": msg("Betriebsprobleme von Ruhezeiten ausnehmen"),
+    "notifications.batching.enabled": msg("Meldungen bündeln"),
+    "notifications.batching.window_seconds": msg("Bündelungsfenster (Sekunden)"),
+    "notifications.telegram_content": msg("Telegram-Inhalte"),
+    "daily_briefing.enabled": msg("Tagesüberblick aktivieren"),
+    "daily_briefing.time": msg("Tagesüberblick um"),
+}
 CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "false"),
            "imap.connection_mode": ("ssl", "starttls", "plain"),
            "notifications.telegram_content": ("neutral", "summary"),
@@ -85,7 +126,7 @@ def field_label(raw: dict[str, Any], name: str) -> str:
     if parts[:2] != ["imap", "mailboxes"]:
         return LABELS.get(name, name)
     mailbox = raw["imap"]["mailboxes"][int(parts[2])]
-    return f'{LABELS["imap." + parts[3]]} – Postfach {mailbox["id"]} ({mailbox["label"]})'
+    return tr("{p0} – Postfach {p1} ({p2})", p0=LABELS["imap." + parts[3]], p1=mailbox["id"], p2=mailbox["label"])
 
 
 def input_field(name: str, value: object, choices: Sequence[str] | None = None, label: str | None = None) -> str:
@@ -118,17 +159,23 @@ class SetupSite:
 
     @staticmethod
     def links() -> str:
-        return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
-                '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
-                '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
-                '<a class="button" href="/einstellungen/zugangsdaten">Zugangsdaten</a> '
-                '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
-                '<a class="button" href="/diagnose">Verbindungen prüfen</a> '
-                '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
-                '<a class="button" href="/benachrichtigungen">Zustellhistorie</a></p>')
+        return tr(
+            '<p class="card-links"><a class="button" '
+            'href="/einrichtung">Einrichtung</a> <a class="button" '
+            'href="/einstellungen/postfaecher">Postfächer</a> <a '
+            'class="button" href="/einstellungen/iserv">IServ-Konten</a> <a '
+            'class="button" '
+            'href="/einstellungen/zugangsdaten">Zugangsdaten</a> <a '
+            'class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
+            '<a class="button" href="/diagnose">Verbindungen prüfen</a> <a '
+            'class="button" '
+            'href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil<'
+            '/a> <a class="button" '
+            'href="/benachrichtigungen">Zustellhistorie</a></p>'
+        )
 
     def _unavailable(self) -> Response:
-        return Response.text(503, "Einrichtungsdienst nicht verfügbar.")
+        return Response.text(503, msg("Einrichtungsdienst nicht verfügbar."))
 
     def _raw(self, *, with_patch: bool = True) -> dict[str, Any]:
         service = self.runtime.setup
@@ -171,9 +218,15 @@ class SetupSite:
                 if raw["telegram"]["enabled"] and raw["push"]["enabled"]:
                     channels.append('["telegram", "web_push"]')
                 choices = tuple(channels)
-            body += post_form("/einrichtung/speichern", csrf, input_field(name, value, choices,
-                                                                        field_label(raw, name)),
-                              "Entwurf speichern", name=name, version=state.version, step=step)
+            body += post_form(
+                "/einrichtung/speichern",
+                csrf,
+                input_field(name, value, choices, field_label(raw, name)),
+                msg("Entwurf speichern"),
+                name=name,
+                version=state.version,
+                step=step,
+            )
         return body
 
     def _listed_folders(self) -> str:
@@ -181,26 +234,33 @@ class SetupSite:
         listed = self.site.views.store.load("setup-folders", {})
         mailboxes = self._raw()["imap"].get("mailboxes")
         if mailboxes is None:
-            parts = [", ".join(listed.get("folders", [])) or "noch nicht geprüft"]
+            parts = [", ".join(listed.get("folders", [])) or msg("noch nicht geprüft")]
         else:
-            parts = [f'Postfach {item["id"]}: '
-                     + (", ".join(listed.get("mailboxes", {}).get(str(item["id"]), [])) or "noch nicht geprüft")
-                     for item in mailboxes]
-        return ('<p>Vorhandene Ordner aus der letzten Diagnose: ' + e("; ".join(parts))
-                + '. Lesbarkeit beweist keine Schreibberechtigung. Postfächer hinzufügen oder entfernen: '
-                  '<a href="/einstellungen/postfaecher">Einstellungen → Postfächer</a>.</p>')
+            parts = [
+                tr("Postfach {p0}: ", p0=item["id"])
+                + (", ".join(listed.get("mailboxes", {}).get(str(item["id"]), [])) or msg("noch nicht geprüft"))
+                for item in mailboxes
+            ]
+        return (
+            tr("<p>Vorhandene Ordner aus der letzten Diagnose: ")
+            + e("; ".join(parts))
+            + tr(
+                ". Lesbarkeit beweist keine Schreibberechtigung. Postfächer "
+                "hinzufügen oder entfernen: <a "
+                'href="/einstellungen/postfaecher">Einstellungen → '
+                "Postfächer</a>.</p>"
+            )
+        )
 
     def setup(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         state, cfg = self.runtime.setup.state(), self.runtime.setup.configuration
-        body = '<h1>Einrichtung</h1>' + self.links()
-        body += f'<p>Aktueller Schritt: {state.step} · Entwurfsversion: {state.version}</p>'
+        body = tr("<h1>Einrichtung</h1>") + self.links()
+        body += tr("<p>Aktueller Schritt: {p0} · Entwurfsversion: {p1}</p>", p0=state.step, p1=state.version)
         body += '<ul>' + "".join(f'<li>{e(name)}: {status}</li>'
                                   for name, status in self.runtime.secret_status().items()) + '</ul>'
-        body += ('<p>Windows 11 oder Docker unter Linux. Zugangsdaten unter '
-                 '<a href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen (oder in .env bzw. der '
-                 'Prozessumgebung). Entwurf speichern verändert die aktive Konfiguration noch nicht.</p>')
+        body += tr(_SETUP_TEXT_1)
         for index, title in enumerate(STEPS, 1):
             opened = " open" if index in {state.step, 6} else ""
             body += (f'<section class="card"><details{opened}><summary><h2>{index}. {title}</h2></summary>'
@@ -208,34 +268,44 @@ class SetupSite:
             if index == 2:
                 body += self._listed_folders()
             if index == 3:
-                body += ('<p>Welche Modelle mit welchen Parametern arbeiten, zeigt <a href="/einstellungen?bereich=ki">'
-                         'Einstellungen → KI und Auswertung</a>; geändert werden sie in <code>prompts.yaml</code>. '
-                         'Tests unter Diagnose starten.</p>')
+                body += tr(_SETUP_TEXT_3)
             if index == 4:
                 body += self.site.experience.controls(self.site.auth.csrf_token(session.id))
-                body += '<p>Push benötigt HTTPS oder localhost, Browserunterstützung, Berechtigung und ein '
-                body += '<a href="/einstellungen">Geräteabonnement</a>. Ohne JavaScript sind Browserberechtigungen '
-                body += 'und Abonnements nicht steuerbar. Auf iOS zuerst zum Home-Bildschirm hinzufügen.</p>'
+                body += tr("<p>Push benötigt HTTPS oder localhost, Browserunterstützung, Berechtigung und ein ")
+                body += tr('<a href="/einstellungen">Geräteabonnement</a>. Ohne JavaScript sind Browserberechtigungen ')
+                body += tr("und Abonnements nicht steuerbar. Auf iOS zuerst zum Home-Bildschirm hinzufügen.</p>")
             body += '</details></section>'
         current = file_hash(cfg.directory / "config.yaml")
         if state.base_hash != current:
-            body += '<p role="status">Konfiguration neu einlesen und die Differenz erneut prüfen.</p>'
-            body += post_form("/einrichtung/speichern", self.site.auth.csrf_token(session.id), "",
-                              "Konfiguration neu einlesen", version=state.version, step=6, refresh="yes")
+            body += tr('<p role="status">Konfiguration neu einlesen und die Differenz erneut prüfen.</p>')
+            body += post_form(
+                "/einrichtung/speichern",
+                self.site.auth.csrf_token(session.id),
+                "",
+                msg("Konfiguration neu einlesen"),
+                version=state.version,
+                step=6,
+                refresh="yes",
+            )
         baseline = self._raw(with_patch=False)
         body += '<h2>Änderungsliste</h2><ul>' + "".join(
             f'<li>{e(name)}: {e(json.dumps(lookup(baseline, name), ensure_ascii=False))} '
             f'→ {e(json.dumps(value, ensure_ascii=False))} '
             f'({"sofort" if name.split(".")[0] in LIVE_FIELDS else "Neustart erforderlich"})</li>'
             for name, value in state.patch.items() if lookup(baseline, name) != value) + '</ul>'
-        body += ('<p>Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose des Entwurfs. '
-                 'Verbindungseinstellungen benötigen nach Übernahme '
-                 'einen Neustart. Übernahme autorisiert keine Kalendertermine oder Aufgaben.</p>')
-        body += post_form("/einrichtung/uebernehmen", self.site.auth.csrf_token(session.id),
-                          '<label><input type="checkbox" name="confirm" value="yes" required> '
-                          'Gezeigte Änderungen ausdrücklich übernehmen</label>', "Einstellungen übernehmen",
-                          version=state.version, expected_hash=state.base_hash)
-        return Response.html(200, layout("Einrichtung", '<div class="setup-page">' + body + '</div>'))
+        body += tr(_SETUP_TEXT_2)
+        body += post_form(
+            "/einrichtung/uebernehmen",
+            self.site.auth.csrf_token(session.id),
+            tr(
+                '<label><input type="checkbox" name="confirm" value="yes" '
+                "required> Gezeigte Änderungen ausdrücklich übernehmen</label>"
+            ),
+            msg("Einstellungen übernehmen"),
+            version=state.version,
+            expected_hash=state.base_hash,
+        )
+        return Response.html(200, layout(msg("Einrichtung"), '<div class="setup-page">' + body + "</div>"))
 
     def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
@@ -251,9 +321,9 @@ class SetupSite:
             self.runtime.setup.save(f"web:{session.id}", int(form["version"]), form["key"],
                                     int(form["step"]), patch, refresh=form.get("refresh") == "yes")
         except ConfigurationConflict:
-            return Response.text(409, "Konfiguration oder Entwurf geändert; neu einlesen und Differenz prüfen.")
+            return Response.text(409, msg("Konfiguration oder Entwurf geändert; neu einlesen und Differenz prüfen."))
         except (ValueError, KeyError, PermissionError, OSError):
-            return Response.text(422, "Entwurf nicht gespeichert; Angaben und Sitzung prüfen.")
+            return Response.text(422, msg("Entwurf nicht gespeichert; Angaben und Sitzung prüfen."))
         return Response.redirect("/einrichtung")
 
     def apply(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
@@ -265,9 +335,9 @@ class SetupSite:
             command = self.runtime.setup.command(f"web:{session.id}", int(form["version"]),
                                                  form["key"], form["expected_hash"])
         except ConfigurationConflict:
-            return Response.text(409, "Konfiguration oder Entwurf geändert; Differenz erneut prüfen.")
+            return Response.text(409, msg("Konfiguration oder Entwurf geändert; Differenz erneut prüfen."))
         except (ValueError, KeyError, PermissionError, OSError):
-            return Response.text(422, "Einstellungen nicht übernommen; Bestätigung und Sitzung prüfen.")
+            return Response.text(422, msg("Einstellungen nicht übernommen; Bestätigung und Sitzung prüfen."))
         return self.site.archive.queue(request, command)
 
     def diagnose(self, request: Request, session: WebSession) -> Response:
@@ -276,23 +346,29 @@ class SetupSite:
         service = self.runtime.diagnostics
         self.runtime.update_profile_checks()
         state = service.state()
-        body = '<h1>Verbindungen prüfen</h1>' + self.links() + '<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten '
-        body += 'werden nicht angezeigt. Kalender, Todoist und IMAP werden ausschließlich gelesen.</p>'
-        body += ('<p><a class="button" href="/dienst/selbsttest">Alles auf einmal prüfen (Selbsttest)</a></p>')
+        body = (
+            tr("<h1>Verbindungen prüfen</h1>")
+            + self.links()
+            + tr("<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten ")
+        )
+        body += tr("werden nicht angezeigt. Kalender, Todoist und IMAP werden ausschließlich gelesen.</p>")
+        body += tr('<p><a class="button" href="/dienst/selbsttest">Alles auf einmal prüfen (Selbsttest)</a></p>')
         for name in service.checks:
             result = state.results.get(name, DiagnosticResult())
             if result.checked_at is not None and result.config_revision != self.runtime.setup.fingerprint():
                 result = DiagnosticResult(status="unchecked", code="configuration")
-            label = {"telegram_test": "Neutrale Telegram-Testnachricht senden",
-                     "push_test": "Test-Push an dieses Gerät senden",
-                     "llm_test": "Synthetischen LLM-Test starten (kann Kosten verursachen)"}.get(name, f"{name} prüfen")
+            label = {
+                "telegram_test": msg("Neutrale Telegram-Testnachricht senden"),
+                "push_test": msg("Test-Push an dieses Gerät senden"),
+                "llm_test": msg("Synthetischen LLM-Test starten (kann Kosten verursachen)"),
+            }.get(name, tr("{p0} prüfen", p0=name))
             body += f'<section class="card"><h2>{e(name)}</h2><p role="status">{e(STATES[result.status])} · '
-            body += f'{e(result.checked_at or "noch nicht geprüft")} · {result.duration_ms} ms</p>'
+            body += f'{e(result.checked_at or msg('noch nicht geprüft'))} · {result.duration_ms} ms</p>'
             body += f'<p>{e(HELP[result.code])}</p>'
             body += post_form("/diagnose/pruefen", self.site.auth.csrf_token(session.id), "", label,
                               name=name, version=state.version) + '</section>'
-        body += '<p><a href="/diagnose/bericht">Bereinigten Diagnosebericht herunterladen</a></p>'
-        return Response.html(200, layout("Verbindungen prüfen", '<div class="setup-page">' + body + '</div>'))
+        body += tr('<p><a href="/diagnose/bericht">Bereinigten Diagnosebericht herunterladen</a></p>')
+        return Response.html(200, layout(msg("Verbindungen prüfen"), '<div class="setup-page">' + body + "</div>"))
 
     def check(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
@@ -301,45 +377,55 @@ class SetupSite:
             self.runtime.update_profile_checks()
             self.runtime.diagnostics.run(session.id, form["name"], int(form["version"]), form["key"])
         except (ValueError, KeyError, PermissionError):
-            return Response.text(409, "Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen.")
+            return Response.text(409, msg("Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen."))
         return Response.redirect("/diagnose")
 
     def report(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         response = Response.json(200, self.runtime.diagnostics.report())
-        response.headers["Content-Disposition"] = 'attachment; filename="mailhelp-diagnose.json"'
+        response.headers["Content-Disposition"] = msg('attachment; filename="mailhelp-diagnose.json"')
         return response
 
     def profile(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
-        body = '<h1>Benachrichtigungsprofil</h1>' + self.links()
-        body += ('<p>Die lokale Anzeige bleibt verfügbar. Web-Push ist immer neutral. Telegram summary '
-                 'übermittelt Betreffzeilen und den Tagesüberblick an Telegram. Diese Inhaltsfreigabe bewusst '
-                 'auswählen. Bestehende Inhaltsfreigaben werden beim Upgrade übernommen.</p>')
-        body += '<p>Fehlende Kanäle zuerst in der <a href="/diagnose">Diagnose</a> und Einrichtung aktivieren. '
-        body += 'Ein Push-Abonnement gilt nur für sein Gerät.</p>'
+        body = tr("<h1>Benachrichtigungsprofil</h1>") + self.links()
+        body += tr(
+            "<p>Die lokale Anzeige bleibt verfügbar. Web-Push ist immer "
+            "neutral. Telegram summary übermittelt Betreffzeilen und den "
+            "Tagesüberblick an Telegram. Diese Inhaltsfreigabe bewusst "
+            "auswählen. Bestehende Inhaltsfreigaben werden beim Upgrade "
+            "übernommen.</p>"
+        )
+        body += tr('<p>Fehlende Kanäle zuerst in der <a href="/diagnose">Diagnose</a> und Einrichtung aktivieren. ')
+        body += tr("Ein Push-Abonnement gilt nur für sein Gerät.</p>")
         fields = tuple(f"notifications.categories.{name}" for name in CATEGORIES) + FIELDS[5]
         fields += tuple("notifications.delivery." + name for name in
                         ("max_attempts", "initial_backoff_seconds", "max_backoff_seconds",
                          "history_days", "max_pending"))
         body += self._fields(session, fields, 5)
-        body += ('<p><a class="button primary" href="/einrichtung">'
-                 'Differenz prüfen und ausdrücklich übernehmen</a></p>')
-        return Response.html(200, layout("Benachrichtigungsprofil", '<div class="setup-page">' + body + '</div>'))
+        body += tr(
+            '<p><a class="button primary" href="/einrichtung">Differenz prüfen und ausdrücklich übernehmen</a></p>'
+        )
+        return Response.html(200, layout(msg("Benachrichtigungsprofil"), '<div class="setup-page">' + body + "</div>"))
 
     def history(self, request: Request, session: WebSession) -> Response:
         runtime = self.site.notification_runtime
         if runtime is None:
             return self._unavailable()
-        body = '<h1>Zustellhistorie</h1>' + self.links()
-        body += '<p>sent bei Push bedeutet an den Dienst übergeben; kein Nachweis über Lesen am Endgerät. '
-        body += 'uncertain wird ohne belastbaren Abgleich nicht automatisch wiederholt.</p><ul>'
+        body = tr("<h1>Zustellhistorie</h1>") + self.links()
+        body += tr("<p>sent bei Push bedeutet an den Dienst übergeben; kein Nachweis über Lesen am Endgerät. ")
+        body += tr("uncertain wird ohne belastbaren Abgleich nicht automatisch wiederholt.</p><ul>")
         for item in runtime.queue.state().entries.values():
             body += f'<li>{e(item.category)} · {e(item.channel)} · {e(item.status)} · '
-            body += f'{e(item.updated_at)} · Versuche: {item.attempts} · {e(item.error)}</li>'
-        return Response.html(200, layout("Zustellhistorie", body + '</ul>'))
+            body += tr(
+                "{p0} · Versuche: {p1} · {p2}</li>",
+                p0=f"{e(item.updated_at)}",
+                p1=f"{item.attempts}",
+                p2=f"{e(item.error)}",
+            )
+        return Response.html(200, layout(msg("Zustellhistorie"), body + "</ul>"))
 
     def local_pair(self, request: Request) -> Response:
         form = self.site._form(request)
@@ -348,7 +434,7 @@ class SetupSite:
         try:
             code = issue(self.site.auth, form.get("message", ""), form.get("signature", ""))
         except PermissionError:
-            return Response.text(403, "Lokale Kopplung nicht autorisiert.")
+            return Response.text(403, msg("Lokale Kopplung nicht autorisiert."))
         except PairingLimited:
-            return Response.text(429, "Zu viele Kopplungsversuche.")
+            return Response.text(429, msg("Zu viele Kopplungsversuche."))
         return Response.json(200, {"code": code})

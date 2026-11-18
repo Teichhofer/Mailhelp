@@ -48,8 +48,8 @@ def test_the_installed_wheel_carries_the_verified_demo_dataset(tmp_path):
     assert wheel.is_file(), "Build artifacts for the current version must exist"
     with zipfile.ZipFile(wheel) as archive:
         archive.extractall(tmp_path / "wheel")
-    script = ("import mailhelp; from mailhelp.runtime import demo_dataset as d; "
-              "m = d.verify(d.packaged()); print(mailhelp.__file__); print(len(m.mails))")
+    script = ("import mailhelp; from mailhelp.runtime import demo_dataset as d; from mailhelp.i18n import Locale; "
+              "print(mailhelp.__file__); print(','.join(str(len(d.verify(d.packaged(locale)).mails)) for locale in Locale))")
     # A separately loaded copy is an isolation check; it must not feed the coverage of this run.
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith(("COV_CORE_", "COVERAGE_"))}
@@ -57,4 +57,4 @@ def test_the_installed_wheel_carries_the_verified_demo_dataset(tmp_path):
                             check=True, env={**environment, "PYTHONPATH": str(tmp_path / "wheel")})
     location, count = result.stdout.strip().splitlines()
     assert Path(location).resolve().is_relative_to((tmp_path / "wheel").resolve())
-    assert count == "30"
+    assert count == "30,30"

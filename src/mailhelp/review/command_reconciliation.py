@@ -84,16 +84,7 @@ def _took_effect(service: ReviewService, command: ReviewCommand) -> bool:
     if command.kind == CommandKind.REJECT_REASON:
         return current.version == command.version and current.reject_reason == command.reason
     if command.kind == CommandKind.REMOVE_CREATED:
-        if current.version == command.version and current.status == ProposalStatus.REMOVED:
-            return True
-        writer = service._writer_for(current)
-        if writer is not None:
-            found = writer.reconcile_remove(current, command.idempotency_key)
-            if found is not None:
-                removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
-                service.controller.persist(removed)
-                return True
-        return False
+        return _removed_effect(service, command, current)
     if command.kind == CommandKind.RESTORE:
         return True
     if current.version != command.version or current.status not in service_module._OPEN:
@@ -162,3 +153,16 @@ def _reconcile_proposal(review: ReviewService, command: ReviewCommand) -> Review
     for proposal in notifications:
         review.controller.send_proposal(proposal)
     return ReviewResult(status=ResultStatus.DONE, message=de("Vorschlagsversion gespeichert; separat bestätigen."))
+
+
+def _removed_effect(service: ReviewService, command: ReviewCommand, current: Proposal) -> bool:
+    if current.version == command.version and current.status == ProposalStatus.REMOVED:
+        return True
+    writer = service._writer_for(current)
+    if writer is not None:
+        found = writer.reconcile_remove(current, command.idempotency_key)
+        if found is not None:
+            removed = current.model_copy(update={"status": ProposalStatus.REMOVED})
+            service.controller.persist(removed)
+            return True
+    return False

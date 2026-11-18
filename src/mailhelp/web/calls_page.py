@@ -4,6 +4,7 @@ One read-only page with a preset per figure instead of nine detail pages. It sho
 from the content-free metric journal; the subject of a mail comes from its stored state and is
 escaped like everywhere else.
 """
+
 from __future__ import annotations
 
 import math
@@ -16,19 +17,25 @@ from typing import Any
 from urllib.parse import urlencode
 
 from ..formatting import duration_text, format_datetime_local
+from ..i18n import msg, tr
 from ..review.views import STAGE_LABELS
 from .pages import e, notice, page_head
 
 FILTER_KEYS = ("days", "mode", "model", "provider", "stage", "since", "until")
-SORTS = {"time": "Zeit", "duration": "Dauer", "cost": "Kosten"}
+SORTS = {"time": msg("Zeit"), "duration": msg("Dauer"), "cost": msg("Kosten")}
 # A value of its own for "alle": empty query values are dropped and could not override a preset.
-STATUSES = {"alle": "alle", "success": "erfolgreich", "failed": "fehlgeschlagen"}
+STATUSES = {"alle": msg("alle"), "success": msg("erfolgreich"), "failed": msg("fehlgeschlagen")}
 PAGE_SIZE = 100
-ERROR_LABELS = {"timeout": "Zeitüberschreitung", "rate_limited": "Anfragelimit des Anbieters erreicht",
-                "provider_error": "Fehler oder ungültige Antwort des Anbieters",
-                "invalid_json": "Antwort war kein JSON",
-                "schema_invalid": "Antwort passte nicht zum erwarteten Schema", "cancelled": "abgebrochen",
-                "other": "sonstige Ursache", None: "Ursache nicht erfasst (vor 5.9)"}
+ERROR_LABELS = {
+    "timeout": msg("Zeitüberschreitung"),
+    "rate_limited": msg("Anfragelimit des Anbieters erreicht"),
+    "provider_error": msg("Fehler oder ungültige Antwort des Anbieters"),
+    "invalid_json": msg("Antwort war kein JSON"),
+    "schema_invalid": msg("Antwort passte nicht zum erwarteten Schema"),
+    "cancelled": msg("abgebrochen"),
+    "other": msg("sonstige Ursache"),
+    None: msg("Ursache nicht erfasst (vor 5.9)"),
+}
 
 
 @dataclass(frozen=True)
@@ -36,25 +43,54 @@ class Metric:
     title: str
     explanation: str
     sort: str
-    status: str = "alle"
+    status: str = msg("alle")
 
 
 METRICS = {
-    "calls": Metric("Aufrufe (einzelne Versuche)", "Jeder Versuch zählt einzeln, auch Wiederholungen.", "time"),
-    "failed": Metric("Fehlgeschlagene Aufrufe", "Fehlgeschlagene Versuche, nach Ursache gezählt.", "time", "failed"),
-    "cloud_costs": Metric("Gemeldete Cloudkosten", "Vom Anbieter gemeldete Kosten, teuerste Aufrufe zuerst.", "cost"),
-    "unknown_cost": Metric("Cloudaufrufe ohne Kostenangabe", "Der Anbieter hat keine Nutzungsdaten gemeldet; "
-                           "die Kosten sind unbekannt, nicht null.", "time"),
-    "cloud_eur": Metric("Cloudkosten in Euro", "Die gemeldeten Kosten in US-Dollar, umgerechnet mit dem "
-                        "eingestellten Kurs.", "cost"),
-    "electricity": Metric("Geschätzte Stromkosten Ollama", "Belegte Serverzeit × Leistung × Strompreis; die "
-                          "Serverzeit wird je Server mit zusammengeführten Überlappungen ermittelt.", "time"),
-    "duration": Metric("Summierte Aufrufdauer", "Summe aller Versuche; keine Durchlaufzeit.", "duration"),
-    "distribution": Metric("Dauer je Aufruf", "Verteilung der Dauer einzelner Versuche, längste zuerst.",
-                           "duration"),
-    "incomplete": Metric("Unvollständige Erfassung", "Beschädigte Zeilen konnten nicht gelesen werden; "
-                         "Erfassungsfehler sind Aufrufe, deren Messwerte nicht geschrieben werden konnten. Details "
-                         "stehen in den Protokollen (logs/mailhelp.jsonl).", "time"),
+    "calls": Metric(
+        msg("Aufrufe (einzelne Versuche)"), msg("Jeder Versuch zählt einzeln, auch Wiederholungen."), "time"
+    ),
+    "failed": Metric(
+        msg("Fehlgeschlagene Aufrufe"), msg("Fehlgeschlagene Versuche, nach Ursache gezählt."), "time", "failed"
+    ),
+    "cloud_costs": Metric(
+        msg("Gemeldete Cloudkosten"), msg("Vom Anbieter gemeldete Kosten, teuerste Aufrufe zuerst."), "cost"
+    ),
+    "unknown_cost": Metric(
+        msg("Cloudaufrufe ohne Kostenangabe"),
+        msg("Der Anbieter hat keine Nutzungsdaten gemeldet; die Kosten sind unbekannt, nicht null."),
+        "time",
+    ),
+    "cloud_eur": Metric(
+        msg("Cloudkosten in Euro"),
+        msg("Die gemeldeten Kosten in US-Dollar, umgerechnet mit dem eingestellten Kurs."),
+        "cost",
+    ),
+    "electricity": Metric(
+        msg("Geschätzte Stromkosten Ollama"),
+        msg(
+            
+                "Belegte Serverzeit × Leistung × Strompreis; die Serverzeit wird je Server "
+                "mit zusammengeführten Überlappungen ermittelt."
+            
+        ),
+        "time",
+    ),
+    "duration": Metric(msg("Summierte Aufrufdauer"), msg("Summe aller Versuche; keine Durchlaufzeit."), "duration"),
+    "distribution": Metric(
+        msg("Dauer je Aufruf"), msg("Verteilung der Dauer einzelner Versuche, längste zuerst."), "duration"
+    ),
+    "incomplete": Metric(
+        "Unvollständige Erfassung",
+        msg(
+            
+                "Beschädigte Zeilen konnten nicht gelesen werden; Erfassungsfehler sind "
+                "Aufrufe, deren Messwerte nicht geschrieben werden konnten. Details stehen "
+                "in den Protokollen (logs/mailhelp.jsonl)."
+            
+        ),
+        "time",
+    ),
 }
 
 
@@ -119,9 +155,13 @@ def _explanation(metric: str, rows: list[dict[str, Any]], report: dict[str, Any]
                                  for model, usd in sorted(models.items(), key=lambda item: -item[1])) + "</ul>"
     if metric == "cloud_eur":
         rate = settings.usd_per_eur
-        body += (f"<p>EUR = USD ÷ {_number(rate, 4)}"
-                 + (f" (Kurs vom {e(settings.exchange_rate_date)})" if settings.exchange_rate_date else "") + ".</p>"
-                 if rate else "<p>Kein Wechselkurs hinterlegt.</p>")
+        body += (
+            f"<p>EUR = USD ÷ {_number(rate, 4)}"
+            + (tr(" (Kurs vom {p0})", p0=f"{e(settings.exchange_rate_date)}") if settings.exchange_rate_date else "")
+            + ".</p>"
+            if rate
+            else tr("<p>Kein Wechselkurs hinterlegt.</p>")
+        )
     if metric == "electricity":
         body += (f"<p>Eingestellt: {_number(settings.ollama_power_watts, 0)} W, "
                  f"{_number(settings.electricity_eur_per_kwh, 2)} €/kWh.</p>")
@@ -133,8 +173,11 @@ def _explanation(metric: str, rows: list[dict[str, Any]], report: dict[str, Any]
         body += "<p>" + " · ".join(f"{name} {e(duration_text(value, precise=True))}"
                                    for name, value in figures) + "</p>"
     if metric == "incomplete":
-        body += (f"<p>{report['damaged']} beschädigte Zeilen, {report['capture_failures']} Erfassungsfehler. "
-                 "Zu diesen Fällen gibt es keine Einzelaufrufe.</p>")
+        body += tr(
+            ("<p>{p0} beschädigte Zeilen, {p1} Erfassungsfehler. Zu diesen Fällen gibt es keine Einzelaufrufe.</p>"),
+            p0=report["damaged"],
+            p1=report["capture_failures"],
+        )
     return f'<section class="card calls-explanation">{body}</section>'
 
 
@@ -145,7 +188,7 @@ def _mail(row: dict[str, Any], subject: Callable[[str], str | None]) -> str:
         return "—"
     title = subject(row["mail_id"])
     if title is None:
-        return "Mail nicht mehr gespeichert"
+        return msg("Mail nicht mehr gespeichert")
     return f'<a href="/mail/{e(row["mail_id"])}">{e(title)}</a>'
 
 
@@ -156,9 +199,11 @@ def _row(row: dict[str, Any], zone: str, subject: Callable[[str], str | None]) -
     if row["status"] == "success":
         status = '<span class="badge ok">Erfolg</span>'
     else:
-        status = (f'<span class="badge warn">Fehler</span> '
-                  f'<span class="meta">{e(ERROR_LABELS[row.get("error_kind")])}</span>')
-    cost = "unbekannt" if row["cost_usd"] is None else f"{_number(float(row['cost_usd']), 4)} $"
+        status = tr(
+            '<span class="badge warn">Fehler</span> <span class="meta">{p0}</span>',
+            p0=f"{e(ERROR_LABELS[row.get('error_kind')])}",
+        )
+    cost = msg("unbekannt") if row["cost_usd"] is None else f"{_number(float(row['cost_usd']), 4)} $"
     cells = [e(format_datetime_local(datetime.fromisoformat(row["started_at"]), zone)),
              e(STAGE_LABELS.get(row["stage"], row["stage"])),
              f'{e(row["model"])}<br><span class="meta">{e(row["provider"])}</span>', status,
@@ -168,21 +213,45 @@ def _row(row: dict[str, Any], zone: str, subject: Callable[[str], str | None]) -
 
 def _pages(metric: str, params: dict[str, Any], sort: str, status: str, page: int, total: int) -> str:
     count = max(1, math.ceil(total / PAGE_SIZE))
-    parts = [f"{total} {'Aufruf' if total == 1 else 'Aufrufe'} · Seite {page} von {count}"]
+    parts = [
+        tr(
+            "{p0} {p1} · Seite {p2} von {p3}",
+            p0=f"{total}",
+            p1=f"{(msg('Aufruf') if total == 1 else msg('Aufrufe'))}",
+            p2=f"{page}",
+            p3=f"{count}",
+        )
+    ]
     if page > 1:
-        parts.append(f'<a href="{e(link(metric, params, sort=sort, status=status, page=str(page - 1)))}">'
-                     "‹ Vorherige Seite</a>")
+        parts.append(
+            tr(
+                '<a href="{p0}">‹ Vorherige Seite</a>',
+                p0=e(link(metric, params, sort=sort, status=status, page=str(page - 1))),
+            )
+        )
     if page < count:
-        parts.append(f'<a href="{e(link(metric, params, sort=sort, status=status, page=str(page + 1)))}">'
-                     "Nächste Seite ›</a>")
+        parts.append(
+            tr(
+                '<a href="{p0}">Nächste Seite ›</a>',
+                p0=e(link(metric, params, sort=sort, status=status, page=str(page + 1))),
+            )
+        )
     return f'<p class="calls-pages">{" · ".join(parts)}</p>'
 
 
 def describe(params: dict[str, Any], labels: dict[str, str]) -> str:
     """The active filter as readable text."""
-    names = {"model": "Modell", "provider": "Anbieter", "stage": "Schritt", "since": "von", "until": "bis"}
-    parts = [f"Zeitraum: {params['days']} {'Tag' if int(params['days']) == 1 else 'Tage'}",
-             f"Erfassung: {labels.get(params['mode'], params['mode'])}"]
+    names = {
+        "model": msg("Modell"),
+        "provider": msg("Anbieter"),
+        "stage": msg("Schritt"),
+        "since": msg("von"),
+        "until": msg("bis"),
+    }
+    parts = [
+        tr("Zeitraum: {p0} {p1}", p0=f"{params['days']}", p1=f"{(msg('Tag') if int(params['days']) == 1 else 'Tage')}"),
+        f"Erfassung: {labels.get(params['mode'], params['mode'])}",
+    ]
     parts += [f"{names[key]}: {STAGE_LABELS.get(params[key], params[key]) if key == 'stage' else params[key]}"
               for key in names if params.get(key)]
     return " · ".join(parts)
@@ -197,39 +266,70 @@ def calls_page(metric: str, params: dict[str, Any], sort: str, status: str | Non
     rows = [row for row in preset(metric, report["records"]) if status == "alle" or row["status"] == status]
     rows = ordered(rows, sort)
     back = "/auswertung" + ("?" + urlencode(filters(params)) if filters(params) else "")
-    form = ('<form method="get" class="filters calls-filters">'
-            f'<input type="hidden" name="metric" value="{e(metric)}">'
-            + "".join(f'<input type="hidden" name="{key}" value="{e(value)}">'
-                      for key, value in filters(params).items())
-            + '<label>Status<select name="status">'
-            + "".join(f'<option value="{key}"{" selected" if key == status else ""}>{text}</option>'
-                      for key, text in STATUSES.items())
-            + '</select></label><label>Sortierung (absteigend)<select name="sort">'
-            + "".join(f'<option value="{key}"{" selected" if key == sort else ""}>{text}</option>'
-                      for key, text in SORTS.items())
-            + '</select></label><button class="button">Anzeigen</button></form>')
-    body = (page_head(info.title, "Auswertung", back=(back, "Zurück zur Auswertung"))
-            + f'<p class="meta">{e(describe(params, labels))}</p>'
-            + _explanation(metric, rows, report, settings))
+    form = (
+        '<form method="get" class="filters calls-filters">'
+        f'<input type="hidden" name="metric" value="{e(metric)}">'
+        + "".join(f'<input type="hidden" name="{key}" value="{e(value)}">' for key, value in filters(params).items())
+        + '<label>Status<select name="status">'
+        + "".join(
+            f'<option value="{key}"{" selected" if key == status else ""}>{text}</option>'
+            for key, text in STATUSES.items()
+        )
+        + tr('</select></label><label>Sortierung (absteigend)<select name="sort">')
+        + "".join(
+            f'<option value="{key}"{" selected" if key == sort else ""}>{text}</option>' for key, text in SORTS.items()
+        )
+        + tr('</select></label><button class="button">Anzeigen</button></form>')
+    )
+    body = (
+        page_head(info.title, msg("Auswertung"), back=(back, msg("Zurück zur Auswertung")))
+        + f'<p class="meta">{e(describe(params, labels))}</p>'
+        + _explanation(metric, rows, report, settings)
+    )
     if int(params["days"]) > settings.retention_days or (
-            params.get("since") and (datetime.now().date() - datetime.fromisoformat(params["since"]).date()).days
-            > settings.retention_days):
-        body += notice(f"Einzelaufrufe liegen nur für die letzten {settings.retention_days} Tage vor; "
-                       "die Summen der Auswertung enthalten ältere Tage.", "info")
+        params.get("since")
+        and (datetime.now().date() - datetime.fromisoformat(params["since"]).date()).days > settings.retention_days
+    ):
+        body += notice(
+            tr(
+                (
+                    "Einzelaufrufe liegen nur für die letzten {p0} Tage vor; die "
+                    "Summen der Auswertung enthalten ältere Tage."
+                ),
+                p0=settings.retention_days,
+            ),
+            "info",
+        )
     if metric == "incomplete":
         return body
     body += form
     if not rows:
-        return body + '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'
+        return body + tr('<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>')
     page = min(page, max(1, math.ceil(len(rows) / PAGE_SIZE)))
     shown = rows[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]
     pages = _pages(metric, params, sort, status, page, len(rows))
-    table = ('<div class="table-scroll" tabindex="0" role="region" aria-label="Aufrufe"><table class="calls-table">'
-             "<thead><tr>" + "".join(f'<th scope="col">{name}</th>' for name in (
-                 "Zeit", "Schritt", "Modell / Anbieter", "Status", "Dauer", "Tokens (Eingabe / Ausgabe)", "Kosten",
-                 "Mail"))
-             + "</tr></thead><tbody>" + "".join(_row(row, zone, subject) for row in shown)
-             + "</tbody></table></div>")
+    table = (
+        tr(
+            '<div class="table-scroll" tabindex="0" role="region" '
+            'aria-label="Aufrufe"><table class="calls-table"><thead><tr>'
+        )
+        + "".join(
+            f'<th scope="col">{name}</th>'
+            for name in (
+                msg("Zeit"),
+                msg("Schritt"),
+                msg("Modell / Anbieter"),
+                "Status",
+                msg("Dauer"),
+                msg("Tokens (Eingabe / Ausgabe)"),
+                msg("Kosten"),
+                "Mail",
+            )
+        )
+        + "</tr></thead><tbody>"
+        + "".join(_row(row, zone, subject) for row in shown)
+        + "</tbody></table></div>"
+    )
     return body + pages + table + pages
 
 

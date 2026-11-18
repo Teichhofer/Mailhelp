@@ -1,4 +1,5 @@
 """6.2.7: one entry of a dense list – used by mails, history and reconciliation."""
+
 from __future__ import annotations
 
 from .pages import e

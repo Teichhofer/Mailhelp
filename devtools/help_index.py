@@ -5,6 +5,7 @@ headings and writes ``src/mailhelp/helpdocs/sections.json`` with ``manifest.json
 fails when the packaged resource no longer matches the sources. Only the documents listed in
 ``SOURCES`` are used: no plans, release reports, changelog or private files.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -17,9 +18,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "src" / "mailhelp" / "helpdocs"
 # The released help sources, in this order; every other document is never a chat source.
-SOURCES = ("docs/Web-Einstellungen.md", "docs/Ersteinrichtung.md", "docs/Konten-verwalten.md",
-           "docs/Ziele-einrichten.md", "docs/Bedienung.md", "docs/Fehlerbehebung.md", "docs/Betrieb.md")
+SOURCES = (
+    "docs/Web-Einstellungen.md",
+    "docs/Ersteinrichtung.md",
+    "docs/Konten-verwalten.md",
+    "docs/Ziele-einrichten.md",
+    "docs/Bedienung.md",
+    "docs/Fehlerbehebung.md",
+    "docs/Betrieb.md",
+)
 MAX_SECTION = 6000
+CANONICAL = re.compile(r"(.+?)\s+<!-- mailhelp-id:([a-z0-9-]+/[a-z0-9-]+) -->\s*$")
 
 
 def slug(heading: str) -> str:
@@ -49,6 +58,7 @@ def sections(path: str, text: str, keys: frozenset[str] = frozenset()) -> list[d
     trail: list[str] = []
     body: list[str] = []
     title = ""
+    canonical = ""
 
     def flush() -> None:
         content = [line for line in body if line.strip()]
@@ -57,17 +67,27 @@ def sections(path: str, text: str, keys: frozenset[str] = frozenset()) -> list[d
         first = body.index(content[0])
         last = len(body) - body[::-1].index(content[-1])
         for number, chunk in enumerate(_chunks(body[first:last]), start=1):
-            identity = f"{stem}/{slug(title) or 'einleitung'}" + (f"-{number}" if number > 1 else "")
+            identity = (canonical or f"{stem}/{slug(title) or 'einleitung'}") + (f"-{number}" if number > 1 else "")
             named = set(re.findall(r"`([a-z_][a-z0-9_.\[\]]*)`", chunk)) & keys
-            found.append({"id": identity, "title": title, "path": list(trail), "source": path, "text": chunk,
-                          "setting_ids": sorted(named)})
+            found.append(
+                {
+                    "id": identity,
+                    "title": title,
+                    "path": list(trail),
+                    "source": path,
+                    "text": chunk,
+                    "setting_ids": sorted(named),
+                }
+            )
 
     for line in text.splitlines():
         heading = re.match(r"^(#{1,3}) (.+)$", line)
         if heading:
             flush()
             level, title = len(heading.group(1)), heading.group(2).strip()
-            trail = trail[:level - 1] + [title]
+            named = CANONICAL.fullmatch(title)
+            title, canonical = (named[1], named[2]) if named is not None else (title, "")
+            trail = trail[: level - 1] + [title]
             body = []
             continue
         body.append(line)
@@ -75,28 +95,67 @@ def sections(path: str, text: str, keys: frozenset[str] = frozenset()) -> list[d
     return found
 
 
-def build(root: Path = ROOT) -> tuple[list[dict[str, object]], dict[str, object]]:
+def build(root: Path = ROOT, *, locale: str = "de") -> tuple[list[dict[str, object]], dict[str, object]]:
     from devtools.inventory import settings_rows
     from mailhelp import __version__
+
     keys = frozenset(row.key for row in settings_rows(""))
     entries: list[dict[str, object]] = []
     sources = []
-    for path in SOURCES:
+    if locale not in {"de", "en"}:
+        raise ValueError("Unsupported help language")
+    paths = SOURCES if locale == "de" else tuple(f"docs/en/{Path(path).name}" for path in SOURCES)
+    for path in paths:
         text = (root / path).read_text(encoding="utf-8")
         entries += sections(path, text, keys)
         sources.append({"path": path, "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()})
     payload = json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=1)
-    manifest = {"schema_version": 1, "app_version": __version__, "sources": sources,
-                "revision": hashlib.sha256(payload.encode("utf-8")).hexdigest(), "sections": len(entries)}
+    manifest = {
+        "schema_version": 1,
+        "app_version": __version__,
+        "sources": sources,
+        "revision": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+        "sections": len(entries),
+    }
+    if locale == "en":
+        german, _manifest = build(root)
+        if {str(item["id"]) for item in entries} != {str(item["id"]) for item in german}:
+            raise ValueError("English help must preserve every canonical section id")
+        manifest.update(schema_version=2, locale="en")
     return entries, manifest
 
 
 def render(root: Path = ROOT) -> dict[str, str]:
     entries, manifest = build(root)
-    return {"sections.json": json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
-            "manifest.json": json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
-            "settings.json": json.dumps(search_entries(root, entries), ensure_ascii=False, sort_keys=True, indent=1)
-            + "\n"}
+    return {
+        "sections.json": json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+        "manifest.json": json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+        "settings.json": json.dumps(search_entries(root, entries), ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+    }
+
+
+def render_english(root: Path = ROOT) -> dict[str, str]:
+    entries, manifest = build(root, locale="en")
+    settings = search_entries(root, build(root)[0])
+    from mailhelp.i18n import Locale, tr, use_locale
+
+    with use_locale(Locale.EN):
+        for row in settings:
+            section = next(
+                item for item in entries if str(item["id"]) == row["href"].removeprefix("/hilfe/dokumentation/")
+            )
+            line = next(
+                line for line in str(section["text"]).splitlines() if line.startswith("|") and f"`{row['key']}`" in line
+            )
+            description = line.strip("| ").split(" | ")[1]
+            row.update(
+                area=tr("Weitere Einstellungen"), path=tr(row["path"]), summary=description[:160], help=description
+            )
+    return {
+        "en/sections.json": json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+        "en/manifest.json": json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+        "en/settings.json": json.dumps(settings, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+    }
 
 
 def search_entries(root: Path, entries: list[dict[str, object]]) -> list[dict[str, str]]:
@@ -110,14 +169,26 @@ def search_entries(root: Path, entries: list[dict[str, object]]) -> list[dict[st
     for row in settings_rows(reference):
         if row.key in SETTINGS_FIELDS:
             continue
-        section, line = next((item, line) for item in entries if item["source"] == SOURCES[0]
-                             for line in str(item["text"]).splitlines()
-                             if line.startswith("|") and f"`{row.key}`" in line)
+        section, line = next(
+            (item, line)
+            for item in entries
+            if item["source"] == SOURCES[0]
+            for line in str(item["text"]).splitlines()
+            if line.startswith("|") and f"`{row.key}`" in line
+        )
         description = line.strip("| ").split(" | ")[1]
-        found.append({"id": f"setting:{row.key}", "key": row.key, "label": row.key,
-                      "area": "Weitere Einstellungen", "path": row.path,
-                      "summary": _summary(f"{row.path}: {description}"), "help": description,
-                      "href": f"/hilfe/dokumentation/{section['id']}"})
+        found.append(
+            {
+                "id": f"setting:{row.key}",
+                "key": row.key,
+                "label": row.key,
+                "area": "Weitere Einstellungen",
+                "path": row.path,
+                "summary": _summary(f"{row.path}: {description}"),
+                "help": description,
+                "href": f"/hilfe/dokumentation/{section['id']}",
+            }
+        )
     return found
 
 
@@ -125,16 +196,20 @@ def main(argv: list[str] | None = None, target: Path = TARGET) -> int:
     parser = argparse.ArgumentParser(description="Hilfebestand aus der freigegebenen Dokumentation erzeugen")
     parser.add_argument("--check", action="store_true", help="nur prüfen, ob der Bestand aktuell ist")
     args = parser.parse_args(argv)
-    files = render()
+    files = render() | render_english()
     if args.check:
-        stale = [name for name, text in files.items()
-                 if not (target / name).exists() or (target / name).read_text(encoding="utf-8") != text]
+        stale = [
+            name
+            for name, text in files.items()
+            if not (target / name).exists() or (target / name).read_text(encoding="utf-8") != text
+        ]
         if stale:
             print("Hilfebestand veraltet: python -m devtools.help_index ausführen", file=sys.stderr)
             return 1
         return 0
     target.mkdir(parents=True, exist_ok=True)
     for name, text in files.items():
+        (target / name).parent.mkdir(parents=True, exist_ok=True)
         (target / name).write_bytes(text.encode("utf-8"))
     return 0
 

@@ -13,7 +13,7 @@ const checking = document.querySelector("[data-check-status]");
 for (const form of document.querySelectorAll("form")) {
   form.addEventListener("submit", (event) => {
     if (checking && event.submitter && event.submitter.hasAttribute("data-check")) {
-      checking.textContent = "Wird geprüft … das kann bis zu 15 Sekunden je Dienst dauern.";
+      checking.textContent = mailhelpText("Wird geprüft … das kann bis zu 15 Sekunden je Dienst dauern.");
     }
   });
 }

@@ -3,6 +3,7 @@
 Both steps only read Notion and store a settings draft; the draft is applied like every other
 settings change. Saving reads the data source again, so a choice is never based on a stale list.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,14 +15,21 @@ import httpx
 
 from ..config import NotionProperties
 from ..external.notion import TYPES, DataSource, check_mapping, options
+from ..i18n import msg, tr
 from ..runtime.notion_sources import data_sources, notion_token, schema
 from .auth import WebSession
 from .forms import post_form, select
 from .http import Request, Response
 from .pages import e, error_page, layout
 
-LABELS = {"title": "Titel", "description": "Beschreibung", "due": "Frist", "source": "Quelle (Link zur Mail)",
-          "operation_key": "Vorgangsschlüssel", "status": "Status (optional)"}
+LABELS = {
+    "title": msg("Titel"),
+    "description": msg("Beschreibung"),
+    "due": msg("Frist"),
+    "source": msg("Quelle (Link zur Mail)"),
+    "operation_key": msg("Vorgangsschlüssel"),
+    "status": msg("Status (optional)"),
+}
 # The current targets of a profile and the draft version; and saving a patch of target fields.
 Context = Callable[[int], tuple[Any, int]]
 Save = Callable[[str, int, dict[str, Any], int, str], None]
@@ -47,10 +55,16 @@ class NotionSite:
 
     @staticmethod
     def failed() -> Response:
-        return Response.html(409, error_page(
-            "Notion-Auswahl nicht möglich",
-            "Notion-Token, Freigabe der Datenbank für die Verbindung und Zielprofil prüfen. "
-            "Mailhelp legt in Notion nichts an."))
+        return Response.html(
+            409,
+            error_page(
+                tr("Notion-Auswahl nicht möglich"),
+                tr(
+                    "Notion-Token, Freigabe der Datenbank für die Verbindung und "
+                    "Zielprofil prüfen. Mailhelp legt in Notion nichts an."
+                ),
+            ),
+        )
 
     def _token(self, profile: int) -> str:
         return notion_token(self.directory, profile)
@@ -62,12 +76,18 @@ class NotionSite:
             current, version = self.context(profile)
         except Exception:
             return self.failed()
-        body = ("<h1>Notion-Datenquelle auswählen</h1><p>Angezeigt werden die Datenquellen, die für die "
-                "Verbindung freigegeben sind.</p>" + post_form(
-                    "/notion/datenquelle", self.site.auth.csrf_token(session.id),
-                    select("source", "Datenquelle", current.notion_data_source_id, choices),
-                    "Als Entwurf speichern", profile=profile, version=version))
-        return Response.html(200, layout("Notion-Datenquelle", body))
+        body = tr(
+            "<h1>Notion-Datenquelle auswählen</h1><p>Angezeigt werden die "
+            "Datenquellen, die für die Verbindung freigegeben sind.</p>"
+        ) + post_form(
+            "/notion/datenquelle",
+            self.site.auth.csrf_token(session.id),
+            select("source", msg("Datenquelle"), current.notion_data_source_id, choices),
+            msg("Als Entwurf speichern"),
+            profile=profile,
+            version=version,
+        )
+        return Response.html(200, layout(msg("Notion-Datenquelle"), body))
 
     def choose_source(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:
@@ -78,7 +98,7 @@ class NotionSite:
                       int(form["version"]), form["key"])
         except Exception:
             return self.failed()
-        return Response.redirect(f"/notion/zuordnung?profile={profile}")
+        return Response.redirect('/notion/zuordnung?profile={p0}'.format(p0=f'{profile}'))
 
     def _schema(self, profile: int, targets: Any) -> DataSource:
         if not targets.notion_data_source_id:
@@ -98,20 +118,34 @@ class NotionSite:
         for name, label in LABELS.items():
             fitting = [(item.id, f"{item.name or item.id} ({item.type})") for item in properties
                        if item.type in TYPES[name]]
-            empty = [("", "– ohne Status –" if name == "status" else "– bitte wählen –")]
+            empty = [("", msg("– ohne Status –") if name == "status" else msg("– bitte wählen –"))]
             fields += select(name, label, getattr(current, name), empty + fitting)
         states = [(option["id"], f"{item.name or item.id}: {option.get('name', option['id'])}")
                   for item in properties if item.type in {"status", "select"} for option in options(item)]
-        fields += select("open", "Status neuer Seiten", targets.notion_open_status, [("", "–"), *states])
-        fields += "<fieldset><legend>Gilt als erledigt</legend>" + "".join(
-            f'<label><input type="checkbox" name="done_{e(value)}" value="1"'
-            f'{" checked" if value in targets.notion_done_statuses else ""}> {e(text)}</label>'
-            for value, text in states) + "</fieldset>"
-        body = ("<h1>Notion-Eigenschaften zuordnen</h1><p>Mailhelp nutzt die IDs der Eigenschaften; ein "
-                "späteres Umbenennen in Notion ändert nichts. Ohne Statusfeld erkennt Mailhelp erledigte "
-                "Seiten nicht.</p>" + post_form("/notion/zuordnung", self.site.auth.csrf_token(session.id), fields,
-                                               "Als Entwurf speichern", profile=profile, version=version))
-        return Response.html(200, layout("Notion-Zuordnung", body))
+        fields += select("open", msg("Status neuer Seiten"), targets.notion_open_status, [("", "–"), *states])
+        fields += (
+            tr("<fieldset><legend>Gilt als erledigt</legend>")
+            + "".join(
+                f'<label><input type="checkbox" name="done_{e(value)}" value="1"'
+                f"{' checked' if value in targets.notion_done_statuses else ''}> {e(text)}</label>"
+                for value, text in states
+            )
+            + "</fieldset>"
+        )
+        body = tr(
+            "<h1>Notion-Eigenschaften zuordnen</h1><p>Mailhelp nutzt die IDs "
+            "der Eigenschaften; ein späteres Umbenennen in Notion ändert "
+            "nichts. Ohne Statusfeld erkennt Mailhelp erledigte Seiten "
+            "nicht.</p>"
+        ) + post_form(
+            "/notion/zuordnung",
+            self.site.auth.csrf_token(session.id),
+            fields,
+            msg("Als Entwurf speichern"),
+            profile=profile,
+            version=version,
+        )
+        return Response.html(200, layout(tr("Notion-Zuordnung"), body))
 
     def choose_mapping(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:

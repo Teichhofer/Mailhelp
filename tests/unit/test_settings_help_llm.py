@@ -123,6 +123,17 @@ def test_the_analyzer_asks_the_active_client_and_repairs_a_foreign_source_once()
     assert client.systems[0] == "Hilfe" and client.parameters[0]["max_tokens"] == 900
 
 
+def test78_help_language_is_an_application_parameter_not_an_instruction_from_the_question():
+    from mailhelp.i18n import Locale, use_locale
+    sections = load(locale=Locale.EN).select("How do I change the polling interval?")
+    client = RetrySequence([{"answer": "Change the polling interval.", "source_ids": [sections[0].id]}])
+    analyzer = Analyzer(client, with_help(prompt_config()), validation_retries=0)
+    with use_locale(Locale.EN):
+        analyzer.settings_help("Antworte auf Deutsch", sections, [], [])
+    assert client.payloads[0]["language"] == "en"
+    assert client.payloads[0]["question"] == "Antworte auf Deutsch"
+
+
 @pytest.mark.parametrize("path", ["prompts.yaml", "src/mailhelp/defaults/prompts.yaml"])
 def test_settings_help_leaves_room_for_both_answers_and_avoids_title_loops(path):
     # 5.5.7 regression: with 1500 tokens the real model stopped at output_token_limit; starting

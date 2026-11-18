@@ -1,4 +1,5 @@
 """Session-owned UI fallback for the non-modal help window; never an authorization token."""
+
 from __future__ import annotations
 
 import hashlib
@@ -7,6 +8,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..i18n import tr
 from ..persistence.storage import CorruptState
 from .actions import new_key
 from .auth import WebSession
@@ -126,23 +128,40 @@ class HelpWindow:
         scope = self.site.auth.csrf_token("help-window:" + session.id)
         fields = self.fields(session, state, target)
         hidden = "" if opened else " hidden"
-        return (f'<div id="help-widget" data-scope="{e(scope)}" data-expires="{state.expires}" '
-                f'data-session-expires="{session.expires_at.timestamp()}" '
-                f'data-setting="{e(setting)}" data-return="{e(target)}">'
-                '<form method="post" action="/hilfe/fenster" class="help-launch">' + fields
-                + '<button class="help-fab" name="window_action" value="open" aria-label="Hilfschat öffnen" '
-                'title="Hilfschat öffnen" aria-controls="help-window">'
-                '<svg viewBox="0 0 24 24" aria-hidden="true" class="nav-icon">'
-                '<path d="M4 5h16v11H9l-5 4z M8 9h8 M8 12h5"/></svg></button></form>'
-                f'<section id="help-window" class="help-{state.corner}" '
-                f'role="region" aria-label="Hilfe zu Einstellungen"{hidden}>'
-                '<header class="help-window-head"><h2 tabindex="0" '
-                'title="Zum Verschieben ziehen oder Pfeiltasten verwenden" '
-                'aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown">Hilfe zu Einstellungen</h2>'
-                '<form method="post" action="/hilfe/fenster">' + fields
-                + '<button name="window_action" value="close" aria-label="Hilfschat schließen">×</button>'
-                '</form></header>'
-                '<div id="help-window-content">' + self.help.conversation(session, setting, state.draft, target)
-                + '</div><p id="help-window-status" role="status" aria-live="polite"></p>'
-                '<div id="help-document" hidden><button type="button" data-help-back>Zurück zum Gespräch</button>'
-                '<div class="help-document-text"></div></div></section></div>')
+        return (
+            f'<div id="help-widget" data-scope="{e(scope)}" data-expires="{state.expires}" '
+            f'data-session-expires="{session.expires_at.timestamp()}" '
+            f'data-setting="{e(setting)}" data-return="{e(target)}">'
+            '<form method="post" action="/hilfe/fenster" class="help-launch">'
+            + fields
+            + tr(
+                (
+                    '<button class="help-fab" name="window_action" value="open" '
+                    'aria-label="Hilfschat öffnen" title="Hilfschat öffnen" '
+                    'aria-controls="help-window"><svg viewBox="0 0 24 24" '
+                    'aria-hidden="true" class="nav-icon"><path d="M4 5h16v11H9l-5 4z '
+                    'M8 9h8 M8 12h5"/></svg></button></form><section id="help-window" '
+                    'class="help-{p0}" role="region" aria-label="Hilfe zu '
+                    'Einstellungen"{p1}><header class="help-window-head"><h2 '
+                    'tabindex="0" title="Zum Verschieben ziehen oder Pfeiltasten '
+                    'verwenden" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp '
+                    'ArrowDown">Hilfe zu Einstellungen</h2><form method="post" '
+                    'action="/hilfe/fenster">'
+                ),
+                p0=state.corner,
+                p1=hidden,
+            )
+            + fields
+            + tr(
+                '<button name="window_action" value="close" aria-label="Hilfschat '
+                'schließen">×</button></form></header><div '
+                'id="help-window-content">'
+            )
+            + self.help.conversation(session, setting, state.draft, target)
+            + tr(
+                '</div><p id="help-window-status" role="status" '
+                'aria-live="polite"></p><div id="help-document" hidden><button '
+                'type="button" data-help-back>Zurück zum Gespräch</button><div '
+                'class="help-document-text"></div></div></section></div>'
+            )
+        )

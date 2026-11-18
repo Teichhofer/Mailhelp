@@ -1,4 +1,5 @@
 """Minimal authenticated first-run routes; no mail or external write adapters exist here."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -6,6 +7,7 @@ from collections.abc import Callable
 from pydantic import ValidationError
 
 from ..config import WebSettings
+from ..i18n import msg, tr
 from ..runtime.initial_checks import InitialChecks, invalid_findings
 from ..runtime.initial_setup import SECRET_FIELDS, InitialSetup
 from ..runtime.setup_messages import CheckResult, SetupProblem, classify, finding
@@ -43,15 +45,15 @@ class InitialSite:
 
     def _form(self, request: Request) -> dict[str, str] | Response:
         if (request.header("content-type") or "").split(";")[0] != "application/x-www-form-urlencoded":
-            return Response.text(415, "Nur Formulardaten werden angenommen.")
+            return Response.text(415, msg("Nur Formulardaten werden angenommen."))
         try:
             return request.form(max_num_fields=40)
         except (UnicodeDecodeError, ValueError):
-            return Response.text(400, "Ungültige Formulardaten.")
+            return Response.text(400, msg("Ungültige Formulardaten."))
 
     @staticmethod
     def _forbidden() -> Response:
-        return Response.text(403, "Sicherheitsprüfung fehlgeschlagen.")
+        return Response.text(403, msg("Sicherheitsprüfung fehlgeschlagen."))
 
     def signed_in(self, handler: Callable[..., Response]) -> Callable[..., Response]:
         def guarded(request: Request, **arguments: str) -> Response:
@@ -81,9 +83,18 @@ class InitialSite:
                 if form.get("confirm") != "yes":
                     raise ValueError("Speichern ausdrücklich bestätigen.")
                 self.setup.finish("web:" + session.id, int(form["version"]), form["key"])
-                response = Response.html(200, layout("Einrichtung abgeschlossen",
-                    '<h1>Einrichtung abgeschlossen</h1><p>Mailhelp aktiviert jetzt den Normalbetrieb.</p>'
-                    '<p><a class="button" href="/lernen">Zum Lernmodus</a></p>', signed_in=False))
+                response = Response.html(
+                    200,
+                    layout(
+                        tr("Einrichtung abgeschlossen"),
+                        tr(
+                            "<h1>Einrichtung abgeschlossen</h1><p>Mailhelp aktiviert jetzt "
+                            'den Normalbetrieb.</p><p><a class="button" href="/lernen">Zum '
+                            "Lernmodus</a></p>"
+                        ),
+                        signed_in=False,
+                    ),
+                )
                 response.after_send = self.stop
                 return response
             self.setup.save("web:" + session.id, form)
@@ -117,7 +128,7 @@ class InitialSite:
         actor = "web:" + session.id
         step = int(form["step"]) if form.get("step", "").isdigit() else 0
         if not 1 <= step <= min(5, self.setup.state().completed_step + 1):
-            return Response.text(400, "Ungültiger Prüfschritt.")
+            return Response.text(400, msg("Ungültiger Prüfschritt."))
         try:
             results = self.checks.check_all(actor) if step == 5 else [self.checks.check(actor, form)]
         except PermissionError:
@@ -134,9 +145,18 @@ class InitialSite:
 
     @staticmethod
     def _failed() -> Response:
-        return Response.html(409, error_page("Einrichtung nicht gespeichert",
-            "Eingaben und Verbindungsdaten prüfen. Bei einem Versionskonflikt die Einrichtung neu laden. "
-            "Gespeicherte Zugangsdaten bleiben erhalten; Passwörter werden nicht erneut angezeigt.", signed_in=False))
+        return Response.html(
+            409,
+            error_page(
+                tr("Einrichtung nicht gespeichert"),
+                tr(
+                    "Eingaben und Verbindungsdaten prüfen. Bei einem Versionskonflikt "
+                    "die Einrichtung neu laden. Gespeicherte Zugangsdaten bleiben "
+                    "erhalten; Passwörter werden nicht erneut angezeigt."
+                ),
+                signed_in=False,
+            ),
+        )
 
     def local_pair(self, request: Request) -> Response:
         form = self._form(request)

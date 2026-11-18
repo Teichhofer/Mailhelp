@@ -1,10 +1,12 @@
 """Deterministic editing of an open proposal; saving creates a new unconfirmed version."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 from .. import state_names
 from ..domain.proposal import Proposal, ProposalStatus
+from ..i18n import msg, tr
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.editing import ProposalEditPatch
 from .auth import WebSession
@@ -16,9 +18,18 @@ from .pages import layout, notice
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
 
-EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
-               "start": "Beginn", "end": "Ende", "all_day": "Ganztägig (true/false)", "location": "Ort",
-               "video_link": "Videolink (HTTPS)", "meeting_mode": "Teilnahmeart"}
+EDIT_LABELS = {
+    "title": msg("Titel"),
+    "description": msg("Beschreibung"),
+    "target": msg("Ziel"),
+    "due": msg("Frist"),
+    "start": msg("Beginn"),
+    "end": msg("Ende"),
+    "all_day": msg("Ganztägig (true/false)"),
+    "location": msg("Ort"),
+    "video_link": msg("Videolink (HTTPS)"),
+    "meeting_mode": msg("Teilnahmeart"),
+}
 
 
 class ProposalEditSite:
@@ -31,18 +42,21 @@ class ProposalEditSite:
              values: dict[str, Any] | None = None, message: str = "") -> Response:
         proposal = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id), Proposal)
         if proposal is None:
-            return self.site._reply(request, 404, "Vorschlag nicht gefunden.")
+            return self.site._reply(request, 404, msg("Vorschlag nicht gefunden."))
         if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
-            return self.site._reply(request, 409, "Nur offene Vorschläge sind bearbeitbar.")
+            return self.site._reply(request, 409, msg("Nur offene Vorschläge sind bearbeitbar."))
         names = ["title", "description", "target"] + (["due"] if proposal.kind.value == "task" else
                  ["start", "end", "all_day", "location", "video_link", "meeting_mode"])
         data = values if values is not None else proposal.model_dump(mode="json")
-        body = ('<h1>Vorschlag bearbeiten</h1><p>Zeiten als ISO-Datum oder ISO-Datum mit Uhrzeit eingeben. '
-                'Bei Zeitumstellungen UTC-Offset angeben. Speichern legt nichts extern an.</p>')
+        body = tr(
+            "<h1>Vorschlag bearbeiten</h1><p>Zeiten als ISO-Datum oder "
+            "ISO-Datum mit Uhrzeit eingeben. Bei Zeitumstellungen UTC-Offset "
+            "angeben. Speichern legt nichts extern an.</p>"
+        )
         body += notice(message, "warn") if message else ""
         inputs = "".join(field(name, EDIT_LABELS[name], data.get(name) or "") for name in names)
         body += post_form(request.path, self.site.auth.csrf_token(session.id), inputs, version=proposal.version)
-        return Response.html(422 if message else 200, layout("Bearbeiten", body))
+        return Response.html(422 if message else 200, layout(tr("Bearbeiten"), body))
 
     def save_edit(self, request: Request, session: WebSession, form: dict[str, str], mail_id: str,
                   proposal_id: str) -> Response:
@@ -55,7 +69,7 @@ class ProposalEditSite:
                                     idempotency_key=form["key"], mail_id=mail_id, proposal_id=proposal_id,
                                     version=int(form["version"]), patch=patch)
         except (ValueError, KeyError):
-            return self.edit(request, session, mail_id, proposal_id, form, "Ungültige Eingaben; bitte prüfen.")
+            return self.edit(request, session, mail_id, proposal_id, form, msg("Ungültige Eingaben; bitte prüfen."))
         stale = self.site._stale(command)
         if stale is not None and not any(entry.command == command for entry in self.site.commands._entries()):
             return self.site._reply(request, 409, stale)

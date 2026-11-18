@@ -17,6 +17,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import __version__
+from ..i18n import Locale, current, use_locale
 from ..web.settings_search import SYNONYMS, catalog, normalize
 from .markdown import plain
 
@@ -32,6 +33,9 @@ STOPWORDS = frozenset(
     "nur oder sich sie sind so soll und uns von vor wann warum was weil wenn wer wie wird wo zu zum zur "
     "mailhelp bitte genau unterschied zwischen bedeutet macht mein meine meinen meiner dein deine einer einen "
     "einem eines dann denn".split())
+EN_STOPWORDS = frozenset("the a an and or of to for from in on at is are be was were i me my you your we our "
+                         "how why when where what which can could should would do does did it this that with "
+                         "please mailhelp about have has not only also as by into if will so some all".split())
 
 
 class HelpAnswer(BaseModel):
@@ -131,7 +135,8 @@ def stems(text: str) -> list[str]:
 
 
 def words(text: str) -> list[str]:
-    return [word for word in re.findall(r"[a-z0-9_.]+", normalize(text)) if len(word) > 2 and word not in STOPWORDS]
+    excluded = EN_STOPWORDS if current() == Locale.EN else STOPWORDS
+    return [word for word in re.findall(r"[a-z0-9_.]+", normalize(text)) if len(word) > 2 and word not in excluded]
 
 
 def _expanded(terms: set[str]) -> set[str]:
@@ -161,12 +166,18 @@ def _settings_named(asked: set[str]) -> set[str]:
 class HelpBase:
     revision: str
     sections: tuple[Section, ...]
+    locale: Locale = Locale.DE
 
     def get(self, section_id: str) -> Section | None:
         return next((section for section in self.sections if section.id == section_id), None)
 
     def select(self, question: str, *, setting_id: str | None = None, history: tuple[str, ...] = (),
                limit: int = MAX_SECTIONS, budget: int = 24000) -> list[Section]:
+        with use_locale(self.locale):
+            return self._select(question, setting_id=setting_id, history=history, limit=limit, budget=budget)
+
+    def _select(self, question: str, *, setting_id: str | None, history: tuple[str, ...],
+                limit: int, budget: int) -> list[Section]:
         """At most *limit* relevant sections within *budget* bytes, best first; never a guess.
 
         A section counts if it names a referenced setting, if two different words of the question
@@ -212,8 +223,9 @@ class HelpBase:
     def _index(self) -> dict[str, tuple[set[str], set[str]]]:
         cached = self.__dict__.get("_cached_index")
         if cached is None:
-            cached = {section.id: (set(stems(" ".join(section.path))), set(stems(section.text)))
-                      for section in self.sections}
+            with use_locale(self.locale):
+                cached = {section.id: (set(stems(" ".join(section.path))), set(stems(section.text)))
+                          for section in self.sections}
             object.__setattr__(self, "_cached_index", cached)
         return cached
 
@@ -226,14 +238,18 @@ class HelpBase:
         return counts
 
 
-def load(directory: Path = DIRECTORY, version: str = __version__) -> HelpBase:
+def load(directory: Path = DIRECTORY, version: str = __version__, *, locale: Locale = Locale.DE) -> HelpBase:
+    if locale == Locale.EN:
+        directory = directory / "en"
     try:
         manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
         payload = (directory / "sections.json").read_text(encoding="utf-8").rstrip("\n")
         raw = json.loads(payload)
     except (OSError, ValueError) as exc:
         raise HelpUnavailable("Hilfebestand fehlt oder ist beschädigt") from exc
-    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1 or manifest.get("app_version") != version:
+    schema = 2 if locale == Locale.EN else 1
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != schema \
+            or manifest.get("app_version") != version or manifest.get("locale", "de") != locale.value:
         raise HelpUnavailable("Hilfebestand gehört zu einer anderen Version")
     if manifest.get("revision") != hashlib.sha256(payload.encode("utf-8")).hexdigest():
         raise HelpUnavailable("Hilfebestand passt nicht zu seinem Manifest")
@@ -242,4 +258,4 @@ def load(directory: Path = DIRECTORY, version: str = __version__) -> HelpBase:
                                  text=item["text"], setting_ids=tuple(item["setting_ids"])) for item in raw)
     except (KeyError, TypeError) as exc:
         raise HelpUnavailable("Hilfebestand hat einen unbekannten Aufbau") from exc
-    return HelpBase(manifest["revision"], sections)
+    return HelpBase(manifest["revision"], sections, locale)

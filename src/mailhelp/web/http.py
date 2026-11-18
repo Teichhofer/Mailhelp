@@ -7,12 +7,14 @@ standard library's HTTP server.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import parse_qs
 
+from ..i18n import Message, tr
 from .network import lan_host
 
 MAX_BODY_BYTES = 16 * 1024
@@ -89,16 +91,17 @@ class Response:
 
     @classmethod
     def text(cls, status: int, text: str) -> Response:
-        return cls(status, text.encode("utf-8"))
+        return cls(status, str(text).encode("utf-8"))
 
     @classmethod
     def html(cls, status: int, html: str) -> Response:
-        return cls(status, html.encode("utf-8"), "text/html; charset=utf-8")
+        return cls(status, str(html).encode("utf-8"), "text/html; charset=utf-8")
 
     @classmethod
     def json(cls, status: int, value: Any) -> Response:
-        return cls(status, json.dumps(value, ensure_ascii=False).encode("utf-8"),
-                   "application/json; charset=utf-8")
+        return cls(
+            status, json.dumps(_display(value), ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8"
+        )
 
     @classmethod
     def redirect(cls, location: str) -> Response:
@@ -113,6 +116,17 @@ class Response:
         return headers
 
 
+def _display(value: Any) -> Any:
+    """Translate marked UI labels in a response; raw user strings and machine keys stay untouched."""
+    if isinstance(value, Message):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _display(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_display(item) for item in value]
+    return value
+
+
 def rejected(request: Request, allowed_hosts: frozenset[str],
              lan_port: int | None = None) -> Response | None:
     """Checks that precede every route; None if the request may proceed.
@@ -120,19 +134,47 @@ def rejected(request: Request, allowed_hosts: frozenset[str],
     With *lan_port*, the PC's private IP addresses with that port are accepted too.
     """
 
-    if request.host not in allowed_hosts and not (
-            lan_port is not None and lan_host(request.host, lan_port)):
+    if request.host not in allowed_hosts and not (lan_port is not None and lan_host(request.host, lan_port)):
         # DNS rebinding: a foreign name resolving to 127.0.0.1 is refused.
-        return Response.text(421, "Unbekannter Host.")
+        return Response.text(421, tr("Unbekannter Host."))
     if request.method not in ALLOWED_METHODS:
-        response = Response.text(405, "Methode nicht erlaubt.")
+        response = Response.text(405, tr("Methode nicht erlaubt."))
         response.headers["Allow"] = "GET, POST"
         return response
-    if (not request.path.startswith("/") or "\\" in request.path or "//" in request.path
-            or any(part in {".", ".."} for part in request.path.split("/"))):
-        return Response.text(400, "Ungültiger Pfad.")
+    if (
+        not request.path.startswith("/")
+        or "\\" in request.path
+        or "//" in request.path
+        or any(part in {".", ".."} for part in request.path.split("/"))
+    ):
+        return Response.text(400, tr("Ungültiger Pfad."))
     return None
 
 
 __all__ = ["ALLOWED_METHODS", "CONTENT_SECURITY_POLICY", "MAX_BODY_BYTES", "Request",
            "Response", "SECURITY_HEADERS", "STATUS_TEXT", "rejected"]
+
+
+def cookie(
+    request: Request,
+    name: str,
+    value: str,
+    max_age: int,
+    *,
+    http_only: bool = True,
+    same_site: Literal["Strict", "Lax"] = "Strict",
+) -> str:
+    # Only a host name (Tailscale Serve) is reached over HTTPS; the local
+    # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
+    hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
+    secure = "; Secure" if not _ip_or_localhost(hostname) else ""
+    protected = "; HttpOnly" if http_only else ""
+    return f"{name}={value}; Path=/{protected}; SameSite={same_site}; Max-Age={max_age}{secure}"
+
+
+def _ip_or_localhost(name: str) -> bool:
+    try:
+        ipaddress.ip_address(name)
+    except ValueError:
+        return name == "localhost"
+    return True

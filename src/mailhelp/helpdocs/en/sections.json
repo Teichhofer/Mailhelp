@@ -1,0 +1,1609 @@
+[
+ {
+  "id": "web-einstellungen/einstellungen-der-weboberflaeche",
+  "path": [
+   "Web interface settings"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Verified for Mailhelp 7.0; inventory of all keys: [Test report 7.0](Pruefung-Dokumentation-7.0.md).",
+  "title": "Web interface settings"
+ },
+ {
+  "id": "web-einstellungen/themenuebersicht",
+  "path": [
+   "Web interface settings",
+   "Topics overview"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "`/themen` shows relevant topics and exclusion topics in separate tabs with counts.\nSearch searches name, ID, description, examples and exclusions; the status filter shows\nall, active or deactivated topics. Without JavaScript, select “Search topics”; with JavaScript,\nfiltering happens immediately. The table becomes a card list on small screens.\nDeactivated topics appear at the end. “Change pending” marks queued topic commands.\n“Edit” and “New topic” each open a separate page. Existing mailbox areas\nare only displayed and retained from the current file when saving. In examples and\nexclusions, there is one entry per line; a semicolon remains part of the entry.",
+  "title": "Topics overview"
+ },
+ {
+  "id": "web-einstellungen/thema-bearbeiten",
+  "path": [
+   "Web interface settings",
+   "Topics overview",
+   "Edit topic"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "1. In the overview, select “Edit” or “New topic”.\n2. Adjust name, description, examples and exclusions; switch “Active” on or off.\n   For a new topic, the topic ID is suggested from the name and can be changed before the\n   first save. The ID of an existing topic remains fixed.\n3. Select “Review change”. The preview shows the previous and the\n   new value for each changed field; new and removed examples are marked with “+ new” and “− removed”,\n   unchanged fields are opened by “Show unchanged fields”. The preview does not save anything yet.\n4. Check “Explicitly save change” and select “Save change”. With\n   “Continue editing” you return without saving.\n\nErrors are in Deutsch directly on the affected field and in a focused\nsummary with links to the inputs. Field help and errors are linked\nwith the inputs for assistive technologies. The inputs are retained. If the\ntopic file has been changed in the meantime, select “Reload” and review the change again. An\nopen preview appears in the overview under “Pending topic changes” and expires\nafter 24 hours. The last active relevant topic cannot be deactivated.\n\nExclusion topics are negative categories for Learning and decision tests. In normal\nEmail operation, the relevant topics and their exclusions take effect; the file is not another\nglobal Prefilter.\n\nFrom 5.7, Learning (`/lernen`) bundles the functions “Learn from Mailbox”\n(`/lernen/postfach`) and “Learn from decisions” (`/lernen/entscheidungen`).\nThe topic page also links rule learning. `/themen/lernen` is permanently\nredirected; old open POST forms do nothing and require a new confirmation.\nIt analyzes existing logged decisions after explicit approval of\ncosts and data transfer. Old and New stand side by side; selected rules can\nbe edited as fields or complete topic YAML. From 5.8, “Review selected changes” creates\na separate persistent review state of the edited values;\nonly “Take reviewed changes” with explicit confirmation takes exactly this state.\nParser, schema, session and revision checks protect both topic files. If a\nwrite is aborted, the approved takeover can be completed without a new AI analysis.\nGuide: [Learn from decisions](Bedienung.md#aus-entscheidungen-lernen).\n\nFrom 5.8, the confirmation of a setting shows the readable name, “Previously saved”,\n“New” and the concrete effectiveness. Warnings refer to the respective setting.\nThe Status page separates browser connection from integration state and first offers\naction required and the read-only self-test; operation details and counters are expandable.\n\nThere are no new `config.yaml` switches for this. The optional prompt\n`decision_rule_learning` is in `prompts.yaml`, uses the active model route and the\nexisting AI limits. Older prompt files remain valid; if the block is missing, the\nanalysis is ended with a note. External Calendar and task lists are not written to.\n\n`/einstellungen` shows tiles for accounts, general rules, content and system actions.\nAccount tiles state the number of accounts set up in the running service. Area tiles\nmark saved, not yet active changes. Comparison is with the values that the\nnext start would apply: A setting missing in `config.yaml` counts with its\ndefault value and is not a pending change. The Search (`?suche=…`, at most 80 characters)\nfinds Settings and pages (Mailboxes, IServ, target profiles, credentials, topics, Devices,\nrestart …) whose name, key, group, area, help text or synonyms contain all\nentered words. Capitalization, whitespace and umlauts (`ä`/`ae`, `ß`/`ss`) do\nnot count; synonyms connect e.g. “AI” and “model”, “Mailbox” and “account”, “retrieval” and\n“interval”. First are exact keys or names, then word beginnings, then remaining\nmatches, in case of a tie alphabetically. Each match leads with an anchor\n(`#einstellung-<schlüssel>`) directly to the setting and expands it.\n\nLive Search (5.3): On the overview and every area page, typing from the first\ncharacter shows up to ten matches directly under the search field, without clicking “Search” and without a new\npage. Search is performed 150 ms after the last input; a new input cancels the previous request,\nlate responses are discarded. An announcement states the number of matches. Clearing removes the\nmatches immediately; “Search” or Enter still opens the full results page. On an\nerror, normal Search remains usable. The instant search never calls the AI and reads only\nnames and help texts, no saved values. Endpoint:\n`GET /api/einstellungen/suche?suche=…` (authenticated only, not cached).\nAn unknown area returns HTTP 404. The interface works without JavaScript.\n\n| Area | Address | Content |\n| --- | --- | --- |\n| Email retrieval | `?bereich=abruf` | Retrieval, Email limits, Time limits, Repetitions |\n| Notifications | `?bereich=benachrichtigungen` | Telegram, Daily overview, Push control |\n| Replies and Events | `?bereich=antworten` | Replies, Event durations, Review, Goals |\n| AI and Statistics | `?bereich=ki` | Model table (read-only), Images, Learning, Reports, Costs |\n| Data and logs | `?bereich=daten` | Attachments, Retention, Logging |\n| Web interface and System | `?bereich=system` | Sessions, Network, Devices, Restart, Exit |\n| Credentials | `?bereich=zugangsdaten` | Passwords and API keys |",
+  "title": "Edit topic"
+ },
+ {
+  "id": "web-einstellungen/thema-bearbeiten-2",
+  "path": [
+   "Web interface settings",
+   "Topics overview",
+   "Edit topic"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "On large screens, the section navigation remains reachable next to the values;\non mobile, it is located above the settings groups. Saving and confirmation\ncontinue to run via `/einstellungen/speichern` and the command queue.",
+  "title": "Edit topic"
+ },
+ {
+  "id": "web-einstellungen/postfach-hinzufuegen-35",
+  "path": [
+   "Web interface settings",
+   "Add mailbox (3.5)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Under `/einstellungen/postfaecher`, enter server, port, SSL/TLS, STARTTLS or unencrypted connection,\nusername, password, source folder and draft folder together. The first source folder\nis the inbox. The start limit is pre-filled with today (00:00 in the configured\ntime zone); empty means all existing mails. **Check connection and activate mailbox**\nchecks login, folder list and read access. Duplicate accounts (including deactivated ones) are\nrejected. Error messages contain no server responses or credentials; remaining inputs\nare retained, the password field is cleared.\n\nOnly after successful checking are `config.yaml` and `.env` saved. New readers are\nadded between mail cycles, including mailbox labels, metrics, reply drafts and\nmailbox filters. Connection errors during reloading let the existing readers continue running and\nare retried in the next cycle. Saved accounts are active even after a restart.\nEmpty access fields use already stored `IMAP_<id>_USERNAME`/`IMAP_<id>_PASSWORD`.\nProcess variables take precedence; conflicting inputs are rejected.\n\nSession, CSRF, draft version, configuration and `.env` hash as well as idempotency key are\nchecked; the session again immediately before writing. Interrupted activations are\nnot executed again with the same key: reload the page and check the saved state.\nOther drafts are retained. The cards distinguish active, deactivated, draft,\nsaved with pending activation and changes in draft. The collapsed alternative\n**Add as draft only instead** remains available. Changes to and removal of existing\nmailboxes still require draft adoption and restart.\n\nSetup drafts under `/einrichtung` and the sending profile under\n`/einstellungen/benachrichtigungen` also edit `config.yaml`.\nSaving initially retains the draft. Only the shown, version-related adoption activates\nchanges; connection and target changes require a current successful diagnosis.\nField names, limits, channel selection and immediate/restart effect:\n[Operating instructions 3.0](archiv/Release-3.0.md#konfigurationsvertrag).\n\nEach info icon explains what the setting changes and what consequences other values have. Hover over it with the mouse, focus it with Tab or tap it on the phone. Escape hides the bubble. Reading does not change any setting.\n\nNext to **Stop Mailhelp** is **Restart Mailhelp**. Both actions have\ntheir own confirmation page. Restarting stops the running service in a controlled manner\nand starts the same interpreter with the same options again. Saved settings,\ncredentials and code are reloaded; setup drafts are not adopted by this.\nOpen operations are retained. Then open the web interface again.\nIf a confirmation comes from an earlier start (for example from a page that was opened before a\nrestart) or is incomplete, Mailhelp states the reason and shows a new confirmation on\nthe same page.\n\nThe following list contains the same help texts as the web interface. Changes are saved only after the separate confirmation. “While running” means adoption at the next safe point; other settings require a restart. Enter numbers with a decimal point, e.g. `0.30`. Use `null`, `disabled` and `unlimited` only where permitted below. For number fields, special values can possibly only be set directly in `config.yaml`.",
+  "title": "Add mailbox (3.5)"
+ },
+ {
+  "id": "web-einstellungen/zugangsdaten",
+  "path": [
+   "Web interface settings",
+   "Credentials"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "The separate **Credentials** area is reachable via the area overview.\nIt groups mailboxes, OpenRouter, Telegram and the configured target profiles.\nEach entry shows only “present” or “missing” and offers an empty password field\nfor a new value. Existing values are not displayed even after saving.\n\n“Save access” replaces exclusively the selected key in `.env`;\ncomments and other keys remain preserved. The values take effect after a restart.\nProcess variables have priority and are marked separately. For additional\ntarget profiles, an inherited client ID or an inherited client key is displayed;\na value saved there is its own override for this profile.\nSaved Microsoft logins are renewed via `mailhelp --microsoft-login`,\nGoogle logins via `mailhelp --google-auth` (for additional profiles with `--profile`).\n\nThe forms check session, CSRF, configuration and `.env` version as well as an\nidempotency key. An outdated form does not overwrite newer changes.\nInterrupted save operations are reconciled on a retry based on the file state. The evidence under `credential-edits.json` contains only key-bound\nHMACs and status data; credential values are stored neither in HTML nor in logs or the\ncommand queue. Editing does not trigger external creation.\nThe interface also works without JavaScript.\n\n**All credentials and new accounts** opens `/einstellungen/zugangsdaten`.\nThis complete account overview also takes IServ accounts and mailboxes\nin the current setup draft into account. Here, new values must be explicitly confirmed;\nthe forms check the `.env` file state and prevent repeated writes\nvia value-free evidence under `secret-operations.json`. The diagnostics uses values stored there\nimmediately. This allows a new account to be checked before its\nconfiguration draft is applied. The HMAC evidence described in the previous paragraph\napplies to quick access within the general settings page.",
+  "title": "Credentials"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten",
+  "path": [
+   "Web interface settings",
+   "IServ Accounts"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "At `/einstellungen/iserv`, **Check connection and activate account** activates a new account\ndirectly: Only after successful login are account and credentials saved, and retrieval\nstarts without restart in the next secure email cycle. Alternatively, accounts can be created and changed as a\nsetup draft.\n“Do not process older messages before” accepts `TT.MM.JJJJ [HH:MM]` (e.g. `01.09.2026 07:30`),\n`JJJJ-MM-TT` (e.g. `2026-09-01`) or an ISO-8601 timestamp with UTC offset.\nA pure date applies from 00:00 in the time zone of the configuration draft;\nfor `Europe/Berlin`, `01.09.2026` is stored as `2026-09-01T00:00:00+02:00`.\nIn winter, the corresponding winter time offset applies. An empty field inherits the limit of the\nassigned Mailbox. German entries with time apply in the configured time zone.\nInvalid dates and ISO timestamps without offset are rejected.\nIn the draft, credentials are stored separately under **Credentials**. Only after diagnosis and\nexplicit, version-related adoption is the configuration changed; it takes effect after\na restart.\nA version conflict responds with HTTP 409; configuration and draft remain unchanged.\nThen re-read the configuration in the setup and check the changes again.",
+  "title": "IServ Accounts"
+ },
+ {
+  "id": "web-einstellungen/diagramme-der-auswertung",
+  "path": [
+   "Web interface settings",
+   "Evaluation charts"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Clicking a chart or its **Enlarge** button opens a large view.\nOn small screens, the graphic can be scrolled horizontally within the view. **Close**\nor Escape ends the view and returns keyboard focus to **Enlarge**.\nWhen hovering over, focusing with Tab, or tapping a bar, the time range or\ncategory, data series, and value with unit are displayed. The details remain readable even when moving\nthe mouse onto the tooltip; Escape hides them. The data does not change as a result.\nTables and SVG descriptions remain available without JavaScript.",
+  "title": "Evaluation charts"
+ },
+ {
+  "id": "web-einstellungen/kontenstatus",
+  "path": [
+   "Web interface settings",
+   "Account status"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "The status page shows under **Configured accounts** all saved IMAP and IServ accounts,\nCalendar and Tasks per target profile as well as Telegram. Account number and display name distinguish\nthe accesses. Deactivated accounts and unused target profiles also remain visible.\nAfter every service start, an account begins with “not yet checked”. A recorded successful\ncontact shows its time; a failed attempt shows “Error”. The results\nof one account do not confirm any other account. Open IMAP folder errors keep the account status\nat “Error”, even if another folder was read successfully.\n\nConnection changes that have already been applied show “Restart required” until the service restart;\nunconfirmed drafts are not listed. If the saved configuration is temporarily\nunreadable or invalid, the page shows the accounts of the running service.\nOpening the page starts neither a login nor an external write action. Status changes\nupdate the page automatically; running successful retrievals alone do not constantly reload it.",
+  "title": "Account status"
+ },
+ {
+  "id": "web-einstellungen/mailabruf-und-betrieb",
+  "path": [
+   "Web interface settings",
+   "Mail retrieval and operation"
+  ],
+  "setting_ids": [
+   "imap.batch_size",
+   "imap.global_newest_first",
+   "language",
+   "poll_interval_seconds",
+   "test_mode",
+   "timezone"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Application |\n| --- | --- | --- |\n| Retrieval interval (seconds) (`poll_interval_seconds`) | Interval between mail retrievals: 5–86400 seconds. 60 checks about every minute, 300 about every five minutes. Smaller values detect new Mails earlier, larger ones relieve the mail server. A running pass can delay the next retrieval. | While running |\n| Dry run (`test_mode`) | yes (true) activates the dry run: confirmed Calendar and Todoist actions are simulated; test data are stored separately. no (false) activates real write actions after explicit confirmation. The dry run does not prevent all network accesses, such as mail retrieval and AI calls. | After restart |\n| Language of the interface (`language`) | Default language of the Web interface: de (Deutsch) or en (English). A browser that has selected a language or prefers English sees that one. The AI prompts, topics and the Statistics of the Mails remain German. The change takes effect after a restart. | After restart |\n| Time zone (`timezone`) | Time zone for local date and time specifications, e.g. Europe/Berlin with automatic daylight saving time or UTC without daylight saving time change. Use a valid IANA time zone name. A different zone changes the interpretation of local Event times and their display. | After restart |\n| Mails per retrieval pass (`imap.batch_size`) | A retrieval pass accepts at most this many new Mails across all mailboxes: 1–1000; default 25. Larger values process backlogs faster but lengthen a single pass; smaller ones distribute the work over more passes. --max-mails replaces the value for a single run. | After restart |\n| Newest Mails first (all mailboxes) (`imap.global_newest_first`) | yes (true) selects the newest Mails per pass across all mailboxes and folders by received time. no (false) processes mailbox by mailbox and folder by folder in the configured order. The setting only determines the order, not which Mails are processed. | After restart |",
+  "title": "Mail retrieval and operation"
+ },
+ {
+  "id": "web-einstellungen/antworten",
+  "path": [
+   "Web interface settings",
+   "Replies"
+  ],
+  "setting_ids": [
+   "auto_draft",
+   "drafts.enabled",
+   "drafts.folder",
+   "personal_info",
+   "smart_reply"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "As of 4.8.5, `drafts.enabled: false` globally locks new drafts and new filings.\nSaved drafts in the mailbox remain preserved. Automatic filing additionally requires\n`smart_reply: true` and `auto_draft: true`; both remain off by default.\n`drafts.enabled`, `drafts.folder` and `auto_draft` are applied without restart.\nThe folder is an IMAP folder name or `null` for the previous mailbox default.\n`auto_draft` can also be overridden under Mailboxes → Replies.\n\n| Setting / Key | Effect and Values | Application |\n| --- | --- | --- |\n| Allow reply drafts (`drafts.enabled`) | Global switch for manual and automatic reply drafts, default on. false prevents new drafts and new filings. Drafts already filed in the mailbox remain preserved. smart_reply and auto_draft keep their own settings. | At runtime |\n| Override draft folder (null: mailbox default) (`drafts.folder`) | Optional IMAP draft folder for all mailboxes. null uses their drafts_folder. If the preferred folder is missing, Mailhelp searches for the SPECIAL-USE flag or usual draft folder names. No folders are created. Applies to future filings without restart. | At runtime |\n| Automatically file reply drafts in the mailbox (`auto_draft`) | yes (true) automatically files a draft when a written reply need is detected; requires smart_reply and drafts.enabled. Default off. Mailhelp never sends on its own. Overridable per mailbox; is applied at the next safe processing point. | At runtime |\n| Personal details for replies (`personal_info`) | Up to 2000 characters, e.g. name, role, signature or desired salutation. The AI model receives these details when creating a reply draft. Empty means no personal additional details. More context can change the tone and content of the draft; the details are not used for email analysis. | At runtime |\n| Offer reply drafts (`smart_reply`) | yes (true) offers AI reply drafts; requires drafts.enabled and the draft_reply stage in prompts.yaml. Without auto_draft, a draft is filed only after explicit saving in the draft folder. Mailhelp never sends on its own. Mailboxes can override the value individually. | After restart |",
+  "title": "Replies"
+ },
+ {
+  "id": "web-einstellungen/ziele",
+  "path": [
+   "Web interface settings",
+   "Targets"
+  ],
+  "setting_ids": [
+   "targets.caldav_calendar_url",
+   "targets.caldav_task_url",
+   "targets.calendar_provider",
+   "targets.google_calendar",
+   "targets.google_tasks_list",
+   "targets.microsoft_tenant",
+   "targets.microsoft_todo_list",
+   "targets.outlook_calendar",
+   "targets.removal_window_minutes",
+   "targets.task_provider",
+   "targets.todoist_project"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Takes effect |\n| --- | --- | --- |\n| Task service (`targets.task_provider`) | Service for new task proposals: todoist, microsoft_todo (Microsoft To Do), caldav (task list with VTODO, e.g. Nextcloud Tasks) apple_reminders (iCloud Reminders via CalDAV; lists updated to the new iCloud Reminders are not reachable there) google_tasks (Google Tasks; only adopts the date, an exact deadline is in the text; sign-in with Google Tasks permission required) or notion (pages in a Notion data source; beforehand under target profiles assign data source and properties, token NOTION_TOKEN). The change takes effect after a restart. First enter the matching target, then switch the service. | After restart |\n| CalDAV task list (address) (`targets.caldav_task_url`) | Full https address of the CalDAV task list (VTODO), e.g. https://cloud.example.org/remote.php/dav/calendars/anna/tasks/. For Apple Reminders, an address under https://caldav.icloud.com. Existing entries are not moved. Creation still requires your explicit confirmation. | After restart |\n| CalDAV calendar (address) (`targets.caldav_calendar_url`) | Full https address of the CalDAV calendar collection, e.g. https://cloud.example.org/remote.php/dav/calendars/anna/personal/. Only required for calendar service caldav; sign-in with CALDAV_USERNAME and app password CALDAV_PASSWORD. Existing entries are not moved. Creation still requires your explicit confirmation. | After restart |\n| Deadline for removal (`targets.removal_window_minutes`) | Time window in minutes after creating an entry in which it can be removed again via the web interface or Telegram: 1–1440; default 10. After the deadline expires, the entry is no longer deleted by Mailhelp. | After restart |\n| Google Calendar (`targets.google_calendar`) | ID of the target calendar for new event proposals. primary denotes the main calendar; a concrete calendar ID selects another accessible calendar. Existing events are not moved. Not empty, at most 500 characters. Creation still requires your explicit confirmation. | After restart |\n| Calendar service (`targets.calendar_provider`) | Service for new event proposals: google (Google Calendar), caldav (e.g. Nextcloud, iCloud, mailbox.org) or outlook (Outlook / Microsoft 365). The change takes effect after a restart; proposals already confirmed for the previous target are not written to the new one. First enter the matching target, then switch the service. Enter credentials under Settings → Credentials or in the .env file. | After restart |\n| Microsoft tenant (`targets.microsoft_tenant`) | Microsoft tenant for sign-in: common (personal and work accounts), consumers, organizations or the tenant ID. Applies to Outlook calendar and Microsoft To Do. | After restart |\n| Google Tasks list (`targets.google_tasks_list`) | ID of the Google Tasks list or @default for the first list of the account. Only required for task service google_tasks. Google Tasks stores only the date of a task; an exact deadline with time is in the text. Remove again is not available for Google Tasks. Creation still requires your explicit confirmation. | After restart |\n| Microsoft To Do list (`targets.microsoft_todo_list`) | ID of the Microsoft To Do list or default for the default list \"Tasks\". Only required for task service microsoft_todo. Existing entries are not moved. Creation still requires your explicit confirmation. | After restart |\n| Outlook calendar (`targets.outlook_calendar`) | ID of the Outlook calendar or default for the default calendar of the signed-in Microsoft account. Only required for calendar service outlook. Existing entries are not moved. Creation still requires your explicit confirmation. | After restart |\n| Todoist project (`targets.todoist_project`) | ID of the Todoist project for new task proposals, not its display name. A different ID directs new proposals into a different project; existing tasks are not moved. Not empty, at most 500 characters. Creation still requires your explicit confirmation. | After restart |",
+  "title": "Targets"
+ },
+ {
+  "id": "web-einstellungen/aufrufbudget-und-mailgrenzen",
+  "path": [
+   "Web interface settings",
+   "Call budget and email limits"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute",
+   "limits.max_attachment_bytes",
+   "limits.max_llm_payload_bytes",
+   "limits.max_mail_bytes"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / key | Effect and values | Takes effect |\n| --- | --- | --- |\n| AI calls per minute (`limits.llm_calls_per_minute`) | Budget of 1–600 AI calls per minute. A smaller value slows processing and reduces load peaks; a larger value allows more calls, insofar as the provider and other limits permit. This is not a fixed monetary or daily cost limit. | After restart |\n| Maximum AI request size (bytes) (`limits.max_llm_payload_bytes`) | Size limit for prepared email data sent to the AI: 1–100000000 bytes, not a token count; default 500000. Larger values allow more content and can increase costs and runtime. Prepared content that is too large is rejected; a smaller value is not an automatic summary. | After restart |\n| Maximum email size (bytes) (`limits.max_mail_bytes`) | Size limit for the message text without attachments: 1024–100000000 bytes. Attachments have their own limit for text extraction. | After restart |\n| Text recognition: maximum attachment size (bytes) (`limits.max_attachment_bytes`) | Maximum size per attachment for local text extraction and OCR: 1024–100000000 bytes; default 5000000 bytes (5 MB). Larger attachments are not evaluated. The message always receives a suggestion for manual review; further messages continue to be retrieved. | After restart |",
+  "title": "Call budget and email limits"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen",
+  "path": [
+   "Web interface settings",
+   "Time limits and retries"
+  ],
+  "setting_ids": [
+   "retries.interpretation_attempts",
+   "retries.interpretation_backoff_seconds",
+   "timeouts.caldav.initial_backoff_seconds",
+   "timeouts.caldav.max_backoff_seconds",
+   "timeouts.caldav.retries",
+   "timeouts.caldav.timeout_seconds",
+   "timeouts.google_calendar.initial_backoff_seconds",
+   "timeouts.google_calendar.max_backoff_seconds",
+   "timeouts.google_calendar.retries",
+   "timeouts.google_calendar.timeout_seconds",
+   "timeouts.imap.initial_backoff_seconds",
+   "timeouts.imap.max_backoff_seconds",
+   "timeouts.imap.retries",
+   "timeouts.imap.timeout_seconds",
+   "timeouts.microsoft.initial_backoff_seconds"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / key | Effect and values | Application |\n| --- | --- | --- |\n| Understanding replies: attempts (`retries.interpretation_attempts`) | Total number of attempts when understanding a Telegram reply: 1–20, including the first attempt. 1 allows no retry; 3 allows up to three attempts. Higher values can absorb temporary AI errors, but lengthen processing and can cause more AI calls. | After restart |\n| Understanding replies: wait time (s) (`retries.interpretation_backoff_seconds`) | Wait time before a retry when understanding a Telegram reply: 1–86400 seconds. 60 means one minute, 300 five minutes. Larger values give the service more recovery time and delay continuation. If only one attempt is allowed, no retry occurs. | After restart |\n| CalDAV: initial wait time (s) (`timeouts.caldav.initial_backoff_seconds`) | CalDAV: First wait time before a retry: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| CalDAV: longest wait time (s) (`timeouts.caldav.max_backoff_seconds`) | CalDAV: Upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| CalDAV: retries (`timeouts.caldav.retries`) | CalDAV: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| CalDAV: time limit (s) (`timeouts.caldav.timeout_seconds`) | CalDAV: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and lengthen possible wait times. | After restart |\n| Google Calendar: initial wait time (s) (`timeouts.google_calendar.initial_backoff_seconds`) | Google Calendar: First wait time before a retry: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Google Calendar: longest wait time (s) (`timeouts.google_calendar.max_backoff_seconds`) | Google Calendar: Upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Google Calendar: retries (`timeouts.google_calendar.retries`) | Google Calendar: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Google Calendar: time limit (s) (`timeouts.google_calendar.timeout_seconds`) | Google Calendar: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and lengthen possible wait times. | After restart |\n| IMAP: initial wait time (s) (`timeouts.imap.initial_backoff_seconds`) | IMAP: First wait time before a retry: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| IMAP: longest wait time (s) (`timeouts.imap.max_backoff_seconds`) | IMAP: Upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| IMAP: retries (`timeouts.imap.retries`) | IMAP: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| IMAP: time limit (s) (`timeouts.imap.timeout_seconds`) | IMAP: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and lengthen possible wait times. | After restart |\n| Microsoft 365: initial wait time (s) (`timeouts.microsoft.initial_backoff_seconds`) | Microsoft 365: First wait time before a retry: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |",
+  "title": "Time limits and retries"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen-2",
+  "path": [
+   "Web interface settings",
+   "Time limits and retries"
+  ],
+  "setting_ids": [
+   "timeouts.google_tasks.initial_backoff_seconds",
+   "timeouts.google_tasks.max_backoff_seconds",
+   "timeouts.google_tasks.retries",
+   "timeouts.google_tasks.timeout_seconds",
+   "timeouts.microsoft.max_backoff_seconds",
+   "timeouts.microsoft.retries",
+   "timeouts.microsoft.timeout_seconds",
+   "timeouts.notion.initial_backoff_seconds",
+   "timeouts.notion.max_backoff_seconds",
+   "timeouts.notion.retries",
+   "timeouts.notion.timeout_seconds",
+   "timeouts.ollama.initial_backoff_seconds",
+   "timeouts.ollama.max_backoff_seconds",
+   "timeouts.ollama.retries",
+   "timeouts.ollama.timeout_seconds",
+   "timeouts.openrouter.initial_backoff_seconds"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Microsoft 365: Longest wait time (s) (`timeouts.microsoft.max_backoff_seconds`) | Microsoft 365: Upper limit of the wait time between retry attempts: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Microsoft 365: Retries (`timeouts.microsoft.retries`) | Microsoft 365: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Microsoft 365: Time limit (s) (`timeouts.microsoft.timeout_seconds`) | Microsoft 365: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Google Tasks: Initial wait time (s) (`timeouts.google_tasks.initial_backoff_seconds`) | Google Tasks: Initial wait time before a retry attempt: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Google Tasks: Longest wait time (s) (`timeouts.google_tasks.max_backoff_seconds`) | Google Tasks: Upper limit of the wait time between retry attempts: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Google Tasks: Retries (`timeouts.google_tasks.retries`) | Google Tasks: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Google Tasks: Time limit (s) (`timeouts.google_tasks.timeout_seconds`) | Google Tasks: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Notion: Initial wait time (s) (`timeouts.notion.initial_backoff_seconds`) | Notion: Initial wait time before a retry attempt: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Notion: Longest wait time (s) (`timeouts.notion.max_backoff_seconds`) | Notion: Upper limit of the wait time between retry attempts: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Notion: Retries (`timeouts.notion.retries`) | Notion: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Notion: Time limit (s) (`timeouts.notion.timeout_seconds`) | Notion: Time limit of a call attempt: 1–300 seconds. Small values detect non-responding services faster but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Ollama: Initial wait time (s) (`timeouts.ollama.initial_backoff_seconds`) | Ollama: Initial wait time before a retry attempt: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Ollama: Longest wait time (s) (`timeouts.ollama.max_backoff_seconds`) | Ollama: Upper limit of the wait time between retry attempts: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Ollama: Retries (`timeouts.ollama.retries`) | Ollama: Additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Ollama: Time limit (s) (`timeouts.ollama.timeout_seconds`) | Ollama: Time limit of a call attempt: 1–1800 seconds. Small values detect non-responding services faster but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| OpenRouter: Initial wait time (s) (`timeouts.openrouter.initial_backoff_seconds`) | OpenRouter: Initial wait time before a retry attempt: 0–30 seconds. 0 does not wait initially; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |",
+  "title": "Time limits and retries"
+ },
+ {
+  "id": "web-einstellungen/zeitlimits-und-wiederholungen-3",
+  "path": [
+   "Web interface settings",
+   "Time limits and retries"
+  ],
+  "setting_ids": [
+   "retries.revision_attempts",
+   "retries.revision_backoff_seconds",
+   "timeouts.openrouter.max_backoff_seconds",
+   "timeouts.openrouter.retries",
+   "timeouts.openrouter.timeout_seconds",
+   "timeouts.telegram.initial_backoff_seconds",
+   "timeouts.telegram.max_backoff_seconds",
+   "timeouts.telegram.retries",
+   "timeouts.telegram.timeout_seconds",
+   "timeouts.todoist.initial_backoff_seconds",
+   "timeouts.todoist.max_backoff_seconds",
+   "timeouts.todoist.retries",
+   "timeouts.todoist.timeout_seconds"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| OpenRouter: longest wait time (s) (`timeouts.openrouter.max_backoff_seconds`) | OpenRouter: upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| OpenRouter: retries (`timeouts.openrouter.retries`) | OpenRouter: additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| OpenRouter: timeout (s) (`timeouts.openrouter.timeout_seconds`) | OpenRouter: timeout of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Telegram: initial wait time (s) (`timeouts.telegram.initial_backoff_seconds`) | Telegram: initial wait time before a retry: 0–30 seconds. 0 initially does not wait; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Telegram: longest wait time (s) (`timeouts.telegram.max_backoff_seconds`) | Telegram: upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Telegram: retries (`timeouts.telegram.retries`) | Telegram: additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Telegram: timeout (s) (`timeouts.telegram.timeout_seconds`) | Telegram: timeout of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Todoist: initial wait time (s) (`timeouts.todoist.initial_backoff_seconds`) | Todoist: initial wait time before a retry: 0–30 seconds. 0 initially does not wait; larger values give the service more recovery time. Further wait times increase up to the longest wait time. Without retries, this value has no effect. | After restart |\n| Todoist: longest wait time (s) (`timeouts.todoist.max_backoff_seconds`) | Todoist: upper limit of the wait time between retries: 0–60 seconds and at least as large as the initial wait time. Larger values allow longer pauses, smaller ones limit the delay. Without retries, this value has no effect. | After restart |\n| Todoist: retries (`timeouts.todoist.retries`) | Todoist: additional retries for retryable service errors: 0–10. 0 means only the first attempt, 2 allows up to three attempts in total. More retries can bridge temporary errors, but increase runtime and possibly costs. Unclear external write results are reconciled before a new creation. | After restart |\n| Todoist: timeout (s) (`timeouts.todoist.timeout_seconds`) | Todoist: timeout of a call attempt: 1–300 seconds. Small values detect non-responding services faster, but can abort slow responses. Large values give the service more time and extend possible wait times. | After restart |\n| Revision: attempts (`retries.revision_attempts`) | Total number of attempts when revising a suggestion: 1–20, including the first attempt. 1 allows no retry; 3 allows up to three attempts. Higher values can catch transient AI errors, but extend processing and can cause more AI calls. | After restart |\n| Revision: wait time (s) (`retries.revision_backoff_seconds`) | Wait time before a retry when revising a suggestion: 1–86400 seconds. 60 means one minute, 300 five minutes. Larger values give the service more recovery time and delay continuation. If only one attempt is allowed, no retry occurs. | After restart |",
+  "title": "Time limits and retries"
+ },
+ {
+  "id": "web-einstellungen/originalanhaenge",
+  "path": [
+   "Web interface settings",
+   "Original attachments"
+  ],
+  "setting_ids": [
+   "attachments.max_original_bytes",
+   "attachments.max_total_bytes",
+   "attachments.store_originals"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Application |\n| --- | --- | --- |\n| Maximum size per file (bytes) (`attachments.max_original_bytes`) | Largest file that is stored as original: 1024–104857600 bytes (default 26214400 bytes = 25 MiB). Larger attachments remain only in the Mailbox. | After restart |\n| Maximum size per Email (bytes) (`attachments.max_total_bytes`) | At most this many bytes of originals per Email: 1024–524288000 (default 50 MB). Further attachments of the same Email are not stored. | After restart |\n| Store originals (`attachments.store_originals`) | yes (true) stores original documents (PDF, Word, Excel, OpenDocument, Text, Images) of newly processed Mails for download in the Web interface. no (false) stores only image previews. Stored originals are deleted with the retention period for Email contents. | After restart |",
+  "title": "Original attachments"
+ },
+ {
+  "id": "web-einstellungen/aufbewahrung",
+  "path": [
+   "Web interface settings",
+   "Retention"
+  ],
+  "setting_ids": [
+   "retention.activity_report_days",
+   "retention.analysis_days",
+   "retention.cleanup_interval_minutes",
+   "retention.debug_llm_days",
+   "retention.decision_learning_days",
+   "retention.full_mail_days",
+   "retention.history_days"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and Values | Application |\n| --- | --- | --- |\n| Retain analyses (days) (`retention.analysis_days`) | Retention of archived analyses. null takes over the deadline for AI diagnostic data (debug_llm_days). 1–3650 means full days since the last update of the completed process. Smaller values remove content earlier. disabled removes them on the next cleanup run, unlimited preserves them without a deadline. Open processes remain protected. Removed content cannot be restored by later extending the deadline. | At runtime |\n| Retain AI diagnostic data (days) (`retention.debug_llm_days`) | Retention of AI diagnostic data in the process, such as summary and validation errors; separate JSONL log files have their own deadlines. 1–3650 means full days since the last update of the completed process. Smaller values remove content earlier. disabled removes them on the next cleanup run, unlimited preserves them without a deadline. Open processes remain protected. Removed content cannot be restored by later extending the deadline. | At runtime |\n| Retain Email texts (days) (`retention.full_mail_days`) | Retention of stored Email texts, image previews and local draft texts; the original Email in the Mailbox is not deleted. Default 30 days. 1–3650 means full days since the last update of the completed process. Smaller values remove content earlier. disabled removes them on the next cleanup run, unlimited preserves them without a deadline. Open processes remain protected. Removed content cannot be restored by later extending the deadline. | At runtime |\n| Retain history (days) (`retention.history_days`) | Retention of the process history and the contents of historical proposal versions; identifiers for protection against duplicate creation remain preserved. Default 90 days. 1–3650 means full days since the last update of the completed process. Smaller values remove content earlier. disabled removes them on the next cleanup run, unlimited preserves them without a deadline. Open processes remain protected. Removed content cannot be restored by later extending the deadline. | At runtime |\n| Retain activity reports (days) (`retention.activity_report_days`) | Retention of stored activity reports and their exports; the Mailbox remains unchanged. 1–3650 means full days since the last update of the completed process. Smaller values remove content earlier. disabled removes them on the next cleanup run, unlimited preserves them without a deadline. Open processes remain protected. Removed content cannot be restored by later extending the deadline. | At runtime |\n| Retain decision learning data (days) (`retention.decision_learning_days`) | Retention of the learning data of manual decisions (Email, AI results, proposal before and after): 1–3650 means full days since the decision. unlimited (default) preserves without a deadline, disabled no longer records anything and empties the data on the next cleanup run. Removed records cannot be restored. | At runtime |\n| Cleanup every (minutes) (`retention.cleanup_interval_minutes`) | Interval of retention cleanup in minutes: 0–1440; default 60. The cleanup runs in the processing flow and briefly pauses Email retrieval and web actions during it. 0 cleans up on every retrieval cycle; larger values remove expired content correspondingly later. | At runtime |",
+  "title": "Retention"
+ },
+ {
+  "id": "web-einstellungen/protokollierung",
+  "path": [
+   "Web interface settings",
+   "Logging"
+  ],
+  "setting_ids": [
+   "logging.console.enabled",
+   "logging.console.level",
+   "logging.file.enabled",
+   "logging.file.level",
+   "logging.llm.enabled",
+   "logging.llm.include_requests",
+   "logging.llm.include_responses",
+   "logging.llm.level",
+   "logging.telegram.enabled",
+   "logging.telegram.level",
+   "logging.verbose"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Applied |\n| --- | --- | --- |\n| Console: Minimum level (`logging.console.level`) | Minimum level of console messages: DEBUG also shows diagnostic information, INFO normal operation, WARNING only warnings and more severe messages, ERROR errors, and CRITICAL only the most severe errors. Higher levels reduce output and make troubleshooting more difficult. Content logs are controlled separately. | After restart |\n| Log file: Minimum level (`logging.file.level`) | Minimum level of the general log file: DEBUG contains diagnostic information, INFO normal operation, WARNING warnings and more severe messages, ERROR errors, and CRITICAL only the most severe errors. Higher levels reduce the amount of data. Separate AI content logs are not enabled or disabled by this. | After restart |\n| Log AI requests in full (`logging.llm.include_requests`) | yes (true) allows full AI requests in the separate AI log, provided it is enabled. This can store prompts and private email content and requires more storage. no (false) omits the full request contents. Logs already written are not deleted by this. | After restart |\n| Log AI responses in full (`logging.llm.include_responses`) | yes (true) allows full AI responses in the separate AI log, provided it is enabled. This helps with troubleshooting but can store private content. no (false) omits full response contents. Logs already written are not deleted by this. | After restart |\n| Verbose log (`logging.verbose`) | Verbose log: record all routine requests and repeated errors. Default off; unchanged folder counts appear once per hour and repeated errors every 15 minutes. Full AI contents remain separately enableable. | After restart |\n| Enable console output (`logging.console.enabled`) | yes (true) writes messages to the terminal or container log. no (false) suppresses console output; the log file is unaffected. | After restart |\n| Enable log file (`logging.file.enabled`) | yes (true) writes the general log file in the log directory. no (false) does not write a general log file; this makes troubleshooting more difficult. | After restart |\n| Enable AI log (`logging.llm.enabled`) | yes (true) writes the separate AI log with call metadata; full contents only if requests or responses are additionally allowed. no (false) does not write an AI log. | After restart |\n| AI log: Minimum level (`logging.llm.level`) | Minimum level of the AI log: DEBUG contains diagnostic information, INFO normal operation, WARNING warnings and more severe messages, ERROR errors, and CRITICAL only the most severe errors. Higher levels reduce the amount of data. | After restart |\n| Enable Telegram log (`logging.telegram.enabled`) | yes (true) writes a separate audit log of Telegram messages including contents. no (false) omits this; deliveries remain visible in the general log without contents. | After restart |\n| Telegram log: Minimum level (`logging.telegram.level`) | Minimum level of the Telegram log: DEBUG contains diagnostic information, INFO normal operation, WARNING warnings and more severe messages, ERROR errors, and CRITICAL only the most severe errors. | After restart |",
+  "title": "Logging"
+ },
+ {
+  "id": "web-einstellungen/kosten-und-messung",
+  "path": [
+   "Web interface settings",
+   "Costs and Measurement"
+  ],
+  "setting_ids": [
+   "metrics.electricity_eur_per_kwh",
+   "metrics.enabled",
+   "metrics.exchange_rate_date",
+   "metrics.ollama_power_watts",
+   "metrics.retention_days",
+   "metrics.usd_per_eur"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and Values | Application |\n| --- | --- | --- |\n| Electricity price (EUR/kWh) (`metrics.electricity_eur_per_kwh`) | Electricity price for local AI cost estimates: 0–100 EUR/kWh. 0.30 means 30 cents per kWh. A higher price increases the estimate proportionally; 0 results in no estimated electricity costs. The value affects neither cloud prices nor electricity consumption. | While running |\n| Enable metric collection (`metrics.enabled`) | yes (true) records measurements for AI calls, runtimes, and costs without email contents. no (false) stops new measurements; already recorded values remain until cleanup. This setting disables neither AI calls nor general logs. | While running |\n| Exchange rate as of (`metrics.exchange_rate_date`) | Reference date of the manually maintained exchange rate in format YYYY-MM-DD, e.g. 2026-10-12. null leaves the date open. It indicates the recency of the rate and does not change the conversion factor. A date is only allowed with an exchange rate set. | While running |\n| Ollama power (watts) (`metrics.ollama_power_watts`) | Assumed power consumption during local AI calls: 0–100000 watts. 300 stands for 300 W; double power results in double estimated electricity costs for the same duration. 0 results in no estimated electricity costs. This does not measure or limit actual hardware power. | While running |\n| Retain individual measurements (days) (`metrics.retention_days`) | Retention of individual measurements: 1–3650 days. 30 retains approximately one month, 90 approximately three months. Shorter deadlines save storage but restrict retrospective statistics. Older measurements are cleaned up; disabled and unlimited are not allowed here. | While running |\n| Exchange rate (USD per EUR) (`metrics.usd_per_eur`) | US dollars per euro, greater than 0: At 1.1, 11 USD is displayed as 10 EUR. A higher rate results in fewer euros for the same dollar amount. null disables euro conversion; then the exchange rate date must also be null. The rate is maintained manually, not retrieved automatically. | While running |",
+  "title": "Costs and Measurement"
+ },
+ {
+  "id": "web-einstellungen/telegram",
+  "path": [
+   "Web interface settings",
+   "Telegram"
+  ],
+  "setting_ids": [
+   "telegram.chat_id",
+   "telegram.sequential_questions",
+   "telegram.user_id"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Applied |\n| --- | --- | --- |\n| Telegram: authorized user ID (`telegram.user_id`) | Numeric Telegram ID of the only account whose inputs Mailhelp accepts; greater than 0. Messages from other accounts are ignored. An incorrect ID blocks operation via Telegram; the Web interface remains usable. | After restart |\n| Telegram: chat for messages (`telegram.chat_id`) | Numeric ID of the chat that Mailhelp writes to; in a private chat usually the same as the user ID. An incorrect ID leads to delivery errors; diagnostics and --check-access report them and name found chats. | After restart |\n| Telegram: decisions one after another (`telegram.sequential_questions`) | yes (true) shows only the current decision with buttons at a time; further ones follow one after another. no (false) sends all open Proposals immediately. One after another prevents confused answers when many questions are open at the same time. | After restart |",
+  "title": "Telegram"
+ },
+ {
+  "id": "web-einstellungen/bildauswertung",
+  "path": [
+   "Web interface settings",
+   "Image analysis"
+  ],
+  "setting_ids": [
+   "vision.enabled",
+   "vision.max_edge_pixels",
+   "vision.max_image_bytes",
+   "vision.max_images_per_mail"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Takes effect |\n| --- | --- | --- |\n| Analyze image attachments and scans (`vision.enabled`) | yes (true) lets image attachments and scanned PDFs be read by the AI model (stage vision_ocr in prompts.yaml), so that events and tasks in them are recognized; the images are transferred for this and cause costs. no (false) analyzes only text. | After restart |\n| Image analysis: Images per email (`vision.max_images_per_mail`) | At most this many images per email are analyzed: 1–10; default 3. More images capture extensive scans more completely and increase costs and runtime. | After restart |\n| Image analysis: Maximum size per image (bytes) (`vision.max_image_bytes`) | Additional size limit for image analysis: 10240–50000000 bytes; default 5000000 (5 MB). The text recognition limit limits.max_attachment_bytes applies additionally; if it is exceeded, a manual review task is created. | After restart |\n| Image analysis: Longest edge (pixels) (`vision.max_edge_pixels`) | Images are scaled down to this longest edge before transfer: 512–4096 pixels; default 1600. Larger values preserve fine text better and increase data volume and costs. | After restart |",
+  "title": "Image analysis"
+ },
+ {
+  "id": "web-einstellungen/tagesueberblick",
+  "path": [
+   "Web interface settings",
+   "Daily overview"
+  ],
+  "setting_ids": [
+   "daily_briefing.include_calendar",
+   "daily_briefing.include_open",
+   "daily_briefing.include_tasks"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Application |\n| --- | --- | --- |\n| Daily overview: Events (`daily_briefing.include_calendar`) | yes (true) includes today's events from the target calendar in the daily overview. no (false) omits them. Only effective when the daily overview is enabled. | After restart |\n| Daily overview: Tasks (`daily_briefing.include_tasks`) | yes (true) includes due tasks from the task list in the daily overview. no (false) omits them. Only effective when the daily overview is enabled. | After restart |\n| Daily overview: open decisions (`daily_briefing.include_open`) | yes (true) mentions the open proposals and queries in the daily overview. no (false) omits them. Only effective when the daily overview is enabled. | After restart |",
+  "title": "Daily overview"
+ },
+ {
+  "id": "web-einstellungen/taetigkeitsberichte",
+  "path": [
+   "Web interface settings",
+   "Activity Reports"
+  ],
+  "setting_ids": [
+   "activity_report.enabled",
+   "activity_report.export_mails_without_events",
+   "activity_report.max_fulltext_chars",
+   "activity_report.max_llm_calls",
+   "activity_report.max_mails",
+   "activity_report.max_share_of_llm_budget"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Applied |\n| --- | --- | --- |\n| Enable activity reports (`activity_report.enabled`) | yes (true) allows activity reports in the Web interface: a pure read-only pass through a mailbox on a topic with XLSX export; requires the stages activity_relevance and activity_events in prompts.yaml. no (false) hides the function. | After restart |\n| Activity report: at most Mails (`activity_report.max_mails`) | A report pauses after this many read Mails: 1–20000; default 2000. Larger values cover longer time periods and increase runtime and AI costs. | After restart |\n| Activity report: at most AI calls (`activity_report.max_llm_calls`) | A report pauses after this many AI calls: 1–50000; default 3000. The limit protects against unexpectedly high costs; a paused report can be continued. | After restart |\n| Activity report: share of AI budget (`activity_report.max_share_of_llm_budget`) | Share of limits.llm_calls_per_minute that a running report may use: greater than 0 to 1; default 0.5. Smaller values leave normal Mail processing more leeway and slow down the report. | After restart |\n| Activity report: characters per full text (`activity_report.max_fulltext_chars`) | Full texts in the export are truncated to this many characters: 1000–32000; default 30000, matching Excel's cell limit. | After restart |\n| Activity report: export Mails without Events (`activity_report.export_mails_without_events`) | yes (true) also exports relevant Mails without recognized Events. no (false) exports only Mails with recognized Events. | After restart |",
+  "title": "Activity Reports"
+ },
+ {
+  "id": "web-einstellungen/lernmodus",
+  "path": [
+   "Web interface settings",
+   "Learning mode"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "learning.learning_run_hint_rejections",
+   "learning.learning_run_hints_enabled",
+   "learning.parallel_llm_calls",
+   "learning.prefilter_hint_days",
+   "learning.prefilter_hint_irrelevant_mails",
+   "learning.prefilter_hint_vip_mails",
+   "learning.prefilter_hints_enabled",
+   "learning.sender_hint_days",
+   "learning.sender_hint_max_acceptance_rate",
+   "learning.sender_hint_min_proposals",
+   "learning.sender_hints_enabled"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Application |\n| --- | --- | --- |\n| Learning mode: parallel AI calls (`learning.parallel_llm_calls`) | Concurrent AI calls in learning mode (--learn): 1–100; default 4. More parallel calls speed up learning and increase load peaks; the per-minute budget limits.llm_calls_per_minute still applies. | After restart |\n| Learning dataset: take over complete AI content (`learning.decision_llm_content`) | yes (true) takes over complete AI requests and responses from the AI log into every record of the decision learning dataset; they are only present if the AI log logs this content. no (false, default) stores only the call IDs. | After restart |\n| Enable sender hints (`learning.sender_hints_enabled`) | yes (true, default) displays hints about senders with conspicuously many rejections. no (false) turns sender hints off completely. | At runtime |\n| Sender hints: evaluation period in days (`learning.sender_hint_days`) | Considered time range for a sender's acceptance rate: 1–365 days; default 90. Older decisions are not used for sender hints. | At runtime |\n| Sender hints: minimum number of proposals (`learning.sender_hint_min_proposals`) | Minimum number of decided proposals from a sender before a hint appears: 1–100; default 5. | At runtime |\n| Sender hints: maximum acceptance rate (`learning.sender_hint_max_acceptance_rate`) | Highest acceptance rate up to which a hint is generated: 0.0–1.0 (0 % to 100 %); default 0.1 (10 %). | At runtime |\n| Enable rule learning run hint (`learning.learning_run_hints_enabled`) | yes (true, default) shows a hint on “Open” and “Learning” when many new rejections are present since the last learning run. no (false) turns this hint off. | At runtime |\n| Rule learning run hint: rejection threshold (`learning.learning_run_hint_rejections`) | Number of new rejections since the last rule learning run from which a hint is displayed: 1–500; default 20. | At runtime |\n| Enable suggested prefilter rules (`learning.prefilter_hints_enabled`) | yes (true, default) shows under Learning → Proposals hints for ignore and VIP rules from stored decisions. no (false) turns them off. | At runtime |\n| Suggested prefilter rules: time range in days (`learning.prefilter_hint_days`) | Considered mails from the last 1–365 days; default 30. | At runtime |\n| Suggested prefilter rules: minimum number of irrelevant mails (`learning.prefilter_hint_irrelevant_mails`) | This many mails from a sender, all classified by the AI as irrelevant and without a contrary response, produce an “ignore” hint: 2–100; default 3. | At runtime |\n| Suggested prefilter rules: minimum number of confirmed mails (`learning.prefilter_hint_vip_mails`) | This many mails from a sender, all of which led to at least one confirmed proposal, produce a “VIP” hint: 2–100; default 5. | At runtime |",
+  "title": "Learning mode"
+ },
+ {
+  "id": "web-einstellungen/weboberflaeche",
+  "path": [
+   "Web interface settings",
+   "Web interface"
+  ],
+  "setting_ids": [
+   "web.lan_access",
+   "web.session_days"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting / Key | Effect and values | Application |\n| --- | --- | --- |\n| Web: Session duration (days) (`web.session_days`) | A paired device remains signed in for this long before it must be paired again: 1–365 days; default 30. Shorter values reduce the risk of lost devices, longer ones save pairings. | After restart |\n| Web: Access in own network (`web.lan_access`) | yes (true) makes the web interface reachable in the own WLAN at the PC's private IP address (unencrypted HTTP); requires web.host 0.0.0.0, otherwise the change is rejected. no (false) restricts access to this PC and the allowed addresses. | After restart |",
+  "title": "Web interface"
+ },
+ {
+  "id": "web-einstellungen/hilfschat",
+  "path": [
+   "Web interface settings",
+   "Help chat"
+  ],
+  "setting_ids": [
+   "help_chat.enabled",
+   "help_chat.max_question_chars",
+   "reanalysis.max_jobs_per_day",
+   "web.port"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "From 5.4.1, **Clear chat** also removes question texts and field references from stored jobs.\nOnly content-free job identifiers, Status and hashes remain to prevent duplicate transmission.\nPreviously cleared legacy data is cleaned up on the next start. A disabled help chat\nstarts no further model call even for queued questions and retries.\n\nSearch also finds file and configuration settings, such as `web.port` and\n`reanalysis.max_jobs_per_day`. Such hits name the operating path and open the matching\nbundled documentation; they offer no web form for editing a file value.\n\n**Help on Settings** answers questions about the meaning of settings and about\noperating procedures. On all settings pages, the round chat icon at the bottom right (on\nmobile above the bottom bar) opens the chat. “Ask about this” on a setting or a hit\nin instant search opens the same small window with this reference. The settings page remains\noperable. Search, section switching, editing, confirming and saving do not close the window.\nOld `/hilfe` links open it on the settings overview. Every question is explicitly submitted with **Send question**; typing,\nsearching and help texts never trigger an AI call.\n\n- **Sources:** Mailhelp selects at most six matching sections of the bundled\ndocumentation and sends them with the question and the short History (at most ten questions)\nvia the active AI connection (Stage `settings_help`, same model as `action_router`).\nIn the window, a short answer appears first in one to two sentences; **Show detailed answer**\nexpands the full instructions. Both versions are generated in the same AI call.\nThe AI writes them as Markdown; the window displays numbered steps, lists,\n**bold**, `Code` and subheadings formatted. HTML, images and links from the\nanswer are never adopted; the checked sources are listed below.\nUnder each answer, the used sections and settings are listed as links; without matching\nsections, Mailhelp answers itself, without an AI call, and asks for a more precise question.\n- **Limits:** The chat changes nothing – no settings, accounts, calendars or messages.\nEven for the request “Change this for me”, it only gives instructions.\n- **Privacy and costs:** Question, History and documentation excerpts go to the\nAI provider and cause costs like other queries, even in test mode. Known\ncredentials from `.env` are removed beforehand; do not type passwords or tokens.\nCurrent setting values are never sent. In the window, this notice is\ncollapsed under **Subject to charges**; a click or the Enter key expands it.\n- **Retention:** The History belongs to the session and is deleted on logout, revocation or after\n24 hours without activity; **Clear chat** deletes it immediately. Logs contain\nquestions and answers only when content logging is enabled.\n- **Operating the window:** Drag the header to move the window, and drag an edge or\ncorner to resize it (at least 280 × 180 pixels, at most up to the\nscreen edge). Using the keyboard, focus the title “Help on Settings”: arrow keys\nmove, Shift+arrow keys resize. The browser tab remembers the size. **Close help chat** hides it without deleting History or draft.\n**Clear chat** discards both and keeps the window open. Clicking outside and Escape\ndo not close it. Sources can be read in the window; **Back to conversation** returns.\n- **Draft and position:** In JavaScript mode, the current browser tab remembers the\nState, the reading position in the conversation and the unsent question in `sessionStorage`, limited to the session and at most\n24 hours. Do not enter tokens; this is not a secret store. The conversation History remains\nbound to the session on the server side. Two tabs have their own windows and drafts, but the same\nHistory. On logout or invalid session, the local copy is removed.\n- **Without browser storage/JavaScript:** A server-side State keeps the open window.\nWithout JavaScript, an unsent question is not retained on a page change; a new\nanswer appears on the next page load or reload. The window cannot then be\nmoved; if it covers a button, submit the search field with the Enter key or\nclose the window. The settings page is not automatically reloaded because of a chat answer.\nIf browser storage is blocked, JavaScript saves the draft before navigation;\nif saving fails, the current page is retained and shows the error.\n- **Process:** One question runs per chat; with JavaScript only the window is updated.\nAfter a restart, open questions are “interrupted” and are not\nsent again. Without the Stage `settings_help` in `prompts.yaml`, the chat gives a\nsetup note.\n\n| Setting / key | Effect and values | Application |\n| --- | --- | --- |\n| Offer help chat (`help_chat.enabled`) | Yes (true) offers the help chat: It explains settings and operating paths with the bundled documentation via the active AI connection; for this, the question, short History and matching sections go to the AI provider and cause costs. No (false) accepts no new questions; the documentation remains readable. Default Yes. | At runtime |\n| Help chat: longest question (characters) (`help_chat.max_question_chars`) | Longest question to the help chat: 100–8000 characters; default 4000. Longer questions are rejected with a notice, not shortened. | At runtime |",
+  "title": "Help chat"
+ },
+ {
+  "id": "web-einstellungen/hilfschat-2",
+  "path": [
+   "Web interface settings",
+   "Help chat"
+  ],
+  "setting_ids": [
+   "help_chat.max_context_bytes",
+   "help_chat.requests_per_minute_per_session"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Help chat: Documentation per question (bytes) (`help_chat.max_context_bytes`) | At most this many bytes of documentation are included per question: 2000–48000; default 24000. More context can make answers more complete and increases costs. | While running |\n| Help chat: Questions per minute (`help_chat.requests_per_minute_per_session`) | New questions per session and minute: 1–20; default 6. The global AI call limit applies additionally; a repeated query of the same question does not count. | While running |",
+  "title": "Help chat"
+ },
+ {
+  "id": "web-einstellungen/weitere-hinweise",
+  "path": [
+   "Web interface settings",
+   "Additional Notes"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Area | Explanation |\n| --- | --- |\n| Models (read-only) | The table shows the AI models actually used, parameters and their source. Other models can change quality, speed and costs. Parameters and models are maintained in prompts.yaml; starting with --ollama can replace the model selection. Here, the display is read-only. |\n| Notifications | Enable Push registers this browser for content-neutral notifications; email subject and email body are not transmitted. Disable Push ends this browser's subscription. Other Devices remain unchanged. The feature requires Web Push enabled on the server side and your browser permission; HTTPS or localhost is required. |",
+  "title": "Additional Notes"
+ },
+ {
+  "id": "web-einstellungen/termindauern-und-vorschlagsabgleich-24",
+  "path": [
+   "Web interface settings",
+   "Appointment durations and proposal review (2.4)"
+  ],
+  "setting_ids": [
+   "event_defaults.in_person_duration_minutes",
+   "event_defaults.video_duration_minutes",
+   "proposal_reconciliation.max_semantic_candidates"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Setting | Effect |\n| --- | --- |\n| `event_defaults.video_duration_minutes` · Default duration of video conference (minutes) | Default duration of video conference: 1–1440 minutes; default 60. Adds a missing end only with an unambiguous start and documented online participation. Explicit end times and durations take precedence. Existing proposals are not automatically converted; saving does not authorize any calendar action. |\n| `event_defaults.in_person_duration_minutes` · Default duration of in-person appointment (minutes) | Default duration of in-person appointment: 1–1440 minutes; default 180. Adds a missing end with documented in-person attendance and unambiguous start. An address in the signature does not document in-person attendance. Explicit time specifications take precedence; the assumption is displayed in the proposal. |\n| `proposal_reconciliation.max_semantic_candidates` · Review: at most AI candidates | 1–50 possible open proposals per semantic AI comparison; default 8. Further plausible matches block automatic assignment instead of being considered a missing duplicate. A missing comparison prompt requires manual assignment in unclear cases. |",
+  "title": "Appointment durations and proposal review (2.4)"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten-3310",
+  "path": [
+   "Web interface settings",
+   "IServ Accounts (3.3.10)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Under `/einstellungen/iserv`, IServ accounts for parent letters are created, changed, activated, deactivated, and removed. Per account: display name, HTTPS address of the school (a copied IServ link or the address without `https://` is shortened to the school address), the mailbox whose target profile and defaults apply, and optionally the start limit (`TT.MM.JJJJ [HH:MM]` or ISO 8601; empty: that of the mailbox). The page names invalid fields with their cause.\nEvery change is a draft; it is applied after the current diagnosis `iserv` and explicit confirmation. Parent letters are always considered relevant. The access data belongs on the Access Data page. Effect after the next restart.",
+  "title": "IServ Accounts (3.3.10)"
+ },
+ {
+  "id": "web-einstellungen/zugangsdaten-3311",
+  "path": [
+   "Web interface settings",
+   "Credentials (3.3.11)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "`/einstellungen/zugangsdaten` shows for each required entry only \"stored\" or \"missing\" and\naccepts new values only in write mode: `IMAP_<n>_USERNAME/_PASSWORD` per mailbox (for mailbox 1 in the\nolder format `IMAP_USERNAME/_PASSWORD`), `ISERV_<n>_USERNAME/_PASSWORD` per IServ account,\n`OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN` when Telegram is active and the secrets of the Calendar and\nTasks services per target profile. Each change is explicitly confirmed; only the\naffected line in `.env` is replaced. `MAILHELP_WEB_SECRET` remains excluded. Values from the process environment\ntake precedence and are marked as such. Diagnostics and setup read new values\nimmediately, email retrieval after the next restart.",
+  "title": "Credentials (3.3.11)"
+ },
+ {
+  "id": "web-einstellungen/postfaecher-und-zielprofile-32",
+  "path": [
+   "Web interface settings",
+   "Mailboxes and Target Profiles (3.2)"
+  ],
+  "setting_ids": [
+   "personal_info",
+   "retention.full_mail_days",
+   "smart_reply"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Under `/einstellungen/postfaecher`, each Mailbox shows the tabs Targets, Filters, Topics, Replies and Notifications. Unassigned fields inherit globally; Reset removes the local rule.\nProfile 1 is the existing `targets` section; additional profiles are managed at `/einstellungen/zielprofile`.\nUsed profiles can only be removed after resolving all displayed references.\n\n| Local Setting | Effect |\n| --- | --- |\n| `target_profile` | ID 1–99 of a configured profile; applies to new Proposals after restart. Existing Proposals remain bound. |\n| `personal_info`, `smart_reply` | Own role/signature and reply drafts for this Mailbox; storage remains in the origin Mailbox. |\n| `notifications.quiet_hours`, `notifications.categories` | Inherited quiet hours and category channels; shared queue with separate Mailbox bundles. |\n| `daily_briefing` | Include/exclude this Mailbox as its own section. |\n| `activity_report_folder` | Preselected folder for activity reports. |\n| `retention.full_mail_days` | Retain full texts for a shorter time than globally; `disabled` removes content, `unlimited` only with globally unlimited retention. |\n| `event_defaults` | Local default durations in minutes, 1–1440; explicit Email times take precedence. |\n| Topic scope | Global, only this Mailbox, or exclude here; own fingerprints only of affected Mailboxes. |\n| Filter | Local address/Domain blocks and exact Exceptions from global blocks. |\n\nSaving creates a setup draft. Applying it requires a renewed explicit local confirmation. Target/connection changes require current read diagnostics. The draft shows running Mails that are held back by a relevant change. Credentials are edited separately under **Settings → Credentials** directly in `.env`.\nGuide: [Release 3.2](archiv/Release-3.2.md).",
+  "title": "Mailboxes and Target Profiles (3.2)"
+ },
+ {
+  "id": "web-einstellungen/postfach-briefings-49",
+  "path": [
+   "Web interface settings",
+   "Mailbox Briefings (4.9)"
+  ],
+  "setting_ids": [
+   "briefings.enabled",
+   "briefings.mailbox",
+   "briefings.skip_empty",
+   "briefings.times"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Under `/einstellungen?bereich=briefing`; times are entered with comma or semicolon.\n\n| Setting / Key | Effect and Values | Application |\n| --- | --- | --- |\n| Enable briefings as mailbox draft (`briefings.enabled`) | Activates scheduled briefings as IMAP drafts, default off. No SMTP sending. Enabling only authorizes draft storage; Calendar and Task actions still require their own version-related confirmation. | At runtime |\n| Times for Mailbox Briefings (`briefings.times`) | Certain local times in format HH:MM, separated by comma, semicolon or space, for example 07:00, 13:00, 18:00. Uses the configured time zone. When enabled, at least one time must be specified. | At runtime |\n| Target mailbox for Briefings (`briefings.mailbox`) | Target mailbox for the briefing drafts. default uses the first active mailbox; alternatively an active mailbox number. The briefing collects open decisions of all mailboxes. It is never sent to external recipients. | At runtime |\n| Skip empty Mailbox Briefings (`briefings.skip_empty`) | Default true: Without open decisions and without relevant summaries, no empty draft is created. false instead creates a short all-quiet briefing. | At runtime |",
+  "title": "Mailbox Briefings (4.9)"
+ },
+ {
+  "id": "web-einstellungen/vollstaendige-referenz-weiterer-einstellungen-53",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "These settings are not in the general settings areas. They are maintained in the\ninitial setup, on separate pages (Mailbox, IServ, target profiles, notifications), or only\nin `config.yaml`. \"Mandatory\" means: The value must be in `config.yaml`; the\nincluded `config.example.yaml` contains it. Values without a Field apply with their default.\nChanges in `config.yaml` take effect after a restart unless otherwise stated.",
+  "title": "Complete Reference of Additional Settings (5.3)"
+ },
+ {
+  "id": "web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Initial setup and Mailbox 1 (older single format)"
+  ],
+  "setting_ids": [
+   "daily_briefing.enabled",
+   "daily_briefing.time",
+   "imap.connection_mode",
+   "imap.drafts_folder",
+   "imap.folders",
+   "imap.historical_start",
+   "imap.host",
+   "imap.port",
+   "imap.primary_folder",
+   "push.enabled",
+   "push.subject",
+   "telegram.enabled"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Key | Effect and values | Access path |\n| --- | --- | --- |\n| `imap.host` | Mail server of the first mailbox in the older single format, e.g. `imap.example.org`; 1–253 characters. Without `imap.mailboxes`, this block describes Mailbox 1. | Initial setup |\n| `imap.port` | Port of the mail server, 1–65535; commonly 993 (SSL/TLS) or 143 (STARTTLS). | Initial setup |\n| `imap.connection_mode` | Connection type `ssl`, `starttls` or `plain` (unencrypted, only useful in your own network); if not specified, `ssl`. | Initial setup |\n| `imap.folders` | Folders that are read, 1–100 entries; the first is the inbox. | Initial setup |\n| `imap.primary_folder` | Folder that counts as the inbox and must be in `imap.folders`; if not specified, the first entry of `imap.folders`. | Initial setup |\n| `imap.drafts_folder` | Folder for reply and briefing drafts; if not specified, `Drafts`. | Initial setup |\n| `imap.historical_start` | Start boundary: older Mails are not processed (Date with time and time zone). Empty means all existing Mails. `mailhelp --ignore-historical-start` overrides it for one retrieval. | Initial setup |\n| `telegram.enabled` | Telegram bot for queries, confirmations and notifications; default on. Off: operation only via the Web interface. | Initial setup |\n| `push.enabled` | Offer Web Push (content-neutral notices) server-side; default off. Each device additionally enables push itself. Only via HTTPS or localhost. | Initial setup |\n| `push.subject` | Operator contact address for the push service (VAPID), format `mailto:name@domain`; default `mailto:admin@example.invalid` (example value; replace before use). | Initial setup |\n| `daily_briefing.enabled` | Daily overview via Telegram; default off. | Initial setup, Notifications |\n| `daily_briefing.time` | Time of the daily overview in HH:MM format in the configured time zone; default 07:30. | Initial setup, Notifications |",
+  "title": "Initial setup and Mailbox 1 (older single format)"
+ },
+ {
+  "id": "web-einstellungen/postfaecher-imapmailboxes",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Mailboxes (`imap.mailboxes`)"
+  ],
+  "setting_ids": [
+   "imap.mailboxes[].activity_report_folder",
+   "imap.mailboxes[].auto_draft",
+   "imap.mailboxes[].connection_mode",
+   "imap.mailboxes[].daily_briefing",
+   "imap.mailboxes[].drafts_folder",
+   "imap.mailboxes[].enabled",
+   "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+   "imap.mailboxes[].event_defaults.video_duration_minutes",
+   "imap.mailboxes[].folders",
+   "imap.mailboxes[].historical_start",
+   "imap.mailboxes[].host",
+   "imap.mailboxes[].id",
+   "imap.mailboxes[].label",
+   "imap.mailboxes[].mail_client",
+   "imap.mailboxes[].notifications.categories.action_results",
+   "imap.mailboxes[].notifications.categories.daily_briefing",
+   "imap.mailboxes[].notifications.categories.decisions",
+   "imap.mailboxes[].notifications.categories.system_errors",
+   "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+   "imap.mailboxes[].notifications.quiet_hours.enabled",
+   "imap.mailboxes[].notifications.quiet_hours.end",
+   "imap.mailboxes[].notifications.quiet_hours.start",
+   "imap.mailboxes[].own_addresses",
+   "imap.mailboxes[].personal_info",
+   "imap.mailboxes[].port",
+   "imap.mailboxes[].primary_folder",
+   "imap.mailboxes[].retention.full_mail_days",
+   "imap.mailboxes[].smart_reply",
+   "imap.mailboxes[].target_profile"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Each mailbox is an entry in the `imap.mailboxes` list. Mailboxes are created, checked and changed under\n**Settings → Mailboxes**; unset local fields inherit\nthe global setting. Credentials are stored as `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD` in `.env`.\n\n| Key | Effect and Values | Access path |\n| --- | --- | --- |\n| `imap.mailboxes[].id` | Number of the mailbox, 1–99; determines the names of the credentials. Assigned when created and not changed. | Mailbox page |\n| `imap.mailboxes[].label` | Display name, 1–40 characters; default “Mailbox”. | Mailbox page |\n| `imap.mailboxes[].enabled` | Whether the mailbox is retrieved; default on. A disabled mailbox remains listed. | File |\n| `imap.mailboxes[].host` | Mail server, 1–253 characters (required). | Mailbox page |\n| `imap.mailboxes[].port` | Port 1–65535 (required). | Mailbox page |\n| `imap.mailboxes[].connection_mode` | `ssl` (default), `starttls` or `plain`. | Mailbox page |\n| `imap.mailboxes[].folders` | Read folders, 1–100 (required); the first is the inbox. | Mailbox page |\n| `imap.mailboxes[].primary_folder` | Inbox; default `INBOX`. | Mailbox page |\n| `imap.mailboxes[].drafts_folder` | Drafts folder, 1–500 characters; default `Drafts`. | Mailbox page |\n| `imap.mailboxes[].historical_start` | Start boundary of this mailbox; empty means all Mails. | Mailbox page |\n| `imap.mailboxes[].own_addresses` | Additional own sender addresses (aliases), at most 20; the IMAP username already counts. Mails from these addresses are considered own Note or forwarding. | File |\n| `imap.mailboxes[].target_profile` | Target profile 1–99 for new Proposals of this mailbox; default 1. Existing Proposals remain bound to their target. | Mailbox page (Targets) |\n| `imap.mailboxes[].mail_client` | Where “Open original email” leads: `auto` (default), `apple_mail`, `gmail_web`, `outlook_web` or `none`. | Mailbox page (Targets) |\n| `imap.mailboxes[].event_defaults.video_duration_minutes` | Local default duration for video appointments, 1–1440 minutes; empty inherits global. | Mailbox page (Targets) |\n| `imap.mailboxes[].event_defaults.in_person_duration_minutes` | Local default duration for in-person appointments, 1–1440 minutes; empty inherits global. | Mailbox page (Targets) |\n| `imap.mailboxes[].personal_info` | Own role, signature and details for reply drafts of this mailbox, up to 2000 characters; empty inherits global. | Mailbox page (Replies) |\n| `imap.mailboxes[].smart_reply` | Reply drafts for this mailbox; empty inherits global. | Mailbox page (Replies) |\n| `imap.mailboxes[].auto_draft` | Place drafts in the drafts folder without a click; empty inherits global (default off). | Mailbox page (Replies) |\n| `imap.mailboxes[].activity_report_folder` | Preselected folder for activity reports. | Mailbox page (Replies) |\n| `imap.mailboxes[].retention.full_mail_days` | Retain full texts for a shorter time than global: days, `disabled` (remove immediately) or `unlimited` (only with globally unlimited retention). | Mailbox page (Replies) |\n| `imap.mailboxes[].daily_briefing` | Show this mailbox in the daily briefing as its own section; default on. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.quiet_hours.enabled` | Own quiet hours for this mailbox; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.quiet_hours.start` | Start of quiet hours, HH:MM; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.quiet_hours.end` | End of quiet hours, HH:MM; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.quiet_hours.allow_system_errors` | Report system errors despite quiet hours; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.categories.decisions` | Channels (`telegram`, `web_push`) for decisions of this mailbox; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.categories.action_results` | Channels for results of entries; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.categories.daily_briefing` | Channels for the daily briefing; empty inherits global. | Mailbox page (Notifications) |\n| `imap.mailboxes[].notifications.categories.system_errors` | Channels for system errors; empty inherits global. | Mailbox page (Notifications) |\n\nChanges on the mailbox page are drafts; they are applied after renewed explicit\nconfirmation. The application occurs between mail cycles or after a restart (see above).",
+  "title": "Mailboxes (`imap.mailboxes`)"
+ },
+ {
+  "id": "web-einstellungen/iserv-konten-iservaccounts",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "IServ Accounts (`iserv.accounts`)"
+  ],
+  "setting_ids": [
+   "iserv.accounts[].enabled",
+   "iserv.accounts[].historical_start",
+   "iserv.accounts[].id",
+   "iserv.accounts[].label",
+   "iserv.accounts[].mailbox",
+   "iserv.accounts[].server"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Key | Effect and Values | Access path |\n| --- | --- | --- |\n| `iserv.accounts[].id` | Number 1–10; determines the credentials `ISERV_<n>_USERNAME`/`_PASSWORD`. | IServ page |\n| `iserv.accounts[].label` | Display name, 1–40 characters; default „Elternbriefe“. | IServ page |\n| `iserv.accounts[].server` | HTTPS address of the school (required, up to 253 characters); a copied IServ link is shortened to the school address. | IServ page |\n| `iserv.accounts[].mailbox` | Mailbox 1–99, whose target profile and defaults apply; must be active. Default 1. | IServ page |\n| `iserv.accounts[].enabled` | Retrieve account; default on. | IServ page |\n| `iserv.accounts[].historical_start` | Start limit; empty adopts that of the mailbox. | IServ page |",
+  "title": "IServ Accounts (`iserv.accounts`)"
+ },
+ {
+  "id": "web-einstellungen/weitere-zielprofile-targetprofiles",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Additional target profiles (`target_profiles`)"
+  ],
+  "setting_ids": [
+   "target_profiles[].caldav_calendar_url",
+   "target_profiles[].caldav_task_url",
+   "target_profiles[].calendar_provider",
+   "target_profiles[].google_calendar",
+   "target_profiles[].google_tasks_list",
+   "target_profiles[].id",
+   "target_profiles[].label",
+   "target_profiles[].microsoft_tenant",
+   "target_profiles[].microsoft_todo_list",
+   "target_profiles[].outlook_calendar",
+   "target_profiles[].removal_window_minutes",
+   "target_profiles[].task_provider",
+   "target_profiles[].todoist_project"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Profile 1 is the `targets` section; additional profiles (ID 2–99) are managed in\n**Settings → Target profiles**. The fields correspond to `targets` (see “Targets”).\n\n| Key | Effect and values | Access path |\n| --- | --- | --- |\n| `target_profiles[].id` | Number 2–99 (required). | Target profile page |\n| `target_profiles[].label` | Display name, 1–40 characters (required). | Target profile page |\n| `target_profiles[].calendar_provider` | `google` (default), `caldav` or `outlook`. | Target profile page |\n| `target_profiles[].task_provider` | `todoist` (default), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` or `notion` (7.2). | Target profile page |\n| `target_profiles[].google_calendar` | Calendar ID at Google, up to 500 characters. | Target profile page |\n| `target_profiles[].todoist_project` | Todoist project ID, up to 500 characters. | Target profile page |\n| `target_profiles[].caldav_calendar_url` | Address of the CalDAV calendar collection, up to 2000 characters. | Target profile page |\n| `target_profiles[].caldav_task_url` | Address of the CalDAV task collection (also Apple Reminders), up to 2000 characters. | Target profile page |\n| `target_profiles[].outlook_calendar` | Outlook calendar, default `default`. | Target profile page |\n| `target_profiles[].microsoft_todo_list` | Microsoft To Do list, default `default` (list “Tasks”). | Target profile page |\n| `target_profiles[].google_tasks_list` | Google Tasks list, default `@default` (first list of the account). | Target profile page |\n| `target_profiles[].microsoft_tenant` | Microsoft tenant for sign-in, default `common`. | Target profile page |\n| `target_profiles[].removal_window_minutes` | Time window in minutes after creating an entry during which it can be removed again: 1–1440; default 10. | Target profile page |",
+  "title": "Additional target profiles (`target_profiles`)"
+ },
+ {
+  "id": "web-einstellungen/notion-als-aufgabenziel-72",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Notion as Task Target (7.2)"
+  ],
+  "setting_ids": [
+   "target_profiles[].notion_data_source_id",
+   "target_profiles[].notion_done_statuses",
+   "target_profiles[].notion_open_status",
+   "target_profiles[].notion_properties.description",
+   "target_profiles[].notion_properties.due",
+   "target_profiles[].notion_properties.operation_key",
+   "target_profiles[].notion_properties.source",
+   "target_profiles[].notion_properties.status",
+   "target_profiles[].notion_properties.title",
+   "targets.notion_data_source_id",
+   "targets.notion_done_statuses",
+   "targets.notion_open_status",
+   "targets.notion_properties.description",
+   "targets.notion_properties.due",
+   "targets.notion_properties.operation_key",
+   "targets.notion_properties.source",
+   "targets.notion_properties.status",
+   "targets.notion_properties.title"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Only in `config.yaml` (section `targets`) and per target profile (`target_profiles[]`, same names).\nMailhelp addresses each property via its ID so that a renamed field still matches. If a property is missing or its type changes, Mailhelp blocks new attachments until the new mapping.\n\n| Key | Effect and Values | Access path |\n| --- | --- | --- |\n| `targets.notion_data_source_id` | ID of the Notion data source (32 hex characters, with or without hyphens), not that of the database. Required for `task_provider: notion`. | File |\n| `targets.notion_properties.title` | ID of the title property (type title). Required for Notion. | File |\n| `targets.notion_properties.description` | ID of the text property for the description (type text). Required for Notion. | File |\n| `targets.notion_properties.due` | ID of the date property for the deadline (type date); remains empty without a deadline. Required for Notion. | File |\n| `targets.notion_properties.source` | ID of the URL property for the link to the email; empty if there is no https link. Required for Notion. | File |\n| `targets.notion_properties.operation_key` | ID of the text property for the operation key, via which Mailhelp locates an unclear attachment again. Required for Notion. | File |\n| `targets.notion_properties.status` | Optional: ID of a status, select, or checkbox property. Without it, Mailhelp does not recognize completed Notion tasks. | File |\n| `targets.notion_open_status` | Option ID that new pages receive in the status field; required with a status or select field. | File |\n| `targets.notion_done_statuses` | Option IDs that count as done; at most 50. | File |\n| `target_profiles[].notion_data_source_id` | As `targets.notion_data_source_id`, for this target profile. | Target profile page |\n| `target_profiles[].notion_properties.title` | As `targets.notion_properties.title`. | Target profile page |\n| `target_profiles[].notion_properties.description` | As `targets.notion_properties.description`. | Target profile page |\n| `target_profiles[].notion_properties.due` | As `targets.notion_properties.due`. | Target profile page |\n| `target_profiles[].notion_properties.source` | As `targets.notion_properties.source`. | Target profile page |\n| `target_profiles[].notion_properties.operation_key` | As `targets.notion_properties.operation_key`. | Target profile page |\n| `target_profiles[].notion_properties.status` | As `targets.notion_properties.status`. | Target profile page |\n| `target_profiles[].notion_open_status` | As `targets.notion_open_status`. | Target profile page |\n| `target_profiles[].notion_done_statuses` | As `targets.notion_done_statuses`. | Target profile page |",
+  "title": "Notion as Task Target (7.2)"
+ },
+ {
+  "id": "web-einstellungen/benachrichtigungen-notifications",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Notifications (`notifications`)"
+  ],
+  "setting_ids": [
+   "notifications.batching.enabled",
+   "notifications.batching.window_seconds",
+   "notifications.categories.action_results",
+   "notifications.categories.daily_briefing",
+   "notifications.categories.decisions",
+   "notifications.categories.system_errors",
+   "notifications.delivery.history_days",
+   "notifications.delivery.initial_backoff_seconds",
+   "notifications.delivery.max_attempts",
+   "notifications.delivery.max_backoff_seconds",
+   "notifications.delivery.max_pending",
+   "notifications.quiet_hours.allow_system_errors",
+   "notifications.quiet_hours.enabled",
+   "notifications.quiet_hours.end",
+   "notifications.quiet_hours.start",
+   "notifications.telegram_content"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "Under **Settings → Notifications** and in the initial setup. If the entire `notifications` block is missing, Mailhelp reports all categories via Telegram (decisions and daily briefing additionally via push, if active) with content `summary`. If the block is present, its values apply.\n\n| Key | Effect and values | Access path |\n| --- | --- | --- |\n| `notifications.quiet_hours.enabled` | Quiet hours: during this time range, notifications are held back; default off. | Notifications |\n| `notifications.quiet_hours.start` | Start, HH:MM; default 22:00. | Notifications |\n| `notifications.quiet_hours.end` | End, HH:MM; default 07:30. | Notifications |\n| `notifications.quiet_hours.allow_system_errors` | Report system errors also during quiet hours; default off. | Notifications |\n| `notifications.batching.enabled` | Bundle notifications within a time window; default off. | Notifications |\n| `notifications.batching.window_seconds` | Batching window 1–86400 seconds; default 300. | Notifications |\n| `notifications.categories.decisions` | Channels (`telegram`, `web_push`) for decisions; an empty list does not notify this category. | Notifications |\n| `notifications.categories.action_results` | Channels for results of entries. | Notifications |\n| `notifications.categories.daily_briefing` | Channels for the daily briefing. | Notifications |\n| `notifications.categories.system_errors` | Channels for system errors. | Notifications |\n| `notifications.telegram_content` | `neutral` (default): Telegram notifications without email contents; `summary`: with a short overview of the decisions or the daily briefing. | Notifications |\n| `notifications.delivery.max_attempts` | Delivery attempts per notification, 1–10; default 3. | Notifications |\n| `notifications.delivery.initial_backoff_seconds` | Wait time before the second attempt, 1–86400 seconds; default 30. | Notifications |\n| `notifications.delivery.max_backoff_seconds` | Longest wait time between attempts, 1–86400 seconds; default 900. | Notifications |\n| `notifications.delivery.max_pending` | Maximum queued notifications, 1–100000; default 1000. | Notifications |\n| `notifications.delivery.history_days` | Retention of delivery history, 1–3650 days; default 30. | Notifications |",
+  "title": "Notifications (`notifications`)"
+ },
+ {
+  "id": "web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "AI integration, reanalysis and verification"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute",
+   "llm.ollama_address",
+   "llm.provider",
+   "reanalysis.enabled",
+   "reanalysis.max_attempts",
+   "reanalysis.max_jobs_per_day",
+   "reanalysis.max_llm_calls_per_job",
+   "retries.json_repair",
+   "retries.provider_retry",
+   "retries.schema_repair",
+   "write_verification.max_attempts",
+   "write_verification.max_elapsed_seconds",
+   "write_verification.retry_delays_seconds"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Key | Effect and values | Access path |\n| --- | --- | --- |\n| `llm.provider` | `openrouter` (default) or `ollama` (local server). `--ollama HOST:PORT` at start overrides the choice. With `openrouter`, `OPENROUTER_API_KEY` in `.env` is required. | File |\n| `llm.ollama_address` | Address of the Ollama server with `llm.provider: ollama`; default `localhost:11434`, also `http://localhost:11434`. | File |\n| `retries.provider_retry` | Retries of an AI call after a temporary provider error, 0–10 (required). Each retry counts against `limits.llm_calls_per_minute`. | File |\n| `retries.json_repair` | Repair attempts when the AI does not deliver valid JSON, 0–10 (required). | File |\n| `retries.schema_repair` | Repair attempts when the JSON does not match the expected structure, 0–10 (required). | File |\n| `reanalysis.enabled` | Offer “Task or Event missed?”; default on. | File |\n| `reanalysis.max_llm_calls_per_job` | AI calls per reanalysis, 1–10; default 5 (three stages and two retries). | File |\n| `reanalysis.max_attempts` | Attempts per model call after error or restart, 1–5; default 2. | File |\n| `reanalysis.max_jobs_per_day` | Started reanalyses per day across all Mails, 1–500; default 20 (cost protection). | File |\n| `write_verification.max_attempts` | Verification retrievals after an entry, 1–10; default 5. The first retrieval is attempt 1. | File |\n| `write_verification.retry_delays_seconds` | Wait time before each further retrieval, exactly `max_attempts − 1` values of 1–3600 seconds; default `[1, 5, 15, 60]`. A provider `Retry-After` can be longer. | File |\n| `write_verification.max_elapsed_seconds` | Maximum duration of the check, 10–86400 seconds, at least the sum of the wait times; default 300. After that, the entry explicitly remains unverified. | File |",
+  "title": "AI integration, reanalysis and verification"
+ },
+ {
+  "id": "web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Security limits when parsing emails"
+  ],
+  "setting_ids": [
+   "limits.max_decoded_text_bytes",
+   "limits.max_display_header_characters",
+   "limits.max_header_bytes",
+   "limits.max_html_characters",
+   "limits.max_html_depth",
+   "limits.max_html_tags",
+   "limits.max_mime_parts"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "An email that exceeds one of these limits is not evaluated: it appears with the message “The message exceeds a security limit” and without an AI call. The defaults are sufficient for ordinary emails; increase them only for repeatedly affected, trustworthy emails.\n\n| Key | Effect and values | Configuration method |\n| --- | --- | --- |\n| `limits.max_header_bytes` | Size of all headers, 256–1000000 bytes; default 64000. | File |\n| `limits.max_display_header_characters` | Longest displayed header (sender, subject), 1–10000 characters; default 500. Longer ones are displayed as “—”. | File |\n| `limits.max_mime_parts` | Parts of an email, 1–10000; default 100. | File |\n| `limits.max_decoded_text_bytes` | Decoded text of all parts, 1–100000000 bytes; default 1000000. | File |\n| `limits.max_html_characters` | Length of the HTML part, 1–100000000 characters; default 1000000. | File |\n| `limits.max_html_tags` | HTML elements, 1–1000000; default 20000. | File |\n| `limits.max_html_depth` | Nesting depth of the HTML, 1–10000; default 100. | File |",
+  "title": "Security limits when parsing emails"
+ },
+ {
+  "id": "web-einstellungen/pfade-protokolle-und-webserver",
+  "path": [
+   "Web interface settings",
+   "Complete Reference of Additional Settings (5.3)",
+   "Paths, Logs and Web Server"
+  ],
+  "setting_ids": [
+   "data_directory",
+   "logging.console.format",
+   "logging.directory",
+   "logging.file.backup_count",
+   "logging.file.filename",
+   "logging.file.format",
+   "logging.file.max_bytes",
+   "logging.file.retention_days",
+   "logging.llm.backup_count",
+   "logging.llm.filename",
+   "logging.llm.format",
+   "logging.llm.include_requests",
+   "logging.llm.max_bytes",
+   "logging.llm.retention_days",
+   "logging.modules",
+   "logging.telegram.backup_count",
+   "logging.telegram.filename",
+   "logging.telegram.format",
+   "logging.telegram.max_bytes",
+   "logging.telegram.retention_days",
+   "timeouts.telegram_poll_seconds",
+   "web.allowed_hosts",
+   "web.enabled",
+   "web.google_redirect_uri",
+   "web.host",
+   "web.lan_access",
+   "web.notion_redirect_uri",
+   "web.port"
+  ],
+  "source": "docs/en/Web-Einstellungen.md",
+  "text": "| Key | Effect and values | Access path |\n| --- | --- | --- |\n| `data_directory` | Directory of state data (required); under it `production` or `test` depending on test mode. Relative to the configuration. | File |\n| `logging.directory` | Directory of the logs (required); `--log-directory` overrides it for one start. | File |\n| `logging.console.format` | Screen output as `text` (default) or `jsonl`. | File |\n| `logging.file.filename` | File of the application log in the log directory (required). | File |\n| `logging.file.format` | `jsonl` (default) or `text`. | File |\n| `logging.file.max_bytes` | Size at which the file is rotated, greater than 0 (required). | File |\n| `logging.file.backup_count` | Retained older files, from 0 (required). | File |\n| `logging.file.retention_days` | Maximum age of the log files, 1–3650 days (required). | File |\n| `logging.llm.filename` | File of the AI log (required). Contents of requests and responses are only there with `logging.llm.include_requests`/`include_responses`. | File |\n| `logging.llm.format` | `jsonl` (default) or `text`. | File |\n| `logging.llm.max_bytes` | Rotation size, greater than 0 (required). | File |\n| `logging.llm.backup_count` | Retained older files, from 0 (required). | File |\n| `logging.llm.retention_days` | Maximum age, 1–3650 days (required). | File |\n| `logging.telegram.filename` | File of the Telegram message log; default `telegram/messages.jsonl`. | File |\n| `logging.telegram.format` | `jsonl` (default) or `text`. | File |\n| `logging.telegram.max_bytes` | Rotation size, greater than 0; default 10000000. | File |\n| `logging.telegram.backup_count` | Retained older files, from 0; default 5. | File |\n| `logging.telegram.retention_days` | Maximum age, 1–3650 days; default 30. | File |\n| `logging.modules` | Log level per module, e.g. `openrouter: INFO`; default empty. | File |\n| `timeouts.telegram_poll_seconds` | Wait time of a Telegram query for new messages, 1–50 seconds (required). | File |\n| `web.enabled` | Start web interface; default off. | File |\n| `web.host` | Network address of the web server; default `127.0.0.1` (only this PC). `0.0.0.0` is necessary for `web.lan_access`. | File |\n| `web.port` | Port 1–65535; default 8765. | File |\n| `web.allowed_hosts` | Allowed host specifications in the browser call (protection against DNS rebinding), 1–20 entries; default `127.0.0.1:8765`, `localhost:8765`. | File |\n| `web.google_redirect_uri` | Redirect URI of the Google sign-in; must be entered in the Google Cloud Console. Default `http://localhost:8765/auth/google/callback`. | File |\n| `web.notion_redirect_uri` | Redirect URI of the Notion sign-in (7.2.5); must be entered exactly like this in the public Notion connection. HTTPS or localhost, path `/auth/notion/callback`. Default `http://localhost:8765/auth/notion/callback`. | File |",
+  "title": "Paths, Logs and Web Server"
+ },
+ {
+  "id": "ersteinrichtung/ersteinrichtung",
+  "path": [
+   "Initial setup"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "Verified for Mailhelp 7.0. This guide leads from an empty directory to the first\nchecked suggestion. It applies to Windows 11 and Linux; deviations for Docker are marked.\n\n**Goal:** Mailhelp is running, is reachable in the browser, reads a mailbox, has an AI connection\nand knows Calendar and task list. An external entry occurs only after your\nexplicit confirmation.",
+  "title": "Initial setup"
+ },
+ {
+  "id": "ersteinrichtung/voraussetzungen",
+  "path": [
+   "Initial setup",
+   "Prerequisites"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "- Python 3.12 (Windows: `py -3.12`, Linux: `python3.12`) or Docker with Compose.\n- Credentials of an IMAP mailbox (server, port, username, password or app password).\n- A key for OpenRouter **or** a locally running Ollama server.\n- Optional: access to Google Calendar/Todoist, Outlook/Microsoft To Do or a\n  CalDAV server; optionally a Telegram bot with your user and chat ID.",
+  "title": "Prerequisites"
+ },
+ {
+  "id": "ersteinrichtung/1-installieren",
+  "path": [
+   "Initial setup",
+   "1. Install"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "**Windows 11** (PowerShell in the Mailhelp directory):\n\n```powershell\npy -3.12 -m venv .venv\n.venv\\Scripts\\python -m pip install -r requirements.lock\n.venv\\Scripts\\python -m pip install --no-deps -e .\n```\n\n**Linux:**\n\n```sh\npython3.12 -m venv .venv\n.venv/bin/python -m pip install -r requirements.lock\n.venv/bin/python -m pip install --no-deps -e .\n```\n\n**Docker:** no installation necessary; continue with Stage 2.",
+  "title": "1. Install"
+ },
+ {
+  "id": "ersteinrichtung/2-starten-und-den-terminal-code-ablesen",
+  "path": [
+   "Initial setup",
+   "2. Start and read the terminal code"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "Without `config.yaml`, Mailhelp starts the protected setup assistant.\n\n- Windows: `.venv\\Scripts\\mailhelp --config-directory .`\n- Linux: `.venv/bin/mailhelp --config-directory .`\n- Docker: `docker compose -f compose.setup.yaml up --build`\n\n**Result:** The terminal shows a one-time code and the address `http://localhost:8765`.\nIf the code is missing, request a new one with `mailhelp --pair --config-directory .` (Docker:\n`docker compose exec mailhelp mailhelp --pair --config-directory /config`).",
+  "title": "2. Start and read the terminal code"
+ },
+ {
+  "id": "ersteinrichtung/3-im-browser-koppeln",
+  "path": [
+   "Initial setup",
+   "3. Pair in the browser"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "1. Open `http://localhost:8765/einrichtung/start`.\n2. Enter the code in **Code from the Mailhelp console** and select **Pair device**.\n\n**Result:** The page “Set up Mailhelp: Web access and time zone” appears (Stage 1 of 5).",
+  "title": "3. Pair in the browser"
+ },
+ {
+  "id": "ersteinrichtung/4-assistent-durchlaufen",
+  "path": [
+   "Initial setup",
+   "4. Run through wizard"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "Each stage has **Check** and **Save and continue**; via the stage list you can go back at any time. **Check** tests the entered values and saves nothing. The result appears above the form: for a problem, cause, affected field (with link to it), and concrete steps for resolution. The entered values remain, passwords are never displayed again. Password fields remain displayed empty: **Empty: keep saved value**. At most ten checks per minute are possible to avoid account locks at the email provider.\n\n1. **Web access and time zone:** Check **Time zone** (e.g. `Europe/Berlin`) and set a **Web password (at least 12 characters)**.\n2. **Mailbox:** Enter **IMAP server**, **Port**, **Encryption** (`ssl` usually port 993, `starttls` usually 143), username (`IMAP_USERNAME`), and password (`IMAP_PASSWORD`) and select **Check**. Then select **Inbox** and **Drafts folder** from the found folder list.\n3. **AI provider:** `openrouter` with `OPENROUTER_API_KEY` or `ollama` with **Ollama address (HOST:PORT)**; select **Check**.\n4. **Calendar and Tasks:** Select **Calendar service** and **Task service** and enter the matching identifier (**Google Calendar ID**, **Todoist project ID**, **CalDAV calendar address**, **CalDAV task address**, **Outlook Calendar ID**, **Microsoft To Do list**). For Google and Microsoft, **Connect Google** and **Connect Microsoft** are available respectively. Details: [Settings, Targets section](Web-Einstellungen.md#ziele).\n5. **Completion:** **Check all** shows every stage with ✓ or ✗ and a link to it. Check **Save configuration and start normal operation** and select **Save and start**. If a check fails, the same overview appears and nothing is activated.\n\n**Result:** “Setup completed”. `config.yaml` and `.env` are saved; the credentials are only in `.env`.",
+  "title": "4. Run through wizard"
+ },
+ {
+  "id": "ersteinrichtung/5-anmelden-und-verbindungen-pruefen",
+  "path": [
+   "Initial setup",
+   "5. Sign In and Check Connections"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "1. Open `http://localhost:8765/anmelden` and sign in with the web password. You pair additional devices with **Send code via Telegram** (when Telegram is active) or a new terminal code.\n2. Open **Settings → Check connections**: The checks only read and change nothing.\n3. Under **Status** you see the last contact per service; the mailbox appears after the first email retrieval.",
+  "title": "5. Sign In and Check Connections"
+ },
+ {
+  "id": "ersteinrichtung/6-gespeicherten-und-aktiven-stand-erkennen",
+  "path": [
+   "Initial setup",
+   "6. Recognize Saved and Active State"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "In **Settings**, each setting shows “active” or “saved – takes effect only after a restart” or “… at the next safe point”. Restart: **Settings → Restart Mailhelp**.",
+  "title": "6. Recognize Saved and Active State"
+ },
+ {
+  "id": "ersteinrichtung/7-erster-testfall",
+  "path": [
+   "Initial setup",
+   "7. First Test Case"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "1. Send an email with a clear request to yourself, e.g., “Please send the form back by Friday.”\n2. After the next retrieval, a suggestion with Evidence appears under **Open**.\n3. Select **Add as task** (for Events, **Add to calendar**). Mailhelp first reports “Saved – the entry will be verified with the provider” and after the verification retrieval “Created and verified”.\n\nFor a run without a real entry, set `test_mode: true`: confirmations are then only simulated.",
+  "title": "7. First Test Case"
+ },
+ {
+  "id": "ersteinrichtung/wenn-etwas-nicht-klappt",
+  "path": [
+   "Initial setup",
+   "If something does not work"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "| Message or situation | Next step |\n| --- | --- |\n| “Mailhelp is already running …” | Quit the running instance via **Settings → Quit Mailhelp** or with Ctrl+C |\n| Code expired or forgotten | `mailhelp --pair --config-directory .` |\n| Mailbox check fails | The message above the form states the cause and field; see the table below |\n| Web password forgotten | On the computer `mailhelp --reset-web-password --config-directory .` |\n| Docker: file permissions under Linux | `mkdir -p data logs` and `sudo chown 65532:65532 data logs` |",
+  "title": "If something does not work"
+ },
+ {
+  "id": "ersteinrichtung/haeufige-meldungen-beim-pruefen-ab-61",
+  "path": [
+   "Initial setup",
+   "If something does not work",
+   "Common messages during Check (from 6.1)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ersteinrichtung.md",
+  "text": "**Check** states the cause, the affected field, and concrete steps for a problem. The\nmost common cases:\n\n| Message | What usually helps |\n| --- | --- |\n| The IMAP server is not known under this name. | Check the spelling, enter only the server name without `https://` |\n| The IMAP server does not respond on this port. | Port 993 with `ssl` or 143 with `starttls`; check firewall |\n| Port and encryption do not match. | 993 belongs to `ssl`, 143 to `starttls` |\n| The server rejected the login. | Full email address as username; for two-factor authentication an app password; enable IMAP in webmail |\n| The specified inbox was not found. | Select one of the mentioned folders, usually `INBOX` |\n| OpenRouter did not accept the key. | Copy the key completely (starts with `sk-or-`) |\n| No credit or limit remains for this key. | Top up credit or increase limit |\n| Ollama does not respond at this address. | Start `ollama serve`; from Docker `http://host.docker.internal:11434` |\n| The Google authorization has expired or was revoked. | Run **Connect Google** again (required after 7 days in the Google app's test mode) |\n| The Google Calendar API is disabled for the Google project. | Enable the Calendar API in the Google Cloud Console |\n| Calendar, list, or project was not found. | Select calendar or check Todoist project ID |\n| Too many checks in a short time. | Wait one minute (protection against account blocks at the email provider) |\n\nNext: [Manage accounts](Konten-verwalten.md), [Settings](Web-Einstellungen.md).",
+  "title": "Common messages during Check (from 6.1)"
+ },
+ {
+  "id": "konten-verwalten/konten-verwalten",
+  "path": [
+   "Manage accounts"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "Verified for Mailhelp 7.0. Add, change and remove additional mailboxes, IServ accounts and additional Calendar/Task targets in an already set up installation.\n\n**Principle:** Credentials are stored only in `.env` and are maintained under **Settings → Credentials**; only “stored” or “missing” is displayed. Changes to mailboxes and targets are drafts and are only applied after a renewed explicit confirmation. None of these pages creates Tasks or Events.",
+  "title": "Manage accounts"
+ },
+ {
+  "id": "konten-verwalten/ein-weiteres-postfach-hinzufuegen",
+  "path": [
+   "Manage accounts",
+   "Add another mailbox"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "**Prerequisite:** Server, port, connection type and credentials of the mailbox.\n\n1. Open **Settings → Mailboxes** and select **Add mailbox**.\n2. Fill in:\n   - **Display name**, e.g. “School”.\n   - **IMAP server** and **Port**.\n   - **Connection type**: **SSL/TLS (usually port 993)**, **STARTTLS (usually port 143)** or\n     **Unencrypted (only in your own network)**.\n   - **Username (usually the full email address)** and **Password or app password**.\n   - **Folders (comma-separated, the first is the inbox)** and **Folder for\n     reply drafts**.\n   - **Do not process older mails before (empty: all existing mails)**, pre-filled with today.\n3. Select **Check connection and activate mailbox**.\n\n**Result:** After successful verification of login, folder list and read access, `config.yaml` and `.env` are saved (`IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`). The new mailbox is added between two mail cycles, without restart. If the check fails, all entries except the password are retained; the message names the cause without server response. Duplicate accounts are rejected. If you do not want to activate immediately, select **Instead, add as draft only**.",
+  "title": "Add another mailbox"
+ },
+ {
+  "id": "konten-verwalten/ein-postfach-einem-anderen-kalender-oder-einer-anderen-aufgabenliste-zuordnen",
+  "path": [
+   "Manage accounts",
+   "Assign a mailbox to another calendar or another task list"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "1. Under **Settings → Target profiles**, use **Add target profile** to create a profile\n   (name, calendar service, task service and the respective identifiers) – see\n   “Other targets” below.\n2. **Settings → Mailboxes**, open the mailbox, tab **Targets**, set **Target profile** to the\n   new profile.\n3. **Review draft** and then confirm **Take draft**.\n\n**Result:** New proposals of this mailbox go to the new target. Already existing\nproposals remain bound to their previous target; for the new target a new confirmation is\nrequired.",
+  "title": "Assign a mailbox to another calendar or another task list"
+ },
+ {
+  "id": "konten-verwalten/regeln-je-postfach",
+  "path": [
+   "Manage accounts",
+   "Rules per Mailbox"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "On the mailbox page there are the tabs **Goals**, **Filters**, **Topics**, **Replies** and\n**Notifications**. Unset fields inherit the global setting; Reset\nremoves the local rule. Examples: custom default durations for events, custom signature for\nreply drafts, shorter retention, custom quiet hours, local sender blocks or\nexceptions from global blocks. All fields: [Settings](Web-Einstellungen.md#postfächer-imapmailboxes).",
+  "title": "Rules per Mailbox"
+ },
+ {
+  "id": "konten-verwalten/iserv-konto-ergaenzen",
+  "path": [
+   "Manage accounts",
+   "Add IServ account"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "1. Open **Settings → IServ accounts**.\n2. Under **Activate directly**, enter display name, Address of the school (a copied IServ link is shortened to the school address), the Mailbox whose target profile and standards apply, optionally a start limit, as well as username and password. Empty access fields use already stored values (`ISERV_<n>_USERNAME`/`ISERV_<n>_PASSWORD`).\n3. Select **Check connection and activate account**.\n\n**Result:** Only after successful login are the account and access data saved. Retrieval starts without a restart in the next secure mail cycle; if applicable, answer open queries first. Parent letters always count as relevant. Anyone who does not want to activate immediately selects **Add IServ account as draft**.",
+  "title": "Add IServ account"
+ },
+ {
+  "id": "konten-verwalten/weitere-ziele-kalender-und-aufgabenlisten",
+  "path": [
+   "Manage accounts",
+   "Additional targets (Calendars and task lists)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "Profile 1 is the target from the initial setup (**Edit default profile 1**). Additional profiles\n(number 2–99) under **Settings → Target profiles**:\n\n1. **Add target profile**, choose designation, calendar service (Google, CalDAV, Outlook) and\n   task service (Todoist, Microsoft To Do, CalDAV, Apple Reminders).\n2. Enter the identifiers; for Google or Microsoft, sign in via **Connect Google** or\n   **Connect Microsoft** and for Google **Select Google Calendar** or\n   **Select Google Tasks list**. The target selection is saved as a setup draft.\n3. **Check accesses**: The diagnostic only reads and creates nothing.\n4. Check the draft and take it.",
+  "title": "Additional targets (Calendars and task lists)"
+ },
+ {
+  "id": "konten-verwalten/aendern-deaktivieren-und-entfernen",
+  "path": [
+   "Manage accounts",
+   "Change, deactivate, and remove"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "| Task | Path | Effect |\n| --- | --- | --- |\n| Change mailbox setting | Mailbox page, select tab, **Review draft**, **Take draft** | between mail cycles or after restart |\n| Remove mailbox | Mailbox page, **Remove mailbox**, confirm | is removed from the configuration; no longer retrieved after restart |\n| Temporarily switch off mailbox | in `config.yaml` `enabled: false` for the mailbox | after restart |\n| Remove target profile | Target profile page, **Remove profile** | only possible when no mailbox uses it anymore (“Used by: …”) |\n| Change, deactivate, or remove IServ account | IServ page; the change is saved as a draft | after explicit taking of the draft and restart |\n| Renew credentials | **Settings → Credentials** | Diagnostics immediately, email retrieval after restart |",
+  "title": "Change, deactivate, and remove"
+ },
+ {
+  "id": "konten-verwalten/wenn-etwas-nicht-klappt",
+  "path": [
+   "Manage accounts",
+   "If something does not work"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Konten-verwalten.md",
+  "text": "| Situation | Next Stage |\n| --- | --- |\n| “There are already … Mailboxes set up.” | Remove or change an existing Mailbox |\n| Check reports incorrect login credentials | Username is usually the full Address; with two-factor protection use an app password |\n| Folder missing | Enter the folder name exactly as the server reports it; the check shows the found list |\n| Target unreachable | **Check access**; for Google or Microsoft, renew the sign-in |\n| Target profile cannot be removed | First assign Mailboxes listed under “Used by” to another profile |",
+  "title": "If something does not work"
+ },
+ {
+  "id": "ziele-einrichten/kalender-und-aufgaben-verbinden",
+  "path": [
+   "Connect Calendar and Tasks"
+  ],
+  "setting_ids": [
+   "targets.removal_window_minutes"
+  ],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "Verified for Mailhelp 7.2; provider documentation compared on 11 and 16 November 2026. A **target profile** determines into which calendar and which task list\nconfirmed proposals of a mailbox are entered. Profile 1 is the `targets` section\nfrom initial setup; additional profiles are managed in **Settings → Target profiles**. An\n**account** is the access at the provider (credentials in `.env`), the calendar or\nlist ID the specific target within this account.\n\nMailhelp writes only after your explicit confirmation of exactly the displayed\nproposal version and then checks each entry with a fresh retrieval.\nCreated entries can be removed again within the deadline (by default 10 minutes, `targets.removal_window_minutes`)\nvia web or Telegram, provided the target allows safe removal:\nGoogle Calendar, Outlook, Todoist and CalDAV calendars. For Microsoft To Do, CalDAV tasks,\nApple Reminders and Google Tasks, Mailhelp does not offer removal; even a direct command is\nrejected. Please edit such entries at the provider.",
+  "title": "Connect Calendar and Tasks"
+ },
+ {
+  "id": "ziele-einrichten/anbieter-und-ihre-faehigkeiten",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Providers and their capabilities"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "| Provider | Role | Access (`.env`) | Identifier | What is checked | Limits |\n| --- | --- | --- | --- | --- | --- |\n| Google Calendar | Calendar | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` | Calendar ID or `primary` | Title, times, all-day, location, description | Redirect URI must be entered in the Google Console |\n| Todoist | Tasks | `TODOIST_TOKEN` | Project ID | Title, description, due date, project | Changes and cancellations only for events |\n| Outlook | Calendar | `MICROSOFT_CLIENT_ID`, optional `MICROSOFT_CLIENT_SECRET`, sign-in via device code | Calendar or `default` | like Google | Cancellations delete the event |\n| Microsoft To Do | Tasks | like Outlook | List or `default` (\"Tasks\") | Title, description, due date day | only day-accurate, no time |\n| Notion (7.2) | Tasks | `NOTION_TOKEN` (internal connection) | Data source ID and property IDs | Title, description, deadline | without a status field, no detection of done pages; no removal |\n| Google Tasks (7.2) | Tasks | like Google Calendar; sign-in with Google Tasks permission | List ID or `@default` (first list) | Title, notes, due date day | only day-accurate; an exact deadline is in the text; no removal |\n| CalDAV | Calendar and Tasks | `CALDAV_USERNAME`, `CALDAV_PASSWORD` (app password) | Address of the collection | Resource with UID, fields, status | Recurring events are never changed |\n| Apple Reminders | Tasks (via CalDAV) | like CalDAV (iCloud app password) | Address of the list | like CalDAV | lists switched to new iCloud reminders are not reachable via CalDAV |\n| Calendar file | Calendar (via Telegram) | – | – | not checkable | whether the file was imported, Mailhelp cannot know |",
+  "title": "Providers and their capabilities"
+ },
+ {
+  "id": "ziele-einrichten/google-kalender",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Google Calendar"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "1. Under **Settings → Credentials**, store the Client ID and Client Secret of the\n   web application client; the **Google redirect URI (web application client)**\n   must be entered in the Google Cloud Console.\n2. Select **Connect Google**, consent in the Google window, and **Complete Google sign-in**.\n3. **Select Google Calendar** and take the desired calendar.\n4. **Check accesses**.\n\nAlternatively without a web application client: [Google: OAuth Playground guide](Google-OAuth-Playground.md).\n\nFor an external Google project with publishing status “Testing”, the refresh token\ncan expire after seven days. Then renew the sign-in and check the project status.",
+  "title": "Google Calendar"
+ },
+ {
+  "id": "ziele-einrichten/google-tasks",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Google Tasks"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "1. In the Google project, enable the **Google Tasks API**. If it is off, **Check access**\n   reports exactly that.\n2. Select `google_tasks` as the task service and enter the **Google Tasks list** (`@default`\n   for the first list of the account or the ID of a list).\n3. Run **Connect Google** again: the sign-in now additionally requests the permission for\n   Google Tasks (`https://www.googleapis.com/auth/tasks`). Already granted Calendar permissions remain.\n   On a computer, this also works with `mailhelp --google-auth --config-directory .`; the\n   sign-in requests exactly the permissions that the profile uses.\n4. Open **Select Google Tasks list** in the setup or in the target profile, select the desired\n   existing list and **Save as draft**. Mailhelp reads all available pages.\n   On a read error, the selection is aborted.\n5. Review the setup draft, **Check access**, and take the Settings.\n\nThe list selection creates a versioned draft. The first Task then requires the explicit confirmation of its suggestion version. Preview and Telegram show “Google Tasks adopts the Date; the exact Deadline is in the text.”.\n\nGoogle Tasks stores only a day for a Task, no time. Mailhelp enters the confirmed day in the configured time zone and additionally writes an exact Deadline into the text, for example `Frist: 12.05.2026, 18:00 Uhr (Europe/Berlin)`. There is no time-exact reminder from Google for this. Without a Deadline, the Date remains empty.",
+  "title": "Google Tasks"
+ },
+ {
+  "id": "ziele-einrichten/notion",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Notion"
+  ],
+  "setting_ids": [
+   "web.notion_redirect_uri"
+  ],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "Mailhelp creates a page in a Notion data source for each confirmed task. You set up the table yourself; Mailhelp does not create data sources or properties.\n\n1. In Notion, create a database with these properties: Title, Description (Text), Deadline (Date), Source (URL), Process (Text), and optionally Status (Status, Select, or Checkbox).\n2. In Notion, create an internal connection with the capabilities Read content and Insert content, and share the database with this connection.\n3. Store the token as `NOTION_TOKEN` (additional profiles: `NOTION_2_TOKEN`, etc.). Alternatively, a public connection: store `NOTION_CLIENT_ID` and `NOTION_CLIENT_SECRET`, enter the redirect URI `web.notion_redirect_uri` in Notion, and under **Settings → Target profiles** select **Connect Notion**. Mailhelp stores the rotating tokens in `notion-token.json` next to `.env` and remains bound to the selected workspace.\n4. Under **Settings → Target profiles**, select **Select Notion data source**; the data sources shared for the connection are displayed. Then **Map Notion properties**: for each field, a property of the matching type and optionally the status field with the option for new pages and the options that count as done. Both are saved as a draft and applied like any settings change. Then set the task service to Notion. Alternatively, the IDs can be entered directly in `config.yaml` (see `config.example.yaml`).\n5. **Check access**: Mailhelp reads the schema and reports a missing property or an incorrect type. Mailhelp does not create a test page.\n\nIf a property is later missing or its type changes, Mailhelp blocks new creations until the mapping is correct again; it is also checked directly before each creation. Without a status field, Mailhelp cannot recognize done Notion tasks.",
+  "title": "Notion"
+ },
+ {
+  "id": "ziele-einrichten/todoist",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Todoist"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "1. Store the API token from the Todoist settings under **Settings → Credentials** as\n   `TODOIST_TOKEN`.\n2. Enter the **Todoist project ID** (from the project address in the browser).\n3. **Check access**.",
+  "title": "Todoist"
+ },
+ {
+  "id": "ziele-einrichten/outlook-und-microsoft-to-do",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Outlook and Microsoft To Do"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "1. Store `MICROSOFT_CLIENT_ID` (app registration with “Allow public client flows”).\n2. **Connect Microsoft**, **Start sign-in**, take the displayed code with **Copy code** and enter it at Microsoft. On the computer, this also works with\n   `mailhelp --microsoft-login --config-directory .`.\n3. Enter the **Outlook Calendar ID** or the **Microsoft To Do list** (`default` for the\n   default calendar or the “Tasks” list) and **Check access**.",
+  "title": "Outlook and Microsoft To Do"
+ },
+ {
+  "id": "ziele-einrichten/caldav-und-apple-erinnerungen",
+  "path": [
+   "Connect Calendar and Tasks",
+   "CalDAV and Apple Reminders"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "1. Store `CALDAV_USERNAME` and `CALDAV_PASSWORD`; for iCloud, use an app password.\n2. Enter the **CalDAV calendar address** or **CalDAV task address** as the full address of the\n   collection.\n3. **Check access**: Mailhelp checks in read-only mode whether the address is a calendar collection and accepts the\n   matching entry type.",
+  "title": "CalDAV and Apple Reminders"
+ },
+ {
+  "id": "ziele-einrichten/ziel-sicher-wechseln",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Switch target safely"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "A changed target applies to new Proposals. Proposals already displayed remain bound to the target for which they were created; after a target switch, Mailhelp locks their creation and requires a new confirmation. A target profile can only be removed when no Mailbox uses it anymore. Instructions for assignment: [Manage accounts](Konten-verwalten.md).",
+  "title": "Switch target safely"
+ },
+ {
+  "id": "ziele-einrichten/gepruefte-anbieterquellen",
+  "path": [
+   "Connect Calendar and Tasks",
+   "Verified provider sources"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Ziele-einrichten.md",
+  "text": "Review date: November 11, 2026. This is a review of the setup instructions against official\ndocuments; no real accounts were connected and no external entries were created.\n\n- Google: [Calendar permissions](https://developers.google.com/workspace/calendar/api/auth)\n  and [OAuth including refresh token expiration](https://developers.google.com/identity/protocols/oauth2).\n- Google Tasks (November 16, 2026): [Task resource with date limit and field lengths](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks)\n  as well as [List with pages and done tasks](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/list)\n  and [read existing task lists](https://developers.google.com/workspace/tasks/reference/rest/v1/tasklists/list).\n- Notion (November 16, 2026): [API version 2026-03-11](https://developers.notion.com/reference/versioning),\n  [Create page in a data source](https://developers.notion.com/reference/post-page),\n  [Query data source](https://developers.notion.com/reference/query-a-data-source) and\n  [Error codes](https://developers.notion.com/reference/status-codes).\n- Todoist: [personal API token and API](https://developer.todoist.com/).\n- Microsoft: [Device code sign-in](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code)\n  and [Graph permissions](https://learn.microsoft.com/en-us/graph/permissions-reference).\n- CalDAV using Nextcloud as an example: [Collection address and app password with two-factor protection](https://docs.nextcloud.com/server/latest/user_manual/en/groupware/sync_windows10.html).\n- Apple: [App passwords](https://support.apple.com/en-gb/102654) and\n  [Change of iCloud Reminders](https://support.apple.com/en-us/102457).\n  Mailhelp uses the existing CalDAV/VTODO adapter; this does not imply support\n  for the new iCloud Reminders lists. This limitation remains explicitly in place.",
+  "title": "Verified provider sources"
+ },
+ {
+  "id": "bedienung/alltagsbedienung",
+  "path": [
+   "Everyday operation"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "Tested for Mailhelp 7.0. What to do in everyday operation: review and decide on Proposals, read Mails,\nanswer follow-up questions, and track the State of entries.",
+  "title": "Everyday operation"
+ },
+ {
+  "id": "bedienung/offene-entscheidungen",
+  "path": [
+   "Everyday operation",
+   "Open decisions"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "**Open** shows all proposals that need a decision. Each card names kind (task\nor event), title, times, target and the evidence from the email. On large screens the\nlist is on the left and the selected proposal on the right; the `A` key creates the selected proposal.\nThe **Source evidence** (the email with attachments) is expanded immediately from 1024 px width, on\nnarrower screens initially collapsed; its heading names the sender and number of images.\n\nAbove the list are the quick filters and below them search, sort order and grouping.\nThe search finds proposal titles, subject and sender. The number in the heading then reads\nsomething like “4 of 12”. The sort order offers “Newest email first” (default, by receipt at\nMailhelp), “Oldest email first” and “Next event / next deadline first”; entries without a date\nare at the end. “Group by what is needed” divides into “Question needed”, “Ready to\nconfirm” and “Further check needed”. All settings are in the address and remain on\nreload; “Reset” shows everything again. The bar only changes the display.\n\n| Button | Effect |\n| --- | --- |\n| **Add as task** / **Add to calendar** | creates exactly this version immediately (no undo) |\n| **Dismiss** | no creation |\n| **Already done** | mark as done, no creation |\n| **Send answer** | answers a question or changes fields (“Title: …”, “Location: …”) |\n| **End editing** | discards a started change |\n| **Repeat duplicate check** | after a failed check for existing entries |\n| **Create again** | only after a question, if the same entry was already created earlier |\n\nThe bottom navigation remains on the phone even when scrolling at the visible\nscreen edge. The safe distance to the Home indicator remains clear. Via “More”\namong other things Status and Settings can be reached.",
+  "title": "Open decisions"
+ },
+ {
+  "id": "bedienung/wischen-auf-dem-telefon",
+  "path": [
+   "Everyday operation",
+   "Open decisions",
+   "Swiping on the phone"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "On release, the final finger position counts. Pulled to the right or left beyond the threshold, it triggers the displayed action; normal scrolling and a swipe canceled by the browser send nothing.\n\nOn a smartphone and tablet, you swipe right to create an Event or a Task, and left to Dismiss a suggestion. The card follows your finger even diagonally. **To the right** creates (or “Relevant”), **to the left** dismisses (or “Irrelevant”). Below the card are the icon and wording of the action. From about 40 % of the card width, it is triggered on release. A short, fast swipe is also enough if it covers at least half the distance and continues in the same direction. Steeper pulling continues scrolling the list; a swipe from the screen edge remains reserved for the system gesture.\n\nWithout triggering, the card springs back. When triggered, it flies to a narrow Result strip. This shows “Processing …” and is replaced by the server result. If the server rejects, the card returns with the error message. If the response is interrupted, the status check remains active; Mailhelp sends nothing again.\n\nIf a suggestion first needs clarification, a lock appears on the right. There the card moves like a rubber band; on release, a hint states the reason. Dismissing remains possible. Unsent text blocks both directions until you send the reply or empty the field. Input fields and horizontally scrolling areas keep their controls. A normal tap on the title, link, or button still works. Mouse and wide screens from 1024 px do not use the gesture.\n\nOn first visit, a fully visible, decidable card moves gently once after a short pause. This does not trigger an action. The line below explains the directions. “×” (Close hint) or the first successful swipe ends both on this device; a hint already closed earlier remains closed. With “Reduce motion” in the system, there is no demonstration, tilt, or flight animation. The card still follows the finger directly. Without JavaScript, the forms and buttons remain the complete operating path.\n\nOn the phone, you read the title and sender/Time before the actions. The numbers for “Open decisions” and “Open” update after the decision, even with set filters. After the last decision, “All done” appears. Filter chips fading to the right can be pushed further sideways; the active filter is kept visible when opening. Explanations about relevance can be found under “What do these decisions mean?”.",
+  "title": "Swiping on the phone"
+ },
+ {
+  "id": "bedienung/rueckfragen-und-widersprueche",
+  "path": [
+   "Everyday operation",
+   "Follow-up questions and contradictions"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "For changes or cancellations of an existing event, the button is called **Update existing\nevent** or **Cancel event**. If a change matches multiple events, you use “This event means: …” to select the right one.\n\nIf another email brings different fields for the same event or the same task, the follow-up question names both values and their origin, for example “Contradiction for the end time:\npreviously 16:30, according to email “Parents' evening” from 08.11. 19:30. Which end time should apply?”.\nBoth values are shown side by side on the card. A button such as “Keep 18:30”\nor “Take 20:30” sets the value with one click and creates a new version; it is only created once you confirm this\nversion. For a completely different value, you change the suggestion or reply freely.\nIn Telegram, the same values appear in the message and as buttons below.",
+  "title": "Follow-up questions and contradictions"
+ },
+ {
+  "id": "bedienung/vorschlagsabgleich",
+  "path": [
+   "Everyday operation",
+   "Proposal review"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "If Mailhelp holds two Proposals for the same thing or an Email brings additional Fields for an existing Proposal, you decide in the **Proposal review** (`/abgleich`):\n\n- **Add to this entry:** Adds the Fields from one Proposal to the existing entry. No second entry is created; you then confirm the supplemented Proposal under Open.\n- **Keep as a separate proposal:** Both remain separate Proposals under Open.\n- **Adopt permanent acceptance:** Remembers a fixed assignment rule for future Proposals.\n\nIf Mailhelp has submitted the assignment itself for review, the recommended button is highlighted.",
+  "title": "Proposal review"
+ },
+ {
+  "id": "bedienung/nach-dem-anlegen",
+  "path": [
+   "Everyday operation",
+   "After creation"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "Mailhelp retrieves every written entry fresh from the provider:\n\n| Display | Meaning |\n| --- | --- |\n| Saved – entry being verified | written, verification retrieval running |\n| Created and verified | the provider shows the entry with the confirmed fields |\n| Entry not yet confirmed | not findable or retrieval not possible; the reason is stated |\n| Entry present, fields differ | Table “Confirmed / At the provider” |\n| Calendar file provided – transfer to the calendar not verifiable | file sent via Telegram |\n\n**Check again** reads only once more; Mailhelp never changes, repairs, or repeats a\ncreation.",
+  "title": "After creation"
+ },
+ {
+  "id": "bedienung/angelegte-eintraege-wieder-entfernen",
+  "path": [
+   "Everyday operation",
+   "After creation",
+   "Remove created entries again"
+  ],
+  "setting_ids": [
+   "targets.removal_window_minutes"
+  ],
+  "source": "docs/en/Bedienung.md",
+  "text": "If you accidentally confirmed a suggestion or the occasion no longer applies, you can delete the entry from the calendar or task list again within a deadline (by default 10 minutes after creation, configurable via `targets.removal_window_minutes`):\n\n- **Web interface:** On the result card (“Your action”) and on the suggestion detail page, the **Remove entry again** button appears during the deadline. It leads to a confirmation page that shows title, time and target. With **Really remove entry**, the entry is deleted at the provider; **Cancel** returns without changes. After the deadline expires, the direct link to the provider (“Open in calendar” or “Open task”) appears instead.\n- **Telegram:** Under the message “✅ Created …”, the **Remove again** button appears. A click asks for confirmation (“Really remove: …?” with “Yes, remove” and **Cancel**).\n- **Security:** If the entry at the provider has meanwhile been changed manually (e.g. by a family member), Mailhelp refuses deletion in order to protect third-party changes.\n- **History:** A removed suggestion is marked in the History and under “Recently done” as **Removed again** and does not count as accepted in the acceptance rate.",
+  "title": "Remove created entries again"
+ },
+ {
+  "id": "bedienung/mails-nachlesen-und-verlauf",
+  "path": [
+   "Everyday operation",
+   "Read Mails and History"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "**Mails** lists all processed Mails. The email page shows “This is how this email was processed” with each stage and its result. If Mailhelp overlooked something, **Task or Event overlooked?** starts a targeted re-analysis (**Analyze again**, limited by a daily limit). You take new findings with **Take result** as unconfirmed proposals; **Cancel re-analysis** ends a running one.\n\nIn **History** you find every change and decision with its version. You can filter by terms, Status and Kind, under **More filters** also by Event and Time range.",
+  "title": "Read Mails and History"
+ },
+ {
+  "id": "bedienung/lernmodus-lernfunktion",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "The learning mode helps set up topics and filters: Mailhelp reads a selection of existing\nMails, classifies them freely and suggests topics, exclusion topics, senders to ignore\nand additional retrieval folders from them. It only reads: The mailbox is not changed, and no\nEvents or Tasks are created. Only what you explicitly confirm is applied.\n\nAll learning functions are under **Learning** (`/lernen`). The learning overview shows three cards with\npurpose, current state and metrics: **Learn from Mailbox** (the learning run below),\n**Learn from decisions** (improve rules from your previous decisions, see\n[Learn from decisions](#aus-entscheidungen-lernen)) and **Proposals** (measure acceptance rate by Kind, topic and sender, see [Measure and improve acceptance rate](#annahmequote-messen-und-verbessern)). Opening the overview or a\ncard starts nothing and costs nothing. The topics themselves are managed under Settings → Topics.",
+  "title": "Learning mode (learning function)"
+ },
+ {
+  "id": "bedienung/lernlauf-in-der-weboberflaeche-starten",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Start learning run in the web interface"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "1. In the navigation under **Administration**, open the **Learning** page (`/lernen`) and\n   select “Open learning from mailbox” (`/lernen/postfach`). The overview does not start anything.\n2. Under **New learning run**, in the “1. Mailbox and folders” stage, select the **Mailbox** and\n   select **Load folders**. Check the saved folders of this mailbox; additional\n   folders are possible under **Additional folders (one name per line)**. Loading does not start\n   a mail retrieval and works without JavaScript. In the “2. Scope” stage, specify the\n   **Number of mails** (1–1000, preset 20).\n3. In the “3. Costs and budget” stage, specify **Price cap USD per million tokens** and **Budget USD**. The price cap is\n   your assumption; check current model prices including output and reasoning yourself.\n4. Select **Show estimate**. Mailhelp states the typical estimate and the worst\n   case in tokens and USD. If the budget is not sufficient, the required minimum amount is shown there.\n   Mailbox, folders, number, price, and budget remain in the form. The listed\n   models come from the configuration; the price cap remains your manual assumption.\n5. Select **Start read-only learning run (chargeable)**. For 20 mails, depending on the model,\n   a budget of about 1 USD is typically sufficient.\n\nDuring the run, the page shows “Running: … mails checked, … errors”. You control it with **Pause**,\n**Resume**, and **Cancel**. The budget is checked before every AI call;\nthe run stops before it would be exceeded. If the configuration has been changed since the start,\nthe run cannot be resumed; a new learning run replaces it.",
+  "title": "Start learning run in the web interface"
+ },
+ {
+  "id": "bedienung/ergebnis-pruefen-und-uebernehmen",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Check and take result"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "After the run, **Topics, exclusions and evidence** show per suggestion the title, description, the\nevidence from the Mails and the senders:\n\n- **Takeover:** **Do not take**, **Topic** (relevant, `topics.yaml`) or **Exclusion topic**\n   (irrelevant, `irrelevant_topics.yaml`).\n- **For all mailboxes** takes the topic globally instead of only for the selected mailbox.\n- **Ignore senders for exclusion topic** additionally sets the senders for an exclusion topic\n   to the list of ignored senders (`irrelevant-senders.json`).\n- **Save selection as draft** remembers the decision per suggestion.\n\nUnder **Additional retrieval folders** you select folders that will also be retrieved in the future\n(**Save folder selection**). Only **Explicitly take selected topics, filters and folders**\nwrites everything together into the configuration; **Dismiss** discards the result.\nAfterwards select **Reload configuration** so that email retrieval uses the new topics.",
+  "title": "Check and take result"
+ },
+ {
+  "id": "bedienung/lernmodus-im-terminal-und-einstellungen",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Learning Mode in the Terminal and Settings"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "learning.parallel_llm_calls"
+  ],
+  "source": "docs/en/Bedienung.md",
+  "text": "Alternatively, the learning mode runs interactively in the terminal. This command reads 20 Mails and prompts for the topics one after another:\n\n```sh\nmailhelp --learn 20 --mailbox 1 --config-directory .\n```\n\nWith multiple mailboxes, `--mailbox NUMMER` or `--mailbox alle` is required. In Docker, `compose.learn.yaml` with writable configuration is provided for this.\n\nUnder **Settings → AI and Statistics**, `learning.parallel_llm_calls` (simultaneous AI calls in learning mode, default 4) and `learning.decision_llm_content` are available for this.",
+  "title": "Learning Mode in the Terminal and Settings"
+ },
+ {
+  "id": "bedienung/lernbestand",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Learning data"
+  ],
+  "setting_ids": [
+   "learning.decision_llm_content",
+   "retention.decision_learning_days"
+  ],
+  "source": "docs/en/Bedienung.md",
+  "text": "Regardless of the learning mode, Mailhelp stores every manual decision about a suggestion with Email, AI results, original and decided suggestion in the learning data (`data/<Betriebsart>/learning/decisions.jsonl`). It is the material for [Learning from decisions](#aus-entscheidungen-lernen); Mailhelp does not thereby change its topics or decisions independently, but only after your approval and confirmation. Complete AI requests and responses are added only with `learning.decision_llm_content`. Retention is governed by `retention.decision_learning_days` (default unlimited).",
+  "title": "Learning data"
+ },
+ {
+  "id": "bedienung/aus-entscheidungen-lernen",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Learning from decisions"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "You can find rule learning under Learning: choose “Open learning from decisions”\n(`/lernen/entscheidungen`). The\ntopic management (Settings → Topics) also links to this page. This function uses the\ndecisions already logged; it does not retrieve any Mails. The function requires the\nprompt block `decision_rule_learning` in `prompts.yaml`. For older installations, take the block\nfrom the supplied example and reload the prompt configuration as usual.\n\n1. Under “Which decisions?” choose: **Only new decisions since the last analysis**\n   (default, at most 100) or **All previous usable decisions** (at most 500,\n   more evidence and higher costs). The current count is shown behind each option. If there are no\n   new ones, choose “All previous”. Read the note about data transfer and possible costs. Choose only after checking the\n   explicit approval “Analyze decisions”. Limited excerpts and\n   corrections are transmitted to the active AI provider. Without approval, no call is made.\n2. After completion, read the summary at the top; the links jump to the individual\n   Proposals. It also states how many similar rejections were sent to the AI\n   only as a count. In each card, “Previous rule and proposal” shows only the changed fields;\n   new and removed examples are marked with “+ new” and “− removed”, unchanged fields\n   are opened by “Show unchanged fields”. “Decision evidence” lists Subject, Decision and Date; the\n   excerpt opens with “Show excerpt”. A rejected Task does not automatically make\n   its Email irrelevant; “already done” remains a positive example.\n3. Change name, Description, examples, exclusions and activation as needed. Examples\n   and exclusions are listed individually, one per line. Existing topic IDs and mailbox areas remain\n   stable. Optionally, under “Edit complete topic YAML (optional)”, enter a complete\n   topic; this then replaces the field values.\n4. In each card, under “Decision on this proposal”, choose **Apply**, **Dismiss – do not\n   propose again** or **Leave open** (default). The bar at the bottom counts\n   how many are applied and how many are dismissed. Choose **Review selected changes**. The separate\n   comparison **Review edited changes** shows exactly your field or YAML changes.\n   Only there, check **Explicitly confirm selected rule changes** and\n   choose **Apply reviewed changes**. “Continue editing” opens editing;\n   then review again. A new review state replaces the previous one. Without a selection or\n   with invalid YAML/schema, nothing is applied. The entries remain for correction. For externally\n   changed files, resolve the conflict and start a new analysis of the current state.\n5. For “Analysis failed”, the cause is shown below. After “truncated at output\n   limit”, Mailhelp has already made a second, reduced attempt. Try again later\n   or choose “Only new decisions”. The AI log shows the token usage and length of the truncated response for this.\n6. For interrupted writing after login, explicitly confirm “Complete application”.\n   Mailhelp checks all files again and completes only the already approved local\n   change. It does not start a new AI call and does not overwrite third-party changes.\n7. The review view lists dismissed Proposals under “Will be dismissed and not proposed\n   again”. If only Proposals are dismissed, the button is called **Dismiss proposals**;\n   no rule file is changed. “Leave open” saves nothing – a later run may bring the\n   proposal again. At the bottom of the page, “Show previously dismissed proposals” lists all\n   blocked Proposals with Date and change; **Allow again** lifts the block.\n   During the next analysis, Mailhelp tells the AI which changes you rejected. If\n   it still proposes the same change, Mailhelp hides it; the summary states how many\n   Proposals were hidden this way. The AI may nevertheless bring a differently worded rule with the same meaning again – then simply dismiss it again.\n\nNew analyses apply relevant rules at the next safe processing point. The\nexclusion topics keep their previous meaning in learning/decision test mode; for\nnormal mail analyses, the relevant topics and their exclusions apply. Existing\nCalendar entries and Tasks are not changed by rule learning. A new analysis\nreplaces a still open review draft; a restart does not repeat a running AI analysis.",
+  "title": "Learning from decisions"
+ },
+ {
+  "id": "bedienung/annahmequote-messen-und-verbessern",
+  "path": [
+   "Everyday operation",
+   "Learning mode (learning function)",
+   "Measure and improve the acceptance rate"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "Under **Learning → Proposals** (`/lernen/vorschlaege`), Mailhelp measures how many proposals you accept and how many you dismiss. The Statistics help you identify where incorrect proposals arise and how to avoid them in a targeted way.\n\n1. **Metrics and Statistics:** Three tiles show the overall acceptance rate, for Tasks and for Events. Below them follow the history per calendar week, sortable tables by topic and by sender, and a breakdown of dismissal reasons. The time range can be filtered via the dropdown (e.g. 30, 90 days or Entire time range).\n2. **Reasons for dismissals:** After dismissing a proposal (on the web on the result card or in Telegram), Mailhelp optionally asks “Dismissed. Why?”. Five fixed reasons are available: “Does not concern me”, “For information only”, “Advertising or newsletter”, “Misrecognised (date, content)” and “Other reason”. The field is never mandatory; Dismiss remains a single step. One click saves the reason, which flows into Statistics and as a feature into rule learning.\n3. **Sender notices:** If a sender causes a conspicuously high number of incorrect proposals (at least 5 decided proposals in 90 days with an acceptance rate of no more than 10%), a notice appears on the Statistics page and the result card. “View” opens a preview of all stored Mails from this sender with accepted proposals marked. By pressing a button, the Address can be added to the sender prefilter after explicit confirmation. “Do not suggest again” hides the notice; previously dismissed notices can be allowed again at any time in the overview.\n4. **Notice about rule learning run:** If at least 20 new dismissals have occurred since the last rule learning run, Mailhelp recommends a new learning run at the top of “Open” and “Learning” in order to refine your topic rules. The notice appears at most once per week and can be paused for seven days with “Hide”.",
+  "title": "Measure and improve the acceptance rate"
+ },
+ {
+  "id": "bedienung/absender-regeln-und-vorfilter",
+  "path": [
+   "Everyday operation",
+   "Sender rules and prefilter"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "Under **Settings → Sender rules** (`/einstellungen/absender`) you specify which Mails Mailhelp classifies already before every AI call. As of 7.7, there are three kinds:\n\n- **Ignore:** Mails are classified as irrelevant without an AI call and without notification – for an Address (`newsletter@shop.de`), a Domain with all subdomains (`shop.de`), a Pattern with `*` (`no-reply@*`), or a Subject (`Automatische Antwort:`).\n- **VIP – always relevant:** Mails count as relevant without a relevance check, even if a block matches. The Events and Tasks from them still require your confirmation; a VIP only saves the relevance check.\n- **Exception only:** lifts any block for a sender without making them a VIP. Previous Mailbox Exceptions are listed here and can be converted with “Make VIP”.\n\nYou first check a new rule with **Check matches**: Mailhelp counts how many of the last 200 Mails it would have matched, and warns for Domains of large email providers. Only then does **Save rule** appear. Each rule shows matches and last match and can be switched off and on again.\n\nOn an Email you find next to the sender **Ignore sender**, “Ignore domain …” (with the name of the Domain) and **Mark as VIP**. If Telegram asks whether an Email is relevant, the button 🚫 **Always ignore sender** ignores the sender in future; **Undo** only removes this rule again. Which rule classified an Email is shown under “How this Email was processed”.\n\nThe **Header prefilter** detects automatic system Mails (`Auto-Submitted`, `Precedence`) and newsletters (`List-Id`, `List-Unsubscribe`). Both filters are initially off. In the **Trial**, the AI still decides; Mailhelp only counts how many Mails would have been filtered out. Circulars that you want to keep, you enter as a **Distribution list exception** (e.g. `<eltern.schule.de>`).\n\n**Learning → Proposals** suggests new rules from your decisions: senders whose Mails the AI repeatedly classified as irrelevant, and senders whose Mails always led to confirmed Proposals. **Statistics** shows in the “Prefilter” section how many relevance checks were omitted, and estimates the savings from the real checks in the same Time range.",
+  "title": "Sender rules and prefilter"
+ },
+ {
+  "id": "bedienung/bedienung-auf-dem-telefon",
+  "path": [
+   "Everyday operation",
+   "Operation on the phone"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "On the phone, only the Quick filters are at the top; **Search and sort** expands Search, Sort order and grouping. The bar at the bottom leads to **Open**, **Mails**, **Review** and **History**; **Status** and the remaining areas are under **More**.\n\nOn phone and tablet, you can decide cards with swipe gestures (see [Swiping on the phone](#wischen-auf-dem-telefon)).",
+  "title": "Operation on the phone"
+ },
+ {
+  "id": "bedienung/sprache",
+  "path": [
+   "Everyday operation",
+   "Language"
+  ],
+  "setting_ids": [
+   "language"
+  ],
+  "source": "docs/en/Bedienung.md",
+  "text": "The “English” or “Deutsch” link at the end of the navigation changes the interface language for\nthis browser. The language cookie retains the choice for one year. Without a saved choice, Mailhelp\nuses the supported browser language with the highest quality weight, then `language` from\n`config.yaml`. The web interface, Help, JavaScript messages and offline pages support both languages.\nOriginal emails and user-written text retain their wording. Normal email analysis continues to use\nthe configured prompts; changing language does not start another analysis.\n\nOpen `/de/` or `/en/` to choose the demo language before starting. Both corpora contain 30 synthetic\nemails and proposals ready for confirmation. Switching language changes the interface and retains\nyour decisions and current corpus. A confirmed restart loads the corpus in the selected language.\nRestart requires confirmation, affects only your session and invalidates previous forms.\n\n`mailhelp --language en --help` shows English CLI help without configuration or service access.\n`--language` applies to the individual invocation and can also be used with `--demo`.",
+  "title": "Language"
+ },
+ {
+  "id": "bedienung/fehlgeschlagene-mails",
+  "path": [
+   "Everyday operation",
+   "Failed Mails"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "The Status page shows under “Recent errors and action required” which Email is being retried or has been given up. **Failed emails** opens the error list (`/mails?state=failed`): Each row states cause, processing stage, and number of failed attempts and offers **Try again**, **Ignore**, and **Details** directly; after the action you return to the list and see the result. **Try again** starts the continuation at the next retrieval and resets the previous attempts; until then the Email appears in the list as “Retry requested”. **Ignore** (called File until 7.3) ends it as not processed and files it away; the Email remains in the archive and disappears from the error list.\n\nOn the Email page, an error appears at the very top in the “Processing errors” section with stage, cause, recommendation, state of retry, and the same buttons. **Show error report** expands all details: timestamps, field paths, and model call IDs. **Copy report** places the report as text in the clipboard, for example for troubleshooting; it contains no Email text, no addresses, and no access data. In the error list, **Details** opens the same report as a dialog.\n\nAbove the error list are **Try all again** and **Ignore all**. A confirmation page first states the number of affected Mails; only there is the action triggered. Afterwards the list reports how many Mails were queued. Mails that have changed in the meantime or are already queued are skipped. “Try all again” omits Mails without analysis data and already requested retries. Both buttons only change the stored state. A new Event or a Task still requires its own confirmation of the suggestion.",
+  "title": "Failed Mails"
+ },
+ {
+  "id": "bedienung/hilfe-beim-einstellen",
+  "path": [
+   "Everyday operation",
+   "Failed Mails",
+   "Help with Settings"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "The chat icon at the bottom right opens **Settings Help** as a small window over the current Settings page. “Ask about this” adopts the reference for a setting without overwriting an existing question draft. Enter a question and select **Send question**. The answer first appears in short form; **Show detailed answer** displays all steps.\nWhile the answer is being generated, you can search, edit Values, and confirm and save changes. The chat remains open; answers do not reload the Settings page.\n\nSources open in the window; **Back to conversation** returns to the same place in the History. Even after changing pages, reloading, or reopening, the conversation remains at the last-read position; if you read at the very bottom, you see new answers automatically. Drag the header (or focus the title and use the arrow keys) to reveal hidden Settings. Drag at an edge or corner for more space (by keyboard, Shift+Arrow keys on the title); the size is retained when changing pages.\n**Close help chat** hides the window. When reopened, the conversation and draft are still present as long as the session and retention apply. **Clear chat** discards the contents and keeps the window open. Mailhelp automatically saves the unsent question as you type; without JavaScript, new answers appear on the next page load. The chat only explains and does not itself change any data.",
+  "title": "Help with Settings"
+ },
+ {
+  "id": "bedienung/seitenuebersicht",
+  "path": [
+   "Everyday operation",
+   "Failed Mails",
+   "Page overview"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "Lists (history, emails and analytics) have a toolbar at the top: search and the main selectors share a row with the primary action. Additional filters are under **More filters**, together with the number currently active. **Reset** appears when a filter is applied. Filters are included in the address, so bookmarks retain them.\nEmails, history and proposal matching show one row per item: title, sender and time, with a status badge on the right. Click the title to open the email or proposal.\n\n| Page | Contents |\n| --- | --- |\n| **History** | Every change and decision with its version; filter by search, status and type, or by event and period under **More filters** |\n| **Briefing** | Daily overview of open decisions and events |\n| **Topics** | What counts as relevant (Settings → Topics): overview, search and editing with a preview |\n| **Learning** | Learn from the mailbox and improve rules using decisions |\n| **Analytics** | Costs, durations and charts of AI calls |\n| **Status** | Last contact with each service and current stage; click a metric to open the corresponding overview |\n\nOn **Status**, click one of the four metrics to open its entries. **Open proposals** and **Relevance questions** lead to separate overviews with details for each proposal or email. **Failed emails** opens the email archive with the failed filter. **Queued web actions** shows the queue with links to your individual actions. Other sessions are listed without private content. The overview remains accessible with zero entries. “Refresh overview” loads the latest state; opening or refreshing it does not execute any action.\nBelow this is the number of emails Mailhelp has fully processed so far, including irrelevant and duplicate emails. Telegram `/status` starts with the same number. An email is briefly excluded from the count while it is being analysed again.",
+  "title": "Page overview"
+ },
+ {
+  "id": "bedienung/auswertung",
+  "path": [
+   "Everyday operation",
+   "Failed Mails",
+   "Statistics"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "At the top, the key figures are shown as tiles; a click opens the matching calls. The links above them jump to charts, flow, and the table “By model and stage”. On the phone, the charts are collapsed (**History and Distribution** opens them). If no calls were recorded in the time range, only a note is shown there.\n\n**Statistics** shows costs and times of the AI calls for the selected time range. Durations appear in the matching unit, for example `4 Min. 12 s`, `20 Std. 54 Min.` or `3 Tage 4 Std.`; for the summed call duration, the exact seconds are shown in parentheses after it. The summed call duration adds all attempts, including parallel ones, and is not an end-to-end time.\n\nThe cost chart shows a dashed average line and, from 14 days, a 7-day average. The **Call duration** is a scatter plot: each point is a call, crosses are errors, the line is the median per day. **Compute time per processing stage** states the share and duration of each stage; the **email processing flow** shows all stages in their order and marks the longest waiting time; local stages are called “local · not measured”.\n\nEvery Value in the fact table is a link. It opens the call list with the matching preset, for example only the failed calls with their cause, the most expensive, or the longest. Status and sort order can be changed there; “← Back to Statistics” retains the filter. Individual calls are available only for the retention period of the metrics (default 90 days).\n\nMailhelp measures every processing stage, not only the AI calls. The fact table states the **end-to-end time per email** (without the time in which an email waits for your decision; this is shown below). “Time per processing stage” shows how much time each stage actually takes; the flow plan states duration and AI share for each stage (“of which AI”) and marks the longest waiting time. “Preparation in detail” divides preparation into parsing, attachments, and image recognition. A click on a stage under “Slowest runs” shows the slowest emails of this stage. On **Status**, for the running stage, it states how long it usually takes.\n\nMailhelp only places reply drafts in the Drafts folder; it never sends emails.",
+  "title": "Statistics"
+ },
+ {
+  "id": "bedienung/web-push-ab-681",
+  "path": [
+   "Everyday operation",
+   "Web Push from 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "The Settings show nine check levels for the signed-in device. On iOS, open Mailhelp from the Home screen as an installed web app via HTTPS. Turn on Server Push under Setup, enter a valid VAPID contact and restart. Then activate the device. Missing Mailbox channels can be added after an explicit, version-checked preview.\n\nA test push transmits exclusively a fixed neutral type. Provider acceptance and device feedback are separate states; the visible system message must be checked on the device. After a key change or 401/403, reactivate. 429, 5xx and network errors remain repeatable. Own changes and Proposals open before activation do not generate a new push. Save subscriptions, VAPID, activation times and version origin in the persistent data directory. Details: [Release 6.8](archiv/Release-6.8.md).",
+  "title": "Web Push from 6.8.1"
+ },
+ {
+  "id": "fehlerbehebung/fehler-beheben",
+  "path": [
+   "Troubleshooting"
+  ],
+  "setting_ids": [
+   "limits.llm_calls_per_minute"
+  ],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "Reviewed for Mailhelp 7.0. Safe next steps for common problems. None of these steps creates duplicate entries: Mailhelp never repeats a write whose outcome is unclear; it reconciles it with the provider first.\n\n| Situation | Cause | Next step |\n| --- | --- | --- |\n| Mailbox sign-in failed | Incorrect username, password or connection type | Check **Settings → Credentials**; use an app password with two-factor authentication; **Check access** |\n| Folder missing | Folder name differs from the server | Use the discovered folder list on the mailbox page |\n| Google sign-in expired (`token_refresh_denied` in the log) | Refresh token revoked or expired | Run **Connect Google** again |\n| Microsoft sign-in refused | Token expired | **Connect Microsoft** or `mailhelp --microsoft-login` |\n| Provider unreachable | Network problem or provider outage | Wait; Mailhelp retries. **Status** shows the last contact |\n| AI budget exhausted | `limits.llm_calls_per_minute` reached | No action needed: the email will be analysed automatically later |\n| “The message exceeds a safety limit” | Email too large or deeply nested | Raise the `limits` only for trusted emails |\n| Setting “saved – takes effect after a restart” | Not active yet | **Settings → Restart Mailhelp** |\n| Creation not yet verified | Entry not visible at the provider or read access refused | Inspect the entry at the provider, then **Check again** |\n| Unclear write outcome | Provider response was lost | No action needed: Mailhelp reconciles and does not create the entry again |\n| Target changed, creation blocked | Proposal confirmed for a different target | Restore the original target or confirm the new proposal |\n| “Shutdown not performed” or “Restart not performed” | Confirmation belongs to an earlier startup or is incomplete | Confirm again on the same page; if that fails, stop Mailhelp in its terminal with Ctrl+C |\n| “Mailhelp is already running …” | Second startup using the same data directory | Stop the running instance |\n| Forgotten web password | – | On the host, run `mailhelp --reset-web-password --config-directory .` |",
+  "title": "Troubleshooting"
+ },
+ {
+  "id": "fehlerbehebung/mail-wird-wiederholt-nicht-verarbeitet",
+  "path": [
+   "Troubleshooting",
+   "Email repeatedly fails to process"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "The status page lists affected emails with the start time, stage, attempt count and next attempt. “Abandoned” means Mailhelp has suspended automatic processing. Open the email and fix the cause first. “Retry” resets the attempt count and waiting period. “Ignore” deliberately ends processing; the email stays visible in the archive as unprocessed and no longer counts as requiring attention.\nThis cannot restore analysis data already removed; in that case only Ignore is available. Both actions are also available directly in the error list (`/mails?state=failed`). Neither creates events or tasks.",
+  "title": "Email repeatedly fails to process"
+ },
+ {
+  "id": "fehlerbehebung/analyse-daten-nach-aufbewahrung-entfernt",
+  "path": [
+   "Troubleshooting",
+   "Analysis data removed by retention"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "“Action detection cannot be resumed – analysis data removed by retention” means a completed email has a failed action-detection stage whose required analysis results have since been removed. Mailhelp ends automatic resumption once, with `resume_abandoned`. The email remains visible in the archive under the failed filter. If you want it analysed again, explicitly start a reanalysis.",
+  "title": "Analysis data removed by retention"
+ },
+ {
+  "id": "fehlerbehebung/web-passwort-zuruecksetzen",
+  "path": [
+   "Troubleshooting",
+   "Resetting the web password"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "1. Stop the running service cleanly; the reset command requires exclusive access to the data directory.\n2. On the host, run `mailhelp --reset-web-password --config-directory .` in the configuration directory. This deletes the existing password hash and signs out all web sessions; it does not generate a new password.\n3. While the service is stopped, run `mailhelp --pair --config-directory .` and keep the one-time terminal code ready. Restart the service and sign in with this code.\n4. After successful sign-in, explicitly set a new web password at `/einstellungen/web-passwort` if desired. Never enter the code or password in the help chat.",
+  "title": "Resetting the web password"
+ },
+ {
+  "id": "fehlerbehebung/diagnose",
+  "path": [
+   "Troubleshooting",
+   "Diagnostics"
+  ],
+  "setting_ids": [
+   "logging.directory"
+  ],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "**Settings → Check connections** tests each connection without writing and gives a result and recommended action per service. **Check everything (self-test)** on the same page tests all components. The diagnostic report contains no credentials. Logs are in the log directory (`logging.directory`); AI request contents are logged only when explicitly enabled.",
+  "title": "Diagnostics"
+ },
+ {
+  "id": "fehlerbehebung/hilfschat-im-einstellungsfenster",
+  "path": [
+   "Troubleshooting",
+   "Help chat in the settings window"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "The window stays open while searching or saving. If it is in the way, drag its header, or focus the title and use the arrow keys. Only **Close help chat** hides it; **Clear chat** removes the conversation. If an answer does not appear, reload the page. Do not resend a question because you changed pages: Mailhelp shows the existing job.\n\nIf browser storage is blocked, Mailhelp saves the window state on the local server before navigation. If that fails, the page retains the draft; check your connection and try again. Without JavaScript, an unsent question is not retained when changing pages. If “crypto.randomUUID is not a function” appears (Mailhelp over `http://` on the home network before 5.5), update to 5.5; since then Mailhelp can generate keys without a secure context. Sign in again after logout or session expiry; a new session does not inherit old private chat data from browser state.",
+  "title": "Help chat in the settings window"
+ },
+ {
+  "id": "fehlerbehebung/web-push-ab-681",
+  "path": [
+   "Troubleshooting",
+   "Web Push from 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Fehlerbehebung.md",
+  "text": "Settings shows nine check stages for the signed-in device. On iOS, open Mailhelp from the Home Screen as an installed web app over HTTPS. Enable server push under Setup, enter a valid VAPID contact and restart. Then enable the device. Missing mailbox channels can be added after an explicit, version-checked preview.\n\nA test push transmits only a fixed neutral type. Provider acceptance and device feedback are separate states; check the actual system notification on the device. Enable the device again after a key change or 401/403. Errors 429, 5xx and network failures remain retryable. Your own changes and proposals already open before activation do not trigger a new push. Back up subscriptions, VAPID, activation times and version provenance in the persistent data directory. Details: [Release 6.8](archiv/Release-6.8.md).",
+  "title": "Web Push from 6.8.1"
+ },
+ {
+  "id": "betrieb/betrieb-und-update",
+  "path": [
+   "Operation and updates"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Reviewed for Mailhelp 7.0.",
+  "title": "Operation and updates"
+ },
+ {
+  "id": "betrieb/wiederkehrende-verarbeitungsfehler",
+  "path": [
+   "Operation and updates",
+   "Recurring processing errors"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Mailhelp tries the same failure for an email at most five times. The intervals are 1 minute, 5 minutes, 30 minutes and 2 hours. After that, the email remains stored and is no longer picked up automatically. Permanent errors are abandoned immediately. Provider rate limits apply only their own waiting period. Status shows the stage, start, attempt count and next attempt. Telegram reports abandonment once, with a link to the email if the web interface is enabled.\n\n`logging.verbose: false` reduces routine lines: unchanged folder counts hourly, one completion per Telegram poll, and web requests only on errors or when taking over a second. The first stack trace stays complete; repeats appear every 15 minutes with a counter. “Verbose log” enables individual messages after a restart; full LLM contents still require their own switches. The synthetic daily limit is 2 MB with unchanged rotation limits.\n\nNew state files contain optional retry fields. Before returning to an older version, these must be removed compatibly from the current state. Never blindly replace later confirmed write outcomes with an old backup.",
+  "title": "Recurring processing errors"
+ },
+ {
+  "id": "betrieb/starten-pruefen-beenden",
+  "path": [
+   "Operation and updates",
+   "Starting, checking and stopping"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "| Command or page | Effect |\n| --- | --- |\n| `mailhelp --check --config-directory .` | Validates configuration without network access |\n| `mailhelp --check-access --config-directory .` | Checks all access without writing |\n| `mailhelp --config-directory .` | Starts the service |\n| **Settings → Restart Mailhelp** | Controlled restart; saved changes take effect |\n| **Settings → Stop Mailhelp** | Stops the service |\n\nOnly one instance runs per data directory. **Reload configuration** changes connections without restarting the process.",
+  "title": "Starting, checking and stopping"
+ },
+ {
+  "id": "betrieb/speichern-aktivieren-neuladen-und-neustart",
+  "path": [
+   "Operation and updates",
+   "Saving, activating, reloading and restarting"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "| Step | What happens | When it takes effect |\n| --- | --- | --- |\n| Save | After the preview (“Review”), a changed setting is written to `config.yaml`. The page says “saved” until it takes effect. | – |\n| Apply during operation | Mailhelp automatically applies settings such as polling intervals, retention, metrics, personal information, notifications, event durations, proposal matching, drafts and briefings. | At the next safe point, without a restart |\n| Activate | Mailboxes, IServ accounts and target profiles are saved as drafts on their pages and activated only after another explicit confirmation (**Apply draft**, **Check connection and activate mailbox**). | Between two mailbox cycles |\n| Reload configuration | **Explicitly reload configuration** applies topics, prompts, mailboxes, credentials and target profiles after unfinished analyses are complete. | At the next safe point, without restarting the process |\n| Restart | **Restart Mailhelp** shuts down the service cleanly and starts it again; all other saved settings, web access and data-directory changes take effect. | Immediately after the restart |\n\nSaving or activating never creates tasks or events; that always requires explicit confirmation of a proposal.",
+  "title": "Saving, activating, reloading and restarting"
+ },
+ {
+  "id": "betrieb/demo-instanz",
+  "path": [
+   "Operation and updates",
+   "Demo instance"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "`mailhelp --demo --config-directory <leeres Verzeichnis>` starts a demo with 30 prepared sample emails, without a mailbox, Telegram, AI or real targets. Each visitor gets a private copy for two hours through “Start demo”; confirmations are simulated only. Port and hostnames: `MAILHELP_DEMO_PORT`, `MAILHELP_DEMO_HOST`, `MAILHELP_DEMO_ALLOWED_HOSTS`. The demo refuses directories belonging to normal installations, and vice versa.\n\nStarts are limited to 5 per client and 60 overall per hour. Behind your own reverse proxy, set `MAILHELP_DEMO_TRUST_PROXY=1` so the client address comes from `X-Forwarded-For` (last entry; the proxy must append its peer address, as nginx, Caddy and Traefik do). Do not set the variable without a proxy, or visitors could bypass the limit with an invented header. Visitors answer clarification questions only with prepared example answers and reset their own copy through “Restart demo”. The demo automatically removes expired copies.",
+  "title": "Demo instance"
+ },
+ {
+  "id": "betrieb/demo-im-docker-container",
+  "path": [
+   "Operation and updates",
+   "Demo instance",
+   "Demo in a Docker container"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "```sh\nMAILHELP_DEMO_ALLOWED_HOSTS=demo.example.org docker compose -f compose.demo.yaml up -d --build\n```\n\n`compose.demo.yaml` starts the same image entry point with `--demo` and a separate `demo-daten` volume. It does not mount the normal instance’s `.env`, `config.yaml`, data or logs. Both instances run independently, including simultaneously. The `mailhelp-demo` network is internal, so the container cannot reach the internet. This is the second protective layer: the demo does not construct clients for mailboxes, Telegram, AI or targets in the first place.\n\nThe HTTPS proxy for the demo subdomain joins `mailhelp-demo` and forwards to `mailhelp-demo:8765`. An internal network cannot publish a port on the host. If the proxy runs on the host (for example Tailscale Serve), the service needs a normal network with `127.0.0.1:<Port>:8765`; a firewall rule for the demo network then blocks outbound traffic (on Linux in the `DOCKER-USER` chain). Keep `MAILHELP_DEMO_TRUST_PROXY` set only while the proxy is the container’s sole point of access.\n\nTo reset the entire demo, stop its container and delete the `demo-daten` volume. At the next startup the directory is empty and receives a new marker.",
+  "title": "Demo in a Docker container"
+ },
+ {
+  "id": "betrieb/sicherung",
+  "path": [
+   "Operation and updates",
+   "Backups"
+  ],
+  "setting_ids": [
+   "data_directory"
+  ],
+  "source": "docs/en/Betrieb.md",
+  "text": "For a consistent backup, stop the service cleanly first. Copy the files only after it has fully stopped, then start Mailhelp again.\n\nBack up `config.yaml`, `.env`, `prompts.yaml`, topic files, the data directory (`data_directory`, readable JSON state files) and, if needed, the log directory. `.env` contains credentials and must be kept private.",
+  "title": "Backups"
+ },
+ {
+  "id": "betrieb/update",
+  "path": [
+   "Operation and updates",
+   "Updating"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Restart the service after installing a new version. Stylesheets and scripts are read at startup. Each page references the correct content hash for every file, even when an older service worker handles the initial request.\n\n1. Stop Mailhelp. This is mandatory on Windows, which otherwise locks the executable.\n2. Back up configuration, `.env`, prompts, topics and the data directory (see Backups).\n3. Fetch the new version and install it in the same virtual environment: `python -m pip install -r requirements.lock` and `python -m pip install --no-deps -e .`.\n4. Run `mailhelp --check --config-directory .`, then start the service.\n\nNew settings use their defaults without rewriting your `config.yaml`. New prompt stages are not silently inserted into a custom `prompts.yaml`; the corresponding release report explains how to adopt them.",
+  "title": "Updating"
+ },
+ {
+  "id": "betrieb/aufbewahrung",
+  "path": [
+   "Operation and updates",
+   "Retention"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Mail content, history, diagnostics, verification records and learning logs follow the periods under `retention`; open items remain protected. Original emails in the mailbox are never deleted.",
+  "title": "Retention"
+ },
+ {
+  "id": "betrieb/rueckkehr-zur-vorversion",
+  "path": [
+   "Operation and updates",
+   "Returning to an older version"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Before returning to a version older than 5.2.0, stop the service and run `mailhelp --prepare-rollback --config-directory .`. See the release report for the relevant version for details.",
+  "title": "Returning to an older version"
+ },
+ {
+  "id": "betrieb/web-push-ab-681",
+  "path": [
+   "Operation and updates",
+   "Web Push from 6.8.1"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Settings shows nine check stages for the signed-in device. On iOS, open Mailhelp from the Home Screen as an installed web app over HTTPS. Enable server push under Setup, enter a valid VAPID contact and restart. Then enable the device. Missing mailbox channels can be added after an explicit, version-checked preview.\n\nA test push transmits only a fixed neutral type. Provider acceptance and device feedback are separate states; check the actual system notification on the device. Enable the device again after a key change or 401/403. Errors 429, 5xx and network failures remain retryable. Your own changes and proposals already open before activation do not trigger a new push. Back up subscriptions, VAPID, activation times and version provenance in the persistent data directory. Details: [Release 6.8](archiv/Release-6.8.md).",
+  "title": "Web Push from 6.8.1"
+ }
+]

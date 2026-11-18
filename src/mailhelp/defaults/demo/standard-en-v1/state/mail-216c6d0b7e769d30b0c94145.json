@@ -1,0 +1,323 @@
+{
+  "action_route": {
+    "action_state": "task",
+    "event_count": 0,
+    "reason": "The library asks Alex to return Mia's copy of The Secret Garden by 2026-11-30. This is a concrete action with a deadline, not a calendar event.",
+    "reply_needed": false,
+    "reply_reason": null,
+    "task_count": 1
+  },
+  "action_router_call_id": "f2f0cefc-f6cc-4297-81ec-27e041d7f349",
+  "analysis_round": 1,
+  "awaiting_relevance": false,
+  "config_fingerprint": "2dd75913b455ed71b35c2ee1b61c5703bdd2ce89915d7bdecbf85e4930483c1a",
+  "created_at": "2026-11-17T21:40:04.033414Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Maple Park school library <library@maple-park-school.example>",
+    "subject": "Please return Mia's library book"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": null,
+  "extraction_count_conflicts": [],
+  "forwarded_headers": null,
+  "id": "216c6d0b7e769d30b0c94145",
+  "imap": {
+    "account_id": "7dd71995bcad890030cfa19b",
+    "folder": "INBOX",
+    "uid": 30,
+    "uidvalidity": 1
+  },
+  "is_forwarding": false,
+  "list_signals": {
+    "auto_submitted": "",
+    "list_id": "",
+    "list_unsubscribe": false,
+    "precedence": ""
+  },
+  "llm_call_ids": [
+    "3464408d-db8b-44ca-bccd-1eb5cfd1547b",
+    "78050cbd-a7c8-40f9-bc45-46e60d62884a",
+    "f2f0cefc-f6cc-4297-81ec-27e041d7f349",
+    "cd445c01-c834-4cdc-8c95-7b2a74dd34ba"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Mon, 16 Nov 2026 08:10:00 +0100",
+    "date_header_parsed": "2026-11-16T08:10:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Mon, 16 Nov 2026 08:10:00 +0100",
+      "from": "Maple Park school library <library@maple-park-school.example>",
+      "in_reply_to": "",
+      "message_id": "<10-library-return@demo.mailhelp.example>",
+      "references": "",
+      "reply_to": "",
+      "subject": "Please return Mia's library book"
+    },
+    "imap_received_at": "2026-11-16T08:10:00+01:00",
+    "internal_id": "216c6d0b7e769d30b0c94145",
+    "message_ids": [
+      "<10-library-return@demo.mailhelp.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false,
+      "vision": "completed"
+    },
+    "text": "Dear Alex,\nPlease return Mia's copy of The Secret Garden to the Maple Park school library by 2026-11-30. The book is still checked out to Mia.\nYour school librarian",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Return Mia's copy of The Secret Garden to the Maple Park school library.\n\nAbsender: Maple Park school library <library@maple-park-school.example>\nBetreff: Please return Mia's library book\nMail-Datum: 2026-11-16T08:10:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C10-library-return@demo.mailhelp.example%3E)",
+      "due": "2026-11-30",
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Please return Mia's copy of The Secret Garden to the Maple Park school library by 2026-11-30.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_07f64b4afc00f7cd03130b45",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C10-library-return@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "216c6d0b7e769d30b0c94145",
+      "sources": [],
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": {
+        "normalized_date": "2026-11-30",
+        "raw_text": "2026-11-30",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Return Mia's library book",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "prefilter_rule": null,
+  "processing_filed": false,
+  "processing_operation": null,
+  "processing_retry": null,
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_07f64b4afc00f7cd03130b45",
+      "proposal_version": 1,
+      "status": "queued"
+    }
+  ],
+  "proposal_policy": {
+    "event_defaults": {
+      "in_person_duration_minutes": 180,
+      "video_duration_minutes": 60
+    },
+    "mail_link_kind": "apple_mail",
+    "mailbox_id": 1,
+    "matching_policy": "f6f4ea4858c60f0354d93b265f98174045db84390dccdd4dbb6b3abbee7ffe9c",
+    "max_semantic_candidates": 8,
+    "normalization_version": "2.4-v1",
+    "schema_version": 1,
+    "target_profile": 1,
+    "targets": {
+      "caldav_calendar_url": "",
+      "caldav_task_url": "",
+      "calendar_provider": "google",
+      "google_calendar": "primary",
+      "google_tasks_list": "@default",
+      "microsoft_tenant": "common",
+      "microsoft_todo_list": "default",
+      "notion_data_source_id": "",
+      "notion_done_statuses": [],
+      "notion_open_status": "",
+      "notion_properties": {
+        "description": "",
+        "due": "",
+        "operation_key": "",
+        "source": "",
+        "status": "",
+        "title": ""
+      },
+      "outlook_calendar": "default",
+      "removal_window_minutes": 10,
+      "task_provider": "todoist",
+      "todoist_project": "example-project"
+    }
+  },
+  "proposals": [
+    {
+      "all_day": false,
+      "base_title": null,
+      "calendar_candidates": [],
+      "canonical_ref": null,
+      "certainty": "certain",
+      "classification": "new",
+      "confirmed_web_actor": "web:unverified-legacy",
+      "created_at": null,
+      "default_duration_minutes": null,
+      "description": "Return Mia's copy of The Secret Garden to the Maple Park school library.\n\nAbsender: Maple Park school library <library@maple-park-school.example>\nBetreff: Please return Mia's library book\nMail-Datum: 2026-11-16T08:10:00+01:00\n📧 [Original-E-Mail öffnen](message://%3C10-library-return@demo.mailhelp.example%3E)",
+      "due": "2026-11-30",
+      "duplicate_check_failed": false,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "end_origin": "unknown",
+      "evidence": "Please return Mia's copy of The Secret Garden to the Maple Park school library by 2026-11-30.",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "field_conflicts": [],
+      "id": "p_07f64b4afc00f7cd03130b45",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "mail_link": "message://%3C10-library-return@demo.mailhelp.example%3E",
+      "matching_candidates": [],
+      "meeting_mode": "unknown",
+      "merge_review_required": false,
+      "open_questions": [],
+      "original_date": null,
+      "pending_sources": [],
+      "protected_fields": [],
+      "reconciliation_journal": null,
+      "reject_reason": null,
+      "resolution": null,
+      "responsibility": "user",
+      "schema_version": 3,
+      "separated_from": [],
+      "series_key": null,
+      "simulation_notified": false,
+      "source_mail_id": "216c6d0b7e769d30b0c94145",
+      "sources": [
+        {
+          "anchors": [
+            "9f5cd4927271c77cc2ecc0276bfd6ec874d780d25fe7f929613eae9629a3f5dd"
+          ],
+          "mail_id": "216c6d0b7e769d30b0c94145",
+          "proposal_id": "p_07f64b4afc00f7cd03130b45",
+          "sent_at": "2026-11-16T08:10:00+01:00",
+          "subject": "please return mia's library book"
+        }
+      ],
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "example-project",
+      "target_event_id": null,
+      "target_profile": 1,
+      "target_provider": "todoist",
+      "temporal_fact": {
+        "normalized_date": "2026-11-30",
+        "raw_text": "2026-11-30",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Return Mia's library book",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "self_mail": false,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "auto_draft": "skipped",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "skipped",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "completed"
+  },
+  "summary": {
+    "deadlines": [
+      "2026-11-30"
+    ],
+    "sentences": [
+      "The Maple Park school library asks Alex to return Mia's copy of The Secret Garden by 2026-11-30 because it is still checked out to Mia."
+    ]
+  },
+  "task_extraction": {
+    "schema_version": 1,
+    "tasks": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "description": "Return Mia's copy of The Secret Garden to the Maple Park school library.",
+        "due_text": "2026-11-30",
+        "evidence": "Please return Mia's copy of The Secret Garden to the Maple Park school library by 2026-11-30.",
+        "responsibility": "user",
+        "title": "Return Mia's library book"
+      }
+    ]
+  },
+  "updated_at": "2026-11-17T21:40:09.736848Z",
+  "user_note": null,
+  "validation_errors": [],
+  "write_attempts": []
+}

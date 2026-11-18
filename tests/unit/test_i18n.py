@@ -20,11 +20,21 @@ def _literal_calls() -> set[str]:
     found: set[str] = set()
     for path in PACKAGE.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"tr", "de"} and node.args:
-                # Also the alternatives of a conditional argument: tr("A" if x else "B").
-                found.update(item.value for item in ast.walk(node.args[0])
-                             if isinstance(item, ast.Constant) and isinstance(item.value, str))
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                    and node.func.id in {"tr", "de", "msg"} and node.args:
+                found.update(_message_literals(node.args[0]))
     return found
+
+
+def _message_literals(node: ast.AST) -> set[str]:
+    """Actual possible message ids, excluding predicates and technical lookup keys."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return {node.value}
+    if isinstance(node, ast.IfExp):
+        return _message_literals(node.body) | _message_literals(node.orelse)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return {left + right for left in _message_literals(node.left) for right in _message_literals(node.right)}
+    return set()
 
 
 def _placeholders(text: str) -> set[str]:
@@ -35,16 +45,19 @@ def test_every_literal_text_has_an_english_entry_with_the_same_placeholders():
     missing = sorted(text for text in _literal_calls() if text not in EN)
     assert missing == []
     assert [key for key, value in EN.items() if _placeholders(key) != _placeholders(value)] == []
+    assert [key for key in EN for _literal, name, _spec, _conversion in string.Formatter().parse(key)
+            if name and not name.isidentifier()] == []
 
 
 def test_every_shown_label_has_an_english_entry():
-    from mailhelp.review.cards import CERTAINTY, CLASSIFICATION, QUESTION_DISPLAY, RESPONSIBILITY
     from mailhelp.proposals.conflicts import _LABELS
+    from mailhelp.review.cards import CERTAINTY, CLASSIFICATION, QUESTION_DISPLAY, RESPONSIBILITY
     from mailhelp.review.filters import FILTERS
     from mailhelp.review.reject_reasons import REJECT_REASONS
     from mailhelp.review.views import STATUS_LABELS
     from mailhelp.web.open_toolbar import SORTS
-    from mailhelp.web.review_pages import FULL_TEXT, KINDS as CARD_KINDS, VISION_LABELS
+    from mailhelp.web.review_pages import FULL_TEXT, VISION_LABELS
+    from mailhelp.web.review_pages import KINDS as CARD_KINDS
     shown = {*STATUSES.values(), *KINDS.values(), *RESPONSIBILITY.values(), *CERTAINTY.values(),
              *CLASSIFICATION.values(), *QUESTION_DISPLAY.values(), *STATUS_LABELS.values(), *FILTERS.values(),
              *SORTS.values(), *REJECT_REASONS.values(), *CARD_KINDS.values(), *VISION_LABELS.values(),
@@ -59,6 +72,18 @@ def test_german_is_the_reference_and_english_falls_back_to_it():
         assert tr("Noch nicht übersetzt") == "Noch nicht übersetzt"
         assert tr("unbekannt ({value})", value="x") == "unknown (x)"
     assert tr("unbekannt ({value})", value="x") == "unbekannt (x)" and LOCALE.get() == Locale.DE
+
+
+def test_interface_wording_overrides_are_scoped_and_leave_parameters_unchanged():
+    from mailhelp.i18n import stored
+    with pytest.raises(RuntimeError), use_locale(Locale.EN, wording={"Simulieren": "In der Demo anlegen"}):
+        assert tr("Simulieren") == "Create in demo"
+        assert stored("Simulieren") == "Create in demo"
+        assert tr("unbekannt ({value})", value="Simulieren") == "unknown (Simulieren)"
+        with use_locale(Locale.DE):
+            assert tr("Simulieren") == "In der Demo anlegen"
+        raise RuntimeError("reset")
+    assert tr("Simulieren") == "Simulieren"
 
 
 @pytest.mark.parametrize(("cookie", "accept", "default", "expected"), [
@@ -76,6 +101,21 @@ def test_negotiation_takes_the_choice_then_the_browser_then_the_configuration(co
 def test_parse_accepts_regional_variants_only_of_supported_languages():
     assert parse("EN-us") == Locale.EN and parse(" de ") == Locale.DE
     assert parse("fr") is None and parse(None) is None and parse("") is None
+    assert all(parse(value) is None for value in ("en-", "en--US", "de-!", "en-<script>"))
+    assert parse("en-001") == Locale.EN
+
+
+@pytest.mark.parametrize(("header", "expected"), [
+    ("de;q=0.2,en;q=0.9", Locale.EN),
+    ("en;q=0,de;q=0.5", Locale.DE),
+    ("en;q=bad,de;q=0.3", Locale.DE),
+    ("de;q=0.5,en;q=0.5", Locale.DE),
+    ("fr;q=1,en-GB;q=0.8", Locale.EN),
+    ("en;q=1.001,de;q=1", Locale.DE),
+    ("en;q=0,de;q=0", Locale.DE),
+])
+def test_negotiation_honors_supported_language_quality(header, expected):
+    assert negotiate(None, header, Locale.DE) == expected
 
 
 def test_labels_and_badges_follow_the_language():
@@ -83,6 +123,22 @@ def test_labels_and_badges_follow_the_language():
         assert label(KINDS, "event") == "Event" and label(STATUSES, "zzz") == "unknown (zzz)"
         assert ">Needs clarification<" in status_badge("needs_clarification")
     assert label(KINDS, "event") == "Termin"
+
+
+def test_owned_labels_translate_when_rendered_but_keep_canonical_identity():
+    import json
+    from mailhelp.i18n import msg
+    label = msg("Offen")
+    assert label == "Offen" and hash(label) == hash("Offen")
+    with use_locale(Locale.EN):
+        assert str(label) == "Open" and f"{label}" == "Open"
+        assert format(label, ">6") == "  Open"
+        assert json.dumps({"label": label}) == '{"label": "Offen"}'
+        assert {label: "canonical"}["Offen"] == "canonical"
+        assert str("Offen") == "Offen"  # a user's identical text is not a UI label
+        assert label + ": Offen" == "Open: Offen"
+        assert "Offen: " + label == "Offen: Open"
+    assert str(label) == "Offen"
 
 
 def test_the_page_frame_and_navigation_switch_language():

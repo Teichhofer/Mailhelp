@@ -50,6 +50,8 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Planung 7.6](Planung-7.6.md), [Release 7.6](Release-7.6.md) | Klärungsfreie Demo-Vorschläge und Flow-Optimierung |
 | [Planung 7.7](Planung-7.7.md), [Release 7.7](Release-7.7.md) | Vorfilter-Regeln und VIP-Absender |
 
+| [Planung 7.8](Planung-7.8.md), [Release 7.8](Release-7.8.md) | Vollständige Lokalisierung und englische Demo |
+
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),
 [Nutzungsbedingungen](../NUTZUNGSBEDINGUNGEN.md).

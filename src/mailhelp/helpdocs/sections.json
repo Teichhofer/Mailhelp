@@ -1342,7 +1342,7 @@
    "language"
   ],
   "source": "docs/Bedienung.md",
-  "text": "Am Ende der Navigation wechselt der Link „English“ beziehungsweise „Deutsch“ die Sprache der\nOberfläche für diesen Browser; die Wahl bleibt gespeichert. Ohne Wahl gilt die Sprache des Browsers\noder die Einstellung `language`. Seit 7.5.1 sind Navigation und Statusbezeichnungen übersetzt, die\nübrigen Seiten folgen. Die Auswertung der Mails läuft unabhängig davon auf Deutsch.",
+  "text": "Am Ende der Navigation wechselt der Link „English“ beziehungsweise „Deutsch“ die Sprache der\nOberfläche für diesen Browser; die Wahl bleibt ein Jahr im Sprachcookie gespeichert. Ohne Wahl\ngilt die unterstützte Browsersprache mit dem höchsten Qualitätsgewicht, danach `language` aus\n`config.yaml`. Weboberfläche, Hilfe, JavaScript-Meldungen und Offline-Seiten sind zweisprachig.\nOriginalmails und selbst vergebene Texte behalten ihren Wortlaut. Die normale Mailanalyse verwendet\nweiter die konfigurierten Prompts; ein Sprachwechsel löst keine neue Analyse aus.\n\nDie Demo lässt sich über `/de/` oder `/en/` bereits vor dem Start auswählen. Beide Bestände enthalten\n30 synthetische Mails und ausschließlich bestätigungsbereite Vorschläge. Eine Sprachumschaltung\nübersetzt die Oberfläche und erhält deine Entscheidungen und den bisherigen Beispielsatz.\nErst der bestätigte Neustart lädt den Beispielsatz der gewählten Sprache. Der Neustart zeigt eine\nBestätigung und betrifft ausschließlich deine Sitzung; alte Formulare werden danach abgewiesen.\n\n`mailhelp --language en --help` zeigt die englische CLI-Hilfe ohne Konfiguration oder Dienstzugriff.\n`--language` gilt für den einzelnen Aufruf und kann auch mit `--demo` verwendet werden.",
   "title": "Sprache"
  },
  {

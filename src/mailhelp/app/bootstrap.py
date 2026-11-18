@@ -10,6 +10,7 @@ from typing import Any
 
 from ..config import Settings, WebSettings
 from ..config.loader import _dotenv
+from ..i18n import tr
 from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
 from ..runtime.initial_setup import InitialSetup
@@ -86,8 +87,8 @@ def run_initial_setup(directory: Path, shutdown: Any, *, emit: Callable[[str], N
         server.start()
         worker = oauth.start_worker()
         try:
-            emit(f"Mailhelp-Ersteinrichtung: http://localhost:{port}/anmelden")
-            emit(f"Authentifizierungscode: {auth.issue_code()} – 10 Minuten gültig, einmal verwendbar.")
+            emit(tr("Mailhelp-Ersteinrichtung: http://localhost:{port}/anmelden", port=port))
+            emit(tr("Authentifizierungscode: {code} – 10 Minuten gültig, einmal verwendbar.", code=auth.issue_code()))
             stopped.wait()
         finally:
             stopped.set()

@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..domain.proposal import ProposalKind, ProposalStatus
-from ..i18n import stored, tr
+from ..i18n import msg, stored, tr
 from ..review.calendar_display import change_parts
 from ..review.cards import sender_name
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
@@ -41,7 +41,6 @@ _STATE_BADGE = {
 }
 
 
-
 def https_link(value: str | None) -> str | None:
     """The value if it is an absolute https URL, else None."""
     if not value:
@@ -51,11 +50,13 @@ def https_link(value: str | None) -> str | None:
 
 
 def _fact(icon: str, text: str, label: str) -> str:
-    return (f'<li data-fact="{e(label)}"><span class="icon" aria-hidden="true">{icon}</span>'
-            f'<span><span class="visually-hidden">{tr(label)}: </span>{text}</span></li>')
+    return (
+        f'<li data-fact="{e(label[:])}"><span class="icon" aria-hidden="true">{icon}</span>'
+        f'<span><span class="visually-hidden">{tr(label)}: </span>{text}</span></li>'
+    )
 
 
-FULL_TEXT = {"Beschreibung": "Beschreibung vollständig anzeigen", "Beleg": "Beleg vollständig anzeigen"}
+FULL_TEXT = {"Beschreibung": msg("Beschreibung vollständig anzeigen"), "Beleg": msg("Beleg vollständig anzeigen")}
 
 
 def _expandable(short: str, full: str, label: str, quote: bool) -> str:
@@ -71,25 +72,31 @@ def _expandable(short: str, full: str, label: str, quote: bool) -> str:
 def _card_facts(card: Any) -> list[str]:
     facts = []
     if card.when:
-        facts.append(_fact("🕒", e(card.when), "Zeit"))
+        facts.append(_fact("🕒", e(card.when), msg("Zeit")))
     if card.due:
-        facts.append(_fact("🕒", tr("Fällig: {due}", due=e(card.due)), "Frist"))
+        facts.append(_fact("🕒", tr("Fällig: {due}", due=e(card.due)), msg("Frist")))
     if card.target_hint:
-        facts.append(_fact("ℹ️", e(card.target_hint), "Aufgabenziel"))
+        facts.append(_fact("ℹ️", e(card.target_hint), msg("Aufgabenziel")))
     if card.location:
-        facts.append(_fact("📍", e(card.location), "Ort"))
+        facts.append(_fact("📍", e(card.location), msg("Ort")))
     if card.video_link:
         link = https_link(card.video_link)
         text = (f'<a href="{e(link)}" rel="noopener noreferrer" target="_blank">{e(link)}</a>'
                 if link else e(card.video_link))
-        facts.append(_fact("🔗", text, "Videolink"))
+        facts.append(_fact("🔗", text, msg("Videolink")))
     return facts
 
 
 def _metadata(card: Any) -> list[str]:
-    return [f'<span class="badge warn">{tr(prefix)}: {e(value)}</span>'
-            for value, prefix in ((card.responsibility, "Zuständig"), (card.certainty, "Sicherheit"),
-                                  (card.classification, "Einordnung")) if value]
+    return [
+        f'<span class="badge warn">{tr(prefix)}: {e(value)}</span>'
+        for value, prefix in (
+            (card.responsibility, msg("Zuständig")),
+            (card.certainty, msg("Sicherheit")),
+            (card.classification, msg("Einordnung")),
+        )
+        if value
+    ]
 
 
 def _card_labels(view: ProposalView, *, metadata: bool = True) -> list[str]:
@@ -170,7 +177,12 @@ def _diff_box(view: ProposalView) -> str:
 
 
 # 5.0.7: every kind has a stripe colour, a symbol and a text; colour is never the only mark.
-KINDS = {"event": "📅 Termin", "task": "✅ Aufgabe", "change": "🔄 Terminänderung", "cancel": "🚫 Terminabsage"}
+KINDS = {
+    "event": msg("📅 Termin"),
+    "task": msg("✅ Aufgabe"),
+    "change": msg("🔄 Terminänderung"),
+    "cancel": msg("🚫 Terminabsage"),
+}
 
 
 def card_kind(view: ProposalView) -> str:
@@ -186,9 +198,12 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                   detail_link: bool = True) -> str:
     card = view.card
     event = card.kind == ProposalKind.EVENT
-    description = (_expandable(card.description, card.description_full or card.description,
-                               "Beschreibung", False) if card.description else "")
-    evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
+    description = (
+        _expandable(card.description, card.description_full or card.description, msg("Beschreibung"), False)
+        if card.description
+        else ""
+    )
+    evidence = _expandable(card.evidence, card.evidence_full, msg("Beleg"), True)
     kind = card_kind(view)
     metadata = " ".join(_metadata(card))
     context = (f'<details class="card-context"><summary class="context-label">{tr("Beschreibung und Beleg")}</summary>'
@@ -267,6 +282,7 @@ def _proposal_items(views: tuple[ProposalView, ...], actions: Actions | None) ->
 
 Section = tuple[str, tuple[RelevanceView, ...], tuple[ProposalView, ...]]
 
+
 # Not a .notice: it is no result message. app.js moves it below the first card it explains, so the first
 # decision stays in the upper 60 % of a phone window (6.2.8).
 def swipe_hint(first_is_relevance: bool = False) -> str:
@@ -294,9 +310,15 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     under their own headings; *no_match* is shown when a search or filter leaves nothing.
     """
     count = count if count is not None else str(len(overview.open) + len(overview.relevance))
-    parts = [page_head(tr("Offene Entscheidungen"), tr("Arbeitsbereich"),
-                       tr("Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen."),
-                       count=f' <span class="count">{e(count)}</span>'), before]
+    parts = [
+        page_head(
+            tr("Offene Entscheidungen"),
+            msg("Arbeitsbereich"),
+            tr("Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen."),
+            count=f' <span class="count">{e(count)}</span>',
+        ),
+        before,
+    ]
     if message:
         parts.append(notice(message, message_kind))
     if overview.damaged:
@@ -313,21 +335,11 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
             items.append(f"<h2>{tr('Relevanz klären')}</h2>")
             items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
         if overview.open:
-            items.append(f"<h2>{tr('Vorschläge')}</h2>")
+            items.append(f"<h2>{msg('Vorschläge')}</h2>")
             items.extend(_proposal_items(overview.open, actions))
     if items:
-        first_is_relevance = False
-        if sections is not None:
-            for _heading, relevance_views, views in sections:
-                if relevance_views:
-                    first_is_relevance = True
-                    break
-                if views:
-                    break
-        elif overview.relevance:
-            first_is_relevance = True
         # 6.3: app.js shows the swipe tip once on touch screens; without JavaScript there is no gesture.
-        parts.append(swipe_hint(first_is_relevance))
+        parts.append(swipe_hint(_first_is_relevance(overview, sections)))
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
     if not overview.open and not overview.relevance and no_match is not None:
@@ -347,14 +359,25 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     return layout(tr("Offen"), "\n".join(parts) + after, active="/", fingerprint=overview.fingerprint)
 
 
+def _first_is_relevance(overview: Overview, sections: list[Section] | None) -> bool:
+    if sections is None:
+        return bool(overview.relevance)
+    for _heading, people, views in sections:
+        if people:
+            return True
+        if views:
+            return False
+    return False
+
+
 VISION_LABELS = {
-    "read": "Per Bilderkennung gelesen",
-    "no_text": "Bild ohne lesbaren Text",
-    "failed": "Bilderkennung fehlgeschlagen",
-    "skipped_small": "Übersprungen (Symbol oder Logo)",
-    "skipped_limit": "Übersprungen (Bildlimit je Mail)",
-    "skipped_oversized": "Übersprungen (Bild zu groß)",
-    "skipped_unreadable": "Bild nicht lesbar",
+    "read": msg("Per Bilderkennung gelesen"),
+    "no_text": msg("Bild ohne lesbaren Text"),
+    "failed": msg("Bilderkennung fehlgeschlagen"),
+    "skipped_small": msg("Übersprungen (Symbol oder Logo)"),
+    "skipped_limit": msg("Übersprungen (Bildlimit je Mail)"),
+    "skipped_oversized": msg("Übersprungen (Bild zu groß)"),
+    "skipped_unreadable": msg("Bild nicht lesbar"),
 }
 
 
@@ -362,11 +385,11 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
     """The complete stored mail as text; links in it stay plain text."""
     if mail is None:
         return ""
-    facts = [("Von", mail.sender), ("Betreff", mail.subject)]
+    facts = [(msg("Von"), mail.sender), (msg("Betreff"), mail.subject)]
     if mail.mailbox:
-        facts.append(("Postfach", mail.mailbox))
+        facts.append((msg("Postfach"), mail.mailbox))
     if mail.received:
-        facts.append(("Datum", mail.received))
+        facts.append((msg("Datum"), mail.received))
     rows = "".join(f"<dt>{tr(label)}</dt><dd>{e(value)}</dd>" for label, value in facts)
     notes = []
     if mail.attachments_omitted:
@@ -383,12 +406,12 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
     att_section = ""
     if mail.extracted_attachments:
         status_labels = {
-            "success": "Text extrahiert",
-            "no_text_found": "Kein Text gefunden",
-            "encrypted": "Verschlüsselt / Passwortgeschützt",
-            "skipped_oversized": "Übersprungen (zu groß)",
-            "error": "Fehler beim Lesen",
-            "unsupported_format": "Nicht unterstütztes Format",
+            "success": msg("Text extrahiert"),
+            "no_text_found": msg("Kein Text gefunden"),
+            "encrypted": msg("Verschlüsselt / Passwortgeschützt"),
+            "skipped_oversized": msg("Übersprungen (zu groß)"),
+            "error": msg("Fehler beim Lesen"),
+            "unsupported_format": msg("Nicht unterstütztes Format"),
         }
         att_items = []
         for position, att in enumerate(mail.extracted_attachments):
@@ -409,7 +432,7 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
             )
             preview = att.preview
             if preview is not None:
-                url = f'/mail/{e(mail.mail_id)}/anhang/{preview.index}'
+                url = '/mail/{p0}/anhang/{p1}'.format(p0=f'{e(mail.mail_id)}', p1=f'{preview.index}')
                 size = f'{max(1, round(preview.size_bytes / 1024))} KB'
                 if preview.width is not None:
                     size = f'{preview.width} × {preview.height} px · {size}'

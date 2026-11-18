@@ -1,0 +1,19 @@
+{
+  "human_decision": null,
+  "mail_id": "0a697b94aff8006adda8c4c2",
+  "recorded_at": "2026-11-17T21:39:50.863654+00:00",
+  "relevance": {
+    "decision": "irrelevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": []
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": null,
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

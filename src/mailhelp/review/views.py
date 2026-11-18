@@ -40,7 +40,7 @@ from ..domain.relevance import RelevanceDialog, RelevanceDialogStatus
 from ..domain.run import MailRunState
 from ..domain.verification import OPERATIONS, VerificationState, WriteVerification, operation_id
 from ..formatting import format_datetime_local
-from ..i18n import current, stored, tr
+from ..i18n import current, msg, stored, tr
 from ..i18n.formatting import number
 from ..persistence.storage import CorruptState, JsonStore
 from ..processing.attachments import AttachmentCache, OriginalFile
@@ -73,6 +73,8 @@ STATUS_LABELS = {
     ProposalStatus.ALREADY_EXISTS: "Bereits vorhanden",
     ProposalStatus.MERGED: "Zusammengeführt",
 }
+# 7.8.1: marked labels are translated wherever they are rendered (also in joins of f-strings and e()).
+STATUS_LABELS = {status: msg(label) for status, label in STATUS_LABELS.items()}
 Model = TypeVar("Model", bound=BaseModel)
 
 

@@ -20,6 +20,29 @@ from tests.fakes.demo_questions import asked_dataset
 CONFIRM = "In der Demo anlegen"
 
 
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test78_demo_confirmation_works_without_javascript(browser, instance, locale):
+    context = browser.new_context(java_script_enabled=False, locale="de-DE", timezone_id="Europe/Berlin")
+    page = context.new_page()
+    try:
+        page.goto(instance.url + "/" + locale + "/")
+        page.get_by_role("button", name="Start demo" if locale == "en" else "Demo starten", exact=True).click()
+        confirm = "Create in demo" if locale == "en" else CONFIRM
+        # Without JavaScript there is no master pane (open-list.js adds it); the cards stand in main.
+        card = page.locator("main article.card").filter(has=page.get_by_role("button", name=confirm, exact=True)).first
+        mail_id = card.locator('input[name="mail_id"]').first.get_attribute("value")
+        token = next(c["value"] for c in context.cookies() if c["name"] == "mh_session")
+        session = instance.runtimes.auth.authenticate(token)
+        area = instance.runtimes.visitors.area(session.id)
+        runtime = instance.runtimes.runtimes[area]
+        subject = runtime.store.peek("mail-" + mail_id)["mail"]["headers"]["subject"]
+        card.get_by_role("button", name=confirm, exact=True).click()
+        assert created(page, instance, subject)
+        expect(page.locator("html")).to_have_attribute("lang", locale)
+    finally:
+        context.close()
+
+
 class Log:
     def event(self, *args, **kwargs):
         return None
@@ -60,7 +83,7 @@ def serve(tmp_path):
 
 def start_demo(page, instance):
     page.goto(f"{instance.url}/anmelden")
-    expect(page.get_by_role("heading", name="Gerät koppeln")).to_be_visible()
+    expect(page.get_by_role("heading", name="Demo starten")).to_be_visible()
     expect(page.get_by_text("Code per Telegram senden")).to_have_count(0)
     page.get_by_role("button", name="Demo starten").click()
     # The notice is on the login page too; only leaving it shows that the session cookie is set.
@@ -151,16 +174,25 @@ def test_two_browser_contexts_work_separately(browser, instance):
         second.close()
 
 
-def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance):
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance, locale):
     webkit = browser_runtime.webkit.launch()
     try:
         context = webkit.new_context(**browser_runtime.devices["iPhone 13"])
         page = context.new_page()
-        start_demo(page, instance)
-        page.goto(f"{instance.url}/mails")
+        if locale == "de":
+            start_demo(page, instance)
+        else:
+            page.goto(instance.url + "/en/")
+            page.get_by_role("button", name="Start demo", exact=True).click()
+            # Wait for the started demo; leaving earlier would race the start and its session cookie.
+            expect(page.locator("main article.card").first).to_be_visible()
+            expect(page.locator("html")).to_have_attribute("lang", "en")
+        # Both packages hold the Black Week offer, though not on the first page of every language.
+        page.goto(f"{instance.url}/mails?q=Black+Week")
         expect(page.locator("main")).to_contain_text("Black Week")
         page.goto(f"{instance.url}/einrichtung")
-        expect(page.get_by_text("In der Demo nicht verfügbar")).to_be_visible()
+        expect(page.get_by_text("In der Demo nicht verfügbar" if locale == "de" else "Unavailable in the demo")).to_be_visible()
         context.close()
     finally:
         webkit.close()
@@ -190,4 +222,56 @@ def test_the_whole_stack_is_decided_key_after_key_in_under_half_a_minute(page, i
         page.wait_for_timeout(500)
     assert time.monotonic() - started < 30
     expect(page.get_by_role("link", name="Demo zurücksetzen und nochmals testen")).to_be_visible()
+    assert page.errors == []
+
+
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test78_native_entry_decision_language_switch_and_confirmed_reset(page, instance, locale):
+    # Native entry wins over the opposite persisted choice and the German browser header.
+    opposite = "de" if locale == "en" else "en"
+    page.context.add_cookies([{"name": "mailhelp_lang", "value": opposite, "url": instance.url}])
+    page.goto(f"{instance.url}/{locale}/")
+    label = "Start demo" if locale == "en" else "Demo starten"
+    expect(page.get_by_role("heading", name=label, exact=True)).to_be_visible()
+    page.get_by_role("link", name="Deutsch" if locale == "en" else "English", exact=True).click()
+    page.get_by_role("link", name="English" if locale == "en" else "Deutsch", exact=True).click()
+    page.get_by_role("button", name=label, exact=True).click()
+    page.wait_for_url(instance.url + "/")
+    expect(page.locator("html")).to_have_attribute("lang", locale)
+    assert page.evaluate("mailhelpText('● Verbunden')") == ("● Connected" if locale == "en" else "● Verbunden")
+    assert page.evaluate("mailhelpText('Originaltext bleibt unverändert')") == "Originaltext bleibt unverändert"
+    confirm = "Create in demo" if locale == "en" else CONFIRM
+    card = open_card(page, page.locator("button", has_text=confirm))
+    title = card.locator("h2, h3").first.inner_text()
+    mail_id = card.locator('input[name="mail_id"]').first.get_attribute("value")
+    runtime = next(iter(instance.runtimes.runtimes.values()))
+    subject = runtime.store.peek("mail-" + mail_id)["mail"]["headers"]["subject"]
+    before = page.locator(f"{MASTER} article.card").count()
+    with page.expect_navigation():
+        card.get_by_role("button", name=confirm, exact=True).click()
+    assert created(page, instance, subject)
+    page.goto(instance.url + "/")
+    expect(page.locator(f"{MASTER} article.card")).to_have_count(before - 1)
+    # UI switch preserves the private corpus and decisions; restart is a separate confirmation.
+    if page.mobile:
+        page.locator(".tab-more > summary").click()
+    page.get_by_role("link", name="Deutsch" if opposite == "de" else "English", exact=True).click()
+    expect(page.locator("html")).to_have_attribute("lang", opposite)
+    expect(page.locator(f"{MASTER} article.card")).to_have_count(before - 1)
+    reset = "Demo neu starten" if opposite == "de" else "Restart demo"
+    page.get_by_role("link", name=reset, exact=True).first.click()
+    cancel = "Abbrechen" if opposite == "de" else "Cancel"
+    page.get_by_role("link", name=cancel, exact=True).click()
+    expect(page.locator(f"{MASTER} article.card")).to_have_count(before - 1)
+    page.get_by_role("link", name=reset, exact=True).first.click()
+    page.get_by_role("button", name="Demo jetzt neu starten" if opposite == "de" else "Restart demo now").click()
+    expect(page.locator("html")).to_have_attribute("lang", opposite)
+    session = next(s for s in instance.runtimes.auth.sessions()
+                   if instance.runtimes.visitors.entry(s.id) is not None)
+    entry = instance.runtimes.visitors.entry(session.id)
+    assert entry.dataset_locale == opposite and entry.generation == 2
+    states = list(instance.runtimes.visitors.area(session.id).glob("mail-*.json"))
+    import json
+    assert len(states) == 30
+    assert all(not p["open_questions"] for path in states for p in json.loads(path.read_text("utf-8"))["proposals"])
     assert page.errors == []

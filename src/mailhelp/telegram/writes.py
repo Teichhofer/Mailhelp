@@ -114,7 +114,8 @@ class ConfirmedWriteExecutor:
             if reference in self._reported_authorization_failures:
                 return changed
             self._reported_authorization_failures.add(reference)
-        markup = self._remove_button(changed) if changed.status == ProposalStatus.CREATED and self._can_remove(changed, result) else None
+        markup = (self._remove_button(changed)
+                  if changed.status == ProposalStatus.CREATED and self._can_remove(changed, result) else None)
         if markup is not None:
             self.telegram.send(self.chat_id, text, markup)
         else:

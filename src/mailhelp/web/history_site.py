@@ -1,4 +1,5 @@
 """The audit history, stored proposal versions and the cost evaluation (all read only)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,6 +9,7 @@ from zoneinfo import ZoneInfo
 from .. import state_names
 from ..domain.proposal import Proposal
 from ..domain.relevance import IrrelevantSenders, PrefilterHits
+from ..i18n import msg, tr
 from ..mailbox.sender_filter import HITS
 from ..review.filters import matches
 from ..review.queries import ArchiveQuery
@@ -57,24 +59,29 @@ class HistorySite:
             params = self.archive.parameters(request)
             query = ArchiveQuery.model_validate(params)
         except ValueError:
-            return self.site._reply(request, 422, "Ungültige Verlaufsfilter.")
+            return self.site._reply(request, 422, msg("Ungültige Verlaufsfilter."))
         queries = self.archive.queries
         # One lookup per history row instead of a scan over all mails.
         sources = {item["id"]: item for item in queries.items()}
         rows = [row for row in queries.history() if self._matches(row, query, sources[row["mail_id"]])]
         rows.sort(key=lambda row: row["at"], reverse=True)
         page = rows[(query.page - 1)*query.size:query.page*query.size]
-        return Response.html(200, layout("Verlauf", history_page(query, page, len(rows), params,
-                                                                   self.site.configured_timezone),
-                                         active="/verlauf"))
+        return Response.html(
+            200,
+            layout(
+                msg("Verlauf"),
+                history_page(query, page, len(rows), params, self.site.configured_timezone),
+                active="/verlauf",
+            ),
+        )
 
     def version(self, request: Request, session: WebSession, mail_id: str, proposal_id: str, version: str) -> Response:
         store = self.site.views.store
         if store.peek(f"history-{mail_id}", {}).get("removed"):
-            return self.site._reply(request, 404, "Historische Inhalte nach Aufbewahrung entfernt.")
+            return self.site._reply(request, 404, msg("Historische Inhalte nach Aufbewahrung entfernt."))
         view = self.site.views.proposal(mail_id, proposal_id, int(version))
         if view is None:
-            return self.site._reply(request, 404, "Version nicht mehr vorhanden.")
+            return self.site._reply(request, 404, msg("Version nicht mehr vorhanden."))
         previous = store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1), Proposal)
         current = store.peek_model(state_names.proposal(mail_id, proposal_id, version), Proposal)
         assert current is not None  # the view above was read from this very version
@@ -96,8 +103,9 @@ class HistorySite:
         """5.9.11: read only; unknown figures, sort orders or filters are rejected with 422."""
         metrics = self.archive.metrics
         if metrics is None:
-            return Response.html(200, layout("Auswertung",
-                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+            return Response.html(
+                200, layout(msg("Auswertung"), tr("<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>"))
+            )
         try:
             params: dict[str, Any] = dict(self.archive.parameters(request))
             metric = params.pop("metric", "calls")
@@ -111,12 +119,13 @@ class HistorySite:
                 raise ValueError("Ungültige Seite")
             selected, report = self._report(params)
         except (ValueError, TypeError):
-            return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
+            return self.site._reply(request, 422, msg("Ungültige Auswertungsfilter."))
         views = self.site.views
 
         def subject(mail_id: str) -> str | None:
             mail = views.mail(mail_id)
             return mail.subject if mail is not None else None
+
         html = calls_page(metric, params, sort, status, page, report, selected.settings,
                           self.site.configured_timezone, subject, MODE_LABELS)
         return Response.html(200, layout(METRICS[metric].title, html, active="/auswertung"))
@@ -125,8 +134,9 @@ class HistorySite:
         """6.1.8: the slowest runs of one step; read only, unknown values are rejected with 422."""
         metrics = self.archive.metrics
         if metrics is None:
-            return Response.html(200, layout("Auswertung",
-                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+            return Response.html(
+                200, layout(msg("Auswertung"), tr("<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>"))
+            )
         try:
             params: dict[str, Any] = dict(self.archive.parameters(request))
             stage = params.pop("stage", "total")
@@ -138,25 +148,27 @@ class HistorySite:
             steps = stage_report(selected.stages, **{key: params[key] for key in ("days", "mode", "since", "until")
                                                      if key in params})
         except (ValueError, TypeError):
-            return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
+            return self.site._reply(request, 422, msg("Ungültige Auswertungsfilter."))
         views = self.site.views
 
         def subject(mail_id: str) -> str | None:
             mail = views.mail(mail_id)
             return mail.subject if mail is not None else None
+
         html = stage_page(stage, params, sort, page, steps, self.site.configured_timezone, subject, MODE_LABELS)
         return Response.html(200, layout(title(stage), html, active="/auswertung"))
 
     def statistics(self, request: Request, session: WebSession) -> Response:
         metrics = self.archive.metrics
         if metrics is None:
-            return Response.html(200, layout("Auswertung",
-                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+            return Response.html(
+                200, layout(msg("Auswertung"), tr("<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>"))
+            )
         try:
             params: dict[str, Any] = dict(self.archive.parameters(request))
             selected, report = self._report(params)
         except (ValueError, TypeError):
-            return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
+            return self.site._reply(request, 422, msg("Ungültige Auswertungsfilter."))
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]
         steps = stage_report(selected.stages, **{key: params[key] for key in
                                                  ("days", "mode", "stage", "since", "until") if key in params})
@@ -168,4 +180,4 @@ class HistorySite:
             hits = self.site.views.store.peek_model(HITS, PrefilterHits, PrefilterHits())
             html += prefilter_section(self.site.views.store, metrics.records()[0], blocked, hits, self.site.clock(),
                                       params["days"], metrics.settings.usd_per_eur)
-        return Response.html(200, layout("Auswertung", html, active="/auswertung"))
+        return Response.html(200, layout(msg("Auswertung"), html, active="/auswertung"))

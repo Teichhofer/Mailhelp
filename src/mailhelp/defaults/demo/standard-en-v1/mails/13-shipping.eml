@@ -1,0 +1,10 @@
+From: Public updates <news@shipping.example>
+To: Alex Miller <alex@miller-family.example>
+Subject: Your parcel is on its way
+Date: Thu, 12 Nov 2026 09:13:00 +0100
+Message-ID: <13-shipping@demo.mailhelp.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Your already-paid order has shipped. No signature or collection is required.

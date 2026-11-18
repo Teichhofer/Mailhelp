@@ -1,15 +1,17 @@
 """Persistent, session-owned snapshots of the effective manual rule edits."""
+
 from __future__ import annotations
 
 import secrets
 from typing import Any
 
+from ..i18n import msg, tr
 from ..rule_learning.service import DecisionRuleLearning, digest
 from ..rule_learning.validation import RuleConflict
 from .pages import e
 from .rule_compare import compare
 
-ACTIONS = {"modify": "Änderung", "create": "Neues Thema", "disable": "Deaktivierung"}
+ACTIONS = {"modify": msg("Änderung"), "create": msg("Neues Thema"), "disable": msg("Deaktivierung")}
 
 
 def preview_name(actor: str) -> str:
@@ -60,9 +62,12 @@ def confirmed(service: DecisionRuleLearning, actor: str,
 
 
 def comparison(state: Any, draft: dict[str, Any]) -> str:
-    body = ('<section class="rule-final"><h1>Bearbeitete Änderungen prüfen</h1>'
-            '<p>Dieser Vergleich zeigt die tatsächlich ausgewählten Feld- oder YAML-Werte. '
-            'Noch wurden keine Themenregeln gespeichert.</p>')
+    body = tr(
+        '<section class="rule-final"><h1>Bearbeitete Änderungen '
+        "prüfen</h1><p>Dieser Vergleich zeigt die tatsächlich "
+        "ausgewählten Feld- oder YAML-Werte. Noch wurden keine "
+        "Themenregeln gespeichert.</p>"
+    )
     for choice in draft["choices"]:
         proposal = state.proposals[choice["index"]]
         before = next((topic for topic in state.documents[proposal.category]["topics"]
@@ -70,8 +75,13 @@ def comparison(state: Any, draft: dict[str, Any]) -> str:
         body += f'<section class="card"><h3>{e(choice["topic"]["name"])}</h3>'
         body += compare(before, choice["topic"]) + '</section>'
     if draft.get("rejected"):
-        body += ('<section class="card rule-rejecting"><h2>Wird verworfen und nicht wieder vorgeschlagen</h2>'
-                 '<ul>' + "".join(f'<li><strong>{e(state.proposals[index].proposed.name)}</strong> · '
-                                  f'{e(ACTIONS[state.proposals[index].action])}</li>' for index in draft["rejected"])
-                 + '</ul></section>')
+        body += (
+            tr('<section class="card rule-rejecting"><h2>Wird verworfen und nicht wieder vorgeschlagen</h2><ul>')
+            + "".join(
+                f"<li><strong>{e(state.proposals[index].proposed.name)}</strong> · "
+                f"{e(ACTIONS[state.proposals[index].action])}</li>"
+                for index in draft["rejected"]
+            )
+            + "</ul></section>"
+        )
     return body + '</section>'

@@ -8,7 +8,7 @@
     var picked = choices.filter(function (choice) { return choice.checked; });
     var accepted = picked.filter(function (choice) { return choice.value === "accept"; }).length;
     var rejected = picked.filter(function (choice) { return choice.value === "reject"; }).length;
-    count.textContent = accepted + " zur Übernahme ausgewählt · " + rejected + " zum Verwerfen markiert.";
+    count.textContent = accepted + mailhelpText(" zur Übernahme ausgewählt · ") + rejected + mailhelpText(" zum Verwerfen markiert.");
   }
   choices.forEach(function (choice) { choice.addEventListener("change", update); });
   update();

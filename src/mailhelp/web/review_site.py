@@ -1,4 +1,5 @@
 """Dedicated routes with unchanged authentication and response contracts."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -79,7 +80,8 @@ class ReviewSite:
         l_cfg = getattr(cfg.active, "learning", None) if cfg and hasattr(cfg, "active") else None
         run_hints_enabled = l_cfg.learning_run_hints_enabled if l_cfg is not None else True
         min_rejections = l_cfg.learning_run_hint_rejections if l_cfg is not None else 20
-        learning_hint = get_learning_run_hint(self.site.views.store, enabled=run_hints_enabled, min_rejections=min_rejections)
+        learning_hint = get_learning_run_hint(self.site.views.store, enabled=run_hints_enabled,
+                                              min_rejections=min_rejections)
         hint_banner = learning_run_hint_banner(learning_hint, csrf) if learning_hint else ""
         # 4.4: every review result is shown on its card (or as "Deine Aktion"); no second
         # copy from ?ergebnis= on top, which would be announced twice.
@@ -164,7 +166,7 @@ class ReviewSite:
         except (ValueError, CorruptState):
             return self.site._reply(request, 409, tr("Ungültige kanonische Vorschlagsreferenz."))
         if proposal is not None and (proposal.source_mail_id, proposal.id) != (mail_id, proposal_id):
-            return Response.redirect(f"/vorschlag/{proposal.source_mail_id}/{proposal.id}")
+            return Response.redirect(f'/vorschlag/{proposal.source_mail_id}/{proposal.id}')
         view = self.site.views.proposal(mail_id, proposal_id)
         if view is None:
             return Response.html(404, error_page(

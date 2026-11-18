@@ -5,12 +5,14 @@ mail then gets its own version-bound command through the normal queue: a mail ch
 meanwhile is skipped as stale, a repeated submission is recognised by its key, and nothing new is
 needed at the execution boundary.
 """
+
 from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
+from ..i18n import msg, tr
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from .auth import WebSession
@@ -23,10 +25,18 @@ if TYPE_CHECKING:
 
 PATH = "/mails/fehler/alle"
 MAX_BATCH = 200
-ACTIONS = {"retry": (CommandKind.RETRY_MAIL, "Alle erneut versuchen",
-                     "Möchtest du alle {n} fehlgeschlagenen Mails erneut zur Verarbeitung einreihen?"),
-           "ignore": (CommandKind.FILE_MAIL, "Alle ignorieren",
-                      "Möchtest du alle {n} fehlgeschlagenen Mails als nicht verarbeitet ablegen?")}
+ACTIONS = {
+    "retry": (
+        CommandKind.RETRY_MAIL,
+        msg("Alle erneut versuchen"),
+        msg("Möchtest du alle {n} fehlgeschlagenen Mails erneut zur Verarbeitung einreihen?"),
+    ),
+    "ignore": (
+        CommandKind.FILE_MAIL,
+        msg("Alle ignorieren"),
+        msg("Möchtest du alle {n} fehlgeschlagenen Mails als nicht verarbeitet ablegen?"),
+    ),
+}
 _ENTRY = re.compile(r"^([a-f0-9]{24}):(\d{1,9})$")
 
 
@@ -57,23 +67,28 @@ class FailureBatchSite:
         _kind, label, question = ACTIONS[action]
         targets = self._targets(action)
         if not targets:
-            body = notice("Keine fehlgeschlagene Mail ist für diese Aktion offen.", "info")
+            body = notice(tr("Keine fehlgeschlagene Mail ist für diese Aktion offen."), "info")
         else:
             listed = "".join(f"<li>{e(item['subject'])}</li>" for item in targets[:20])
-            more = f"<p class=\"meta\">… und {len(targets) - 20} weitere.</p>" if len(targets) > 20 else ""
+            more = tr('<p class="meta">… und {p0} weitere.</p>', p0=len(targets) - 20) if len(targets) > 20 else ""
             body = (f"<p>{e(question.format(n=len(targets)))}</p><ul>{listed}</ul>{more}"
                     + post_form(PATH, self.site.auth.csrf_token(session.id), "", label, primary=True,
                                 aktion=action,
                                 mails=",".join(f"{item['id']}:{item['analysis_round']}" for item in targets)))
-        body += '<p><a href="/mails?state=failed">Zurück zur Fehlerliste</a></p>'
+        body += tr('<p><a href="/mails?state=failed">Zurück zur Fehlerliste</a></p>')
         return Response.html(200, layout(label, f"<h1>{e(label)}</h1>{body}", active="/mails"))
 
     def run(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         action, key = form.get("aktion", ""), form.get("key", "")
         entries = [_ENTRY.match(value) for value in form.get("mails", "").split(",") if value]
-        if action not in ACTIONS or not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", key) or not entries \
-                or len(entries) > MAX_BATCH or not all(entries):
-            return self.site._reply(request, 422, "Die Sammelaktion ist unvollständig oder ungültig.")
+        if (
+            action not in ACTIONS
+            or not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", key)
+            or not entries
+            or len(entries) > MAX_BATCH
+            or not all(entries)
+        ):
+            return self.site._reply(request, 422, msg("Die Sammelaktion ist unvollständig oder ungültig."))
         kind, queued = ACTIONS[action][0], 0
         for index, match in enumerate(entry for entry in entries if entry is not None):
             mail_id, version = match.group(1), int(match.group(2))
@@ -86,4 +101,6 @@ class FailureBatchSite:
             except (CommandConflict, CommandInboxFull):
                 break
             queued += new  # a repeated batch finds its commands and queues nothing twice
-        return Response.redirect(f"/mails?state=failed&eingereiht={queued}&von={len(entries)}")
+        return Response.redirect(
+            '/mails?state=failed&eingereiht={p0}&von={p1}'.format(p0=f'{queued}', p1=f'{len(entries)}')
+        )

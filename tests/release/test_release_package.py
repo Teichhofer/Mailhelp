@@ -131,16 +131,20 @@ def test_the_wheel_serves_help_and_search_outside_the_checkout(tmp_path):
     with zipfile.ZipFile(wheel) as archive:
         archive.extractall(tmp_path / "wheel")
     script = ("import mailhelp, mailhelp.helpdocs as h, mailhelp.web.settings_search as s; "
+              "from mailhelp.i18n import Locale; "
               "b = h.load(); print(mailhelp.__file__); print(len(b.sections), b.select('Abrufintervall')[0].id, "
-              "len(s.search('Zeitzone')), s.search('web.port')[0].key)")
+              "len(s.search('Zeitzone')), s.search('web.port')[0].key); "
+              "e=h.load(locale=Locale.EN); print(len(e.sections),e.select('polling interval')[0].id)")
     # This separately installed package is an isolation check. Inheriting pytest-cov would
     # record a second copy whose temporary source files are gone at reporting time.
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith(("COV_CORE_", "COVERAGE_"))}
     result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, capture_output=True, text=True, check=True,
                             env={**environment, "PYTHONPATH": str(tmp_path / "wheel")})
-    location, summary = result.stdout.strip().splitlines()
+    location, summary, english = result.stdout.strip().splitlines()
     assert Path(location).resolve().is_relative_to((tmp_path / "wheel").resolve())
     count, first, found, file_key = summary.split()
     assert int(count) > 50 and first == "web-einstellungen/mailabruf-und-betrieb" and int(found) >= 1
     assert file_key == "web.port"
+    count_en, source_en = english.split()
+    assert int(count_en) == int(count) and source_en == first

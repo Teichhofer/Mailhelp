@@ -1,10 +1,11 @@
 """HTML of the proposal evaluation and acceptance rates page (Planung 6.5, 3.1)."""
+
 from __future__ import annotations
 
 from typing import Any
 from urllib.parse import quote
 
-from ..i18n import tr
+from ..i18n import msg, tr
 from ..review.prefilter_hints import PrefilterHint
 from ..review.proposal_evaluation import PERIODS, ProposalEvaluationReport, SenderHint
 from ..review.reject_reasons import REJECT_REASONS
@@ -12,6 +13,36 @@ from .actions import new_key
 from .forms import select
 from .pages import e, page_head
 from .toolbar import toolbar
+
+_SENDER_HINT_PAGE_TEXT_1 = msg(
+    '<dl class="kpi-grid"><div '
+    'class="kpi-tile"><dt>Annahmequote</dt><dd><strong>{p0}</strong> <span '
+    'class="meta">({p1} von {p2} angenommen)</span></dd></div><div '
+    'class="kpi-tile"><dt>Häufigster Grund</dt><dd><strong>{p3}</strong></dd></div><div '
+    'class="kpi-tile"><dt>Empfohlene '
+    "Maßnahme</dt><dd><strong>{p4}</strong></dd></div></dl>"
+)
+
+_SENDER_HINT_PAGE_TEXT_2 = msg(
+    '<section class="stack"><h2>Gespeicherte Mails dieses Absenders ({p0})</h2><div '
+    'class="table-scroll" tabindex="0" role="region" aria-label="Gespeicherte '
+    'Mails"><table><thead><tr><th>Betreff</th><th>Datum</th><th>Vorschläge</th></tr></thea'
+    "d><tbody>{p1}</tbody></table></div></section>"
+)
+
+_SENDER_HINT_PAGE_TEXT_3 = msg(
+    '<div class="actions"><form method="post" '
+    'action="/lernen/absender-hinweis/uebernehmen"><input type="hidden" name="csrf" '
+    'value="{p0}"><input type="hidden" name="key" value="{p1}"><input type="hidden" '
+    'name="sender" value="{p2}"><input type="hidden" name="expected_hash" '
+    'value="{p3}"><button class="button primary" type="submit">In Vorfilter '
+    'aufnehmen</button></form><form method="post" '
+    'action="/lernen/absender-hinweis/nicht-mehr-vorschlagen"><input type="hidden" '
+    'name="csrf" value="{p4}"><input type="hidden" name="sender" value="{p5}"><button '
+    'class="button" type="submit">Nicht mehr vorschlagen</button></form><p '
+    'class="card-links"><a class="button link" '
+    'href="/lernen/vorschlaege">Zurück</a></p></div>'
+)
 
 PERIOD_CHOICES = [(str(k), label) for k, label in PERIODS]
 
@@ -31,13 +62,22 @@ def _hints_section(hints: list[SenderHint] | tuple[SenderHint, ...]) -> str:
     hints_html = ""
     if hints:
         hint_cards = "".join(
-            f'<div class="notice warn sender-hint">'
-            f'<p><strong>Hinweis zum Absender:</strong> {e(h.trigger_sentence)}</p>'
-            f'<p class="card-links"><a class="button primary small" href="/lernen/absender-hinweis?sender={quote(h.sender)}">Ansehen</a></p>'
-            f'</div>'
+            tr(
+                (
+                    '<div class="notice warn sender-hint"><p><strong>Hinweis zum '
+                    'Absender:</strong> {p0}</p><p class="card-links"><a '
+                    'class="button primary small" '
+                    'href="/lernen/absender-hinweis?sender={p1}">Ansehen</a></p></div>'
+                ),
+                p0=e(h.trigger_sentence),
+                p1=quote(h.sender),
+            )
             for h in hints
         )
-        hints_html = f'<section class="stack" id="absender-hinweise"><h2>Hinweise zu Absendern</h2>{hint_cards}</section>'
+        hints_html = tr(
+            ('<section class="stack" id="absender-hinweise"><h2>Hinweise zu Absendern</h2>{p0}</section>'),
+            p0=hint_cards,
+        )
     return hints_html
 
 
@@ -77,17 +117,29 @@ def _dismissed_section(dismissed: list[str] | tuple[str, ...], csrf: str) -> str
     dismissed_html = ""
     if dismissed:
         items = "".join(
-            f'<li><span>{e(s)}</span> '
-            f'<form method="post" action="/lernen/absender-hinweis/wieder-zulassen" style="display:inline;">'
-            f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-            f'<input type="hidden" name="sender" value="{e(s)}">'
-            f'<button class="button small" type="submit">Wieder zulassen</button></form></li>'
+            tr(
+                (
+                    '<li><span>{p0}</span> <form method="post" '
+                    'action="/lernen/absender-hinweis/wieder-zulassen" '
+                    'style="display:inline;"><input type="hidden" name="csrf" '
+                    'value="{p1}"><input type="hidden" name="sender" '
+                    'value="{p2}"><button class="button small" type="submit">Wieder '
+                    "zulassen</button></form></li>"
+                ),
+                p0=e(s),
+                p1=e(csrf),
+                p2=e(s),
+            )
             for s in dismissed
         )
-        dismissed_html = (
-            f'<details class="stack" id="verworfene-hinweise">'
-            f'<summary>Zuvor verworfene Absender-Hinweise ({len(dismissed)})</summary>'
-            f'<ul>{items}</ul></details>'
+        dismissed_html = tr(
+            (
+                '<details class="stack" id="verworfene-hinweise"><summary>Zuvor '
+                "verworfene Absender-Hinweise "
+                "({p0})</summary><ul>{p1}</ul></details>"
+            ),
+            p0=len(dismissed),
+            p1=items,
         )
     return dismissed_html
 
@@ -95,21 +147,42 @@ def _dismissed_section(dismissed: list[str] | tuple[str, ...], csrf: str) -> str
 def _summary_tiles(report: ProposalEvaluationReport) -> str:
     s = report.summary
     tiles = (
-        '<dl class="kpi-grid">'
-        f'<div class="kpi-tile"><dt>Annahmequote gesamt</dt>'
-        f'<dd><strong>{_quote_fmt(s.total_quote)}</strong> '
-        f'<span class="meta">({s.total_accepted} von {s.total_decided} angenommen)</span></dd></div>'
-        f'<div class="kpi-tile"><dt>Aufgaben</dt>'
-        f'<dd><strong>{_quote_fmt(s.tasks_quote)}</strong> '
-        f'<span class="meta">({s.tasks_accepted} von {s.tasks_decided} angenommen)</span></dd></div>'
-        f'<div class="kpi-tile"><dt>Termine</dt>'
-        f'<dd><strong>{_quote_fmt(s.events_quote)}</strong> '
-        f'<span class="meta">({s.events_accepted} von {s.events_decided} angenommen)</span></dd></div>'
-        + (f'<div class="kpi-tile"><dt>Wieder entfernt</dt>'
-           f'<dd><strong>{s.total_removed}</strong> '
-           f'<span class="meta">({s.tasks_removed} Aufgaben, {s.events_removed} Termine)</span></dd></div>'
-           if s.total_removed > 0 else "")
-        + '</dl>'
+        tr(
+            (
+                '<dl class="kpi-grid"><div class="kpi-tile"><dt>Annahmequote '
+                'gesamt</dt><dd><strong>{p0}</strong> <span class="meta">({p1} '
+                "von {p2} angenommen)</span></dd></div><div "
+                'class="kpi-tile"><dt>Aufgaben</dt><dd><strong>{p3}</strong> '
+                '<span class="meta">({p4} von {p5} '
+                "angenommen)</span></dd></div><div "
+                'class="kpi-tile"><dt>Termine</dt><dd><strong>{p6}</strong> <span '
+                'class="meta">({p7} von {p8} angenommen)</span></dd></div>'
+            ),
+            p0=_quote_fmt(s.total_quote),
+            p1=s.total_accepted,
+            p2=s.total_decided,
+            p3=_quote_fmt(s.tasks_quote),
+            p4=s.tasks_accepted,
+            p5=s.tasks_decided,
+            p6=_quote_fmt(s.events_quote),
+            p7=s.events_accepted,
+            p8=s.events_decided,
+        )
+        + (
+            tr(
+                (
+                    '<div class="kpi-tile"><dt>Wieder '
+                    'entfernt</dt><dd><strong>{p0}</strong> <span class="meta">({p1} '
+                    "Aufgaben, {p2} Termine)</span></dd></div>"
+                ),
+                p0=s.total_removed,
+                p1=s.tasks_removed,
+                p2=s.events_removed,
+            )
+            if s.total_removed > 0
+            else ""
+        )
+        + "</dl>"
     )
     return tiles
 
@@ -126,9 +199,16 @@ def _weekly_table(report: ProposalEvaluationReport) -> str:
         for w in report.weeks
     )
     weekly_table = _table_section(
-        "wochen", "Verlauf je Woche",
-        '<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>Wieder entfernt</th><th>Annahmequote</th>',
-        weekly_rows)
+        "wochen",
+        msg("Verlauf je Woche"),
+        tr(
+            
+                "<th>Woche</th><th>Entschieden</th><th>Angenommen</th><th>Verworfen</th><th>"
+                "Wieder entfernt</th><th>Annahmequote</th>"
+            
+        ),
+        weekly_rows,
+    )
     return weekly_table
 
 
@@ -152,12 +232,21 @@ def _topics_table(report: ProposalEvaluationReport, params: dict[str, Any], base
         for t in sorted_topics
     )
     topics_table = _table_section(
-        "themen", "Nach Thema",
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=name">Thema</a></th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=decided">Entschieden</a></th>'
-        '<th>Angenommen</th><th>Verworfen</th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_topic=quote">Annahmequote</a></th>',
-        topic_rows)
+        msg("themen"),
+        msg("Nach Thema"),
+        tr(
+            (
+                '<th><a href="/lernen/vorschlaege?{p0}&amp;sort_topic=name">Thema</a></th><t'
+                'h><a href="/lernen/vorschlaege?{p1}&amp;sort_topic=decided">Entschieden</a>'
+                "</th><th>Angenommen</th><th>Verworfen</th><th><a "
+                'href="/lernen/vorschlaege?{p2}&amp;sort_topic=quote">Annahmequote</a></th>'
+            ),
+            p0=f"{base_query}",
+            p1=f"{base_query}",
+            p2=f"{base_query}",
+        ),
+        topic_rows,
+    )
     return topics_table
 
 
@@ -188,13 +277,23 @@ def _senders_table(report: ProposalEvaluationReport, params: dict[str, Any], bas
             f'<td>{_quote_fmt(s_item.quote)}</td></tr>'
         )
     senders_table = _table_section(
-        "absender", "Nach Absender",
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=name">Absender</a></th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=decided">Entschieden</a></th>'
-        '<th>Angenommen</th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=rejected">Verworfen</a></th>'
-        f'<th><a href="/lernen/vorschlaege?{base_query}&amp;sort_sender=quote">Annahmequote</a></th>',
-        "".join(sender_rows))
+        msg("absender"),
+        msg("Nach Absender"),
+        tr(
+            (
+                '<th><a href="/lernen/vorschlaege?{p0}&amp;sort_sender=name">Absender</a></t'
+                'h><th><a href="/lernen/vorschlaege?{p1}&amp;sort_sender=decided">Entschiede'
+                "n</a></th><th>Angenommen</th><th><a "
+                'href="/lernen/vorschlaege?{p2}&amp;sort_sender=rejected">Verworfen</a></th>'
+                '<th><a href="/lernen/vorschlaege?{p3}&amp;sort_sender=quote">Annahmequote</a></th>'
+            ),
+            p0=f"{base_query}",
+            p1=f"{base_query}",
+            p2=f"{base_query}",
+            p3=f"{base_query}",
+        ),
+        "".join(sender_rows),
+    )
     return senders_table
 
 
@@ -209,9 +308,8 @@ def _reasons_section(report: ProposalEvaluationReport) -> str:
             for r in report.reasons
         )
         reasons_section = _table_section(
-            "gruende", "Gründe für Ablehnungen",
-            '<th>Grund</th><th>Anzahl</th><th>Anteil</th>',
-            reason_rows)
+            "gruende", msg("Gründe für Ablehnungen"), tr("<th>Grund</th><th>Anzahl</th><th>Anteil</th>"), reason_rows
+        )
     return reasons_section
 
 
@@ -224,22 +322,28 @@ def proposal_evaluation_page(report: ProposalEvaluationReport, params: dict[str,
     days_val = str(params.get("days", report.days))
     form = toolbar(
         "/lernen/vorschlaege",
-        [select("days", "Zeitraum", days_val, PERIOD_CHOICES)],
-        submit="Auswählen",
+        [select("days", msg("Zeitraum"), days_val, PERIOD_CHOICES)],
+        submit=msg("Auswählen"),
         reset="/lernen/vorschlaege" if days_val != "90" and days_val != "0" else "",
     )
     head = page_head(
-        "Vorschläge",
-        "Lernen",
-        "Annahmequote messen: Wie viele Vorschläge nimmst du an, wie viele verwirfst du?",
-        back=("/lernen", "Zurück zu Lernen"),
+        msg("Vorschläge"),
+        msg("Lernen"),
+        tr("Annahmequote messen: Wie viele Vorschläge nimmst du an, wie viele verwirfst du?"),
+        back=("/lernen", msg("Zurück zu Lernen")),
     )
 
     hints_html = _hints_section(hints) + prefilter_hints_section(prefilter or [], csrf)
     dismissed_html = _dismissed_section(dismissed, csrf)
 
     if report.empty:
-        return head + form + hints_html + '<p class="empty">In diesem Zeitraum liegen keine entschiedenen Vorschläge vor.</p>' + dismissed_html
+        return (
+            head
+            + form
+            + hints_html
+            + tr('<p class="empty">In diesem Zeitraum liegen keine entschiedenen Vorschläge vor.</p>')
+            + dismissed_html
+        )
 
     base_query = f"days={e(days_val)}"
     return (head + form + hints_html + _summary_tiles(report) + _weekly_table(report)
@@ -251,36 +355,44 @@ def sender_hint_page(hint: SenderHint, mails: list[dict[str, Any]], csrf: str,
                      expected_hash: str | None = None) -> str:
     """Render the preview and confirmation page for an identified sender (Planung 6.5, 3.3)."""
     head = page_head(
-        f"Absender: {hint.sender}",
-        "Lernen",
+        tr("Absender: {p0}", p0=hint.sender),
+        msg("Lernen"),
         hint.trigger_sentence,
-        back=("/lernen/vorschlaege", "Zurück zu Vorschläge"),
+        back=("/lernen/vorschlaege", msg("Zurück zu Vorschläge")),
     )
     quote_str = _quote_fmt(hint.acceptance_rate * 100)
-    reason_label = REJECT_REASONS.get(hint.most_frequent_reason, "Keine Angabe") if hint.most_frequent_reason else "Keine Angabe"
-    action_label = "In den Absender-Vorfilter aufnehmen" if hint.recommended_action == "filter" else "Regellernlauf für diesen Absender"
+    reason_label = (
+        REJECT_REASONS.get(hint.most_frequent_reason, msg("Keine Angabe"))
+        if hint.most_frequent_reason
+        else msg("Keine Angabe")
+    )
+    action_label = (
+        msg("In den Absender-Vorfilter aufnehmen")
+        if hint.recommended_action == "filter"
+        else msg("Regellernlauf für diesen Absender")
+    )
 
-    stats = (
-        '<dl class="kpi-grid">'
-        f'<div class="kpi-tile"><dt>Annahmequote</dt><dd><strong>{quote_str}</strong> '
-        f'<span class="meta">({hint.accepted} von {hint.total} angenommen)</span></dd></div>'
-        f'<div class="kpi-tile"><dt>Häufigster Grund</dt><dd><strong>{e(reason_label)}</strong></dd></div>'
-        f'<div class="kpi-tile"><dt>Empfohlene Maßnahme</dt><dd><strong>{e(action_label)}</strong></dd></div>'
-        '</dl>'
+    stats = tr(
+        (_SENDER_HINT_PAGE_TEXT_1),
+        p0=quote_str,
+        p1=hint.accepted,
+        p2=hint.total,
+        p3=e(reason_label),
+        p4=e(action_label),
     )
 
     mail_rows = []
     for m in mails:
         mail_id = m.get("id", "")
-        subject = m.get("subject", "Ohne Betreff")
+        subject = m.get("subject", msg("Ohne Betreff"))
         date_str = m.get("date", "—")
         proposals = m.get("proposals", [])
         prop_badges = []
         for p in proposals:
-            title = p.get("title", "Vorschlag")
+            title = p.get("title", msg("Vorschlag"))
             is_acc = p.get("is_accepted", False)
             badge_class = "ok" if is_acc else "muted"
-            prefix = "Angenommen" if is_acc else "Verworfen"
+            prefix = msg("Angenommen") if is_acc else msg("Verworfen")
             prop_badges.append(f'<span class="badge {badge_class}">{prefix}: {e(title)}</span>')
         mail_rows.append(
             f'<tr><td><a href="/mail/{e(mail_id)}">{e(subject)}</a></td>'
@@ -288,27 +400,20 @@ def sender_hint_page(hint: SenderHint, mails: list[dict[str, Any]], csrf: str,
             f'<td>{" ".join(prop_badges) if prop_badges else "—"}</td></tr>'
         )
 
-    mail_table = (
-        f'<section class="stack"><h2>Gespeicherte Mails dieses Absenders ({len(mails)})</h2>'
-        '<div class="table-scroll" tabindex="0" role="region" aria-label="Gespeicherte Mails">'
-        '<table><thead><tr><th>Betreff</th><th>Datum</th><th>Vorschläge</th></tr></thead>'
-        f'<tbody>{"".join(mail_rows)}</tbody></table></div></section>'
+    mail_table = tr(
+        (_SENDER_HINT_PAGE_TEXT_2),
+        p0=len(mails),
+        p1="".join(mail_rows),
     )
 
-    actions = (
-        '<div class="actions">'
-        '<form method="post" action="/lernen/absender-hinweis/uebernehmen">'
-        f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-        f'<input type="hidden" name="key" value="{new_key()}">'
-        f'<input type="hidden" name="sender" value="{e(hint.sender)}">'
-        f'<input type="hidden" name="expected_hash" value="{e(expected_hash or "")}">'
-        '<button class="button primary" type="submit">In Vorfilter aufnehmen</button></form>'
-        '<form method="post" action="/lernen/absender-hinweis/nicht-mehr-vorschlagen">'
-        f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-        f'<input type="hidden" name="sender" value="{e(hint.sender)}">'
-        '<button class="button" type="submit">Nicht mehr vorschlagen</button></form>'
-        '<p class="card-links"><a class="button link" href="/lernen/vorschlaege">Zurück</a></p>'
-        '</div>'
+    actions = tr(
+        (_SENDER_HINT_PAGE_TEXT_3),
+        p0=e(csrf),
+        p1=new_key(),
+        p2=e(hint.sender),
+        p3=e(expected_hash or ""),
+        p4=e(csrf),
+        p5=e(hint.sender),
     )
 
     return head + stats + mail_table + actions
@@ -316,13 +421,16 @@ def sender_hint_page(hint: SenderHint, mails: list[dict[str, Any]], csrf: str,
 
 def learning_run_hint_banner(message: str, csrf: str) -> str:
     """Banner for new rule learning run hint (Planung 6.5, 3.4)."""
-    return (
-        f'<div class="notice info learning-hint">'
-        f'<p><strong>Lernlauf empfohlen:</strong> {e(message)}</p>'
-        f'<div class="actions">'
-        '<a class="button small primary" href="/lernen/entscheidungen">Lernlauf vorbereiten</a>'
-        '<form method="post" action="/lernen/hinweis-ausblenden" style="display:inline;">'
-        f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-        '<button class="button small" type="submit">Ausblenden</button></form>'
-        '</div></div>'
+    return tr(
+        (
+            '<div class="notice info learning-hint"><p><strong>Lernlauf '
+            'empfohlen:</strong> {p0}</p><div class="actions"><a class="button small '
+            'primary" href="/lernen/entscheidungen">Lernlauf vorbereiten</a><form '
+            'method="post" action="/lernen/hinweis-ausblenden" '
+            'style="display:inline;"><input type="hidden" name="csrf" '
+            'value="{p1}"><button class="button small" '
+            'type="submit">Ausblenden</button></form></div></div>'
+        ),
+        p0=f"{e(message)}",
+        p1=f"{e(csrf)}",
     )

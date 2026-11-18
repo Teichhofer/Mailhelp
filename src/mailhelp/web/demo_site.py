@@ -4,26 +4,33 @@ Nothing here reaches a mailbox, Telegram or a model. A signed-in request goes to
 visitor area that belongs to the server-side session; routes that would set up, connect or analyse
 anything are refused before they reach it, also when called directly.
 """
+
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
+from threading import RLock
 from typing import Any
 
+from ..i18n import COOKIE, Locale, current, msg, negotiate, stored, tr, use_locale
 from .app import WebApp
 from .auth import WebAuth
-from .http import Request, Response
+from .http import Request, Response, rejected
 from .login_site import PAIR_COOKIE, PAIR_COOKIE_SECONDS, SESSION_COOKIE, cookie
 from .pages import e, error_page, layout, notice
 
-DEMO_NOTICE = "Demo – Beispieldaten. Es werden keine echten Termine oder Aufgaben angelegt."
+DEMO_NOTICE = msg("Demo – Beispieldaten. Es werden keine echten Termine oder Aufgaben angelegt.")
 SESSION_SECONDS = 2 * 60 * 60
 # Starts of new demos per client and in total within one hour; a running demo is never affected.
 STARTS_PER_CLIENT, STARTS_TOTAL, START_WINDOW = 5, 60, 3600.0
-PUBLIC = re.compile(r"/(anmelden|demo/starten|health|static/.*|sw\.js|manifest\.webmanifest|offline\.html)")
+PUBLIC = re.compile(
+    r"/(anmelden|sprache|de/|en/|demo/starten|health|static/.*|sw\.js|"
+    r"manifest(?:-en)?\.webmanifest|offline(?:-en)?\.html)"
+)
 # Setup, credentials, connections, devices, push and every model call are not part of the demo.
 BLOCKED = re.compile(r"/(einrichtung|diagnose|geraete|auth|push|api/push|api/local-pair|hilfe|api/hilfe|berichte|"
                      r"einstellungen/(zugangsdaten|postfaecher|iserv|zielprofile|web-passwort|neustarten|beenden|"
@@ -35,21 +42,25 @@ VisitorApp = Callable[[Request], Response]
 # The test mode carries the demo; its fixed texts become demo texts on every visitor page (7.1, D5).
 # tests/web/test_demo_site.py checks that each original text still exists in the code.
 DEMO_TEXTS = {
-    "Simuliert (Testmodus)": "In der Demo angelegt",
-    "Simuliert – nichts eingetragen": "In der Demo angelegt – nichts extern eingetragen",
-    "Testmodus: Der Eintrag wird nur simuliert.": "Demo: Der Eintrag wird nur in der Demo angelegt.",
-    "Speicherung im Testmodus simuliert.": "In der Demo gespeichert.",
-    "Testmodus – Einträge werden nur simuliert": "Demo – Einträge werden nur in der Demo angelegt",
+    "Simuliert (Testmodus)": msg("In der Demo angelegt"),
+    "Simuliert – nichts eingetragen": msg("In der Demo angelegt – nichts extern eingetragen"),
+    "Testmodus: Der Eintrag wird nur simuliert.": msg("Demo: Der Eintrag wird nur in der Demo angelegt."),
+    "Speicherung im Testmodus simuliert.": msg("In der Demo gespeichert."),
+    "Testmodus – Einträge werden nur simuliert": msg("Demo – Einträge werden nur in der Demo angelegt"),
 }
 # Button labels are replaced only as the complete text of an element.
-DEMO_LABELS = {"Simulieren": "In der Demo anlegen"}
+DEMO_LABELS = {"Simulieren": msg("In der Demo anlegen")}
 _MAIN = re.compile(r'<main id="inhalt"[^>]*>')
 _ANSWER_FORM = re.compile(r'<form method="post" action="/aktion" class="stack">.*?</form>', re.S)
 Prepared = dict[tuple[str, str, int], str]
 # 7.6.2: the quick flow – keys on the desktop above the open list, a new round when all is decided.
-KEYS_HINT = ('<p class="hint demo-keys-hint">Tipp: Mit den Tasten <kbd>1</kbd> (anlegen) und <kbd>2</kbd> '
-             '(verwerfen) entscheidest du die ausgewählte Karte am schnellsten.</p>')
-AGAIN = ('<p><a class="button primary" href="/demo/neu-starten">Demo zurücksetzen und nochmals testen</a></p>')
+KEYS_HINT = msg(
+    
+        '<p class="hint demo-keys-hint">Tipp: Mit den Tasten <kbd>1</kbd> (anlegen) '
+        "und <kbd>2</kbd> (verwerfen) entscheidest du die ausgewählte Karte am schnellsten.</p>"
+    
+)
+AGAIN = msg('<p><a class="button primary" href="/demo/neu-starten">Demo zurücksetzen und nochmals testen</a></p>')
 _OPEN_LIST = re.compile(r'<div class="swipe-hint" data-swipe-hint')
 _INBOX_ZERO = re.compile(r'<h2 id="inbox-zero">.*?</h2>', re.S)
 
@@ -66,23 +77,32 @@ def _prefill(form: str, prepared: Prepared) -> str:
     answer = prepared.get((_field(form, "mail_id"), _field(form, "proposal_id"), int(_field(form, "version"))))
     if answer is None:
         return form
-    hint = f'<p class="hint">In der Demo vorbereitet: „{e(answer)}“</p>'
+    hint = '<p class="hint">' + tr("In der Demo vorbereitet: „{answer}“", answer=e(answer)) + "</p>"
     return re.sub(r"(<textarea[^>]*>)</textarea>", lambda match: hint + match.group(1) + e(answer) + "</textarea>",
                   form, count=1)
 
 
 def demo_login_page(csrf: str, key: str, error: str | None = None) -> str:
     message = notice(error, "error") if error else ""
-    body = (notice(DEMO_NOTICE, "info") + message
-            + "<p>Diese Instanz zeigt Mailhelp mit 30 vorbereiteten Beispielmails. Es wird kein Postfach, "
-              "kein Telegram und kein Kalender verbunden; jede Besucherin und jeder Besucher erhält eine "
-              "eigene Kopie, die zwei Stunden gilt.</p>"
-            + f'<form method="post" action="/demo/starten" class="stack">'
-              f'<input type="hidden" name="csrf" value="{e(csrf)}">'
-              f'<input type="hidden" name="key" value="{e(key)}">'
-              '<button class="button primary" type="submit">Demo starten</button></form>')
-    return layout("Demo", f'<section class="card narrow">\n<h1>Gerät koppeln</h1>\n{body}\n</section>',
-                  signed_in=False)
+    body = (
+        notice(tr(DEMO_NOTICE), "info")
+        + message
+        + "<p>"
+        + tr(
+            "Diese Instanz zeigt Mailhelp mit 30 vorbereiteten Beispielmails. Es wird kein Postfach, "
+            "kein Telegram und kein Kalender verbunden; jede Besucherin und jeder Besucher erhält eine "
+            "eigene Kopie, die zwei Stunden gilt."
+        )
+        + "</p>"
+        + f'<form method="post" action="/demo/starten" class="stack">'
+        f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+        f'<input type="hidden" name="key" value="{e(key)}">'
+        f'<input type="hidden" name="locale" value="{current().value}">'
+        f'<button class="button primary" type="submit">{tr("Demo starten")}</button></form>'
+    )
+    return layout(
+        "Demo", f'<section class="card narrow">\n<h1>{tr("Demo starten")}</h1>\n{body}\n</section>', signed_in=False
+    )
 
 
 def demo_response(response: Response, prepared: Prepared | None = None) -> Response:
@@ -90,16 +110,20 @@ def demo_response(response: Response, prepared: Prepared | None = None) -> Respo
     if not response.content_type.startswith(("text/html", "application/json")):
         return response
     text = response.body.decode("utf-8")
-    for original, replacement in DEMO_TEXTS.items():
-        text = text.replace(original, replacement)
-    if response.content_type.startswith("text/html"):
-        for original, replacement in DEMO_LABELS.items():
-            text = text.replace(f">{original}<", f">{replacement}<")
+    if response.content_type.startswith("application/json"):
+        payload = json.loads(text)
+        if isinstance(payload, dict) and isinstance(payload.get("message"), str):
+            with use_locale(current(), wording=DEMO_TEXTS | DEMO_LABELS):
+                payload["message"] = stored(payload["message"])
+            text = json.dumps(payload, ensure_ascii=False)
+    else:
         text = _ANSWER_FORM.sub(lambda match: _prefill(match.group(0), prepared or {}), text)
-        text = _OPEN_LIST.sub(lambda match: KEYS_HINT + match.group(0), text, count=1)
-        text = _INBOX_ZERO.sub(lambda match: match.group(0) + AGAIN, text, count=1)
-        banner = (notice(DEMO_NOTICE, "info")
-                  + '<p class="hint"><a href="/demo/neu-starten">Demo neu starten</a></p>')
+        text = _OPEN_LIST.sub(lambda match: tr(KEYS_HINT) + match.group(0), text, count=1)
+        text = _INBOX_ZERO.sub(lambda match: match.group(0) + tr(AGAIN), text, count=1)
+        banner = (
+            notice(tr(DEMO_NOTICE), "info")
+            + f'<p class="hint"><a href="/demo/neu-starten">{tr("Demo neu starten")}</a></p>'
+        )
         text = _MAIN.sub(lambda match: match.group(0) + banner, text, count=1)
     response.body = text.encode("utf-8")
     return response
@@ -123,53 +147,97 @@ class StartLimits:
         return True
 
 
-def demo_restart_page(csrf: str, key: str) -> str:
-    body = ("<p>Alle Änderungen in deiner Demo werden verworfen, und die 30 Beispielmails werden neu geladen. "
-            "Andere Besucher sind davon nicht betroffen.</p>"
-            f'<form method="post" action="/demo/neu-starten" class="stack">'
-            f'<input type="hidden" name="csrf" value="{e(csrf)}"><input type="hidden" name="key" value="{e(key)}">'
-            '<button class="button danger" type="submit">Demo jetzt neu starten</button>'
-            '<a class="button" href="/">Abbrechen</a></form>')
-    return layout("Demo neu starten", f'<section class="card narrow"><h1>Demo neu starten</h1>{body}</section>')
+def demo_restart_page(csrf: str, key: str, generation: int = 1) -> str:
+    body = (
+        "<p>"
+        + tr(
+            "Alle Änderungen in deiner Demo werden verworfen, und die 30 Beispielmails werden neu geladen. "
+            "Andere Besucher sind davon nicht betroffen."
+        )
+        + "</p>"
+        f'<form method="post" action="/demo/neu-starten" class="stack">'
+        f'<input type="hidden" name="csrf" value="{e(csrf)}"><input type="hidden" name="key" value="{e(key)}">'
+        f'<input type="hidden" name="locale" value="{current().value}">'
+        f'<input type="hidden" name="demo_generation" value="{generation}">'
+        f'<button class="button danger" type="submit">{tr("Demo jetzt neu starten")}</button>'
+        f'<a class="button" href="/">{tr("Abbrechen")}</a></form>'
+    )
+    return layout(
+        tr("Demo neu starten"), f'<section class="card narrow"><h1>{tr("Demo neu starten")}</h1>{body}</section>'
+    )
 
 
 @dataclass(frozen=True)
 class DemoHooks:
     """What the demo site asks of the visitor areas (app.demo)."""
-    start: Callable[[str, str], None]
+
+    start: Callable[[str, str, Locale], None]
     visitor_app: Callable[[str], VisitorApp | None]
     full: Callable[[], bool]
-    reset: Callable[[str, str], None]
+    reset: Callable[[str, str, Locale, int], None]
+    dataset_locale: Callable[[str], Locale | None]
+    prepared: Callable[[str], Prepared]
+    generation: Callable[[str], int]
 
 
 class DemoSite:
     def __init__(self, public: WebApp, auth: WebAuth, logger: Any, hooks: DemoHooks,
                  prepared: Prepared | None = None, *, trust_proxy: bool = False,
                  limits: StartLimits | None = None) -> None:
+        self.lock = RLock()
         self.public, self.auth, self.logger = public, auth, logger
         self.prepared = prepared or {}
         self.start, self.visitor_app, self.full = hooks.start, hooks.visitor_app, hooks.full
         self.reset, self.trust_proxy = hooks.reset, trust_proxy
+        self.dataset_locale, self.answers = hooks.dataset_locale, hooks.prepared
+        self.generation = hooks.generation
         self.limits = limits or StartLimits()
         public.route("GET", "/anmelden", self.login)
         public.route("POST", "/demo/starten", self.begin)
 
     def __call__(self, request: Request) -> Response:
+        locale = negotiate(request.cookies().get(COOKIE), request.header("accept-language"), self.public.default_locale)
+        with self.lock, use_locale(locale, wording=DEMO_TEXTS | DEMO_LABELS):
+            return self.dispatch(request)
+
+    def dispatch(self, request: Request) -> Response:
+        rejection = rejected(request, self.public.allowed_hosts, self.public.lan_port)
+        if rejection is not None:
+            return rejection
         if PUBLIC.fullmatch(request.path):
             return self.public(request)
         session = self.auth.authenticate(request.cookies().get(SESSION_COOKIE))
         app = self.visitor_app(session.id) if session is not None else None
         if app is None:
-            return Response.redirect("/anmelden") if request.method == "GET" else Response.text(
-                403, "Sicherheitsprüfung fehlgeschlagen.")
+            return (
+                Response.redirect("/anmelden")
+                if request.method == "GET"
+                else Response.text(403, tr(msg("Sicherheitsprüfung fehlgeschlagen.")))
+            )
         if request.path == "/demo/neu-starten":
             assert session is not None  # visitor_app only answers for a live session
             return self.restart(request, session.id)
         if BLOCKED.fullmatch(request.path) or request.method == "POST" and BLOCKED_POST.fullmatch(request.path):
-            return Response.html(403, error_page("In der Demo nicht verfügbar",
-                                                 "Diese Funktion verbindet echte Konten oder ruft eine KI auf. "
-                                                 "In der Demo ist sie gesperrt."))
-        return demo_response(app(request), self.prepared)
+            return Response.html(
+                403,
+                error_page(
+                    tr("In der Demo nicht verfügbar"),
+                    tr("Diese Funktion verbindet echte Konten oder ruft eine KI auf. In der Demo ist sie gesperrt."),
+                ),
+            )
+        assert session is not None  # visitor_app only answers for a live session
+        response = demo_response(app(request), self.answers(session.id))
+        if response.content_type.startswith("text/html") and self.dataset_locale(session.id) != current():
+            hint = notice(
+                tr(
+                    "Die Beispieldaten bleiben in ihrer bisherigen Sprache. "
+                    "Starte die Demo neu, um die Beispieldaten in der gewählten Sprache zu laden."
+                )
+            )
+            response.body = _MAIN.sub(
+                lambda match: match.group(0) + hint, response.body.decode("utf-8"), count=1
+            ).encode("utf-8")
+        return response
 
     def _nonce(self, request: Request, response: Response) -> str:
         nonce = request.cookies().get(PAIR_COOKIE)
@@ -193,29 +261,47 @@ class DemoSite:
         try:
             form = request.form(max_num_fields=4)
         except (UnicodeDecodeError, ValueError):
-            return Response.text(400, "Ungültige Formulardaten.")
+            return Response.text(400, msg("Ungültige Formulardaten."))
         key = form.get("key", "")
-        if not nonce or not self.auth.csrf_valid(f"pair:{nonce}", form.get("csrf")) \
-                or not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", key):
+        if (
+            not nonce
+            or not self.auth.csrf_valid(f"pair:{nonce}", form.get("csrf"))
+            or not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", key)
+        ):
             self.logger.event("WARNING", "demo", "start_rejected", path=request.path)
-            return Response.text(403, "Sicherheitsprüfung fehlgeschlagen.")
+            return Response.text(403, msg("Sicherheitsprüfung fehlgeschlagen."))
+        try:
+            locale = Locale(form.get("locale", current().value))
+        except ValueError:
+            return Response.text(400, tr("Ungültige Sprachwahl."))
         token = request.cookies().get(SESSION_COOKIE)
         session = self.auth.authenticate(token)
+        created = session is None
         if session is None:
             if not self.limits.allow(self.client(request)):
-                return self.login(request, "Zu viele Demo-Starts in kurzer Zeit. Bitte später erneut versuchen.", 429)
-            if self.full():
-                return self.login(request, "Gerade sind alle Demo-Plätze belegt. Bitte später erneut versuchen.",
-                                  429)
+                return self.login(
+                    request, tr("Zu viele Demo-Starts in kurzer Zeit. Bitte später erneut versuchen."), 429
+                )
+            if self.full() or len(self.auth.sessions()) >= self.auth.max_sessions:
+                return self.login(
+                    request, tr("Gerade sind alle Demo-Plätze belegt. Bitte später erneut versuchen."), 429
+                )
             token = self.auth.demo_session("Demo")
             session = self.auth.authenticate(token)
         assert session is not None and token is not None  # demo_session created this session just now
         try:
-            self.start(session.id, key)
-        except (OSError, ValueError, RuntimeError) as exc:
+            self.start(session.id, key, locale)
+        except ValueError:
+            if created:
+                self.auth.revoke(session.id)
+            return Response.text(409, tr("Dieser Demo-Auftrag wurde bereits mit anderen Angaben verwendet."))
+        except (OSError, RuntimeError) as exc:
+            if created:
+                self.auth.revoke(session.id)
             self.logger.event("ERROR", "demo", "start_failed", error=type(exc).__name__)
-            return self.login(request, "Die Demo konnte nicht gestartet werden. Bitte später erneut versuchen.",
-                              503)
+            return self.login(
+                request, tr("Die Demo konnte nicht gestartet werden. Bitte später erneut versuchen."), 503
+            )
         response = Response.redirect("/")
         response.cookies.append(cookie(request, SESSION_COOKIE, token, SESSION_SECONDS))
         self.logger.event("INFO", "demo", "visitor_started")
@@ -229,15 +315,35 @@ class DemoSite:
     def restart(self, request: Request, session_id: str) -> Response:
         """Confirm, then replace only this visitor's area with a fresh copy of the dataset."""
         if request.method == "GET":
-            page = demo_restart_page(self.auth.csrf_token(session_id), self.auth.new_browser_nonce())
+            page = demo_restart_page(
+                self.auth.csrf_token(session_id), self.auth.new_browser_nonce(), self.generation(session_id)
+            )
             return Response.html(200, demo_response(Response.html(200, page)).body.decode("utf-8"))
         try:
             form = request.form(max_num_fields=4)
         except (UnicodeDecodeError, ValueError):
-            return Response.text(400, "Ungültige Formulardaten.")
+            return Response.text(400, msg("Ungültige Formulardaten."))
         key = form.get("key", "")
         if not self.auth.csrf_valid(session_id, form.get("csrf")) or not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", key):
-            return Response.text(403, "Sicherheitsprüfung fehlgeschlagen.")
-        self.reset(session_id, key)
+            return Response.text(403, msg("Sicherheitsprüfung fehlgeschlagen."))
+        try:
+            locale = Locale(form.get("locale", current().value))
+        except ValueError:
+            return Response.text(400, tr("Ungültige Sprachwahl."))
+        generation = form.get("demo_generation", "1")
+        if not re.fullmatch(r"[1-9][0-9]{0,9}", generation):
+            return Response.text(400, msg("Ungültige Formulardaten."))
+        try:
+            self.reset(session_id, key, locale, int(generation))
+        except ValueError:
+            return Response.text(409, tr("Dieser Demo-Auftrag wurde bereits mit anderen Angaben verwendet."))
+        except (OSError, RuntimeError) as exc:
+            self.logger.event("ERROR", "demo", "reset_failed", error=type(exc).__name__)
+            return Response.html(
+                503,
+                error_page(
+                    tr("Demo neu starten"), tr("Der Neustart ist fehlgeschlagen. Deine bisherige Demo bleibt erhalten.")
+                ),
+            )
         self.logger.event("INFO", "demo", "visitor_reset")
         return Response.redirect("/")

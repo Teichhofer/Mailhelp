@@ -9,7 +9,7 @@ from playwright.sync_api import expect
 from checks import audit
 from conftest import COVERAGE, DEVICES, Page, item, sign_in
 
-SHELL = ["/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"]
+SHELL = ["/offline.html", "/offline-en.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"]
 
 
 def new_page(browser, device, **options):
@@ -47,11 +47,32 @@ def test_installed_app_shows_the_offline_page_and_caches_no_data(browser, mailhe
 def test_a_failed_worker_registration_is_harmless(browser, mailhelp):
     page = new_page(browser, "desktop", service_workers="allow")
     try:
-        page.context.route("**/sw.js", lambda route: route.fulfill(status=404, body="nein"))
+        page.context.route("**/sw.js*", lambda route: route.fulfill(status=404, body="nein"))
         sign_in(page, mailhelp)
         page.wait_for_timeout(300)
         assert page.evaluate("navigator.serviceWorker.getRegistration().then((r) => r === undefined)")
         page.errors[:] = [error for error in page.errors if "404" not in error and "sw.js" not in error]
+        assert page.errors == []
+    finally:
+        page.context.close()
+
+
+def test78_real_worker_switches_the_offline_language_with_the_browser_choice(browser, mailhelp):
+    page = new_page(browser, "desktop", service_workers="allow")
+    try:
+        sign_in(page, mailhelp)
+        assert page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        for locale, heading in [("en", "Computer unreachable"), ("de", "PC nicht erreichbar")]:
+            page.goto(mailhelp.url + "/" + locale + "/")
+            page.wait_for_function("""locale => navigator.serviceWorker.getRegistration().then(r =>
+              r && r.active && new URL(r.active.scriptURL).searchParams.get('lang') === locale)""", arg=locale)
+            page.reload()
+            expect(page.locator("html")).to_have_attribute("lang", locale)
+            page.context.set_offline(True)
+            page.page.goto(mailhelp.url + "/status")
+            expect(page.get_by_role("heading", name=heading)).to_be_visible()
+            page.context.set_offline(False)
+        page.errors[:] = [error for error in page.errors if "ERR_INTERNET_DISCONNECTED" not in error]
         assert page.errors == []
     finally:
         page.context.close()
@@ -72,6 +93,42 @@ window.respond = (handler, request) => new Promise((resolve) => {
 window.navigation = (url) => { const request = new Request(url);
   Object.defineProperty(request, "mode", { value: "navigate" }); return request; };
 </script><script src="/sw.js"></script></body></html>"""
+
+
+def test78_english_worker_keeps_push_neutral_and_offline_actions_unreplayed(browser, mailhelp):
+    page = new_page(browser, "desktop", service_workers="block")
+    try:
+        url = mailhelp.url + "/__sw-en?lang=en"
+        page.page.route(url, lambda route: route.fulfill(body=HARNESS, content_type="text/html"))
+        page.goto(url)
+        result = page.evaluate("""async () => {
+          const waits = [], shown = [];
+          const event = {waitUntil: promise => waits.push(promise)};
+          handlers.install(event); await Promise.all(waits);
+          clients.matchAll = () => Promise.resolve([]);
+          self.registration = {showNotification: (title, options) => {
+            shown.push({title, body:options.body, data:options.data}); return Promise.resolve();}};
+          for (const tag of Object.keys(NOTIFICATIONS_EN)) {
+            const done = [];
+            handlers.push({data:{json:()=>({tag,body:'PRIVATE SUBJECT',url:'https://foreign.test/'})},
+              waitUntil:promise=>done.push(promise)});
+            await Promise.all(done);
+          }
+          return {shown,offline:OFFLINE};
+        }""")
+        assert result["offline"] == "/offline-en.html"
+        assert len(result["shown"]) == 7
+        assert result["shown"][0]["body"] == "New tasks or events are ready for your decision."
+        assert all("PRIVATE SUBJECT" not in row["body"] and row["title"] == "Mailhelp" for row in result["shown"])
+        page.context.set_offline(True)
+        offline = page.evaluate("""async () => {
+          const response=await respond(handlers.fetch,navigation('/status'));
+          return {html:await response.text(),post:await respond(handlers.fetch,new Request('/aktion',{method:'POST'}))};
+        }""")
+        assert 'lang="en"' in offline["html"] and "Computer unreachable" in offline["html"]
+        assert offline["post"] == "network"
+    finally:
+        page.context.close()
 
 
 def test_service_worker_rules(browser, mailhelp):

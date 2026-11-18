@@ -41,7 +41,8 @@ DESCRIPTION_LIMIT = 300
 EVIDENCE_LIMIT = 200
 SUBJECT_LIMIT = 80
 # The trailing provenance block ProposalBuilder appends to every description.
-_PROVENANCE = re.compile(r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*\Z")
+_PROVENANCE = re.compile(
+    r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*(?:\n📧 [^\n]*)?\Z")
 
 
 def display_date(value: date | datetime | None, configured_timezone: str) -> str:

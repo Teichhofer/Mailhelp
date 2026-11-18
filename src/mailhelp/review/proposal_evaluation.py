@@ -12,6 +12,7 @@ from typing import Any
 from .. import state_names
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal, ProposalKind, ProposalStatus
+from ..i18n import msg
 from ..mailbox.sender_filter import sender_addresses
 from ..persistence.storage import JsonStore
 from ..review.learning_log import _read, learning_path
@@ -26,11 +27,11 @@ ACCEPTED_STATUSES = frozenset({
 })
 
 PERIODS = (
-    (1, "Heute (24 Std.)"),
-    (7, "7 Tage"),
-    (30, "30 Tage"),
-    (90, "90 Tage"),
-    (0, "Gesamter Zeitraum"),
+    (1, msg("Heute (24 Std.)")),
+    (7, msg("7 Tage")),
+    (30, msg("30 Tage")),
+    (90, msg("90 Tage")),
+    (0, msg("Gesamter Zeitraum")),
 )
 
 
@@ -602,7 +603,8 @@ def get_learning_run_hint(store: JsonStore, *, now: datetime | None = None,
 
     if new_rejections < min_rejections:
         return None
-    return f"Seit dem letzten Regellauf liegen {new_rejections} neue Ablehnungen vor. Ein neuer Lernlauf kann deine Themenregeln verbessern."
+    return (f"Seit dem letzten Regellauf liegen {new_rejections} neue Ablehnungen vor. "
+            "Ein neuer Lernlauf kann deine Themenregeln verbessern.")
 
 
 def dismiss_learning_run_hint(store: JsonStore, *, now: datetime | None = None) -> None:

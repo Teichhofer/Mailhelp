@@ -163,6 +163,9 @@ class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     defaults: dict[str, Any]
     prompts: dict[str, PromptStep]
+    # Development-only profiles are applied to the effective prompts before dataset generation.
+    # Unused profiles cannot change the fingerprint of a production analysis.
+    demo_profiles: dict[str, dict[str, str]] = Field(default_factory=dict, exclude=True)
     ollama: OllamaPromptSettings | None = None
     suspicious_link_hosts: list[Annotated[str, Field(min_length=1, max_length=253)]] = Field(default_factory=list)
     suspicious_link_phrases: list[Annotated[str, Field(min_length=1, max_length=250)]] = Field(default_factory=list)

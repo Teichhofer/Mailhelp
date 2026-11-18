@@ -354,9 +354,20 @@ Auf Telefon und Tablet kannst du Karten mit Wischgesten entscheiden (siehe [Wisc
 ## Sprache
 
 Am Ende der Navigation wechselt der Link „English“ beziehungsweise „Deutsch“ die Sprache der
-Oberfläche für diesen Browser; die Wahl bleibt gespeichert. Ohne Wahl gilt die Sprache des Browsers
-oder die Einstellung `language`. Seit 7.5.1 sind Navigation und Statusbezeichnungen übersetzt, die
-übrigen Seiten folgen. Die Auswertung der Mails läuft unabhängig davon auf Deutsch.
+Oberfläche für diesen Browser; die Wahl bleibt ein Jahr im Sprachcookie gespeichert. Ohne Wahl
+gilt die unterstützte Browsersprache mit dem höchsten Qualitätsgewicht, danach `language` aus
+`config.yaml`. Weboberfläche, Hilfe, JavaScript-Meldungen und Offline-Seiten sind zweisprachig.
+Originalmails und selbst vergebene Texte behalten ihren Wortlaut. Die normale Mailanalyse verwendet
+weiter die konfigurierten Prompts; ein Sprachwechsel löst keine neue Analyse aus.
+
+Die Demo lässt sich über `/de/` oder `/en/` bereits vor dem Start auswählen. Beide Bestände enthalten
+30 synthetische Mails und ausschließlich bestätigungsbereite Vorschläge. Eine Sprachumschaltung
+übersetzt die Oberfläche und erhält deine Entscheidungen und den bisherigen Beispielsatz.
+Erst der bestätigte Neustart lädt den Beispielsatz der gewählten Sprache. Der Neustart zeigt eine
+Bestätigung und betrifft ausschließlich deine Sitzung; alte Formulare werden danach abgewiesen.
+
+`mailhelp --language en --help` zeigt die englische CLI-Hilfe ohne Konfiguration oder Dienstzugriff.
+`--language` gilt für den einzelnen Aufruf und kann auch mit `--demo` verwendet werden.
 
 ## Fehlgeschlagene Mails
 

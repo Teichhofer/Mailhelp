@@ -1,0 +1,10 @@
+From: Public updates <news@receipt.example>
+To: Alex Miller <alex@miller-family.example>
+Subject: Receipt for your completed purchase
+Date: Thu, 12 Nov 2026 09:14:00 +0100
+Message-ID: <14-receipt@demo.mailhelp.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Payment received. Your purchase is complete; nothing remains to be paid.

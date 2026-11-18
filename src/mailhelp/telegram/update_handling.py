@@ -307,7 +307,8 @@ class TelegramUpdateHandler:
         if confirmation:
             self.o.telegram.send(self.o.chat_id, confirmation, markup)
 
-    def _confirmation(self, update: TelegramUpdate, callback: TelegramCallbackQuery) -> tuple[str | None, dict[str, Any] | None] | None:
+    def _confirmation(self, update: TelegramUpdate, callback: TelegramCallbackQuery
+                      ) -> tuple[str | None, dict[str, Any] | None] | None:
         """The confirmation text of the executed button; ``None`` when already answered."""
         actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
         key = f"telegram-update-{update.update_id}"

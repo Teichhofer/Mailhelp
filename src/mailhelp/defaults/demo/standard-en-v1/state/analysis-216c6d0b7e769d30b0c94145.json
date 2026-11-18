@@ -1,0 +1,28 @@
+{
+  "human_decision": null,
+  "mail_id": "216c6d0b7e769d30b0c94145",
+  "recorded_at": "2026-11-17T21:40:06.281709+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "2026-11-30"
+    ],
+    "sentences": [
+      "The Maple Park school library asks Alex to return Mia's copy of The Secret Garden by 2026-11-30 because it is still checked out to Mia."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

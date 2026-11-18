@@ -1,0 +1,1502 @@
+[
+ {
+  "area": "Other settings",
+  "help": "Daily overview via Telegram; default off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:daily_briefing.enabled",
+  "key": "daily_briefing.enabled",
+  "label": "daily_briefing.enabled",
+  "path": "Setup",
+  "summary": "Daily overview via Telegram; default off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Time of the daily overview in HH:MM format in the configured time zone; default 07:30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:daily_briefing.time",
+  "key": "daily_briefing.time",
+  "label": "daily_briefing.time",
+  "path": "Setup",
+  "summary": "Time of the daily overview in HH:MM format in the configured time zone; default 07:30."
+ },
+ {
+  "area": "Other settings",
+  "help": "Directory of state data (required); under it `production` or `test` depending on test mode. Relative to the configuration.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:data_directory",
+  "key": "data_directory",
+  "label": "data_directory",
+  "path": "File",
+  "summary": "Directory of state data (required); under it `production` or `test` depending on test mode. Relative to the configuration."
+ },
+ {
+  "area": "Other settings",
+  "help": "Connection type `ssl`, `starttls` or `plain` (unencrypted, only useful in your own network); if not specified, `ssl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.connection_mode",
+  "key": "imap.connection_mode",
+  "label": "imap.connection_mode",
+  "path": "Setup",
+  "summary": "Connection type `ssl`, `starttls` or `plain` (unencrypted, only useful in your own network); if not specified, `ssl`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Folder for reply and briefing drafts; if not specified, `Drafts`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.drafts_folder",
+  "key": "imap.drafts_folder",
+  "label": "imap.drafts_folder",
+  "path": "Setup",
+  "summary": "Folder for reply and briefing drafts; if not specified, `Drafts`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Folders that are read, 1–100 entries; the first is the inbox.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.folders",
+  "key": "imap.folders",
+  "label": "imap.folders",
+  "path": "Setup",
+  "summary": "Folders that are read, 1–100 entries; the first is the inbox."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start boundary: older Mails are not processed (Date with time and time zone). Empty means all existing Mails. `mailhelp --ignore-historical-start` overrides it for one retrieval.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.historical_start",
+  "key": "imap.historical_start",
+  "label": "imap.historical_start",
+  "path": "Setup",
+  "summary": "Start boundary: older Mails are not processed (Date with time and time zone). Empty means all existing Mails. `mailhelp --ignore-historical-start` overrides it "
+ },
+ {
+  "area": "Other settings",
+  "help": "Mail server of the first mailbox in the older single format, e.g. `imap.example.org`; 1–253 characters. Without `imap.mailboxes`, this block describes Mailbox 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.host",
+  "key": "imap.host",
+  "label": "imap.host",
+  "path": "Setup",
+  "summary": "Mail server of the first mailbox in the older single format, e.g. `imap.example.org`; 1–253 characters. Without `imap.mailboxes`, this block describes Mailbox 1"
+ },
+ {
+  "area": "Other settings",
+  "help": "Preselected folder for activity reports.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].activity_report_folder",
+  "key": "imap.mailboxes[].activity_report_folder",
+  "label": "imap.mailboxes[].activity_report_folder",
+  "path": "Postfachseite",
+  "summary": "Preselected folder for activity reports."
+ },
+ {
+  "area": "Other settings",
+  "help": "Place drafts in the drafts folder without a click; empty inherits global (default off).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].auto_draft",
+  "key": "imap.mailboxes[].auto_draft",
+  "label": "imap.mailboxes[].auto_draft",
+  "path": "Postfachseite",
+  "summary": "Place drafts in the drafts folder without a click; empty inherits global (default off)."
+ },
+ {
+  "area": "Other settings",
+  "help": "`ssl` (default), `starttls` or `plain`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].connection_mode",
+  "key": "imap.mailboxes[].connection_mode",
+  "label": "imap.mailboxes[].connection_mode",
+  "path": "Postfachseite",
+  "summary": "`ssl` (default), `starttls` or `plain`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Show this mailbox in the daily briefing as its own section; default on.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].daily_briefing",
+  "key": "imap.mailboxes[].daily_briefing",
+  "label": "imap.mailboxes[].daily_briefing",
+  "path": "Postfachseite",
+  "summary": "Show this mailbox in the daily briefing as its own section; default on."
+ },
+ {
+  "area": "Other settings",
+  "help": "Drafts folder, 1–500 characters; default `Drafts`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].drafts_folder",
+  "key": "imap.mailboxes[].drafts_folder",
+  "label": "imap.mailboxes[].drafts_folder",
+  "path": "Postfachseite",
+  "summary": "Drafts folder, 1–500 characters; default `Drafts`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Whether the mailbox is retrieved; default on. A disabled mailbox remains listed.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].enabled",
+  "key": "imap.mailboxes[].enabled",
+  "label": "imap.mailboxes[].enabled",
+  "path": "File",
+  "summary": "Whether the mailbox is retrieved; default on. A disabled mailbox remains listed."
+ },
+ {
+  "area": "Other settings",
+  "help": "Local default duration for in-person appointments, 1–1440 minutes; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "key": "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "label": "imap.mailboxes[].event_defaults.in_person_duration_minutes",
+  "path": "Postfachseite",
+  "summary": "Local default duration for in-person appointments, 1–1440 minutes; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Local default duration for video appointments, 1–1440 minutes; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].event_defaults.video_duration_minutes",
+  "key": "imap.mailboxes[].event_defaults.video_duration_minutes",
+  "label": "imap.mailboxes[].event_defaults.video_duration_minutes",
+  "path": "Postfachseite",
+  "summary": "Local default duration for video appointments, 1–1440 minutes; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Read folders, 1–100 (required); the first is the inbox.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].folders",
+  "key": "imap.mailboxes[].folders",
+  "label": "imap.mailboxes[].folders",
+  "path": "Postfachseite",
+  "summary": "Read folders, 1–100 (required); the first is the inbox."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start boundary of this mailbox; empty means all Mails.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].historical_start",
+  "key": "imap.mailboxes[].historical_start",
+  "label": "imap.mailboxes[].historical_start",
+  "path": "Postfachseite",
+  "summary": "Start boundary of this mailbox; empty means all Mails."
+ },
+ {
+  "area": "Other settings",
+  "help": "Mail server, 1–253 characters (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].host",
+  "key": "imap.mailboxes[].host",
+  "label": "imap.mailboxes[].host",
+  "path": "Postfachseite",
+  "summary": "Mail server, 1–253 characters (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Number of the mailbox, 1–99; determines the names of the credentials. Assigned when created and not changed.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].id",
+  "key": "imap.mailboxes[].id",
+  "label": "imap.mailboxes[].id",
+  "path": "Postfachseite",
+  "summary": "Number of the mailbox, 1–99; determines the names of the credentials. Assigned when created and not changed."
+ },
+ {
+  "area": "Other settings",
+  "help": "Display name, 1–40 characters; default “Mailbox”.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].label",
+  "key": "imap.mailboxes[].label",
+  "label": "imap.mailboxes[].label",
+  "path": "Postfachseite",
+  "summary": "Display name, 1–40 characters; default “Mailbox”."
+ },
+ {
+  "area": "Other settings",
+  "help": "Where “Open original email” leads: `auto` (default), `apple_mail`, `gmail_web`, `outlook_web` or `none`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].mail_client",
+  "key": "imap.mailboxes[].mail_client",
+  "label": "imap.mailboxes[].mail_client",
+  "path": "Postfachseite",
+  "summary": "Where “Open original email” leads: `auto` (default), `apple_mail`, `gmail_web`, `outlook_web` or `none`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for results of entries; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.action_results",
+  "key": "imap.mailboxes[].notifications.categories.action_results",
+  "label": "imap.mailboxes[].notifications.categories.action_results",
+  "path": "Postfachseite",
+  "summary": "Channels for results of entries; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for the daily briefing; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.daily_briefing",
+  "key": "imap.mailboxes[].notifications.categories.daily_briefing",
+  "label": "imap.mailboxes[].notifications.categories.daily_briefing",
+  "path": "Postfachseite",
+  "summary": "Channels for the daily briefing; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels (`telegram`, `web_push`) for decisions of this mailbox; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.decisions",
+  "key": "imap.mailboxes[].notifications.categories.decisions",
+  "label": "imap.mailboxes[].notifications.categories.decisions",
+  "path": "Postfachseite",
+  "summary": "Channels (`telegram`, `web_push`) for decisions of this mailbox; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for system errors; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.categories.system_errors",
+  "key": "imap.mailboxes[].notifications.categories.system_errors",
+  "label": "imap.mailboxes[].notifications.categories.system_errors",
+  "path": "Postfachseite",
+  "summary": "Channels for system errors; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Report system errors despite quiet hours; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "key": "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "label": "imap.mailboxes[].notifications.quiet_hours.allow_system_errors",
+  "path": "Postfachseite",
+  "summary": "Report system errors despite quiet hours; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Own quiet hours for this mailbox; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.enabled",
+  "key": "imap.mailboxes[].notifications.quiet_hours.enabled",
+  "label": "imap.mailboxes[].notifications.quiet_hours.enabled",
+  "path": "Postfachseite",
+  "summary": "Own quiet hours for this mailbox; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "End of quiet hours, HH:MM; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.end",
+  "key": "imap.mailboxes[].notifications.quiet_hours.end",
+  "label": "imap.mailboxes[].notifications.quiet_hours.end",
+  "path": "Postfachseite",
+  "summary": "End of quiet hours, HH:MM; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start of quiet hours, HH:MM; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].notifications.quiet_hours.start",
+  "key": "imap.mailboxes[].notifications.quiet_hours.start",
+  "label": "imap.mailboxes[].notifications.quiet_hours.start",
+  "path": "Postfachseite",
+  "summary": "Start of quiet hours, HH:MM; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Additional own sender addresses (aliases), at most 20; the IMAP username already counts. Mails from these addresses are considered own Note or forwarding.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].own_addresses",
+  "key": "imap.mailboxes[].own_addresses",
+  "label": "imap.mailboxes[].own_addresses",
+  "path": "File",
+  "summary": "Additional own sender addresses (aliases), at most 20; the IMAP username already counts. Mails from these addresses are considered own Note or forwarding."
+ },
+ {
+  "area": "Other settings",
+  "help": "Own role, signature and details for reply drafts of this mailbox, up to 2000 characters; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].personal_info",
+  "key": "imap.mailboxes[].personal_info",
+  "label": "imap.mailboxes[].personal_info",
+  "path": "Postfachseite",
+  "summary": "Own role, signature and details for reply drafts of this mailbox, up to 2000 characters; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Port 1–65535 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].port",
+  "key": "imap.mailboxes[].port",
+  "label": "imap.mailboxes[].port",
+  "path": "Postfachseite",
+  "summary": "Port 1–65535 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Inbox; default `INBOX`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].primary_folder",
+  "key": "imap.mailboxes[].primary_folder",
+  "label": "imap.mailboxes[].primary_folder",
+  "path": "Postfachseite",
+  "summary": "Inbox; default `INBOX`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retain full texts for a shorter time than global: days, `disabled` (remove immediately) or `unlimited` (only with globally unlimited retention).",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].retention.full_mail_days",
+  "key": "imap.mailboxes[].retention.full_mail_days",
+  "label": "imap.mailboxes[].retention.full_mail_days",
+  "path": "Postfachseite",
+  "summary": "Retain full texts for a shorter time than global: days, `disabled` (remove immediately) or `unlimited` (only with globally unlimited retention)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Reply drafts for this mailbox; empty inherits global.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].smart_reply",
+  "key": "imap.mailboxes[].smart_reply",
+  "label": "imap.mailboxes[].smart_reply",
+  "path": "Postfachseite",
+  "summary": "Reply drafts for this mailbox; empty inherits global."
+ },
+ {
+  "area": "Other settings",
+  "help": "Target profile 1–99 for new Proposals of this mailbox; default 1. Existing Proposals remain bound to their target.",
+  "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
+  "id": "setting:imap.mailboxes[].target_profile",
+  "key": "imap.mailboxes[].target_profile",
+  "label": "imap.mailboxes[].target_profile",
+  "path": "Postfachseite",
+  "summary": "Target profile 1–99 for new Proposals of this mailbox; default 1. Existing Proposals remain bound to their target."
+ },
+ {
+  "area": "Other settings",
+  "help": "Port of the mail server, 1–65535; commonly 993 (SSL/TLS) or 143 (STARTTLS).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.port",
+  "key": "imap.port",
+  "label": "imap.port",
+  "path": "Setup",
+  "summary": "Port of the mail server, 1–65535; commonly 993 (SSL/TLS) or 143 (STARTTLS)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Folder that counts as the inbox and must be in `imap.folders`; if not specified, the first entry of `imap.folders`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:imap.primary_folder",
+  "key": "imap.primary_folder",
+  "label": "imap.primary_folder",
+  "path": "Setup",
+  "summary": "Folder that counts as the inbox and must be in `imap.folders`; if not specified, the first entry of `imap.folders`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retrieve account; default on.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].enabled",
+  "key": "iserv.accounts[].enabled",
+  "label": "iserv.accounts[].enabled",
+  "path": "IServ-Seite",
+  "summary": "Retrieve account; default on."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start limit; empty adopts that of the mailbox.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].historical_start",
+  "key": "iserv.accounts[].historical_start",
+  "label": "iserv.accounts[].historical_start",
+  "path": "IServ-Seite",
+  "summary": "Start limit; empty adopts that of the mailbox."
+ },
+ {
+  "area": "Other settings",
+  "help": "Number 1–10; determines the credentials `ISERV_<n>_USERNAME`/`_PASSWORD`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].id",
+  "key": "iserv.accounts[].id",
+  "label": "iserv.accounts[].id",
+  "path": "IServ-Seite",
+  "summary": "Number 1–10; determines the credentials `ISERV_<n>_USERNAME`/`_PASSWORD`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Display name, 1–40 characters; default „Elternbriefe“.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].label",
+  "key": "iserv.accounts[].label",
+  "label": "iserv.accounts[].label",
+  "path": "IServ-Seite",
+  "summary": "Display name, 1–40 characters; default „Elternbriefe“."
+ },
+ {
+  "area": "Other settings",
+  "help": "Mailbox 1–99, whose target profile and defaults apply; must be active. Default 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].mailbox",
+  "key": "iserv.accounts[].mailbox",
+  "label": "iserv.accounts[].mailbox",
+  "path": "IServ-Seite",
+  "summary": "Mailbox 1–99, whose target profile and defaults apply; must be active. Default 1."
+ },
+ {
+  "area": "Other settings",
+  "help": "HTTPS address of the school (required, up to 253 characters); a copied IServ link is shortened to the school address.",
+  "href": "/hilfe/dokumentation/web-einstellungen/iserv-konten-iservaccounts",
+  "id": "setting:iserv.accounts[].server",
+  "key": "iserv.accounts[].server",
+  "label": "iserv.accounts[].server",
+  "path": "IServ-Seite",
+  "summary": "HTTPS address of the school (required, up to 253 characters); a copied IServ link is shortened to the school address."
+ },
+ {
+  "area": "Other settings",
+  "help": "Number of new rejections since the last rule learning run from which a hint is displayed: 1–500; default 20.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.learning_run_hint_rejections",
+  "key": "learning.learning_run_hint_rejections",
+  "label": "learning.learning_run_hint_rejections",
+  "path": "File",
+  "summary": "Number of new rejections since the last rule learning run from which a hint is displayed: 1–500; default 20."
+ },
+ {
+  "area": "Other settings",
+  "help": "yes (true, default) shows a hint on “Open” and “Learning” when many new rejections are present since the last learning run. no (false) turns this hint off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.learning_run_hints_enabled",
+  "key": "learning.learning_run_hints_enabled",
+  "label": "learning.learning_run_hints_enabled",
+  "path": "File",
+  "summary": "yes (true, default) shows a hint on “Open” and “Learning” when many new rejections are present since the last learning run. no (false) turns this hint off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Considered mails from the last 1–365 days; default 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_days",
+  "key": "learning.prefilter_hint_days",
+  "label": "learning.prefilter_hint_days",
+  "path": "File",
+  "summary": "Considered mails from the last 1–365 days; default 30."
+ },
+ {
+  "area": "Other settings",
+  "help": "This many mails from a sender, all classified by the AI as irrelevant and without a contrary response, produce an “ignore” hint: 2–100; default 3.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_irrelevant_mails",
+  "key": "learning.prefilter_hint_irrelevant_mails",
+  "label": "learning.prefilter_hint_irrelevant_mails",
+  "path": "File",
+  "summary": "This many mails from a sender, all classified by the AI as irrelevant and without a contrary response, produce an “ignore” hint: 2–100; default 3."
+ },
+ {
+  "area": "Other settings",
+  "help": "This many mails from a sender, all of which led to at least one confirmed proposal, produce a “VIP” hint: 2–100; default 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hint_vip_mails",
+  "key": "learning.prefilter_hint_vip_mails",
+  "label": "learning.prefilter_hint_vip_mails",
+  "path": "File",
+  "summary": "This many mails from a sender, all of which led to at least one confirmed proposal, produce a “VIP” hint: 2–100; default 5."
+ },
+ {
+  "area": "Other settings",
+  "help": "yes (true, default) shows under Learning → Proposals hints for ignore and VIP rules from stored decisions. no (false) turns them off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.prefilter_hints_enabled",
+  "key": "learning.prefilter_hints_enabled",
+  "label": "learning.prefilter_hints_enabled",
+  "path": "File",
+  "summary": "yes (true, default) shows under Learning → Proposals hints for ignore and VIP rules from stored decisions. no (false) turns them off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Considered time range for a sender's acceptance rate: 1–365 days; default 90. Older decisions are not used for sender hints.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_days",
+  "key": "learning.sender_hint_days",
+  "label": "learning.sender_hint_days",
+  "path": "File",
+  "summary": "Considered time range for a sender's acceptance rate: 1–365 days; default 90. Older decisions are not used for sender hints."
+ },
+ {
+  "area": "Other settings",
+  "help": "Highest acceptance rate up to which a hint is generated: 0.0–1.0 (0 % to 100 %); default 0.1 (10 %).",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_max_acceptance_rate",
+  "key": "learning.sender_hint_max_acceptance_rate",
+  "label": "learning.sender_hint_max_acceptance_rate",
+  "path": "File",
+  "summary": "Highest acceptance rate up to which a hint is generated: 0.0–1.0 (0 % to 100 %); default 0.1 (10 %)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Minimum number of decided proposals from a sender before a hint appears: 1–100; default 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hint_min_proposals",
+  "key": "learning.sender_hint_min_proposals",
+  "label": "learning.sender_hint_min_proposals",
+  "path": "File",
+  "summary": "Minimum number of decided proposals from a sender before a hint appears: 1–100; default 5."
+ },
+ {
+  "area": "Other settings",
+  "help": "yes (true, default) displays hints about senders with conspicuously many rejections. no (false) turns sender hints off completely.",
+  "href": "/hilfe/dokumentation/web-einstellungen/lernmodus",
+  "id": "setting:learning.sender_hints_enabled",
+  "key": "learning.sender_hints_enabled",
+  "label": "learning.sender_hints_enabled",
+  "path": "File",
+  "summary": "yes (true, default) displays hints about senders with conspicuously many rejections. no (false) turns sender hints off completely."
+ },
+ {
+  "area": "Other settings",
+  "help": "Decoded text of all parts, 1–100000000 bytes; default 1000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_decoded_text_bytes",
+  "key": "limits.max_decoded_text_bytes",
+  "label": "limits.max_decoded_text_bytes",
+  "path": "File",
+  "summary": "Decoded text of all parts, 1–100000000 bytes; default 1000000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Longest displayed header (sender, subject), 1–10000 characters; default 500. Longer ones are displayed as “—”.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_display_header_characters",
+  "key": "limits.max_display_header_characters",
+  "label": "limits.max_display_header_characters",
+  "path": "File",
+  "summary": "Longest displayed header (sender, subject), 1–10000 characters; default 500. Longer ones are displayed as “—”."
+ },
+ {
+  "area": "Other settings",
+  "help": "Size of all headers, 256–1000000 bytes; default 64000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_header_bytes",
+  "key": "limits.max_header_bytes",
+  "label": "limits.max_header_bytes",
+  "path": "File",
+  "summary": "Size of all headers, 256–1000000 bytes; default 64000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Length of the HTML part, 1–100000000 characters; default 1000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_characters",
+  "key": "limits.max_html_characters",
+  "label": "limits.max_html_characters",
+  "path": "File",
+  "summary": "Length of the HTML part, 1–100000000 characters; default 1000000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Nesting depth of the HTML, 1–10000; default 100.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_depth",
+  "key": "limits.max_html_depth",
+  "label": "limits.max_html_depth",
+  "path": "File",
+  "summary": "Nesting depth of the HTML, 1–10000; default 100."
+ },
+ {
+  "area": "Other settings",
+  "help": "HTML elements, 1–1000000; default 20000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_html_tags",
+  "key": "limits.max_html_tags",
+  "label": "limits.max_html_tags",
+  "path": "File",
+  "summary": "HTML elements, 1–1000000; default 20000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Parts of an email, 1–10000; default 100.",
+  "href": "/hilfe/dokumentation/web-einstellungen/sicherheitsgrenzen-beim-zerlegen-von-mails",
+  "id": "setting:limits.max_mime_parts",
+  "key": "limits.max_mime_parts",
+  "label": "limits.max_mime_parts",
+  "path": "File",
+  "summary": "Parts of an email, 1–10000; default 100."
+ },
+ {
+  "area": "Other settings",
+  "help": "Address of the Ollama server with `llm.provider: ollama`; default `localhost:11434`, also `http://localhost:11434`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:llm.ollama_address",
+  "key": "llm.ollama_address",
+  "label": "llm.ollama_address",
+  "path": "File",
+  "summary": "Address of the Ollama server with `llm.provider: ollama`; default `localhost:11434`, also `http://localhost:11434`."
+ },
+ {
+  "area": "Other settings",
+  "help": "`openrouter` (default) or `ollama` (local server). `--ollama HOST:PORT` at start overrides the choice. With `openrouter`, `OPENROUTER_API_KEY` in `.env` is required.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:llm.provider",
+  "key": "llm.provider",
+  "label": "llm.provider",
+  "path": "File",
+  "summary": "`openrouter` (default) or `ollama` (local server). `--ollama HOST:PORT` at start overrides the choice. With `openrouter`, `OPENROUTER_API_KEY` in `.env` is requ"
+ },
+ {
+  "area": "Other settings",
+  "help": "Screen output as `text` (default) or `jsonl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.console.format",
+  "key": "logging.console.format",
+  "label": "logging.console.format",
+  "path": "File",
+  "summary": "Screen output as `text` (default) or `jsonl`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Directory of the logs (required); `--log-directory` overrides it for one start.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.directory",
+  "key": "logging.directory",
+  "label": "logging.directory",
+  "path": "File",
+  "summary": "Directory of the logs (required); `--log-directory` overrides it for one start."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retained older files, from 0 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.backup_count",
+  "key": "logging.file.backup_count",
+  "label": "logging.file.backup_count",
+  "path": "File",
+  "summary": "Retained older files, from 0 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "File of the application log in the log directory (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.filename",
+  "key": "logging.file.filename",
+  "label": "logging.file.filename",
+  "path": "File",
+  "summary": "File of the application log in the log directory (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "`jsonl` (default) or `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.format",
+  "key": "logging.file.format",
+  "label": "logging.file.format",
+  "path": "File",
+  "summary": "`jsonl` (default) or `text`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Size at which the file is rotated, greater than 0 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.max_bytes",
+  "key": "logging.file.max_bytes",
+  "label": "logging.file.max_bytes",
+  "path": "File",
+  "summary": "Size at which the file is rotated, greater than 0 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Maximum age of the log files, 1–3650 days (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.file.retention_days",
+  "key": "logging.file.retention_days",
+  "label": "logging.file.retention_days",
+  "path": "File",
+  "summary": "Maximum age of the log files, 1–3650 days (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retained older files, from 0 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.backup_count",
+  "key": "logging.llm.backup_count",
+  "label": "logging.llm.backup_count",
+  "path": "File",
+  "summary": "Retained older files, from 0 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "File of the AI log (required). Contents of requests and responses are only there with `logging.llm.include_requests`/`include_responses`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.filename",
+  "key": "logging.llm.filename",
+  "label": "logging.llm.filename",
+  "path": "File",
+  "summary": "File of the AI log (required). Contents of requests and responses are only there with `logging.llm.include_requests`/`include_responses`."
+ },
+ {
+  "area": "Other settings",
+  "help": "`jsonl` (default) or `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.format",
+  "key": "logging.llm.format",
+  "label": "logging.llm.format",
+  "path": "File",
+  "summary": "`jsonl` (default) or `text`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Rotation size, greater than 0 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.max_bytes",
+  "key": "logging.llm.max_bytes",
+  "label": "logging.llm.max_bytes",
+  "path": "File",
+  "summary": "Rotation size, greater than 0 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Maximum age, 1–3650 days (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.llm.retention_days",
+  "key": "logging.llm.retention_days",
+  "label": "logging.llm.retention_days",
+  "path": "File",
+  "summary": "Maximum age, 1–3650 days (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Log level per module, e.g. `openrouter: INFO`; default empty.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.modules",
+  "key": "logging.modules",
+  "label": "logging.modules",
+  "path": "File",
+  "summary": "Log level per module, e.g. `openrouter: INFO`; default empty."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retained older files, from 0; default 5.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.backup_count",
+  "key": "logging.telegram.backup_count",
+  "label": "logging.telegram.backup_count",
+  "path": "File",
+  "summary": "Retained older files, from 0; default 5."
+ },
+ {
+  "area": "Other settings",
+  "help": "File of the Telegram message log; default `telegram/messages.jsonl`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.filename",
+  "key": "logging.telegram.filename",
+  "label": "logging.telegram.filename",
+  "path": "File",
+  "summary": "File of the Telegram message log; default `telegram/messages.jsonl`."
+ },
+ {
+  "area": "Other settings",
+  "help": "`jsonl` (default) or `text`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.format",
+  "key": "logging.telegram.format",
+  "label": "logging.telegram.format",
+  "path": "File",
+  "summary": "`jsonl` (default) or `text`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Rotation size, greater than 0; default 10000000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.max_bytes",
+  "key": "logging.telegram.max_bytes",
+  "label": "logging.telegram.max_bytes",
+  "path": "File",
+  "summary": "Rotation size, greater than 0; default 10000000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Maximum age, 1–3650 days; default 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:logging.telegram.retention_days",
+  "key": "logging.telegram.retention_days",
+  "label": "logging.telegram.retention_days",
+  "path": "File",
+  "summary": "Maximum age, 1–3650 days; default 30."
+ },
+ {
+  "area": "Other settings",
+  "help": "Bundle notifications within a time window; default off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.batching.enabled",
+  "key": "notifications.batching.enabled",
+  "label": "notifications.batching.enabled",
+  "path": "Setup",
+  "summary": "Bundle notifications within a time window; default off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Batching window 1–86400 seconds; default 300.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.batching.window_seconds",
+  "key": "notifications.batching.window_seconds",
+  "label": "notifications.batching.window_seconds",
+  "path": "Setup",
+  "summary": "Batching window 1–86400 seconds; default 300."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for results of entries.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.action_results",
+  "key": "notifications.categories.action_results",
+  "label": "notifications.categories.action_results",
+  "path": "Setup",
+  "summary": "Channels for results of entries."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for the daily briefing.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.daily_briefing",
+  "key": "notifications.categories.daily_briefing",
+  "label": "notifications.categories.daily_briefing",
+  "path": "Setup",
+  "summary": "Channels for the daily briefing."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels (`telegram`, `web_push`) for decisions; an empty list does not notify this category.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.decisions",
+  "key": "notifications.categories.decisions",
+  "label": "notifications.categories.decisions",
+  "path": "Setup",
+  "summary": "Channels (`telegram`, `web_push`) for decisions; an empty list does not notify this category."
+ },
+ {
+  "area": "Other settings",
+  "help": "Channels for system errors.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.categories.system_errors",
+  "key": "notifications.categories.system_errors",
+  "label": "notifications.categories.system_errors",
+  "path": "Setup",
+  "summary": "Channels for system errors."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retention of delivery history, 1–3650 days; default 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.history_days",
+  "key": "notifications.delivery.history_days",
+  "label": "notifications.delivery.history_days",
+  "path": "Setup",
+  "summary": "Retention of delivery history, 1–3650 days; default 30."
+ },
+ {
+  "area": "Other settings",
+  "help": "Wait time before the second attempt, 1–86400 seconds; default 30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.initial_backoff_seconds",
+  "key": "notifications.delivery.initial_backoff_seconds",
+  "label": "notifications.delivery.initial_backoff_seconds",
+  "path": "Setup",
+  "summary": "Wait time before the second attempt, 1–86400 seconds; default 30."
+ },
+ {
+  "area": "Other settings",
+  "help": "Delivery attempts per notification, 1–10; default 3.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_attempts",
+  "key": "notifications.delivery.max_attempts",
+  "label": "notifications.delivery.max_attempts",
+  "path": "Setup",
+  "summary": "Delivery attempts per notification, 1–10; default 3."
+ },
+ {
+  "area": "Other settings",
+  "help": "Longest wait time between attempts, 1–86400 seconds; default 900.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_backoff_seconds",
+  "key": "notifications.delivery.max_backoff_seconds",
+  "label": "notifications.delivery.max_backoff_seconds",
+  "path": "Setup",
+  "summary": "Longest wait time between attempts, 1–86400 seconds; default 900."
+ },
+ {
+  "area": "Other settings",
+  "help": "Maximum queued notifications, 1–100000; default 1000.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.delivery.max_pending",
+  "key": "notifications.delivery.max_pending",
+  "label": "notifications.delivery.max_pending",
+  "path": "Setup",
+  "summary": "Maximum queued notifications, 1–100000; default 1000."
+ },
+ {
+  "area": "Other settings",
+  "help": "Report system errors also during quiet hours; default off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.allow_system_errors",
+  "key": "notifications.quiet_hours.allow_system_errors",
+  "label": "notifications.quiet_hours.allow_system_errors",
+  "path": "Setup",
+  "summary": "Report system errors also during quiet hours; default off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Quiet hours: during this time range, notifications are held back; default off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.enabled",
+  "key": "notifications.quiet_hours.enabled",
+  "label": "notifications.quiet_hours.enabled",
+  "path": "Setup",
+  "summary": "Quiet hours: during this time range, notifications are held back; default off."
+ },
+ {
+  "area": "Other settings",
+  "help": "End, HH:MM; default 07:30.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.end",
+  "key": "notifications.quiet_hours.end",
+  "label": "notifications.quiet_hours.end",
+  "path": "Setup",
+  "summary": "End, HH:MM; default 07:30."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start, HH:MM; default 22:00.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.quiet_hours.start",
+  "key": "notifications.quiet_hours.start",
+  "label": "notifications.quiet_hours.start",
+  "path": "Setup",
+  "summary": "Start, HH:MM; default 22:00."
+ },
+ {
+  "area": "Other settings",
+  "help": "`neutral` (default): Telegram notifications without email contents; `summary`: with a short overview of the decisions or the daily briefing.",
+  "href": "/hilfe/dokumentation/web-einstellungen/benachrichtigungen-notifications",
+  "id": "setting:notifications.telegram_content",
+  "key": "notifications.telegram_content",
+  "label": "notifications.telegram_content",
+  "path": "Setup",
+  "summary": "`neutral` (default): Telegram notifications without email contents; `summary`: with a short overview of the decisions or the daily briefing."
+ },
+ {
+  "area": "Other settings",
+  "help": "Offer Web Push (content-neutral notices) server-side; default off. Each device additionally enables push itself. Only via HTTPS or localhost.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:push.enabled",
+  "key": "push.enabled",
+  "label": "push.enabled",
+  "path": "Setup",
+  "summary": "Offer Web Push (content-neutral notices) server-side; default off. Each device additionally enables push itself. Only via HTTPS or localhost."
+ },
+ {
+  "area": "Other settings",
+  "help": "Operator contact address for the push service (VAPID), format `mailto:name@domain`; default `mailto:admin@example.invalid` (example value; replace before use).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:push.subject",
+  "key": "push.subject",
+  "label": "push.subject",
+  "path": "Setup",
+  "summary": "Operator contact address for the push service (VAPID), format `mailto:name@domain`; default `mailto:admin@example.invalid` (example value; replace before use)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Offer “Task or Event missed?”; default on.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.enabled",
+  "key": "reanalysis.enabled",
+  "label": "reanalysis.enabled",
+  "path": "File",
+  "summary": "Offer “Task or Event missed?”; default on."
+ },
+ {
+  "area": "Other settings",
+  "help": "Attempts per model call after error or restart, 1–5; default 2.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_attempts",
+  "key": "reanalysis.max_attempts",
+  "label": "reanalysis.max_attempts",
+  "path": "File",
+  "summary": "Attempts per model call after error or restart, 1–5; default 2."
+ },
+ {
+  "area": "Other settings",
+  "help": "Started reanalyses per day across all Mails, 1–500; default 20 (cost protection).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_jobs_per_day",
+  "key": "reanalysis.max_jobs_per_day",
+  "label": "reanalysis.max_jobs_per_day",
+  "path": "File",
+  "summary": "Started reanalyses per day across all Mails, 1–500; default 20 (cost protection)."
+ },
+ {
+  "area": "Other settings",
+  "help": "AI calls per reanalysis, 1–10; default 5 (three stages and two retries).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:reanalysis.max_llm_calls_per_job",
+  "key": "reanalysis.max_llm_calls_per_job",
+  "label": "reanalysis.max_llm_calls_per_job",
+  "path": "File",
+  "summary": "AI calls per reanalysis, 1–10; default 5 (three stages and two retries)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Repair attempts when the AI does not deliver valid JSON, 0–10 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.json_repair",
+  "key": "retries.json_repair",
+  "label": "retries.json_repair",
+  "path": "File",
+  "summary": "Repair attempts when the AI does not deliver valid JSON, 0–10 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Retries of an AI call after a temporary provider error, 0–10 (required). Each retry counts against `limits.llm_calls_per_minute`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.provider_retry",
+  "key": "retries.provider_retry",
+  "label": "retries.provider_retry",
+  "path": "File",
+  "summary": "Retries of an AI call after a temporary provider error, 0–10 (required). Each retry counts against `limits.llm_calls_per_minute`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Repair attempts when the JSON does not match the expected structure, 0–10 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:retries.schema_repair",
+  "key": "retries.schema_repair",
+  "label": "retries.schema_repair",
+  "path": "File",
+  "summary": "Repair attempts when the JSON does not match the expected structure, 0–10 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Address of the CalDAV calendar collection, up to 2000 characters.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].caldav_calendar_url",
+  "key": "target_profiles[].caldav_calendar_url",
+  "label": "target_profiles[].caldav_calendar_url",
+  "path": "Zielprofilseite",
+  "summary": "Address of the CalDAV calendar collection, up to 2000 characters."
+ },
+ {
+  "area": "Other settings",
+  "help": "Address of the CalDAV task collection (also Apple Reminders), up to 2000 characters.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].caldav_task_url",
+  "key": "target_profiles[].caldav_task_url",
+  "label": "target_profiles[].caldav_task_url",
+  "path": "Zielprofilseite",
+  "summary": "Address of the CalDAV task collection (also Apple Reminders), up to 2000 characters."
+ },
+ {
+  "area": "Other settings",
+  "help": "`google` (default), `caldav` or `outlook`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_provider",
+  "key": "target_profiles[].calendar_provider",
+  "label": "target_profiles[].calendar_provider",
+  "path": "Zielprofilseite",
+  "summary": "`google` (default), `caldav` or `outlook`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Calendar ID at Google, up to 500 characters.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].google_calendar",
+  "key": "target_profiles[].google_calendar",
+  "label": "target_profiles[].google_calendar",
+  "path": "Zielprofilseite",
+  "summary": "Calendar ID at Google, up to 500 characters."
+ },
+ {
+  "area": "Other settings",
+  "help": "Google Tasks list, default `@default` (first list of the account).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].google_tasks_list",
+  "key": "target_profiles[].google_tasks_list",
+  "label": "target_profiles[].google_tasks_list",
+  "path": "Zielprofilseite",
+  "summary": "Google Tasks list, default `@default` (first list of the account)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Number 2–99 (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].id",
+  "key": "target_profiles[].id",
+  "label": "target_profiles[].id",
+  "path": "Zielprofilseite",
+  "summary": "Number 2–99 (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Display name, 1–40 characters (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].label",
+  "key": "target_profiles[].label",
+  "label": "target_profiles[].label",
+  "path": "Zielprofilseite",
+  "summary": "Display name, 1–40 characters (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Microsoft tenant for sign-in, default `common`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_tenant",
+  "key": "target_profiles[].microsoft_tenant",
+  "label": "target_profiles[].microsoft_tenant",
+  "path": "Zielprofilseite",
+  "summary": "Microsoft tenant for sign-in, default `common`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Microsoft To Do list, default `default` (list “Tasks”).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_todo_list",
+  "key": "target_profiles[].microsoft_todo_list",
+  "label": "target_profiles[].microsoft_todo_list",
+  "path": "Zielprofilseite",
+  "summary": "Microsoft To Do list, default `default` (list “Tasks”)."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_data_source_id`, for this target profile.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_data_source_id",
+  "key": "target_profiles[].notion_data_source_id",
+  "label": "target_profiles[].notion_data_source_id",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_data_source_id`, for this target profile."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_done_statuses`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_done_statuses",
+  "key": "target_profiles[].notion_done_statuses",
+  "label": "target_profiles[].notion_done_statuses",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_done_statuses`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_open_status`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_open_status",
+  "key": "target_profiles[].notion_open_status",
+  "label": "target_profiles[].notion_open_status",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_open_status`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.description`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.description",
+  "key": "target_profiles[].notion_properties.description",
+  "label": "target_profiles[].notion_properties.description",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.description`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.due`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.due",
+  "key": "target_profiles[].notion_properties.due",
+  "label": "target_profiles[].notion_properties.due",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.due`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.operation_key`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.operation_key",
+  "key": "target_profiles[].notion_properties.operation_key",
+  "label": "target_profiles[].notion_properties.operation_key",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.operation_key`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.source`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.source",
+  "key": "target_profiles[].notion_properties.source",
+  "label": "target_profiles[].notion_properties.source",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.source`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.status`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.status",
+  "key": "target_profiles[].notion_properties.status",
+  "label": "target_profiles[].notion_properties.status",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.status`."
+ },
+ {
+  "area": "Other settings",
+  "help": "As `targets.notion_properties.title`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:target_profiles[].notion_properties.title",
+  "key": "target_profiles[].notion_properties.title",
+  "label": "target_profiles[].notion_properties.title",
+  "path": "Zielprofilseite",
+  "summary": "As `targets.notion_properties.title`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Outlook calendar, default `default`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].outlook_calendar",
+  "key": "target_profiles[].outlook_calendar",
+  "label": "target_profiles[].outlook_calendar",
+  "path": "Zielprofilseite",
+  "summary": "Outlook calendar, default `default`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Time window in minutes after creating an entry during which it can be removed again: 1–1440; default 10.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].removal_window_minutes",
+  "key": "target_profiles[].removal_window_minutes",
+  "label": "target_profiles[].removal_window_minutes",
+  "path": "Zielprofilseite",
+  "summary": "Time window in minutes after creating an entry during which it can be removed again: 1–1440; default 10."
+ },
+ {
+  "area": "Other settings",
+  "help": "`todoist` (default), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` or `notion` (7.2).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].task_provider",
+  "key": "target_profiles[].task_provider",
+  "label": "target_profiles[].task_provider",
+  "path": "Zielprofilseite",
+  "summary": "`todoist` (default), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` or `notion` (7.2)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Todoist project ID, up to 500 characters.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].todoist_project",
+  "key": "target_profiles[].todoist_project",
+  "label": "target_profiles[].todoist_project",
+  "path": "Zielprofilseite",
+  "summary": "Todoist project ID, up to 500 characters."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the Notion data source (32 hex characters, with or without hyphens), not that of the database. Required for `task_provider: notion`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_data_source_id",
+  "key": "targets.notion_data_source_id",
+  "label": "targets.notion_data_source_id",
+  "path": "Setup",
+  "summary": "ID of the Notion data source (32 hex characters, with or without hyphens), not that of the database. Required for `task_provider: notion`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Option IDs that count as done; at most 50.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_done_statuses",
+  "key": "targets.notion_done_statuses",
+  "label": "targets.notion_done_statuses",
+  "path": "Setup",
+  "summary": "Option IDs that count as done; at most 50."
+ },
+ {
+  "area": "Other settings",
+  "help": "Option ID that new pages receive in the status field; required with a status or select field.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_open_status",
+  "key": "targets.notion_open_status",
+  "label": "targets.notion_open_status",
+  "path": "Setup",
+  "summary": "Option ID that new pages receive in the status field; required with a status or select field."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the text property for the description (type text). Required for Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.description",
+  "key": "targets.notion_properties.description",
+  "label": "targets.notion_properties.description",
+  "path": "File",
+  "summary": "ID of the text property for the description (type text). Required for Notion."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the date property for the deadline (type date); remains empty without a deadline. Required for Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.due",
+  "key": "targets.notion_properties.due",
+  "label": "targets.notion_properties.due",
+  "path": "File",
+  "summary": "ID of the date property for the deadline (type date); remains empty without a deadline. Required for Notion."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the text property for the operation key, via which Mailhelp locates an unclear attachment again. Required for Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.operation_key",
+  "key": "targets.notion_properties.operation_key",
+  "label": "targets.notion_properties.operation_key",
+  "path": "File",
+  "summary": "ID of the text property for the operation key, via which Mailhelp locates an unclear attachment again. Required for Notion."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the URL property for the link to the email; empty if there is no https link. Required for Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.source",
+  "key": "targets.notion_properties.source",
+  "label": "targets.notion_properties.source",
+  "path": "File",
+  "summary": "ID of the URL property for the link to the email; empty if there is no https link. Required for Notion."
+ },
+ {
+  "area": "Other settings",
+  "help": "Optional: ID of a status, select, or checkbox property. Without it, Mailhelp does not recognize completed Notion tasks.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.status",
+  "key": "targets.notion_properties.status",
+  "label": "targets.notion_properties.status",
+  "path": "File",
+  "summary": "Optional: ID of a status, select, or checkbox property. Without it, Mailhelp does not recognize completed Notion tasks."
+ },
+ {
+  "area": "Other settings",
+  "help": "ID of the title property (type title). Required for Notion.",
+  "href": "/hilfe/dokumentation/web-einstellungen/notion-als-aufgabenziel-72",
+  "id": "setting:targets.notion_properties.title",
+  "key": "targets.notion_properties.title",
+  "label": "targets.notion_properties.title",
+  "path": "File",
+  "summary": "ID of the title property (type title). Required for Notion."
+ },
+ {
+  "area": "Other settings",
+  "help": "Time window in minutes after creating an entry in which it can be removed again via the web interface or Telegram: 1–1440; default 10. After the deadline expires, the entry is no longer deleted by Mailhelp.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ziele",
+  "id": "setting:targets.removal_window_minutes",
+  "key": "targets.removal_window_minutes",
+  "label": "targets.removal_window_minutes",
+  "path": "File",
+  "summary": "Time window in minutes after creating an entry in which it can be removed again via the web interface or Telegram: 1–1440; default 10. After the deadline expire"
+ },
+ {
+  "area": "Other settings",
+  "help": "Telegram bot for queries, confirmations and notifications; default on. Off: operation only via the Web interface.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
+  "id": "setting:telegram.enabled",
+  "key": "telegram.enabled",
+  "label": "telegram.enabled",
+  "path": "Setup",
+  "summary": "Telegram bot for queries, confirmations and notifications; default on. Off: operation only via the Web interface."
+ },
+ {
+  "area": "Other settings",
+  "help": "Wait time of a Telegram query for new messages, 1–50 seconds (required).",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:timeouts.telegram_poll_seconds",
+  "key": "timeouts.telegram_poll_seconds",
+  "label": "timeouts.telegram_poll_seconds",
+  "path": "File",
+  "summary": "Wait time of a Telegram query for new messages, 1–50 seconds (required)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Allowed host specifications in the browser call (protection against DNS rebinding), 1–20 entries; default `127.0.0.1:8765`, `localhost:8765`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.allowed_hosts",
+  "key": "web.allowed_hosts",
+  "label": "web.allowed_hosts",
+  "path": "File",
+  "summary": "Allowed host specifications in the browser call (protection against DNS rebinding), 1–20 entries; default `127.0.0.1:8765`, `localhost:8765`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Start web interface; default off.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.enabled",
+  "key": "web.enabled",
+  "label": "web.enabled",
+  "path": "File",
+  "summary": "Start web interface; default off."
+ },
+ {
+  "area": "Other settings",
+  "help": "Redirect URI of the Google sign-in; must be entered in the Google Cloud Console. Default `http://localhost:8765/auth/google/callback`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.google_redirect_uri",
+  "key": "web.google_redirect_uri",
+  "label": "web.google_redirect_uri",
+  "path": "File",
+  "summary": "Redirect URI of the Google sign-in; must be entered in the Google Cloud Console. Default `http://localhost:8765/auth/google/callback`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Network address of the web server; default `127.0.0.1` (only this PC). `0.0.0.0` is necessary for `web.lan_access`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.host",
+  "key": "web.host",
+  "label": "web.host",
+  "path": "File",
+  "summary": "Network address of the web server; default `127.0.0.1` (only this PC). `0.0.0.0` is necessary for `web.lan_access`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Redirect URI of the Notion sign-in (7.2.5); must be entered exactly like this in the public Notion connection. HTTPS or localhost, path `/auth/notion/callback`. Default `http://localhost:8765/auth/notion/callback`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.notion_redirect_uri",
+  "key": "web.notion_redirect_uri",
+  "label": "web.notion_redirect_uri",
+  "path": "File",
+  "summary": "Redirect URI of the Notion sign-in (7.2.5); must be entered exactly like this in the public Notion connection. HTTPS or localhost, path `/auth/notion/callback`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Port 1–65535; default 8765.",
+  "href": "/hilfe/dokumentation/web-einstellungen/pfade-protokolle-und-webserver",
+  "id": "setting:web.port",
+  "key": "web.port",
+  "label": "web.port",
+  "path": "File",
+  "summary": "Port 1–65535; default 8765."
+ },
+ {
+  "area": "Other settings",
+  "help": "Verification retrievals after an entry, 1–10; default 5. The first retrieval is attempt 1.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.max_attempts",
+  "key": "write_verification.max_attempts",
+  "label": "write_verification.max_attempts",
+  "path": "File",
+  "summary": "Verification retrievals after an entry, 1–10; default 5. The first retrieval is attempt 1."
+ },
+ {
+  "area": "Other settings",
+  "help": "Maximum duration of the check, 10–86400 seconds, at least the sum of the wait times; default 300. After that, the entry explicitly remains unverified.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.max_elapsed_seconds",
+  "key": "write_verification.max_elapsed_seconds",
+  "label": "write_verification.max_elapsed_seconds",
+  "path": "File",
+  "summary": "Maximum duration of the check, 10–86400 seconds, at least the sum of the wait times; default 300. After that, the entry explicitly remains unverified."
+ },
+ {
+  "area": "Other settings",
+  "help": "Wait time before each further retrieval, exactly `max_attempts − 1` values of 1–3600 seconds; default `[1, 5, 15, 60]`. A provider `Retry-After` can be longer.",
+  "href": "/hilfe/dokumentation/web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung",
+  "id": "setting:write_verification.retry_delays_seconds",
+  "key": "write_verification.retry_delays_seconds",
+  "label": "write_verification.retry_delays_seconds",
+  "path": "File",
+  "summary": "Wait time before each further retrieval, exactly `max_attempts − 1` values of 1–3600 seconds; default `[1, 5, 15, 60]`. A provider `Retry-After` can be longer."
+ }
+]

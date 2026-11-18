@@ -1,4 +1,5 @@
 """Settings and topics: every change is shown first and queued as an explicit command."""
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ import yaml
 
 from ..config import Settings
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..i18n import msg, tr
 from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from .auth import WebSession
@@ -21,6 +23,7 @@ from .topic_site import TopicSite
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
+
 
 def _effective(raw: dict[str, Any]) -> dict[str, Any]:
     """The saved values as the next start would apply them, defaults included.
@@ -61,7 +64,7 @@ class SettingsSite:
         query = parse_qs(request.query)
         area = query.get("bereich", [""])[0]
         if area and area not in AREA_KEYS:
-            return self.site._reply(request, 404, "Unbekannter Einstellungsbereich.")
+            return self.site._reply(request, 404, msg("Unbekannter Einstellungsbereich."))
         configuration = self.archive.configuration
         raw = active = None
         revision = ""
@@ -78,7 +81,7 @@ class SettingsSite:
             credentials = None
         page = settings_page(self.archive.models, raw, active, revision, csrf, credentials, area,
                              query.get("suche", [""])[0][:80], self.site.experience.controls(csrf, session.id))
-        return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
+        return Response.html(200, layout(msg("Einstellungen"), page, active="/einstellungen"))
 
     def credential_service(self) -> CredentialService | None:
         configuration = self.archive.configuration
@@ -92,33 +95,65 @@ class SettingsSite:
             return self.site.secrets_page.save(request, session, form)
         service = self.credential_service()
         if service is None:
-            return self.site._reply(request, 503, "Zugangsdatenverwaltung nicht verfügbar.")
+            return self.site._reply(request, 503, msg("Zugangsdatenverwaltung nicht verfügbar."))
         try:
             value = form["value"]
             service.save(session.id, form["key"], form["name"], value, form["expected"], form["config_revision"])
             if hasattr(self.site.logger, "secrets") and value not in self.site.logger.secrets:
                 self.site.logger.secrets = (*self.site.logger.secrets, value)
         except CredentialUnauthorized:
-            return self.site._reply(request, 403, "Sitzung nicht mehr gültig. Bitte erneut anmelden.")
+            return self.site._reply(request, 403, msg("Sitzung nicht mehr gültig. Bitte erneut anmelden."))
         except ConfigurationConflict:
-            return self.site._reply(request, 409, "Die Änderung ist veraltet oder wurde bereits anders gesendet. "
-                                    "Bitte die Einstellungen neu laden.")
+            return self.site._reply(
+                request,
+                409,
+                msg(
+                    "Die Änderung ist veraltet oder wurde bereits anders gesendet. Bitte die Einstellungen neu laden."
+                ),
+            )
         except (ValueError, KeyError):
-            return self.site._reply(request, 422, "Ungültige Zugangsdatenänderung. "
-                                    "Bitte einen angebotenen Zugang und einen einzeiligen neuen Wert verwenden.")
+            return self.site._reply(
+                request,
+                422,
+                msg(
+                    
+                        "Ungültige Zugangsdatenänderung. Bitte einen angebotenen Zugang und einen "
+                        "einzeiligen neuen Wert verwenden."
+                    
+                ),
+            )
         except (OSError, CorruptState):
-            return self.site._reply(request, 503, "Zugangsdaten konnten nicht sicher gespeichert werden. "
-                                    "Bitte Dateizugriff prüfen und mit demselben Formular erneut versuchen.")
-        return Response.html(200, layout("Zugangsdaten gespeichert", '<h1>Zugangsdaten gespeichert</h1>' + notice(
-            "Zugangsdaten in .env gespeichert. Sie werden nach einem Neustart verwendet; "
-            "Prozessvariablen haben weiterhin Vorrang.", "ok")
-            + '<p><a class="button" href="/einstellungen?bereich=zugangsdaten">Zurück zu Zugangsdaten</a></p>',
-            active="/einstellungen"))
+            return self.site._reply(
+                request,
+                503,
+                msg(
+                    
+                        "Zugangsdaten konnten nicht sicher gespeichert werden. Bitte Dateizugriff "
+                        "prüfen und mit demselben Formular erneut versuchen."
+                    
+                ),
+            )
+        return Response.html(
+            200,
+            layout(
+                tr("Zugangsdaten gespeichert"),
+                tr("<h1>Zugangsdaten gespeichert</h1>")
+                + notice(
+                    tr(
+                        "Zugangsdaten in .env gespeichert. Sie werden nach einem Neustart "
+                        "verwendet; Prozessvariablen haben weiterhin Vorrang."
+                    ),
+                    "ok",
+                )
+                + tr('<p><a class="button" href="/einstellungen?bereich=zugangsdaten">Zurück zu Zugangsdaten</a></p>'),
+                active="/einstellungen",
+            ),
+        )
 
     def save_settings(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration
         if configuration is None:
-            return self.site._reply(request, 503, "Konfiguration nicht verfügbar.")
+            return self.site._reply(request, 503, msg("Konfiguration nicht verfügbar."))
         value: Any
         try:
             if form["name"] == "briefings.times":
@@ -137,19 +172,20 @@ class SettingsSite:
             raw = yaml.safe_load((configuration.directory / "config.yaml").read_text(encoding="utf-8"))
             configuration.candidate(command)
         except ConfigurationConflict:
-            return self.site._reply(request, 409, "Einstellungsdatei geändert; bitte neu laden.")
+            return self.site._reply(request, 409, msg("Einstellungsdatei geändert; bitte neu laden."))
         except (ValueError, KeyError, OSError):
-            return self.site._reply(request, 422,
-                                    "Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
+            return self.site._reply(
+                request, 422, msg("Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
+            )
         if form.get("confirm") != "yes":
             body = settings_confirmation(form, request.path, self.site.auth.csrf_token(session.id), raw, value)
-            return Response.html(200, layout("Bestätigen", body))
+            return Response.html(200, layout(tr("Bestätigen"), body))
         return self.archive.queue(request, command)
 
     def save_topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration
         if configuration is None:
-            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
+            return self.site._reply(request, 503, msg("Themenverwaltung nicht verfügbar."))
         if "draft_id" in form:
             return self.topic_site.editing.confirm(request, session, form)
         try:
@@ -169,7 +205,7 @@ class SettingsSite:
                                    acknowledged=form.get("confirm") == "yes")
             configuration.candidate(command)
         except ConfigurationConflict:
-            return self.site._reply(request, 409, "Themendatei geändert; bitte neu laden.")
+            return self.site._reply(request, 409, msg("Themendatei geändert; bitte neu laden."))
         except (ValueError, KeyError, OSError):
-            return self.site._reply(request, 422, "Ungültige, unbestätigte oder inzwischen geänderte Themen.")
+            return self.site._reply(request, 422, msg("Ungültige, unbestätigte oder inzwischen geänderte Themen."))
         return self.archive.queue(request, command)

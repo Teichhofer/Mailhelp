@@ -1,0 +1,28 @@
+{
+  "human_decision": null,
+  "mail_id": "1e797668fc48355d430cb6fc",
+  "recorded_at": "2026-11-17T21:39:25.873192+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung.",
+    "topic_ids": [
+      "school"
+    ]
+  },
+  "schema_version": 1,
+  "source": "JEV",
+  "summary": {
+    "deadlines": [
+      "2026-12-01, 18:00–19:00"
+    ],
+    "sentences": [
+      "Jane Lewis welcomes Alex as a reading mentor for class 4B and announces the introductory meeting on 2026-12-01, 18:00–19:00 in the school library (Europe/Berlin)."
+    ]
+  },
+  "topics": {
+    "music": "Music school",
+    "pta": "PTA and school events",
+    "school": "School and class 4B",
+    "sports": "Oakville Sports Club"
+  }
+}

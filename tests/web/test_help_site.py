@@ -15,6 +15,17 @@ def test_the_index_and_a_section_are_readable_and_escaped(web):
     assert "IMAP_&lt;n&gt;_USERNAME" in escaped and "IMAP_<n>_USERNAME" not in escaped
 
 
+def test_the_english_reader_loads_the_english_help_once(web, monkeypatch):
+    web.browser.cookies["mailhelp_lang"] = "en"
+    first = web.browser.request("GET", "/hilfe/dokumentation").body.decode()
+    assert '<html lang="en">' in first and "Hilfe und Dokumentation" not in first
+    loaded = web.site.archive.help._english_base
+    assert loaded is not None and loaded.locale.value == "en"
+    monkeypatch.setattr("mailhelp.web.help_site.load", lambda **_: (_ for _ in ()).throw(AssertionError("reloaded")))
+    assert web.browser.request("GET", "/hilfe/dokumentation").status == 200
+    assert web.site.archive.help._english_base is loaded
+
+
 def test_unknown_or_foreign_sections_are_not_found(web):
     assert web.browser.request("GET", "/hilfe/dokumentation/betrieb/gibt-es-nicht").status == 404
     assert web.browser.request("GET", "/hilfe/dokumentation/../../config.yaml").status in {400, 404}

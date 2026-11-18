@@ -92,11 +92,205 @@ def start(site, jar=None):
     return response, jar
 
 
+def test_visitor_runtimes_share_static_assets_without_sharing_routes_or_state(instance, monkeypatch):
+    def forbid_read(name):
+        raise AssertionError("Visitor creation must reuse the process assets")
+    monkeypatch.setattr("mailhelp.web.app.static_file", forbid_read)
+    one, first = start(instance.site)
+    two, second = start(instance.site)
+    assert one.status == two.status == 303
+    assert instance.site(request("GET", "/", first)).status == 200
+    assert instance.site(request("GET", "/", second)).status == 200
+    assert len(instance.runtimes.runtimes) == 2
+    assert len({runtime.store.directory for runtime in instance.runtimes.runtimes.values()}) == 2
+
+
+def test_failed_runtime_construction_closes_the_partial_store(instance, monkeypatch):
+    _response, jar = start(instance.site)
+    session = instance.site.auth.authenticate(jar["mh_session"])
+    area = instance.runtimes.visitors.area(session.id)
+    def fail_load(path):
+        raise OSError("snapshot unavailable")
+    monkeypatch.setattr(demo.DemoRevisions, "load", fail_load)
+    with pytest.raises(OSError, match="snapshot unavailable"):
+        instance.runtimes.app(session.id)
+    assert not instance.runtimes.runtimes
+    with JsonStore(area) as reopened:
+        assert reopened.names("mail-")
+
+
+def test_concurrent_last_slot_never_revokes_the_winning_session(instance):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    instance.runtimes.visitors.max_visitors = instance.site.auth.max_sessions = 1
+    arrivals = Barrier(2)
+    def begin_client(number):
+        jar = {}
+        _page, csrf, key = open_login(instance.site, jar)
+        arrivals.wait(timeout=5)
+        response = instance.site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key}))
+        return response, cookies_of(response, jar)
+    with ThreadPoolExecutor(2) as pool:
+        results = list(pool.map(begin_client, range(2)))
+    assert sorted(response.status for response, jar in results) == [303, 429]
+    winner = next(jar for response, jar in results if response.status == 303)
+    assert instance.site.auth.authenticate(winner["mh_session"]) is not None
+    assert instance.site(request("GET", "/", winner)).status == 200
+
+
 def test_the_login_page_offers_only_the_demo_start(instance):
     page, _csrf, _key = open_login(instance.site, {})
     text = page.body.decode("utf-8")
-    assert page.status == 200 and "Gerät koppeln" in text and DEMO_NOTICE in text and "Demo starten" in text
+    assert page.status == 200 and "<h1>Demo starten</h1>" in text and DEMO_NOTICE in text
     assert "Telegram senden" not in text and "--pair" not in text and 'type="password"' not in text
+
+
+@pytest.mark.parametrize("payload", [[], {"code": "unchanged"}, {"message": 42}])
+def test78_demo_response_preserves_non_message_payloads(payload):
+    from mailhelp.web.demo_site import demo_response
+    assert json.loads(demo_response(Response.json(200, payload)).body) == payload
+
+
+def test78_limits_can_be_supplied_and_a_start_key_cannot_change_language(instance):
+    from mailhelp.web.demo_site import DemoHooks, StartLimits
+    site = instance.site
+    hooks = DemoHooks(site.start, site.visitor_app, site.full, site.reset, site.dataset_locale, site.answers,
+                      site.generation)
+    limits = StartLimits()
+    assert DemoSite(WebApp([HOST]), site.auth, site.logger, hooks, limits=limits).limits is limits
+    jar = {}
+    _page, csrf, key = open_login(site, jar)
+    invalid = site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key, "locale": "fr"}))
+    assert invalid.status == 400
+    response = site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key, "locale": "en"}))
+    assert response.status == 303
+    cookies_of(response, jar)
+    conflict = site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key, "locale": "de"}))
+    assert conflict.status == 409
+
+
+@pytest.mark.parametrize("failure,status", [(OSError, 503), (ValueError, 409)])
+def test78_failed_starts_release_their_new_session_without_revoking_another_visitor(instance, monkeypatch,
+                                                                                  failure, status):
+    instance.site.auth.max_sessions = instance.runtimes.visitors.max_visitors = 2
+    _response, first = start(instance.site)
+    old = instance.site.auth.authenticate(first["mh_session"])
+    def failed(*args):
+        raise failure("copy failed")
+    with monkeypatch.context() as local:
+        local.setattr(instance.site, "start", failed)
+        assert start(instance.site)[0].status == status
+    assert [session.id for session in instance.site.auth.sessions()] == [old.id]
+    assert start(instance.site)[0].status == 303
+    assert instance.site.auth.authenticate(first["mh_session"]) is not None
+    assert instance.site(request("GET", "/", first)).status == 200
+
+
+def test78_a_failed_start_keeps_an_existing_session_without_a_demo(instance, monkeypatch):
+    token = instance.site.auth.demo_session("earlier start")
+    jar = {"mh_session": token}
+    _page, csrf, key = open_login(instance.site, jar)
+    def failed(*args):
+        raise OSError("copy failed")
+    monkeypatch.setattr(instance.site, "start", failed)
+    response = instance.site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key}))
+    assert response.status == 503 and "start_failed" in instance.logger.events
+    assert instance.site.auth.authenticate(token) is not None  # not created by this request, so not revoked
+
+
+def test78_a_foreign_host_is_rejected_before_any_route(instance):
+    _response, jar = start(instance.site)
+    foreign = request("GET", "/", jar)
+    foreign.headers["host"] = "attacker.example"
+    assert instance.site(foreign).status in {400, 403, 421}
+
+
+def test78_orphaned_sessions_are_cleaned_before_they_can_displace_a_visitor(instance):
+    instance.site.auth.max_sessions = instance.runtimes.visitors.max_visitors = 2
+    _response, first = start(instance.site)
+    instance.site.auth.demo_session("old failed start")
+    assert start(instance.site)[0].status == 429
+    instance.runtimes.cleanup()
+    assert start(instance.site)[0].status == 303
+    assert instance.site.auth.authenticate(first["mh_session"]) is not None
+
+
+@pytest.mark.parametrize("change", [
+    {"locale": "fr"}, {"demo_generation": "0"}, {"extra": "one field too many"},
+])
+def test78_restart_rejects_invalid_locale_generation_and_oversized_forms(instance, change):
+    _response, jar = start(instance.site)
+    page = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    fields = dict(re.findall(r'name="([^"]+)" value="([^"]*)"', page))
+    assert instance.site(request("POST", "/demo/neu-starten", jar, {**fields, **change})).status == 400
+
+
+def test78_malformed_private_posts_and_legacy_answer_snapshots(instance):
+    _response, jar = start(instance.site)
+    session = instance.site.auth.authenticate(jar["mh_session"])
+    area = instance.runtimes.visitors.area(session.id)
+    shutil.rmtree(area / ".demo")
+    assert instance.runtimes.prepared(session.id) == instance.runtimes.revisions.prepared()
+    assert instance.runtimes.prepared("not-a-session") == instance.runtimes.revisions.prepared()
+    app = instance.runtimes.app(session.id)
+    malformed = Request("POST", "/aktion", {"host": HOST, "cookie": f'mh_session={jar["mh_session"]}',
+                                             "content-type": FORM}, body=b"\xff")
+    assert app(malformed).status == 400
+    assert instance.site(request("GET", "/", jar)).status == 200
+
+
+def test78_missing_replacement_package_keeps_the_current_demo(instance):
+    _response, jar = start(instance.site)
+    assert instance.site(request("GET", "/", jar)).status == 200
+    page = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    fields = dict(re.findall(r'name="([^"]+)" value="([^"]*)"', page))
+    instance.runtimes.visitors.dataset = instance.tmp / "missing-package"
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields)).status == 503
+    assert instance.site(request("GET", "/", jar)).status == 200
+
+
+def test78_a_damaged_german_package_does_not_disable_the_english_demo(tmp_path, monkeypatch):
+    broken = tmp_path / "broken-german-package"
+    broken.mkdir()
+    monkeypatch.setattr(demo, "packaged", lambda: broken)
+    with JsonStore(tmp_path / "data" / "demo") as store:
+        server, runtimes = demo.create_demo(tmp_path, store, WebSettings(enabled=True, allowed_hosts=[HOST]),
+                                            "s" * 40, Log())
+        try:
+            response, english = start(server.handler, {"mailhelp_lang": "en"})
+            assert response.status == 303
+            assert server.handler(request("GET", "/", english)).status == 200
+            failed, _german = start(server.handler)
+            assert failed.status == 503
+            assert server.handler(request("GET", "/", english)).status == 200
+        finally:
+            runtimes.close()
+
+
+@pytest.mark.parametrize("language", ["de", "en"])
+def test_demo_language_entry_works_before_start(instance, language):
+    response = instance.site(Request("GET", f"/{language}/", {"host": HOST}))
+    assert response.status == 303
+    jar = cookies_of(response, {})
+    assert jar["mailhelp_lang"] == language
+    page = instance.site(request("GET", "/anmelden", jar))
+    assert f'<html lang="{language}">' in page.body.decode()
+    assert instance.runtimes.visitors._state().visitors == {}
+
+
+def test_regular_language_switch_is_public_and_rejects_invalid_values(instance):
+    response = instance.site(Request("GET", "/sprache", {"host": HOST}, query="wert=en"))
+    assert cookies_of(response, {})["mailhelp_lang"] == "en"
+    invalid = instance.site(Request("GET", "/sprache", {"host": HOST}, query="wert=fr"))
+    assert invalid.status == 400 and invalid.cookies == []
+
+
+@pytest.mark.parametrize(("path", "status", "message"), [("/missing", 404, "Not found."),
+                                                          ("/../outside", 400, "Invalid path.")])
+def test_web_errors_follow_language_before_route_dispatch(path, status, message):
+    app = WebApp([HOST])
+    result = app(Request("GET", path, {"host": HOST, "accept-language": "en"}))
+    assert result.status == status and result.body.decode() == message
 
 
 def test_a_start_opens_the_own_copy_and_keeps_it(instance):
@@ -442,6 +636,82 @@ def test_json_answers_get_demo_wording_and_odd_forms_stay_unchanged():
     odd = ('<form method="post" action="/aktion" class="stack"><input type="hidden" name="kind" value="answer">'
            '<input type="hidden" name="version" value="x"><textarea name="text"></textarea></form>')
     assert _prefill(odd, {("a", "b", 1): "Antwort"}) == odd
+
+
+def test_demo_decoration_preserves_mail_content_and_translates_only_owned_messages():
+    from mailhelp.i18n import Locale, use_locale
+    from mailhelp.web.demo_site import demo_response
+    with use_locale(Locale.EN):
+        page = demo_response(Response.html(200, '<main id="inhalt"><p>Simuliert (Testmodus)</p></main>'))
+        assert '<p>Simuliert (Testmodus)</p>' in page.body.decode()
+        assert "Demo – sample data" in page.body.decode()
+        answer = demo_response(Response(200, b'{"message":"Simuliert (Testmodus)","subject":"Simuliert (Testmodus)"}',
+                                        "application/json"))
+        assert json.loads(answer.body) == {"message": "Created in demo", "subject": "Simuliert (Testmodus)"}
+
+
+def test_demo_login_english_has_no_german_pairing_heading(instance):
+    page = instance.site(Request("GET", "/anmelden", {"host": "localhost:8765", "accept-language": "en"}))
+    assert '<h1>Start demo</h1>' in page.body.decode() and 'eigene Kopie' not in page.body.decode()
+
+
+def test_demo_english_start_and_ui_switch_preserve_the_dataset(instance):
+    _response, jar = start(instance.site, {"mailhelp_lang": "en"})
+    session = instance.runtimes.auth.authenticate(jar["mh_session"])
+    visitors = instance.runtimes.visitors
+    area = visitors.area(session.id)
+    assert visitors.entry(session.id).dataset_locale == "en"
+    page = instance.site(request("GET", "/", jar)).body.decode()
+    assert 'lang="en"' in page and "Class 4B parent meeting" in page and "Create in demo" in page
+    jar["mailhelp_lang"] = "de"
+    switched = instance.site(request("GET", "/", jar)).body.decode()
+    assert "Die Beispieldaten bleiben in ihrer bisherigen Sprache" in switched
+    assert "Class 4B parent meeting" in switched and visitors.area(session.id) == area
+
+
+def test_confirmed_restart_binds_language_and_rejects_previous_generation(instance):
+    _response, jar = start(instance.site)
+    session = instance.runtimes.auth.authenticate(jar["mh_session"])
+    old_app = instance.runtimes.app(session.id)
+    old_page = instance.site(request("GET", "/", jar)).body.decode()
+    jar["mailhelp_lang"] = "en"
+    confirm = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    fields = dict(re.findall(r'name="([^"]+)" value="([^"]*)"', confirm))
+    assert fields["locale"] == "en"
+    jar["mailhelp_lang"] = "de"
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields)).status == 303
+    assert instance.runtimes.visitors.entry(session.id).dataset_locale == "en"
+    assert old_app(request("GET", "/", jar)).status == 409
+    stale_fields = dict(re.findall(r'name="([^"]+)" value="([^"]*)"', old_page))
+    assert instance.site(request("POST", "/aktion", jar, stale_fields)).status == 409
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields)).status == 303
+    assert instance.runtimes.visitors.entry(session.id).generation == 2
+
+
+def test_a_restart_confirmation_from_an_older_generation_is_refused(instance):
+    _response, jar = start(instance.site)
+    first = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    second = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    fields = lambda page: dict(re.findall(r'name="([^"]+)" value="([^"]*)"', page))
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields(second))).status == 303
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields(first))).status == 409
+    session = instance.runtimes.auth.authenticate(jar["mh_session"])
+    assert instance.runtimes.visitors.entry(session.id).generation == 2
+
+
+def test_a_failed_restart_preserves_the_open_runtime_and_decisions(instance, monkeypatch):
+    from mailhelp.runtime import demo_visitors
+    _response, jar = start(instance.site)
+    session = instance.runtimes.auth.authenticate(jar["mh_session"])
+    old_app = instance.runtimes.app(session.id)
+    confirm = instance.site(request("GET", "/demo/neu-starten", jar)).body.decode()
+    fields = dict(re.findall(r'name="([^"]+)" value="([^"]*)"', confirm))
+    def fail(*args):
+        raise OSError("synthetic copy failure")
+    monkeypatch.setattr(demo_visitors, "install", fail)
+    assert instance.site(request("POST", "/demo/neu-starten", jar, fields)).status == 503
+    assert instance.runtimes.app(session.id) is old_app
+    assert old_app(request("GET", "/", jar)).status == 200
 
 
 def test_the_open_list_names_the_keys_and_the_finished_list_offers_a_new_round():

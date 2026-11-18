@@ -58,7 +58,7 @@
 
   function select(card) {
     if (pane.dataset.dirty === "yes") {
-      announce("Ungespeicherte Änderungen zuerst speichern oder die Seite neu laden.");
+      announce(mailhelpText("Ungespeicherte Änderungen zuerst speichern oder die Seite neu laden."));
       return;
     }
     selected = card;
@@ -75,7 +75,7 @@
         return response.text();
       })
       .then(function (html) { if (number === requestNumber) show(html); })
-      .catch(function () { announce("Details nicht geladen. Bitte Verbindung und Anmeldung prüfen."); })
+      .catch(function () { announce(mailhelpText("Details nicht geladen. Bitte Verbindung und Anmeldung prüfen.")); })
       .finally(function () { pane.removeAttribute("aria-busy"); });
   }
 
@@ -126,9 +126,9 @@
     split.className = "split-view";
     pane.className = "detail-pane";
     pane.dataset.dirty = "no";
-    pane.setAttribute("aria-label", "Ausgewählter Vorgang");
+    pane.setAttribute("aria-label", mailhelpText("Ausgewählter Vorgang"));
     items.classList.add("master-pane", "swipeable");
-    items.setAttribute("aria-label", "Offene Vorgänge");
+    items.setAttribute("aria-label", mailhelpText("Offene Vorgänge"));
     showHint();
     items.before(split);
     split.append(items, pane);
@@ -193,13 +193,13 @@
           if (response.status === 401) { location.replace("/anmelden"); return {expired: true}; }
           // Not (yet) known, e.g. after a lost POST response: keep the explanation and ask again.
           if (response.status === 404) return {unknown: true};
-          if (!response.ok) throw new Error("Status nicht verfügbar");
+          if (!response.ok) throw new Error(mailhelpText("Status nicht verfügbar"));
           return response.json();
         })
         .then(function (result) {
           if (result && result.expired) return;
           if (result && result.unknown) { window.setTimeout(check, 1000); return; }
-          if (!result) throw new Error("Status nicht verfügbar");
+          if (!result) throw new Error(mailhelpText("Status nicht verfügbar"));
           if (location.pathname !== "/" && location.pathname !== "/offen") {
             location.assign("/?aktion=" + url.split("/").pop() + "#" + marker.closest("article.card").id);
             return;
@@ -208,13 +208,13 @@
           if (!result.target) { window.setTimeout(check, attempts++ < QUICK_POLLS ? 100 : 500); return; }
           return fetch(location.pathname + location.search, {credentials: "same-origin", cache: "no-store"})
             .then(function (response) {
-              if (!response.ok || response.redirected) throw new Error("Übersicht nicht verfügbar");
+              if (!response.ok || response.redirected) throw new Error(mailhelpText("Übersicht nicht verfügbar"));
               return response.text();
             }).then(function (html) {
               var page = parse(html);
               var card = marker.closest("article.card"), id = card.id.replace(/^detail-/, "");
               var updated = page.getElementById(id);
-              if (!updated) throw new Error("Ergebnis noch nicht sichtbar");
+              if (!updated) throw new Error(mailhelpText("Ergebnis noch nicht sichtbar"));
               if (pane && selected && selected.id === id && pane.dataset.dirty !== "yes") {
                 var copy = updated.cloneNode(true);
                 copy.querySelectorAll("[id]").forEach(function (node) { node.id = "detail-" + node.id; });
@@ -242,7 +242,7 @@
               observeCards();
             });
         }).catch(function () {
-          statusText(marker, "Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft.");
+          statusText(marker, mailhelpText("Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft."));
           window.setTimeout(check, 1000);
         });
     }
@@ -295,7 +295,7 @@
         return response.json().then(function (result) {
           if (!response.ok) {
             marker.removeAttribute("data-card-command-status");
-            marker.setAttribute("role", "alert"); statusText(marker, result.error || "Die Aktion wurde nicht angenommen.");
+            marker.setAttribute("role", "alert"); statusText(marker, result.error || mailhelpText("Die Aktion wurde nicht angenommen."));
             flyBack(card);
             (card || form).querySelectorAll("button, textarea").forEach(function (button) { button.disabled = false; });
             delete form.dataset.sending;
@@ -304,7 +304,7 @@
           admitted(result.id);
         });
       }).catch(function () {
-        statusText(marker, "Antwort unterbrochen. Der Annahmestatus wird geprüft; es wird nichts erneut gesendet.");
+        statusText(marker, mailhelpText("Antwort unterbrochen. Der Annahmestatus wird geprüft; es wird nichts erneut gesendet."));
         pollCard(marker);
       });
   }, true);
@@ -315,7 +315,7 @@
                fling: 0.9, flingShare: 0.5, window: 100};
   var ACCEPT = 'input[name="kind"][value="confirm"], input[name="decision"][value="relevant"]';
   var REJECT = 'input[name="kind"][value="reject"], input[name="decision"][value="irrelevant"]';
-  var BLOCKED = "Diese Aktion ist für diesen Vorgang nicht möglich.", TYPED = "Erst die Antwort senden oder das Feld leeren.";
+  var BLOCKED = mailhelpText("Diese Aktion ist für diesen Vorgang nicht möglich."), TYPED = mailhelpText("Erst die Antwort senden oder das Feld leeren.");
   var coarse = window.matchMedia("(pointer: coarse)"), reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   var HINT = "mailhelp-swipe-hint", swipe = null, suppressClick = null, flights = new WeakMap();
   var demoTimer = null, demo = null, candidate = null, demoSeen = false, staleHint = false;
@@ -346,7 +346,7 @@
     var card = first.closest("article.card");
     tip.querySelector("span").textContent = card.querySelector('input[name="decision"]')
       ? "Nach rechts wischen: relevant · nach links: irrelevant"
-      : "Nach rechts wischen: anlegen · nach links: verwerfen";
+      : mailhelpText("Nach rechts wischen: anlegen · nach links: verwerfen");
     card.after(tip);
     tip.hidden = false;
     candidate = cards().find(function (item) {
@@ -452,7 +452,7 @@
     state.label = (state.side === "accept" ? "✓ " : "✕ ") + state.forms[state.side].querySelector("button").textContent;
     strip.className = "swipe-result swipe-" + state.side;
     strip.setAttribute("role", "status");
-    strip.textContent = state.label + " – wird verarbeitet …";
+    strip.textContent = state.label + mailhelpText(" – wird verarbeitet …");
     strip.style.height = state.height + "px";
     state.strip = strip;
     var top = card.offsetTop, left = card.offsetLeft;

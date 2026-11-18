@@ -12,7 +12,7 @@ import secrets
 from collections.abc import Callable
 
 from ..domain.proposal import ProposalKind, ProposalStatus
-from ..i18n import stored, tr
+from ..i18n import msg, stored, tr
 from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash
@@ -21,6 +21,11 @@ from ..review.results import ResultStatus
 from ..review.views import ConflictChoice, ProposalView, RelevanceView
 from .pages import e, layout, notice
 from .reconciliation_pages import focus_link
+
+_PROPOSAL_ACTIONS_TEXT_1 = msg(
+    "Mailhelp hält diesen Vorschlag für möglicherweise dieselbe Sache wie einen anderen. "
+    "Im Vorschlagsabgleich entscheidest du: zuordnen oder als eigenen Vorschlag behalten."
+)
 
 _RESULT_KIND = {
     ResultStatus.DONE: "ok", ResultStatus.WRITTEN: "ok", ResultStatus.NOT_WRITTEN: "warn",
@@ -74,7 +79,7 @@ def _conflict_box(view: ProposalView, item: ConflictChoice, csrf: str | None) ->
     hint = ('<p class="meta">' + tr('Die Auswahl ändert nur den Vorschlag; angelegt wird erst nach deiner '
                                     'Bestätigung. Für einen anderen Wert den Vorschlag ändern.') + '</p>'
             if csrf is not None else "")
-    ident = f"konflikt-{view.mail_id}-{view.proposal_id}-{item.id}"
+    ident = 'konflikt-{p0}-{p1}-{p2}'.format(p0=f'{view.mail_id}', p1=f'{view.proposal_id}', p2=f'{item.id}')
     return (f'<section class="conflict" aria-labelledby="{e(ident)}"><h4 id="{e(ident)}">'
             f'{e(tr("⚠️ Widerspruch: {field} – welcher Wert soll gelten?", field=stored(item.label)))}</h4>'
             f'<p class="visually-hidden">{e(stored(item.question))}</p>'
@@ -83,6 +88,7 @@ def _conflict_box(view: ProposalView, item: ConflictChoice, csrf: str | None) ->
 
 def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
     """Renderer for the action area of a proposal card."""
+
     def render(view: ProposalView) -> str:
         return conflict_boxes(view, csrf) + _actions(view)
 
@@ -107,22 +113,29 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             parts.append(f'<div class="actions">{choices}</div>')
         if view.reconciliation_required:
             # 5.0.3: decided by an explicit assignment, never by a text answer.
-            parts.append(notice(tr("Mailhelp hält diesen Vorschlag für möglicherweise dieselbe Sache wie einen "
-                                   "anderen. Im Vorschlagsabgleich entscheidest du: zuordnen oder als eigenen "
-                                   "Vorschlag behalten."), "warn")
-                         + '<p class="card-links"><a class="button primary" href="'
-                         + e(focus_link(view.mail_id, view.proposal_id))
-                         + '">' + tr("Im Vorschlagsabgleich entscheiden") + '</a></p>')
+            parts.append(
+                notice(
+                    tr(_PROPOSAL_ACTIONS_TEXT_1),
+                    "warn",
+                )
+                + '<p class="card-links"><a class="button primary" href="'
+                + e(focus_link(view.mail_id, view.proposal_id))
+                + '">'
+                + tr("Im Vorschlagsabgleich entscheiden")
+                + "</a></p>"
+            )
         if CommandKind.ANSWER in view.actions and view.question:
             parts.append(_answer(csrf, view))
         buttons = []
         if CommandKind.RECHECK in view.actions:
             # A failed duplicate check blocks confirmation until it ran successfully.
-            buttons.append(_button_form(csrf, view, CommandKind.RECHECK, tr("Dublettenprüfung wiederholen"), "primary"))
+            buttons.append(
+                _button_form(csrf, view, CommandKind.RECHECK, msg("Dublettenprüfung wiederholen"), "primary")
+            )
         if CommandKind.CONFIRM in view.actions:
             buttons.append(_button_form(csrf, view, CommandKind.CONFIRM, view.confirm_label, "primary"))
         # Every open proposal with actions can be rejected.
-        buttons.append(_button_form(csrf, view, CommandKind.REJECT, tr("Verwerfen"), "danger"))
+        buttons.append(_button_form(csrf, view, CommandKind.REJECT, msg("Verwerfen"), "danger"))
         buttons.append(_button_form(csrf, view, CommandKind.ALREADY_DONE, tr("Schon erledigt"), ""))
         if CommandKind.CANCEL_CLARIFICATION in view.actions:
             buttons.append(_button_form(csrf, view, CommandKind.CANCEL_CLARIFICATION,
@@ -131,21 +144,31 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         # 6.3: without a confirmation the swipe to the right names what has to happen first.
         blocked = "" if CommandKind.CONFIRM in view.actions else f' data-swipe-blocked="{e(swipe_blocked(view))}"'
         parts.append(f'<div class="actions decision-bar"{blocked}>{"".join(buttons)}</div>')
-        help_items = []
-        if CommandKind.CONFIRM in view.actions:
-            help_items.append(f"<p><strong>{e(view.confirm_label)}</strong>: {tr('Legt den Eintrag beim Anbieter an.')}</p>")
-        help_items.append(f"<p><strong>{tr('Verwerfen')}</strong>: {tr('Lehnt diesen Vorschlag ab; es wird nichts angelegt.')}</p>")
-        help_items.append(f"<p><strong>{tr('Schon erledigt')}</strong>: "
-                          f"{tr('Relevant, aber bereits erledigt; es wird kein neuer Eintrag angelegt.')}</p>")
-        parts.append(f'<details class="decision-help"><summary>{tr("Was bedeuten diese Entscheidungen?")}</summary>'
-                     f'{"".join(help_items)}</details>')
+        parts.append(_decision_help(view))
         if CommandKind.ANSWER in view.actions and not view.question:
             parts.append(f"<details><summary>{tr('Ändern')}</summary>{_answer(csrf, view, change=True)}</details>")
         return "".join(parts)
+
     return render
 
 
-SWIPE_BLOCKED_DEFAULT = "Diese Aktion ist für diesen Vorgang nicht möglich."
+def _decision_help(view: ProposalView) -> str:
+    help_items = []
+    if CommandKind.CONFIRM in view.actions:
+        help_items.append(f"<p><strong>{e(view.confirm_label)}</strong>: "
+                          f"{tr('Legt den Eintrag beim Anbieter an.')}</p>")
+    help_items.append(
+        f"<p><strong>{msg('Verwerfen')}</strong>: {tr('Lehnt diesen Vorschlag ab; es wird nichts angelegt.')}</p>"
+    )
+    help_items.append(f"<p><strong>{tr('Schon erledigt')}</strong>: "
+                      f"{tr('Relevant, aber bereits erledigt; es wird kein neuer Eintrag angelegt.')}</p>")
+    return (
+        f'<details class="decision-help"><summary>{tr("Was bedeuten diese Entscheidungen?")}</summary>'
+        f"{''.join(help_items)}</details>"
+    )
+
+
+SWIPE_BLOCKED_DEFAULT = msg("Diese Aktion ist für diesen Vorgang nicht möglich.")
 
 
 def swipe_blocked(view: ProposalView) -> str:
@@ -172,9 +195,11 @@ def verification_block(csrf: str, view: ProposalView) -> str:
     if item.differences:
         rows = "".join(f"<tr><th scope=\"row\">{e(stored(label))}</th><td>{e(expected)}</td><td>{e(actual)}</td></tr>"
                        for label, expected, actual in item.differences)
-        table = (f'<table class="verification-diff"><thead><tr><th scope="col">{tr("Angabe")}</th>'
-                 f'<th scope="col">{tr("Bestätigt")}</th><th scope="col">{tr("Beim Anbieter")}</th></tr></thead>'
-                 f"<tbody>{rows}</tbody></table>")
+        table = (
+            f'<table class="verification-diff"><thead><tr><th scope="col">{tr("Angabe")}</th>'
+            f'<th scope="col">{msg("Bestätigt")}</th><th scope="col">{tr("Beim Anbieter")}</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table>"
+        )
     button = ""
     if CommandKind.VERIFY_ENTRY in view.actions:
         button = ('<div class="actions">'
@@ -187,16 +212,18 @@ def verification_block(csrf: str, view: ProposalView) -> str:
 
 
 def _answer(csrf: str, view: ProposalView, change: bool = False) -> str:
-    field = f"antwort-{view.mail_id}-{view.proposal_id}"
+    field = 'antwort-{p0}-{p1}'.format(p0=f'{view.mail_id}', p1=f'{view.proposal_id}')
     question = tr("Was soll geändert werden?") if change else view.question
     example = tr("„Titel: Elternabend“ oder „Ort: Raum 3“") if change else view.example
     hint = f'<p class="meta">{e(tr("z. B. {example}", example=example))}</p>' if example else ""
     quick = ""
     if view.yes_no:
-        quick = ('<div class="quick">'
-                 + _button_form(csrf, view, CommandKind.ANSWER, tr("Ja"), "primary", text="ja")
-                 + _button_form(csrf, view, CommandKind.ANSWER, tr("Nein"), "", text="nein")
-                 + "</div>")
+        quick = (
+            '<div class="quick">'
+            + _button_form(csrf, view, CommandKind.ANSWER, tr("Ja"), "primary", text="ja")
+            + _button_form(csrf, view, CommandKind.ANSWER, msg("Nein"), "", text="nein")
+            + "</div>"
+        )
     hidden = _hidden(csrf, CommandKind.ANSWER, view.mail_id, view.version, view.proposal_id)
     return f"""<div class="answer">
 <label for="{e(field)}">{e(question)}</label>{hint}{quick}
@@ -218,7 +245,7 @@ def recheck_form(csrf: str, mail_id: str, analysis_round: int, *, small: bool = 
 def failure_forms(csrf: str, mail_id: str, analysis_round: int, *, retryable: bool,
                   back_to_list: bool = False) -> str:
     """7.3: retry or file a failed mail, from the failure list or its mail page; works without JavaScript."""
-    extra = {"zurueck": "fehlerliste"} if back_to_list else {}
+    extra = {"zurueck": 'fehlerliste'} if back_to_list else {}
     kinds = [(CommandKind.RETRY_MAIL, tr("Erneut versuchen"), "primary")] if retryable else []
     kinds.append((CommandKind.FILE_MAIL, tr("Ignorieren"), ""))
     return '<div class="actions">' + "".join(
@@ -284,7 +311,7 @@ def command_page(entry: CommandEntry, csrf: str, current: ProposalView | None) -
              + _button_form(csrf, current, CommandKind.REJECT, tr("Nicht erneut anlegen"), "")
              + "</div>"]
     parts.append(f'<p><a class="button" href="/">{tr("Zur Übersicht")}</a></p>')
-    return layout(tr("Ergebnis"), f"<h1>{tr('Ergebnis')}</h1>" + "".join(parts))
+    return layout(msg("Ergebnis"), f"<h1>{msg('Ergebnis')}</h1>" + "".join(parts))
 
 
 def reject_reason_block(csrf: str, mail_id: str, proposal_id: str, version: int,

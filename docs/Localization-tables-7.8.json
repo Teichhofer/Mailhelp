@@ -1,0 +1,338 @@
+[
+ {
+  "module": "mailhelp.web.activity_pages",
+  "name": "STATUS_LABELS"
+ },
+ {
+  "module": "mailhelp.web.activity_pages",
+  "name": "ACTION_LABELS"
+ },
+ {
+  "module": "mailhelp.web.activity_pages",
+  "name": "SKIPPED"
+ },
+ {
+  "module": "mailhelp.web.activity_pages",
+  "name": "INTRO"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "MODE_LABELS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "PERIODS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "RELEVANCE_LABELS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "STATE_FILTERS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "SORTS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "SEARCH_SCOPES"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "SECTIONS"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "HISTORY_STATUSES"
+ },
+ {
+  "module": "mailhelp.web.archive_pages",
+  "name": "HISTORY_EVENTS"
+ },
+ {
+  "module": "mailhelp.web.calls_page",
+  "name": "SORTS"
+ },
+ {
+  "module": "mailhelp.web.calls_page",
+  "name": "STATUSES"
+ },
+ {
+  "module": "mailhelp.web.calls_page",
+  "name": "ERROR_LABELS"
+ },
+ {
+  "module": "mailhelp.web.calls_page",
+  "name": "METRICS"
+ },
+ {
+  "module": "mailhelp.web.charts",
+  "name": "HINT"
+ },
+ {
+  "module": "mailhelp.web.failure_batch",
+  "name": "ACTIONS"
+ },
+ {
+  "module": "mailhelp.web.initial_pages",
+  "name": "TITLES"
+ },
+ {
+  "module": "mailhelp.web.initial_pages",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.initial_pages",
+  "name": "CHOICES"
+ },
+ {
+  "module": "mailhelp.web.iserv_site",
+  "name": "FIELD_NAMES"
+ },
+ {
+  "module": "mailhelp.web.learning_pages",
+  "name": "UPDATED"
+ },
+ {
+  "module": "mailhelp.web.learning_site",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.mailbox_add_site",
+  "name": "MODES"
+ },
+ {
+  "module": "mailhelp.web.mailbox_add_site",
+  "name": "FIELD_NAMES"
+ },
+ {
+  "module": "mailhelp.web.mailbox_site",
+  "name": "TABS"
+ },
+ {
+  "module": "mailhelp.web.mailbox_site",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.mailbox_site",
+  "name": "MAIL_CLIENTS"
+ },
+ {
+  "module": "mailhelp.web.notion_site",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.open_toolbar",
+  "name": "SORTS"
+ },
+ {
+  "module": "mailhelp.web.open_toolbar",
+  "name": "GROUP"
+ },
+ {
+  "module": "mailhelp.web.pages",
+  "name": "LOGIN_CHANNELS"
+ },
+ {
+  "module": "mailhelp.web.prefilter_stats",
+  "name": "CATEGORIES"
+ },
+ {
+  "module": "mailhelp.web.prefilter_stats",
+  "name": "REASONS"
+ },
+ {
+  "module": "mailhelp.web.proposal_edit_site",
+  "name": "EDIT_LABELS"
+ },
+ {
+  "module": "mailhelp.web.push_site",
+  "name": "SERVER_OFF"
+ },
+ {
+  "module": "mailhelp.web.push_site",
+  "name": "STAGES"
+ },
+ {
+  "module": "mailhelp.web.reanalysis_site",
+  "name": "STATUS_TEXT"
+ },
+ {
+  "module": "mailhelp.web.reanalysis_site",
+  "name": "ERROR_TEXT"
+ },
+ {
+  "module": "mailhelp.web.reanalysis_site",
+  "name": "REFUSED_TEXT"
+ },
+ {
+  "module": "mailhelp.web.reanalysis_site",
+  "name": "CHANGE_TEXT"
+ },
+ {
+  "module": "mailhelp.web.reanalysis_site",
+  "name": "FIELD_NAMES"
+ },
+ {
+  "module": "mailhelp.web.reconciliation_pages",
+  "name": "INTRO"
+ },
+ {
+  "module": "mailhelp.web.reconciliation_pages",
+  "name": "FOCUS_INTRO"
+ },
+ {
+  "module": "mailhelp.web.reconciliation_pages",
+  "name": "ALL_LINK"
+ },
+ {
+  "module": "mailhelp.web.review_pages",
+  "name": "FULL_TEXT"
+ },
+ {
+  "module": "mailhelp.web.review_pages",
+  "name": "KINDS"
+ },
+ {
+  "module": "mailhelp.web.review_pages",
+  "name": "VISION_LABELS"
+ },
+ {
+  "module": "mailhelp.web.rule_compare",
+  "name": "FIELDS"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "SIGNALS"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "SCOPE_LABELS"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "STATUSES"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "DECISIONS"
+ },
+ {
+  "module": "mailhelp.web.rule_learning_site",
+  "name": "UNAVAILABLE"
+ },
+ {
+  "module": "mailhelp.web.rule_preview",
+  "name": "ACTIONS"
+ },
+ {
+  "module": "mailhelp.web.sender_pages",
+  "name": "KIND_LABELS"
+ },
+ {
+  "module": "mailhelp.web.sender_pages",
+  "name": "ACTION_LABELS"
+ },
+ {
+  "module": "mailhelp.web.sender_pages",
+  "name": "MODES"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "SETTING_LABELS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "TEXT_SETTINGS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "SETTING_GROUPS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "SERVICE_LABELS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "TIMEOUT_LABELS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "EXTRA_LABELS"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "PROVIDER_CHOICES"
+ },
+ {
+  "module": "mailhelp.web.settings_pages",
+  "name": "AREAS"
+ },
+ {
+  "module": "mailhelp.web.setup_site",
+  "name": "STEPS"
+ },
+ {
+  "module": "mailhelp.web.setup_site",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.shutdown_site",
+  "name": "REFUSALS"
+ },
+ {
+  "module": "mailhelp.web.stage_page",
+  "name": "SORTS"
+ },
+ {
+  "module": "mailhelp.web.stage_page",
+  "name": "OUTCOMES"
+ },
+ {
+  "module": "mailhelp.web.status_details",
+  "name": "TITLES"
+ },
+ {
+  "module": "mailhelp.web.status_pages",
+  "name": "RUN_LABELS"
+ },
+ {
+  "module": "mailhelp.web.status_pages",
+  "name": "ANALYSIS_LABELS"
+ },
+ {
+  "module": "mailhelp.web.status_pages",
+  "name": "COMMAND_LABELS"
+ },
+ {
+  "module": "mailhelp.web.status_pages",
+  "name": "RUNTIME_STAGES"
+ },
+ {
+  "module": "mailhelp.web.topic_editor",
+  "name": "KINDS"
+ },
+ {
+  "module": "mailhelp.web.topic_editor",
+  "name": "LABELS"
+ },
+ {
+  "module": "mailhelp.web.topic_editor",
+  "name": "HELP"
+ },
+ {
+  "module": "mailhelp.web.setting_help",
+  "name": "SETTING_HELP"
+ },
+ {
+  "module": "mailhelp.web.setting_help",
+  "name": "EXTRA_HELP"
+ }
+]

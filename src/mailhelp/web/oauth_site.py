@@ -1,4 +1,5 @@
 """Browser consent, persistent device-code progress and the bundled Playground guide."""
+
 from __future__ import annotations
 
 import re
@@ -6,6 +7,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import parse_qs, urlencode
 
+from ..i18n import msg, tr
 from ..runtime.google_calendars import google_calendars
 from ..runtime.initial_setup import default_file
 from ..runtime.oauth_web import BrowserOAuth
@@ -52,16 +54,31 @@ class OAuthSite:
 
     @staticmethod
     def failed() -> Response:
-        return Response.html(409, error_page("Anmeldung nicht abgeschlossen",
-            "Sitzung, Zielprofil und Zugangsdaten prüfen oder die Anmeldung erneut starten. "
-            "Die Google-Anleitung ist unter /hilfe/google-playground verfügbar."))
+        return Response.html(
+            409,
+            error_page(
+                tr("Anmeldung nicht abgeschlossen"),
+                tr(
+                    "Sitzung, Zielprofil und Zugangsdaten prüfen oder die Anmeldung "
+                    "erneut starten. Die Google-Anleitung ist unter "
+                    "/hilfe/google-playground verfügbar."
+                ),
+            ),
+        )
 
     def guide(self, _request: Request, _session: WebSession) -> Response:
-        body = ('<h1>Google OAuth 2.0 Playground</h1><p>'
-                '<a href="https://console.cloud.google.com/" rel="noreferrer">Google Cloud Console öffnen</a> · '
-                '<a href="https://developers.google.com/oauthplayground/" rel="noreferrer">Playground öffnen</a></p>'
-                '<pre class="mail-text">' + e(default_file("google-oauth-playground.md")) + '</pre>')
-        return Response.html(200, layout("Google einrichten", body))
+        body = (
+            tr(
+                "<h1>Google OAuth 2.0 Playground</h1><p><a "
+                'href="https://console.cloud.google.com/" rel="noreferrer">Google '
+                "Cloud Console öffnen</a> · <a "
+                'href="https://developers.google.com/oauthplayground/" '
+                'rel="noreferrer">Playground öffnen</a></p><pre class="mail-text">'
+            )
+            + e(default_file("google-oauth-playground.md"))
+            + "</pre>"
+        )
+        return Response.html(200, layout(msg("Google einrichten"), body))
 
     def _start_page(self, request: Request, session: WebSession, provider: str) -> Response:
         try:
@@ -70,13 +87,25 @@ class OAuthSite:
         except (ValueError, LookupError):
             return self.failed()
         path = {"google": "/auth/google/start", "notion": "/auth/notion/start"}.get(provider, "/auth/microsoft/device")
-        body = (f'<h1>{e(provider.title())} verbinden</h1><p>Zielprofil {profile}. '
-                'Clientdaten zuerst in den Zugangsdaten speichern. '
-                'Die Anmeldung erstellt keine Termine oder Aufgaben.</p>'
-                '<p><a href="/hilfe/google-playground">Google: Playground-Anleitung</a></p>')
-        body += post_form(path, self.site.auth.csrf_token(session.id), "", "Anmeldung starten",
-                          profile=profile, revision=revision)
-        return Response.html(200, layout("Konto verbinden", body))
+        body = tr(
+            (
+                "<h1>{p0} verbinden</h1><p>Zielprofil {p1}. Clientdaten zuerst in "
+                "den Zugangsdaten speichern. Die Anmeldung erstellt keine Termine "
+                'oder Aufgaben.</p><p><a href="/hilfe/google-playground">Google: '
+                "Playground-Anleitung</a></p>"
+            ),
+            p0=e(provider.title()),
+            p1=profile,
+        )
+        body += post_form(
+            path,
+            self.site.auth.csrf_token(session.id),
+            "",
+            msg("Anmeldung starten"),
+            profile=profile,
+            revision=revision,
+        )
+        return Response.html(200, layout(tr("Konto verbinden"), body))
 
     def google_start(self, request: Request, session: WebSession) -> Response:
         return self._start_page(request, session, "google")
@@ -112,7 +141,9 @@ class OAuthSite:
         return self._callback(request, "notion")
 
     def _callback(self, request: Request, provider: str) -> Response:
-        finish_label = "Google-Anmeldung abschließen" if provider == "google" else "Notion-Anmeldung abschließen"
+        finish_label = (
+            msg("Google-Anmeldung abschließen") if provider == "google" else msg("Notion-Anmeldung abschließen")
+        )
         try:
             query = parse_qs(request.query, max_num_fields=6)
             identity = query["state"][0]
@@ -126,9 +157,21 @@ class OAuthSite:
                 # SameSite=Strict cookies are intentionally absent on Google's cross-site return.
                 # A same-origin user click then carries the session; no token exchange happens here.
                 href = f"/auth/{provider}/callback?" + urlencode({"state": identity, "code": code})
-                return Response.html(200, layout(finish_label,
-                    '<h1>Zurück bei Mailhelp</h1><p>Die Anmeldung im ursprünglichen Browser abschließen.</p>'
-                    f'<a class="button" href="{e(href)}">{finish_label}</a>', signed_in=False))
+                return Response.html(
+                    200,
+                    layout(
+                        finish_label,
+                        tr(
+                            (
+                                "<h1>Zurück bei Mailhelp</h1><p>Die Anmeldung im ursprünglichen "
+                                'Browser abschließen.</p><a class="button" href="{p0}">{p1}</a>'
+                            ),
+                            p0=e(href),
+                            p1=finish_label,
+                        ),
+                        signed_in=False,
+                    ),
+                )
             finish = self.service.google_callback if provider == "google" else self.service.notion_callback
             job = finish(identity, "web:" + session.id, code)
         except (ValueError, KeyError, PermissionError, LookupError):
@@ -143,22 +186,47 @@ class OAuthSite:
         except (ValueError, KeyError, PermissionError):
             return self.failed()
         pending = job.status in {"starting", "pending", "committing", "exchanging"}
-        body = f'<h1>Konto verbinden</h1><p role="status">Status: {e(job.status)}</p>'
+        body = tr('<h1>Konto verbinden</h1><p role="status">Status: {p0}</p>', p0=e(job.status))
         if job.provider == "microsoft" and job.uri:
-            body += ('<section role="dialog" aria-modal="false" aria-label="Microsoft-Anmeldung">'
-                     f'<p>Code: <strong>{e(job.user_code)}</strong></p>'
-                     f'<button type="button" data-copy-code="{e(job.user_code)}">Code kopieren</button>'
-                     f'<p><a href="{e(job.uri)}" target="_blank" rel="noreferrer">'
-                     'Bei Microsoft anmelden</a></p></section>')
+            body += tr(
+                (
+                    '<section role="dialog" aria-modal="false" '
+                    'aria-label="Microsoft-Anmeldung"><p>Code: '
+                    '<strong>{p0}</strong></p><button type="button" '
+                    'data-copy-code="{p1}">Code kopieren</button><p><a href="{p2}" '
+                    'target="_blank" rel="noreferrer">Bei Microsoft '
+                    "anmelden</a></p></section>"
+                ),
+                p0=e(job.user_code),
+                p1=e(job.user_code),
+                p2=e(job.uri),
+            )
         if job.status == "done" and job.provider == "notion":
-            body += (f'<p>Notion-Anmeldung gespeichert.</p><p><a href="{e(self.setup_path)}">Zur Einrichtung</a> · '
-                     f'<a href="/notion/datenquelle?profile={job.profile}">Notion-Datenquelle auswählen</a></p>')
+            body += tr(
+                (
+                    '<p>Notion-Anmeldung gespeichert.</p><p><a href="{p0}">Zur '
+                    "Einrichtung</a> · <a "
+                    'href="/notion/datenquelle?profile={p1}">Notion-Datenquelle '
+                    "auswählen</a></p>"
+                ),
+                p0=e(self.setup_path),
+                p1=job.profile,
+            )
         elif job.status == "done":
-            body += ('<p>Anmeldung gespeichert. Nach dem nächsten Neustart nutzt der Mailabruf die neuen Daten.</p>'
-                     f'<p><a href="{e(self.setup_path)}">Zur Einrichtung</a> · '
-                     f'<a href="/auth/google/kalender?profile={job.profile}">Google-Kalender auswählen</a> · '
-                     f'<a href="/auth/google/aufgabenlisten?profile={job.profile}">'
-                     'Google-Tasks-Liste auswählen</a></p>')
+            body += tr(
+                (
+                    "<p>Anmeldung gespeichert. Nach dem nächsten Neustart nutzt der "
+                    'Mailabruf die neuen Daten.</p><p><a href="{p0}">Zur '
+                    "Einrichtung</a> · <a "
+                    'href="/auth/google/kalender?profile={p1}">Google-Kalender '
+                    "auswählen</a> · <a "
+                    'href="/auth/google/aufgabenlisten?profile={p2}">Google-Tasks-List'
+                    "e auswählen</a></p>"
+                ),
+                p0=e(self.setup_path),
+                p1=job.profile,
+                p2=job.profile,
+            )
         return Response.html(200, layout("Anmeldestatus", body, refresh=2 if pending else None,
             after='<script src="/static/setup.js" defer></script>'))
 
@@ -170,7 +238,7 @@ class OAuthSite:
 
     def _targets(self, request: Request, session: WebSession, *, tasks: bool) -> Response:
         field = "google_tasks_list" if tasks else "google_calendar"
-        label = "Google-Tasks-Liste" if tasks else "Google-Kalender"
+        label = msg("Google-Tasks-Liste") if tasks else msg("Google-Kalender")
         path = "/auth/google/aufgabenlisten" if tasks else "/auth/google/kalender"
         try:
             profile = self._profile(request)
@@ -179,10 +247,15 @@ class OAuthSite:
             current, version = self.calendar_context(profile, field)
         except Exception:
             return self.failed()
-        body = f'<h1>{label} auswählen</h1>' + post_form(path,
-            self.site.auth.csrf_token(session.id), select("calendar", label, current, choices),
-            "Als Entwurf speichern", profile=profile, version=version,
-            revision=self.service.revision(profile, "google"))
+        body = tr("<h1>{p0} auswählen</h1>", p0=label) + post_form(
+            path,
+            self.site.auth.csrf_token(session.id),
+            select("calendar", label, current, choices),
+            msg("Als Entwurf speichern"),
+            profile=profile,
+            version=version,
+            revision=self.service.revision(profile, "google"),
+        )
         return Response.html(200, layout(label, body))
 
     def choose_calendar(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:

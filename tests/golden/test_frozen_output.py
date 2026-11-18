@@ -11,6 +11,7 @@ import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from html.parser import HTMLParser
 
 import pytest
 import time_machine
@@ -61,10 +62,37 @@ def frozen(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("name", PAGES)
-def test_core_pages_are_unchanged(frozen, name):
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test_core_pages_are_unchanged(frozen, name, locale):
+    frozen.browser.cookies["mailhelp_lang"] = locale
     response = frozen.browser.request("GET", PAGES[name])
     assert response.status == 200
-    compare(f"{name}.html", normalize(response.body.decode("utf-8")))
+    compare(f"{name}{'-en' if locale == 'en' else ''}.html", normalize(response.body.decode("utf-8")))
+
+
+class MachineAttributes(HTMLParser):
+    def __init__(self, text):
+        super().__init__()
+        self.rows = []
+        self.feed(text)
+
+    def handle_starttag(self, tag, attributes):
+        attrs = dict(attributes)
+        if attrs.get("rel") == "manifest" or (attrs.get("href") or "").startswith("/sprache?"):
+            return
+        self.rows.append((tag, [(key, value) for key, value in attributes
+                                if key in {"id", "for", "name", "method", "action", "type", "value", "href", "src"}]))
+
+
+@pytest.mark.parametrize("name", PAGES)
+def test78_language_switch_keeps_machine_attributes_and_original_mail_data(frozen, name):
+    texts = []
+    for locale in ("de", "en"):
+        frozen.browser.cookies["mailhelp_lang"] = locale
+        response = frozen.browser.request("GET", PAGES[name])
+        assert response.status == 200
+        texts.append(normalize(response.body.decode("utf-8")))
+    assert MachineAttributes(texts[0]).rows == MachineAttributes(texts[1]).rows
 
 
 def test_telegram_messages_are_unchanged(frozen):
@@ -86,10 +114,12 @@ EVALUATION = {
 
 
 @pytest.mark.parametrize("name", EVALUATION)
-def test_proposal_evaluation_page_is_unchanged(frozen, name):
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test_proposal_evaluation_page_is_unchanged(frozen, name, locale):
+    frozen.browser.cookies["mailhelp_lang"] = locale
     response = frozen.browser.request("GET", "/lernen/vorschlaege" + EVALUATION[name])
     assert response.status == 200
-    compare(f"{name}.html", normalize(response.body.decode("utf-8")))
+    compare(f"{name}{'-en' if locale == 'en' else ''}.html", normalize(response.body.decode("utf-8")))
 
 
 def test_proposal_evaluation_hints_and_dismissed_senders_are_unchanged(frozen):
@@ -105,7 +135,9 @@ def test_proposal_evaluation_hints_and_dismissed_senders_are_unchanged(frozen):
 
 # 7.0.7: every tab of the mailbox settings page, captured before its refactoring.
 @pytest.mark.parametrize("tab", ["targets", "filters", "topics", "replies", "notifications"])
-def test_mailbox_settings_page_is_unchanged(profiled, tab):
+@pytest.mark.parametrize("locale", ["de", "en"])
+def test_mailbox_settings_page_is_unchanged(profiled, tab, locale):
+    profiled.web.browser.cookies["mailhelp_lang"] = locale
     response = profiled.web.browser.request("GET", f"/einstellungen/postfaecher/1?tab={tab}")
     assert response.status == 200
-    compare(f"postfach-{tab}.html", normalize(response.body.decode("utf-8")))
+    compare(f"postfach-{tab}{'-en' if locale == 'en' else ''}.html", normalize(response.body.decode("utf-8")))

@@ -319,7 +319,8 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
 
     def __init__(self, token: AccessTokenProvider, target: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None, calendar_timezone: str = "UTC", calendar_matcher: Any = None) -> None:
+                 logger: EventLogger | None = None, calendar_timezone: str = "UTC",
+                 calendar_matcher: Any = None) -> None:
         super().__init__(token, target, timeout, transport, policy, logger)
         self.calendar_timezone = calendar_timezone
         self.calendar_matcher = calendar_matcher

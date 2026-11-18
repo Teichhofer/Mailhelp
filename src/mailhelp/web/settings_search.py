@@ -3,6 +3,7 @@
 Only public metadata is searched: labels, keys, groups, areas, help texts and curated synonyms.
 Current values, passwords, mail content and private account names are never part of an entry.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
+from ..i18n import Locale, current, msg, tr, use_locale
 from .setting_help import SETTING_HELP
 
 MAX_QUERY = 80
@@ -19,25 +21,25 @@ EXTRA_CATALOG = Path(__file__).resolve().parents[1] / "helpdocs" / "settings.jso
 
 # Words that mean the same thing to a person looking for a setting; every word finds the others.
 SYNONYMS: tuple[tuple[str, ...], ...] = (
-    ("ki", "llm", "modell", "openrouter", "ollama", "kuenstliche intelligenz"),
-    ("postfach", "konto", "imap", "mailkonto"),
-    ("abruf", "intervall", "abrufen", "polling"),
+    ("ki", "llm", msg("modell"), "openrouter", "ollama", "kuenstliche intelligenz"),
+    ("postfach", msg("konto"), "imap", "mailkonto", "mailbox", "account"),
+    ('abruf', "intervall", msg("abrufen"), "polling"),
     ("telegram", "bot", "chat"),
-    ("push", "benachrichtigung", "meldung", "hinweis", "ruhezeit"),
-    ("kalender", "termin", "google", "outlook", "caldav"),
-    ("aufgabe", "todoist", "todo", "erinnerung"),
-    ("aufbewahrung", "loeschen", "frist", "retention"),
-    ("protokoll", "log", "logging"),
-    ("passwort", "zugangsdaten", "token", "schluessel"),
-    ("entwurf", "antwort", "reply"),
-    ("zeitlimit", "timeout", "wartezeit"),
+    ("push", msg("benachrichtigung"), "meldung", msg("hinweis"), msg("ruhezeit")),
+    ('kalender', msg("termin"), "google", "outlook", "caldav", "calendar", "event"),
+    ('aufgabe', "todoist", "todo", "erinnerung", "task", "reminder"),
+    ('aufbewahrung', "loeschen", msg("frist"), "retention"),
+    ('protokoll', "log", "logging"),
+    ('passwort', msg("zugangsdaten"), "token", "schluessel"),
+    ('entwurf', msg("antwort"), "reply"),
+    ('zeitlimit', "timeout", msg("wartezeit")),
     ("rueckkehr", "zurueck", "vorversion", "rollback", "downgrade"),
-    ("sicherung", "sichern", "backup"),
-    ("neustart", "neu starten", "restart"),
+    ("sicherung", "sichern", "backup", "back up"),
+    ('neustart', msg("neu starten"), "restart"),
     # 5.5.6: "Lernfunktion", "lernt" or "Lernlauf" reach the learning mode and its settings.
-    ("lernen", "lernt", "lernmodus", "lernlauf", "lernfunktion", "lernbestand", "learn"),
+    ('lernen', "lernt", msg("lernmodus"), msg("lernlauf"), "lernfunktion", msg("lernbestand"), "learn"),
     # 5.7.4: "Regellernen" and "Lernübersicht" reach the learning area.
-    ("regellernen", "lernuebersicht"),
+    ('regellernen', "lernuebersicht"),
 )
 
 
@@ -56,7 +58,7 @@ class Entry:
     area: str
     summary: str
     href: str
-    path: str = "Weboberfläche"
+    path: str = msg("Weboberfläche")
     key: str | None = None
     group: str = ""
     help: str = ""
@@ -73,7 +75,7 @@ class Entry:
 
 def anchor(name: str) -> str:
     """The stable element id of one setting on its area page."""
-    return "einstellung-" + re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")
+    return 'einstellung-' + re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")
 
 
 def _summary(text: str) -> str:
@@ -89,61 +91,180 @@ def _synonyms(text: str) -> tuple[str, ...]:
 
 # Pages with their own way of changing settings; found like settings, opened as a page.
 PAGES: tuple[tuple[str, str, str, str, str], ...] = (
-    ("page:lernen", "Lernen", "Lernen", "/lernen", "Lernübersicht: Postfach und Entscheidungen"),
-    ("page:regellernen", "Aus Entscheidungen lernen", "Lernen", "/lernen/entscheidungen",
-     "Regeln lernen, Themen verbessern, Themenregeln aus protokollierten Entscheidungen"),
-    ("page:lernlauf", "Aus dem Postfach lernen", "Lernen", "/lernen/postfach",
-     "Lesenden Lernlauf aus vorhandenen Mails starten"),
-    ("page:postfaecher", "Postfächer", "Konten und Verbindungen", "/einstellungen/postfaecher",
-     "Postfach hinzufügen, Verbindung prüfen, Ordner, Startgrenze, Ziele, Filter, Themen, Antworten und "
-     "Benachrichtigungen je Postfach"),
-    ("page:iserv", "IServ-Konten", "Konten und Verbindungen", "/einstellungen/iserv",
-     "Elternbriefe aus IServ abrufen; Schuladresse, Postfach und Startgrenze"),
-    ("page:zielprofile", "Zielprofile", "Konten und Verbindungen", "/einstellungen/zielprofile",
-     "Kalender und Aufgabenlisten je Postfach: Google, Todoist, Outlook, Microsoft To Do, CalDAV, Apple Erinnerungen"),
-    ("page:zugangsdaten", "Zugangsdaten", "Konten und Verbindungen", "/einstellungen?bereich=zugangsdaten",
-     "Passwörter und API-Schlüssel hinterlegen; angezeigt wird nur hinterlegt oder fehlt"),
-    ("page:einrichtung", "Einrichtung", "Konten und Verbindungen", "/einrichtung",
-     "Verbindungen Schritt für Schritt einrichten"),
-    ("page:diagnose", "Verbindungen prüfen", "Konten und Verbindungen", "/diagnose",
-     "Diagnose: Zugriffe je Dienst lesend prüfen, mit Selbsttest für alles"),
-    ("page:themen", "Themen", "Inhalte und Benachrichtigungen", "/themen",
-     "Relevante und irrelevante Themen pflegen; Thema bearbeiten, Themen suchen, neues Thema mit Vorschau"),
-    ("page:absender", "Absender-Regeln", "Inhalte und Benachrichtigungen",
-     "/einstellungen/absender", "Absender und Domains ignorieren, VIP-Absender, Muster wie no-reply@*, Betreffe"),
-    ("page:benachrichtigungsprofil", "Benachrichtigungsprofil", "Inhalte und Benachrichtigungen",
-     "/einstellungen/benachrichtigungen", "Ruhezeiten, Bündelung, Kanäle je Kategorie und Telegram-Inhalte"),
-    ("page:zustellhistorie", "Zustellhistorie", "Inhalte und Benachrichtigungen", "/benachrichtigungen",
-     "Gesendete Benachrichtigungen"),
-    ("page:geraete", "Geräte", "System", "/geraete", "Angemeldete Browser verwalten"),
-    ("page:neustarten", "Mailhelp neu starten", "System", "/einstellungen/neustarten",
-     "Kontrollierter Neustart mit Bestätigung, damit gespeicherte Änderungen wirken"),
-    ("page:neu-laden", "Konfiguration neu laden", "System", "/dienst/neu-laden",
-     "Verbindungen ohne Prozessneustart wechseln"),
-    ("page:selbsttest", "Lesender Selbsttest", "System", "/dienst/selbsttest",
-     "Alle Komponenten und Handlungsempfehlungen"),
-    ("page:beenden", "Mailhelp beenden", "System", "/einstellungen/beenden", "Dienst kontrolliert anhalten"),
+    ('page:lernen', msg("Lernen"), msg("Lernen"), "/lernen", msg("Lernübersicht: Postfach und Entscheidungen")),
+    (
+        'page:regellernen',
+        msg("Aus Entscheidungen lernen"),
+        msg("Lernen"),
+        "/lernen/entscheidungen",
+        msg("Regeln lernen, Themen verbessern, Themenregeln aus protokollierten Entscheidungen"),
+    ),
+    (
+        'page:lernlauf',
+        msg("Aus dem Postfach lernen"),
+        msg("Lernen"),
+        "/lernen/postfach",
+        msg("Lesenden Lernlauf aus vorhandenen Mails starten"),
+    ),
+    (
+        "page:postfaecher",
+        msg("Postfächer"),
+        msg("Konten und Verbindungen"),
+        "/einstellungen/postfaecher",
+        msg(
+            
+                "Postfach hinzufügen, Verbindung prüfen, Ordner, Startgrenze, Ziele, "
+                "Filter, Themen, Antworten und Benachrichtigungen je Postfach"
+            
+        ),
+    ),
+    (
+        "page:iserv",
+        msg("IServ-Konten"),
+        msg("Konten und Verbindungen"),
+        "/einstellungen/iserv",
+        msg("Elternbriefe aus IServ abrufen; Schuladresse, Postfach und Startgrenze"),
+    ),
+    (
+        'page:zielprofile',
+        msg("Zielprofile"),
+        msg("Konten und Verbindungen"),
+        "/einstellungen/zielprofile",
+        msg(
+            
+                "Kalender und Aufgabenlisten je Postfach: Google, Todoist, Outlook, "
+                "Microsoft To Do, CalDAV, Apple Erinnerungen"
+            
+        ),
+    ),
+    (
+        'page:zugangsdaten',
+        msg("Zugangsdaten"),
+        msg("Konten und Verbindungen"),
+        "/einstellungen?bereich=zugangsdaten",
+        msg("Passwörter und API-Schlüssel hinterlegen; angezeigt wird nur hinterlegt oder fehlt"),
+    ),
+    (
+        'page:einrichtung',
+        msg("Einrichtung"),
+        msg("Konten und Verbindungen"),
+        "/einrichtung",
+        msg("Verbindungen Schritt für Schritt einrichten"),
+    ),
+    (
+        'page:diagnose',
+        msg("Verbindungen prüfen"),
+        msg("Konten und Verbindungen"),
+        "/diagnose",
+        msg("Diagnose: Zugriffe je Dienst lesend prüfen, mit Selbsttest für alles"),
+    ),
+    (
+        'page:themen',
+        msg("Themen"),
+        msg("Inhalte und Benachrichtigungen"),
+        "/themen",
+        msg("Relevante und irrelevante Themen pflegen; Thema bearbeiten, Themen suchen, neues Thema mit Vorschau"),
+    ),
+    (
+        'page:absender',
+        msg("Absender-Regeln"),
+        msg("Inhalte und Benachrichtigungen"),
+        "/einstellungen/absender",
+        msg("Absender und Domains ignorieren, VIP-Absender, Muster wie no-reply@*, Betreffe"),
+    ),
+    (
+        'page:benachrichtigungsprofil',
+        msg("Benachrichtigungsprofil"),
+        msg("Inhalte und Benachrichtigungen"),
+        "/einstellungen/benachrichtigungen",
+        msg("Ruhezeiten, Bündelung, Kanäle je Kategorie und Telegram-Inhalte"),
+    ),
+    (
+        'page:zustellhistorie',
+        msg("Zustellhistorie"),
+        msg("Inhalte und Benachrichtigungen"),
+        "/benachrichtigungen",
+        msg("Gesendete Benachrichtigungen"),
+    ),
+    ("page:geraete", msg("Geräte"), "System", "/geraete", msg("Angemeldete Browser verwalten")),
+    (
+        "page:neustarten",
+        msg("Mailhelp neu starten"),
+        "System",
+        "/einstellungen/neustarten",
+        msg("Kontrollierter Neustart mit Bestätigung, damit gespeicherte Änderungen wirken"),
+    ),
+    (
+        'page:neu-laden',
+        msg("Konfiguration neu laden"),
+        "System",
+        "/dienst/neu-laden",
+        msg("Verbindungen ohne Prozessneustart wechseln"),
+    ),
+    (
+        'page:selbsttest',
+        msg("Lesender Selbsttest"),
+        "System",
+        "/dienst/selbsttest",
+        msg("Alle Komponenten und Handlungsempfehlungen"),
+    ),
+    (
+        'page:beenden',
+        msg("Mailhelp beenden"),
+        "System",
+        "/einstellungen/beenden",
+        msg("Dienst kontrolliert anhalten"),
+    ),
 )
 
 
-@cache
 def catalog() -> tuple[Entry, ...]:
+    return _catalog(current())
+
+
+@cache
+def _catalog(locale: Locale) -> tuple[Entry, ...]:
+    with use_locale(locale):
+        return _entries()
+
+
+def _entries() -> tuple[Entry, ...]:
     """Every searchable entry: the settings of the general areas and the special pages."""
     # Late: the settings pages import the search at load time.
     from .settings_pages import AREAS, _names, setting_label
+
     entries = []
     for area_key, title, _text, groups in AREAS:
         for group in groups:
             for name in _names(group):
-                help_text = SETTING_HELP[name]
-                label = setting_label(name)
-                entries.append(Entry(
-                    id=f"setting:{name}", label=label, area=title, summary=_summary(help_text),
-                    href=f"/einstellungen?bereich={area_key}#{anchor(name)}", key=name, group=group,
-                    help=help_text, synonyms=_synonyms(f"{label} {name} {group} {title} {help_text}")))
+                help_text = tr(SETTING_HELP[name])
+                label = tr(setting_label(name))
+                entries.append(
+                    Entry(
+                        id=f"setting:{name}",
+                        label=label,
+                        area=tr(title),
+                        summary=_summary(help_text),
+                        href='/einstellungen?bereich={p0}#{p1}'.format(p0=f'{area_key}', p1=f'{anchor(name)}'),
+                        key=name,
+                        group=tr(group),
+                        path="Weboberfläche",
+                        help=help_text,
+                        synonyms=_synonyms(f"{label} {name} {group} {title} {help_text}"),
+                    )
+                )
     for identity, label, area, href, text in PAGES:
-        entries.append(Entry(id=identity, label=label, area=area, summary=text, href=href,
-                             path="Eigene Seite", synonyms=_synonyms(f"{label} {text}")))
+        entries.append(
+            Entry(
+                id=identity,
+                label=tr(label),
+                area=tr(area),
+                summary=tr(text),
+                href=href,
+                path=tr("Eigene Seite"),
+                synonyms=_synonyms(f"{label} {text}"),
+            )
+        )
     entries.extend(extra_catalog())
     return tuple(entries)
 
@@ -156,7 +277,8 @@ def setting_href(name: str) -> str:
 def extra_catalog() -> tuple[Entry, ...]:
     """Generated public file/setup metadata; a broken resource never disables normal settings."""
     try:
-        rows = json.loads(EXTRA_CATALOG.read_text(encoding="utf-8"))
+        path = EXTRA_CATALOG if current() == Locale.DE else EXTRA_CATALOG.parent / "en" / EXTRA_CATALOG.name
+        rows = json.loads(path.read_text(encoding="utf-8"))
         return tuple(Entry(**row, synonyms=_synonyms(row["label"] + " " + row["help"])) for row in rows)
     except (OSError, ValueError, TypeError, KeyError):
         return ()

@@ -4,29 +4,33 @@ The mode is fixed for the lifetime of the process. It never connects a mailbox, 
 a real calendar or task list, and it never opens a production directory: the runtime directory must
 be empty on the first start and then carries its own marker file.
 """
+
 from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
+import shutil
 import time
 from collections.abc import Callable, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from threading import Event, Lock, Thread
+from threading import Event, RLock, Thread
 from typing import Any, NoReturn
 
 from ..config import WebSettings
 from ..domain.proposal import Proposal
 from ..external.roles import CALENDAR_SLOT, TASK_SLOT
+from ..i18n import Locale, current, stored, tr
 from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
 from ..review.inbox import CommandInbox
 from ..review.views import ReviewViews
 from ..runtime.demo_answers import DemoRevisions
-from ..runtime.demo_dataset import packaged
+from ..runtime.demo_dataset import DemoDatasetError, packaged
 from ..runtime.demo_visitors import MAX_VISITORS, DemoVisitors
 from ..runtime.standalone import DisabledTelegram
 from ..telegram import TelegramDialogController
@@ -34,6 +38,7 @@ from ..telegram.receiver import TelegramInbox
 from ..web.app import WebApp
 from ..web.auth import WebAuth
 from ..web.demo_site import SESSION_SECONDS, DemoHooks, DemoSite, VisitorApp
+from ..web.http import Request, Response
 from ..web.server import WebServer
 from ..web.site import MailhelpSite
 from .bootstrap import console
@@ -118,47 +123,106 @@ class DemoTarget:
 @dataclass
 class VisitorRuntime:
     """The ordinary interface and dialog on one visitor's copy; writes are simulated (test mode)."""
+
     store: JsonStore
     commands: CommandInbox
     dialog: TelegramDialogController
-    app: WebApp
+    app: VisitorApp
     resources: ExitStack
+    active: bool = True
 
 
 class DemoRuntimes:
     """One runtime per visitor area, created on first use and closed with the instance."""
 
-    def __init__(self, visitors: DemoVisitors, auth: WebAuth, settings: WebSettings, logger: Any,
-                 revisions: DemoRevisions) -> None:
+    def __init__(
+        self,
+        visitors: DemoVisitors,
+        auth: WebAuth,
+        settings: WebSettings,
+        logger: Any,
+        revisions: DemoRevisions,
+        asset_source: WebApp | None = None,
+    ) -> None:
         self.visitors, self.auth, self.settings, self.logger = visitors, auth, settings, logger
+        self.asset_source = asset_source
         self.revisions = revisions
+        self.default_locale = current()
         self.runtimes: dict[Path, VisitorRuntime] = {}
-        self.lock = Lock()
+        self.lock = RLock()
 
     def _authorized(self, actor: str) -> bool:
         return actor.startswith("web:") and self.auth.active(actor.removeprefix("web:"))
 
     def _build(self, area: Path) -> VisitorRuntime:
         resources = ExitStack()
-        store = resources.enter_context(JsonStore(area))
-        commands = CommandInbox(store)
-        # With an inbox poll_once never waits for Telegram; the demo has no Telegram at all.
-        target = DemoTarget()
-        dialog = TelegramDialogController(store, DisabledTelegram(), 0, 0, self.logger,
-                                          {CALENDAR_SLOT: target, TASK_SLOT: target}, True, TIMEZONE,
-                                          self.revisions, inbox=TelegramInbox(store), commands=commands)
-        dialog.review.web_authorizer = self._authorized
-        app = WebApp(self.settings.allowed_hosts)
-        MailhelpSite(app, self.auth, self.settings, TIMEZONE, self.logger,
-                     ReviewViews(store, TIMEZONE, test_mode=True), commands)
-        dialog.poll_once()
-        return VisitorRuntime(store, commands, dialog, app, resources)
+        with resources:
+            store = resources.enter_context(JsonStore(area))
+            commands = CommandInbox(store)
+            # With an inbox poll_once never waits for Telegram; the demo has no Telegram at all.
+            target = DemoTarget()
+            source = area / ".demo" if (area / ".demo").is_dir() else self.visitors.dataset
+            revisions = DemoRevisions.load(source)
+            dialog = TelegramDialogController(
+                store,
+                DisabledTelegram(),
+                0,
+                0,
+                self.logger,
+                {CALENDAR_SLOT: target, TASK_SLOT: target},
+                True,
+                TIMEZONE,
+                revisions,
+                inbox=TelegramInbox(store),
+                commands=commands,
+            )
+            dialog.review.web_authorizer = self._authorized
+            app = WebApp(self.settings.allowed_hosts, asset_source=self.asset_source)
+            app.default_locale = self.default_locale
+            site = MailhelpSite(
+                app,
+                self.auth,
+                self.settings,
+                TIMEZONE,
+                self.logger,
+                ReviewViews(store, TIMEZONE, test_mode=True),
+                commands,
+            )
+            # HTTP responses release the lifecycle lock before the local worker takes the command.
+            site.settle_seconds = 0
+            dialog.poll_once()
+
+            def serve(request: Request) -> Response:
+                with self.lock:
+                    session = self.auth.authenticate(request.cookies().get("mh_session"))
+                    entry = self.visitors.entry(session.id) if session is not None else None
+                    if not runtime.active or session is None or entry is None or self.visitors.area(session.id) != area:
+                        return Response.text(409, tr("Die Demo wurde neu gestartet. Bitte die Seite neu laden."))
+                    if request.method == "POST":
+                        try:
+                            generation = request.form().get("demo_generation", "1")
+                        except (UnicodeDecodeError, ValueError):
+                            return Response.text(400, tr("Ungültige Formulardaten."))
+                        if generation != str(entry.generation):
+                            return Response.text(409, tr("Die Demo wurde neu gestartet. Bitte die Seite neu laden."))
+                    response = app(request)
+                    if response.content_type.startswith("text/html"):
+                        hidden = f'<input type="hidden" name="demo_generation" value="{entry.generation}">'
+                        response.body = re.sub(
+                            r'(<form\b[^>]*method="post"[^>]*>)',
+                            lambda match: match[0] + hidden,
+                            response.body.decode("utf-8"),
+                        ).encode("utf-8")
+                    return response
+
+            runtime = VisitorRuntime(store, commands, dialog, serve, resources.pop_all())
+            return runtime
 
     def app(self, session_id: str) -> VisitorApp | None:
-        area = self.visitors.area(session_id)
-        if area is None:
-            return None
         with self.lock:
+            area = self.visitors.area(session_id)
+            if area is None:
+                return None
             runtime = self.runtimes.get(area)
             if runtime is None:
                 runtime = self.runtimes[area] = self._build(area)
@@ -167,33 +231,51 @@ class DemoRuntimes:
     def work(self) -> None:
         """Execute queued web actions of every visitor, like the main thread of a normal instance."""
         with self.lock:
-            runtimes = list(self.runtimes.values())
-        for runtime in runtimes:
-            if runtime.commands.queued():
-                runtime.dialog.poll_once()
-            else:
-                runtime.commands.refresh()
+            for runtime in self.runtimes.values():
+                if runtime.commands.queued():
+                    runtime.dialog.poll_once()
+                else:
+                    runtime.commands.refresh()
 
     def _drop(self, areas: set[Path]) -> None:
         with self.lock:
             dropped = [self.runtimes.pop(area) for area in areas if area in self.runtimes]
+            for runtime in dropped:
+                runtime.active = False
         for runtime in dropped:
             runtime.resources.close()
 
-    def reset(self, session_id: str, key: str) -> None:
+    def reset(self, session_id: str, key: str, locale: Locale = Locale.DE, generation: int | None = None) -> None:
         """A fresh copy for this visitor; its open store is closed before the area is replaced."""
+        with self.lock:
+            area = self.visitors.area(session_id)
+            try:
+                fresh = self.visitors.reset(session_id, key, locale, generation=generation, retain_old=True)
+            except DemoDatasetError as exc:
+                raise RuntimeError("Demo dataset unavailable") from exc
+            if area is not None and fresh != area:
+                self._drop({area})
+                shutil.rmtree(area, ignore_errors=True)
+
+    def prepared(self, session_id: str) -> dict[tuple[str, str, int], str]:
         area = self.visitors.area(session_id)
-        self._drop({area} if area is not None else set())
-        self.visitors.reset(session_id, key)
+        if area is not None:
+            source = area / ".demo" if (area / ".demo").is_dir() else self.visitors.dataset
+            return DemoRevisions.load(source).prepared()
+        return self.revisions.prepared()
 
     def cleanup(self) -> int:
         """Remove the areas of ended or expired sessions and close their runtimes."""
-        active = {session.id for session in self.auth.sessions()}
         with self.lock:
+            sessions = self.auth.sessions()
+            for session in sessions:
+                if self.visitors.entry(session.id) is None:
+                    self.auth.revoke(session.id)
+            active = {session.id for session in self.auth.sessions()}
             stale = {area for area in self.runtimes if not any(
                 self.visitors.area(session_id) == area for session_id in active)}
-        self._drop(stale)
-        return self.visitors.cleanup(active)
+            self._drop(stale)
+            return self.visitors.cleanup(active)
 
     def close(self) -> None:
         self._drop(set(self.runtimes))
@@ -205,14 +287,30 @@ def create_demo(directory: Path, store: JsonStore, settings: WebSettings, secret
     auth.session_lifetime = timedelta(seconds=SESSION_SECONDS)
     auth.max_sessions = MAX_VISITORS
     visitors = DemoVisitors(store, directory / "data" / "visitors", packaged())
-    revisions = DemoRevisions.load(packaged())
-    runtimes = DemoRuntimes(visitors, auth, settings, logger, revisions)
+    # Load answers only from the chosen area: an unused damaged corpus cannot disable the other language.
+    revisions = DemoRevisions([])
+    public = WebApp(settings.allowed_hosts)
+    public.default_locale = current()
+    runtimes = DemoRuntimes(visitors, auth, settings, logger, revisions, public)
 
-    def start(session_id: str, key: str) -> None:
-        visitors.start(session_id, key)
+    def start(session_id: str, key: str, locale: Locale) -> None:
+        with runtimes.lock:
+            try:
+                visitors.start(session_id, key, locale)
+            except DemoDatasetError as exc:
+                raise RuntimeError("Demo dataset unavailable") from exc
 
-    hooks = DemoHooks(start, runtimes.app, visitors.full, runtimes.reset)
-    site = DemoSite(WebApp(settings.allowed_hosts), auth, logger, hooks, revisions.prepared(), trust_proxy=trust_proxy)
+    def dataset_locale(session_id: str) -> Locale | None:
+        entry = visitors.entry(session_id)
+        return entry.dataset_locale if entry is not None else None
+
+    def generation(session_id: str) -> int:
+        entry = visitors.entry(session_id)
+        return entry.generation if entry is not None else 1
+
+    hooks = DemoHooks(start, runtimes.app, visitors.full, runtimes.reset, dataset_locale, runtimes.prepared, generation)
+    site = DemoSite(public, auth, logger, hooks, revisions.prepared(), trust_proxy=trust_proxy)
+    site.lock = runtimes.lock
     return WebServer(settings.host, settings.port, site, logger), runtimes
 
 
@@ -221,7 +319,7 @@ def run_demo(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = co
     try:
         prepare_directory(directory)
     except DemoDirectoryError as exc:
-        emit(f"Demo nicht gestartet: {exc}")
+        emit(tr("Demo nicht gestartet: {reason}", reason=stored(str(exc))))
         return 2
     settings = demo_settings(environ)
     stopped = Event()
@@ -234,7 +332,7 @@ def run_demo(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = co
         server.start()
         worker.start()
         try:
-            emit(f"Mailhelp-Demo: http://localhost:{settings.port}/anmelden")
+            emit(tr("Mailhelp-Demo: http://localhost:{port}/anmelden", port=settings.port))
             stopped.wait()
         finally:
             server.stop()

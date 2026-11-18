@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from typing import Protocol
 
+from ..i18n import tr
 from .http import MAX_BODY_BYTES, STATUS_TEXT, Request, Response
 
 
@@ -145,8 +146,12 @@ class WebServer:
             self._server = _Server((self.host, self.port), self.handler, self.logger)
         except OSError as exc:
             raise WebServerError(
-                f"Weboberfläche konnte nicht auf {self.host}:{self.port} starten "
-                "(Port belegt oder Adresse nicht verfügbar)") from exc
+                tr(
+                    "Weboberfläche konnte nicht auf {p0}:{p1} starten (Port belegt oder Adresse nicht verfügbar)",
+                    p0=self.host,
+                    p1=self.port,
+                )
+            ) from exc
         self._thread = Thread(target=self._server.serve_forever, name="web-server", daemon=True)
         self._thread.start()
         self.logger.event("INFO", "web", "server_started", host=self.host, port=self.address[1])

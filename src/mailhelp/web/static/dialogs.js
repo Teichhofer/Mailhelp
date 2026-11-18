@@ -15,7 +15,7 @@
     dialog.setAttribute("aria-label", label);
     close.type = "button";
     close.className = "button small";
-    close.textContent = "Schließen";
+    close.textContent = mailhelpText("Schließen");
     close.addEventListener("click", function () { dialog.close(); });
     dialog.addEventListener("close", function () { dialog.remove(); opener.focus(); });
     dialog.append.apply(dialog, [close].concat(children));
@@ -62,7 +62,7 @@
     });
     chartDetails(copy);
     var title = figure.querySelector("figcaption span").textContent;
-    var dialog = modal(title + " – vergrößert", [copy]);
+    var dialog = modal(title + mailhelpText(" – vergrößert"), [copy]);
     dialog.classList.add("chart-modal");
     dialog.addEventListener("close", function () { opener.focus(); });
   }
@@ -75,18 +75,18 @@
 
   function help() {
     var list = document.createElement("dl");
-    [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["1 / A / C / Enter", "Bestätigen"],
-     ["E", "Bearbeiten"], ["2 / X / D", "Verwerfen"], ["?", "Diese Hilfe"]].forEach(function (pair) {
+    [["J / ↓", mailhelpText("Nächster Vorgang")], ["K / ↑", "Vorheriger Vorgang"], ["1 / A / C / Enter", mailhelpText("Bestätigen")],
+     ["E", "Bearbeiten"], ["2 / X / D", mailhelpText("Verwerfen")], ["?", "Diese Hilfe"]].forEach(function (pair) {
       var key = document.createElement("dt"), text = document.createElement("dd");
       key.textContent = pair[0];
       text.textContent = pair[1];
       list.append(key, text);
     });
     var heading = document.createElement("h2");
-    heading.textContent = "Tastenkürzel";
+    heading.textContent = mailhelpText("Tastenkürzel");
     var note = document.createElement("p");
-    note.textContent = "Aktionen werden sofort angenommen. Weitere Vorgänge bleiben bedienbar.";
-    modal("Tastenkürzel", [heading, list, note]);
+    note.textContent = mailhelpText("Aktionen werden sofort angenommen. Weitere Vorgänge bleiben bedienbar.");
+    modal(mailhelpText("Tastenkürzel"), [heading, list, note]);
   }
 
   // 5.0.9: the shortcuts are discoverable from the sidebar, not only by pressing "?".
@@ -95,7 +95,7 @@
     var hint = document.createElement("button");
     hint.type = "button";
     hint.className = "shortcut-hint";
-    hint.innerHTML = '<span aria-hidden="true">?</span><span class="nav-label">Tastenkürzel</span>';
+    hint.innerHTML = mailhelpText('<span aria-hidden="true">?</span><span class="nav-label">Tastenkürzel</span>');
     hint.addEventListener("click", help);
     sidebar.appendChild(hint);
   }
@@ -126,7 +126,7 @@
     var control = action === "edit" ? shared.pane.querySelector('a[href$="/bearbeiten"]')
       : shared.pane.querySelector('input[name="kind"][value="' + action + '"]');
     if (!control) {
-      announce("Diese Aktion ist für den ausgewählten Vorgang nicht möglich.");
+      announce(mailhelpText("Diese Aktion ist für den ausgewählten Vorgang nicht möglich."));
       return;
     }
     if (action === "edit") {
@@ -141,7 +141,7 @@
 
   function filter(chip) {
     if (shared.pane && shared.pane.dataset.dirty === "yes") {
-      announce("Zuerst die laufende Aktion oder Eingabe abschließen.");
+      announce(mailhelpText("Zuerst die laufende Aktion oder Eingabe abschließen."));
       return;
     }
     fetch(chip.href, {credentials: "same-origin", cache: "no-store"})
@@ -157,16 +157,16 @@
         enhance();
         main.querySelector('a[data-filter][aria-current="true"]').focus();
       })
-      .catch(function () { announce("Filter nicht geladen. Bitte Verbindung prüfen."); });
+      .catch(function () { announce(mailhelpText("Filter nicht geladen. Bitte Verbindung prüfen.")); });
   }
 
   function lightbox(link) {
     var image = document.createElement("img");
     image.src = link.href;
     image.alt = link.querySelector("img").alt;
-    image.title = "Klicken zum Vergrößern";
+    image.title = mailhelpText("Klicken zum Vergrößern");
     image.addEventListener("click", function () { image.classList.toggle("zoomed"); });
-    modal("Bildanhang vergrößert", [image]).classList.add("lightbox");
+    modal(mailhelpText("Bildanhang vergrößert"), [image]).classList.add("lightbox");
   }
 
   document.addEventListener("click", function (event) {
@@ -231,13 +231,13 @@
     if (!button) return;
     var box = button.closest(".report-box"), status = box.querySelector("[data-copy-status]");
     if (!navigator.clipboard) {
-      status.textContent = "Bitte den Bericht markieren und manuell kopieren.";
+      status.textContent = mailhelpText("Bitte den Bericht markieren und manuell kopieren.");
       return;
     }
     navigator.clipboard.writeText(box.querySelector("textarea").value).then(function () {
       status.textContent = "Bericht kopiert.";
     }).catch(function () {
-      status.textContent = "Kopieren nicht erlaubt. Bitte den Bericht manuell kopieren.";
+      status.textContent = mailhelpText("Kopieren nicht erlaubt. Bitte den Bericht manuell kopieren.");
     });
   });
 
@@ -246,13 +246,13 @@
     if (!button) return;
     var box = button.closest(".draft-box"), status = box.querySelector("[data-copy-status]");
     if (!navigator.clipboard) {
-      status.textContent = "Bitte den Antworttext markieren und manuell kopieren.";
+      status.textContent = mailhelpText("Bitte den Antworttext markieren und manuell kopieren.");
       return;
     }
     navigator.clipboard.writeText(box.querySelector("textarea").value).then(function () {
       status.textContent = "Antworttext kopiert.";
     }).catch(function () {
-      status.textContent = "Kopieren nicht erlaubt. Bitte den Antworttext manuell kopieren.";
+      status.textContent = mailhelpText("Kopieren nicht erlaubt. Bitte den Antworttext manuell kopieren.");
     });
   });
 })();

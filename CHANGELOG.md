@@ -1,5 +1,16 @@
 # Änderungen
 
+## 7.8.1 – Lokalisierung und englische Demo
+
+- Öffentliche Sprachwahl und native `/de/`- und `/en/`-Einstiege mit gewichteter Browserauswahl.
+- Englische synthetische Demo: 30 Mails, zehn relevante Mails, sechs Termine und fünf Aufgaben ohne Klärungsbedarf.
+- Sprach- und generationsgebundene Besucherbereiche, gesicherte Metadaten und atomarer Neustart.
+- Erweiterte englische Weboberfläche, JavaScript-Meldungen, Offline-Seite und Installationsmanifest.
+- Sieben englische Hilfequellen mit stabilen Quellenkennungen und getrennten Sprach-Caches und Chats.
+- Frühe CLI-Sprachwahl über `--language {de,en}`.
+- Explizite Aufgaben-Uhrzeiten bleiben bei der Normalisierung erhalten.
+- Status-, Filter- und Zeitraumbeschriftungen erscheinen auf Englisch; gespeicherte Uhrzeiten behalten ihr Format.
+
 ## 7.7.6 – Abschluss von 7.7
 
 - Bedienung: neuer Abschnitt „Absender-Regeln und Vorfilter“.

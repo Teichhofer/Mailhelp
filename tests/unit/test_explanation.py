@@ -15,6 +15,7 @@ from mailhelp.domain.extraction import (
 from mailhelp.domain.mail import MailState
 from mailhelp.domain.processing import ProcessingError, ProcessingErrorCode, ProcessingStage
 from mailhelp.domain.relevance import Relevance, RelevanceDialog
+from mailhelp.i18n import Locale, use_locale
 from mailhelp.processing.perspective import SELF_NOTE_REASON
 from mailhelp.review.explanation import ERROR_STEPS, ERROR_TEXTS, OUTCOME_LABELS, Outcome, explain
 from tests.scenarios.web_scenario import mail_id, proposal
@@ -223,3 +224,15 @@ def test_only_clarifications_or_only_confirmations_name_just_that():
     clarify = proposal(5, "b", status="needs_clarification", open_questions=["?"])
     assert result(clarify) == "1 Vorschlag braucht eine Klärung."
     assert result(proposal(5, "a"), proposal(5, "c")) == "2 Vorschläge warten auf deine Bestätigung."
+
+
+def test_owned_explanations_translate_but_model_assessments_and_rule_names_do_not():
+    item = state(relevance=Relevance(decision="relevant", topic_ids=[], reason="Vorfilter: Dringend"),
+                 action_route=route("task", tasks=1, reason="Nicht übersetzen: Originalaussage"))
+    with use_locale(Locale.EN):
+        explanation = explain(item)
+        assert explanation.steps[0].title == "Intake and prefilter"
+        assert explanation.steps[1].text == "Classified as relevant. Prefilter: Dringend – without an AI call."
+        assert explanation.steps[2].text == "Detected: 1 possible task, no event."
+        assert explanation.steps[2].model_reason == "Nicht übersetzen: Originalaussage"
+    assert explain(item).steps[1].text == "Als relevant eingestuft. Vorfilter: Dringend – ohne KI-Aufruf."

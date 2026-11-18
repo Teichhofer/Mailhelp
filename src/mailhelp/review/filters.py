@@ -3,8 +3,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-FILTERS = {"": "Alle", "events": "Termine", "tasks": "Aufgaben", "clarification": "Klärung nötig",
-           "attachments": "Mit Anhängen", "duplicates": "Duplikate"}
+from ..i18n import msg
+
+FILTERS = {"": msg("Alle"), "events": msg("Termine"), "tasks": msg("Aufgaben"), "clarification": msg("Klärung nötig"),
+           "attachments": msg("Mit Anhängen"), "duplicates": msg("Duplikate")}
 
 
 def matches(selected: str, kinds: Iterable[str], statuses: Iterable[str], attachments: object,

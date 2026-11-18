@@ -2,62 +2,68 @@
 
 A value without a name is shown as "unbekannt (value)", never raw; counts agree with their noun.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
 from html import escape
 
-from ..i18n import tr
+from ..i18n import msg, tr
 from ..review.commands import CommandKind
 from ..review.views import STATUS_LABELS, german_number
 
 STATUSES: dict[str, str] = {
-    "retrying": "Erneuter Versuch angefordert", "not_processed": "Nicht verarbeitet – abgelegt",
+    "retrying": msg("Erneuter Versuch angefordert"),
+    "not_processed": msg("Nicht verarbeitet – abgelegt"),
     **{str(status): label for status, label in STATUS_LABELS.items()},
-    "relevant": "Als relevant eingestuft",
-    "irrelevant": "Als irrelevant eingestuft",
-    "legacy": "Altbestand – Ablauf nicht vollständig erfasst",
+    "relevant": msg("Als relevant eingestuft"),
+    "irrelevant": msg("Als irrelevant eingestuft"),
+    "legacy": msg("Altbestand – Ablauf nicht vollständig erfasst"),
 }
 
 EVENTS: dict[str, str] = {
-    "state": "Status geändert",
-    "edit": "Felder bearbeitet",
-    "relevance": "Relevanz entschieden",
-    "recheck": "Mail erneut geprüft",
-    "retry_mail": "Erneut versucht",
-    "file_mail": "Nicht verarbeitet – abgelegt",
-    "legacy": "Altbestand",
-    CommandKind.CONFIRM: "Bestätigt",
-    CommandKind.REMOVE_CREATED: "Angelegter Eintrag wieder entfernt",
-    CommandKind.CONFIRM_DUPLICATE: "Trotz möglicher Dublette bestätigt",
-    CommandKind.REJECT: "Verworfen",
-    CommandKind.REJECT_REASON: "Grund der Ablehnung gespeichert",
-    CommandKind.ALREADY_DONE: "Als schon erledigt erfasst",
-    CommandKind.START_CLARIFICATION: "Klärung begonnen",
-    CommandKind.ANSWER: "Rückfrage beantwortet",
-    CommandKind.CANCEL_CLARIFICATION: "Klärung abgebrochen",
-    CommandKind.RELEVANCE: "Relevanz entschieden",
-    CommandKind.EDIT: "Felder bearbeitet",
-    CommandKind.MERGE: "Vorschläge zusammengeführt",
-    CommandKind.SEPARATE: "Vorschläge getrennt",
-    CommandKind.RESTORE: "Vorschlag wiederhergestellt",
-    CommandKind.DEFAULTS: "Standardwerte übernommen",
-    CommandKind.RECHECK: "Vorschlag erneut geprüft",
-    CommandKind.RETARGET: "Ziel geändert",
-    CommandKind.RECHECK_MAIL: "Mail erneut geprüft",
-    CommandKind.RETRY_MAIL: "Erneut versucht",
-    CommandKind.FILE_MAIL: "Nicht verarbeitet – abgelegt",
-    CommandKind.SERIES_ANSWER: "Terminserie beantwortet",
-    CommandKind.SERIES_CONFIRM: "Terminserie bestätigt",
-    CommandKind.CHOOSE_EVENT: "Kalendereintrag gewählt",
-    CommandKind.VERIFY_ENTRY: "Eintrag beim Anbieter geprüft",
-    CommandKind.CHOOSE_VARIANT: "Wert aus einem Konflikt gewählt",
+    "state": msg("Status geändert"),
+    "edit": msg("Felder bearbeitet"),
+    "relevance": msg("Relevanz entschieden"),
+    "recheck": msg("Mail erneut geprüft"),
+    "retry_mail": msg("Erneut versucht"),
+    "file_mail": msg("Nicht verarbeitet – abgelegt"),
+    "legacy": msg("Altbestand"),
+    CommandKind.CONFIRM: msg("Bestätigt"),
+    CommandKind.REMOVE_CREATED: msg("Angelegter Eintrag wieder entfernt"),
+    CommandKind.CONFIRM_DUPLICATE: msg("Trotz möglicher Dublette bestätigt"),
+    CommandKind.REJECT: msg("Verworfen"),
+    CommandKind.REJECT_REASON: msg("Grund der Ablehnung gespeichert"),
+    CommandKind.ALREADY_DONE: msg("Als schon erledigt erfasst"),
+    CommandKind.START_CLARIFICATION: msg("Klärung begonnen"),
+    CommandKind.ANSWER: msg("Rückfrage beantwortet"),
+    CommandKind.CANCEL_CLARIFICATION: msg("Klärung abgebrochen"),
+    CommandKind.RELEVANCE: msg("Relevanz entschieden"),
+    CommandKind.EDIT: msg("Felder bearbeitet"),
+    CommandKind.MERGE: msg("Vorschläge zusammengeführt"),
+    CommandKind.SEPARATE: msg("Vorschläge getrennt"),
+    CommandKind.RESTORE: msg("Vorschlag wiederhergestellt"),
+    CommandKind.DEFAULTS: msg("Standardwerte übernommen"),
+    CommandKind.RECHECK: msg("Vorschlag erneut geprüft"),
+    CommandKind.RETARGET: msg("Ziel geändert"),
+    CommandKind.RECHECK_MAIL: msg("Mail erneut geprüft"),
+    CommandKind.RETRY_MAIL: msg("Erneut versucht"),
+    CommandKind.FILE_MAIL: msg("Nicht verarbeitet – abgelegt"),
+    CommandKind.SERIES_ANSWER: msg("Terminserie beantwortet"),
+    CommandKind.SERIES_CONFIRM: msg("Terminserie bestätigt"),
+    CommandKind.CHOOSE_EVENT: msg("Kalendereintrag gewählt"),
+    CommandKind.VERIFY_ENTRY: msg("Eintrag beim Anbieter geprüft"),
+    CommandKind.CHOOSE_VARIANT: msg("Wert aus einem Konflikt gewählt"),
 }
 
-SOURCES: dict[str, str] = {"system": "Mailhelp", "web": "Weboberfläche", "telegram": "Telegram",
-                           "unknown": "unbekannt"}
+SOURCES: dict[str, str] = {
+    "system": "Mailhelp",
+    "web": msg("Weboberfläche"),
+    "telegram": "Telegram",
+    "unknown": msg("unbekannt"),
+}
 
-KINDS: dict[str, str] = {"event": "Termin", "task": "Aufgabe"}
+KINDS: dict[str, str] = {"event": msg("Termin"), "task": msg("Aufgabe")}
 
 
 # 6.2.7: one colour per meaning; the text always names the status, colour only repeats it.
@@ -70,7 +76,7 @@ BADGE_KINDS: dict[str, str] = {
 
 
 def status_badge(status: object, prefix: str = "") -> str:
-    """The status as the same badge on every page, e.g. ``<span class="badge warn">Klärung nötig</span>``."""
+    tr('The status as the same badge on every page, e.g. ``<span class="badge warn">Klärung nötig</span>``.')
     kind = BADGE_KINDS.get(str(status), "")
     return f'<span class="badge{" " + kind if kind else ""}">{escape(prefix + label(STATUSES, status))}</span>'
 
@@ -83,7 +89,7 @@ def label(names: Mapping[str, str], value: object) -> str:
 
 
 def count_text(number: int, one: str, many: str) -> str:
-    """"1 Vorschlag", "2 Vorschläge", "1.234 Mails" – the noun agrees with the number."""
+    """ "1 Vorschlag", "2 Vorschläge", "1.234 Mails" – the noun agrees with the number."""
     return f"{german_number(number)} {one if number == 1 else many}"
 
 

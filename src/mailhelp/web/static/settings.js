@@ -89,7 +89,7 @@
     }
     list.hidden = data.total === 0;
     list.setAttribute("data-query", data.query);
-    status.textContent = data.total === 0 ? "Keine Einstellung gefunden." : data.total + " Treffer";
+    status.textContent = data.total === 0 ? mailhelpText("Keine Einstellung gefunden.") : data.total + " Treffer";
   }
   function run() {
     var query = input.value.trim(), mine;
@@ -108,7 +108,7 @@
       if (error.name === "AbortError" || mine !== sequence) return;
       list.textContent = "";
       list.hidden = true;
-      status.textContent = "Die Sofortsuche ist gerade nicht verfügbar – „Suchen“ funktioniert weiterhin.";
+      status.textContent = mailhelpText("Die Sofortsuche ist gerade nicht verfügbar – „Suchen“ funktioniert weiterhin.");
     }).then(function () {
       if (mine === sequence) form.classList.remove("searching");
     });

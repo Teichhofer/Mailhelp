@@ -3,6 +3,7 @@
 Everything is a GET parameter and works without JavaScript; the tool row only changes what is shown.
 It never confirms a proposal and never writes to Google Calendar or Todoist.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
@@ -11,20 +12,26 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlencode
 
 from ..domain.proposal import ProposalStatus
-from ..i18n import tr
+from ..i18n import msg, tr
 from ..review.commands import CommandKind
 from ..review.filters import FILTERS
 from ..review.views import ProposalView, RelevanceView
 from .pages import e
 
-SORTS = {"neu": "Neueste Mail zuerst", "alt": "Älteste Mail zuerst", "datum": "Nächster Termin / nächste Frist zuerst"}
-GROUP = "bedarf"
+SORTS = {
+    "neu": msg("Neueste Mail zuerst"),
+    "alt": msg("Älteste Mail zuerst"),
+    "datum": msg("Nächster Termin / nächste Frist zuerst"),
+}
+GROUP = 'bedarf'
 MAX_QUERY = 80
 
 
 def no_match(path: str) -> str:
     return (f'<p class="empty">{tr("Keine passenden Entscheidungen.")} '
             f'<a href="{e(path)}">{tr("Zurücksetzen")}</a></p>')
+
+
 OLDEST = datetime.min.replace(tzinfo=UTC)
 LATEST = datetime.max.replace(tzinfo=UTC)
 
@@ -33,7 +40,7 @@ LATEST = datetime.max.replace(tzinfo=UTC)
 class OpenView:
     filter: str = ""
     q: str = ""
-    sort: str = "neu"
+    sort: str = 'neu'
     group: bool = False
 
     @property
@@ -54,8 +61,8 @@ def parse(query: str) -> OpenView:
     if selected not in FILTERS:
         raise ValueError("Ungültiger Filter")
     text = " ".join(values.get("q", [""])[0].split())[:MAX_QUERY]
-    sort = values.get("sort", ["neu"])[0]
-    return OpenView(selected, text, sort if sort in SORTS else "neu", values.get("gruppe", [""])[0] == GROUP)
+    sort = values.get("sort", ['neu'])[0]
+    return OpenView(selected, text, sort if sort in SORTS else 'neu', values.get("gruppe", [""])[0] == GROUP)
 
 
 def found(texts: Iterable[str], query: str) -> bool:
@@ -121,23 +128,24 @@ def toolbar(path: str, view: OpenView) -> str:
     # something is set); from 900 px the summary is hidden and the form always shown.
     active = [text for text in (f"„{view.q}“" if view.q else "",
                                 tr(SORTS[view.sort]) if view.sort != "neu" else "",
-                                tr("gruppiert") if view.group else "") if text]
+                                tr('gruppiert') if view.group else "") if text]
     state = f' <span class="open-more-state">({e(", ".join(active))})</span>' if active else ""
-    return (f'<div class="open-toolbar"><nav class="filter-chips" aria-label="{tr("Schnellfilter")}">'
-            + chips + '</nav>'
-            f'<details class="open-more" open data-open-more{" data-set" if active else ""}>'
-            f'<summary>{tr("Suchen und sortieren")}{state}</summary>'
-            f'<form method="get" action="{e(path)}" class="open-search" role="search">{filter_field}'
-            f'<div class="open-field"><label for="open-q">{tr("Suchen")}</label>'
-            f'<input id="open-q" type="search" name="q" maxlength="{MAX_QUERY}" value="{e(view.q)}" '
-            f'placeholder="{tr("Titel, Betreff oder Absender")}"></div>'
-            f'<div class="open-field"><label for="open-sort">{tr("Sortierung")}</label>'
-            '<select id="open-sort" name="sort">'
-            f'{sorts}</select></div>'
-            f'<label class="open-group"><input type="checkbox" name="gruppe" value="{GROUP}"'
-            f'{" checked" if view.group else ""}> {tr("Nach Bearbeitungsbedarf gruppieren")}</label>'
-            f'<button class="button primary" type="submit">{tr("Anzeigen")}</button>'
-            f'<a class="button link" href="{e(path)}">{tr("Zurücksetzen")}</a></form></details></div>')
+    return (
+        f'<div class="open-toolbar"><nav class="filter-chips" aria-label="{tr("Schnellfilter")}">' + chips + "</nav>"
+        f'<details class="open-more" open data-open-more{" data-set" if active else ""}>'
+        f"<summary>{tr('Suchen und sortieren')}{state}</summary>"
+        f'<form method="get" action="{e(path)}" class="open-search" role="search">{filter_field}'
+        f'<div class="open-field"><label for="open-q">{msg("Suchen")}</label>'
+        f'<input id="open-q" type="search" name="q" maxlength="{MAX_QUERY}" value="{e(view.q)}" '
+        f'placeholder="{tr("Titel, Betreff oder Absender")}"></div>'
+        f'<div class="open-field"><label for="open-sort">{msg("Sortierung")}</label>'
+        '<select id="open-sort" name="sort">'
+        f"{sorts}</select></div>"
+        f'<label class="open-group"><input type="checkbox" name="gruppe" value="{GROUP}"'
+        f"{' checked' if view.group else ''}> {tr('Nach Bearbeitungsbedarf gruppieren')}</label>"
+        f'<button class="button primary" type="submit">{tr("Anzeigen")}</button>'
+        f'<a class="button link" href="{e(path)}">{tr("Zurücksetzen")}</a></form></details></div>'
+    )
 
 
 __all__ = ["OpenView", "count", "groups", "no_match", "ordered", "parse", "search_open", "search_relevance", "toolbar"]

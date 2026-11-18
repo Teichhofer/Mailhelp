@@ -31,10 +31,13 @@ import yaml
 from mailhelp.app.composition import build_application
 from mailhelp.config import load_all
 from mailhelp.config.loader import _dotenv
+from mailhelp.i18n import Locale
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
+from mailhelp.runtime.demo_dataset import STATE_FILE
 
-from .mails import MAILS, ZONE, DemoMail, message
+from . import mails_en
+from .mails import MAILS, RECIPIENT, ZONE, DemoMail, message
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "src" / "mailhelp" / "defaults" / "demo" / "standard-v1"
@@ -76,10 +79,11 @@ REVISION_METHODS = ("interpret_telegram_answer", "clarify_telegram_answer", "rev
 Application = Callable[..., AbstractContextManager[Any]]
 
 
-def configuration(directory: Path, api_key: str) -> None:
+def configuration(directory: Path, api_key: str, locale: Locale = Locale.DE) -> None:
     """The demo persona as an ordinary Mailhelp configuration directory."""
     config = yaml.safe_load((ROOT / "config.example.yaml").read_text(encoding="utf-8"))
-    config.update(test_mode=True, personal_info=PERSONA, data_directory="data", timezone="Europe/Berlin")
+    config.update(test_mode=True, personal_info=mails_en.PERSONA if locale == Locale.EN else PERSONA,
+                  data_directory="data", timezone="Europe/Berlin")
     config["telegram"]["enabled"] = False
     # Without Telegram the configuration requires the web interface; the run never starts its server.
     config["web"]["enabled"] = True
@@ -89,23 +93,38 @@ def configuration(directory: Path, api_key: str) -> None:
                                            encoding="utf-8")
     for name in ("prompts.yaml", "decisions_prompts.yaml"):
         shutil.copyfile(ROOT / name, directory / name)
-    (directory / "topics.yaml").write_text(yaml.safe_dump({"topics": TOPICS}, allow_unicode=True, sort_keys=False),
+    if locale == Locale.EN:
+        path = directory / "prompts.yaml"
+        prompts = yaml.safe_load(path.read_text(encoding="utf-8"))
+        profile = prompts.pop("demo_profiles")["en"]
+        for step in prompts["prompts"].values():
+            step["system_prompt"] = (step["system_prompt"].replace(
+                profile["summary_language_from"], profile["summary_language_to"])
+                + "\n" + profile["output_instruction"])
+            if "output_token_retry" in step:
+                step["output_token_retry"]["system_prompt"] += "\n" + profile["output_instruction"]
+        path.write_text(yaml.safe_dump(prompts, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    (directory / "topics.yaml").write_text(yaml.safe_dump(
+        {"topics": mails_en.TOPICS if locale == Locale.EN else TOPICS}, allow_unicode=True, sort_keys=False),
                                            encoding="utf-8")
     (directory / "irrelevant_topics.yaml").write_text("topics: []\n", encoding="utf-8")
     shutil.copyfile(ROOT / "irrelevant-senders.example.json", directory / "irrelevant-senders.json")
     env = {**PLACEHOLDERS, "OPENROUTER_API_KEY": api_key}
+    if locale == Locale.EN:
+        env["IMAP_USERNAME"] = "alex@miller-family.example"
     (directory / ".env").write_text("".join(f"{key}={value}\n" for key, value in env.items()), encoding="utf-8")
 
 
-def fetched(account: str) -> Iterator[FetchedMail]:
+def fetched(account: str, locale: Locale = Locale.DE) -> Iterator[FetchedMail]:
     """The mails in the order they arrived, at the mailbox entry point."""
-    ordered = sorted(MAILS, key=lambda mail: mail.sent)
+    ordered = sorted(mails_en.MAILS if locale == Locale.EN else MAILS, key=lambda mail: mail.sent)
     for uid, mail in enumerate(ordered, 1):
         received = datetime.strptime(mail.sent, "%Y-%m-%d %H:%M").replace(tzinfo=ZONE)
-        yield FetchedMail("INBOX", 1, uid, message(mail), account, received)
+        yield FetchedMail("INBOX", 1, uid, message(mail, mails_en.RECIPIENT if locale == Locale.EN else RECIPIENT),
+                          account, received)
 
 
-def process(directory: Path, application: Application = build_application
+def process(directory: Path, application: Application = build_application, locale: Locale = Locale.DE
             ) -> tuple[Path, str, list[dict[str, Any]]]:
     """Process every mail, then answer the prepared questions through the dialog.
 
@@ -115,7 +134,7 @@ def process(directory: Path, application: Application = build_application
     settings, secrets, topics, _irrelevant, prompts, fingerprint = load_all(directory, environ={})
     with application(settings, secrets, topics, prompts, fingerprint, directory) as app:
         app.orchestrator.precheck.writers = {}
-        for mail in fetched(app.sources[0].reader.account_id):
+        for mail in fetched(app.sources[0].reader.account_id, locale):
             app.orchestrator.process(mail)
         base = directory / "basis"
         shutil.copytree(app.store.directory, base, ignore=shutil.ignore_patterns(".lock"))
@@ -174,20 +193,20 @@ def _digest(data: bytes) -> str:
 
 
 def export(store: Path, output: Path, fingerprint: str, commit: str, model: str,
-           answers: list[dict[str, Any]]) -> dict[str, Any]:
+           answers: list[dict[str, Any]], locale: Locale = Locale.DE) -> dict[str, Any]:
     """Write messages, store files and the manifest; an existing dataset is replaced as a whole."""
     staging = output.with_name(output.name + ".neu")
     shutil.rmtree(staging, ignore_errors=True)
     (staging / "mails").mkdir(parents=True)
     mails = []
-    for mail in MAILS:
-        raw = message(mail)
+    for mail in mails_en.MAILS if locale == Locale.EN else MAILS:
+        raw = message(mail, mails_en.RECIPIENT if locale == Locale.EN else RECIPIENT)
         (staging / "mails" / f"{mail.name}.eml").write_bytes(raw)
         mails.append({"name": mail.name, "message_id": f"<{mail.name}@demo.mailhelp.example>", "sha256": _digest(raw)})
     files = {}
     for path in sorted(store.rglob("*.json")):
         relative = path.relative_to(store).as_posix()
-        if relative in RUN_FILES:
+        if relative in RUN_FILES or locale == Locale.EN and STATE_FILE.fullmatch(relative) is None:
             continue
         target = staging / "state" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -198,9 +217,23 @@ def export(store: Path, output: Path, fingerprint: str, commit: str, model: str,
     manifest = {"dataset": DATASET, "schema_version": SCHEMA_VERSION, "reference_time": REFERENCE_TIME,
                 "timezone": "Europe/Berlin", "source_commit": commit, "analysis_fingerprint": fingerprint,
                 "model": model, "mails": mails, "files": files, "answers": _digest(recorded)}
+    if locale == Locale.EN:
+        manifest.update(dataset="standard-en-v1", schema_version=2, locale=locale.value)
     (staging / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    shutil.rmtree(output, ignore_errors=True)
-    staging.rename(output)
+    backup = output.with_name(output.name + ".previous")
+    if backup.exists():
+        raise FileExistsError(f"A previous export needs recovery: {backup}")
+    previous = output.exists()
+    if previous:
+        output.rename(backup)
+    try:
+        staging.rename(output)
+    except BaseException:
+        if previous:
+            backup.rename(output)
+        raise
+    if previous:
+        shutil.rmtree(backup)
     return manifest
 
 
@@ -213,17 +246,21 @@ def main(argv: list[str] | None = None, application: Application = build_applica
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env", type=Path, required=True, help=".env mit OPENROUTER_API_KEY")
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--locale", choices=["de", "en"], default="de")
     args = parser.parse_args(argv)
+    locale = Locale(args.locale)
+    if locale == Locale.EN and args.output == OUTPUT:
+        args.output = OUTPUT.with_name("standard-en-v1")
     api_key = _dotenv(args.env).get("OPENROUTER_API_KEY", "")
     if not api_key:
         print(f"OPENROUTER_API_KEY fehlt in {args.env}", file=sys.stderr)
         return 2
     with tempfile.TemporaryDirectory(prefix="mailhelp-demo-") as name:
         directory = Path(name)
-        configuration(directory, api_key)
-        store, fingerprint, answers = process(directory, application)
+        configuration(directory, api_key, locale)
+        store, fingerprint, answers = process(directory, application, locale)
         model = yaml.safe_load((directory / "prompts.yaml").read_text(encoding="utf-8"))["defaults"]["model"]
-        manifest = export(store, args.output, fingerprint, source_commit(), model, answers)
+        manifest = export(store, args.output, fingerprint, source_commit(), model, answers, locale)
     print(f"Demo-Bestand geschrieben: {len(manifest['mails'])} Mails, {len(manifest['files'])} Zustandsdateien "
           f"in {args.output}")
     return 0

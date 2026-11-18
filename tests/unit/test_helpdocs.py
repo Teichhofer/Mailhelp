@@ -15,6 +15,24 @@ def ids(sections):
     return [section.id for section in sections]
 
 
+def test_generator_refuses_unknown_languages_and_divergent_english_ids(tmp_path):
+    with pytest.raises(ValueError, match="Unsupported help language"):
+        help_index.build(locale="fr")
+    root = help_index.ROOT
+    for source in help_index.SOURCES:
+        for relative in (source, "docs/en/" + source.rsplit("/", 1)[-1]):
+            target = tmp_path / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root / relative, target)
+    first = tmp_path / "docs/en/" / help_index.SOURCES[0].rsplit("/", 1)[-1]
+    text = first.read_text(encoding="utf-8")
+    import re
+    text = re.sub(r"mailhelp-id:[a-z0-9-]+/[a-z0-9-]+", "mailhelp-id:foreign/section", text, count=1)
+    first.write_text(text, encoding="utf-8")
+    with pytest.raises(ValueError, match="preserve every canonical"):
+        help_index.build(tmp_path, locale="en")
+
+
 def test_the_packaged_help_matches_the_released_sources():
     assert help_index.main(["--check"]) == 0
     base = load()
@@ -92,8 +110,9 @@ def test_a_checkout_with_crlf_line_endings_still_matches(tmp_path):
     # folds it, so the revision still matches.
     copy = tmp_path / "hilfe"
     copy.mkdir()
-    for name in help_index.render():
+    for name in help_index.render() | help_index.render_english():
         text = (DIRECTORY / name).read_text(encoding="utf-8")
+        (copy / name).parent.mkdir(parents=True, exist_ok=True)
         (copy / name).write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
     assert load(copy).revision == load().revision
     assert help_index.main(["--check"], target=copy) == 0

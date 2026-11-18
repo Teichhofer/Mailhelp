@@ -3,6 +3,7 @@
 Further filters sit under "Mehr Filter", which names how many of them are active and is open while any
 is. Everything is a plain GET form: the address keeps the filters, and it works without JavaScript.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

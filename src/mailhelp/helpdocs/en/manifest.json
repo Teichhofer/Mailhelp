@@ -1,0 +1,37 @@
+{
+ "app_version": "7.8.1",
+ "locale": "en",
+ "revision": "f4359649f7c14afbb769bbfe8b1c6b1fd5ee2b0a7abc2d9de132552b281b56d0",
+ "schema_version": 2,
+ "sections": 114,
+ "sources": [
+  {
+   "path": "docs/en/Web-Einstellungen.md",
+   "sha256": "2007f0184c1f0d3e0b5eb7748b996f245708c61b2042e089bea78543a426ae04"
+  },
+  {
+   "path": "docs/en/Ersteinrichtung.md",
+   "sha256": "a1b8a4794257aecd53f3a25f01de6148a8ebd47f0e626b15e69b391c0a7ac9ad"
+  },
+  {
+   "path": "docs/en/Konten-verwalten.md",
+   "sha256": "9c816699c6aa01c90ffdcbdbe8c6c383244896396e1f374e91ce3363d301ec26"
+  },
+  {
+   "path": "docs/en/Ziele-einrichten.md",
+   "sha256": "07e2a680fb9d66df2039b970e4ea69ef30c2482ac5d875d05b7f0df03a2d0866"
+  },
+  {
+   "path": "docs/en/Bedienung.md",
+   "sha256": "55f934b58db1a589a685da497ba61764eb0ae70e959d00e4b9bbcebb887f2076"
+  },
+  {
+   "path": "docs/en/Fehlerbehebung.md",
+   "sha256": "2339651ef345a7f5906e35b458bd94fd9e8093186fbdd1dd52adae830fd55223"
+  },
+  {
+   "path": "docs/en/Betrieb.md",
+   "sha256": "72f18af532c191b944bd213509e2878928b029d2453de9d30272643b1df06c73"
+  }
+ ]
+}

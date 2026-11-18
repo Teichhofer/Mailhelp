@@ -329,13 +329,21 @@ def test_pwa_files_are_served_at_the_root_without_login():
     assert worker.status == 200 and worker.content_type.startswith("text/javascript")
     offline = get(app, "/offline.html")
     assert b"PC nicht erreichbar" in offline.body and b"<script" not in offline.body
-    assert set(ROOT_FILES) == {"manifest.webmanifest", "sw.js", "offline.html"}
+    assert set(ROOT_FILES) == {"manifest.webmanifest", "manifest-en.webmanifest", "sw.js",
+                               "offline.html", "offline-en.html"}
+    english = json_module.loads(get(app, "/manifest-en.webmanifest").body)
+    assert english["lang"] == "en" and english["start_url"] == "/en/"
+    assert english["icons"] == data["icons"]
+    offline_en = get(app, "/offline-en.html")
+    assert b'lang="en"' in offline_en.body and b"No action is possible offline" in offline_en.body
+    assert b"<script" not in offline_en.body
 
 
 def test_service_worker_caches_only_the_shell():
     source = (Path("src/mailhelp/web/static") / "sw.js").read_text(encoding="utf-8")
     shell = source.split("var SHELL = [", 1)[1].split("]", 1)[0]
-    assert shell == '"/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"'
+    assert shell == ('"/offline.html", "/offline-en.html", "/static/app.css", '
+                     '"/static/icon-192.png", "/static/icon-512.png"')
     # No API, page or data URL is ever put into the cache, and nothing is replayed later.
     assert "cache.put" not in source and "sync" not in source and "/api" not in source
 
@@ -385,9 +393,9 @@ def test_7_5_language_choice_cookie_browser_and_safe_return():
         return app(Request("GET", route, {"host": "mailhelp.test", **headers}, query=query))
     chosen = ask("/sprache?wert=de", referer="https://mailhelp.test/mails?state=failed")
     assert chosen.status == 303 and chosen.headers["Location"] == "/mails?state=failed"
-    assert chosen.cookies == ["mailhelp_lang=de; Path=/; SameSite=Lax; Max-Age=31536000"]
+    assert chosen.cookies == ["mailhelp_lang=de; Path=/; SameSite=Lax; Max-Age=31536000; Secure"]
     assert ask("/sprache?wert=en", referer="https://evil.example/x").headers["Location"] == "/"
     assert ask("/sprache?wert=en", referer="https://mailhelp.test//evil.example/x").headers["Location"] == "/"
     assert ask("/sprache?wert=en", referer="https://mailhelp.test/").headers["Location"] == "/"
     unknown = ask("/sprache?wert=fr")
-    assert unknown.headers["Location"] == "/" and unknown.cookies == []
+    assert unknown.status == 400 and unknown.cookies == []

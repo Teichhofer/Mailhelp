@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+import ast
 import subprocess
 from functools import cache
 from pathlib import Path
@@ -59,7 +60,7 @@ def _code() -> str:
     """Interface and configuration texts; the help index is excluded because it repeats the guides."""
     names = subprocess.run(["git", "ls-files", "src", "*.yaml", ".env.example"], cwd=ROOT,
                            capture_output=True, text=True, check=True).stdout.split()
-    return "\n".join(_text(name) for name in names if name.endswith((".py", ".js", ".html", ".yaml", ".example"))
+    return "\n".join((_text(name) + ("\n" + "\n".join(node.value for node in ast.walk(ast.parse(_text(name))) if isinstance(node, ast.Constant) and isinstance(node.value, str)) if name.endswith(".py") else "")) for name in names if name.endswith((".py", ".js", ".html", ".yaml", ".example"))
                      and "helpdocs/" not in name)
 
 

@@ -1,4 +1,5 @@
 """Authenticated proposal evaluation site under /lernen/vorschlaege (Planung 6.5, 3.1, 3.3)."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,6 +8,7 @@ from urllib.parse import parse_qs
 from .. import state_names
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange, file_hash
 from ..domain.mail import MailState
+from ..i18n import msg, tr
 from ..mailbox.sender_filter import sender_addresses
 from ..review.prefilter_hints import PrefilterHint, prefilter_hints
 from ..review.proposal_evaluation import (
@@ -79,7 +81,7 @@ class ProposalEvaluationSite:
         if learning_hint:
             html = learning_run_hint_banner(learning_hint, csrf) + html
 
-        return Response.html(200, layout("Vorschläge", html, active="/lernen"))
+        return Response.html(200, layout(msg("Vorschläge"), html, active="/lernen"))
 
     def _prefilter_hints(self, store: Any, l_cfg: Any, dismissed: list[str]) -> list[PrefilterHint]:
         """7.7.5: the thresholds come from ``learning`` in config.yaml."""
@@ -95,7 +97,7 @@ class ProposalEvaluationSite:
         query = parse_qs(request.query)
         sender = query.get("sender", [""])[0]
         if not sender:
-            return Response.html(404, error_page("Nicht gefunden", "Kein Absender angegeben."))
+            return Response.html(404, error_page(tr("Nicht gefunden"), tr("Kein Absender angegeben.")))
 
         store = self.site.views.store
         cfg = self.configuration
@@ -109,7 +111,16 @@ class ProposalEvaluationSite:
             }
         hint = sender_hint_for_sender(store, sender, self.configuration, **hints_kwargs)
         if hint is None:
-            return Response.html(404, error_page("Nicht gefunden", f"Kein Hinweis für Absender „{sender}“ gefunden."))
+            return Response.html(
+                404,
+                error_page(
+                    tr("Nicht gefunden"),
+                    tr(
+                        "Kein Hinweis für Absender „{p0}“ gefunden.",
+                        p0=sender,
+                    ),
+                ),
+            )
 
         # Collect stored mails from this sender
         mails: list[dict[str, Any]] = []
@@ -122,7 +133,8 @@ class ProposalEvaluationSite:
             if mail is None:
                 continue
             mail_sender = (mail.display_headers.sender if mail.display_headers and mail.display_headers.sender
-                           else (mail.mail.get("headers", {}).get("from") or mail.mail.get("headers", {}).get("sender") or "")
+                           else (mail.mail.get("headers", {}).get("from")
+                                 or mail.mail.get("headers", {}).get("sender") or "")
                            if mail.mail and isinstance(mail.mail.get("headers"), dict) else "")
             if not (mail_sender == sender or (target_addresses and sender_addresses(mail_sender) & target_addresses)):
                 continue
@@ -138,7 +150,7 @@ class ProposalEvaluationSite:
                 })
 
             date_str = mail.created_at.strftime("%d.%m.%Y") if mail.created_at else "—"
-            subject = mail.display_headers.subject if mail.display_headers else "Ohne Betreff"
+            subject = mail.display_headers.subject if mail.display_headers else msg("Ohne Betreff")
             mails.append({
                 "id": mail.id,
                 "subject": subject,
@@ -154,15 +166,15 @@ class ProposalEvaluationSite:
                 expected_hash = file_hash(path)
 
         html = sender_hint_page(hint, mails, csrf, expected_hash)
-        return Response.html(200, layout(f"Absender: {sender}", html, active="/lernen"))
+        return Response.html(200, layout(tr("Absender: {p0}", p0=sender), html, active="/lernen"))
 
     def apply_sender_filter(self, request: Request, session: Any, form: dict[str, str]) -> Response:
         if self.configuration is None:
-            return self._reply(request, 503, "Absenderverwaltung nicht verfügbar.")
+            return self._reply(request, 503, msg("Absenderverwaltung nicht verfügbar."))
         sender = form.get("sender", "")
         addresses = sorted(sender_addresses(sender))
         if not addresses:
-            return self._reply(request, 422, "Keine gültige E-Mail-Adresse für den Absender gefunden.")
+            return self._reply(request, 422, msg("Keine gültige E-Mail-Adresse für den Absender gefunden."))
         expected_hash = form.get("expected_hash") or None
         change = SenderChange(action="add", addresses=addresses)
         try:
@@ -171,7 +183,7 @@ class ProposalEvaluationSite:
                                    expected_hash=expected_hash,
                                    patch=change.model_dump(exclude_none=True), acknowledged=True)
         except ValueError:
-            return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
+            return self._reply(request, 422, msg("Die Aktion ist unvollständig oder ungültig."))
         queued: Response = self.site.archive.queue(request, command)
         return queued
 

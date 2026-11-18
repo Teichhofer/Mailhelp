@@ -1,10 +1,12 @@
 """HTML of the settings and topic pages; no routing, no file access."""
+
 from __future__ import annotations
 
 import json
 from typing import Any
 
 from ..config.configuration import LIVE_FIELDS, SETTINGS_FIELDS
+from ..i18n import msg, tr
 from ..runtime.credentials import CredentialSnapshot
 from .credential_pages import credentials_section
 from .forms import field, post_form, select
@@ -12,124 +14,160 @@ from .pages import e, notice, page_head
 from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 from .settings_search import anchor, search
 
-SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
-                  "language": "Sprache der Oberfläche",
-                  "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
-                  "limits.max_mail_bytes": "Maximale Mailgröße (Bytes)",
-                  "limits.max_attachment_bytes": "Texterkennung: maximale Anhanggröße (Bytes)",
-                  "limits.max_llm_payload_bytes": "Maximale KI-Anfragegröße (Bytes)",
-                  "retention.full_mail_days": "Mailtexte aufbewahren (Tage)",
-                  "retention.debug_llm_days": "KI-Diagnosedaten aufbewahren (Tage)",
-                  "retention.analysis_days": "Analysen aufbewahren (Tage)",
-                  "retention.history_days": "Verlauf aufbewahren (Tage)",
-                  "metrics.ollama_power_watts": "Ollama-Leistung (Watt)",
-                  "metrics.electricity_eur_per_kwh": "Strompreis (EUR/kWh)",
-                  "metrics.retention_days": "Einzelmessungen aufbewahren (Tage)",
-                  "metrics.enabled": "Metrikerfassung aktivieren",
-                  "personal_info": "Persönliche Angaben für Antworten"}
+SETTING_LABELS = {
+    "poll_interval_seconds": msg("Abrufintervall (Sekunden)"),
+    "timezone": msg("Zeitzone"),
+    "language": msg("Sprache der Oberfläche"),
+    "test_mode": msg("Trockenlauf"),
+    "limits.llm_calls_per_minute": msg("KI-Aufrufe pro Minute"),
+    "limits.max_mail_bytes": msg("Maximale Mailgröße (Bytes)"),
+    "limits.max_attachment_bytes": msg("Texterkennung: maximale Anhanggröße (Bytes)"),
+    "limits.max_llm_payload_bytes": msg("Maximale KI-Anfragegröße (Bytes)"),
+    "retention.full_mail_days": msg("Mailtexte aufbewahren (Tage)"),
+    "retention.debug_llm_days": msg("KI-Diagnosedaten aufbewahren (Tage)"),
+    "retention.analysis_days": msg("Analysen aufbewahren (Tage)"),
+    "retention.history_days": msg("Verlauf aufbewahren (Tage)"),
+    "metrics.ollama_power_watts": msg("Ollama-Leistung (Watt)"),
+    "metrics.electricity_eur_per_kwh": msg("Strompreis (EUR/kWh)"),
+    "metrics.retention_days": msg("Einzelmessungen aufbewahren (Tage)"),
+    "metrics.enabled": msg("Metrikerfassung aktivieren"),
+    "personal_info": msg("Persönliche Angaben für Antworten"),
+}
 # Free text settings: edited in a text area and never parsed as JSON.
-TEXT_SETTINGS = {"personal_info": ("Zum Beispiel Name, Rolle, Signatur oder gewünschte Anrede. Die Angaben gehen "
-                                   "nur in Antwort-Entwürfe ein und werden dafür an das KI-Modell übergeben.")}
+TEXT_SETTINGS = {
+    "personal_info": (
+        msg(
+            "Zum Beispiel Name, Rolle, Signatur oder gewünschte Anrede. Die Angaben gehen "
+            "nur in Antwort-Entwürfe ein und werden dafür an das KI-Modell übergeben."
+        )
+    )
+}
 SETTING_GROUPS = (
-    ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "language", "test_mode", "imap.")),
-    ("Antworten", ("personal_info", "smart_reply", "auto_draft", "drafts.")),
+    (msg("Mailabruf und Betrieb"), ("poll_interval_seconds", "timezone", "language", "test_mode", "imap.")),
+    (msg("Antworten"), ("personal_info", "smart_reply", "auto_draft", "drafts.")),
     ("Telegram", ("telegram.",)),
-    ("Bildauswertung", ("vision.",)),
-    ("Tagesüberblick", ("daily_briefing.",)),
-    ("Postfach-Briefings", ("briefings.",)),
-    ("Tätigkeitsberichte", ("activity_report.",)),
-    ("Lernmodus", ("learning.",)),
-    ("Hilfschat", ("help_chat.",)),
-    ("Weboberfläche", ("web.",)),
-    ("Termindauern und Vorschlagsabgleich", ("event_defaults.", "proposal_reconciliation.")),
-    ("Ziele", ("targets.",)),
-    ("Originalanhänge", ("attachments.",)),
-    ("Aufrufbudget und Mailgrenzen", ("limits.",)),
-    ("Zeitlimits und Wiederholungen", ("timeouts.", "retries.")),
-    ("Aufbewahrung", ("retention.",)),
-    ("Protokollierung", ("logging.",)),
-    ("Kosten und Messung", ("metrics.",)),
+    (msg("Bildauswertung"), ("vision.",)),
+    (msg("Tagesüberblick"), ("daily_briefing.",)),
+    (msg("Postfach-Briefings"), ("briefings.",)),
+    (msg("Tätigkeitsberichte"), ("activity_report.",)),
+    (msg("Lernmodus"), ("learning.",)),
+    (msg("Hilfschat"), ("help_chat.",)),
+    (msg("Weboberfläche"), ("web.",)),
+    (msg("Termindauern und Vorschlagsabgleich"), ("event_defaults.", "proposal_reconciliation.")),
+    (msg("Ziele"), ("targets.",)),
+    (msg("Originalanhänge"), ("attachments.",)),
+    (msg("Aufrufbudget und Mailgrenzen"), ("limits.",)),
+    (msg("Zeitlimits und Wiederholungen"), ("timeouts.", "retries.")),
+    (msg("Aufbewahrung"), ("retention.",)),
+    (msg("Protokollierung"), ("logging.",)),
+    (msg("Kosten und Messung"), ("metrics.",)),
 )
-SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
-                  "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
-                  "microsoft": "Microsoft 365", "google_tasks": "Google Tasks", "notion": "Notion"}
-TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
-                  "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
+SERVICE_LABELS = {
+    "imap": msg("IMAP"),
+    "telegram": msg("Telegram"),
+    "openrouter": msg("OpenRouter"),
+    "ollama": msg("Ollama"),
+    "todoist": msg("Todoist"),
+    "google_calendar": msg("Google Kalender"),
+    "caldav": msg("CalDAV"),
+    "microsoft": msg("Microsoft 365"),
+    "google_tasks": msg("Google Tasks"),
+    "notion": msg("Notion"),
+}
+TIMEOUT_LABELS = {
+    "timeout_seconds": msg("Zeitlimit (s)"),
+    "retries": msg("Wiederholungen"),
+    "initial_backoff_seconds": msg("erste Wartezeit (s)"),
+    "max_backoff_seconds": msg("längste Wartezeit (s)"),
+}
 EXTRA_LABELS = {
-    "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
-    "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin (Minuten)",
-    "proposal_reconciliation.max_semantic_candidates": "Abgleich: höchstens KI-Kandidaten",
-    "targets.todoist_project": "Todoist-Projekt", "targets.google_calendar": "Google-Kalender",
-    "targets.calendar_provider": "Kalenderdienst", "targets.task_provider": "Aufgabendienst",
-    "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
-    "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)",
-    "targets.outlook_calendar": "Outlook-Kalender", "targets.microsoft_todo_list": "Microsoft-To-Do-Liste",
-    "targets.microsoft_tenant": "Microsoft-Mandant", "targets.google_tasks_list": "Google-Tasks-Liste",
-    "attachments.store_originals": "Originale speichern",
-    "attachments.max_original_bytes": "Höchstgröße je Datei (Bytes)",
-    "attachments.max_total_bytes": "Höchstgröße je Mail (Bytes)",
-    "logging.console.level": "Konsole: Mindeststufe", "logging.file.level": "Logdatei: Mindeststufe",
-    "logging.llm.include_requests": "KI-Anfragen vollständig protokollieren",
-    "logging.llm.include_responses": "KI-Antworten vollständig protokollieren",
-    "metrics.usd_per_eur": "Wechselkurs (USD je EUR)", "metrics.exchange_rate_date": "Wechselkurs vom",
-    "retries.interpretation_attempts": "Antworten verstehen: Versuche",
-    "retries.interpretation_backoff_seconds": "Antworten verstehen: Wartezeit (s)",
-    "retries.revision_attempts": "Überarbeitung: Versuche",
-    "retries.revision_backoff_seconds": "Überarbeitung: Wartezeit (s)",
-    "imap.batch_size": "Mails je Abrufdurchlauf",
-    "imap.global_newest_first": "Neueste Mails zuerst (alle Postfächer)",
-    "telegram.user_id": "Telegram: berechtigte Benutzer-ID",
-    "telegram.chat_id": "Telegram: Chat für Nachrichten",
-    "telegram.sequential_questions": "Telegram: Entscheidungen nacheinander",
-    "smart_reply": "Antwortentwürfe anbieten",
-    "briefings.enabled": "Briefings als Postfachentwurf aktivieren",
-    "briefings.times": "Uhrzeiten für Postfach-Briefings",
-    "briefings.mailbox": "Zielpostfach für Briefings",
-    "briefings.skip_empty": "Leere Postfach-Briefings auslassen",
-    "auto_draft": "Antwortentwürfe automatisch im Postfach ablegen",
-    "drafts.enabled": "Antwortentwürfe zulassen",
-    "drafts.folder": "Entwurfsordner überschreiben (null: Postfachvorgabe)",
-    "vision.enabled": "Bildanhänge und Scans auswerten",
-    "help_chat.enabled": "Hilfschat anbieten",
-    "help_chat.max_question_chars": "Hilfschat: längste Frage (Zeichen)",
-    "help_chat.max_context_bytes": "Hilfschat: Dokumentation je Frage (Bytes)",
-    "help_chat.requests_per_minute_per_session": "Hilfschat: Fragen je Minute",
-    "vision.max_images_per_mail": "Bildauswertung: Bilder je Mail",
-    "vision.max_image_bytes": "Bildauswertung: Höchstgröße je Bild (Bytes)",
-    "vision.max_edge_pixels": "Bildauswertung: längste Kante (Pixel)",
-    "daily_briefing.include_calendar": "Tagesüberblick: Termine",
-    "daily_briefing.include_tasks": "Tagesüberblick: Aufgaben",
-    "daily_briefing.include_open": "Tagesüberblick: offene Entscheidungen",
-    "activity_report.enabled": "Tätigkeitsberichte aktivieren",
-    "activity_report.max_mails": "Tätigkeitsbericht: höchstens Mails",
-    "activity_report.max_llm_calls": "Tätigkeitsbericht: höchstens KI-Aufrufe",
-    "activity_report.max_share_of_llm_budget": "Tätigkeitsbericht: Anteil am KI-Budget",
-    "activity_report.max_fulltext_chars": "Tätigkeitsbericht: Zeichen je Volltext",
-    "activity_report.export_mails_without_events": "Tätigkeitsbericht: Mails ohne Termine exportieren",
-    "learning.parallel_llm_calls": "Lernmodus: parallele KI-Aufrufe",
-    "web.session_days": "Web: Sitzungsdauer (Tage)",
-    "web.lan_access": "Web: Zugriff im eigenen Netzwerk",
-    "logging.console.enabled": "Konsolenausgabe aktivieren",
-    "logging.verbose": "Ausführliches Protokoll",
-    "logging.file.enabled": "Logdatei aktivieren",
-    "logging.llm.enabled": "KI-Log aktivieren",
-    "logging.llm.level": "KI-Log: Mindeststufe",
-    "logging.telegram.enabled": "Telegram-Log aktivieren",
-    "logging.telegram.level": "Telegram-Log: Mindeststufe",
-    "retention.activity_report_days": "Tätigkeitsberichte aufbewahren (Tage)",
-    "retention.decision_learning_days": "Lernbestand der Entscheidungen aufbewahren (Tage)",
-    "retention.cleanup_interval_minutes": "Bereinigung alle (Minuten)",
-    "learning.decision_llm_content": "Lernbestand: vollständige KI-Inhalte übernehmen",
+    "event_defaults.video_duration_minutes": msg("Standarddauer Videokonferenz (Minuten)"),
+    "event_defaults.in_person_duration_minutes": msg("Standarddauer Präsenztermin (Minuten)"),
+    "proposal_reconciliation.max_semantic_candidates": msg("Abgleich: höchstens KI-Kandidaten"),
+    "targets.todoist_project": msg("Todoist-Projekt"),
+    "targets.google_calendar": msg("Google-Kalender"),
+    "targets.calendar_provider": msg("Kalenderdienst"),
+    "targets.task_provider": msg("Aufgabendienst"),
+    "targets.caldav_calendar_url": msg("CalDAV-Kalender (Adresse)"),
+    "targets.caldav_task_url": msg("CalDAV-Aufgabenliste (Adresse)"),
+    "targets.outlook_calendar": msg("Outlook-Kalender"),
+    "targets.microsoft_todo_list": msg("Microsoft-To-Do-Liste"),
+    "targets.microsoft_tenant": msg("Microsoft-Mandant"),
+    "targets.google_tasks_list": msg("Google-Tasks-Liste"),
+    "attachments.store_originals": msg("Originale speichern"),
+    "attachments.max_original_bytes": msg("Höchstgröße je Datei (Bytes)"),
+    "attachments.max_total_bytes": msg("Höchstgröße je Mail (Bytes)"),
+    "logging.console.level": msg("Konsole: Mindeststufe"),
+    "logging.file.level": msg("Logdatei: Mindeststufe"),
+    "logging.llm.include_requests": msg("KI-Anfragen vollständig protokollieren"),
+    "logging.llm.include_responses": msg("KI-Antworten vollständig protokollieren"),
+    "metrics.usd_per_eur": msg("Wechselkurs (USD je EUR)"),
+    "metrics.exchange_rate_date": msg("Wechselkurs vom"),
+    "retries.interpretation_attempts": msg("Antworten verstehen: Versuche"),
+    "retries.interpretation_backoff_seconds": msg("Antworten verstehen: Wartezeit (s)"),
+    "retries.revision_attempts": msg("Überarbeitung: Versuche"),
+    "retries.revision_backoff_seconds": msg("Überarbeitung: Wartezeit (s)"),
+    "imap.batch_size": msg("Mails je Abrufdurchlauf"),
+    "imap.global_newest_first": msg("Neueste Mails zuerst (alle Postfächer)"),
+    "telegram.user_id": msg("Telegram: berechtigte Benutzer-ID"),
+    "telegram.chat_id": msg("Telegram: Chat für Nachrichten"),
+    "telegram.sequential_questions": msg("Telegram: Entscheidungen nacheinander"),
+    "smart_reply": msg("Antwortentwürfe anbieten"),
+    "briefings.enabled": msg("Briefings als Postfachentwurf aktivieren"),
+    "briefings.times": msg("Uhrzeiten für Postfach-Briefings"),
+    "briefings.mailbox": msg("Zielpostfach für Briefings"),
+    "briefings.skip_empty": msg("Leere Postfach-Briefings auslassen"),
+    "auto_draft": msg("Antwortentwürfe automatisch im Postfach ablegen"),
+    "drafts.enabled": msg("Antwortentwürfe zulassen"),
+    "drafts.folder": msg("Entwurfsordner überschreiben (null: Postfachvorgabe)"),
+    "vision.enabled": msg("Bildanhänge und Scans auswerten"),
+    "help_chat.enabled": msg("Hilfschat anbieten"),
+    "help_chat.max_question_chars": msg("Hilfschat: längste Frage (Zeichen)"),
+    "help_chat.max_context_bytes": msg("Hilfschat: Dokumentation je Frage (Bytes)"),
+    "help_chat.requests_per_minute_per_session": msg("Hilfschat: Fragen je Minute"),
+    "vision.max_images_per_mail": msg("Bildauswertung: Bilder je Mail"),
+    "vision.max_image_bytes": msg("Bildauswertung: Höchstgröße je Bild (Bytes)"),
+    "vision.max_edge_pixels": msg("Bildauswertung: längste Kante (Pixel)"),
+    "daily_briefing.include_calendar": msg("Tagesüberblick: Termine"),
+    "daily_briefing.include_tasks": msg("Tagesüberblick: Aufgaben"),
+    "daily_briefing.include_open": msg("Tagesüberblick: offene Entscheidungen"),
+    "activity_report.enabled": msg("Tätigkeitsberichte aktivieren"),
+    "activity_report.max_mails": msg("Tätigkeitsbericht: höchstens Mails"),
+    "activity_report.max_llm_calls": msg("Tätigkeitsbericht: höchstens KI-Aufrufe"),
+    "activity_report.max_share_of_llm_budget": msg("Tätigkeitsbericht: Anteil am KI-Budget"),
+    "activity_report.max_fulltext_chars": msg("Tätigkeitsbericht: Zeichen je Volltext"),
+    "activity_report.export_mails_without_events": msg("Tätigkeitsbericht: Mails ohne Termine exportieren"),
+    "learning.parallel_llm_calls": msg("Lernmodus: parallele KI-Aufrufe"),
+    "web.session_days": msg("Web: Sitzungsdauer (Tage)"),
+    "web.lan_access": msg("Web: Zugriff im eigenen Netzwerk"),
+    "logging.console.enabled": msg("Konsolenausgabe aktivieren"),
+    "logging.verbose": msg("Ausführliches Protokoll"),
+    "logging.file.enabled": msg("Logdatei aktivieren"),
+    "logging.llm.enabled": msg("KI-Log aktivieren"),
+    "logging.llm.level": msg("KI-Log: Mindeststufe"),
+    "logging.telegram.enabled": msg("Telegram-Log aktivieren"),
+    "logging.telegram.level": msg("Telegram-Log: Mindeststufe"),
+    "retention.activity_report_days": msg("Tätigkeitsberichte aufbewahren (Tage)"),
+    "retention.decision_learning_days": msg("Lernbestand der Entscheidungen aufbewahren (Tage)"),
+    "retention.cleanup_interval_minutes": msg("Bereinigung alle (Minuten)"),
+    "learning.decision_llm_content": msg("Lernbestand: vollständige KI-Inhalte übernehmen"),
 }
 LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 PROVIDER_CHOICES = {
-    "language": (("de", "Deutsch"), ("en", "English")),
-    "targets.calendar_provider": (("google", "Google Kalender"), ("caldav", "CalDAV (Nextcloud, iCloud, …)"),
-                                  ("outlook", "Outlook / Microsoft 365")),
-    "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),
-                              ("caldav", "CalDAV-Aufgaben (VTODO)"),
-                              ("apple_reminders", "Apple Erinnerungen (iCloud)"),
-                              ("google_tasks", "Google Tasks"), ("notion", "Notion")),
+    "language": (("de", msg("Deutsch")), ("en", msg("English"))),
+    "targets.calendar_provider": (
+        ("google", msg("Google Kalender")),
+        ("caldav", msg("CalDAV (Nextcloud, iCloud, …)")),
+        ("outlook", msg("Outlook / Microsoft 365")),
+    ),
+    "targets.task_provider": (
+        ("todoist", msg("Todoist")),
+        ("microsoft_todo", msg("Microsoft To Do")),
+        ("caldav", msg("CalDAV-Aufgaben (VTODO)")),
+        ("apple_reminders", msg("Apple Erinnerungen (iCloud)")),
+        ("google_tasks", msg("Google Tasks")),
+        ("notion", msg("Notion")),
+    ),
 }
 
 
@@ -149,12 +187,12 @@ def _lookup(values: dict[str, Any] | None, name: str) -> object:
 def _shown(name: str, value: object) -> str:
     """A readable value; target IDs are masked, missing values marked."""
     if value is None or value == "":
-        return "nicht gesetzt"
+        return msg("nicht gesetzt")
     if name in TEXT_SETTINGS:
         line = " ".join(str(value).split())
         return line if len(line) <= 60 else line[:59] + "…"
     if isinstance(value, bool):
-        return "ja" if value else "nein"
+        return "ja" if value else msg("nein")
     text = str(value)
     if name in PROVIDER_CHOICES:
         return dict(PROVIDER_CHOICES[name]).get(text, text)
@@ -164,19 +202,20 @@ def _shown(name: str, value: object) -> str:
 
 
 def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
-    label = "Neuer Wert"
+    label = msg("Neuer Wert")
     if name == "briefings.times":
         return field("value", label, ", ".join(saved if isinstance(saved, list) else []))
     if name == "briefings.mailbox":
         boxes = (raw or {}).get("imap", {}).get("mailboxes") or [{"id": 1, "label": "Standard"}]
-        options = [("default", "Erstes aktives Postfach")] + [
-            (str(box["id"]), box["label"]) for box in boxes if box.get("enabled", True)]
+        options = [("default", msg("Erstes aktives Postfach"))] + [
+            (str(box["id"]), box["label"]) for box in boxes if box.get("enabled", True)
+        ]
         return select("value", label, str(saved or "default"), options)
     if name in TEXT_SETTINGS:
         return (f'<label>{label}<textarea name="value" rows="6" maxlength="2000">{e(saved or "")}</textarea></label>'
                 f'<p class="meta">{e(TEXT_SETTINGS[name])}</p>')
     if isinstance(saved, bool):
-        return select("value", label, json.dumps(saved), [("true", "ja"), ("false", "nein")])
+        return select("value", label, json.dumps(saved), [("true", "ja"), ("false", msg("nein"))])
     if name.endswith(".level"):
         return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
     if name in PROVIDER_CHOICES:
@@ -190,52 +229,110 @@ def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
 
 def _models_table(models: list[tuple[str, str, str, str]]) -> str:
     if not models:
-        return '<p class="meta">Keine Modellangaben verfügbar.</p>'
-    return ('<div class="table-scroll"><table><thead><tr><th>Schritt</th>'
-            "<th>Modell</th><th>Parameter</th><th>Quelle</th></tr></thead><tbody>"
-            + "".join(f"<tr><td>{e(step)}</td><td>{e(model)}</td><td>{e(parameters or '—')}</td>"
-                      f"<td>{e(source)}</td></tr>"
-                      for step, model, parameters, source in models)
-            + "</tbody></table></div>")
+        return tr('<p class="meta">Keine Modellangaben verfügbar.</p>')
+    return (
+        tr(
+            
+                '<div class="table-scroll"><table><thead><tr><th>Schritt</th><th>Modell</th>'
+                "<th>Parameter</th><th>Quelle</th></tr></thead><tbody>"
+            
+        )
+        + "".join(
+            f"<tr><td>{e(step)}</td><td>{e(model)}</td><td>{e(parameters or '—')}</td><td>{e(source)}</td></tr>"
+            for step, model, parameters, source in models
+        )
+        + "</tbody></table></div>"
+    )
 
 
 def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, revision: str, csrf: str) -> str:
     current, saved = _lookup(active, name), _lookup(raw, name)
     live = name.split(".")[0] in LIVE_FIELDS
     if current == saved:
-        state = "aktiv"
+        state = msg("aktiv")
     else:
-        state = ("gespeichert – wird an der nächsten sicheren Stelle übernommen" if live
-                 else "gespeichert – wirkt erst nach einem Neustart")
-    timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
-    form = post_form("/einstellungen/speichern", csrf, _input(name, saved, raw), "Prüfen",
-                     name=name, expected_hash=revision)
-    return (f'<div class="setting-row" id="{anchor(name)}"><details class="setting">'
-            f'<summary><span>{e(setting_label(name))}</span>'
-            f'<strong>{e(_shown(name, current))}</strong></summary>'
-            f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
-            f'Änderungen wirken {e(timing)}.</p>{form}</details>'
-            + help_bubble(name, setting_label(name), SETTING_HELP[name])
-            + f'<a class="ask-help" href="/hilfe?einstellung={e(name)}">Dazu fragen</a></div>')
+        state = (
+            msg("gespeichert – wird an der nächsten sicheren Stelle übernommen")
+            if live
+            else msg("gespeichert – wirkt erst nach einem Neustart")
+        )
+    timing = msg("sofort nach dem Speichern") if live else msg("beim nächsten Start")
+    form = post_form(
+        "/einstellungen/speichern", csrf, _input(name, saved, raw), msg("Prüfen"), name=name, expected_hash=revision
+    )
+    return (
+        tr(
+            (
+                '<div class="setting-row" id="{p0}"><details '
+                'class="setting"><summary><span>{p1}</span><strong>{p2}</strong></'
+                'summary><p class="meta">Gespeichert: {p3} · {p4} · Änderungen '
+                "wirken {p5}.</p>{p6}</details>"
+            ),
+            p0=anchor(name),
+            p1=e(setting_label(name)),
+            p2=e(_shown(name, current)),
+            p3=e(_shown(name, saved)),
+            p4=e(state),
+            p5=e(timing),
+            p6=form,
+        )
+        + help_bubble(name, setting_label(name), SETTING_HELP[name])
+        + tr('<a class="ask-help" href="/hilfe?einstellung={p0}">Dazu fragen</a></div>', p0=e(name))
+    )
 
 
 # Areas of /einstellungen?bereich=…: (key, title, description, groups of SETTING_GROUPS).
 AREAS = (
-    ("briefing", "Postfach-Briefings", "Uhrzeiten, Zielpostfach und leere Briefings", ("Postfach-Briefings",)),
-    ("abruf", "Mailabruf", "Abrufintervall, Zeitzone, Mailgrenzen, Zeitlimits und Wiederholungen",
-     ("Mailabruf und Betrieb", "Aufrufbudget und Mailgrenzen", "Zeitlimits und Wiederholungen")),
-    ("benachrichtigungen", "Benachrichtigungen", "Telegram, Push und Tagesüberblick",
-     ("Telegram", "Tagesüberblick")),
-    ("antworten", "Antworten und Termine", "Antwortentwürfe, persönliche Angaben, Termindauern und Ziele",
-     ("Antworten", "Termindauern und Vorschlagsabgleich", "Ziele")),
-    ("ki", "KI und Auswertung", "Modelle, Bildauswertung, Lernmodus, Hilfschat, Tätigkeitsberichte und Kosten",
-     ("Bildauswertung", "Lernmodus", "Hilfschat", "Tätigkeitsberichte", "Kosten und Messung")),
-    ("daten", "Daten und Protokolle", "Originalanhänge, Aufbewahrung und Protokollierung",
-     ("Originalanhänge", "Aufbewahrung", "Protokollierung")),
-    ("system", "Weboberfläche und System", "Sitzungen, Netzwerkzugriff, Geräte, Neustart und Beenden",
-     ("Weboberfläche",)),
+    (
+        "briefing",
+        msg("Postfach-Briefings"),
+        msg("Uhrzeiten, Zielpostfach und leere Briefings"),
+        (msg("Postfach-Briefings"),),
+    ),
+    (
+        'abruf',
+        msg("Mailabruf"),
+        msg("Abrufintervall, Zeitzone, Mailgrenzen, Zeitlimits und Wiederholungen"),
+        (msg("Mailabruf und Betrieb"), msg("Aufrufbudget und Mailgrenzen"), msg("Zeitlimits und Wiederholungen")),
+    ),
+    (
+        'benachrichtigungen',
+        msg("Benachrichtigungen"),
+        msg("Telegram, Push und Tagesüberblick"),
+        (msg("Telegram"), msg("Tagesüberblick")),
+    ),
+    (
+        'antworten',
+        msg("Antworten und Termine"),
+        msg("Antwortentwürfe, persönliche Angaben, Termindauern und Ziele"),
+        (msg("Antworten"), msg("Termindauern und Vorschlagsabgleich"), msg("Ziele")),
+    ),
+    (
+        "ki",
+        msg("KI und Auswertung"),
+        msg("Modelle, Bildauswertung, Lernmodus, Hilfschat, Tätigkeitsberichte und Kosten"),
+        (
+            msg("Bildauswertung"),
+            msg("Lernmodus"),
+            msg("Hilfschat"),
+            msg("Tätigkeitsberichte"),
+            msg("Kosten und Messung"),
+        ),
+    ),
+    (
+        'daten',
+        msg("Daten und Protokolle"),
+        msg("Originalanhänge, Aufbewahrung und Protokollierung"),
+        (msg("Originalanhänge"), msg("Aufbewahrung"), msg("Protokollierung")),
+    ),
+    (
+        "system",
+        msg("Weboberfläche und System"),
+        msg("Sitzungen, Netzwerkzugriff, Geräte, Neustart und Beenden"),
+        (msg("Weboberfläche"),),
+    ),
 )
-CREDENTIALS_AREA = "zugangsdaten"
+CREDENTIALS_AREA = 'zugangsdaten'
 AREA_KEYS = frozenset({key for key, *_ in AREAS} | {CREDENTIALS_AREA})
 _GROUPS = dict(SETTING_GROUPS)
 
@@ -255,9 +352,10 @@ def _tiles(title: str, tiles: str) -> str:
 
 
 def _nav(current: str) -> str:
-    entries = [("/einstellungen", "Übersicht", "")] + [
-        (f"/einstellungen?bereich={key}", title, key) for key, title, *_ in AREAS]
-    entries.append((f"/einstellungen?bereich={CREDENTIALS_AREA}", "Zugangsdaten", CREDENTIALS_AREA))
+    entries = [("/einstellungen", msg("Übersicht"), "")] + [
+        ('/einstellungen?bereich={p0}'.format(p0=f'{key}'), title, key) for key, title, *_ in AREAS
+    ]
+    entries.append((f'/einstellungen?bereich={CREDENTIALS_AREA}', msg("Zugangsdaten"), CREDENTIALS_AREA))
     links = "".join(f'<a href="{href}"{' aria-current="page"' if key == current else ""}>{e(title)}</a>'
                     for href, title, key in entries)
     return ('<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>'
@@ -266,47 +364,94 @@ def _nav(current: str) -> str:
 
 def _search(query: str) -> str:
     """The search form; with JavaScript, matches appear below it while typing (5.3)."""
-    return ('<form method="get" action="/einstellungen" class="settings-search" role="search">'
-            '<label for="settings-search">Einstellung suchen</label><div class="settings-search-row">'
-            f'<input id="settings-search" type="search" name="suche" value="{e(query)}" maxlength="80" '
-            'autocomplete="off" data-live-search="/api/einstellungen/suche" aria-controls="settings-live-results" '
-            'placeholder="z. B. Zeitzone, Aufbewahrung, Telegram"><button class="button">Suchen</button></div>'
-            '<p class="meta settings-live-status" id="settings-live-status" role="status" aria-live="polite"></p>'
-            '<ul class="settings-live-results" id="settings-live-results" aria-label="Sofort gefundene Einstellungen" '
-            'hidden></ul></form>')
+    return tr(
+        (
+            '<form method="get" action="/einstellungen" '
+            'class="settings-search" role="search"><label '
+            'for="settings-search">Einstellung suchen</label><div '
+            'class="settings-search-row"><input id="settings-search" '
+            'type="search" name="suche" value="{p0}" maxlength="80" '
+            'autocomplete="off" data-live-search="/api/einstellungen/suche" '
+            'aria-controls="settings-live-results" placeholder="z. B. '
+            'Zeitzone, Aufbewahrung, Telegram"><button '
+            'class="button">Suchen</button></div><p class="meta '
+            'settings-live-status" id="settings-live-status" role="status" '
+            'aria-live="polite"></p><ul class="settings-live-results" '
+            'id="settings-live-results" aria-label="Sofort gefundene '
+            'Einstellungen" hidden></ul></form>'
+        ),
+        p0=e(query),
+    )
 
 
 def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     counted = active is not None
     mailboxes: Any = _lookup(active, "imap.mailboxes") or [None]
     accounts: Any = _lookup(active, "iserv.accounts") or []
-    body = _tiles("Konten und Verbindungen", (
-        _tile("/einstellungen/postfaecher", "Postfächer",
-              (f"{len(mailboxes)} eingerichtet · " if counted else "")
-              + "hinzufügen, prüfen und anpassen")
-        + _tile("/einstellungen/iserv", "IServ-Konten",
-                (f"{len(accounts)} eingerichtet · " if counted else "") + "Elternbriefe abrufen")
-        + _tile("/einstellungen/zielprofile", "Zielprofile", "Kalender und Aufgabenlisten je Postfach")
-        + _tile(f"/einstellungen?bereich={CREDENTIALS_AREA}", "Zugangsdaten", "Passwörter und API-Schlüssel")
-        + _tile("/einrichtung", "Einrichtung", "Verbindungen Schritt für Schritt einrichten")
-        # 6.2.9: one entry for every read-only check (diagnosis per service and the whole self-test).
-        + _tile("/diagnose", "Verbindungen prüfen", "Lesend prüfen: einzelne Dienste oder alles auf einmal")))
+    body = _tiles(
+        msg("Konten und Verbindungen"),
+        (
+            _tile(
+                "/einstellungen/postfaecher",
+                msg("Postfächer"),
+                (tr("{p0} eingerichtet · ", p0=f"{len(mailboxes)}") if counted else "")
+                + msg("hinzufügen, prüfen und anpassen"),
+            )
+            + _tile(
+                "/einstellungen/iserv",
+                msg("IServ-Konten"),
+                (tr("{p0} eingerichtet · ", p0=f"{len(accounts)}") if counted else "") + msg("Elternbriefe abrufen"),
+            )
+            + _tile("/einstellungen/zielprofile", msg("Zielprofile"), msg("Kalender und Aufgabenlisten je Postfach"))
+            + _tile(
+                '/einstellungen?bereich={p0}'.format(p0=f'{CREDENTIALS_AREA}'),
+                msg("Zugangsdaten"),
+                msg("Passwörter und API-Schlüssel"),
+            )
+            + _tile("/einrichtung", msg("Einrichtung"), msg("Verbindungen Schritt für Schritt einrichten"))
+            # 6.2.9: one entry for every read-only check (diagnosis per service and the whole self-test).
+            + _tile(
+                "/diagnose", msg("Verbindungen prüfen"), msg("Lesend prüfen: einzelne Dienste oder alles auf einmal")
+            )
+        ),
+    )
     tiles = ""
     for key, title, text, groups in AREAS:
         names = [name for group in groups for name in _names(group)]
         changed = sum(_lookup(active, name) != _lookup(raw, name) for name in names) if raw is not None else 0
-        badge = (f'<em class="badge warn">{changed} {"Änderung" if changed == 1 else "Änderungen"} ausstehend</em>'
-                 if changed else "")
-        tiles += _tile(f"/einstellungen?bereich={key}", title, text, badge)
-    body += _tiles("Allgemeine Einstellungen", tiles)
+        badge = (
+            tr(
+                '<em class="badge warn">{p0} {p1} ausstehend</em>',
+                p0=f"{changed}",
+                p1=f"{(msg('Änderung') if changed == 1 else msg('Änderungen'))}",
+            )
+            if changed
+            else ""
+        )
+        tiles += _tile('/einstellungen?bereich={p0}'.format(p0=f'{key}'), title, text, badge)
+    body += _tiles(msg("Allgemeine Einstellungen"), tiles)
     # 6.2.9: profile and delivery history are part of "Benachrichtigungen"; devices are in the main navigation.
-    body += _tiles("Inhalte", (
-        _tile("/themen", "Themen", "Relevante und irrelevante Themen")
-        + _tile("/einstellungen/absender", "Absender-Regeln", "Ignorieren, VIP-Absender und Ausnahmen")))
-    body += _tiles("System", (
-        _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
-        + _tile("/dienst/neu-laden", "Konfiguration neu laden", "Verbindungen ohne Prozessneustart wechseln")
-        + _tile("/einstellungen/beenden", "Mailhelp beenden", "Dienst kontrolliert anhalten", kind="danger")))
+    body += _tiles(
+        msg("Inhalte"),
+        (
+            _tile("/themen", msg("Themen"), msg("Relevante und irrelevante Themen"))
+            + _tile("/einstellungen/absender", msg("Absender-Regeln"), msg("Ignorieren, VIP-Absender und Ausnahmen"))
+        ),
+    )
+    body += _tiles(
+        "System",
+        (
+            _tile(
+                "/einstellungen/neustarten", msg("Mailhelp neu starten"), msg("Kontrollierter Neustart mit Bestätigung")
+            )
+            + _tile(
+                "/dienst/neu-laden", msg("Konfiguration neu laden"), msg("Verbindungen ohne Prozessneustart wechseln")
+            )
+            + _tile(
+                "/einstellungen/beenden", msg("Mailhelp beenden"), msg("Dienst kontrolliert anhalten"), kind="danger"
+            )
+        ),
+    )
     return body
 
 
@@ -315,19 +460,33 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
     title, text, groups = next((title, text, groups) for name, title, text, groups in AREAS if name == key)
     body = f'<div class="area-heading"><h2>{e(title)}</h2><p class="meta">{e(text)}</p></div>'
     if key == "benachrichtigungen":
-        body += ('<p class="settings-shortcuts"><a class="button small" href="/einstellungen/benachrichtigungen">'
-                 'Benachrichtigungsprofil: Ruhezeiten und Kanäle</a> <a class="button small" '
-                 'href="/benachrichtigungen">Zustellhistorie</a></p>' + push)
+        body += (
+            tr(
+                '<p class="settings-shortcuts"><a class="button small" '
+                'href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil:'
+                ' Ruhezeiten und Kanäle</a> <a class="button small" '
+                'href="/benachrichtigungen">Zustellhistorie</a></p>'
+            )
+            + push
+        )
     elif key == "ki":
-        body += ('<section class="settings-section"><div class="setting-row"><h2>Modelle (nur lesend)</h2>'
-                 + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>" + _models_table(models)
-                 + "</section>")
+        body += (
+            tr('<section class="settings-section"><div class="setting-row"><h2>Modelle (nur lesend)</h2>')
+            + help_bubble("models", msg("Modelle"), EXTRA_HELP["models"])
+            + "</div>"
+            + _models_table(models)
+            + "</section>"
+        )
     elif key == "system":
-        body += ('<p class="settings-shortcuts"><a class="button small" href="/geraete">Geräte</a> '
-                 '<a class="button small" href="/einstellungen/neustarten">Mailhelp neu starten</a> '
-                 '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
+        body += tr(
+            '<p class="settings-shortcuts"><a class="button small" '
+            'href="/geraete">Geräte</a> <a class="button small" '
+            'href="/einstellungen/neustarten">Mailhelp neu starten</a> <a '
+            'class="button small danger" '
+            'href="/einstellungen/beenden">Mailhelp beenden</a></p>'
+        )
     if raw is None:
-        return body + notice("Konfigurationsdienst nicht verfügbar.", "warn")
+        return body + notice(tr("Konfigurationsdienst nicht verfügbar."), "warn")
     for group in groups:
         body += f'<section class="settings-section"><h2>{e(group)}</h2>'
         body += "".join(_setting_row(name, raw, active, revision, csrf) for name in _names(group)) + "</section>"
@@ -337,10 +496,10 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
 def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str) -> str:
     """5.3: the full result page of the shared search; same matches and order as the live search."""
     if raw is None:
-        return notice("Konfigurationsdienst nicht verfügbar.", "warn")
+        return notice(tr("Konfigurationsdienst nicht verfügbar."), "warn")
     results = search(query)
     if not results:
-        return notice(f"Keine Einstellung zu „{query}“ gefunden.", "info")
+        return notice(tr("Keine Einstellung zu „{p0}“ gefunden.", p0=query), "info")
     areas = {title: key for key, title, *_ in AREAS}
     rows = "".join(f'<p class="meta">Bereich <a href="/einstellungen?bereich={areas[item.area]}">{e(item.area)}</a>'
                    f" · {e(item.group)}</p>" + _setting_row(item.key, raw, active, revision, csrf)
@@ -349,11 +508,14 @@ def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None
                     f'<span class="meta">{e(item.path)} · {e(item.summary)}</span></li>'
                     for item in results if item.path != "Weboberfläche")
     count = len(results)
-    body = f'<p class="meta" role="status">{count} Treffer für „{e(query)}“</p>'
+    body = tr('<p class="meta" role="status">{p0} Treffer für „{p1}“</p>', p0=count, p1=e(query))
     if rows:
-        body += f'<section class="settings-section"><h2>Einstellungen</h2>{rows}</section>'
+        body += tr('<section class="settings-section"><h2>Einstellungen</h2>{p0}</section>', p0=rows)
     if pages:
-        body += f'<section class="settings-section"><h2>Seiten</h2><ul class="search-pages">{pages}</ul></section>'
+        body += tr(
+            ('<section class="settings-section"><h2>Seiten</h2><ul class="search-pages">{p0}</ul></section>'),
+            p0=f"{pages}",
+        )
     return body
 
 
@@ -363,9 +525,15 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
                   push: str = "") -> str:
     """The overview, one area or search results; *area* is empty or one of :data:`AREA_KEYS`."""
     query = query.strip()
-    body = (page_head("Einstellungen", "Verwaltung", "Konten verbinden, allgemeine Regeln festlegen und gezielt "
-                      "je Postfach anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.")
-            + '<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p>')
+    body = page_head(
+        msg("Einstellungen"),
+        msg("Verwaltung"),
+        tr(
+            "Konten verbinden, allgemeine Regeln festlegen und gezielt je "
+            "Postfach anpassen. Jede Änderung wird vor dem Speichern noch "
+            "einmal angezeigt."
+        ),
+    ) + tr('<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p>')
     if query:
         content = _search(query) + _found(query, raw, active, revision, csrf)
     elif area == CREDENTIALS_AREA:
@@ -382,21 +550,32 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str,
                           raw: dict[str, Any], value: object) -> str:
     """The explicit second step before a setting is written."""
     name = form["name"]
-    timing = ("Wird an der nächsten sicheren Stelle übernommen." if name.split(".")[0] in LIVE_FIELDS
-              else "Wird nach einem Neustart verwendet.")
-    body = f'<h1>Änderung bestätigen</h1><h2>{e(setting_label(name))}</h2><p>{timing}</p>'
+    timing = (
+        msg("Wird an der nächsten sicheren Stelle übernommen.")
+        if name.split(".")[0] in LIVE_FIELDS
+        else msg("Wird nach einem Neustart verwendet.")
+    )
+    body = tr("<h1>Änderung bestätigen</h1><h2>{p0}</h2><p>{p1}</p>", p0=e(setting_label(name)), p1=timing)
     if name.startswith("retention."):
-        body += notice("Aufbewahrung kann Inhalte unwiderruflich entfernen.", "warn")
-    if name in {"logging.llm.include_requests", "logging.llm.include_responses",
-                "learning.decision_llm_content"} and value is True:
-        body += notice("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten.", "warn")
+        body += notice(tr("Aufbewahrung kann Inhalte unwiderruflich entfernen."), "warn")
+    if (
+        name in {"logging.llm.include_requests", "logging.llm.include_responses", "learning.decision_llm_content"}
+        and value is True
+    ):
+        body += notice(tr("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten."), "warn")
     if name == "test_mode" and value is False:
-        body += notice("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden.", "warn")
+        body += notice(tr("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden."), "warn")
     hidden: dict[str, Any] = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
     old_value = _lookup(raw, name)
     old_text = str(old_value) if name in TEXT_SETTINGS and old_value else _shown(name, old_value)
     new_text = str(value) if name in TEXT_SETTINGS and value else _shown(name, value)
-    body += ('<dl class="facts-table"><dt>Bisher gespeichert</dt>'
-             f'<dd class="compare-text">{e(old_text)}</dd><dt>Neu</dt>'
-             f'<dd class="compare-text">{e(new_text)}</dd></dl>')
-    return body + post_form(route, csrf, "", "Änderung ausdrücklich speichern", confirm="yes", **hidden)
+    body += tr(
+        (
+            '<dl class="facts-table"><dt>Bisher gespeichert</dt><dd '
+            'class="compare-text">{p0}</dd><dt>Neu</dt><dd '
+            'class="compare-text">{p1}</dd></dl>'
+        ),
+        p0=e(old_text),
+        p1=e(new_text),
+    )
+    return body + post_form(route, csrf, "", msg("Änderung ausdrücklich speichern"), confirm="yes", **hidden)

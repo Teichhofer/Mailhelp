@@ -1,7 +1,7 @@
 """Dedicated routes with unchanged authentication and response contracts."""
+
 from __future__ import annotations
 
-import ipaddress
 from typing import Protocol
 from urllib.parse import parse_qs
 
@@ -9,20 +9,13 @@ from ..config import WebSettings
 from ..runtime.web_password import WebPassword
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
+from .http import cookie as cookie
 from .pages import devices_page, e, error_page, layout, login_page
 from .server import EventLogger
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
 PAIR_COOKIE_SECONDS = 15 * 60
-
-
-def cookie(request: Request, name: str, value: str, max_age: int) -> str:
-    # Only a host name (Tailscale Serve) is reached over HTTPS; the local
-    # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
-    hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
-    secure = "; Secure" if not _ip_or_localhost(hostname) else ""
-    return f"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
 
 
 class LoginHost(Protocol):
@@ -181,14 +174,6 @@ class LoginSite:
         self.site.auth.revoke_all()
         self.site.logger.event("INFO", "web", "session_revoked", scope="all")
         return self._signed_out(request)
-
-
-def _ip_or_localhost(name: str) -> bool:
-    try:
-        ipaddress.ip_address(name)
-    except ValueError:
-        return name == "localhost"
-    return True
 
 
 def link_code(query: str) -> str:

@@ -1,4 +1,5 @@
 """The pending mailbox draft: preview, affected mails and the forms that change it (7.0, R5)."""
+
 from __future__ import annotations
 
 import json
@@ -7,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from ..config import Topic, read_yaml
 from ..config.configuration import MAILBOX_POLICY_FIELDS, set_dotted
 from ..domain.mail import MailState
+from ..i18n import msg, tr
 from ..llm.decisions import relevance_fingerprint
 from ..mailbox.mailbox_settings import mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
@@ -17,32 +19,34 @@ from .forms import post_form
 from .http import Request, Response
 from .pages import e
 
+_PREVIEW_TEXT_1 = msg(
+    "<p>Speichern ändert den Entwurf. Übernehmen erteilt keine externe Anlagefreigabe. "
+    "Verbindungs- und Zieländerungen wirken nach dem nächsten Dienststart.</p>"
+)
+
 if TYPE_CHECKING:
     from .mailbox_site import MailboxSite
 
 
 def preview(site: MailboxSite, session: WebSession) -> str:
     state = site.runtime.setup.state()
-    text = (
-        "<p>Speichern ändert den Entwurf. Übernehmen erteilt keine externe Anlagefreigabe. "
-        "Verbindungs- und Zieländerungen wirken nach dem nächsten Dienststart.</p>"
-    )
+    text = tr(_PREVIEW_TEXT_1)
     if state.patch:
-        text += '<section class="card"><h2>Entwurf prüfen</h2><dl>'
+        text += tr('<section class="card"><h2>Entwurf prüfen</h2><dl>')
         if state.kind == "topics":
-            text += "<dt>Thema</dt><dd>" + e(state.patch["name"]) + "</dd><dt>Geltungsbereich</dt><dd>"
+            text += tr("<dt>Thema</dt><dd>") + e(state.patch["name"]) + tr("</dd><dt>Geltungsbereich</dt><dd>")
             text += (
-                e(state.patch.get("mailboxes") if state.patch.get("mailboxes") is not None else "Alle Postfächer")
+                e(state.patch.get("mailboxes") if state.patch.get("mailboxes") is not None else msg("Alle Postfächer"))
                 + "</dd>"
             )
         elif state.kind == "senders":
-            text += f"<dt>Postfach</dt><dd>{state.patch['mailbox_id']}</dd>"
+            text += tr("<dt>Postfach</dt><dd>{p0}</dd>", p0=state.patch["mailbox_id"])
             text += "<dt>Filteränderung</dt><dd>" + e(state.patch) + "</dd>"
         else:
             cfg = site.runtime.setup.draft_settings()
             if "imap.mailboxes" in state.patch:
                 for box in cfg.imap.configured_mailboxes():
-                    text += f"<dt>Postfach {box.id} ({e(box.label)})</dt><dd>"
+                    text += tr("<dt>Postfach {p0} ({p1})</dt><dd>", p0=box.id, p1=e(box.label))
                     text += (
                         e(
                             {
@@ -55,42 +59,42 @@ def preview(site: MailboxSite, session: WebSession) -> str:
                     )
             if "iserv.accounts" in state.patch:
                 for account in cfg.iserv.accounts:
-                    text += f"<dt>IServ-Konto {account.id} ({e(account.label)})</dt><dd>"
-                    text += e(f"{account.server} · Postfach {account.mailbox} · "
-                              + ("aktiv" if account.enabled else "deaktiviert")) + "</dd>"
-                if not cfg.iserv.accounts:
-                    text += "<dt>IServ-Konten</dt><dd>keine</dd>"
-            if "target_profiles" in state.patch:
-                for profile in cfg.target_profiles:
-                    text += f"<dt>Zielprofil {profile.id} ({e(profile.label)})</dt><dd>"
+                    text += tr("<dt>IServ-Konto {p0} ({p1})</dt><dd>", p0=account.id, p1=e(account.label))
                     text += (
                         e(
-                            profile.calendar_provider
-                            + " → "
-                            + profile.calendar_target
-                            + " · "
-                            + profile.task_provider
-                            + " → "
-                            + profile.task_target
+                            tr("{p0} · Postfach {p1} · ", p0=account.server, p1=account.mailbox)
+                            + (msg("aktiv") if account.enabled else msg("deaktiviert"))
                         )
                         + "</dd>"
                     )
+                if not cfg.iserv.accounts:
+                    text += tr("<dt>IServ-Konten</dt><dd>keine</dd>")
+            if "target_profiles" in state.patch:
+                text += _target_profiles_preview(cfg)
         for number, count in site.affected().items():
-            text += (f"<dt>Laufende Mails in Postfach {number}</dt><dd>{count} werden mit "
-                     "configuration_changed zurückgehalten.</dd>")
-        text += '</dl><p><a href="/diagnose">Zugriffe prüfen</a></p>'
+            text += tr(
+                (
+                    "<dt>Laufende Mails in Postfach {p0}</dt><dd>{p1} werden mit "
+                    "configuration_changed zurückgehalten.</dd>"
+                ),
+                p0=number,
+                p1=count,
+            )
+        text += tr('</dl><p><a href="/diagnose">Zugriffe prüfen</a></p>')
         csrf = site.site.auth.csrf_token(session.id)
         text += post_form(
             "/einrichtung/uebernehmen",
             csrf,
-            '<label><input type="checkbox" name="confirm" value="yes" required> '
-            'Änderungen ausdrücklich übernehmen</label>',
-            "Entwurf übernehmen",
+            tr(
+                '<label><input type="checkbox" name="confirm" value="yes" '
+                "required> Änderungen ausdrücklich übernehmen</label>"
+            ),
+            msg("Entwurf übernehmen"),
             version=state.version,
             expected_hash=state.base_hash,
         )
         text += post_form(
-            "/einstellungen/postfaecher/verwerfen", csrf, "", "Entwurf verwerfen", version=state.version
+            "/einstellungen/postfaecher/verwerfen", csrf, "", msg("Entwurf verwerfen"), version=state.version
         )
         text += "</section>"
     return text
@@ -174,7 +178,7 @@ def save(site: MailboxSite, request: Request, session: WebSession, form: dict[st
             request_signature={name: value for name, value in form.items() if name not in {"csrf", "key"}},
         )
     except (ValueError, KeyError, StopIteration, PermissionError):
-        return Response.text(409, "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen.")
+        return Response.text(409, msg("Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen."))
     return Response.redirect("/einstellungen/postfaecher")
 
 
@@ -212,7 +216,7 @@ def topic(site: MailboxSite, request: Request, session: WebSession, form: dict[s
             f"web:{session.id}", int(form["version"]), form["key"], "topics", patch, category
         )
     except (ValueError, KeyError, StopIteration, PermissionError):
-        return Response.text(409, "Themenentwurf nicht gespeichert.")
+        return Response.text(409, msg("Themenentwurf nicht gespeichert."))
     return Response.redirect("/einstellungen/postfaecher")
 
 
@@ -228,7 +232,7 @@ def filter(site: MailboxSite, request: Request, session: WebSession, form: dict[
         }
         site.runtime.setup.save_local(f"web:{session.id}", int(form["version"]), form["key"], "senders", patch)
     except (ValueError, KeyError, PermissionError):
-        return Response.text(409, "Filterentwurf nicht gespeichert.")
+        return Response.text(409, msg("Filterentwurf nicht gespeichert."))
     return Response.redirect("/einstellungen/postfaecher")
 
 
@@ -238,5 +242,24 @@ def discard(site: MailboxSite, request: Request, session: WebSession, form: dict
     try:
         site.runtime.setup.discard(f"web:{session.id}", int(form["version"]), form["key"])
     except (ValueError, KeyError, PermissionError):
-        return Response.text(409, "Entwurf nicht verworfen; Version und Sitzung prüfen.")
+        return Response.text(409, msg("Entwurf nicht verworfen; Version und Sitzung prüfen."))
     return Response.redirect("/einstellungen/postfaecher")
+
+
+def _target_profiles_preview(cfg: Any) -> str:
+    text = ""
+    for profile in cfg.target_profiles:
+        text += tr("<dt>Zielprofil {p0} ({p1})</dt><dd>", p0=profile.id, p1=e(profile.label))
+        text += (
+            e(
+                profile.calendar_provider
+                + " → "
+                + profile.calendar_target
+                + " · "
+                + profile.task_provider
+                + " → "
+                + profile.task_target
+            )
+            + "</dd>"
+        )
+    return text

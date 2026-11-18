@@ -4,12 +4,14 @@ Each area has its own site class; this one holds what they share: the configurat
 service, metrics, the stop handshake, the model overview, the archive queries and the
 command queue.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
 from ..config.configuration import AdminCommand, ConfigurationService
+from ..i18n import msg
 from ..review.commands import ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries
@@ -53,5 +55,5 @@ class ArchiveSite:
         try:
             entry, _ = self.site.commands.submit(command)
         except (CommandConflict, CommandInboxFull):
-            return self.site._reply(request, 409, "Bereits anders eingereicht oder Warteschlange voll.")
-        return Response.redirect(f"/aktion/{entry.id}")
+            return self.site._reply(request, 409, msg("Bereits anders eingereicht oder Warteschlange voll."))
+        return Response.redirect('/aktion/{p0}'.format(p0=f'{entry.id}'))

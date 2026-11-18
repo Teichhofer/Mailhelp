@@ -242,3 +242,6 @@ mutants/
 /.coverage-spec-audit
 /coverage-audit.json
 /spec-audit-coverage.json
+
+# Lokale Server-Zugangsdokumentation
+/SERVERZUGANG.local.md
