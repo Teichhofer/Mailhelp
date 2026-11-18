@@ -1,7 +1,7 @@
 # Mailhelp 7.8 – Lokalisierung und englische Demo
 
-**Stand:** 18. November 2026. **Status:** Umsetzung und abschließende Abnahme laufen.
-Dieser Bericht wird erst nach den vollständigen Prüfungen als abgeschlossen gekennzeichnet.
+**Stand:** 18. November 2026. **Status:** Abgeschlossen mit 7.8.1 (Umsetzung) und 7.8.2
+(Serverabnahme und Bericht).
 
 ## Umfang 7.8.1
 
@@ -70,5 +70,44 @@ Die Abnahme fand fünf Fehler im Kandidaten; jeder ist durch einen vorher fehlsc
 100 % Zeilen- und Branch-Abdeckung und bestandenen Lasttests. Die Browsersuite meldet
 977 bestandene und 234 übersprungene Tests. `python -m devtools.help_index --check` besteht.
 
-Docker ist auf dem Entwicklungsrechner nicht installiert; die Container-Abnahme sowie der
-Übergang der HTTPS-Einstiege erfolgen auf dem Server und werden hier nachgetragen.
+## Serverabnahme am 18. November 2026
+
+Docker ist auf dem Entwicklungsrechner nicht installiert; die Container-Abnahme erfolgte auf dem
+Server. Das Image `mailhelp-production:7.8.1-ae4dcb9` wurde aus dem Commit `ae4dcb9` gebaut.
+
+- **Deployment:** Produktion und Demo wurden gemeinsam umgestellt. Vorher wurden die
+  Compose-Dateien und beide Laufzeitverzeichnisse bei gestoppten Containern gesichert
+  (`/opt/mailhelp/backups/upgrade-7.8.1-20261118T201811Z`). Beide Healthchecks und die
+  Versionsprüfung im Container (7.8.1) bestanden. Für einen Rückwechsel bleiben das Image
+  7.7.6-8165098 und die gesicherten Zustände gemeinsam erhalten.
+- **Bestehende Besucher:** Der Demo-Container startete ohne Fehler mit dem vorhandenen
+  Besucherbestand.
+- **Native Einstiege:** `/de/`, `/en/` und `/sprache` antworten am Container mit 303 und setzen
+  `mailhelp_lang` mit `Secure`, `SameSite=Lax` und einem Jahr Laufzeit; `wert=xx` ergibt 400.
+  Danach wurden die Sprach-Maps, die beiden Header und die Weiterleitungen aus der nginx-
+  Konfiguration `mailhelp-demo-https` entfernt (Sicherung unter
+  `/opt/mailhelp-demo/backups/nginx-demo-https-20261118T202002Z.conf`).
+- **Öffentlicher Durchlauf über HTTPS:** `/en/` führt bei deutschem Browser zur englischen
+  Startseite. Der Start zeigt englische Karten mit dem englischen Bestand ohne deutsche
+  Bedienelemente. Ein Vorschlag wurde simuliert angelegt und erscheint als „Created in demo“.
+  Nach dem Wechsel auf Deutsch bleiben Beispieldaten und Entscheidung erhalten, und der Neustart
+  wird angeboten. `/de/` führt bei englischem Browser zur deutschen Startseite.
+
+| Messwert | 7.7.6 | 7.8.1 |
+| --- | ---: | ---: |
+| Image | 365 MB | 369 MB |
+| Demo-Container nach dem Start | – | 83 MiB von 384 MiB |
+| Demo-Grenzen | 384 MiB, 0,5 CPU, 128 Prozesse | unverändert |
+
+**Nachtrag 7.8.2:** Sieben relative Links in `docs/en/` zeigten auf `archiv/…` und
+`Pruefung-…` ohne `../`. `test_documentation_links.py` prüft nur versionierte Dateien und meldete
+das erst nach dem Commit von 7.8.1; die Links sind korrigiert.
+
+**Prüfung 7.8.2:** `devtools.check full` mit 6 041 bestandenen Tests und 100 % Abdeckung;
+Browsersuite 977 bestanden, 234 übersprungen; `help_index --check` besteht.
+
+**Befund außerhalb von 7.8:** Nach dem Neustart lehnte Google die Erneuerung des
+Kalender-Zugangs ab (HTTP 400). Die Zugangsdaten wurden am 11. November gespeichert; Refresh-Tokens
+einer Google-OAuth-App im Status „Testing“ verfallen nach sieben Tagen. Um 04:15 UTC desselben Tages
+gelang die Erneuerung mit 7.7.6 noch. Der Code für die Token-Erneuerung ist in 7.8 unverändert.
+Die Google-Anmeldung muss neu erteilt werden.

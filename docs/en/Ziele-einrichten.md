@@ -37,7 +37,7 @@ rejected. Please edit such entries at the provider.
 3. **Select Google Calendar** and take the desired calendar.
 4. **Check accesses**.
 
-Alternatively without a web application client: [Google: OAuth Playground guide](Google-OAuth-Playground.md).
+Alternatively without a web application client: [Google: OAuth Playground guide](../Google-OAuth-Playground.md).
 
 For an external Google project with publishing status “Testing”, the refresh token
 can expire after seven days. Then renew the sign-in and check the project status.

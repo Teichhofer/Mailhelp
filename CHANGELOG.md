@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.8.2 – Abschluss von 7.8
+
+- Öffentliche Demo: `/de/` und `/en/` werden nativ von Mailhelp bedient; die Sprachweiterleitung im Proxy entfällt.
+- Release-Bericht 7.8 mit Serverabnahme, öffentlichem englischem Durchlauf über HTTPS und Messwerten.
+- Englische Hilfedokumente verlinken Archiv- und Prüfdokumente wieder auf gültige Pfade.
+
 ## 7.8.1 – Lokalisierung und englische Demo
 
 - Öffentliche Sprachwahl und native `/de/`- und `/en/`-Einstiege mit gewichteter Browserauswahl.

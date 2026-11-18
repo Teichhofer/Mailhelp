@@ -4,7 +4,7 @@
 
 **Stand** 17. November 2026. Überarbeitet anhand des lokalen Stands 7.7.1 und der laufenden 7.7-Arbeiten.
 
-**Status** Geplant. Dieses Dokument beschreibt Anforderungen, Umsetzung und Abnahme.
+**Status** Umgesetzt in 7.8.1 und 7.8.2, siehe [Release 7.8](Release-7.8.md).
 
 **Grundlagen** [Entwicklungsregeln](../AGENTS.md), [Spezifikation](../Mailhelp-Projektspezifikation.md), [Architektur](Architektur.md), [Planung 7.1](Planung-7.1.md), [Planung 7.5](Planung-7.5.md), [Release 7.5](Release-7.5.md), [Planung 7.6](Planung-7.6.md), [Release 7.6](Release-7.6.md), [Planung 7.7](Planung-7.7.md).
 

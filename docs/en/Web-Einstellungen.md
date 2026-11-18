@@ -1,6 +1,6 @@
 # Web interface settings <!-- mailhelp-id:web-einstellungen/einstellungen-der-weboberflaeche -->
 
-Verified for Mailhelp 7.0; inventory of all keys: [Test report 7.0](Pruefung-Dokumentation-7.0.md).
+Verified for Mailhelp 7.0; inventory of all keys: [Test report 7.0](../Pruefung-Dokumentation-7.0.md).
 
 ## Topics overview <!-- mailhelp-id:web-einstellungen/themenuebersicht -->
 
@@ -128,7 +128,7 @@ Setup drafts under `/einrichtung` and the sending profile under
 Saving initially retains the draft. Only the shown, version-related adoption activates
 changes; connection and target changes require a current successful diagnosis.
 Field names, limits, channel selection and immediate/restart effect:
-[Operating instructions 3.0](archiv/Release-3.0.md#konfigurationsvertrag).
+[Operating instructions 3.0](../archiv/Release-3.0.md#konfigurationsvertrag).
 
 Each info icon explains what the setting changes and what consequences other values have. Hover over it with the mouse, focus it with Tab or tap it on the phone. Escape hides the bubble. Reading does not change any setting.
 
@@ -556,7 +556,7 @@ Used profiles can only be removed after resolving all displayed references.
 | Filter | Local address/Domain blocks and exact Exceptions from global blocks. |
 
 Saving creates a setup draft. Applying it requires a renewed explicit local confirmation. Target/connection changes require current read diagnostics. The draft shows running Mails that are held back by a relevant change. Credentials are edited separately under **Settings → Credentials** directly in `.env`.
-Guide: [Release 3.2](archiv/Release-3.2.md).
+Guide: [Release 3.2](../archiv/Release-3.2.md).
 
 ## Mailbox Briefings (4.9) <!-- mailhelp-id:web-einstellungen/postfach-briefings-49 -->
 
