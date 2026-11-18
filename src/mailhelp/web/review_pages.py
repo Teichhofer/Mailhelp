@@ -12,7 +12,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlsplit
 
-from ..domain.proposal import ProposalKind, ProposalStatus
+from ..domain.proposal import CalendarSupplement, ProposalKind, ProposalStatus
 from ..i18n import msg, stored, tr
 from ..review.calendar_display import change_parts
 from ..review.cards import sender_name
@@ -168,12 +168,24 @@ def _diff_box(view: ProposalView) -> str:
         items = "".join(f"<li>{e(label)}</li>" for label in view.calendar_candidates)
         candidates = (f'<div class="diff-box"><p>📅 <strong>{tr("Passende Kalendertermine:")}</strong></p>'
                       f"<ol>{items}</ol></div>")
+    supplement = _supplement_box(view.calendar_supplement)
     if not view.time_changes:
-        return candidates
+        return candidates + supplement
     lines = "".join(_change_line(str(change)) for change in view.time_changes)
     heading = tr("Terminänderung gegenüber dem Kalender:")
     return (candidates + f'<div class="diff-box"><p>🔄 <strong>{heading}</strong></p>'
-            f"<ul>{lines}</ul></div>")
+            f"<ul>{lines}</ul></div>" + supplement)
+
+
+def _supplement_box(supplement: CalendarSupplement | None) -> str:
+    """7.9: the confirmed addition to the existing entry: target, old link struck, new link bold."""
+    if supplement is None:
+        return ""
+    heading = (tr("Bestehenden Termin aktualisieren: Videolink ergänzen") if supplement.previous is None
+               else tr("Bestehenden Termin aktualisieren: Videolink ersetzen"))
+    old = f"<del>{e(supplement.previous)}</del> → " if supplement.previous is not None else ""
+    return (f'<div class="diff-box"><p>🔗 <strong>{heading}</strong></p>'
+            f'<ul><li>{tr("Videolink")}: {old}<strong>{e(supplement.proposed)}</strong></li></ul></div>')
 
 
 # 5.0.7: every kind has a stripe colour, a symbol and a text; colour is never the only mark.
@@ -191,7 +203,7 @@ def card_kind(view: ProposalView) -> str:
         return "task"
     if view.is_cancellation:
         return "cancel"
-    return "change" if view.time_changes else "event"
+    return "change" if view.time_changes or view.calendar_supplement is not None else "event"
 
 
 def proposal_card(view: ProposalView, *, actions: Actions | None = None,

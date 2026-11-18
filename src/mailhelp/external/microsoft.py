@@ -45,7 +45,7 @@ LOGIN = "https://login.microsoftonline.com"
 SCOPES = "offline_access Calendars.ReadWrite Tasks.ReadWrite"
 # Named MAPI property that carries the idempotency key on every Outlook event.
 KEY_PROPERTY = "String {6b1c9a0e-4f43-4c9a-9d55-6d61696c6865} Name mailhelpKey"
-_EVENT_FIELDS = "id,subject,body,location,start,end,isAllDay,isCancelled,webLink"
+_EVENT_FIELDS = "id,subject,body,location,start,end,isAllDay,isCancelled,webLink,onlineMeeting"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
@@ -189,6 +189,8 @@ class GraphEvent(IntegrationModel):
     isAllDay: bool = False
     isCancelled: bool = False
     webLink: str | None = None
+    # 7.9: the Teams (or other provider) join link of an online meeting.
+    onlineMeeting: dict[str, Any] | None = None
 
 
 class GraphTask(IntegrationModel):
@@ -398,7 +400,9 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
                 "location": str((event.location or {}).get("displayName") or "")[:1000] or None,
                 "htmlLink": event.webLink if (event.webLink or "").startswith("https://") else None,
                 "start": _neutral_time(event.start, event.isAllDay),
-                "end": _neutral_time(event.end, event.isAllDay)})
+                "end": _neutral_time(event.end, event.isAllDay),
+                "conference_links": [join] if isinstance(join := (event.onlineMeeting or {}).get("joinUrl"), str)
+                else []})
         except (ValidationError, ValueError, KeyError) as exc:
             raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad {exc}") from None
 

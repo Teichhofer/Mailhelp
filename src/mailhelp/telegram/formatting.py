@@ -84,8 +84,16 @@ def _calendar_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
                 parts = change_parts(change)
                 lines.append(tr("- {field}: bisher {before} → neu {after}", field=parts[0], before=parts[1],
                                 after=parts[2]) if parts else f"- {change}")
-        else:
+        elif proposal.calendar_supplement is None:
             lines.append(tr("🔄 Terminänderung gegenüber Kalender"))
+        supplement = None if proposal.is_cancellation else proposal.calendar_supplement
+        if supplement is not None:
+            # 7.9: the concrete addition to the existing entry, old value named on a replacement.
+            lines.append(tr("🔗 Bestehenden Termin aktualisieren: Videolink ergänzen") if supplement.previous is None
+                         else tr("🔗 Bestehenden Termin aktualisieren: Videolink ersetzen"))
+            if supplement.previous is not None:
+                lines.append(tr("- bisher: {link}", link=supplement.previous))
+            lines.append(tr("- neu: {link}", link=supplement.proposed))
     if proposal.calendar_candidates:
         lines.append(tr("📅 Passende Kalendertermine:"))
         lines.extend(f"{index}. {candidate_label(item, configured_timezone)}"

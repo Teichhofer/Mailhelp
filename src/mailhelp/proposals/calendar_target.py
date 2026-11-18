@@ -25,6 +25,7 @@ from ..domain.proposal import (
 from ..external.calendar import CalendarOperations
 from ..external.contracts import CalendarOverlapEvent
 from ..logging import EventLogger
+from . import conference_supplement
 
 NEAR = timedelta(days=1)
 WIDE = timedelta(days=92)
@@ -137,13 +138,17 @@ class CalendarTargetFinder:
         if (proposal.classification == ProposalClassification.CHANGE and proposal.location
                 and proposal.location != (existing.location or "")):
             changes.append(f"Ort {existing.location or '—'} → {proposal.location}")
-        if proposal.classification == ProposalClassification.CHANGE and not changes and updated.start is not None:
+        # 7.9: the same content comparison as the pre-check; a missing link is a change to confirm.
+        supplement = conference_supplement.plan(updated, existing)
+        conference_supplement.log(self.logger, proposal, existing, supplement)
+        if (proposal.classification == ProposalClassification.CHANGE and not changes and updated.start is not None
+                and supplement.supplement is None):
             # The entry already shows the new state, e.g. the user moved it by hand.
             self.logger.event("INFO", "precheck", "change_already_applied", proposal_id=proposal.id,
                               existing_event_id=existing.id)
             return proposal.model_copy(update={
                 "status": ProposalStatus.ALREADY_EXISTS, "open_questions": [], "target_event_id": None,
-                "calendar_candidates": [], "is_cancellation": False, "time_changes": [],
+                "calendar_candidates": [], "is_cancellation": False, "time_changes": [], "calendar_supplement": None,
                 "duplicate_match": DuplicateMatchInfo(
                     source=DuplicateSource.GOOGLE_CALENDAR, external_id=existing.id,
                     external_link=existing.htmlLink, matched_title=existing.summary or proposal.title,
@@ -156,9 +161,10 @@ class CalendarTargetFinder:
             kept = []
         updated = updated.model_copy(update={"time_changes": changes})
         questions = list(dict.fromkeys([*kept, *required_revision_questions(updated)]))
-        return updated.model_copy(update={
+        return conference_supplement.apply(updated.model_copy(update={
             "open_questions": questions,
-            "status": ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION})
+            "status": ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION}),
+            supplement)
 
     def _open(self, proposal: Proposal, matches: list[CalendarOverlapEvent] | list[CalendarCandidate],
               question: str) -> Proposal:
@@ -168,7 +174,8 @@ class CalendarTargetFinder:
             item if isinstance(item, CalendarCandidate) else self._candidate(item) for item in matches)
             if candidate is not None]
         cleared = proposal.model_copy(update={"target_event_id": None, "is_cancellation": False,
-                                              "time_changes": [], "calendar_candidates": candidates})
+                                              "time_changes": [], "calendar_candidates": candidates,
+                                              "calendar_supplement": None})
         kept = [item for item in proposal.open_questions if item not in _OWN_QUESTIONS]
         questions = list(dict.fromkeys([question, *kept, *(item for item in required_revision_questions(cleared)
                                                             if item not in TARGET_QUESTIONS)]))

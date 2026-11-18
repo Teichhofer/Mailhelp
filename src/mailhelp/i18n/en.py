@@ -9477,4 +9477,16 @@ EN = {
     'Ereignis': 'Event',
     'Gesamter Zeitraum': 'Entire period',
     'Stabile Nummer': 'Stable number',
+    # Conference link supplement of an existing calendar entry (7.9.1)
+    '- bisher: {link}': '- before: {link}',
+    '- neu: {link}': '- new: {link}',
+    'Bestehenden Termin aktualisieren: Videolink ergänzen': 'Update existing event: add video link',
+    'Bestehenden Termin aktualisieren: Videolink ersetzen': 'Update existing event: replace video link',
+    '🔗 Bestehenden Termin aktualisieren: Videolink ergänzen': '🔗 Update existing event: add video link',
+    '🔗 Bestehenden Termin aktualisieren: Videolink ersetzen': '🔗 Update existing event: replace video link',
+    'Mit Kalender erneut abgleichen': 'Compare with calendar again',
+    'Widerspruch beim Videolink: im Kalender „{previous}“, laut Mail „{proposed}“. Welcher Videolink soll gelten?': (
+        'Conflicting video link: in the calendar “{previous}”, according to the email “{proposed}”. '
+        'Which video link applies?'
+    ),
 }

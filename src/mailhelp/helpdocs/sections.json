@@ -1175,6 +1175,18 @@
   "title": "Rückfragen und Widersprüche"
  },
  {
+  "id": "bedienung/videolink-fuer-einen-bestehenden-termin",
+  "path": [
+   "Alltagsbedienung",
+   "Rückfragen und Widersprüche",
+   "Videolink für einen bestehenden Termin"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Steht ein Online-Termin schon ohne Einwahllink im Kalender und liefert eine spätere Mail den Link,\nlegt Mailhelp keinen zweiten Termin an. Die Karte zeigt „Bestehenden Termin aktualisieren:\nVideolink ergänzen“ mit dem Link; erst **Bestehenden Termin aktualisieren** schreibt ihn in die\nBeschreibung des vorhandenen Termins. Titel, Zeiten, Teilnehmer und deine Notizen bleiben unverändert.\nHat der Termin schon einen anderen Konferenzlink, fragt Mailhelp, welcher gelten soll; der alte Link\nwird nur nach deiner Auswahl und Bestätigung ersetzt. Ist derselbe Link schon da, bleibt es beim\nHinweis „Bereits vorhanden“. Als Konferenzlink gelten nur Adressen bekannter Anbieter wie Zoom,\nMicrosoft Teams, Google Meet oder Webex, keine Anmelde- oder Veranstalterseiten.\n\nEin Vorschlag, den eine ältere Version schon als vorhanden abgeschlossen hat, obwohl er einen Link\nenthält, bietet **Mit Kalender erneut abgleichen** an. Das vergleicht den Link mit dem aktuellen\nKalender und erzeugt höchstens eine neue Version, die du separat bestätigst.",
+  "title": "Videolink für einen bestehenden Termin"
+ },
+ {
   "id": "bedienung/vorschlagsabgleich",
   "path": [
    "Alltagsbedienung",
@@ -1490,7 +1502,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Betrieb.md",
-  "text": "Geprüft für Mailhelp 7.0.",
+  "text": "Geprüft für Mailhelp 7.0.\n\nFür Serveränderungen gilt zusätzlich die Dokumentationspflicht aus [AGENTS.md](../AGENTS.md):\nNach nachgewiesen erfolgreicher Einrichtung, Änderung oder Reparatur den bestätigten\nIstzustand, reproduzierbare Schritte, betroffene Versionen, Prüfungen und das\nRückkehrverfahren vor Abschluss der Arbeit nachführen. Das gilt auch für DNS, nginx,\nTLS, Container, systemd, Firewall, Dateirechte, Sicherung und OAuth-Konfiguration.\nFehlversuche und zurückgenommene Änderungen als solche kennzeichnen, nicht als\ngültige Einrichtung übernehmen. Geheimnisse bleiben außerhalb von Git.\n\n[Planung 8.0](Planung-8.0.md) sieht dafür ein versioniertes Serverhandbuch unter\ndocs/Serverhandbuch.md (geplant) und geheimnisfreie Vorlagen unter `ops/server/` vor.\nDiese vollständige Neuaufbau-/Wiederherstellungsanleitung ist noch zu erstellen;\nbis dahin hier den verifizierten Betriebsstand ergänzen. Lokale Notizen oder nur\nauf dem Server gespeicherte Konfigurationen ersetzen keine Git-Sicherung.",
   "title": "Betrieb und Update"
  },
  {
@@ -1548,6 +1560,30 @@
   "source": "docs/Betrieb.md",
   "text": "```sh\nMAILHELP_DEMO_ALLOWED_HOSTS=demo.example.org docker compose -f compose.demo.yaml up -d --build\n```\n\n`compose.demo.yaml` startet denselben Image-Einstiegspunkt mit `--demo` und dem eigenen Volume\n`demo-daten`; `.env`, `config.yaml`, Daten und Logs der normalen Instanz werden nicht eingebunden.\nBeide Instanzen laufen unabhängig, auch gleichzeitig. Das Netz `mailhelp-demo` ist intern, der\nContainer erreicht also kein Internet. Das ist die zweite Schutzschicht: Die Demo erzeugt ohnehin\nkeine Clients für Postfach, Telegram, KI oder Ziele.\n\nDer HTTPS-Proxy für die Demo-Subdomain tritt dem Netz `mailhelp-demo` bei und leitet an\n`mailhelp-demo:8765` weiter. Ein internes Netz kann keinen Port auf dem Host veröffentlichen. Läuft\nder Proxy auf dem Host (etwa Tailscale Serve), braucht der Dienst ein normales Netz mit\n`127.0.0.1:<Port>:8765`; die Sperre des ausgehenden Verkehrs übernimmt dann eine Firewallregel für\ndas Demo-Netz (unter Linux in der Kette `DOCKER-USER`). `MAILHELP_DEMO_TRUST_PROXY` bleibt nur\ngesetzt, solange ausschließlich der Proxy den Container erreicht.\n\nZurücksetzen der ganzen Demo: Container stoppen und das Volume `demo-daten` löschen; beim nächsten\nStart ist das Verzeichnis leer und wird neu markiert.",
   "title": "Demo im Docker-Container"
+ },
+ {
+  "id": "betrieb/sprach-einstiege-hinter-dem-proxy-verifiziert-am-18112026-mit-781",
+  "path": [
+   "Betrieb und Update",
+   "Demo-Instanz",
+   "Sprach-Einstiege hinter dem Proxy (verifiziert am 18.11.2026 mit 7.8.1)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Seit 7.8.1 bedient Mailhelp `/de/`, `/en/` und `/sprache?wert=de|en` selbst. Die Antwort ist eine\nWeiterleitung (303) zur Startseite mit dem Cookie `mailhelp_lang` (`Secure`, `SameSite=Lax`,\nein Jahr); ein ungültiger Wert ergibt 400. Der Proxy leitet diese Pfade deshalb unverändert weiter\nund setzt weder Sprachcookie noch eigene Weiterleitung.\n\nUmstellung einer bestehenden Proxy-Konfiguration:\n\n1. Am Container ohne Proxy prüfen, dass `/en/` mit 303 und `Set-Cookie: mailhelp_lang=en` antwortet.\n2. Die Konfigurationsdatei der Demo-Subdomain sichern.\n3. Daraus die Zuordnungen für Sprachcookie und Cache-Header, die beiden `add_header`-Zeilen dafür\n   und die Blöcke `location = /de/` und `location = /en/` entfernen.\n4. `nginx -t` ausführen und nur bei Erfolg `systemctl reload nginx`; sonst die Sicherung zurückspielen.\n5. Über HTTPS prüfen: `/en/` mit deutschem Browser zeigt die englische Startseite, `/de/` mit\n   englischem Browser die deutsche; ein Demo-Start zeigt den passenden Beispielbestand.\n\nRückweg: die gesicherte Datei zurückkopieren, `nginx -t`, `systemctl reload nginx`. Ältere Versionen\nvor 7.8.1 brauchen die Proxy-Weiterleitung, weil sie `/de/` und `/en/` nicht kennen.",
+  "title": "Sprach-Einstiege hinter dem Proxy (verifiziert am 18.11.2026 mit 7.8.1)"
+ },
+ {
+  "id": "betrieb/server-update-mit-image-verifiziert-am-18112026-776-781",
+  "path": [
+   "Betrieb und Update",
+   "Demo-Instanz",
+   "Server-Update mit Image (verifiziert am 18.11.2026, 7.7.6 → 7.8.1)"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Produktive Instanz und Demo laufen als Compose-Projekte desselben Images. Das Update lief so:\n\n1. Quellarchiv eines Commits erzeugen: `git archive <commit> Dockerfile README.md pyproject.toml\n   requirements.lock src`; auf dem Server in ein eigenes Release-Verzeichnis `<version>-<commit>`\n   entpacken und daraus das Image `mailhelp-production:<version>-<commit>` bauen.\n2. Version im Image ohne Netz prüfen: `docker run --rm --network none --entrypoint python <image>\n   -c \"import mailhelp; print(mailhelp.__version__)\"`.\n3. Beide Compose-Dateien sichern, Image und Build-Pfad darin ersetzen und mit\n   `docker compose config --quiet` prüfen.\n4. Beide Container stoppen (Produktion mit 45 s Wartezeit), erst dann die Laufzeitverzeichnisse\n   beider Instanzen als Archiv sichern; das ergibt einen konsistenten Stand.\n5. Beide Container ohne Neubau starten, die Healthchecks abwarten und die Version im laufenden\n   Container prüfen. Schlägt ein Schritt fehl, werden die gesicherten Compose-Dateien\n   zurückgeschrieben und die vorherigen Container wieder gestartet.\n\nErgebnis am 18.11.2026: beide Healthchecks bestanden, Version 7.8.1 in beiden Containern, bestehende\nDemo-Besucher wurden ohne Fehler übernommen. Rückweg: gesicherte Compose-Dateien zurückkopieren, die\ngesicherten Laufzeitarchive bei gestoppten Containern zurückspielen und die Container mit dem\nvorherigen, weiter vorhandenen Image starten. Zugangsdaten bleiben in der `.env` der Instanz und\nwerden weder ins Archiv des Quellstands noch ins Image übernommen.\n\nBeobachtung nach dem Neustart: Google lehnte die Erneuerung des Kalenderzugangs ab (HTTP 400), weil\nder Refresh-Token einer OAuth-App im Google-Status `Testing` nach sieben Tagen verfällt. Abhilfe ist\neine erneute Google-Anmeldung über die Weboberfläche; dauerhaft hilft die Umstellung der App auf den\nGoogle-Status `In production`.",
+  "title": "Server-Update mit Image (verifiziert am 18.11.2026, 7.7.6 → 7.8.1)"
  },
  {
   "id": "betrieb/sicherung",

@@ -59,6 +59,13 @@ or “Take 20:30” sets the value with one click and creates a new version; it 
 version. For a completely different value, you change the suggestion or reply freely.
 In Telegram, the same values appear in the message and as buttons below.
 
+### Video link for an existing event <!-- mailhelp-id:bedienung/videolink-fuer-einen-bestehenden-termin -->
+
+If an online event is already in the calendar without a dial-in link and a later email provides the link, Mailhelp does not create a second event. The card shows “Update existing event: add video link” with the link; only **Update existing event** writes it into the description of the existing event. Title, times, attendees and your notes stay unchanged.
+If the event already has a different conference link, Mailhelp asks which one applies; the old link is only replaced after your choice and confirmation. If the same link is already there, the proposal stays “Already exists”. Only addresses of known providers such as Zoom, Microsoft Teams, Google Meet or Webex count as conference links, not registration or organiser pages.
+
+A proposal that an older version already closed as existing although it contains a link offers **Compare with calendar again**. This compares the link with the current calendar and creates at most a new version, which you confirm separately.
+
 ## Proposal review <!-- mailhelp-id:bedienung/vorschlagsabgleich -->
 
 If Mailhelp holds two Proposals for the same thing or an Email brings additional Fields for an existing Proposal, you decide in the **Proposal review** (`/abgleich`):

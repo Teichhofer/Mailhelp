@@ -384,6 +384,12 @@ class MailhelpSite:
                                         or current.status != ProposalStatus.REJECTED):
                 return tr("Dieser Vorschlag wurde inzwischen geändert oder ist nicht verworfen.")
             return None
+        if (command.kind == CommandKind.RECHECK and current is not None
+                and current.status == ProposalStatus.ALREADY_EXISTS):
+            # 7.9: the explicit re-evaluation of exactly the offered closed version.
+            if command.version != current.version or CommandKind.RECHECK not in current.actions:
+                return tr("Dieser Vorschlag wurde inzwischen geändert oder entschieden.")
+            return None
         if command.kind == CommandKind.REMOVE_CREATED:
             if current is not None and (
                 command.version != current.version

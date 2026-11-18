@@ -89,6 +89,21 @@ oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine
 Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
 In Telegram stehen dieselben Werte in der Nachricht und als Schaltflächen darunter.
 
+### Videolink für einen bestehenden Termin
+
+Steht ein Online-Termin schon ohne Einwahllink im Kalender und liefert eine spätere Mail den Link,
+legt Mailhelp keinen zweiten Termin an. Die Karte zeigt „Bestehenden Termin aktualisieren:
+Videolink ergänzen“ mit dem Link; erst **Bestehenden Termin aktualisieren** schreibt ihn in die
+Beschreibung des vorhandenen Termins. Titel, Zeiten, Teilnehmer und deine Notizen bleiben unverändert.
+Hat der Termin schon einen anderen Konferenzlink, fragt Mailhelp, welcher gelten soll; der alte Link
+wird nur nach deiner Auswahl und Bestätigung ersetzt. Ist derselbe Link schon da, bleibt es beim
+Hinweis „Bereits vorhanden“. Als Konferenzlink gelten nur Adressen bekannter Anbieter wie Zoom,
+Microsoft Teams, Google Meet oder Webex, keine Anmelde- oder Veranstalterseiten.
+
+Ein Vorschlag, den eine ältere Version schon als vorhanden abgeschlossen hat, obwohl er einen Link
+enthält, bietet **Mit Kalender erneut abgleichen** an. Das vergleicht den Link mit dem aktuellen
+Kalender und erzeugt höchstens eine neue Version, die du separat bestätigst.
+
 ## Vorschlagsabgleich
 
 Hält Mailhelp zwei Vorschläge für dieselbe Sache oder bringt eine Mail Zusatzangaben zu einem bestehenden Vorschlag,

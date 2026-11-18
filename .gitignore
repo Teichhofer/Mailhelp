@@ -245,3 +245,6 @@ mutants/
 
 # Lokale Server-Zugangsdokumentation
 /SERVERZUGANG.local.md
+
+# Lokale OAuth-Clientdateien und weitere Geheimnisse
+/.secrets/

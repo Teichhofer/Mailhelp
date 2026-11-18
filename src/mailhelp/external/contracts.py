@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..domain.proposal import Proposal
 from ..domain.verification import FieldDifference, Operation
@@ -96,6 +96,25 @@ class CalendarOverlapEvent(IntegrationModel):
     htmlLink: str | None = None
     start: dict[str, str]
     end: dict[str, str]
+    # 7.9: conference links from the provider's own fields (Google hangoutLink/conferenceData,
+    # Outlook onlineMeeting); compared like links in the description, never fetched.
+    conference_links: list[str] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="before")
+    @classmethod
+    def native_conference_links(cls, value: object) -> object:
+        """Collect Google's native conference fields into the provider-neutral list."""
+        if not isinstance(value, dict) or "conference_links" in value:
+            return value
+        links: list[str] = []
+        if isinstance(value.get("hangoutLink"), str):
+            links.append(value["hangoutLink"])
+        data = value.get("conferenceData")
+        points = data.get("entryPoints") if isinstance(data, dict) else None
+        for point in points if isinstance(points, list) else []:
+            if isinstance(point, dict) and point.get("entryPointType") == "video" and isinstance(point.get("uri"), str):
+                links.append(point["uri"])
+        return {**value, "conference_links": list(dict.fromkeys(links))[:10]}
 
 
 @dataclass(frozen=True)

@@ -30,6 +30,7 @@ from ..domain.processing import (
 )
 from ..domain.proposal import (
     UNVERIFIED_LEGACY_ACTOR,
+    CalendarSupplement,
     Proposal,
     ProposalKind,
     ProposalStatus,
@@ -124,6 +125,7 @@ class ProposalView:
     target_event_id: str | None = None
     time_changes: list[str] | None = None
     is_cancellation: bool = False
+    calendar_supplement: CalendarSupplement | None = None
     series_key: str | None = None
     base_title: str | None = None
     # Display labels of Proposal.calendar_candidates, in the same order (4.6).
@@ -624,6 +626,7 @@ class ReviewViews:
             target_event_id=proposal.target_event_id,
             time_changes=proposal.time_changes,
             is_cancellation=proposal.is_cancellation,
+            calendar_supplement=None if proposal.is_cancellation else proposal.calendar_supplement,
             series_key=proposal.series_key, base_title=proposal.base_title,
             calendar_candidates=tuple(candidate_label(item, self.configured_timezone)
                                       for item in proposal.calendar_candidates),
@@ -659,6 +662,10 @@ class ReviewViews:
             state = stored(verification.title)
             if verification.recheckable and proposal.status == ProposalStatus.VERIFYING:
                 actions.add(CommandKind.VERIFY_ENTRY)
+        if (proposal.status == ProposalStatus.ALREADY_EXISTS and proposal.kind == ProposalKind.EVENT
+                and proposal.video_link is not None and not paused):
+            # 7.9: only on request: compare the received link with the calendar entry again.
+            actions.add(CommandKind.RECHECK)
         return state, actions
 
     def _can_remove(self, proposal: Proposal, verification: VerificationSummary | None) -> bool:

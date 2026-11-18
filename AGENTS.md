@@ -29,5 +29,24 @@ Geprüft für Mailhelp 7.0.
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
 - Automatisierte Tests verwenden simulierte externe Dienste und synthetische Daten.
 - Aktualisiere bei Verhaltensänderungen Spezifikation und Konfigurationsbeispiele.
+- Pflege nach jeder erfolgreich geprüften Änderung an der Servereinrichtung das
+  versionierte Serverhandbuch und die betroffenen Konfigurationsvorlagen, bevor die
+  Arbeit als abgeschlossen gemeldet wird. Dies gilt auch für manuelle Reparaturen,
+  Updates, Migrationen, Rücksetzungen und Änderungen außerhalb des Anwendungscodes
+  (DNS, nginx, TLS, Docker, systemd, Firewall, Ports, Rechte, Sicherung, OAuth und Dienste).
+  Maßgeblich ist nach Umsetzung von 8.0 das geplante Serverhandbuch docs/Serverhandbuch.md mit `ops/server/`;
+  bis dahin den bestätigten Stand in `docs/Betrieb.md` dokumentieren.
+- Übernimm Serveränderungen erst nach überprüftem Erfolg als gültigen Istzustand.
+  Dokumentiere Datum, betroffene Komponenten, reproduzierbare Schritte, Versionen,
+  Prüfungen/Ergebnisse und Rückkehrverfahren. Fehlgeschlagene oder zurückgenommene
+  Versuche getrennt als solche kennzeichnen; bei Rückkehr den zuletzt verifizierten
+  Stand beschreiben. Geplante Einrichtungen nicht als bereits vorhanden darstellen.
+- Serverhandbuch und geheimnisfreie Vorlagen müssen in Git erfasst werden; lokale
+  Notizen, temporäre Deploymentskripte und nur auf dem Server vorhandene Dateien
+  reichen nicht. Keine Passwörter, Tokens, privaten Schlüssel, produktiven `.env`-
+  Dateien oder Kundendaten übernehmen. Stattdessen benötigte Secret-Namen, sichere
+  Bereitstellung und getrennte Sicherung/Wiederherstellung beschreiben. Ohne konkrete
+  Commit-/Push-Anweisung Änderungen nachvollziehbar vorbereiten und den noch nicht
+  versionierten Stand ausdrücklich nennen; keine erfolgreiche Git-Sicherung behaupten.
 - Bei jeder neuen Version muss auch die Datei `README.md` aktualisiert werden (z. B. Versionsstand, neue Funktionen und geänderte Abläufe).
 - Jeder Commit in `main` und `beta` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py`, führt die Änderungen in `CHANGELOG.md` auf und hält `README.md` aktuell.

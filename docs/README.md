@@ -26,6 +26,11 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Einrichtung und Qualitätsprüfung](Einrichtung-und-Qualitaetspruefung.md) | Aktualisierung, Tailscale, IServ, Google OAuth, Docker, Prüfung der Erkennungsqualität |
 | [Projektwebsite](GitHub-Pages.md) | Aufbau und Veröffentlichung von `website/` |
 
+Serveränderungen werden nach erfolgreicher Prüfung gemäß [AGENTS.md](../AGENTS.md)
+in der Betriebsdokumentation nachgeführt. [Planung 8.0](Planung-8.0.md) enthält das
+noch zu erstellende Serverhandbuch samt Vorlagen, Neuaufbau und Wiederherstellungsprobe.
+Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git gespeichert.
+
 ## Aufbau und Regeln
 
 | Dokument | Inhalt |
@@ -51,6 +56,8 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Planung 7.7](Planung-7.7.md), [Release 7.7](Release-7.7.md) | Vorfilter-Regeln und VIP-Absender |
 
 | [Planung 7.8](Planung-7.8.md), [Release 7.8](Release-7.8.md) | Vollständige Lokalisierung und englische Demo |
+| [Planung 7.9](Planung-7.9.md), [Release 7.9](Release-7.9.md) | Kalender-Zugangsdaten ergänzen und Anmeldeprobleme sichtbar machen |
+| [Planung 8.0](Planung-8.0.md) | Zentraler Google-Zugang, Ersteinrichtung und Serverhandbuch mit Konfigurationsvorlagen |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

@@ -2,6 +2,20 @@
 
 Geprüft für Mailhelp 7.0.
 
+Für Serveränderungen gilt zusätzlich die Dokumentationspflicht aus [AGENTS.md](../AGENTS.md):
+Nach nachgewiesen erfolgreicher Einrichtung, Änderung oder Reparatur den bestätigten
+Istzustand, reproduzierbare Schritte, betroffene Versionen, Prüfungen und das
+Rückkehrverfahren vor Abschluss der Arbeit nachführen. Das gilt auch für DNS, nginx,
+TLS, Container, systemd, Firewall, Dateirechte, Sicherung und OAuth-Konfiguration.
+Fehlversuche und zurückgenommene Änderungen als solche kennzeichnen, nicht als
+gültige Einrichtung übernehmen. Geheimnisse bleiben außerhalb von Git.
+
+[Planung 8.0](Planung-8.0.md) sieht dafür ein versioniertes Serverhandbuch unter
+docs/Serverhandbuch.md (geplant) und geheimnisfreie Vorlagen unter `ops/server/` vor.
+Diese vollständige Neuaufbau-/Wiederherstellungsanleitung ist noch zu erstellen;
+bis dahin hier den verifizierten Betriebsstand ergänzen. Lokale Notizen oder nur
+auf dem Server gespeicherte Konfigurationen ersetzen keine Git-Sicherung.
+
 ## Wiederkehrende Verarbeitungsfehler
 
 Mailhelp versucht dasselbe Fehlerbild je Mail höchstens fünfmal. Die Pausen zwischen
@@ -84,6 +98,54 @@ gesetzt, solange ausschließlich der Proxy den Container erreicht.
 
 Zurücksetzen der ganzen Demo: Container stoppen und das Volume `demo-daten` löschen; beim nächsten
 Start ist das Verzeichnis leer und wird neu markiert.
+
+### Sprach-Einstiege hinter dem Proxy (verifiziert am 18.11.2026 mit 7.8.1)
+
+Seit 7.8.1 bedient Mailhelp `/de/`, `/en/` und `/sprache?wert=de|en` selbst. Die Antwort ist eine
+Weiterleitung (303) zur Startseite mit dem Cookie `mailhelp_lang` (`Secure`, `SameSite=Lax`,
+ein Jahr); ein ungültiger Wert ergibt 400. Der Proxy leitet diese Pfade deshalb unverändert weiter
+und setzt weder Sprachcookie noch eigene Weiterleitung.
+
+Umstellung einer bestehenden Proxy-Konfiguration:
+
+1. Am Container ohne Proxy prüfen, dass `/en/` mit 303 und `Set-Cookie: mailhelp_lang=en` antwortet.
+2. Die Konfigurationsdatei der Demo-Subdomain sichern.
+3. Daraus die Zuordnungen für Sprachcookie und Cache-Header, die beiden `add_header`-Zeilen dafür
+   und die Blöcke `location = /de/` und `location = /en/` entfernen.
+4. `nginx -t` ausführen und nur bei Erfolg `systemctl reload nginx`; sonst die Sicherung zurückspielen.
+5. Über HTTPS prüfen: `/en/` mit deutschem Browser zeigt die englische Startseite, `/de/` mit
+   englischem Browser die deutsche; ein Demo-Start zeigt den passenden Beispielbestand.
+
+Rückweg: die gesicherte Datei zurückkopieren, `nginx -t`, `systemctl reload nginx`. Ältere Versionen
+vor 7.8.1 brauchen die Proxy-Weiterleitung, weil sie `/de/` und `/en/` nicht kennen.
+
+### Server-Update mit Image (verifiziert am 18.11.2026, 7.7.6 → 7.8.1)
+
+Produktive Instanz und Demo laufen als Compose-Projekte desselben Images. Das Update lief so:
+
+1. Quellarchiv eines Commits erzeugen: `git archive <commit> Dockerfile README.md pyproject.toml
+   requirements.lock src`; auf dem Server in ein eigenes Release-Verzeichnis `<version>-<commit>`
+   entpacken und daraus das Image `mailhelp-production:<version>-<commit>` bauen.
+2. Version im Image ohne Netz prüfen: `docker run --rm --network none --entrypoint python <image>
+   -c "import mailhelp; print(mailhelp.__version__)"`.
+3. Beide Compose-Dateien sichern, Image und Build-Pfad darin ersetzen und mit
+   `docker compose config --quiet` prüfen.
+4. Beide Container stoppen (Produktion mit 45 s Wartezeit), erst dann die Laufzeitverzeichnisse
+   beider Instanzen als Archiv sichern; das ergibt einen konsistenten Stand.
+5. Beide Container ohne Neubau starten, die Healthchecks abwarten und die Version im laufenden
+   Container prüfen. Schlägt ein Schritt fehl, werden die gesicherten Compose-Dateien
+   zurückgeschrieben und die vorherigen Container wieder gestartet.
+
+Ergebnis am 18.11.2026: beide Healthchecks bestanden, Version 7.8.1 in beiden Containern, bestehende
+Demo-Besucher wurden ohne Fehler übernommen. Rückweg: gesicherte Compose-Dateien zurückkopieren, die
+gesicherten Laufzeitarchive bei gestoppten Containern zurückspielen und die Container mit dem
+vorherigen, weiter vorhandenen Image starten. Zugangsdaten bleiben in der `.env` der Instanz und
+werden weder ins Archiv des Quellstands noch ins Image übernommen.
+
+Beobachtung nach dem Neustart: Google lehnte die Erneuerung des Kalenderzugangs ab (HTTP 400), weil
+der Refresh-Token einer OAuth-App im Google-Status `Testing` nach sieben Tagen verfällt. Abhilfe ist
+eine erneute Google-Anmeldung über die Weboberfläche; dauerhaft hilft die Umstellung der App auf den
+Google-Status `In production`.
 
 ## Sicherung
 

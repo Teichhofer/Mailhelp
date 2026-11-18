@@ -87,6 +87,10 @@ def _took_effect(service: ReviewService, command: ReviewCommand) -> bool:
         return _removed_effect(service, command, current)
     if command.kind == CommandKind.RESTORE:
         return True
+    if (command.kind == CommandKind.RECHECK and current.status == ProposalStatus.ALREADY_EXISTS
+            and current.video_link is not None):
+        # 7.9: a re-evaluation of a closed duplicate took effect once its version moved on.
+        return current.version != command.version
     if current.version != command.version or current.status not in service_module._OPEN:
         return True
     pointer = service._pointer()

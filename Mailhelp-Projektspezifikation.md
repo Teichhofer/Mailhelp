@@ -3,6 +3,34 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 7.9: Konferenzlink für bestehende Kalendertermine
+
+Plan: [docs/Planung-7.9.md](docs/Planung-7.9.md). Seit 7.9.1 vergleicht Mailhelp nach festgestellter
+Terminidentität den Konferenzlink eines Termin-Vorschlags deterministisch mit dem vorhandenen Eintrag
+(`domain/conference.py`, `proposals/conference_supplement.py`). Vorabprüfung, Zielzuordnung von
+Änderungen und die erneute Prüfung vor dem Schreiben verwenden denselben Vergleich.
+
+- Als Konferenzlink gilt nur eine HTTPS-Adresse eines bekannten Anbieters (Liste der Hosts in
+  `domain/conference.py`, einschließlich Subdomains). Verglichen werden Beschreibung, Ort und die nativen Konferenzfelder
+  (`CalendarOverlapEvent.conference_links`: Google `hangoutLink`/`conferenceData`, Outlook
+  `onlineMeeting.joinUrl`). Schema und Host werden ohne Groß-/Kleinschreibung verglichen; Pfad,
+  Meeting-ID, Passcode und Query bleiben unverändert. Links werden nie aufgerufen.
+- Fehlt der Link, erhält der Vorschlag `target_event_id` und eine `CalendarSupplement`
+  (`operation: add`) und bleibt `pending_confirmation`. Derselbe Link ergibt `already_exists`.
+  Ein anderer Konferenzlink ergibt `operation: replace` mit bisherigem Wert und einen
+  `FieldConflict` „Videolink“ (`needs_clarification`); erst die Auswahl des neuen Links und die
+  Bestätigung erlauben die Ersetzung. Ein Treffer im ActionLedger überspringt diesen Vergleich nicht.
+- Vor dem Schreiben liest der Adapter den Zieltermin neu. Ist der Link inzwischen vorhanden, endet die
+  Ausführung ohne Schreibzugriff (`supplement_present`); ein inzwischen anderer Link oder ein anderes
+  Ziel führt zu einem fehlgeschlagenen Schreibzugriff ohne Überschreiben. Eine reine Ergänzung schreibt
+  nur die Beschreibung mit dem markierten Abschnitt `[Mailhelp-Videolink]` und den Idempotenzschlüssel.
+- `already_exists`-Termine mit Link bieten **Mit Kalender erneut abgleichen** an (`RECHECK`); das
+  erzeugt höchstens eine neue, separat zu bestätigende Version. Ältere Vorschläge werden beim Upgrade
+  weder automatisch neu bewertet noch geschrieben (`calendar_supplement` fehlt bei ihnen).
+- Diagnose ohne Inhalte: `video_link_missing`, `video_link_identical`, `video_link_conflict`,
+  `video_link_not_conference`, `supplement_detected`, `video_link_already_present`,
+  `video_link_conflict_at_write` mit Vorschlags- und Termin-ID.
+
 ## Ergänzung 7.7: Vorfilter-Regeln und VIP-Absender
 
 Plan: [docs/Planung-7.7.md](docs/Planung-7.7.md). Seit 7.7.1 hat `irrelevant-senders.json` Schema 3.

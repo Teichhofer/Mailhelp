@@ -1,5 +1,14 @@
 # Änderungen
 
+## 7.9.1 – Konferenzlink für bestehende Kalendertermine
+
+- Bugfix: Eine spätere Mail mit Einwahllink zu einem vorhandenen Termin ohne Link wird nicht mehr als Duplikat abgeschlossen, sondern als bestätigungspflichtige Aktualisierung angeboten.
+- Gemeinsamer deterministischer Linkvergleich für Vorabprüfung, Zielzuordnung und Schreibpfad; native Konferenzfelder von Google und Outlook werden berücksichtigt.
+- Gespeicherte, zielgebundene Änderung `calendar_supplement`; vor dem Schreiben wird der Termin neu gelesen, ein inzwischen vorhandener Link führt zu keinem weiteren Schreibzugriff.
+- Anderer Konferenzlink im Kalender: Widerspruch mit Auswahl; Ersetzung erst nach Auswahl und Bestätigung.
+- „Mit Kalender erneut abgleichen“ für ältere Duplikate mit Link; Web- und Telegram-Vorschau auf Deutsch und Englisch.
+- Betriebsdokumentation: verifizierter Serverstand von 7.8 (Image-Update, Sprach-Einstiege hinter dem Proxy) und Dokumentationspflicht für Serveränderungen.
+
 ## 7.8.2 – Abschluss von 7.8
 
 - Öffentliche Demo: `/de/` und `/en/` werden nativ von Mailhelp bedient; die Sprachweiterleitung im Proxy entfällt.

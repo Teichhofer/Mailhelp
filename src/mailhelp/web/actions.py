@@ -99,8 +99,8 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             return notice(tr("Antwort gespeichert – der Vorschlag wird aktualisiert."), "info")
         if view.paused:
             return notice(tr("Die Verarbeitung ist pausiert. Bitte den Betreiber prüfen lassen."), "warn")
-        if view.status == ProposalStatus.REJECTED:
-            return reject_reason_block(csrf, view.mail_id, view.proposal_id, view.version, view.reject_reason)
+        if view.status in {ProposalStatus.REJECTED, ProposalStatus.ALREADY_EXISTS}:
+            return _closed(csrf, view)
         if not view.actions:
             return ""
         parts = []
@@ -150,6 +150,17 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         return "".join(parts)
 
     return render
+
+
+def _closed(csrf: str, view: ProposalView) -> str:
+    """A rejected proposal keeps its reason form; a closed duplicate (7.9) offers only its re-evaluation,
+    which creates a new version that needs its own confirmation."""
+    if view.status == ProposalStatus.REJECTED:
+        return reject_reason_block(csrf, view.mail_id, view.proposal_id, view.version, view.reject_reason)
+    if CommandKind.RECHECK not in view.actions:
+        return ""
+    button = _button_form(csrf, view, CommandKind.RECHECK, msg("Mit Kalender erneut abgleichen"), "")
+    return f'<div class="actions">{button}</div>'
 
 
 def _decision_help(view: ProposalView) -> str:

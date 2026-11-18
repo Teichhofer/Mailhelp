@@ -11,9 +11,10 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import Field, ValidationError
 
+from ..domain.conference import assess, normalized, with_link
 from ..domain.event_titles import titles_related
 from ..domain.extraction import CalendarDuplicateDecision
-from ..domain.proposal import Proposal, ProposalKind
+from ..domain.proposal import CalendarSupplement, Proposal, ProposalKind
 from ..llm.adapter import PermanentError, uncertain_write
 from .contracts import (
     CalendarEventResponse,
@@ -197,6 +198,21 @@ class CalendarOperations(HttpTransport):
             # A change never recreates an entry the user deleted.
             return PreparedWrite(partial(_raise, PermanentError(
                 f"{self.label}: Der zugeordnete Termin existiert nicht mehr; bitte erneut prüfen")))
+        supplement = None if proposal.is_cancellation else proposal.calendar_supplement
+        if supplement is not None:
+            try:
+                state = self._supplement_state(proposal, supplement, existing, event_id)
+            except PermanentError as exc:
+                # Like a deleted target: the confirmed version fails and is checked again, never overwritten.
+                return PreparedWrite(partial(_raise, exc))
+            if state == "present" and not proposal.time_changes:
+                # The confirmed link is there already (added by hand or by an earlier unclear write).
+                self.logger.event("INFO", self.service, "video_link_already_present", call_id=key,
+                                  proposal_id=proposal.id, existing_event_id=event_id)
+                return PreparedWrite(lambda: {"id": event_id, "htmlLink": existing.htmlLink,
+                                              "operation": "supplement_present"},
+                                     requires_write=False, expected=self._existing_expected(existing, {}),
+                                     kind="update")
         if proposal.is_cancellation:
             # Only the status changes; Outlook deletes, Google and CalDAV mark it cancelled.
             body: dict[str, Any] = {"status": "cancelled", "extendedProperties": {"private": {"mailhelp_key": key}}}
@@ -221,15 +237,45 @@ class CalendarOperations(HttpTransport):
                             "dateTime" not in start, body.get("location", existing.location), self.target)
         return {**facts, "start": _point(start), "end": _point(end)}
 
+    def _supplement_state(self, proposal: Proposal, supplement: CalendarSupplement, existing: CalendarOverlapEvent,
+                          event_id: str) -> str:
+        """7.9: compare the confirmed supplement with the entry as it is right now.
+
+        ``present`` ends without a write; ``open`` writes. A different link that appeared after the
+        confirmation, or a supplement bound to another entry, is refused instead of overwritten.
+        """
+        if supplement.target_event_id != event_id:
+            raise PermanentError(f"{self.label}: Ergänzung gehört zu einem anderen Termin; bitte erneut prüfen")
+        found = assess(supplement.proposed, [existing.description, existing.location], existing.conference_links)
+        if found.state == "same":
+            return "present"
+        if found.state == "conflict" and (supplement.previous is None
+                                          or normalized(supplement.previous) != found.previous):
+            self.logger.event("WARNING", self.service, "video_link_conflict_at_write", proposal_id=proposal.id,
+                              existing_event_id=event_id)
+            raise PermanentError(
+                f"{self.label}: Der Termin hat inzwischen einen anderen Videolink; bitte erneut prüfen")
+        return "open"
+
     def _change_body(self, proposal: Proposal, key: str, existing: CalendarOverlapEvent) -> dict[str, Any]:
         # Revalidate at the external trust boundary, as for a new event.
         validated = Proposal.model_validate(proposal.model_dump())
+        supplement = validated.calendar_supplement
+        stamp = f"[Mailhelp {_now(self.calendar_timezone):%d.%m.%Y %H:%M}]"
+        if supplement is not None and not validated.time_changes:
+            # 7.9: a pure supplement writes only the description: times, title, place stay untouched.
+            note = (f"{stamp} Videolink {'ersetzt' if supplement.operation == 'replace' else 'ergänzt'} "
+                    f"(bestätigte Vorschlagsversion {validated.version}).")
+            description = with_link(existing.description, supplement.proposed, supplement.previous)
+            return {"description": f"{description}\n\n{note}",
+                    "extendedProperties": {"private": {"mailhelp_key": key}}}
         interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
         what = "; ".join(validated.time_changes) or "Angaben bestätigt"
-        note = (f"[Mailhelp {_now(self.calendar_timezone):%d.%m.%Y %H:%M}] Termin geändert: {what} "
-                f"(bestätigte Vorschlagsversion {validated.version}).")
+        note = f"{stamp} Termin geändert: {what} (bestätigte Vorschlagsversion {validated.version})."
+        description = (existing.description if supplement is None
+                       else with_link(existing.description, supplement.proposed, supplement.previous))
         body: dict[str, Any] = {
-            **interval, "description": f"{existing.description}\n\n{note}" if existing.description else note,
+            **interval, "description": f"{description}\n\n{note}" if description else note,
             "extendedProperties": {"private": {"mailhelp_key": key}}}
         if validated.location is not None:
             body["location"] = validated.location
@@ -387,10 +433,8 @@ class CalendarOperations(HttpTransport):
         if "location" in decision.missing_fields and proposal.location and not existing.location:
             body["location"] = proposal.location
         if "video_link" in decision.missing_fields and proposal.video_link is not None:
-            link = str(proposal.video_link)
-            addition = f"[Mailhelp-Videolink]\n{link}"
-            body["description"] = (f"{body.get('description', existing.description)}\n\n{addition}"
-                                   if body.get("description", existing.description) else addition)
+            # 7.9: the same marked, deduplicated section as the confirmed supplement of a change.
+            body["description"] = with_link(body.get("description", existing.description), str(proposal.video_link))
         return body
 
 

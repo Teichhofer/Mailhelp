@@ -91,7 +91,8 @@ class ProposalDecisionService:
                 raise StaleCommand(de("Offene Entscheidungen haben sich geändert; neue Version prüfen"))
         if confirming and self.precheck is not None:
             checked = self.precheck.check_proposal(proposal)
-            fields = ("status", "duplicate_check_failed", "target_event_id", "time_changes", "is_cancellation")
+            fields = ("status", "duplicate_check_failed", "target_event_id", "time_changes", "is_cancellation",
+                      "calendar_supplement")
             if any(getattr(checked, field) != getattr(proposal, field) for field in fields):
                 checked = checked.model_copy(update={"version": proposal.version + 1,
                     "explicit_duplicate_create_confirmed_version": None})

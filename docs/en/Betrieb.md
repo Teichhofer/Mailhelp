@@ -2,6 +2,20 @@
 
 Reviewed for Mailhelp 7.0.
 
+Server changes also follow the documentation requirement in [AGENTS.md](../../AGENTS.md).
+Once setup, a change or a repair has been verified as successful, update the confirmed
+state, reproducible steps, affected versions, checks and rollback procedure before
+reporting the work complete. This includes DNS, nginx, TLS, containers, systemd,
+firewall rules, file permissions, backups and OAuth configuration. Clearly label
+failed or reverted attempts rather than describing them as the active setup.
+Keep secrets outside Git.
+
+[Version 8.0 planning](../Planung-8.0.md) requires a version-controlled server handbook
+at docs/Serverhandbuch.md (planned) and secret-free templates under `ops/server/`.
+The full rebuild and recovery guide still needs to be created. Until then, record
+the verified operational state in the operating documentation. Local notes and
+server-only configuration files do not replace a Git-backed source of truth.
+
 ## Recurring processing errors <!-- mailhelp-id:betrieb/wiederkehrende-verarbeitungsfehler -->
 
 Mailhelp tries the same failure for an email at most five times. The intervals are 1 minute, 5 minutes, 30 minutes and 2 hours. After that, the email remains stored and is no longer picked up automatically. Permanent errors are abandoned immediately. Provider rate limits apply only their own waiting period. Status shows the stage, start, attempt count and next attempt. Telegram reports abandonment once, with a link to the email if the web interface is enabled.
@@ -51,6 +65,34 @@ MAILHELP_DEMO_ALLOWED_HOSTS=demo.example.org docker compose -f compose.demo.yaml
 The HTTPS proxy for the demo subdomain joins `mailhelp-demo` and forwards to `mailhelp-demo:8765`. An internal network cannot publish a port on the host. If the proxy runs on the host (for example Tailscale Serve), the service needs a normal network with `127.0.0.1:<Port>:8765`; a firewall rule for the demo network then blocks outbound traffic (on Linux in the `DOCKER-USER` chain). Keep `MAILHELP_DEMO_TRUST_PROXY` set only while the proxy is the container’s sole point of access.
 
 To reset the entire demo, stop its container and delete the `demo-daten` volume. At the next startup the directory is empty and receives a new marker.
+
+### Language entry points behind the proxy (verified on 18 Nov 2026 with 7.8.1) <!-- mailhelp-id:betrieb/sprach-einstiege-hinter-dem-proxy-verifiziert-am-18112026-mit-781 -->
+
+Since 7.8.1, Mailhelp serves `/de/`, `/en/` and `/sprache?wert=de|en` itself. The answer is a redirect (303) to the start page with the cookie `mailhelp_lang` (`Secure`, `SameSite=Lax`, one year); an invalid value returns 400. The proxy therefore passes these paths through unchanged and sets neither a language cookie nor a redirect of its own.
+
+Switching an existing proxy configuration:
+
+1. Check at the container without the proxy that `/en/` answers 303 with `Set-Cookie: mailhelp_lang=en`.
+2. Back up the configuration file of the demo subdomain.
+3. Remove the mappings for the language cookie and the cache header, the two `add_header` lines for them and the blocks `location = /de/` and `location = /en/`.
+4. Run `nginx -t` and only on success `systemctl reload nginx`; otherwise restore the backup.
+5. Check over HTTPS: `/en/` with a German browser shows the English start page, `/de/` with an English browser the German one; a demo start shows the matching sample data.
+
+Way back: copy the backed-up file back, `nginx -t`, `systemctl reload nginx`. Versions before 7.8.1 need the proxy redirect because they do not know `/de/` and `/en/`.
+
+### Server update with an image (verified on 18 Nov 2026, 7.7.6 → 7.8.1) <!-- mailhelp-id:betrieb/server-update-mit-image-verifiziert-am-18112026-776-781 -->
+
+The productive instance and the demo run as Compose projects of the same image. The update ran as follows:
+
+1. Create a source archive of one commit: `git archive <commit> Dockerfile README.md pyproject.toml requirements.lock src`; on the server, unpack it into its own release directory `<version>-<commit>` and build the image `mailhelp-production:<version>-<commit>` from it.
+2. Check the version in the image without network: `docker run --rm --network none --entrypoint python <image> -c "import mailhelp; print(mailhelp.__version__)"`.
+3. Back up both Compose files, replace image and build path in them and check them with `docker compose config --quiet`.
+4. Stop both containers (production with a 45-second grace period), only then archive the runtime directories of both instances; this gives a consistent state.
+5. Start both containers without rebuilding, wait for the health checks and check the version in the running container. If a step fails, the backed-up Compose files are written back and the previous containers are started again.
+
+Result on 18 Nov 2026: both health checks passed, version 7.8.1 in both containers, existing demo visitors were taken over without errors. Way back: copy the backed-up Compose files back, restore the backed-up runtime archives with the containers stopped and start the containers with the previous image, which is still present. Credentials stay in the instance's `.env` and are taken over neither into the source archive nor into the image.
+
+Observation after the restart: Google refused to renew the calendar access (HTTP 400) because the refresh token of an OAuth app in the Google status `Testing` expires after seven days. The remedy is a new Google sign-in through the web interface; switching the app to the Google status `In production` helps permanently.
 
 ## Backups <!-- mailhelp-id:betrieb/sicherung -->
 

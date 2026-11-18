@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 7.9.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+7.9.1 ergänzt den Einwahllink eines bereits eingetragenen Online-Termins: Liefert eine spätere Mail den Konferenzlink, bietet Mailhelp „Bestehenden Termin aktualisieren: Videolink ergänzen“ an statt den Vorschlag als Duplikat abzuschließen. Erst die Bestätigung schreibt den Link genau einmal in den vorhandenen Termin; Titel, Zeiten und eigene Notizen bleiben erhalten. Ein anderer vorhandener Konferenzlink wird nur nach ausdrücklicher Auswahl ersetzt, und ältere Duplikate mit Link lassen sich mit **Mit Kalender erneut abgleichen** neu bewerten.
 
 7.8 ist mit 7.8.2 abgeschlossen: Die öffentliche Demo nutzt die nativen Einstiege `/de/` und `/en/` und wurde auf Englisch vollständig über HTTPS geprüft. 7.8.1 ergänzt native deutsche und englische Einstiege (`/de/`, `/en/`), einen vollständig englisch vorverarbeiteten Demo-Bestand, eine generationsgebundene Demo-Zuordnung und sprachabhängige Hilfe, PWA- und CLI-Texte. Die Oberfläche lässt sich mit `--language en` auch beim frühen CLI-Aufruf auf Englisch wählen. Ein Sprachwechsel behält laufende Demo-Entscheidungen; ein bestätigter Neustart lädt den gewünschten Beispielsatz.
 
@@ -202,6 +204,12 @@ Das [Inhaltsverzeichnis](docs/README.md) führt alle aktuellen Anleitungen auf:
 [Fehler beheben](docs/Fehlerbehebung.md) · [Betrieb und Update](docs/Betrieb.md) ·
 [Einstellungen](docs/Web-Einstellungen.md). Abgeschlossene Pläne und Release-Berichte liegen
 im [Archiv](docs/archiv/). Die statische Projektwebsite liegt unter [website/](website/).
+
+Serveränderungen müssen nach erfolgreicher Prüfung vor Abschluss der Arbeit in der
+Betriebsdokumentation und den betroffenen Vorlagen nachgeführt werden; siehe
+[Entwicklungsregeln](AGENTS.md). Das vollständige Serverhandbuch mit Neuaufbau,
+Reparatur, Wiederherstellung und geheimnisfreien Konfigurationsvorlagen ist Bestandteil
+der [Planung 8.0](docs/Planung-8.0.md). Es ist noch zu erstellen.
 
 ## Lizenz
 

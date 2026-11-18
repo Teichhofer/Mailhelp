@@ -17,6 +17,7 @@ from ..external.contracts import ExternalWriter, TargetWriter
 from ..external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_key, slot
 from ..logging import EventLogger, NullLogger
 from ..persistence.ledger import ActionLedgerPort
+from . import conference_supplement
 from .calendar_target import TARGETED, CalendarTargetFinder
 
 
@@ -54,6 +55,10 @@ class DuplicatePreCheckService:
                 priors = self.ledger.prior_actions(proposal)
                 if priors:
                     entry = priors[0]
+                    # 7.9: "created earlier" does not mean the link of a later mail is there already.
+                    supplemented = self._ledger_supplement(proposal, entry.external_id)
+                    if supplemented is not None:
+                        return supplemented
                     self.logger.event(
                         "INFO", "precheck", "duplicate_found_ledger",
                         proposal_id=proposal.id, action_key=entry.action_key,
@@ -157,23 +162,25 @@ class DuplicatePreCheckService:
                     ProposalClassification.CHANGE,
                     ProposalClassification.CANCELLATION,
                 }
-                if is_reschedule_or_cancel:
+                supplement = conference_supplement.plan(proposal, item)
+                conference_supplement.log(self.logger, proposal, item, supplement)
+                if is_reschedule_or_cancel or supplement.supplement is not None:
                     self.logger.event(
-                        "INFO", "precheck", "reschedule_detected",
+                        "INFO", "precheck", "reschedule_detected" if is_reschedule_or_cancel else "supplement_detected",
                         proposal_id=proposal.id, existing_event_id=item.id,
                     )
-                    return proposal.model_copy(update={
+                    return self._supplemented(proposal.model_copy(update={
                         "target_event_id": item.id,
                         "time_changes": changes,
                         "is_cancellation": proposal.classification == ProposalClassification.CANCELLATION,
-                    })
+                    }), supplement)
                 else:
                     self.logger.event(
                         "INFO", "precheck", "duplicate_found_calendar",
                         proposal_id=proposal.id, existing_event_id=item.id,
                     )
                     return proposal.model_copy(update={
-                        "status": ProposalStatus.ALREADY_EXISTS,
+                        "status": ProposalStatus.ALREADY_EXISTS, "calendar_supplement": None,
                         "duplicate_match": DuplicateMatchInfo(
                             source=DuplicateSource.GOOGLE_CALENDAR,
                             external_id=item.id,
@@ -183,6 +190,27 @@ class DuplicatePreCheckService:
                         ),
                     })
         return None
+
+    def _ledger_supplement(self, proposal: Proposal, external_id: str | None) -> Proposal | None:
+        """A supplement of the entry Mailhelp created earlier; None when nothing is missing there."""
+        writer = self.writers.get(profile_slot(CALENDAR_SLOT, proposal.target_profile))
+        if (proposal.kind != ProposalKind.EVENT or proposal.video_link is None or external_id is None
+                or not isinstance(writer, CalendarOperations) or writer.role != "calendar"):
+            return None
+        existing = writer.existing_event(external_id)
+        if existing is None:
+            return None
+        supplement = conference_supplement.plan(proposal, existing)
+        conference_supplement.log(self.logger, proposal, existing, supplement)
+        if supplement.supplement is None:
+            return None
+        return self._supplemented(proposal.model_copy(update={
+            "target_event_id": existing.id, "time_changes": [], "is_cancellation": False}), supplement)
+
+    @staticmethod
+    def _supplemented(proposal: Proposal, supplement: conference_supplement.SupplementPlan) -> Proposal:
+        # Only a new link conflict changes the status (it asks which link applies).
+        return conference_supplement.apply(proposal, supplement)
 
     def _check_todoist(self, proposal: Proposal, writer: TargetWriter) -> Proposal | None:
         tasks = writer.fetch_active_tasks(strict=True)

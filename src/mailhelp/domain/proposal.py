@@ -94,6 +94,29 @@ class CalendarCandidate(StrictModel):
     end: date | datetime
 
 
+class CalendarSupplement(StrictModel):
+    """7.9: a confirmed field change of an existing calendar entry, bound to its target.
+
+    It is the execution order, not a display text: the write applies exactly this change to
+    the entry it names and re-checks the entry's current state immediately before.
+    """
+
+    field: Literal["video_link"] = "video_link"
+    operation: Literal["add", "replace"]
+    previous: str | None = Field(default=None, max_length=2000)
+    proposed: str = Field(min_length=1, max_length=2000)
+    target_event_id: str = Field(min_length=1, max_length=500)
+    target_profile: int = Field(default=1, ge=1, le=99)
+    target_provider: str = Field(default="", max_length=30)
+    source_mail_id: str = Field(min_length=1, max_length=64)
+
+    @model_validator(mode="after")
+    def previous_matches_operation(self) -> CalendarSupplement:
+        if (self.operation == "replace") != (self.previous is not None):
+            raise ValueError("Nur eine Ersetzung nennt den bisherigen Wert")
+        return self
+
+
 class KnownTemporalFacts(StrictModel):
     """Valid temporal facts retained while an event interval is incomplete."""
 
@@ -260,6 +283,8 @@ class Proposal(StrictModel):
     duplicate_match: DuplicateMatchInfo | None = None
     target_event_id: str | None = Field(default=None, max_length=500)
     time_changes: list[str] = Field(default_factory=list)
+    # 7.9: a confirmed supplement of the existing entry (conference link); None for older proposals.
+    calendar_supplement: CalendarSupplement | None = None
     is_cancellation: bool = False
     # 4.6: the day an event had before a change, resolved from the mail.
     original_date: CalendarDate | None = None
@@ -340,6 +365,8 @@ class Proposal(StrictModel):
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
         if self.kind == ProposalKind.TASK and self.target_event_id is not None:
             raise ValueError("Nur Termine unterstützen Terminaktualisierungen")
+        if self.calendar_supplement is not None and self.target_event_id != self.calendar_supplement.target_event_id:
+            raise ValueError("Eine Terminergänzung gehört zum gebundenen Zieltermin")
         if self.is_cancellation and self.target_event_id is None:
             raise ValueError("Eine Stornierung erfordert eine Ziel-Event-ID")
         if self.calendar_candidates and (self.kind != ProposalKind.EVENT or self.target_event_id is not None):

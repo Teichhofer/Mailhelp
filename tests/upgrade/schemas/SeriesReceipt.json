@@ -51,6 +51,78 @@
       "title": "CalendarCandidate",
       "type": "object"
     },
+    "CalendarSupplement": {
+      "additionalProperties": false,
+      "description": "7.9: a confirmed field change of an existing calendar entry, bound to its target.\n\nIt is the execution order, not a display text: the write applies exactly this change to\nthe entry it names and re-checks the entry's current state immediately before.",
+      "properties": {
+        "field": {
+          "const": "video_link",
+          "default": "video_link",
+          "title": "Field",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "add",
+            "replace"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous"
+        },
+        "proposed": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Proposed",
+          "type": "string"
+        },
+        "source_mail_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Mail Id",
+          "type": "string"
+        },
+        "target_event_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target Event Id",
+          "type": "string"
+        },
+        "target_profile": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Target Profile",
+          "type": "integer"
+        },
+        "target_provider": {
+          "default": "",
+          "maxLength": 30,
+          "title": "Target Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation",
+        "proposed",
+        "target_event_id",
+        "source_mail_id"
+      ],
+      "title": "CalendarSupplement",
+      "type": "object"
+    },
     "CommandKind": {
       "enum": [
         "confirm",
@@ -430,6 +502,17 @@
           "maxItems": 10,
           "title": "Calendar Candidates",
           "type": "array"
+        },
+        "calendar_supplement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalendarSupplement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "canonical_ref": {
           "anyOf": [

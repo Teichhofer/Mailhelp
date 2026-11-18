@@ -24,6 +24,7 @@ from ..domain.proposal import (
     RECONCILIATION_HINT,
     ActionLedger,
     Proposal,
+    ProposalKind,
     ProposalStatus,
     invalidate_creation_permissions,
     reconciliation_only,
@@ -194,7 +195,7 @@ class ReviewService:
         if command.kind == CommandKind.VERIFY_ENTRY:
             return self._verify_entry(command)
         if command.kind == CommandKind.RECHECK:
-            previous = self._target(command)
+            previous = self._recheck_target(command)
             precheck = self.controller.decision_service.precheck
             if precheck is None:
                 raise ValueError("Dublettenprüfung nicht verfügbar")
@@ -202,7 +203,7 @@ class ReviewService:
                 "open_questions": [q for q in previous.open_questions
                     if q != "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."]}))
             with self.controller.store.locked():
-                if self._target(command) != previous:
+                if self._recheck_target(command) != previous:
                     raise StaleCommand(de("Vorschlag inzwischen geändert"))
                 questions = required_revision_questions(result)
                 status = (result.status if result.status == ProposalStatus.ALREADY_EXISTS else
@@ -391,6 +392,16 @@ class ReviewService:
         if proposal.version != command.version or proposal.status not in _OPEN:
             raise StaleCommand(de("Der Vorschlag wurde inzwischen geändert oder entschieden"))
         return proposal
+
+    def _recheck_target(self, command: ReviewCommand) -> Proposal:
+        """An open proposal, or (7.9) a closed duplicate event whose received link is compared again."""
+        assert command.proposal_id is not None
+        proposal: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        if (proposal is not None and proposal.version == command.version
+                and proposal.status == ProposalStatus.ALREADY_EXISTS and proposal.kind == ProposalKind.EVENT
+                and proposal.video_link is not None):
+            return proposal
+        return self._target(command)
 
     def _verify_entry(self, command: ReviewCommand) -> ReviewResult:
         """5.2: only a written, not verified entry of exactly this version is read again."""

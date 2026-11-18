@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..domain.mail import MailState
+from ..domain.proposal import Proposal
 from ..i18n import Locale
 
 DATASET = "standard-v1"
@@ -160,7 +161,8 @@ def _references(directory: Path, manifest: DemoManifest) -> None:
                 for name in (f"{stem}.json", f"{stem}-v{proposal.version}.json"):
                     snapshots.add(name)
                     raw = json.loads((directory / "state" / name).read_text(encoding="utf-8"))
-                    if raw != proposal.model_dump(mode="json"):
+                    # Both sides validated: a later field with a default keeps an approved package valid.
+                    if Proposal.model_validate(raw).model_dump(mode="json") != proposal.model_dump(mode="json"):
                         raise ValueError("proposal snapshot mismatch")
         if snapshots != {name for name in manifest.files if name.startswith("proposal-")}:
             raise ValueError("orphan proposal")
