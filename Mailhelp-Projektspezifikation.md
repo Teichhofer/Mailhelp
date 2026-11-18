@@ -31,6 +31,18 @@ Terminidentität den Konferenzlink eines Termin-Vorschlags deterministisch mit d
   `video_link_not_conference`, `supplement_detected`, `video_link_already_present`,
   `video_link_conflict_at_write` mit Vorschlags- und Termin-ID.
 
+Seit 7.9.2 hält `support/connection_health.py` den Anmeldestatus der verwendeten Verbindungen
+dauerhaft in `connection-health.json` (Schema 1: Problem je Verbindung mit Dienst, Nummer, Code
+`refresh_denied`/`login_rejected`/`permission_denied`, erstmals/zuletzt erkannt, letzte erfolgreiche
+Prüfung, fortlaufende Nummer; dazu die letzte erfolgreiche Prüfung jeder Verbindung). Gespeist wird er
+aus dem inhaltsfreien Ereignisstrom: abgelehnte Token-Erneuerung (Google, Microsoft, Notion), HTTP 401
+und 403 der Kalender- und Aufgabendienste, abgelehnte IMAP- und IServ-Anmeldung. Ein späterer Erfolg
+derselben Verbindung entfernt genau ihr Problem; ein früher beobachtetes Ergebnis überschreibt nie ein
+späteres. Nicht mehr konfigurierte Verbindungen werden beim Start entfernt, eine fehlende oder
+beschädigte Datei beginnt leer. Die rein lesende Zugriffsprüfung läuft beim Start und danach alle
+15 Minuten. „Offen“ und „Mails“ zeigen die Probleme über der Liste; ihr Fingerprint
+(`/api/stand`, `/api/stand?seite=verbindungen`) ändert sich mit den Problemen.
+
 ## Ergänzung 7.7: Vorfilter-Regeln und VIP-Absender
 
 Plan: [docs/Planung-7.7.md](docs/Planung-7.7.md). Seit 7.7.1 hat `irrelevant-senders.json` Schema 3.

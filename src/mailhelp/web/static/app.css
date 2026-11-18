@@ -335,6 +335,11 @@ textarea { min-height: 88px; resize: vertical; }
 .notice-error { background: var(--danger-soft); color: var(--danger); }
 .notice-ok { background: var(--ok-soft); color: var(--ok); }
 .notice-warn { background: var(--warn-soft); color: var(--warn); }
+/* 7.9.2: sign-in problems; text and symbol carry the meaning, the colour only supports it. */
+.connection-warnings h2 { font-size: var(--text-m); margin: 0 0 6px; }
+.connection-warnings ul { margin: 0; padding: 0; list-style: none; }
+.connection-warnings li + li { margin-top: 6px; }
+.connection-warnings a { color: inherit; text-decoration: underline; font-weight: 600; }
 
 .empty { text-align: center; color: var(--muted); padding: 32px 16px; }
 

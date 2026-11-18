@@ -75,9 +75,18 @@ def check_access(app: Application) -> dict[str, str | None]:
     return results
 
 
+# 7.9.2: a connection that is configured but not used for a while is still checked read-only.
+ACCESS_RECHECK_SECONDS = 15 * 60
+
+
 def confirm_access_in_background(app: Application) -> Thread:
-    """Run :meth:`confirm_access` beside the mail loop; a slow service never delays it."""
-    thread = Thread(target=app.confirm_access, name="mailhelp-access-check", daemon=True)
+    """Run :meth:`confirm_access` beside the mail loop, at start and then every 15 minutes."""
+    def repeat() -> None:
+        app.confirm_access()
+        while not app.stop_event.wait(ACCESS_RECHECK_SECONDS):
+            app.confirm_access()
+
+    thread = Thread(target=repeat, name="mailhelp-access-check", daemon=True)
     thread.start()
     return thread
 

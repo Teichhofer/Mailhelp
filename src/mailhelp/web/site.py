@@ -30,12 +30,14 @@ from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
 from ..runtime.lifecycle import Lifecycle
+from ..support import connection_health
 from .actions import command_page, needs_choice, result_kind, stale_page
 from .activity_site import ActivitySite
 from .app import WebApp
 from .archive_site import ArchiveSite
 from .auth import WebAuth, WebSession
 from .command_cards import anchor, visible
+from .connection_warnings import connection_warnings
 from .experience import ExperienceSite
 from .http import Request, Response
 from .iserv_site import IServSite
@@ -486,12 +488,25 @@ class MailhelpSite:
         if report_id:
             return self.activity.state(report_id[0])
         overview = self.overview()
-        if parse_qs(request.query, max_num_fields=5).get("seite") == ["status"]:
+        page = parse_qs(request.query, max_num_fields=5).get("seite")
+        if page == ["verbindungen"]:
+            # 7.9.2: the mail list reloads only when a sign-in warning appears or disappears.
+            return Response.json(200, {"fingerprint": self.connection_state()[1]})
+        if page == ["status"]:
             metrics = self.archive.metrics
             return Response.json(200, {"fingerprint": self._status_fingerprint(
                 overview, self.views.system(self.clock()),
                 metrics.runtime() if metrics is not None else None, self._status_accounts())})
-        return Response.json(200, {"fingerprint": overview.fingerprint})
+        return Response.json(200, {"fingerprint": self.open_fingerprint(overview)})
+
+    def connection_state(self) -> tuple[str, str]:
+        """7.9.2: the warning area for sign-in problems and its fingerprint, from the stored status only."""
+        problems = connection_health.current(self.views.store)
+        return connection_warnings(problems, self.configured_timezone), connection_health.digest(problems)
+
+    def open_fingerprint(self, overview: Overview) -> str:
+        """The open decisions change, or a sign-in warning appears or disappears."""
+        return f"{overview.fingerprint}-{self.connection_state()[1]}"
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

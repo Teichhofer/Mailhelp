@@ -1358,6 +1358,17 @@
   "title": "Sprache"
  },
  {
+  "id": "bedienung/verbindungsprobleme",
+  "path": [
+   "Alltagsbedienung",
+   "Verbindungsprobleme"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "Lehnt ein verbundener Dienst die Anmeldung ab, steht über **Offen** und **Mails** ein Hinweis\n„Verbindungsprobleme“. Er nennt Dienst und Postfach oder Zielprofil, die Auswirkung (zum Beispiel\n„Kalenderabgleich und Kalenderänderungen sind derzeit nicht möglich.“), den Zeitpunkt der letzten\nfehlgeschlagenen Prüfung und den Link **Verbindung prüfen** zur passenden Einstellungsseite. Mailhelp\nschreibt dabei nicht „abgelaufen“, wenn der Dienst nur eine Ablehnung meldet.\n\nDer Hinweis bleibt bei Filtern, Neuladen und Neustart sichtbar und lässt sich nicht wegklicken. Er\nverschwindet erst, wenn derselbe Dienst wieder erfolgreich erreicht wurde; das Speichern neuer\nZugangsdaten allein genügt nicht. Eine geöffnete Seite zeigt neue Hinweise und deren Wegfall nach\nspätestens 15 Sekunden. Zeitüberschreitungen und Netzwerkfehler gelten nicht als Anmeldeproblem.\nMailhelp prüft verbundene Dienste beim Start und danach alle 15 Minuten rein lesend.",
+  "title": "Verbindungsprobleme"
+ },
+ {
   "id": "bedienung/fehlgeschlagene-mails",
   "path": [
    "Alltagsbedienung",

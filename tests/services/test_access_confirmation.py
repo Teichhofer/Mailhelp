@@ -1,6 +1,7 @@
 """Status page contacts: empty IMAP discoveries, Telegram polls and the access check at start (3.3.2)."""
 from __future__ import annotations
 
+import time
 from threading import Event
 
 import pytest
@@ -132,9 +133,14 @@ def test_access_check_stops_with_the_service(tmp_path):
     assert openrouter.checked == 0 and app.logger.events == []
 
 
-def test_access_check_runs_beside_the_mail_loop(tmp_path):
+def test_access_check_runs_beside_the_mail_loop_and_repeats_until_the_service_stops(tmp_path, monkeypatch):
+    monkeypatch.setattr("mailhelp.app.access_checks.ACCESS_RECHECK_SECONDS", 0.01)
     app = application(tmp_path)
     thread = app.confirm_access_in_background()
+    deadline = time.monotonic() + 5
+    while app.logger.events.count(("INFO", "google_calendar", "access_confirmed")) < 2 and time.monotonic() < deadline:
+        time.sleep(0.01)
+    app.stop_event.set()
     thread.join(timeout=5)
     assert thread.daemon and not thread.is_alive()
-    assert ("INFO", "google_calendar", "access_confirmed") in app.logger.events
+    assert app.logger.events.count(("INFO", "google_calendar", "access_confirmed")) >= 2  # 7.9.2: again later

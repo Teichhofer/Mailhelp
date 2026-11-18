@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
 from ..persistence.storage import atomic_replace
+from .connection_health import ConnectionHealthRecorder
 from .stage_metrics import StageJournal, compact, journal_path
 
 
@@ -207,6 +208,8 @@ class MetricsRecorder:
         self.test_mail_hash: str | None = None
         self.comparison: MetricsRecorder | None = None
         self.changed: Callable[[], None] = lambda: None
+        # 7.9.2: durable sign-in status of the used connections, fed by the same events.
+        self.health: ConnectionHealthRecorder | None = None
         # 6.1.6: wall time of every processing step; recent calls give each step its AI share.
         self.stages = StageJournal(journal_path(path), lambda: self.settings.retention_days)
         self._recent_calls: deque[tuple[str | None, float, float, float]] = deque(maxlen=5000)
@@ -230,6 +233,8 @@ class MetricsRecorder:
             self._observe(event, context)
 
     def _observe(self, event: str, context: dict) -> None:
+        if self.health is not None:
+            self.health.observe(event, context)
         self._track_state(event, context)
         self._track_imap_errors(event, context)
         self._track_contact(event, context)

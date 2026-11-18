@@ -1358,6 +1358,17 @@
   "title": "Language"
  },
  {
+  "id": "bedienung/verbindungsprobleme",
+  "path": [
+   "Everyday operation",
+   "Connection problems"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Bedienung.md",
+  "text": "If a connected service refuses the sign-in, a notice “Connection problems” appears above **Open** and **Emails**. It names the service and mailbox or target profile, the effect (for example “Calendar sync and calendar changes are not possible at the moment.”), the time of the last failed check and the link **Check connection** to the matching settings page. Mailhelp does not claim “expired” when the service only reports a refusal.\n\nThe notice stays visible with filters, reloads and restarts and cannot be dismissed. It disappears only once the same service has been reached successfully again; saving new credentials alone is not enough. An open page shows new notices and their removal after at most 15 seconds. Timeouts and network errors do not count as sign-in problems. Mailhelp checks connected services read-only at start and then every 15 minutes.",
+  "title": "Connection problems"
+ },
+ {
   "id": "bedienung/fehlgeschlagene-mails",
   "path": [
    "Everyday operation",

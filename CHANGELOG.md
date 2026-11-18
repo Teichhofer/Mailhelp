@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.2 – Anmeldeprobleme sichtbar machen
+
+- Warnbereich „Verbindungsprobleme“ über Offen und Mails mit Dienst, Postfach oder Zielprofil, Auswirkung, Zeitpunkt und Link „Verbindung prüfen“.
+- Dauerhafter, lesbarer Anmeldestatus je Verbindung aus abgelehnten Token-Erneuerungen, HTTP 401/403 sowie IMAP- und IServ-Anmeldungen; Timeouts und Netzwerkfehler zählen nicht.
+- Rein lesende Zugriffsprüfung beim Start und danach alle 15 Minuten; geöffnete Seiten aktualisieren sich bei neuen oder behobenen Problemen.
+
 ## 7.9.1 – Konferenzlink für bestehende Kalendertermine
 
 - Bugfix: Eine spätere Mail mit Einwahllink zu einem vorhandenen Termin ohne Link wird nicht mehr als Duplikat abgeschlossen, sondern als bestätigungspflichtige Aktualisierung angeboten.

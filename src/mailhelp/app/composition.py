@@ -59,6 +59,7 @@ from ..runtime.learning_worker import LearningWorker
 from ..runtime.lifecycle import Lifecycle
 from ..runtime.reanalysis_worker import ReanalysisWorker, mailbox_readers
 from ..runtime.standalone import DisabledTelegram
+from ..support.connection_health import ConnectionHealthRecorder, used_connections
 from ..support.metrics import DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy, metrics_directory
 from ..telegram import TelegramClient, TelegramDialogController
 from ..telegram.receiver import TelegramInbox
@@ -145,6 +146,7 @@ def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Pat
     recorder = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
     recorder.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
     recorder.changed = store.touch
+    recorder.health = ConnectionHealthRecorder(store)
     logger.metrics = recorder
 
 
@@ -363,6 +365,15 @@ def _attach_views(application: Application, components: Any, configuration: Conf
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}
         components.site.views.mailboxes = components.site.archive.queries.mailboxes = labels
     components.site.archive.metrics = logger.metrics
+    # _attach_metrics always gives the recorder its sign-in status (7.9.2).
+    assert logger.metrics is not None and logger.metrics.health is not None
+    # 7.9.2: a removed or deactivated connection leaves no warning behind.
+    iserv = getattr(application, "iserv", None)
+    services = [getattr(writer, "service", "") for writer in application._active_writers()]
+    logger.metrics.health.retain(*used_connections(
+        [service for service in services if service],
+        [getattr(source, "account_id", "") for source in application.sources],
+        [source.account.id for source in iserv.sources] if iserv else []))
     components.site.archive.models = effective_models(
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
 

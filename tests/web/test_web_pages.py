@@ -10,6 +10,7 @@ import pytest
 from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.persistence.storage import JsonStore
 from mailhelp.review.views import ReviewViews
+from mailhelp.support.connection_health import digest
 from mailhelp.web.review_pages import https_link, overview_page, proposal_card
 from tests.fakes.shared_web_auth import Browser, signed_in, site  # noqa: F401  (fixture)
 from tests.scenarios.web_scenario import mail_id, populate, proposal, save_mail
@@ -173,7 +174,9 @@ def test_durations_on_the_status_page():
 
 def test_refresh_state_needs_a_session_and_changes_with_the_data(site, browser):
     state = json.loads(browser.request("GET", "/api/stand", accept="application/json").body)
-    assert state == {"fingerprint": ReviewViews(site.auth.store, "UTC").overview().fingerprint}
+    # 7.9.2: the open decisions and the sign-in warnings (none here) together.
+    assert state == {"fingerprint": ReviewViews(site.auth.store, "UTC").overview().fingerprint + "-"
+                     + digest(())}
     stranger = Browser(site)
     assert stranger.request("GET", "/api/stand", accept="application/json").status == 401
     save_mail(site.auth.store, 9, "Neu <neu@x.test>", "Neu", [proposal(9, "neu", title="Neu")])

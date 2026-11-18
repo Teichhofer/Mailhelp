@@ -83,11 +83,14 @@ class ReviewSite:
         learning_hint = get_learning_run_hint(self.site.views.store, enabled=run_hints_enabled,
                                               min_rejections=min_rejections)
         hint_banner = learning_run_hint_banner(learning_hint, csrf) if learning_hint else ""
+        # 7.9.2: sign-in problems stay above the list, also with filters or nothing to decide.
+        connections, _digest = self.site.connection_state()
+        overview = replace(overview, fingerprint=self.site.open_fingerprint(overview))
         # 4.4: every review result is shown on its card (or as "Deine Aktion"); no second
         # copy from ?ergebnis= on top, which would be announced twice.
         page = overview_page(overview, actions=cards.proposal,
                              relevance_actions=cards.relevance,
-                             before=warning + hint_banner + tools.toolbar("/offen", choice),
+                             before=connections + warning + hint_banner + tools.toolbar("/offen", choice),
                              empty=self.site.empty_state() if finished else None,
                              after=cards.detached(references),
                              count=tools.count(len(overview.open) + len(overview.relevance), total, choice),

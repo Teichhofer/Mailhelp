@@ -56,7 +56,10 @@ class MailArchiveSite:
             result += batch_links(items)
         page = mail_list_page(query, items, total, queries.damaged, topics, self.site.configured_timezone,
                               queries.mailboxes, self.site.auth.csrf_token(session.id), result=result)
-        return Response.html(200, layout(heading("Mails"), page, active="/mails"))
+        # 7.9.2: sign-in problems above the mail list; the page reloads only when they change.
+        connections, digest = self.site.connection_state()
+        return Response.html(200, layout(heading("Mails"), page, active="/mails", before=connections,
+                                         fingerprint=digest, state_url="/api/stand?seite=verbindungen"))
 
     def _result(self, entry_id: str, session: WebSession) -> str:
         """7.3: the result of this browser's action from the failure list (?ergebnis=<id>)."""

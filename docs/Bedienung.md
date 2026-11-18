@@ -384,6 +384,20 @@ Bestätigung und betrifft ausschließlich deine Sitzung; alte Formulare werden d
 `mailhelp --language en --help` zeigt die englische CLI-Hilfe ohne Konfiguration oder Dienstzugriff.
 `--language` gilt für den einzelnen Aufruf und kann auch mit `--demo` verwendet werden.
 
+## Verbindungsprobleme
+
+Lehnt ein verbundener Dienst die Anmeldung ab, steht über **Offen** und **Mails** ein Hinweis
+„Verbindungsprobleme“. Er nennt Dienst und Postfach oder Zielprofil, die Auswirkung (zum Beispiel
+„Kalenderabgleich und Kalenderänderungen sind derzeit nicht möglich.“), den Zeitpunkt der letzten
+fehlgeschlagenen Prüfung und den Link **Verbindung prüfen** zur passenden Einstellungsseite. Mailhelp
+schreibt dabei nicht „abgelaufen“, wenn der Dienst nur eine Ablehnung meldet.
+
+Der Hinweis bleibt bei Filtern, Neuladen und Neustart sichtbar und lässt sich nicht wegklicken. Er
+verschwindet erst, wenn derselbe Dienst wieder erfolgreich erreicht wurde; das Speichern neuer
+Zugangsdaten allein genügt nicht. Eine geöffnete Seite zeigt neue Hinweise und deren Wegfall nach
+spätestens 15 Sekunden. Zeitüberschreitungen und Netzwerkfehler gelten nicht als Anmeldeproblem.
+Mailhelp prüft verbundene Dienste beim Start und danach alle 15 Minuten rein lesend.
+
 ## Fehlgeschlagene Mails
 
 Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut

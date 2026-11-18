@@ -9485,6 +9485,33 @@ EN = {
     '🔗 Bestehenden Termin aktualisieren: Videolink ergänzen': '🔗 Update existing event: add video link',
     '🔗 Bestehenden Termin aktualisieren: Videolink ersetzen': '🔗 Update existing event: replace video link',
     'Mit Kalender erneut abgleichen': 'Compare with calendar again',
+    # Warning area for sign-in problems (7.9.2)
+    'Abgleich und Anlage von Aufgaben sind derzeit nicht möglich.': 'Task sync and task creation are not possible '
+                                                                    'at the moment.',
+    'Abgleich und Änderungen der damit verbundenen Kalender und Aufgabenlisten sind derzeit nicht möglich.': (
+        'Sync and changes of the connected calendars and task lists are not possible at the moment.'
+    ),
+    'Anmeldung abgelehnt.': 'Sign-in refused.',
+    'Anmeldung fehlgeschlagen.': 'Sign-in failed.',
+    'Apple Erinnerungen': 'Apple Reminders',
+    'CalDAV-Aufgaben': 'CalDAV tasks',
+    'CalDAV-Kalender': 'CalDAV calendar',
+    'Google-Anmeldung': 'Google sign-in',
+    'IServ-Konto {number}': 'IServ account {number}',
+    'Kalenderabgleich und Kalenderänderungen sind derzeit nicht möglich.': (
+        'Calendar sync and calendar changes are not possible at the moment.'
+    ),
+    'Microsoft-Anmeldung': 'Microsoft sign-in',
+    'Neue Elternbriefe werden derzeit nicht abgerufen.': 'New parent letters are not being retrieved at the moment.',
+    'Neue Mails dieses Postfachs werden derzeit nicht abgerufen.': (
+        'New emails of this mailbox are not being retrieved at the moment.'
+    ),
+    'Notion-Anmeldung': 'Notion sign-in',
+    'Verbindung prüfen': 'Check connection',
+    'Verbindungsprobleme': 'Connection problems',
+    'Zugriff verweigert – eine nötige Berechtigung fehlt.': 'Access denied – a required permission is missing.',
+    'Zuletzt fehlgeschlagen: {when}.': 'Last failed: {when}.',
+    '{service} (Zielprofil {number})': '{service} (target profile {number})',
     'Widerspruch beim Videolink: im Kalender „{previous}“, laut Mail „{proposed}“. Welcher Videolink soll gelten?': (
         'Conflicting video link: in the calendar “{previous}”, according to the email “{proposed}”. '
         'Which video link applies?'

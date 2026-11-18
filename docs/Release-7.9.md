@@ -1,8 +1,33 @@
 # Mailhelp 7.9 – Kalender-Zugangsdaten ergänzen und Anmeldeprobleme sichtbar machen
 
-**Stand:** 18. November 2026. **Status:** 7.9.1 umgesetzt (Konferenzlink für bestehende Termine);
-der Warnhinweis bei Anmeldeproblemen folgt mit 7.9.2. Der zentrale Google-OAuth-Callback
+**Stand:** 18. November 2026. **Status:** Abgeschlossen mit 7.9.1 (Konferenzlink für bestehende
+Termine) und 7.9.2 (Warnhinweis bei Anmeldeproblemen). Der zentrale Google-OAuth-Callback
 (Abschnitt 4.6) gehört laut [Planung 7.9](Planung-7.9.md) zu [Planung 8.0](Planung-8.0.md).
+
+## 7.9.2 – Anmeldeprobleme sichtbar machen
+
+- **Statusquelle:** `support/connection_health.py` am vorhandenen Ereignisstrom; der Status liegt
+  dauerhaft und lesbar in `connection-health.json`, ohne Anbietertexte, Tokens oder Passwörter.
+  Gezählt werden nur ausdrückliche Anmeldeergebnisse: abgelehnte Token-Erneuerung (Google, Microsoft,
+  Notion), HTTP 401 und 403 der Kalender- und Aufgabendienste sowie abgelehnte IMAP- und
+  IServ-Anmeldungen, auch aus der Zugriffsprüfung. Timeouts, Netzwerkfehler und Rate Limits ändern
+  den Status nicht; eine erfolgreiche automatische Erneuerung erzeugt keine Warnung.
+- **Reihenfolge:** Ein später Erfolg entfernt genau die Warnung seiner Verbindung; ein früher
+  beobachtetes Ergebnis überschreibt nie ein späteres. Fehlende oder beschädigte Dateien beginnen leer,
+  entfernte Verbindungen verlieren ihre Warnung beim Start.
+- **Prüfung:** Die rein lesende Zugriffsprüfung läuft beim Start und danach alle 15 Minuten.
+- **Anzeige:** Warnbereich „Verbindungsprobleme“ über **Offen** und **Mails**, auch mit Filtern und
+  leerer Liste, mit Dienst, Postfach oder Zielprofil, Auswirkung, Zeitpunkt und Link
+  **Verbindung prüfen**; Deutsch und Englisch. Der Fingerprint beider Seiten enthält den Status, eine
+  geöffnete Seite aktualisiert sich nach höchstens 15 Sekunden. Ohne Anmeldung gibt es keine Details.
+
+**Grenzen:** Die Zuordnung zu einem Zielprofil gelingt nur, wenn das Ereignis die Profilnummer trägt;
+sonst gilt die Warnung für den Dienst. Ein Prüfergebnis wird mit dem Zeitpunkt seiner Meldung
+eingeordnet, nicht mit dem Beginn der Prüfung.
+
+**Prüfung 7.9.2:** `python -m devtools.check full --workers 12` mit 6 107 bestandenen Tests und
+100 % Zeilen- und Branch-Abdeckung. Die Browsersuite meldet 976 bestandene, 234 übersprungene Tests
+und den bekannten Diagramm-Hover-Ausreißer, der einzeln unverändert besteht (3 bestanden).
 
 ## 7.9.1 – Konferenzlink für bestehende Kalendertermine
 

@@ -4,7 +4,8 @@
 
 **Stand:** 18. November 2026.
 
-**Status:** In Umsetzung; 7.9.1 (Abschnitte 4.1–4.4) umgesetzt, siehe [Release 7.9](Release-7.9.md).
+**Status:** Umgesetzt in 7.9.1 (Abschnitte 4.1–4.4) und 7.9.2 (Abschnitt 4.5), siehe
+[Release 7.9](Release-7.9.md); Abschnitt 4.6 folgt mit 8.0.
 Dieses Dokument autorisiert weder eine Implementierung noch eine
 Bereitstellung oder einen externen Schreibzugriff.
 

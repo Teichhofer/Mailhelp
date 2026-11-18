@@ -279,6 +279,12 @@ Restart requires confirmation, affects only your session and invalidates previou
 `mailhelp --language en --help` shows English CLI help without configuration or service access.
 `--language` applies to the individual invocation and can also be used with `--demo`.
 
+## Connection problems <!-- mailhelp-id:bedienung/verbindungsprobleme -->
+
+If a connected service refuses the sign-in, a notice “Connection problems” appears above **Open** and **Emails**. It names the service and mailbox or target profile, the effect (for example “Calendar sync and calendar changes are not possible at the moment.”), the time of the last failed check and the link **Check connection** to the matching settings page. Mailhelp does not claim “expired” when the service only reports a refusal.
+
+The notice stays visible with filters, reloads and restarts and cannot be dismissed. It disappears only once the same service has been reached successfully again; saving new credentials alone is not enough. An open page shows new notices and their removal after at most 15 seconds. Timeouts and network errors do not count as sign-in problems. Mailhelp checks connected services read-only at start and then every 15 minutes.
+
 ## Failed Mails <!-- mailhelp-id:bedienung/fehlgeschlagene-mails -->
 
 The Status page shows under “Recent errors and action required” which Email is being retried or has been given up. **Failed emails** opens the error list (`/mails?state=failed`): Each row states cause, processing stage, and number of failed attempts and offers **Try again**, **Ignore**, and **Details** directly; after the action you return to the list and see the result. **Try again** starts the continuation at the next retrieval and resets the previous attempts; until then the Email appears in the list as “Retry requested”. **Ignore** (called File until 7.3) ends it as not processed and files it away; the Email remains in the archive and disappears from the error list.
