@@ -57,7 +57,7 @@ Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git ge
 
 | [Planung 7.8](Planung-7.8.md), [Release 7.8](Release-7.8.md) | Vollständige Lokalisierung und englische Demo |
 | [Planung 7.9](Planung-7.9.md), [Release 7.9](Release-7.9.md) | Kalender-Zugangsdaten ergänzen und Anmeldeprobleme sichtbar machen |
-| [Planung 8.0](Planung-8.0.md) | Zentraler Google-Zugang, Ersteinrichtung und Serverhandbuch mit Konfigurationsvorlagen |
+| [Planung 8.0](Planung-8.0.md), [Release 8.0](Release-8.0.md) | Zentraler Google-Zugang, Ersteinrichtung und Serverhandbuch mit Konfigurationsvorlagen |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

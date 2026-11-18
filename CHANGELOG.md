@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.3 – Vorbereitung 8.0: Grundlage des zentralen Google-Anmeldedienstes
+
+- Neue Komponente `inboxstride_auth`: versionierter Zustand für Instanzen, Anmeldeaufträge und Verbindungen; verschlüsselter Geheimnisspeicher (Fernet, Schlüssel außerhalb des Zustands).
+- Anmeldeablauf mit State, PKCE, einmaligem Code-Tausch, kurzlebigem Abschlussbeleg, lokaler Bestätigung und atomarer Aktivierung; Tokenausgabe mit Erneuerung, Rotation und `reconnect_required`.
+- Noch ohne HTTP-/mTLS-Schicht, Instanzanbindung und Betrieb; die Mailhelp-Anwendung ist unverändert.
+
 ## 7.9.2 – Anmeldeprobleme sichtbar machen
 
 - Warnbereich „Verbindungsprobleme“ über Offen und Mails mit Dienst, Postfach oder Zielprofil, Auswirkung, Zeitpunkt und Link „Verbindung prüfen“.

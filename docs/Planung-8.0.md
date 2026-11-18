@@ -4,8 +4,8 @@
 
 **Stand:** 18. November 2026.
 
-**Status:** Geplant. Beschreibt Anforderungen, Architektur, Umsetzung und Abnahme;
-kein Auftrag zur Implementierung, Bereitstellung oder Änderung produktiver Konten.
+**Status:** In Umsetzung seit 7.9.3, siehe [Release 8.0](Release-8.0.md). Kein Auftrag zur
+Bereitstellung oder Änderung produktiver Konten.
 
 **Grundlagen:** [Entwicklungsregeln](../AGENTS.md), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Planung 7.9](Planung-7.9.md), [Google-Webserver-OAuth](https://developers.google.com/identity/protocols/oauth2/web-server),
