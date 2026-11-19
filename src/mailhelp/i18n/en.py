@@ -9589,6 +9589,24 @@ EN = {
     'Mit Google verbinden': 'Connect with Google',
     'Verbindung übernehmen': 'Adopt connection',
     'Weiter zu Google': 'Continue to Google',
+    '<p><a href="/google/kalender/wechseln?profile={profile}">Anderen Kalender wählen</a></p><p>Trennen beendet '
+    'die Tokenausgabe für diese Verbindung. Bereits angelegte Termine bleiben; die Freigabe bei Google selbst wird '
+    'nicht widerrufen.</p>': (
+        '<p><a href="/google/kalender/wechseln?profile={profile}">Choose another calendar</a></p><p>Disconnecting '
+        'stops issuing tokens for this connection. Events already created stay; the grant at Google itself is not '
+        'revoked.</p>'
+    ),
+    '<h1>Anderen Kalender wählen</h1><p>Zielprofil {profile}. Offene Vorschläge brauchen nach dem Wechsel eine '
+    'neue Bestätigung.</p>': (
+        '<h1>Choose another calendar</h1><p>Target profile {profile}. Open proposals need a new confirmation after '
+        'the change.</p>'
+    ),
+    'Anderen Kalender wählen': 'Choose another calendar',
+    'Dieses Zielprofil hat keine Google-Verbindung über Inboxstride.': (
+        'This target profile has no Google connection through Inboxstride.'
+    ),
+    'Kalender übernehmen': 'Adopt calendar',
+    'Verbindung trennen': 'Disconnect',
     'Widerspruch beim Videolink: im Kalender „{previous}“, laut Mail „{proposed}“. Welcher Videolink soll gelten?': (
         'Conflicting video link: in the calendar “{previous}”, according to the email “{proposed}”. '
         'Which video link applies?'

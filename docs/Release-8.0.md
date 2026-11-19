@@ -80,5 +80,34 @@ Bedienelement (Formatierung korrigiert, Dokumentationstests danach 136 bestanden
 976 bestanden, 234 übersprungen, ein Zeitausreißer (`test_script_steps_that_end_in_a_navigation`),
 der einzeln besteht.
 
-**Noch nicht enthalten:** HTTP- und mTLS-Schicht, Anbindung der Mailhelp-Instanz (Tokenprovider,
-Einrichtung, Zielprofile), Serverhandbuch und Vorlagen, Betrieb. Der Dienst läuft noch nirgends.
+## 7.9.5 – Kalenderwechsel, Trennen und Paketierung
+
+- **Anderen Kalender wählen** (`/google/kalender/wechseln`): liest die Kalender mit Schreibrecht über
+  den vorhandenen Zugang, speichert nur `google_calendar` mit Version und Idempotenzschlüssel; kein
+  neuer Google-Auftrag.
+- **Verbindung trennen** (`POST /google/trennen`, Sitzung, CSRF, Version): zentral `disconnect`, danach
+  lehnt jeder `HostedTokenProvider` des Prozesses die Verbindung auch mit noch gültigem Cache ab. Die
+  Referenz bleibt im Profil (sonst verlangte die Konfiguration eigene Google-Geheimnisse); weitere
+  Profile bleiben aktiv, Termine und der Google-Grant unberührt. Wiederholung ist wirkungslos.
+- Zentraler Dienst: gleichzeitige Tokenanfragen derselben Verbindung teilen eine Erneuerung
+  (Sperre je Verbindung, danach erneuter Cacheblick).
+- Eigenes Image `ops/auth/Dockerfile` mit `ops/auth/requirements.lock`; Tests prüfen, dass die
+  Teilmenge genau der Abhängigkeitshülle von `cryptography`, `httpx` und `pydantic` mit den Versionen
+  des Hauptlocks entspricht und das Paket nichts außerhalb davon importiert. Ein lokaler Imagebau
+  war mangels Docker auf dem Entwicklungsrechner nicht möglich und steht aus.
+- Servervorlagen `ops/server/auth.compose.example.yaml` und
+  `ops/server/nginx-auth.inboxstride.de.example.conf`, ausdrücklich als geplant gekennzeichnet.
+
+**Prüfung 7.9.5:** `devtools.check full` mit 6 203 bestandenen Tests und 100 % Zeilen- und
+Branch-Abdeckung; ein Leitfadentest las „Drittanbieter-Apps“ (Google-Oberfläche) als Mailhelp-
+Bedienelement, Formulierung angepasst. Browsersuite 977 bestanden, 234 übersprungen.
+
+**Lesende Serverinventur (19. November 2026):** Ubuntu 26.04.1 LTS, Docker 29.1.3, Compose 2.40.3,
+nginx 1.28.3; Zertifikate per certbot-Container v5.10.0 (Webroot) mit Cron-Erneuerung je Domain;
+ufw inaktiv; Wurzeldateisystem zu 92 % belegt (alte Images, Build-Cache und Sicherungen). Das
+IP-Zertifikat für den direkten Zugriff hatte keine automatische Erneuerung. Mit Freigabe danach
+bereinigt und die Erneuerung eingerichtet; siehe [Betrieb](Betrieb.md).
+
+**Offen bis 8.0:** Einrichtung des Dienstes auf dem Server und Pilotanmeldung,
+`docs/Serverhandbuch.md`, Wiederherstellungsprobe auf getrenntem Testsystem, Quellen der
+Landingpage in Git, Prüfung aller lebenden Dokumente für 8.x.

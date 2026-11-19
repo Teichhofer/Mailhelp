@@ -23,6 +23,15 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   Callback → `/einrichtung/google/abschluss?beleg=` (neutrale Seite, Fortsetzung nur per
   same-origin POST) → `/google/kalender` (lesende Liste der Kalender mit Schreibrecht) → ausdrückliche
   Übernahme als Einrichtungsentwurf. Vor der Übernahme bleibt die bisherige Verbindung aktiv.
+- **Verwaltung** (seit 7.9.5): `/google/kalender/wechseln` liest mit dem vorhandenen Zugang die
+  Kalender mit Schreibrecht und speichert nur `google_calendar` (Version und Idempotenzschlüssel,
+  kein neuer Google-Login). `POST /google/trennen` (Sitzung, CSRF, Version) ruft zentral
+  `disconnect` auf und sperrt die Verbindung im Prozess auch für einen noch zwischengespeicherten
+  Token; die Referenz bleibt im Profil, damit es ohne eigene Google-Geheimnisse gültig bleibt, und
+  die Warnung führt zu „Google erneut verbinden“. Google-Grants werden nie automatisch widerrufen.
+- **Zentraler Dienst**: gleichzeitige Tokenanfragen derselben Verbindung teilen sich eine
+  Erneuerung. Eigenes Image `ops/auth/Dockerfile` (nur `inboxstride_auth` und
+  `ops/auth/requirements.lock`); Servervorlagen unter `ops/server/` sind als geplant markiert.
 
 ## Ergänzung 7.9: Konferenzlink für bestehende Kalendertermine
 

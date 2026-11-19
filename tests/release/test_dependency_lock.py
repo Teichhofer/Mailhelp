@@ -68,6 +68,19 @@ def test_every_direct_dependency_is_pinned_exactly_as_in_pyproject():
         assert pins.get(canonicalize_name(requirement.name)) == specifier.version, requirement
 
 
+def pinned(path: Path) -> dict[str, str]:
+    requirements = [Requirement(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return {canonicalize_name(item.name): next(iter(item.specifier)).version for item in requirements}
+
+
+def test_the_auth_image_pins_exactly_the_closure_of_its_imports_as_in_the_main_lock():
+    # 8.0: ops/auth/Dockerfile installs with --no-deps, so a missing package would break the image.
+    auth = pinned(ROOT / "ops" / "auth" / "requirements.lock")
+    expected = closure([Requirement("cryptography"), Requirement("httpx"), Requirement("pydantic")])
+    assert auth == expected
+    assert all(locked()[name] == version for name, version in auth.items())
+
+
 def test_the_lock_file_contains_the_whole_installed_closure():
     installed = closure(roots())
     pins = locked()

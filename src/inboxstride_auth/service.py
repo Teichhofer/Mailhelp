@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
+import threading
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -70,6 +71,9 @@ class AuthService:
         self.clock, self.token, self.monotonic = clock, token, monotonic
         # Short-lived access tokens only in memory, per connection: (token, valid until monotonic).
         self._tokens: dict[str, tuple[str, float]] = {}
+        # One renewal per connection at a time; parallel requests reuse its result (Planung 8.0, 6).
+        self._renewals: dict[str, threading.Lock] = {}
+        self._renewals_lock = threading.Lock()
 
     # Operator ------------------------------------------------------------------------------
 
@@ -236,9 +240,16 @@ class AuthService:
             raise Refused("unknown_connection")
         if connection.status not in {"candidate", "active"}:
             raise Refused(connection.status)
-        cached = self._tokens.get(connection_id)
-        if cached is not None and cached[1] > self.monotonic():
-            return cached[0], int(cached[1] - self.monotonic())
+        with self._renewals_lock:
+            renewal = self._renewals.setdefault(connection_id, threading.Lock())
+        with renewal:
+            cached = self._tokens.get(connection_id)
+            if cached is not None and cached[1] > self.monotonic():
+                return cached[0], int(cached[1] - self.monotonic())
+            return self._renew(connection)
+
+    def _renew(self, connection: Connection) -> tuple[str, int]:
+        connection_id = connection.id
         refresh = self.store.get(connection.secret)
         if refresh is None:
             raise Refused("reconnect_required")

@@ -412,6 +412,14 @@ dieses Profils eine neue Bestätigung. Lehnt Google den Zugang später ab, führ
 „Verbindungsprobleme“ direkt zu **Google erneut verbinden**. Google Tasks bleibt der eigenen
 Einrichtung mit Google-Client vorbehalten.
 
+Besteht schon eine Verbindung, bietet dieselbe Seite **Anderen Kalender wählen**: Inboxstride liest
+mit dem vorhandenen Zugang die Kalender mit Schreibrecht, ohne neue Google-Anmeldung, und
+**Kalender übernehmen** speichert die Wahl. **Verbindung trennen** beendet die Tokenausgabe für
+dieses Profil sofort, auch für einen noch zwischengespeicherten Zugang. Bereits angelegte Termine
+bleiben, andere Profile bleiben verbunden, und die Freigabe bei Google selbst wird nicht widerrufen;
+das kannst du bei Bedarf in den Sicherheitseinstellungen deines Google-Kontos tun. Danach führt
+**Google erneut verbinden** zu einer neuen Verbindung.
+
 ## Fehlgeschlagene Mails
 
 Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut

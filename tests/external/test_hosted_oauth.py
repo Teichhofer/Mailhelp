@@ -12,6 +12,7 @@ from mailhelp.external.hosted_oauth import (
     HostedTokenProvider,
     HostedUnavailable,
     cached_client,
+    forget_locally,
     mtls_transport,
 )
 from tests.fakes.hosted_google import settings
@@ -75,6 +76,18 @@ def test_tokens_are_cached_and_a_refusal_raises_the_7_9_warning():
             provider.access_token()
     provider.invalidate()
     provider.close()
+
+
+def test_a_local_disconnect_ends_the_use_of_a_cached_token_of_that_connection_only():
+    transport, calls = answering(httpx.Response(200, json={"access_token": "a1", "expires_in": 3600}))
+    client = HostedAuthClient(settings(), transport)
+    gone, kept = HostedTokenProvider(client, "d" * 32), HostedTokenProvider(client, "b" * 32)
+    assert gone.access_token() == "a1" and kept.access_token() == "a1" and len(calls) == 2
+    forget_locally("d" * 32)
+    with pytest.raises(OAuthTokenError, match="getrennt"):
+        gone.access_token()
+    assert gone._token is None and kept.access_token() == "a1" and len(calls) == 2
+    client.close()
 
 
 def test_one_client_serves_unchanged_settings_and_a_change_replaces_it():

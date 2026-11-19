@@ -18,6 +18,13 @@ from ..logging import EventLogger, NullLogger
 from .contracts import ExternalUnavailable, OAuthTokenError
 
 MARGIN_SECONDS = 30
+# Connections disconnected in this process; the central service refuses them anyway after a restart.
+_disconnected: set[str] = set()
+
+
+def forget_locally(connection: str) -> None:
+    """Every provider of this process stops using *connection*, even with a token still cached."""
+    _disconnected.add(connection)
 
 
 class HostedRefused(RuntimeError):
@@ -94,6 +101,10 @@ class HostedTokenProvider:
         self._until = 0.0
 
     def access_token(self) -> str:
+        if self.connection in _disconnected:
+            # Planung 8.0, section 6: a disconnect also ends the local use of a token still cached.
+            self.invalidate()
+            raise OAuthTokenError("Google-Verbindung über Inboxstride getrennt; Google erneut verbinden.")
         if self._token is not None and self.clock() < self._until:
             return self._token
         self._logger.event("INFO", "google_oauth", "token_refresh_started", mode="hosted")
@@ -118,4 +129,4 @@ class HostedTokenProvider:
 
 
 __all__ = ["MARGIN_SECONDS", "HostedAuthClient", "HostedRefused", "HostedTokenProvider", "HostedUnavailable",
-           "cached_client", "mtls_transport"]
+           "cached_client", "forget_locally", "mtls_transport"]

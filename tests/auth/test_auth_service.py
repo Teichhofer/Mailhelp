@@ -144,6 +144,30 @@ def test_tokens_are_renewed_and_a_refused_renewal_asks_for_a_new_sign_in(service
         service.access_token("anna", connection.id)
 
 
+def test_parallel_requests_share_one_renewal(service):
+    import threading
+    import time as real_time
+    _job, _url, _state, redirect = sign_in(service)
+    redeemed = service.redeem("anna", ANNA, receipt_of(redirect))
+    connection = service.activate("anna", ANNA, redeemed.id, redeemed.version)
+    service.clock_.tick = 4000
+    original, calls = service.google.refresh, []
+
+    def slow(token):
+        calls.append(token)
+        real_time.sleep(0.2)
+        return original(token)
+    service.google.refresh = slow
+    results = []
+    threads = [threading.Thread(target=lambda: results.append(service.access_token("anna", connection.id)))
+               for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(5)
+    assert len(calls) == 1 and len(results) == 2 and results[0][0] == results[1][0] == "access-2"
+
+
 def test_a_missing_secret_or_a_refused_client_never_issues_a_token(service):
     _job, _url, _state, redirect = sign_in(service)
     redeemed = service.redeem("anna", ANNA, receipt_of(redirect))

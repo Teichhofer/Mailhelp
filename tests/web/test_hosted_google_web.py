@@ -28,7 +28,7 @@ class Profiles:
         if version != self.version:
             raise ValueError("Entwurf geändert")
         self.saved.append((actor, profile, values, version))
-        self.connections[profile] = values["google_connection"]
+        self.connections[profile] = values.get("google_connection", self.connections[profile])
         self.version += 1
 
     def target(self, profile):
@@ -238,6 +238,89 @@ def test_the_previous_access_of_another_binding_is_released_after_adoption(hoste
     assert ("internal_refused", {"instance": "anna", "route": "/intern/disconnect",
                                  "reason": "unknown_connection"}) in central.events
     assert hosted.profiles.connections[1] != "e" * 32
+
+
+def adopted(web, profile=1, code="good"):
+    """A complete connection of *profile*; returns its central reference."""
+    returned = connect(web, profile, code)
+    web.browser.request("POST", "/einrichtung/google/abschluss",
+                        fields(returned.body.decode(), "/einrichtung/google/abschluss"))
+    form = fields(web.browser.request("GET", "/google/kalender").body.decode(), "/google/kalender")
+    web.browser.request("POST", "/google/kalender", {**form, "calendar": "familie@group.calendar.google.com"})
+    return web.profiles.connections[profile]
+
+
+def test_another_calendar_of_the_existing_access_needs_no_new_google_sign_in(hosted, central):
+    connection = adopted(hosted)
+    offer = hosted.browser.request("GET", "/google/verbinden?profile=1").body.decode()
+    assert 'href="/google/kalender/wechseln?profile=1"' in offer
+    jobs = len(central.service.state.read().jobs)
+    central.calendars = [{"id": "familie", "summary": "Familie", "accessRole": "writer"},
+                         {"id": "arbeit", "summary": "Arbeit", "accessRole": "owner"}]
+    page = hosted.browser.request("GET", "/google/kalender/wechseln?profile=1").body.decode()
+    assert "Arbeit" in page and "neue Bestätigung" in page
+    form = fields(page, "/google/kalender/wechseln")
+    assert hosted.browser.request("POST", "/google/kalender/wechseln", {**form, "calendar": "fremd"}).status == 409
+    changed = hosted.browser.request("POST", "/google/kalender/wechseln", {**form, "calendar": "arbeit"})
+    assert changed.status == 303 and changed.headers["Location"] == "/einrichtung"
+    assert hosted.profiles.saved[-1][2] == {"google_calendar": "arbeit"}
+    assert hosted.profiles.connections[1] == connection and len(central.service.state.read().jobs) == jobs
+    # The form of the old version is stale now.
+    assert hosted.browser.request("POST", "/google/kalender/wechseln", {**form, "calendar": "familie"}).status == 409
+
+
+def test_choosing_another_calendar_fails_safely(hosted, central):
+    csrf = hosted.auth.csrf_token(session_of(hosted))
+    assert hosted.browser.request("GET", "/google/kalender/wechseln?profile=1").status == 404  # no connection yet
+    assert hosted.browser.request("GET", "/google/kalender/wechseln?profile=100").status == 503
+    adopted(hosted)
+    form = fields(hosted.browser.request("GET", "/google/kalender/wechseln?profile=1").body.decode(),
+                  "/google/kalender/wechseln")
+    central.down = True
+    assert hosted.browser.request("GET", "/google/kalender/wechseln?profile=1").status == 503
+    assert hosted.browser.request("POST", "/google/kalender/wechseln", {**form, "calendar": "x"}).status == 503
+    central.down = False
+    assert hosted.browser.request("POST", "/google/kalender/wechseln", {"csrf": csrf, "profile": "1"}).status == 409
+    hosted.hosted_state["client"] = None
+    assert hosted.browser.request("GET", "/google/kalender/wechseln?profile=1").status == 503
+    assert hosted.browser.request("POST", "/google/kalender/wechseln", {**form, "calendar": "x"}).status == 503
+    assert len(hosted.profiles.saved) == 1  # only the first adoption
+
+
+def test_disconnecting_stops_tokens_for_this_profile_only_and_keeps_the_reference(hosted, central):
+    from mailhelp.external.contracts import OAuthTokenError
+    from mailhelp.external.hosted_oauth import HostedTokenProvider
+    first, second = adopted(hosted, 1), adopted(hosted, 2, code="second")
+    provider = HostedTokenProvider(hosted.hosted_state["client"], first)
+    assert provider.access_token()  # cached now
+    offer = hosted.browser.request("GET", "/google/verbinden?profile=1").body.decode()
+    assert "die Freigabe bei Google selbst wird nicht widerrufen" in offer
+    form = fields(offer, "/google/trennen")
+    answer = hosted.browser.request("POST", "/google/trennen", form)
+    assert answer.status == 303 and answer.headers["Location"] == "/einrichtung"
+    state = central.service.state.read()
+    assert state.connections[first].status == "disconnected" and state.connections[second].status == "active"
+    assert hosted.profiles.connections[1] == first  # the profile stays valid; the warning offers reconnecting
+    with pytest.raises(OAuthTokenError):
+        provider.access_token()
+    assert hosted.browser.request("POST", "/google/trennen", form).status == 303  # a repeat changes nothing
+    assert central.service.state.read().connections[second].status == "active"
+
+
+def test_disconnecting_refuses_stale_forms_and_keeps_the_access_during_outages(hosted, central):
+    connection = adopted(hosted)
+    form = fields(hosted.browser.request("GET", "/google/verbinden?profile=1").body.decode(), "/google/trennen")
+    for changed in ({"version": "99"}, {"key": ""}, {"profile": "2"}, {"profile": "x"}):
+        assert hosted.browser.request("POST", "/google/trennen", {**form, **changed}).status == 409
+    central.down = True
+    assert hosted.browser.request("POST", "/google/trennen", form).status == 503
+    central.down = False
+    hosted.profiles.connections[1] = "e" * 32  # unknown to the service
+    assert hosted.browser.request("POST", "/google/trennen", form).status == 409
+    hosted.profiles.connections[1] = connection
+    hosted.hosted_state["client"] = None
+    assert hosted.browser.request("POST", "/google/trennen", form).status == 503
+    assert central.service.state.read().connections[connection].status == "active"
 
 
 def test_only_a_google_address_is_followed(hosted):

@@ -291,6 +291,8 @@ In a hosted Inboxstride instance you connect Google Calendar without client data
 
 The connection itself creates no events. When the account changes, open proposals of this profile need a new confirmation. If Google later refuses the access, the “Connection problems” notice leads straight to **Reconnect Google**. Google Tasks remains reserved for self-hosting with an own Google client.
 
+Once a connection exists, the same page offers **Choose another calendar**: Inboxstride reads the calendars with write access through the existing access, without a new Google sign-in, and **Adopt calendar** saves the choice. **Disconnect** stops issuing tokens for this profile at once, also for an access still cached. Events already created stay, other profiles stay connected, and the grant at Google itself is not revoked; you can do that in the security settings of your Google account if needed. Afterwards **Reconnect Google** leads to a new connection.
+
 ## Failed Mails <!-- mailhelp-id:bedienung/fehlgeschlagene-mails -->
 
 The Status page shows under “Recent errors and action required” which Email is being retried or has been given up. **Failed emails** opens the error list (`/mails?state=failed`): Each row states cause, processing stage, and number of failed attempts and offers **Try again**, **Ignore**, and **Details** directly; after the action you return to the list and see the result. **Try again** starts the continuation at the next retrieval and resets the previous attempts; until then the Email appears in the list as “Retry requested”. **Ignore** (called File until 7.3) ends it as not processed and files it away; the Email remains in the archive and disappears from the error list.

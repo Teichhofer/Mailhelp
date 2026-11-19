@@ -145,3 +145,7 @@ Before the switch, both Compose files and the runtime data of the stopped produc
 ### Acceptance and rollback limits <!-- mailhelp-id:betrieb/abnahme-und-rueckkehrgrenzen -->
 
 Verified: both containers report 7.9.3, the demo is healthy, the public health and sign-in pages answer over HTTPS, both demo languages work and the demo cannot reach external addresses. A rollback restores the previous Compose files and image; never put a pre-update runtime backup over newer action receipts.
+
+### Storage clean-up and IP certificate (19 Nov 2026) <!-- mailhelp-id:betrieb/speicherbereinigung-und-ip-zertifikat-19112026 -->
+
+With approval, old images, the Docker build cache and the backup from before 6.2.5 were removed; the root file system went from 92 % to 44 % used. The images of 7.7.6, 7.8.1 and 7.9.3 and all other backups remain. The certificate for direct HTTPS access through the server address had no renewal; it is now issued via webroot like the domain certificates and renewed by its own cron job every six hours. The [German operating record](../Betrieb.md) lists the details, checks and the way back.

@@ -1398,7 +1398,7 @@
   ],
   "setting_ids": [],
   "source": "docs/en/Bedienung.md",
-  "text": "In a hosted Inboxstride instance you connect Google Calendar without client data or tokens of your own. In the initial setup (step “Calendar and tasks”) and under **Settings → Target profiles**, **Connect with Google** leads to Google. There you choose your account and allow calendar access. Back at Inboxstride you continue with **Choose calendar**, pick a calendar with write access and confirm with **Adopt connection**. Only then does the new connection apply; until then a previous one stays unchanged, also after a cancellation or an error.\n\nThe connection itself creates no events. When the account changes, open proposals of this profile need a new confirmation. If Google later refuses the access, the “Connection problems” notice leads straight to **Reconnect Google**. Google Tasks remains reserved for self-hosting with an own Google client.",
+  "text": "In a hosted Inboxstride instance you connect Google Calendar without client data or tokens of your own. In the initial setup (step “Calendar and tasks”) and under **Settings → Target profiles**, **Connect with Google** leads to Google. There you choose your account and allow calendar access. Back at Inboxstride you continue with **Choose calendar**, pick a calendar with write access and confirm with **Adopt connection**. Only then does the new connection apply; until then a previous one stays unchanged, also after a cancellation or an error.\n\nThe connection itself creates no events. When the account changes, open proposals of this profile need a new confirmation. If Google later refuses the access, the “Connection problems” notice leads straight to **Reconnect Google**. Google Tasks remains reserved for self-hosting with an own Google client.\n\nOnce a connection exists, the same page offers **Choose another calendar**: Inboxstride reads the calendars with write access through the existing access, without a new Google sign-in, and **Adopt calendar** saves the choice. **Disconnect** stops issuing tokens for this profile at once, also for an access still cached. Events already created stay, other profiles stay connected, and the grant at Google itself is not revoked; you can do that in the security settings of your Google account if needed. Afterwards **Reconnect Google** leads to a new connection.",
   "title": "Connecting Google through Inboxstride"
  },
  {
@@ -1720,5 +1720,17 @@
   "source": "docs/en/Betrieb.md",
   "text": "Verified: both containers report 7.9.3, the demo is healthy, the public health and sign-in pages answer over HTTPS, both demo languages work and the demo cannot reach external addresses. A rollback restores the previous Compose files and image; never put a pre-update runtime backup over newer action receipts.",
   "title": "Acceptance and rollback limits"
+ },
+ {
+  "id": "betrieb/speicherbereinigung-und-ip-zertifikat-19112026",
+  "path": [
+   "Operation and updates",
+   "Verified Inboxstride server state of 19 November 2026",
+   "Storage clean-up and IP certificate (19 Nov 2026)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "With approval, old images, the Docker build cache and the backup from before 6.2.5 were removed; the root file system went from 92 % to 44 % used. The images of 7.7.6, 7.8.1 and 7.9.3 and all other backups remain. The certificate for direct HTTPS access through the server address had no renewal; it is now issued via webroot like the domain certificates and renewed by its own cron job every six hours. The [German operating record](../Betrieb.md) lists the details, checks and the way back.",
+  "title": "Storage clean-up and IP certificate (19 Nov 2026)"
  }
 ]

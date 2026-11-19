@@ -293,3 +293,27 @@ machen. Eine alte Runtime-Sicherung niemals ungeprüft über den aktuellen Besta
 spielen; unklare externe Resultate vor jeder Wiederholung abgleichen. Eine eventuelle
 Datenrückmigration gesondert prüfen. Der Stand 7.9.3 ist bei erfolgreicher Abnahme
 die aktive Installation; die Altversion ist nur eine Rückkehrmöglichkeit.
+
+### Speicherbereinigung und IP-Zertifikat (19.11.2026)
+
+Lesende Inventur vorab: Ubuntu 26.04.1 LTS, Kernel 7.0.0-34, Docker 29.1.3, Compose 2.40.3,
+nginx 1.28.3, ufw installiert, aber inaktiv. Zertifikate stellt der Container
+`certbot/certbot:v5.10.0` per Webroot `/var/www/mailhelp-acme` aus; je Domain erneuert ein
+Skript unter `/usr/local/sbin/` aus `/etc/cron.d/` alle sechs Stunden und lädt nginx neu.
+
+Speicher (mit Freigabe): Das Wurzeldateisystem war zu 92 % belegt (1,6 GB frei). Entfernt
+wurden die Images `mailhelp-release:*` und `mailhelp-rollback:*`, `mailhelp-update-mailhelp:latest`,
+`mailhelp-production` 7.0.16, 7.1.5 und 7.5.5, der gesamte Build-Cache (3,3 GB) sowie die
+Sicherung `pre-6.2.5-20261114T080227Z` (4,5 GB). Danach 44 % belegt, 11 GB frei. Erhalten blieben
+`mailhelp-production` 7.7.6, 7.8.1 und 7.9.3, das Image des gestoppten Altprojekts `mailhelp` mit
+Volume, certbot und alle übrigen Sicherungen. Produktion und Demo liefen unverändert weiter.
+Gelöschte Images lassen sich nur aus den Releasequellen neu bauen.
+
+Das IP-Zertifikat für den direkten HTTPS-Zugang über die Serveradresse: Es war mit dem
+Standalone-Verfahren und dem Kurzzeitprofil (sechs Tage) ausgestellt worden, hatte keine Erneuerung
+und wäre am 20.11.2026 abgelaufen. Nach einem erfolgreichen Probelauf wurde es per Webroot neu
+ausgestellt (gültig bis 26.11.2026); die Renewal-Konfiguration nutzt jetzt Webroot. Neu:
+`/usr/local/sbin/renew-mailhelp-ip` und `/etc/cron.d/mailhelp-ip-cert-renew` (alle sechs
+Stunden, Log `/var/log/mailhelp-ip-cert-renew.log`). Geprüft: `nginx -t`, ausgeliefertes
+Zertifikat, Erneuerungs-Probelauf und HTTPS aller vier Sites. Rückkehr: die alte
+Renewal-Datei liegt als Sicherung unter `/root/`; Skript und Cron-Datei lassen sich entfernen.

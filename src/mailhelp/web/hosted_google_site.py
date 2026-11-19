@@ -19,7 +19,7 @@ from urllib.parse import parse_qs
 
 import httpx
 
-from ..external.hosted_oauth import HostedAuthClient, HostedRefused, HostedUnavailable
+from ..external.hosted_oauth import HostedAuthClient, HostedRefused, HostedUnavailable, forget_locally
 from ..i18n import msg, tr
 from ..persistence.storage import JsonStore
 from ..runtime.google_calendars import listed_targets
@@ -64,7 +64,10 @@ class HostedGoogleSite:
                                       ("POST", "/google/verbinden", self.start),
                                       ("POST", "/einrichtung/google/abschluss", self.redeem),
                                       ("GET", "/google/kalender", self.calendars),
-                                      ("POST", "/google/kalender", self.adopt)):
+                                      ("POST", "/google/kalender", self.adopt),
+                                      ("GET", "/google/kalender/wechseln", self.other_calendars),
+                                      ("POST", "/google/kalender/wechseln", self.change_calendar),
+                                      ("POST", "/google/trennen", self.disconnect)):
             site.app.route(method, path, site.signed_in(handler))
         site.app.route("GET", "/einrichtung/google/abschluss", self.returned)
 
@@ -94,17 +97,88 @@ class HostedGoogleSite:
                                    "eingerichtet. Bitte den Betreiber informieren."), 503)
         try:
             profile = self._profile(parse_qs(request.query, max_num_fields=5))
-            connection, _version = self.draft(profile)
+            connection, version = self.draft(profile)
         except (ValueError, LookupError):
             return self._failed(tr("Dieses Zielprofil gibt es nicht."), 404)
         title = tr("Google erneut verbinden") if connection else tr("Mit Google verbinden")
+        csrf = self.site.auth.csrf_token(session.id)
         body = (f"<h1>{e(title)}</h1>"
                 + tr("<p>Zielprofil {profile}. Bei Google wählst du dein Konto und erlaubst den Zugriff auf "
                      "deine Kalender. Danach wählst du hier den Kalender und übernimmst die Verbindung "
                      "ausdrücklich. Die Verbindung selbst legt keine Termine an.</p>", profile=profile)
-                + post_form("/google/verbinden", self.site.auth.csrf_token(session.id), "",
-                            msg("Weiter zu Google"), primary=True, profile=profile))
+                + post_form("/google/verbinden", csrf, "", msg("Weiter zu Google"), primary=True, profile=profile))
+        if connection:
+            # Planung 8.0, section 5: change the calendar without a new sign-in, or end the connection.
+            body += (tr('<p><a href="/google/kalender/wechseln?profile={profile}">Anderen Kalender wählen</a></p>'
+                        "<p>Trennen beendet die Tokenausgabe für diese Verbindung. Bereits angelegte Termine "
+                        "bleiben; die Freigabe bei Google selbst wird nicht widerrufen.</p>", profile=profile)
+                     + post_form("/google/trennen", csrf, "", msg("Verbindung trennen"), profile=profile,
+                                 version=version))
         return self._page(200, title, body)
+
+    def other_calendars(self, request: Request, session: WebSession) -> Response:
+        """Another calendar of the existing access; a read only, then a separate adoption."""
+        client = self.client()
+        try:
+            if client is None:
+                raise HostedUnavailable("nicht eingerichtet")
+            profile = self._profile(parse_qs(request.query, max_num_fields=5))
+            connection, version = self.draft(profile)
+            if not connection:
+                raise LookupError("Keine Verbindung")
+            choices = self._choices(client, connection)
+        except LookupError:
+            return self._failed(tr("Dieses Zielprofil hat keine Google-Verbindung über Inboxstride."), 404)
+        except (ValueError, HostedRefused, HostedUnavailable, httpx.HTTPError):
+            return self._failed(tr("Die Kalender konnten nicht gelesen werden. Die bisherige Verbindung bleibt "
+                                   "unverändert."), 503)
+        body = (tr("<h1>Anderen Kalender wählen</h1><p>Zielprofil {profile}. Offene Vorschläge brauchen nach "
+                   "dem Wechsel eine neue Bestätigung.</p>", profile=profile)
+                + post_form("/google/kalender/wechseln", self.site.auth.csrf_token(session.id),
+                            select("calendar", msg("Google-Kalender"), "", choices), msg("Kalender übernehmen"),
+                            primary=True, profile=profile, version=version))
+        return self._page(200, tr("Anderen Kalender wählen"), body)
+
+    def change_calendar(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        client = self.client()
+        try:
+            if client is None:
+                raise HostedUnavailable("nicht eingerichtet")
+            profile = self._profile(form)
+            connection, _version = self.draft(profile)
+            if not connection or form["calendar"] not in dict(self._choices(client, connection)):
+                raise ValueError("Kalender nicht verfügbar")
+            self.save("web:" + session.id, profile, {"google_calendar": form["calendar"]}, int(form["version"]),
+                      form["key"])
+        except (KeyError, ValueError, LookupError, HostedRefused):
+            return self._failed(tr("Die Verbindung wurde inzwischen geändert oder ist abgelaufen. Bitte erneut "
+                                   "starten; die bisherige Verbindung bleibt unverändert."))
+        except (HostedUnavailable, httpx.HTTPError):
+            return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
+        return Response.redirect(self.setup_path)
+
+    def disconnect(self, _request: Request, _session: WebSession, form: dict[str, str]) -> Response:
+        """Stop the token issue for this profile's access; entries already written stay.
+
+        The reference stays in the profile so it remains valid without own Google secrets; the
+        warning of 7.9.2 then leads to "Google erneut verbinden". The central call is idempotent.
+        """
+        client = self.client()
+        try:
+            if client is None:
+                raise HostedUnavailable("nicht eingerichtet")
+            profile = self._profile(form)
+            connection, version = self.draft(profile)
+            if not connection or int(form["version"]) != version or not form["key"]:
+                raise ValueError("Verbindung geändert")
+            client.post("/intern/disconnect", {"connection": connection})
+            forget_locally(connection)
+        except (KeyError, ValueError, LookupError, HostedRefused):
+            return self._failed(tr("Die Verbindung wurde inzwischen geändert oder ist abgelaufen. Bitte erneut "
+                                   "starten; die bisherige Verbindung bleibt unverändert."))
+        except HostedUnavailable:
+            return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
+        return Response.redirect(self.setup_path)
 
     def start(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         client = self.client()

@@ -1,0 +1,44 @@
+# GEPLANT, noch nicht auf dem Server eingerichtet (Mailhelp 7.9.5, Planung 8.0).
+# Zielpfad auf dem Host: /opt/inboxstride-auth/compose.yaml, Compose-Projekt inboxstride-auth.
+# Image aus dem Release-Verzeichnis: docker build -f ops/auth/Dockerfile -t inboxstride-auth:<version>-<sha> .
+# Geheimnisse und Zustand liegen nur auf dem Host (Rechte siehe ops/server/README.md):
+#   /opt/inboxstride-auth/state    Zustand, verschlüsselter Secret-Store (Eigentümer 65532, 0700)
+#   /opt/inboxstride-auth/secrets  Fernet-Schlüsseldatei key und TLS-Material tls/ (nur lesbar für 65532)
+#   /opt/inboxstride-auth/ca       private CA, NICHT in den Container einhängen
+#   /opt/inboxstride-auth/logs     JSONL-Ereignislog ohne Geheimnisse
+services:
+  auth:
+    image: inboxstride-auth:${AUTH_IMAGE_TAG:?Image-Tag setzen}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 20s
+    ports:
+      # Nur der öffentliche Callback, ausschließlich für nginx auf dem Host.
+      - "127.0.0.1:8780:8780"
+    environment:
+      INBOXSTRIDE_AUTH_STATE: /state
+      INBOXSTRIDE_AUTH_KEY: /secrets/key
+      INBOXSTRIDE_AUTH_LOG: /logs/events.jsonl
+      INBOXSTRIDE_AUTH_PUBLIC: 0.0.0.0:8780
+      INBOXSTRIDE_AUTH_INTERNAL: 0.0.0.0:8443
+      INBOXSTRIDE_AUTH_TLS_CERT: /secrets/tls/auth-intern.pem
+      INBOXSTRIDE_AUTH_TLS_KEY: /secrets/tls/auth-intern.key
+      INBOXSTRIDE_AUTH_TLS_CA: /secrets/tls/ca.pem
+    volumes:
+      - ./state:/state
+      - ./secrets:/secrets:ro
+      - ./logs:/logs
+    networks:
+      intern:
+        # Name im Serverzertifikat (issue auth-intern --server); Instanzen nutzen https://auth-intern:8443.
+        aliases: [auth-intern]
+    tmpfs:
+      - /tmp
+networks:
+  intern:
+    # Die interne mTLS-Schnittstelle wird nicht am Host veröffentlicht. Nutzerinstanzen treten
+    # diesem Netz bei; die Demo nie.
+    name: inboxstride-auth

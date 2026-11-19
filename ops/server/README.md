@@ -24,6 +24,27 @@ demselben Befehl prüfen. Ein `config`-Erfolg ersetzt keine Health-/Funktionspr�
 Images zuerst bauen, erst danach Dienste kontrolliert anhalten und konsistent sichern.
 Keine Geheimnisse in Buildkontext, Image oder Git aufnehmen.
 
+## Geplant: zentraler Anmeldedienst (noch nicht eingerichtet)
+
+Die folgenden Vorlagen gehören zu Planung 8.0 und sind **noch nicht** auf dem Server
+eingerichtet oder dort geprüft. Sie beschreiben keinen Istzustand.
+
+| Vorlage | Installationsort | Compose-Projekt |
+| --- | --- | --- |
+| `auth.compose.example.yaml` | `/opt/inboxstride-auth/compose.yaml` | `inboxstride-auth` |
+| `nginx-auth.inboxstride.de.example.conf` | `/etc/nginx/sites-available/auth.inboxstride.de` | – |
+
+Das Image entsteht aus dem Release-Verzeichnis mit `ops/auth/Dockerfile`; es enthält nur
+das Paket `inboxstride_auth` und die gepinnte Teilmenge `ops/auth/requirements.lock`.
+Benötigte private Dateien auf dem Host, jeweils Eigentümer 65532 und Modus 0600
+(Verzeichnisse 0700): Fernet-Schlüsseldatei `secrets/key` (`create-key`), TLS-Material
+`secrets/tls/` (`ca-init`, `issue auth-intern --server`) und der Google-Client als
+JSON-Datei, die nur einmalig mit `set-client` eingelesen und danach entfernt wird. Die
+private CA bleibt außerhalb des Containers und wird getrennt gesichert. Nutzerinstanzen
+treten dem Netz `inboxstride-auth` bei und erhalten ihr Client-Zertifikat
+(`issue <instanz>`) sowie `MAILHELP_HOSTED_AUTH_URL=https://auth-intern:8443` mit
+`_INSTANCE`, `_CERT`, `_KEY` und `_CA`; die Demo nie.
+
 Update, Sicherung, Prüfergebnisse und Rückkehrgrenzen stehen in
 [Betrieb und Update](../../docs/Betrieb.md). Änderungen erst nach überprüftem Erfolg
 als gültigen Istzustand übernehmen; Betriebsdokumentation und Vorlagen zusammen pflegen.

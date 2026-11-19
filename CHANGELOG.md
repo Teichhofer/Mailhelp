@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.5 – Vorbereitung 8.0: Kalenderwechsel, Trennen und Paketierung
+
+- „Anderen Kalender wählen“ mit der bestehenden Google-Verbindung, ohne neue Google-Anmeldung.
+- „Verbindung trennen“: zentrale Tokenausgabe und lokal zwischengespeicherte Tokens enden sofort; Termine, andere Profile und die Google-Freigabe bleiben unberührt.
+- Zentraler Dienst bündelt gleichzeitige Token-Erneuerungen je Verbindung; eigenes Docker-Image mit gepinnter Abhängigkeitsteilmenge und geplante Servervorlagen (Compose, nginx für `auth.inboxstride.de`).
+
 ## 7.9.4 – Vorbereitung 8.0: Dienstschnittstellen und Instanzanbindung
 
 - Zentraler Anmeldedienst: öffentlicher Google-Callback, interne mTLS-Schnittstelle, eigene CA und Betreiberkommandos.
