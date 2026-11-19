@@ -36,6 +36,12 @@ Geprüft für Mailhelp 7.0.
   (DNS, nginx, TLS, Docker, systemd, Firewall, Ports, Rechte, Sicherung, OAuth und Dienste).
   Maßgeblich ist nach Umsetzung von 8.0 das geplante Serverhandbuch docs/Serverhandbuch.md mit `ops/server/`;
   bis dahin den bestätigten Stand in `docs/Betrieb.md` dokumentieren.
+- Halte zusätzlich eine geheimnisfreie Kopie der aktuellen Serveranleitungen und
+  Konfigurationsvorlagen unter `/opt/mailhelp/server-docs` auf dem Server synchron.
+  Diese Ablage ist verpflichtender Bestandteil des täglichen Serverbackups.
+  Nach erfolgreich geprüften Serveränderungen auch diese Kopie aktualisieren und
+  ihren Stand prüfen; die Serverkopie ersetzt weder Git noch die getrennte Sicherung
+  von Zugangsdaten. Kein privates `.env`, Token oder Schlüssel in den Dokumentationsbestand.
 - Übernimm Serveränderungen erst nach überprüftem Erfolg als gültigen Istzustand.
   Dokumentiere Datum, betroffene Komponenten, reproduzierbare Schritte, Versionen,
   Prüfungen/Ergebnisse und Rückkehrverfahren. Fehlgeschlagene oder zurückgenommene

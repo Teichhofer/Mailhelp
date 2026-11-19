@@ -146,6 +146,30 @@ Before the switch, both Compose files and the runtime data of the stopped produc
 
 Verified: both containers report 7.9.3, the demo is healthy, the public health and sign-in pages answer over HTTPS, both demo languages work and the demo cannot reach external addresses. A rollback restores the previous Compose files and image; never put a pre-update runtime backup over newer action receipts.
 
+## Daily Dropbox backup since 19 November 2026 <!-- mailhelp-id:betrieb/taegliches-dropbox-backup-seit-19-november-2026 -->
+
+A systemd timer runs a full server backup every day at 03:30 Europe/Berlin and uploads it over HTTPS to the operator's Dropbox folder. At the operator's request the archives include credentials and have no additional encryption. Active backup files are removed after 14 days in Dropbox and after two days locally; Dropbox's version history and deleted files are a separate layer. The first backup was downloaded again and checked; that is not yet a complete server restore. The [German operating record](../Betrieb.md) and the [backup guide](../../ops/server/Dropbox-Backup.md) list scope, tools and limits.
+
+### Guides also on the server <!-- mailhelp-id:betrieb/anleitungen-zusaetzlich-auf-dem-server -->
+
+A secret-free copy of the current documentation and server templates lives on the server with a manifest of checksums and is a required part of the daily backup. It is updated together with the repository after every verified server change.
+
+### Clarified 14-day backup clean-up (19 Nov 2026) <!-- mailhelp-id:betrieb/praezisierung-der-14-tage-backupbereinigung-am-19112026 -->
+
+The clean-up counts 14 calendar days in Europe/Berlin including the current day, so a late backup of the first day is removed on the 15th day as intended. Regression tests reproduce the former behaviour.
+
 ### Storage clean-up and IP certificate (19 Nov 2026) <!-- mailhelp-id:betrieb/speicherbereinigung-und-ip-zertifikat-19112026 -->
 
 With approval, old images, the Docker build cache and the backup from before 6.2.5 were removed; the root file system went from 92 % to 44 % used. The images of 7.7.6, 7.8.1 and 7.9.3 and all other backups remain. The certificate for direct HTTPS access through the server address had no renewal; it is now issued via webroot like the domain certificates and renewed by its own cron job every six hours. The [German operating record](../Betrieb.md) lists the details, checks and the way back.
+
+## Update to 7.9.5 and central sign-in service (19 Nov 2026) <!-- mailhelp-id:betrieb/update-auf-795-und-zentraler-anmeldedienst-19112026 -->
+
+Production and demo run 7.9.5 from commit `2073ef0`. The central sign-in service runs as its own container behind `auth.inboxstride.de`, which forwards only the Google callback and the health check; its internal mTLS interface is reachable only from the Docker network that production joined. Secrets are stored encrypted, the private CA stays outside the container. Production is registered and the mTLS probe succeeded; its own Google access stays active until a target profile is explicitly switched with “Connect Google”. The [German operating record](../Betrieb.md) lists components, checks and the way back.
+
+### Sign-in service and auth.inboxstride.de <!-- mailhelp-id:betrieb/anmeldedienst-und-authinboxstridede -->
+
+The service runs without root, with a read-only file system and a health check; certificates are renewed automatically.
+
+### Update of production and demo, binding of production <!-- mailhelp-id:betrieb/update-von-produktion-und-demo-anbindung-der-produktion -->
+
+Both containers were backed up and switched to 7.9.5; production then received the `hosted_auth` settings and the service network. The pilot sign-in of a Google account is still open.

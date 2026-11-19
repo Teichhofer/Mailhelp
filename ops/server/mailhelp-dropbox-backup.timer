@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Mailhelp server backup at 03:30 Europe/Berlin
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Europe/Berlin
+Persistent=true
+AccuracySec=1min
+Unit=mailhelp-dropbox-backup.service
+
+[Install]
+WantedBy=timers.target

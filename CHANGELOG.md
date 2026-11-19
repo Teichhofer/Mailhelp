@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.6 – Vorbereitung 8.0: Anmeldedienst in Betrieb, Serversicherung
+
+- Zentraler Anmeldedienst unter `auth.inboxstride.de` eingerichtet; Produktion und Demo laufen 7.9.5, die Produktion ist per mTLS angebunden. Ihr bisheriger Google-Zugang bleibt bis zur Pilotanmeldung aktiv.
+- Tägliches Dropbox-Backup des Servers (`devtools/server_backup.py`, systemd-Timer) mit 14-Tage-Bereinigung nach Kalendertagen und geheimnisfreier Dokumentkopie auf dem Server.
+- Betriebsdokumentation und Servervorlagen auf den verifizierten Stand gebracht; englische Abschnitte ergänzt.
+
 ## 7.9.5 – Vorbereitung 8.0: Kalenderwechsel, Trennen und Paketierung
 
 - „Anderen Kalender wählen“ mit der bestehenden Google-Verbindung, ohne neue Google-Anmeldung.

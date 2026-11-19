@@ -1,0 +1,45 @@
+schema_version: 1
+remote: mailhelp-dropbox:Backup/Mailhelpserver
+rclone_config: /etc/mailhelp-backup/rclone.conf
+staging_directory: /var/lib/mailhelp-backup
+# Kalendertage Europe/Berlin inklusive heute: am 15. Tag den ersten Tag loeschen.
+retention_days: 14
+minimum_free_bytes: 1073741824
+containers:
+  - mailhelp-update-mailhelp-1
+  - mailhelp-demo-mailhelp-demo-1
+  - inboxstride-auth-auth-1
+services:
+  - inboxstride.service
+required_paths:
+  - /opt/mailhelp/runtime
+  - /opt/mailhelp/compose.setup.yaml
+  - /etc/nginx
+  - /etc/letsencrypt
+  - /etc/mailhelp-backup
+  - /opt/mailhelp-backup
+  - /opt/mailhelp/server-docs
+optional_paths:
+  - /opt/mailhelp/releases
+  - /opt/mailhelp-demo/compose.yaml
+  - /opt/mailhelp-demo/README.md
+  - /opt/mailhelp-demo/deployment.json
+  - /var/lib/docker/volumes/mailhelp-demo-runtime/_data
+  - /opt/inboxstride/current
+  - /opt/inboxstride/releases
+  - /var/lib/inboxstride
+  - /opt/inboxstride-auth
+  - /etc/systemd/system
+  - /etc/cron.d
+  - /etc/crontab
+  - /etc/ufw
+  - /etc/docker
+  - /etc/ssh
+  - /usr/local/sbin
+  - /etc/passwd
+  - /etc/group
+  - /etc/shadow
+  - /etc/gshadow
+  - /etc/subuid
+  - /etc/subgid
+  - /root/.ssh

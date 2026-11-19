@@ -1,8 +1,8 @@
 {
- "app_version": "7.9.5",
- "revision": "374d20223ee56d648698938f1b17121e895b3d0ed38a2c6cfce17149f9af25fe",
+ "app_version": "7.9.6",
+ "revision": "0ff12356bdd40bc1f444f493f31d27d4ea8bd4987947e737c90b82e330901f4a",
  "schema_version": 1,
- "sections": 124,
+ "sections": 130,
  "sources": [
   {
    "path": "docs/Web-Einstellungen.md",
@@ -30,7 +30,7 @@
   },
   {
    "path": "docs/Betrieb.md",
-   "sha256": "d139fed407c2729c6d3c14ce19ee7297fdd4f59664321f5ff37bda889b26e6bc"
+   "sha256": "60cbc082fa0e4d2be2b4ef683b50d20bf96058179d5b99a258a3c29b9270935b"
   }
  ]
 }

@@ -108,6 +108,13 @@ ufw inaktiv; Wurzeldateisystem zu 92 % belegt (alte Images, Build-Cache und Sich
 IP-Zertifikat für den direkten Zugriff hatte keine automatische Erneuerung. Mit Freigabe danach
 bereinigt und die Erneuerung eingerichtet; siehe [Betrieb](Betrieb.md).
 
-**Offen bis 8.0:** Einrichtung des Dienstes auf dem Server und Pilotanmeldung,
+**Server (19. November 2026, mit Freigabe):** Anmeldedienst unter `auth.inboxstride.de`
+eingerichtet (Image aus `ops/auth/Dockerfile`, Vorlagen unverändert übernommen), Produktion
+und Demo auf 7.9.5 aktualisiert, Produktion als Instanz `stefan` registriert und per mTLS
+angebunden; Probe `unknown_connection` aus dem Produktionscontainer bestätigt Zertifikat und
+Register. Der bisherige Google-Zugang der Produktion bleibt bis zur Pilotanmeldung aktiv.
+Einzelheiten: [Betrieb](Betrieb.md).
+
+**Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
 `docs/Serverhandbuch.md`, Wiederherstellungsprobe auf getrenntem Testsystem, Quellen der
 Landingpage in Git, Prüfung aller lebenden Dokumente für 8.x.

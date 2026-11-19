@@ -294,6 +294,83 @@ spielen; unklare externe Resultate vor jeder Wiederholung abgleichen. Eine event
 Datenrückmigration gesondert prüfen. Der Stand 7.9.3 ist bei erfolgreicher Abnahme
 die aktive Installation; die Altversion ist nur eine Rückkehrmöglichkeit.
 
+## Tägliches Dropbox-Backup seit 19. November 2026
+
+Erfolgreich eingerichtet: `mailhelp-dropbox-backup.timer` startet täglich um 03:30
+Uhr in `Europe/Berlin` den zugehörigen systemd-Dienst. Nächster Termin bei Abnahme:
+20.11.2026, 03:30 Uhr MEZ. Ziel ist der vom Betreiber freigegebene Dropbox-Ordner
+`Backup/Mailhelpserver`; die Archive enthalten ausdrücklich auch Zugangsdaten und
+haben auf Wunsch des Betreibers keine zusätzliche Backup-Verschlüsselung. Die
+Übertragung erfolgt per HTTPS. Dropbox wurde einmalig vom Betreiber autorisiert.
+
+Werkzeug: Rclone aus den Ubuntu-Paketquellen (installiert `1.60.1+dfsg-4ubuntu3.2`)
+und das eigenständige Python-Werkzeug `devtools/server_backup.py`. Konfiguration und
+private Dropbox-Verbindung liegen unter `/etc/mailhelp-backup/`, nur für root lesbar.
+Einzelheiten, Umfang, Vorlagen, Kontrolle und Wiederherstellungsgrenzen stehen in
+der [Dropbox-Backup-Anleitung](../ops/server/Dropbox-Backup.md).
+
+Erste Sicherung: `mailhelpserver-20261119T130646Z.tar.gz`, 298.662.689 Bytes, mit
+separater SHA-256-Datei. Dropbox-Upload und Inhaltsvergleich erfolgreich. Anschließend
+wurde das Archiv aus Dropbox in ein privates Testverzeichnis zurückgeladen; Prüfsumme,
+17.731 Archiveinträge und die testweise Dateiwiederherstellung von Konfiguration und
+Zugangsdaten wurden geprüft. Das ist keine bereits durchgeführte vollständige
+VPS-Wiederherstellung. Die Dienste wurden nur zur lokalen Archivierung angehalten
+und vor dem Upload wieder gestartet. Produktion und Demo laufen weiterhin auf 7.9.3;
+die Demo ist gesund, der Website-Formulardienst ist aktiv.
+
+Eigene aktive Backupdateien im Dropbox-Ziel werden nach 14 Tagen, lokale nach zwei
+Tagen beim nächsten erfolgreichen Lauf bereinigt. Dropbox-Versionshistorie und
+wiederherstellbare gelöschte Dateien werden damit nicht endgültig gelöscht; die
+vertragliche Kundendatenlöschung muss diese zusätzliche Ebene gesondert berücksichtigen.
+Die Sicherung selbst schreibt keine Kalendertermine oder Aufgaben und versendet
+keine Telegram-/E-Mail-Nachrichten.
+
+Der neue Python-Code wurde mit synthetischen Diensten geprüft: neun Tests, 100 %
+Zeilen- und Branch-Abdeckung; Ruff besteht. Die allgemeine Anwendungsversion und
+die sonstigen laufenden 8.0-Arbeiten wurden für diese Servereinrichtung nicht deployed.
+Vorlagen, Werkzeug und dieses Protokoll sind lokal zur Git-Erfassung vorbereitet;
+Commit und Push erfordern einen eigenen Auftrag. Die private Rclone-Datei bleibt außerhalb von Git.
+
+### Anleitungen zusätzlich auf dem Server
+
+Seit 19.11.2026 liegt eine geheimnisfreie Kopie der aktuellen Dokumentation und
+Servervorlagen unter `/opt/mailhelp/server-docs/`. Einstieg ist `INDEX.md`, gefolgt
+von `docs/Betrieb.md` und `ops/server/Dropbox-Backup.md`. `manifest.json` enthält
+Snapshot-Zeitpunkt, Quellcommit und SHA-256 der einzelnen Dateien; der Snapshot
+kann noch nicht committeden Arbeitsstand enthalten und weist dies ausdrücklich aus.
+Die erste Übertragung wurde mit 188 Dateiprüfsummen verifiziert.
+
+Der Ordner ist eine verpflichtende Quelle in `/etc/mailhelp-backup/config.yaml`
+und wird im TAR-Archiv unter `opt/mailhelp/server-docs/` gespeichert. Fehlt die
+Dokumentkopie, scheitert der Backup-Vorlauf vor dem Anhalten der Dienste.
+Nach erfolgreich geprüften Serveränderungen sind Git-Arbeitsstand und Serverkopie
+gemeinsam zu aktualisieren; siehe `AGENTS.md`. Das vollständige Serverhandbuch ist
+weiterhin ein Lieferumfang von 8.0; geplante Komponenten bleiben als geplant markiert.
+Private Konfiguration, Tokens und Schlüssel liegen außerhalb der Dokumentkopie und
+werden über die jeweiligen privaten Backupquellen gesichert.
+
+### Präzisierung der 14-Tage-Backupbereinigung am 19.11.2026
+
+Die aktive Regel zählt jetzt 14 Kalendertage in `Europe/Berlin`, einschließlich
+des heutigen Tages. Beim erfolgreichen Lauf am 15. Tag werden alle eigenen Archive
+und Prüfsummen des ersten Tages entfernt, auch wenn sie nachmittags statt zur
+regulären Sicherungszeit entstanden sind. Beispiel: Am 03.12. entfallen Sicherungen
+vom 19.11.; der 20.11. bis 03.12. bleibt erhalten. Sommerzeitwechsel werden korrekt
+berücksichtigt. Es bleiben damit die Backups der letzten 14 Kalendertage, nicht
+zwangsläufig exakt 14 Dateien bei zusätzlichen manuellen Sicherungen.
+
+Die frühere Berechnung nach verstrichenen 24-Stunden-Perioden konnte die Löschung
+eines späten Backups bis zum folgenden Lauf verzögern. Drei neue Regressionstests
+reproduzierten dies vor der Korrektur (3 fehlgeschlagen); danach bestehen alle
+13 Backup-Tests mit 100 % Zeilen- und Branch-Abdeckung. Die korrigierte Datei wurde
+auf dem Server übernommen, der Tag-15-Fall dort ohne echten Löschzugriff geprüft.
+Der vorherige Skriptstand bleibt unter `/opt/mailhelp-backup/server_backup-before-calendar-*.py`
+erhalten. Zeitplan und Zugangsdaten wurden nicht verändert.
+
+Die Bereinigung betrifft weiterhin nur den aktiven Dropbox-Zielordner nach einem
+erfolgreichen Backup. Dropbox-Papierkorb/Versionshistorie und ein aufgrund von
+Verbindungsfehlern ausgefallener Bereinigungslauf sind davon zu unterscheiden.
+
 ### Speicherbereinigung und IP-Zertifikat (19.11.2026)
 
 Lesende Inventur vorab: Ubuntu 26.04.1 LTS, Kernel 7.0.0-34, Docker 29.1.3, Compose 2.40.3,
@@ -317,3 +394,58 @@ ausgestellt (gültig bis 26.11.2026); die Renewal-Konfiguration nutzt jetzt Webr
 Stunden, Log `/var/log/mailhelp-ip-cert-renew.log`). Geprüft: `nginx -t`, ausgeliefertes
 Zertifikat, Erneuerungs-Probelauf und HTTPS aller vier Sites. Rückkehr: die alte
 Renewal-Datei liegt als Sicherung unter `/root/`; Skript und Cron-Datei lassen sich entfernen.
+
+## Update auf 7.9.5 und zentraler Anmeldedienst (19.11.2026)
+
+Quelle ist ausschließlich Commit `2073ef0` (`git archive` mit `ops/`), Release-Verzeichnis
+`/opt/mailhelp/releases/7.9.5-2073ef0`. Auf dem Server gebaut: `mailhelp-production:7.9.5-2073ef0`
+und aus `ops/auth/Dockerfile` `inboxstride-auth:7.9.5-2073ef0`. Prüfungen des Quellstands:
+[Releasebericht 8.0, Abschnitt 7.9.5](Release-8.0.md).
+
+### Anmeldedienst und auth.inboxstride.de
+
+| Komponente | Stand |
+| --- | --- |
+| Container | `inboxstride-auth-auth-1`, Projekt `inboxstride-auth`, Datei `/opt/inboxstride-auth/compose.yaml`, Image-Tag in `/opt/inboxstride-auth/.env` |
+| Schutz | Benutzer 65532, schreibgeschütztes Root-Dateisystem, keine Capabilities, `no-new-privileges`, Healthcheck `healthy` |
+| Öffentlich | nur `127.0.0.1:8780`; nginx-Site `/etc/nginx/sites-available/auth.inboxstride.de` leitet ausschließlich `/auth/google/callback` und `/health` weiter |
+| Intern | mTLS-Port 8443 nur im Docker-Netz `inboxstride-auth` (Alias `auth-intern`), nicht am Host veröffentlicht |
+| Zustand | `/opt/inboxstride-auth/state` (Fernet-verschlüsselte Geheimnisse), Log `/opt/inboxstride-auth/logs/events.jsonl` |
+| Geheimnisse | Schlüsseldatei und TLS-Material unter `/opt/inboxstride-auth/secrets` (65532, 0600); private CA in `/opt/inboxstride-auth/ca` (root, 0700), nicht im Container |
+| TLS | Let's-Encrypt-Zertifikat `auth.inboxstride.de` per Webroot; `/usr/local/sbin/renew-inboxstride-auth` aus `/etc/cron.d/inboxstride-auth-cert-renew` |
+
+Schritte: Verzeichnisse mit Eigentümer und Modus angelegt; `create-key`, `ca-init`,
+`issue auth-intern --server` und `issue stefan` jeweils in einem Container ohne Netz; Instanz
+`stefan` mit Host `stefan.inboxstride.de` registriert. Die Google-Clientdatei (Webanwendung,
+Weiterleitung nur `https://auth.inboxstride.de/auth/google/callback`) wurde einmalig mit
+`set-client` eingelesen und danach mit `shred` entfernt; im Zustand stehen Client-ID und Secret
+nur verschlüsselt. Danach Compose-Start, Zertifikat, nginx-Site und Erneuerung.
+
+Geprüft: `/health` liefert 200 über HTTPS mit passendem Zertifikat; `/intern/token` und `/`
+liefern 404, ein POST auf den Callback 403, ein Callback ohne gültigen State 400 (Log:
+`callback_refused` mit sicherem Grund, keine Parameterwerte). Erneuerungs-Probelauf erfolgreich.
+
+### Update von Produktion und Demo, Anbindung der Produktion
+
+Update mit Freigabe nach isolierter Konfigurationsprüfung ohne Netz: beide Container
+angehalten, Laufzeitdaten konsistent gesichert unter
+`/opt/mailhelp/backups/upgrade-7.9.5-20261119T141834Z`, umgestellt, Health und Version 7.9.5
+beider Container geprüft.
+
+Anbindung: `config.yaml` der Produktion erhielt `hosted_auth` (Dienst `https://auth-intern:8443`,
+Instanz `stefan`, Zertifikat, Schlüssel und CA unter `/config/hosted-auth/`), die Compose-Datei
+das externe Netz `inboxstride-auth`. Vorher gesichert unter
+`/opt/mailhelp/backups/hosted-auth-20261119T141908Z`. Eine Probe aus dem Produktionscontainer
+erhält über mTLS `unknown_connection` für eine nicht existierende Verbindung; damit sind
+Zertifikat, CA und Instanzregister bestätigt. Die Demo ist nicht im Netz des Dienstes.
+
+Der bisherige eigene Google-Zugang der Produktion ist unverändert aktiv
+(`token_credentials_accepted`, Kalender, Todoist, Telegram, LLM und IServ mit
+`access_confirmed`). Erst „Mit Google verbinden“ mit ausdrücklicher Übernahme stellt ein
+Zielprofil auf den zentralen Dienst um; diese Pilotanmeldung ist noch nicht erfolgt.
+
+Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
+`hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
+`upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit
+`docker compose -p inboxstride-auth down` anhalten und die nginx-Site entfernen; Zustand,
+Schlüssel und CA dann nicht löschen, solange Verbindungen bestehen könnten.

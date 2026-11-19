@@ -1,11 +1,12 @@
-# Verifizierter Stand 19.11.2026, Mailhelp 7.9.3, Commit 70f671b.
+# Verifizierter Stand 19.11.2026, Mailhelp 7.9.5, Commit 2073ef0.
 # Zielpfad auf dem Host: /opt/mailhelp/compose.setup.yaml.
-# Zugangsdaten liegen privat unter /opt/mailhelp/runtime/.env.
+# Zugangsdaten liegen privat unter /opt/mailhelp/runtime/.env; das Instanzzertifikat für den
+# zentralen Anmeldedienst unter /opt/mailhelp/runtime/hosted-auth/ (Eigentümer 65532, 0600).
 services:
   mailhelp:
     build:
-      context: /opt/mailhelp/releases/7.9.3-70f671b
-    image: mailhelp-production:7.9.3-70f671b
+      context: /opt/mailhelp/releases/7.9.5-2073ef0
+    image: mailhelp-production:7.9.5-2073ef0
     restart: unless-stopped
     init: true
     stop_grace_period: 45s
@@ -18,5 +19,12 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./runtime:/config
+    networks:
+      - default
+      # Interne mTLS-Schnittstelle des Anmeldedienstes (https://auth-intern:8443); die Demo nie.
+      - inboxstride-auth
 volumes:
   mailhelp-config:
+networks:
+  inboxstride-auth:
+    external: true

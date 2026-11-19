@@ -1,0 +1,20 @@
+[Unit]
+Description=Consistent Mailhelp server backup to Dropbox
+Wants=network-online.target
+After=network-online.target docker.service
+ConditionPathExists=/etc/mailhelp-backup/rclone.conf
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/flock --nonblock /run/mailhelp-dropbox-backup.lock /usr/bin/python3 /opt/mailhelp-backup/server_backup.py --config /etc/mailhelp-backup/config.yaml
+ExecStopPost=/usr/bin/flock --nonblock /run/mailhelp-dropbox-backup.lock /usr/bin/python3 /opt/mailhelp-backup/server_backup.py --config /etc/mailhelp-backup/config.yaml --recover
+TimeoutStartSec=2h
+TimeoutStopSec=120
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

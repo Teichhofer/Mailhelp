@@ -1,4 +1,4 @@
-# GEPLANT, noch nicht auf dem Server eingerichtet (Mailhelp 7.9.5, Planung 8.0).
+# Verifizierter Stand 19.11.2026, Mailhelp 7.9.5, Image inboxstride-auth:7.9.5-2073ef0.
 # Zielpfad auf dem Host: /opt/inboxstride-auth/compose.yaml, Compose-Projekt inboxstride-auth.
 # Image aus dem Release-Verzeichnis: docker build -f ops/auth/Dockerfile -t inboxstride-auth:<version>-<sha> .
 # Geheimnisse und Zustand liegen nur auf dem Host (Rechte siehe ops/server/README.md):
