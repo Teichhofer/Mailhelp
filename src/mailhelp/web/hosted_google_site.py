@@ -25,7 +25,7 @@ from ..persistence.storage import JsonStore
 from ..runtime.google_calendars import listed_targets
 from .auth import WebSession
 from .forms import post_form, select
-from .http import Request, Response
+from .http import CONTENT_SECURITY_POLICY, Request, Response
 from .login_site import SESSION_COOKIE
 from .pages import e, error_page, layout
 
@@ -114,7 +114,11 @@ class HostedGoogleSite:
                         "bleiben; die Freigabe bei Google selbst wird nicht widerrufen.</p>", profile=profile)
                      + post_form("/google/trennen", csrf, "", msg("Verbindung trennen"), profile=profile,
                                  version=version))
-        return self._page(200, title, body)
+        response = self._page(200, title, body)
+        # Browsers check the redirect after a POST against form-action: only this page may continue to Google.
+        response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY.replace(
+            "form-action 'self'", "form-action 'self' https://accounts.google.com")
+        return response
 
     def other_calendars(self, request: Request, session: WebSession) -> Response:
         """Another calendar of the existing access; a read only, then a separate adoption."""

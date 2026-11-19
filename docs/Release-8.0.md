@@ -137,5 +137,17 @@ Einzelheiten: [Betrieb](Betrieb.md).
   `devtools/server_backup.py` behoben).
 - Der Server bleibt unverändert; das nächste Landingpage-Release wird aus `landing/` erzeugt.
 
+## 7.9.8 – Bugfix „Weiter zu Google“
+
+Bei der ersten Pilotanmeldung graute „Weiter zu Google“ nur den Button aus. Der zentrale Dienst
+hatte den Auftrag angenommen (`internal_completed` für `/intern/start`), die Instanz antwortete mit
+der Weiterleitung zu Google, doch Chromium und WebKit verwarfen sie: Die Sicherheitsrichtlinie
+erlaubte mit `form-action 'self'` nur die eigene Adresse, und Browser wenden das auch auf
+Weiterleitungen nach dem Absenden an. Die simulierten Tests prüften die Weiterleitung, aber keinen
+echten Browser. Jetzt erlaubt nur die Seite „Mit Google verbinden“ zusätzlich
+`https://accounts.google.com`. Der Regressionstest
+`test_the_connect_page_allows_its_form_to_continue_to_google` schlug vor der Korrektur fehl; ein
+Playwright-Probelauf bestätigte Sperre und Korrektur in Chromium und WebKit.
+
 **Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
 `docs/Serverhandbuch.md`, Prüfung aller lebenden Dokumente für 8.x.

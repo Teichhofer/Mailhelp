@@ -1,5 +1,9 @@
 # Änderungen
 
+## 7.9.8 – Bugfix: „Weiter zu Google“ blieb ohne Wirkung
+
+- Bugfix: Der Klick auf „Weiter zu Google“ graute nur den Button aus. Browser prüfen die Weiterleitung nach dem Absenden gegen `form-action` der Sicherheitsrichtlinie, die nur die eigene Adresse erlaubte. Die Seite „Mit Google verbinden“ erlaubt jetzt zusätzlich `https://accounts.google.com`; alle anderen Seiten bleiben unverändert.
+
 ## 7.9.7 – Vorbereitung 8.0: Landingpage im Repository
 
 - Quellen der Landingpage unter `landing/`, geprüft gegen das aktive Server-Release; ein Test baut die ausgelieferte Seite Byte für Byte nach.

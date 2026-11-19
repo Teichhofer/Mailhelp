@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from mailhelp.web.hosted_google_site import PENDING, HostedGoogleSite, HostedProfiles, session_reference
+from mailhelp.web.http import SECURITY_HEADERS
 from tests.fakes.hosted_google import Central
 from tests.fakes.shared_web_actions import web as web  # noqa: F401 - the fixture
 from tests.fakes.shared_web_auth import Browser
@@ -95,6 +96,22 @@ def test_a_first_connection_needs_no_google_secret_and_ends_with_an_explicit_ado
     assert hosted.store.load(PENDING, {}) == {}
     again = hosted.browser.request("GET", "/google/verbinden?profile=1").body.decode()
     assert "<h1>Google erneut verbinden</h1>" in again
+
+
+def form_targets(response):
+    policy = {**SECURITY_HEADERS, **response.headers}["Content-Security-Policy"]  # as sent (web/http.py)
+    return next(part for part in policy.split("; ") if part.startswith("form-action")).split()[1:]
+
+
+def test_the_connect_page_allows_its_form_to_continue_to_google(hosted):
+    # Bugfix 7.9.8: browsers apply form-action to the redirect after a POST; with 'self' alone a click on
+    # "Weiter zu Google" only greyed out the button. Only this page may send its form on to Google.
+    page = hosted.browser.request("GET", "/google/verbinden?profile=1")
+    assert form_targets(page) == ["'self'", "https://accounts.google.com"]
+    started = hosted.browser.request("POST", "/google/verbinden", fields(page.body.decode(), "/google/verbinden"))
+    assert urlsplit(started.headers["Location"]).netloc == "accounts.google.com"
+    assert form_targets(hosted.browser.request("GET", "/einstellungen")) == ["'self'"]
+    assert form_targets(hosted.browser.request("GET", "/google/kalender")) == ["'self'"]
 
 
 def test_reconnecting_replaces_the_old_access_only_after_adoption(hosted):

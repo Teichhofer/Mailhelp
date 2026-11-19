@@ -23,6 +23,8 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   Callback → `/einrichtung/google/abschluss?beleg=` (neutrale Seite, Fortsetzung nur per
   same-origin POST) → `/google/kalender` (lesende Liste der Kalender mit Schreibrecht) → ausdrückliche
   Übernahme als Einrichtungsentwurf. Vor der Übernahme bleibt die bisherige Verbindung aktiv.
+  Nur die Seite `/google/verbinden` erweitert `form-action` um `https://accounts.google.com`, weil
+  Browser die Weiterleitung nach dem Absenden gegen diese Richtlinie prüfen (seit 7.9.8).
 - **Verwaltung** (seit 7.9.5): `/google/kalender/wechseln` liest mit dem vorhandenen Zugang die
   Kalender mit Schreibrecht und speichert nur `google_calendar` (Version und Idempotenzschlüssel,
   kein neuer Google-Login). `POST /google/trennen` (Sitzung, CSRF, Version) ruft zentral
