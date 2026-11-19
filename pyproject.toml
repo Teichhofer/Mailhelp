@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "7.9.6"
+version = "7.9.7"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -24,7 +24,7 @@ mailhelp-evaluate = "mailhelp.llm.evaluation:main"
 mailhelp-quality-report = "mailhelp.llm.quality_metrics:main"
 
 [tool.pytest.ini_options]
-addopts = "--cov=mailhelp --cov=devtools --cov=inboxstride_auth --cov-branch --cov-fail-under=100 --strict-markers"
+addopts = "--cov=mailhelp --cov=devtools --cov=inboxstride_auth --cov=landing --cov-branch --cov-fail-under=100 --strict-markers"
 # Planung 4.1, Schritt 9.2: fast development runs deselect these with
 # pytest -m "not (slow or process or e2e)" --no-cov
 markers = [
@@ -35,7 +35,8 @@ markers = [
 ]
 testpaths = ["tests"]
 # The project root makes tests.fakes and tests.scenarios importable (Planung 4.1, 9.3).
-pythonpath = ["."]
+# landing/ holds the landing page's form service and site build as top-level modules (7.9.7).
+pythonpath = [".", "landing"]
 # Temporary test files live in .test-tmp; see tests/conftest.py.
 cache_dir = ".test-tmp/pytest-cache"
 tmp_path_retention_policy = "failed"
@@ -92,6 +93,8 @@ known-first-party = ["mailhelp", "tests", "devtools", "inboxstride_auth"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/mailhelp/web/setting_help.py" = ["E501"]
+# 7.9.7: the landing page's texts and HTML templates; tests/landing/test_landing_build.py checks the output.
+"landing/build_site.py" = ["E501"]
 "src/mailhelp/telegram/__init__.py" = ["F401"]
 # The package exports the domain contexts.
 "src/mailhelp/domain/__init__.py" = ["F401", "F403"]
@@ -137,7 +140,7 @@ strict_equality = true
 [tool.coverage.run]
 branch = true
 data_file = ".test-tmp/.coverage"
-source = ["mailhelp", "devtools", "inboxstride_auth"]
+source = ["mailhelp", "devtools", "inboxstride_auth", "landing"]
 
 [tool.coverage.report]
 fail_under = 100

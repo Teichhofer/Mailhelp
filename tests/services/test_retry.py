@@ -93,7 +93,7 @@ def test_rate_limit_failure_notification_suppression_and_web_link(tmp_path):
         chat_id=1,
         mailbox_settings=settings,
     )
-    for attempt in range(5):
+    for _attempt in range(5):
         Orchestrator.failure(owner, 'mail-a', state, ProcessingErrorCode.INTERNAL_ERROR,
                              ProcessingStage.RELEVANCE, 'Synthetic')
     assert len(messages) == 1

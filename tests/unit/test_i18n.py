@@ -127,6 +127,7 @@ def test_labels_and_badges_follow_the_language():
 
 def test_owned_labels_translate_when_rendered_but_keep_canonical_identity():
     import json
+
     from mailhelp.i18n import msg
     label = msg("Offen")
     assert label == "Offen" and hash(label) == hash("Offen")
@@ -135,7 +136,7 @@ def test_owned_labels_translate_when_rendered_but_keep_canonical_identity():
         assert format(label, ">6") == "  Open"
         assert json.dumps({"label": label}) == '{"label": "Offen"}'
         assert {label: "canonical"}["Offen"] == "canonical"
-        assert str("Offen") == "Offen"  # a user's identical text is not a UI label
+        assert "Offen" == "Offen"  # a user's identical text is not a UI label
         assert label + ": Offen" == "Open: Offen"
         assert "Offen: " + label == "Offen: Open"
     assert str(label) == "Offen"

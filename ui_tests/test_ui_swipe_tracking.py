@@ -169,9 +169,10 @@ def test_exact_touch_clock_sets_the_event_times(phone, mailhelp):
     phone.evaluate("window.__times=[];document.addEventListener('pointermove',e=>__times.push(e.timeStamp),true)")
     grab(phone, exact=True).move(30, steps=3, duration=3).pause(200).move(10, steps=1, duration=1).end()
     times = phone.evaluate("window.__times")
-    gaps = [later - earlier for earlier, later in zip(times, times[1:])]
+    gaps = [later - earlier for earlier, later in zip(times, times[1:], strict=False)]
     # Chrome coarsens timeStamp to 0.1 ms; every CDP round trip itself takes far longer than 1 ms.
-    assert [abs(gap - wanted) <= 0.2 for gap, wanted in zip(gaps, (1, 1, 201))] == [True] * 3 and len(gaps) == 3
+    within = [abs(gap - wanted) <= 0.2 for gap, wanted in zip(gaps, (1, 1, 201), strict=False)]
+    assert within == [True] * 3 and len(gaps) == 3
 
 
 def test_reduced_motion_tracks_without_tilt_or_flight(phone, mailhelp):

@@ -78,7 +78,7 @@ def test78_english_jobs_keep_language_sources_and_history_separate(chat):
     with use_locale(Locale.EN):
         assert chat.service.job("s2", job.id) is None
         assert chat.service.job("s1", job.id).status == "completed"
-        local = ask(chat, "bananabread", key="local")
+        ask(chat, "bananabread", key="local")
     assert chat.service.run_once()
     with use_locale(Locale.EN):
         state = chat.service.state("s1")

@@ -29,6 +29,9 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   `disconnect` auf und sperrt die Verbindung im Prozess auch für einen noch zwischengespeicherten
   Token; die Referenz bleibt im Profil, damit es ohne eigene Google-Geheimnisse gültig bleibt, und
   die Warnung führt zu „Google erneut verbinden“. Google-Grants werden nie automatisch widerrufen.
+- **Landingpage** (seit 7.9.7): Quellen, Formulardienst `lead_service.py` und Seitenbau
+  `build_site.py` unter `landing/`; Installation mit `devtools/landing_install.py`. Der Seitenbau
+  muss die ausgelieferten Dateien Byte für Byte erzeugen (`tests/landing/test_landing_build.py`).
 - **Zentraler Dienst**: gleichzeitige Tokenanfragen derselben Verbindung teilen sich eine
   Erneuerung. Eigenes Image `ops/auth/Dockerfile` (nur `inboxstride_auth` und
   `ops/auth/requirements.lock`); Servervorlagen unter `ops/server/` sind als geplant markiert.

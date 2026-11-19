@@ -24,6 +24,7 @@ def commands(task: str, workers: str, tests: list[str] | None = None) -> list[li
         "full": [["hatchling", "build"], ["pytest",
                                            *([] if workers == "auto" else ["-n", workers, "--dist", "loadgroup"]),
                                            "--cov=mailhelp", "--cov=devtools", "--cov=inboxstride_auth",
+                                           "--cov=landing",
                                            "--cov-branch",
                                            "--cov-fail-under=100", *("--ignore=" + path for path in LATENCY_TESTS)],
                  ["pytest", *LATENCY_TESTS, "--no-cov", "-q", "-s"]],

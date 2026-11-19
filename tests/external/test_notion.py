@@ -9,7 +9,7 @@ from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, ExternalUncertain, TargetAccessError
 from mailhelp.external.notion import MAX_PAGES, NO_STATUS_NOTE, VERSION, NotionTasks, _chunks, _link, _moment
-from mailhelp.llm.adapter import RetryPolicy
+from mailhelp.llm.adapter import RetryableError, RetryPolicy
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_core import proposal
 from tests.fakes.shared_write_improvements import event
@@ -250,7 +250,7 @@ def test_a_failed_read_is_never_an_empty_list_when_strict():
     target = writer(api, logger=logger)
     assert target.fetch_active_tasks() == []
     assert logger.events[-1][0] == ("WARNING", "notion", "fetch_tasks_failed")
-    with pytest.raises(Exception):
+    with pytest.raises(RetryableError):  # a failed strict read is never an empty list
         target.fetch_active_tasks(strict=True)
 
 

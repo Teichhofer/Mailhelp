@@ -192,7 +192,8 @@ def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance, locale):
         page.goto(f"{instance.url}/mails?q=Black+Week")
         expect(page.locator("main")).to_contain_text("Black Week")
         page.goto(f"{instance.url}/einrichtung")
-        expect(page.get_by_text("In der Demo nicht verfügbar" if locale == "de" else "Unavailable in the demo")).to_be_visible()
+        unavailable = "In der Demo nicht verfügbar" if locale == "de" else "Unavailable in the demo"
+        expect(page.get_by_text(unavailable)).to_be_visible()
         context.close()
     finally:
         webkit.close()
@@ -242,7 +243,6 @@ def test78_native_entry_decision_language_switch_and_confirmed_reset(page, insta
     assert page.evaluate("mailhelpText('Originaltext bleibt unverändert')") == "Originaltext bleibt unverändert"
     confirm = "Create in demo" if locale == "en" else CONFIRM
     card = open_card(page, page.locator("button", has_text=confirm))
-    title = card.locator("h2, h3").first.inner_text()
     mail_id = card.locator('input[name="mail_id"]').first.get_attribute("value")
     runtime = next(iter(instance.runtimes.runtimes.values()))
     subject = runtime.store.peek("mail-" + mail_id)["mail"]["headers"]["subject"]

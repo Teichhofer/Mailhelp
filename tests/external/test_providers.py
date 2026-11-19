@@ -10,10 +10,10 @@ from mailhelp.config import Secrets, TargetSettings, load_all, provider_secret_n
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from mailhelp.external.contracts import OAuthTokenError
 from mailhelp.external.google_tasks import GoogleTasks
-from mailhelp.external.notion import NotionTasks
-from mailhelp.external.notion_oauth import NotionTokenProvider
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar
+from mailhelp.external.notion import NotionTasks
+from mailhelp.external.notion_oauth import NotionTokenProvider
 from mailhelp.external.oauth import google_scopes
 from mailhelp.external.providers import Writers, build_writers, provider_services
 from mailhelp.external.roles import CALENDAR_SLOT, TASK_SLOT, slot

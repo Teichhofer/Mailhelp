@@ -1,5 +1,12 @@
 # Änderungen
 
+## 7.9.7 – Vorbereitung 8.0: Landingpage im Repository
+
+- Quellen der Landingpage unter `landing/`, geprüft gegen das aktive Server-Release; ein Test baut die ausgelieferte Seite Byte für Byte nach.
+- Formulardienst und Seitenbau stehen unter der 100-%-Abdeckung; Installationswerkzeug `devtools/landing_install.py` mit Tests; Playwright-Prüfungen unter `ui_tests/landing/`.
+- Entscheidungen zu 8.0: Landingpage im Mailhelp-Repository statt eigenem Repository; die getrennte Wiederherstellungsprobe entfällt.
+- Ruff und mypy über das ganze Repository wieder ohne Befund.
+
 ## 7.9.6 – Vorbereitung 8.0: Anmeldedienst in Betrieb, Serversicherung
 
 - Zentraler Anmeldedienst unter `auth.inboxstride.de` eingerichtet; Produktion und Demo laufen 7.9.5, die Produktion ist per mTLS angebunden. Ihr bisheriger Google-Zugang bleibt bis zur Pilotanmeldung aktiv.

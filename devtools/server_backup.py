@@ -58,7 +58,7 @@ def recover(config: dict) -> None:
     if not path.exists():
         return
     pending = json.loads(path.read_text(encoding='utf-8'))
-    failed = {'containers': [], 'services': []}
+    failed: dict[str, list[str]] = {'containers': [], 'services': []}
     for name in pending['containers']:
         try:
             execute(['docker', 'start', name])

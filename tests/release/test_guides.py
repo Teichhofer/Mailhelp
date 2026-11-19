@@ -1,6 +1,6 @@
 """5.3 H5/H6: the current guides name only controls that exist and link only to existing sections."""
-import re
 import ast
+import re
 from pathlib import Path
 
 import pytest

@@ -4,12 +4,11 @@ import json
 import httpx
 import pytest
 
-from mailhelp.domain.proposal import ProposalStatus
+from mailhelp.domain.proposal import Proposal, ProposalStatus
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, ExternalUncertain, TargetAccessError
-from mailhelp.domain.proposal import Proposal
 from mailhelp.external.google_tasks import DUE_NOTE, MAX_PAGES, NOTES_LIMIT, TITLE_LIMIT, GoogleTasks, _link, _reason
-from mailhelp.llm.adapter import RetryPolicy
+from mailhelp.llm.adapter import RetryableError, RetryPolicy
 from tests.fakes.log_fakes import RecordingLogger
 from tests.fakes.shared_core import proposal
 from tests.fakes.shared_write_improvements import event
@@ -189,7 +188,7 @@ def test_a_failed_read_is_never_an_empty_list_when_strict():
     target = writer(api, logger=logger)
     assert target.fetch_active_tasks() == []
     assert logger.events[-1][0] == ("WARNING", "google_tasks", "fetch_tasks_failed")
-    with pytest.raises(Exception):
+    with pytest.raises(RetryableError):  # a failed strict read is never an empty list
         target.fetch_active_tasks(strict=True)
 
 

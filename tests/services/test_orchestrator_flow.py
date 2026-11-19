@@ -777,7 +777,7 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
             assert len(notify.messages) == 0
             for _ in range(4):
                 now += 7500
-                second=Orchestrator(Failing(),store,notify,1,[topic],1000,clock=lambda: now).process(mail)
+                second=Orchestrator(Failing(),store,notify,1,[topic],1000,clock=lambda now=now: now).process(mail)
         else:
             second=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
         assert first.outcome is second.outcome is ProcessingOutcome.FAILED

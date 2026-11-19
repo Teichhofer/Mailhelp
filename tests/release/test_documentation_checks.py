@@ -7,8 +7,8 @@
 """
 from __future__ import annotations
 
-import re
 import ast
+import re
 import subprocess
 from functools import cache
 from pathlib import Path

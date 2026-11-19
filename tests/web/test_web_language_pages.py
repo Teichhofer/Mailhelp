@@ -140,7 +140,7 @@ def test_the_choice_of_a_calendar_event_and_the_conflict_hint_in_english(web):
 def test_web_commands_produce_german_results_while_telegram_speaks_english(web, monkeypatch):
     """Web commands run in the dialog thread; their results never take its language (7.5.4)."""
     from mailhelp.i18n import tr
-    from mailhelp.review.results import ReviewResult, ResultStatus
+    from mailhelp.review.results import ResultStatus, ReviewResult
     web.dialog.locale = Locale.EN
     monkeypatch.setattr(web.dialog.review, "execute",
                         lambda command: ReviewResult(status=ResultStatus.DONE, message=tr("Bereits entfernt.")))

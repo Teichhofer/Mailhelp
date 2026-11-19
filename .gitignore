@@ -248,3 +248,6 @@ mutants/
 
 # Lokale OAuth-Clientdateien und weitere Geheimnisse
 /.secrets/
+
+# Screenshots of the manual landing page checks (ui_tests/landing)
+landing/.checks/

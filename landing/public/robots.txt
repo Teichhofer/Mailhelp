@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /danke/
+Disallow: /en/thanks/
+Sitemap: https://inboxstride.de/sitemap.xml

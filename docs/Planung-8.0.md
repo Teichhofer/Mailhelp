@@ -344,7 +344,9 @@ Es umfasst die gesamte Inboxstride-Installation, nicht nur den neuen Auth-Dienst
 - Bestehende Dateien und Skripte zunächst lesend inventarisieren. Nachvollziehbar
   erfolgreiche Schritte aus lokalen Deploymentdateien und Releaseberichten übernehmen;
   ein historischer Bericht allein beweist nicht den gegenwärtigen Serverzustand.
-- Die Landingpage liegt derzeit außerhalb des Mailhelp-Repositorys und hat kein
+- Entschieden am 19.11.2026: Die Landingpage liegt im Mailhelp-Repository unter
+  `landing/` statt in einem eigenen Repository ([Release 8.0](Release-8.0.md)).
+  Ursprünglicher Plan: Die Landingpage liegt derzeit außerhalb des Mailhelp-Repositorys und hat kein
   eigenes Git-Repository. Ihre Quellen und Betriebsdateien in einem eigenen
   Git-Repository versionieren; im Serverhandbuch Repository, freigegebenen Commit,
   Build-/Paketierverfahren und Deploymentmanifest referenzieren. Auch diese Quelle
@@ -381,6 +383,8 @@ Stand in `docs/Betrieb.md` nachführen und später ins Handbuch übernehmen.
 
 #### Nachweis von Neuaufbau und Reparierbarkeit
 
+Entschieden am 19.11.2026: Die Probe entfällt auf Entscheidung des Betreibers und ist
+kein Freigabekriterium mehr ([Release 8.0](Release-8.0.md)). Ursprünglicher Plan:
 Eine vom Produktivsystem getrennte Neuaufbau-/Wiederherstellungsprobe mit synthetischen
 Daten ist Freigabekriterium für 8.0. Sie startet mit frischem Git-Checkout und
 definierter Test-Sicherung, verwendet ausschließlich die dokumentierten Schritte

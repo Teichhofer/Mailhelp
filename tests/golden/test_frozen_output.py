@@ -10,8 +10,8 @@ import json
 import os
 import re
 from datetime import UTC, datetime
-from pathlib import Path
 from html.parser import HTMLParser
+from pathlib import Path
 
 import pytest
 import time_machine

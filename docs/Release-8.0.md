@@ -10,15 +10,19 @@ Diese Prüfung gehört zum Abschluss von 8.0. Zwischenstände ohne Verhaltensän
 erscheinen deshalb als 7.9.x; 8.0.1 ist die erste Version mit nutzbarer Google-Verbindung über
 Inboxstride und geprüfter Dokumentation.
 
-## Festgelegte Entscheidungen (18. November 2026)
+## Festgelegte Entscheidungen (18. und 19. November 2026)
 
 - **Geheimnisspeicher:** Fernet aus `cryptography`; der Schlüssel liegt als nur für den Eigentümer
   lesbare Datei außerhalb des Zustandsverzeichnisses. Ein Backup des Zustands allein entschlüsselt
   nichts. Mehrere Schlüssel sind möglich (erster verschlüsselt, alle entschlüsseln), mit Rotation.
 - **Interne Schnittstelle:** mTLS mit eigener kleiner Inboxstride-CA (folgt).
 - **DNS:** Den Eintrag `auth.inboxstride.de` legt der Betreiber an.
-- **Offen:** getrenntes Testsystem für die Wiederherstellungsprobe und ein eigenes Repository für die
-  Landingpage; beides ist Freigabekriterium von 8.0.
+- **Landingpage (19. November 2026):** Statt eines eigenen Repositorys liegen ihre Quellen im
+  Mailhelp-Repository unter `landing/` (Abweichung von Planung 8.0, Abschnitt 7; seit 7.9.7).
+- **Wiederherstellungsprobe (19. November 2026):** entfällt auf Entscheidung des Betreibers. Die
+  getrennte Neuaufbau-/Wiederherstellungsprobe aus Planung 8.0 ist damit kein Freigabekriterium
+  mehr; das Serverhandbuch beschreibt Neuaufbau und Wiederherstellung trotzdem vollständig, nur ohne
+  nachgewiesenen Probelauf.
 
 ## 7.9.3 – Grundlage des zentralen Anmeldedienstes
 
@@ -115,6 +119,23 @@ angebunden; Probe `unknown_connection` aus dem Produktionscontainer bestätigt Z
 Register. Der bisherige Google-Zugang der Produktion bleibt bis zur Pilotanmeldung aktiv.
 Einzelheiten: [Betrieb](Betrieb.md).
 
+## 7.9.7 – Landingpage im Repository
+
+- Quellen der Landingpage unter `landing/`, unverändert aus dem aktiven Server-Release übernommen
+  und Datei für Datei gegen dessen Manifest geprüft (58 Dateien gleich; die übrigen stammen
+  unverändert aus früheren Releases). Keine Interessentendaten: Diese liegen nur auf dem Server
+  unter `/var/lib/inboxstride/leads`.
+- `tests/landing/test_landing_build.py` baut die Seite in einer Kopie neu und verlangt alle
+  ausgelieferten Dateien Byte für Byte; damit sind die Quellen nachweislich vollständig.
+  Die Formulartests laufen jetzt in der Mailhelp-Prüfung; `landing/` steht unter der 100-%-Abdeckung.
+- Das einmalige Installationsskript wurde zu `devtools/landing_install.py` mit gleichen Schritten,
+  echten Fehlern statt `assert` und Tests für Erfolg, Wiederholung, unsichere Archive, Ausfall des
+  Formulardienstes und einen veränderten Mailhelp-Container.
+- Die zwei Playwright-Prüfskripte liegen unter `ui_tests/landing/`; die veraltete Erwartung eines
+  Demo-Links ohne Sprachpfad wurde an `/de/` und `/en/` angepasst, beide bestehen.
+- Ruff und mypy über das ganze Repository wieder ohne Befund (ältere Befunde in Tests und in
+  `devtools/server_backup.py` behoben).
+- Der Server bleibt unverändert; das nächste Landingpage-Release wird aus `landing/` erzeugt.
+
 **Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
-`docs/Serverhandbuch.md`, Wiederherstellungsprobe auf getrenntem Testsystem, Quellen der
-Landingpage in Git, Prüfung aller lebenden Dokumente für 8.x.
+`docs/Serverhandbuch.md`, Prüfung aller lebenden Dokumente für 8.x.

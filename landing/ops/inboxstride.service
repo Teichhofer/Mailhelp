@@ -1,0 +1,31 @@
+[Unit]
+Description=Inboxstride interest form
+After=network.target
+
+[Service]
+Type=simple
+User=inboxstride
+Group=inboxstride
+WorkingDirectory=/opt/inboxstride/current
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/inboxstride/current/lead_service.py serve --data-dir /var/lib/inboxstride/leads --port 8877
+Restart=on-failure
+RestartSec=3
+StateDirectory=inboxstride
+StateDirectoryMode=0700
+UMask=0077
+MemoryMax=64M
+CPUQuota=20%
+TasksMax=32
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/inboxstride
+RestrictAddressFamilies=AF_INET AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

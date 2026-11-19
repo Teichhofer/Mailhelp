@@ -116,8 +116,6 @@ def test_reject_shows_sender_hint_on_detached_card(web):
 
     from mailhelp import state_names
     from mailhelp.domain.proposal import Proposal, ProposalKind
-    mail1_view = web.site.views.mail(MAIL1)
-    sender = mail1_view.sender
 
     for i in range(4):
         pid = f"extra_{i}"
@@ -145,7 +143,7 @@ def test_reject_shows_sender_hint_on_detached_card(web):
     html = web.browser.request("GET", "/").body.decode()
     assert "data-sender-hint" in html
     assert "Künftig aussortieren?" in html
-    assert f"/lernen/absender-hinweis?sender=" in html
+    assert "/lernen/absender-hinweis?sender=" in html
 
 
 def test_command_cards_detached_without_sender_hint_lookup(web):
