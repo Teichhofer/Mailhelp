@@ -151,6 +151,8 @@ class TargetWriter(ABC):
     role: str
     target: str
     label: str
+    # 8.0: set for a hosted Google calendar ("google-<connection>"); empty means the provider name.
+    binding: str = ""
 
     @property
     def supports_remove(self) -> bool:

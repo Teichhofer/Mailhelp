@@ -6,6 +6,14 @@ Termine) und 7.9.2 (Warnhinweis bei Anmeldeproblemen). Der zentrale Google-OAuth
 
 ## 7.9.2 – Anmeldeprobleme sichtbar machen
 
+**Produktivbereitstellung 19.11.2026:** Produktion und Demo laufen auf 7.9.3
+(Commit `70f671b04b84b91c2ddaab4b2a63b4a567aabbb7`), einschließlich der Korrekturen
+aus 7.9.1 und 7.9.2. Konsistente Sicherungen, erhaltene Konfiguration/Sitzungen/
+Schreibnachweise, bestätigter Google-Zugriff, HTTPS und Demo-Isolierung sind geprüft.
+Der Ablauf einschließlich zweier vor der Produktionsumstellung zurückgenommener
+Vorversuche steht in [Betrieb und Update](Betrieb.md). Die Grundlage für 8.0 ist
+enthalten; ein zentraler OAuth-Dienst wurde nicht aktiviert.
+
 - **Statusquelle:** `support/connection_health.py` am vorhandenen Ereignisstrom; der Status liegt
   dauerhaft und lesbar in `connection-health.json`, ohne Anbietertexte, Tokens oder Passwörter.
   Gezählt werden nur ausdrückliche Anmeldeergebnisse: abgelehnte Token-Erneuerung (Google, Microsoft,

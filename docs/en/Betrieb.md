@@ -2,6 +2,15 @@
 
 Reviewed for Mailhelp 7.0.
 
+Verified server update on 19 November 2026: production and demo now run Mailhelp
+7.9.3 from commit `70f671b04b84b91c2ddaab4b2a63b4a567aabbb7` using image
+`mailhelp-production:7.9.3-70f671b`. Production configuration, credentials, sessions
+and action receipts were preserved; public HTTPS, both demo languages, demo network
+isolation and Google access were verified. The central OAuth service is not enabled.
+See the [German operating record](../Betrieb.md) and [server templates](../../ops/server/README.md)
+for exact paths, consistent backups, update order and rollback restrictions. Never
+overwrite newer action receipts with a pre-update runtime backup.
+
 Server changes also follow the documentation requirement in [AGENTS.md](../../AGENTS.md).
 Once setup, a change or a repair has been verified as successful, update the confirmed
 state, reproducible steps, affected versions, checks and rollback procedure before
@@ -124,3 +133,15 @@ Before returning to a version older than 5.2.0, stop the service and run `mailhe
 Settings shows nine check stages for the signed-in device. On iOS, open Mailhelp from the Home Screen as an installed web app over HTTPS. Enable server push under Setup, enter a valid VAPID contact and restart. Then enable the device. Missing mailbox channels can be added after an explicit, version-checked preview.
 
 A test push transmits only a fixed neutral type. Provider acceptance and device feedback are separate states; check the actual system notification on the device. Enable the device again after a key change or 401/403. Errors 429, 5xx and network failures remain retryable. Your own changes and proposals already open before activation do not trigger a new push. Back up subscriptions, VAPID, activation times and version provenance in the persistent data directory. Details: [Release 6.8](../archiv/Release-6.8.md).
+
+## Verified Inboxstride server state of 19 November 2026 <!-- mailhelp-id:betrieb/verifizierter-inboxstride-serverstand-vom-19-november-2026 -->
+
+Production and the public demo run Mailhelp 7.9.3 from commit `70f671b04b84b91c2ddaab4b2a63b4a567aabbb7` with the image `mailhelp-production:7.9.3-70f671b`. The [German operating record](../Betrieb.md) lists containers, Compose projects, data locations, the isolated demo network and the public addresses; the secret-free templates are under [ops/server](../../ops/server/README.md). The central OAuth service of 8.0 is not in operation.
+
+### Backup and update procedure of this release <!-- mailhelp-id:betrieb/sicherung-und-updateablauf-dieses-releases -->
+
+Before the switch, both Compose files and the runtime data of the stopped production service and demo were backed up on the server. The new image was built, checked without network and switched demo first, then production; the previous images remain available. Two earlier attempts were rolled back and are recorded as such, not as the active state. A backup on the same server does not replace an encrypted external disaster backup.
+
+### Acceptance and rollback limits <!-- mailhelp-id:betrieb/abnahme-und-rueckkehrgrenzen -->
+
+Verified: both containers report 7.9.3, the demo is healthy, the public health and sign-in pages answer over HTTPS, both demo languages work and the demo cannot reach external addresses. A rollback restores the previous Compose files and image; never put a pre-update runtime backup over newer action receipts.

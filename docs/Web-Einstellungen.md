@@ -666,8 +666,26 @@ Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet
 | `target_profiles[].outlook_calendar` | Outlook-Kalender, Standard `default`. | Zielprofilseite |
 | `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |
 | `target_profiles[].google_tasks_list` | Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos). | Zielprofilseite |
+| `target_profiles[].google_connection` | Referenz des Google-Zugangs beim Inboxstride-Anmeldedienst (8.0); setzt nur „Mit Google verbinden“. | Zielprofilseite |
 | `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |
 | `target_profiles[].removal_window_minutes` | Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10. | Zielprofilseite |
+
+### Gehostete Google-Anmeldung (8.0)
+
+Gehostete Inboxstride-Instanzen verbinden den Google Kalender über einen zentralen Anmeldedienst.
+Den Abschnitt `hosted_auth` legt der Betreiber fest; bei der Ersteinrichtung übernimmt Mailhelp ihn
+aus `MAILHELP_HOSTED_AUTH_URL`, `MAILHELP_HOSTED_AUTH_INSTANCE`, `MAILHELP_HOSTED_AUTH_CERT`,
+`MAILHELP_HOSTED_AUTH_KEY` und `MAILHELP_HOSTED_AUTH_CA`. Nutzer bearbeiten ihn nicht.
+
+| Schlüssel | Wirkung und Werte | Bedienweg |
+| --- | --- | --- |
+| `targets.google_connection` | Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`. Nur für den Google Kalender, nicht für Google Tasks. | Mit Google verbinden |
+| `hosted_auth.enabled` | Zentralen Anmeldedienst verwenden; Standard `false`. | Betreiber |
+| `hosted_auth.service_url` | Interne mTLS-Adresse des Dienstes, `https://` mit Host und optionalem Port. | Betreiber |
+| `hosted_auth.instance_id` | Kennung der Instanz im Register des Dienstes. | Betreiber |
+| `hosted_auth.certificate` | Pfad zum Clientzertifikat der Instanz. | Betreiber |
+| `hosted_auth.key` | Pfad zum privaten Schlüssel des Clientzertifikats; nur für den Dienst lesbar. | Betreiber |
+| `hosted_auth.ca` | Pfad zum CA-Zertifikat, mit dem der Dienst geprüft wird. | Betreiber |
 
 ### Notion als Aufgabenziel (7.2)
 

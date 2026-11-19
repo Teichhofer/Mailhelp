@@ -1,6 +1,7 @@
 """Start the protected setup server without creating any production adapters."""
 from __future__ import annotations
 
+import hashlib
 import os
 import secrets
 from collections.abc import Callable
@@ -10,6 +11,8 @@ from typing import Any
 
 from ..config import Settings, WebSettings
 from ..config.loader import _dotenv
+from ..config.target_settings import HostedAuthSettings
+from ..external.hosted_oauth import cached_client
 from ..i18n import tr
 from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
@@ -18,6 +21,7 @@ from ..runtime.oauth_web import BrowserOAuth, oauth_config
 from ..runtime.setup_checks import SetupChecks
 from ..web.app import WebApp
 from ..web.auth import WebAuth
+from ..web.hosted_google_site import HostedGoogleSite, HostedProfiles
 from ..web.initial_site import InitialSite
 from ..web.oauth_site import OAuthSite
 from ..web.server import WebServer
@@ -63,7 +67,28 @@ def create_initial(directory: Path, store: JsonStore, settings: WebSettings, sto
         calendar_context(profile, field)
         setup.save(actor, {"step": "4", "version": str(version), "key": key, "targets." + field: calendar})
 
+    def hosted_draft(profile: int) -> tuple[str, int]:
+        if profile != 1:
+            raise LookupError("Ersteinrichtung verwendet Zielprofil 1.")
+        state = setup.state()
+        return str(state.config["targets"].get("google_connection", "")), state.version
+
+    def hosted_save(actor: str, profile: int, values: dict[str, str], version: int, key: str) -> None:
+        hosted_draft(profile)
+        setup.save(actor, {"step": "4", "version": str(version), "key": key,
+                           **{"targets." + field: value for field, value in values.items()}})
+
+    def hosted_target(profile: int) -> str:
+        # 8.0: before config.yaml exists, the sign-in is bound to this installation's setup draft.
+        hosted_draft(profile)
+        return "draft:" + hashlib.sha256(str(directory.resolve()).encode("utf-8")).hexdigest()[:32]
+
+    def hosted_settings() -> HostedAuthSettings:
+        return Settings.model_validate(setup.state().config).hosted_auth
+
     OAuthSite(site, oauth, calendar_context, save_calendar)
+    HostedGoogleSite(site, store, cached_client(hosted_settings),
+                     HostedProfiles(hosted_draft, hosted_save, hosted_target), "/einrichtung/start", navigation=False)
     return WebServer(settings.host, settings.port, app, logger), auth, setup, oauth
 
 

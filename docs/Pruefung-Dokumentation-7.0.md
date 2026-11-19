@@ -171,7 +171,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -203,6 +203,12 @@ Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277**
 | `help_chat.max_context_bytes` | int | 24000 | ≥ 2000, ≤ 48000 | Weboberfläche | ja |
 | `help_chat.max_question_chars` | int | 4000 | ≥ 100, ≤ 8000 | Weboberfläche | ja |
 | `help_chat.requests_per_minute_per_session` | int | 6 | ≥ 1, ≤ 20 | Weboberfläche | ja |
+| `hosted_auth.ca` | str | '' | Länge ≤ 500 | Datei | ja |
+| `hosted_auth.certificate` | str | '' | Länge ≤ 500 | Datei | ja |
+| `hosted_auth.enabled` | bool | False |  | Datei | ja |
+| `hosted_auth.instance_id` | str | '' |  | Datei | ja |
+| `hosted_auth.key` | str | '' | Länge ≤ 500 | Datei | ja |
+| `hosted_auth.service_url` | str | '' | Länge ≤ 500 | Datei | ja |
 | `imap.batch_size` | int | 25 | ≥ 1, ≤ 1000 | Weboberfläche | ja |
 | `imap.connection_mode` | Auswahl: ssl, starttls, plain (optional) | – |  | Einrichtung | ja |
 | `imap.drafts_folder` | str (optional) | – |  | Einrichtung | ja |
@@ -352,6 +358,7 @@ Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277**
 | `target_profiles[].caldav_task_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
 | `target_profiles[].calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Zielprofilseite | ja |
 | `target_profiles[].google_calendar` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].google_connection` | str | '' |  | Zielprofilseite | ja |
 | `target_profiles[].google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].id` | int | Pflicht | ≥ 2, ≤ 99 | Zielprofilseite | ja |
 | `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Zielprofilseite | ja |
@@ -374,6 +381,7 @@ Erzeugt mit `python -m devtools.inventory`: **277 Einstellungen**, davon **277**
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Weboberfläche | ja |
 | `targets.google_calendar` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
+| `targets.google_connection` | str | '' |  | Datei | ja |
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |

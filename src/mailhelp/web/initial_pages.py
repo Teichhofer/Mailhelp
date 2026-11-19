@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..i18n import msg, tr
-from ..runtime.initial_setup import FIELDS, SECRET_FIELDS, InitialDraft
+from ..runtime.initial_setup import FIELDS, HIDDEN_FIELDS, SECRET_FIELDS, InitialDraft
 from ..runtime.setup_messages import CATALOGUE, CheckResult
 from .forms import field, post_form, select
 from .pages import e, layout
@@ -162,6 +162,17 @@ def _slug(name: str) -> str:
     return "".join(char if char.isalnum() else "-" for char in name.lower())
 
 
+def hosted_google_box(targets: dict[str, object], profile: int = 1) -> str:
+    """8.0: the Google connection of a hosted instance; no client data, only connect or reconnect."""
+    link = f"/google/verbinden?profile={profile}"
+    if targets.get("google_connection"):
+        return tr('<p role="status">Google ist über Inboxstride verbunden (Kalender {calendar}). '
+                  '<a href="{link}">Google erneut verbinden</a></p>',
+                  calendar=e(str(targets.get("google_calendar", ""))), link=link)
+    return tr('<p>Google-Kalender über Inboxstride verbinden; Client-Daten oder Tokens sind nicht nötig.</p>'
+              '<p><a class="button primary" href="{link}">Mit Google verbinden</a></p>', link=link)
+
+
 def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[CheckResult] | None = None,
                  values: dict[str, str] | None = None) -> str:
     navigation = '<nav aria-label="Einrichtungsschritte">' + " · ".join(
@@ -175,12 +186,15 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
         p2=navigation,
     )
     controls = ""
+    hosted = bool(state.config.get("hosted_auth", {}).get("enabled"))
     if step == 5:
         controls = tr(_INITIAL_PAGE_TEXT_1)
     else:
         check = checks[0] if checks else None
         controls = _fields(state, step, values, _found(check))
         for name in SECRET_FIELDS[step]:
+            if hosted and name.startswith("GOOGLE_OAUTH_"):
+                continue  # 8.0: the operator's central sign-in holds them; users never enter Google secrets.
             controls += tr(
                 (
                     '<label>{p0}<input type="password" name="{p1}" maxlength="4096" '
@@ -215,7 +229,7 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
         step=step,
     )
     if step == 4:
-        body += tr(_INITIAL_PAGE_TEXT_4)
+        body += hosted_google_box(state.config["targets"]) if hosted else tr(_INITIAL_PAGE_TEXT_4)
     return layout("Ersteinrichtung", '<section class="card">' + body + '</section>', signed_in=False,
                   after='<script src="/static/setup.js" defer></script>')
 
@@ -226,6 +240,8 @@ def _fields(state: InitialDraft, step: int, values: dict[str, str] | None = None
     body = ""
     found = found or {}
     for name in FIELDS[step]:
+        if name in HIDDEN_FIELDS:
+            continue
         parent, _, key = name.rpartition(".")
         value: Any = state.config[parent][key] if parent else state.config[key]
         value = (values or {}).get(name, value)

@@ -15,6 +15,7 @@ from ..logging import EventLogger
 from .caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from .contracts import TargetWriter
 from .google_tasks import GoogleTasks
+from .hosted_oauth import HostedAuthClient, HostedTokenProvider
 from .http_writer import HttpWriter
 from .microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar, TokenFile
 from .notion import NotionTasks
@@ -65,6 +66,22 @@ def microsoft_tokens(settings: Settings, secrets: Secrets, base_directory: Path,
         timeout, transport, logger=logger)
 
 
+def google_tokens(settings: Settings, secrets: Secrets, timeout: float, transport: httpx.BaseTransport | None,
+                  logger: EventLogger | None) -> GoogleOAuthTokenProvider | HostedTokenProvider | None:
+    """The Google sign-in of a profile: hosted through Inboxstride (8.0), direct (7.2) or none."""
+    targets = settings.targets
+    if targets.google_connection:
+        # The access is held by the central Inboxstride service; the instance has no Google secret.
+        return HostedTokenProvider(HostedAuthClient(settings.hosted_auth, transport, timeout),
+                                   targets.google_connection, logger)
+    if targets.uses_google:
+        # One sign-in for the calendar and Google Tasks of this profile (7.2).
+        return GoogleOAuthTokenProvider(
+            secrets.google_oauth_client_id.get_secret_value(), secrets.google_oauth_client_secret.get_secret_value(),
+            secrets.google_oauth_refresh_token.get_secret_value(), timeout, transport, logger=logger)
+    return None
+
+
 def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
                   policy: Callable[[str], RetryPolicy] | None = None, logger: EventLogger | None = None,
                   calendar_matcher: Callable[..., Any] | None = None, timeout_cap: float | None = None,
@@ -101,14 +118,9 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         resources.append(microsoft)
         stack.callback(microsoft.close)
 
-    google: GoogleOAuthTokenProvider | None = None
-    if targets.uses_google:
-        # One sign-in for the calendar and Google Tasks of this profile (7.2).
-        google = GoogleOAuthTokenProvider(
-            secrets.google_oauth_client_id.get_secret_value(), secrets.google_oauth_client_secret.get_secret_value(),
-            secrets.google_oauth_refresh_token.get_secret_value(),
-            timeout("google_calendar" if targets.calendar_provider == "google" else "google_tasks"), transport,
-            logger=logger)
+    google = google_tokens(settings, secrets, timeout("google_calendar" if targets.calendar_provider == "google"
+                                                      else "google_tasks"), transport, logger)
+    if google is not None:
         resources.append(google)
         stack.callback(google.close)
 
@@ -148,6 +160,8 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         calendar = HttpWriter("google_calendar", google, targets.google_calendar, timeout("google_calendar"), transport,
                               policy=retry("google_calendar"), logger=logger, calendar_timezone=settings.timezone,
                               calendar_matcher=calendar_matcher)
+        # 8.0: proposals confirmed for another (or no) hosted connection never write through this one.
+        calendar.binding = targets.calendar_binding if targets.google_connection else ""
     elif targets.calendar_provider == "outlook":
         assert microsoft is not None
         calendar = OutlookCalendar(microsoft, targets.outlook_calendar, timeout("microsoft"), transport,

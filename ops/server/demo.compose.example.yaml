@@ -1,0 +1,48 @@
+# Verifizierter Stand 19.11.2026, Zielpfad /opt/mailhelp-demo/compose.yaml.
+# Nur synthetische Demo-Daten; kein Produktiv-Mount und keine Secrets.
+services:
+  mailhelp-demo:
+    image: mailhelp-production:7.9.3-70f671b
+    command: ["--demo", "--config-directory", "/config"]
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    environment:
+      MAILHELP_DEMO_HOST: 0.0.0.0
+      MAILHELP_DEMO_PORT: "8765"
+      MAILHELP_DEMO_ALLOWED_HOSTS: demo.inboxstride.de
+      MAILHELP_DEMO_TRUST_PROXY: "1"
+    volumes:
+      - demo-data:/config
+    networks:
+      demo:
+        ipv4_address: 172.30.86.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16777216,mode=1777
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 384m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8765/health',timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+volumes:
+  demo-data:
+    name: mailhelp-demo-runtime
+networks:
+  demo:
+    name: mailhelp-demo-isolated
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.86.0/28

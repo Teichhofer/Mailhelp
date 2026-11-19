@@ -14,6 +14,7 @@ from . import mailbox_site as mailbox_site_module
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
+from .initial_pages import hosted_google_box
 from .pages import e
 
 _PROFILES_TEXT_1 = msg(
@@ -49,6 +50,10 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
         return site.unavailable()
     cfg = site.runtime.setup.draft_settings()
     body = tr(_PROFILES_TEXT_1)
+    hosted = cfg.hosted_auth.enabled
+    if hosted:
+        # 8.0: hosted instances connect Google through Inboxstride, without client data.
+        body += hosted_google_box(cfg.targets.model_dump())
     for profile in cfg.target_profiles:
         references = profile_references(site.site.views.store, cfg, profile.id)
         body += '<section class="card"><h2>' + e(profile.label) + f" · {profile.id}</h2>"
@@ -62,6 +67,8 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
             p5=profile.id,
             p6=profile.id,
         )
+        if hosted:
+            body += hosted_google_box(profile.model_dump(), profile.id)
         for field, value in profile.model_dump().items():
             if field == "id":
                 continue

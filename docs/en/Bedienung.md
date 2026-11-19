@@ -285,6 +285,12 @@ If a connected service refuses the sign-in, a notice “Connection problems” a
 
 The notice stays visible with filters, reloads and restarts and cannot be dismissed. It disappears only once the same service has been reached successfully again; saving new credentials alone is not enough. An open page shows new notices and their removal after at most 15 seconds. Timeouts and network errors do not count as sign-in problems. Mailhelp checks connected services read-only at start and then every 15 minutes.
 
+### Connecting Google through Inboxstride <!-- mailhelp-id:bedienung/google-ueber-inboxstride-verbinden -->
+
+In a hosted Inboxstride instance you connect Google Calendar without client data or tokens of your own. In the initial setup (step “Calendar and tasks”) and under **Settings → Target profiles**, **Connect with Google** leads to Google. There you choose your account and allow calendar access. Back at Inboxstride you continue with **Choose calendar**, pick a calendar with write access and confirm with **Adopt connection**. Only then does the new connection apply; until then a previous one stays unchanged, also after a cancellation or an error.
+
+The connection itself creates no events. When the account changes, open proposals of this profile need a new confirmation. If Google later refuses the access, the “Connection problems” notice leads straight to **Reconnect Google**. Google Tasks remains reserved for self-hosting with an own Google client.
+
 ## Failed Mails <!-- mailhelp-id:bedienung/fehlgeschlagene-mails -->
 
 The Status page shows under “Recent errors and action required” which Email is being retried or has been given up. **Failed emails** opens the error list (`/mails?state=failed`): Each row states cause, processing stage, and number of failed attempts and offers **Try again**, **Ignore**, and **Details** directly; after the action you return to the list and see the result. **Try again** starts the continuation at the next retrieval and resets the previous attempts; until then the Email appears in the list as “Retry requested”. **Ignore** (called File until 7.3) ends it as not processed and files it away; the Email remains in the archive and disappears from the error list.

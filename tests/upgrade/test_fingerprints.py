@@ -39,7 +39,7 @@ def before_2_0(dump: dict, settings) -> dict:
     dump.pop("llm", None)
     # 4.8: auto_draft did not exist before 2.0 either.
     for name in ("push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info", "activity_report",
-                 "notifications", "target_profiles", "language"):
+                 "notifications", "target_profiles", "language", "hosted_auth"):
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
     dump.get("retention", {}).pop("activity_report_days", None)
@@ -58,7 +58,7 @@ def before_2_0(dump: dict, settings) -> dict:
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes",
                  "google_tasks_list", "notion_data_source_id", "notion_properties",
-                 "notion_open_status", "notion_done_statuses"):
+                 "notion_open_status", "notion_done_statuses", "google_connection"):
         dump["targets"].pop(name)
     # 7.2: Google Tasks as a task target and its timeouts.
     dump.get("timeouts", {}).pop("google_tasks", None)
@@ -191,7 +191,7 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
     operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
                    "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info",
                    "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
-                   "iserv", "language"}
+                   "iserv", "language", "hosted_auth"}
     dump = settings.model_dump(mode="json", exclude=operational)
     dump.pop("llm", None)
     dump["imap"] = imap_before_3_1(settings)
@@ -201,7 +201,7 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes",
                  "google_tasks_list", "notion_data_source_id", "notion_properties",
-                 "notion_open_status", "notion_done_statuses"):
+                 "notion_open_status", "notion_done_statuses", "google_connection"):
         dump["targets"].pop(name)
     step_prompts = prompts.model_dump(exclude={"prompts": {"vision_ocr", "draft_reply", "activity_relevance",
                                                            "activity_events", "diagnostic_test",
@@ -234,7 +234,7 @@ def configuration_3_1(settings, prompts):
     excluded = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
                 "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info",
                 "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
-                "imap", "iserv", "language"}
+                "imap", "iserv", "language", "hosted_auth"}
     dump = settings.model_dump(mode="json", exclude=excluded)
     dump.pop("llm", None)
     dump["telegram"].pop("enabled")

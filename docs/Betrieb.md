@@ -199,3 +199,97 @@ am Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.
 Aktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,
 Aktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.
 Einzelheiten: [Release 6.8](archiv/Release-6.8.md).
+
+## Verifizierter Inboxstride-Serverstand vom 19. November 2026
+
+Produktion und öffentliche Demo wurden um etwa 07:00 Uhr MEZ von 7.8.1 auf 7.9.3
+aktualisiert. Quelle ist ausschließlich der committed Stand
+`70f671b04b84b91c2ddaab4b2a63b4a567aabbb7`; Image
+`mailhelp-production:7.9.3-70f671b`, Buildkontext
+`/opt/mailhelp/releases/7.9.3-70f671b`. Das Image wurde auf dem Server gebaut und
+vor Nutzung isoliert ohne Netzwerk auf die installierte Version geprüft.
+Die vollständigen Python-/Browserprüfungen dieses Quellstands sind im
+[Releasebericht 8.0, Zwischenstand 7.9.3](Release-8.0.md) nachgewiesen.
+
+| Komponente | Aktiver Stand |
+| --- | --- |
+| Produktion | `mailhelp-update-mailhelp-1`, Compose-Projekt `mailhelp-update`, Datei `/opt/mailhelp/compose.setup.yaml`, nur Hostport `127.0.0.1:8765` |
+| Produktionsdaten | `/opt/mailhelp/runtime` als Bind-Mount nach `/config`; eigene Konfiguration/Secrets bleiben erhalten |
+| Demo | `mailhelp-demo-mailhelp-demo-1`, Projekt `mailhelp-demo`, Datei `/opt/mailhelp-demo/compose.yaml` |
+| Demo-Daten | Eigenes Volume `mailhelp-demo-runtime`, keine Produktionsdateien oder Zugangsdaten |
+| Demo-Netz | Internes `mailhelp-demo-isolated`, `172.30.86.0/28`, Container `172.30.86.2`; keine veröffentlichten Ports |
+| Demo-Schutz | Schreibgeschütztes Root-Dateisystem, temporäres `/tmp`, keine Capabilities, `no-new-privileges`; 384 MiB RAM, 0,5 CPU, 128 Prozesse |
+| Öffentlich | `https://stefan.inboxstride.de/` und `https://demo.inboxstride.de/` über bestehenden Host-nginx |
+
+Geheimnisfreie, mit der tatsächlichen Compose-Konfiguration abgeglichene Vorlagen:
+[Produktion](../ops/server/production.compose.example.yaml),
+[Demo](../ops/server/demo.compose.example.yaml),
+[Hinweise](../ops/server/README.md). Der zentrale OAuth-Dienst aus 8.0 ist weiterhin
+nicht in Betrieb; 7.9.3 enthält nur dessen noch nicht angebundene Grundlage.
+
+### Sicherung und Updateablauf dieses Releases
+
+Die erfolgreiche Übernahme ist unter
+`/opt/mailhelp/backups/upgrade-7.9.3-20261119T055857Z` gesichert und dokumentiert:
+
+- `production-compose.yaml` und `demo-compose.yaml`: vorherige Compose-Dateien.
+- `production-runtime.tar.gz`: konsistente Sicherung des angehaltenen Produktionsdienstes,
+  Archivwurzel `production-runtime` einschließlich privater Konfiguration, Daten und Logs.
+- `demo-runtime.tar.gz`: konsistente Sicherung des angehaltenen Demo-Volumes,
+  Archivwurzel `demo-runtime`.
+- `deployment.json` und `verification.json`: Übernahme- und Prüfnachweis ohne Tokenwerte.
+  Der private Sicherungsordner hat Modus 0700 und liegt nicht im Webverzeichnis.
+
+Reihenfolge: neues Image bauen; Demo anhalten und sichern; Konfiguration im neuen
+Image ohne Netzwerk validieren; Demo umstellen und prüfen; Produktion anhalten und
+sichern; Produktions-Compose auf das neue Image und den neuen Buildkontext umstellen;
+Start, Version, Datenbindung und HTTPS prüfen. Die bestehenden Images bleiben erhalten.
+Sicherung auf demselben VPS ersetzt keine verschlüsselte externe Katastrophensicherung.
+
+Für die isolierte Konfigurationsprüfung benötigt auch `--check` einen beschreibbaren
+Logpfad. Das Runtime-Verzeichnis bleibt schreibgeschützt; temporäres `/tmp` bereitstellen:
+
+```sh
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:size=16777216,mode=1777 \
+  --mount type=bind,src=/opt/mailhelp/runtime,dst=/config,readonly \
+  mailhelp-production:7.9.3-70f671b \
+  --check --config-directory /config --log-directory /tmp/check-logs
+```
+
+Aufrufe auf internen IPs brauchen den richtigen Host-Kopf; eine Anfrage ohne ihn
+kann korrekt mit HTTP 421 abgewiesen werden und ist kein Beleg eines Dienstfehlers:
+
+```sh
+curl --fail -H 'Host: demo.inboxstride.de' http://172.30.86.2:8765/health
+curl --fail -H 'Host: stefan.inboxstride.de' http://127.0.0.1:8765/health
+```
+
+Zwei Vorversuche wurden vor der Produktionsumstellung kontrolliert zurückgenommen:
+zunächst scheiterte die Prüfung am schreibgeschützten Logpfad, dann am fehlenden
+Host-Kopf der Demo-Anfrage. Die vorherigen Container wurden jeweils wieder gestartet;
+Runtime-Sicherungen wurden nicht über neuere Daten zurückgespielt. Diese Versuche
+sind unter `upgrade-7.9.3-20261119T055527Z` und `upgrade-7.9.3-20261119T055636Z`
+als zurückgenommen dokumentiert, nicht als aktiver Stand.
+
+### Abnahme und Rückkehrgrenzen
+
+Nachgewiesen: beide Container liefern 7.9.3, keine automatischen Neustarts; Demo-Health
+ist `healthy`; öffentliche Health-/Anmeldeseiten liefern HTTPS 200. Die Demo-Einstiege
+`/de/` und `/en/` liefern die richtige Sprache. Ein Socketversuch aus der Demo zu
+einer externen Adresse scheitert; internes Netz und getrenntes Volume sind erhalten.
+Produktionskonfiguration und Zugangsdaten stimmen per Prüfsumme mit dem Stand vor
+dem Wechsel überein, bestehende Sitzungen und Ledger-Schreibnachweise sind erhalten.
+Google Kalender, Todoist, Telegram, LLM und IServ meldeten beim Start bestätigten
+Zugriff; bis zur Abnahme trat kein Anwendungsfehler auf. Landingpage, Datenschutz
+und Nutzungsbedingungen blieben über HTTPS erreichbar. Keine Testtermine oder
+Testaufgaben wurden angelegt; Produktiv-Neubewertungen wurden nicht ausgelöst.
+
+Vor Umschaltung der Produktion kann auf die gesicherten Compose-Dateien und das
+vorherige Image `mailhelp-production:7.8.1-ae4dcb9` zurückgekehrt werden. Nach Start
+der neuen Produktion zuerst kontrolliert stoppen und Schema-/Schreibnachweise prüfen:
+neue Felder oder inzwischen bestätigte Aktionen können eine blinde Rückkehr unsicher
+machen. Eine alte Runtime-Sicherung niemals ungeprüft über den aktuellen Bestand
+spielen; unklare externe Resultate vor jeder Wiederholung abgleichen. Eine eventuelle
+Datenrückmigration gesondert prüfen. Der Stand 7.9.3 ist bei erfolgreicher Abnahme
+die aktive Installation; die Altversion ist nur eine Rückkehrmöglichkeit.

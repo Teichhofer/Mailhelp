@@ -44,6 +44,15 @@ class Refused(RuntimeError):
         self.code = code
 
 
+def register_instance(states: StateFile, instance: Instance) -> None:
+    """Only the operator registers an instance; its host is the only return address."""
+    def change(state: AuthState) -> AuthState:
+        if any(other.host == instance.host and other.id != instance.id for other in state.instances.values()):
+            raise Refused("host_taken")
+        return state.model_copy(update={"instances": {**state.instances, instance.id: instance}})
+    states.update(change)
+
+
 def digest(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -65,12 +74,7 @@ class AuthService:
     # Operator ------------------------------------------------------------------------------
 
     def register(self, instance: Instance) -> None:
-        """Only the operator registers an instance; its host is the only return address."""
-        def change(state: AuthState) -> AuthState:
-            if any(other.host == instance.host and other.id != instance.id for other in state.instances.values()):
-                raise Refused("host_taken")
-            return state.model_copy(update={"instances": {**state.instances, instance.id: instance}})
-        self.state.update(change)
+        register_instance(self.state, instance)
 
     # Start ---------------------------------------------------------------------------------
 
@@ -304,4 +308,4 @@ class AuthService:
         self.state.update(change)
 
 
-__all__ = ["REFRESH_MARGIN", "AuthService", "Refused", "digest"]
+__all__ = ["REFRESH_MARGIN", "AuthService", "Refused", "digest", "register_instance"]

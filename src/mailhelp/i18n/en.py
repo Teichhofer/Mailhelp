@@ -9512,6 +9512,83 @@ EN = {
     'Zugriff verweigert – eine nötige Berechtigung fehlt.': 'Access denied – a required permission is missing.',
     'Zuletzt fehlgeschlagen: {when}.': 'Last failed: {when}.',
     '{service} (Zielprofil {number})': '{service} (target profile {number})',
+    # Connecting Google through Inboxstride (8.0)
+    '<h1>Google-Verbindung abgebrochen</h1><p>Die bisherige Verbindung bleibt unverändert. Du kannst es jederzeit '
+    'erneut versuchen.</p>': (
+        '<h1>Google connection cancelled</h1><p>The previous connection stays unchanged. You can try again at '
+        'any time.</p>'
+    ),
+    '<h1>Google-Verbindung fortsetzen</h1><p>Die Anmeldung bei Google ist abgeschlossen. Als Nächstes wählst du den '
+    'Kalender.</p>': (
+        '<h1>Continue Google connection</h1><p>The Google sign-in is complete. Next, you choose the calendar.</p>'
+    ),
+    '<h1>Kalender auswählen</h1><p>Zielprofil {profile}. Übernehmen ersetzt eine bisherige Google-Verbindung dieses '
+    'Profils; offene Vorschläge brauchen danach eine neue Bestätigung.</p>': (
+        '<h1>Choose calendar</h1><p>Target profile {profile}. Adopting replaces a previous Google connection of '
+        'this profile; open proposals then need a new confirmation.</p>'
+    ),
+    '<h1>Zurück bei Inboxstride</h1><p>Bitte im ursprünglichen Browser fortsetzen.</p><p><a class="button" '
+    'href="{href}">Fortsetzen</a></p>': (
+        '<h1>Back at Inboxstride</h1><p>Please continue in the original browser.</p><p><a class="button" '
+        'href="{href}">Continue</a></p>'
+    ),
+    '<p role="status">Google ist über Inboxstride verbunden (Kalender {calendar}). <a href="{link}">Google erneut '
+    'verbinden</a></p>': (
+        '<p role="status">Google is connected through Inboxstride (calendar {calendar}). <a href="{link}">Reconnect '
+        'Google</a></p>'
+    ),
+    '<p>Google-Kalender über Inboxstride verbinden; Client-Daten oder Tokens sind nicht nötig.</p><p><a '
+    'class="button primary" href="{link}">Mit Google verbinden</a></p>': (
+        '<p>Connect Google Calendar through Inboxstride; no client data or tokens are needed.</p><p><a '
+        'class="button primary" href="{link}">Connect with Google</a></p>'
+    ),
+    '<p>Zielprofil {profile}. Bei Google wählst du dein Konto und erlaubst den Zugriff auf deine Kalender. Danach '
+    'wählst du hier den Kalender und übernimmst die Verbindung ausdrücklich. Die Verbindung selbst legt keine '
+    'Termine an.</p>': (
+        '<p>Target profile {profile}. At Google you choose your account and allow access to your calendars. Then '
+        'you choose the calendar here and adopt the connection explicitly. The connection itself creates no '
+        'events.</p>'
+    ),
+    'Der Abschlussbeleg fehlt oder ist ungültig.': 'The completion receipt is missing or invalid.',
+    'Der Abschlussbeleg ist abgelaufen oder gehört zu einer anderen Sitzung. Bitte „Mit Google verbinden“ erneut '
+    'starten.': (
+        'The completion receipt has expired or belongs to another session. Please start “Connect with Google” '
+        'again.'
+    ),
+    'Der Anmeldedienst lieferte keine gültige Google-Adresse.': 'The sign-in service returned no valid Google address.',
+    'Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar.': 'The Inboxstride sign-in service is not reachable '
+                                                                  'right now.',
+    'Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar. Die bisherige Verbindung bleibt unverändert.': (
+        'The Inboxstride sign-in service is not reachable right now. The previous connection stays unchanged.'
+    ),
+    'Die Anfrage war unvollständig. Bitte erneut versuchen.': 'The request was incomplete. Please try again.',
+    'Die Google-Verbindung über Inboxstride ist für diese Installation nicht eingerichtet. Bitte den Betreiber '
+    'informieren.': (
+        'Connecting Google through Inboxstride is not set up for this installation. Please inform the operator.'
+    ),
+    'Die Kalender konnten nicht gelesen werden. Die bisherige Verbindung bleibt unverändert.': (
+        'The calendars could not be read. The previous connection stays unchanged.'
+    ),
+    'Die Verbindung wurde inzwischen geändert oder ist abgelaufen. Bitte erneut starten; die bisherige Verbindung '
+    'bleibt unverändert.': (
+        'The connection has changed or expired in the meantime. Please start again; the previous connection stays '
+        'unchanged.'
+    ),
+    'Dieses Zielprofil gibt es nicht.': 'This target profile does not exist.',
+    'Für dieses Google-Konto gibt es keinen Kalender mit Schreibrecht. Bitte ein anderes Konto verbinden.': (
+        'This Google account has no calendar with write access. Please connect another account.'
+    ),
+    'Google erneut verbinden': 'Reconnect Google',
+    'Google-Verbindung abgebrochen': 'Google connection cancelled',
+    'Google-Verbindung fortsetzen': 'Continue Google connection',
+    'Google-Verbindung nicht möglich': 'Google connection not possible',
+    'Kalender auswählen': 'Choose calendar',
+    'Kein offener Google-Vorgang. Bitte „Mit Google verbinden“ erneut starten.': (
+        'No open Google sign-in. Please start “Connect with Google” again.'
+    ),
+    'Mit Google verbinden': 'Connect with Google',
+    'Verbindung übernehmen': 'Adopt connection',
+    'Weiter zu Google': 'Continue to Google',
     'Widerspruch beim Videolink: im Kalender „{previous}“, laut Mail „{proposed}“. Welcher Videolink soll gelten?': (
         'Conflicting video link: in the calendar “{previous}”, according to the email “{proposed}”. '
         'Which video link applies?'

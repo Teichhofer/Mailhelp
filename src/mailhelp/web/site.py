@@ -502,7 +502,10 @@ class MailhelpSite:
     def connection_state(self) -> tuple[str, str]:
         """7.9.2: the warning area for sign-in problems and its fingerprint, from the stored status only."""
         problems = connection_health.current(self.views.store)
-        return connection_warnings(problems, self.configured_timezone), connection_health.digest(problems)
+        configuration = getattr(self.archive, "configuration", None)
+        hosted = configuration is not None and configuration.active.hosted_auth.enabled
+        return (connection_warnings(problems, self.configured_timezone, hosted_google=hosted),
+                connection_health.digest(problems))
 
     def open_fingerprint(self, overview: Overview) -> str:
         """The open decisions change, or a sign-in warning appears or disappears."""

@@ -29,14 +29,28 @@ FIELDS = {
     4: ("targets.calendar_provider", "targets.task_provider", "targets.google_calendar", "targets.todoist_project",
         "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
         "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
-        "web.google_redirect_uri"),
+        "targets.google_connection", "web.google_redirect_uri"),
 }
+# 8.0: set only by the hosted Google sign-in, never typed into a form; a saved step keeps the value.
+HIDDEN_FIELDS = frozenset({"targets.google_connection"})
 SECRET_FIELDS = {
     1: (), 2: ("IMAP_USERNAME", "IMAP_PASSWORD"), 3: ("OPENROUTER_API_KEY",),
     4: ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN", "TODOIST_TOKEN",
         "CALDAV_USERNAME", "CALDAV_PASSWORD", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
         "MICROSOFT_REFRESH_TOKEN", "NOTION_TOKEN"),
 }
+
+
+HOSTED_ENV = {"service_url": "MAILHELP_HOSTED_AUTH_URL", "instance_id": "MAILHELP_HOSTED_AUTH_INSTANCE",
+              "certificate": "MAILHELP_HOSTED_AUTH_CERT", "key": "MAILHELP_HOSTED_AUTH_KEY",
+              "ca": "MAILHELP_HOSTED_AUTH_CA"}
+
+
+def hosted_auth_from_env(env: dict[str, str]) -> dict[str, Any] | None:
+    """8.0: ``hosted_auth`` from the operator's environment, or None outside the hosted offer."""
+    if not env.get(HOSTED_ENV["service_url"]):
+        return None
+    return {"enabled": True, **{field: env.get(name, "") for field, name in HOSTED_ENV.items()}}
 
 
 def default_file(name: str) -> str:
@@ -86,6 +100,10 @@ class InitialSetup:
                        "historical_start": datetime.now(ZoneInfo(raw["timezone"])).replace(
                            hour=0, minute=0, second=0, microsecond=0).isoformat()}
         raw["targets"].update(google_calendar="primary", todoist_project="inbox")
+        hosted = hosted_auth_from_env(self.environment())
+        if hosted:
+            # 8.0: the operator of a hosted instance provides the central sign-in; users never edit it.
+            raw["hosted_auth"] = hosted
         return InitialDraft(config=raw, env_revision=file_hash(self.directory / ".env"))
 
     def _save(self, state: InitialDraft) -> None:

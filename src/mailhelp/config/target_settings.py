@@ -62,6 +62,9 @@ class TargetSettings(ConfigModel):
                            "notion"] = "todoist"
     todoist_project: str = Field(default="", max_length=500)
     google_calendar: str = Field(default="", max_length=500)
+    # 8.0: reference of a Google access held by the central Inboxstride service (hosted mode);
+    # empty for the direct mode with the profile's own GOOGLE_OAUTH_* secrets.
+    google_connection: str = Field(default="", pattern=r"^([a-f0-9]{32})?$")
     caldav_calendar_url: str = Field(default="", max_length=2000)
     caldav_task_url: str = Field(default="", max_length=2000)
     outlook_calendar: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
@@ -81,6 +84,9 @@ class TargetSettings(ConfigModel):
     def provider_targets(self) -> TargetSettings:
         if self.calendar_provider == "google" and not self.google_calendar:
             raise ValueError("google_calendar wird für calendar_provider google benötigt")
+        if self.google_connection and (self.calendar_provider != "google" or self.task_provider == "google_tasks"):
+            # 8.0: the hosted access grants calendar scopes only; Google Tasks stays in the direct mode.
+            raise ValueError("google_connection gilt nur für den Google Kalender, nicht für Google Tasks")
         if self.task_provider == "todoist" and not self.todoist_project:
             raise ValueError("todoist_project wird für task_provider todoist benötigt")
         if self.calendar_provider == "caldav" and not _dav_url(self.caldav_calendar_url):
@@ -112,6 +118,17 @@ class TargetSettings(ConfigModel):
             self.task_provider, self.caldav_task_url)
 
     @property
+    def calendar_binding(self) -> str:
+        """The provider an event proposal is bound to; 8.0: a hosted Google access names its connection.
+
+        A changed connection (another Google account with the same calendar id ``primary``) therefore
+        never lets an earlier confirmation write into the new account.
+        """
+        if self.google_connection and self.calendar_provider == "google":
+            return "google-" + self.google_connection[:16]
+        return self.calendar_provider
+
+    @property
     def uses_microsoft(self) -> bool:
         return self.calendar_provider == "outlook" or self.task_provider == "microsoft_todo"
 
@@ -123,6 +140,26 @@ class TargetSettings(ConfigModel):
     @property
     def uses_caldav(self) -> bool:
         return self.calendar_provider == "caldav" or self.task_provider in {"caldav", "apple_reminders"}
+
+class HostedAuthSettings(ConfigModel):
+    """8.0: the central Inboxstride OAuth service; set by the operator of a hosted instance.
+
+    Only paths are configured; certificate key and CA stay in files the operator provides.
+    """
+
+    enabled: bool = False
+    service_url: str = Field(default="", max_length=500, pattern=r"^(https://[A-Za-z0-9.-]+(:\d{1,5})?)?$")
+    instance_id: str = Field(default="", pattern=r"^([a-z0-9][a-z0-9-]{2,62})?$")
+    certificate: str = Field(default="", max_length=500)
+    key: str = Field(default="", max_length=500)
+    ca: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def complete(self) -> HostedAuthSettings:
+        if self.enabled and not all((self.service_url, self.instance_id, self.certificate, self.key, self.ca)):
+            raise ValueError("hosted_auth benötigt service_url, instance_id, certificate, key und ca")
+        return self
+
 
 class TargetProfileSettings(TargetSettings):
     id: int = Field(ge=2, le=99)

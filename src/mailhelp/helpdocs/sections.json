@@ -648,6 +648,7 @@
    "target_profiles[].caldav_task_url",
    "target_profiles[].calendar_provider",
    "target_profiles[].google_calendar",
+   "target_profiles[].google_connection",
    "target_profiles[].google_tasks_list",
    "target_profiles[].id",
    "target_profiles[].label",
@@ -659,8 +660,28 @@
    "target_profiles[].todoist_project"
   ],
   "source": "docs/Web-Einstellungen.md",
-  "text": "Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet\n**Einstellungen → Zielprofile**. Die Felder entsprechen `targets` (siehe „Ziele“).\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `target_profiles[].id` | Nummer 2–99 (Pflicht). | Zielprofilseite |\n| `target_profiles[].label` | Anzeigename, 1–40 Zeichen (Pflicht). | Zielprofilseite |\n| `target_profiles[].calendar_provider` | `google` (Standard), `caldav` oder `outlook`. | Zielprofilseite |\n| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` oder `notion` (7.2). | Zielprofilseite |\n| `target_profiles[].google_calendar` | Kalender-ID bei Google, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].todoist_project` | Todoist-Projekt-ID, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_calendar_url` | Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_task_url` | Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].outlook_calendar` | Outlook-Kalender, Standard `default`. | Zielprofilseite |\n| `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |\n| `target_profiles[].google_tasks_list` | Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos). | Zielprofilseite |\n| `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |\n| `target_profiles[].removal_window_minutes` | Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10. | Zielprofilseite |",
+  "text": "Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet\n**Einstellungen → Zielprofile**. Die Felder entsprechen `targets` (siehe „Ziele“).\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `target_profiles[].id` | Nummer 2–99 (Pflicht). | Zielprofilseite |\n| `target_profiles[].label` | Anzeigename, 1–40 Zeichen (Pflicht). | Zielprofilseite |\n| `target_profiles[].calendar_provider` | `google` (Standard), `caldav` oder `outlook`. | Zielprofilseite |\n| `target_profiles[].task_provider` | `todoist` (Standard), `microsoft_todo`, `caldav`, `apple_reminders`, `google_tasks` oder `notion` (7.2). | Zielprofilseite |\n| `target_profiles[].google_calendar` | Kalender-ID bei Google, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].todoist_project` | Todoist-Projekt-ID, bis 500 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_calendar_url` | Adresse der CalDAV-Kalendersammlung, bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].caldav_task_url` | Adresse der CalDAV-Aufgabensammlung (auch Apple Erinnerungen), bis 2000 Zeichen. | Zielprofilseite |\n| `target_profiles[].outlook_calendar` | Outlook-Kalender, Standard `default`. | Zielprofilseite |\n| `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |\n| `target_profiles[].google_tasks_list` | Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos). | Zielprofilseite |\n| `target_profiles[].google_connection` | Referenz des Google-Zugangs beim Inboxstride-Anmeldedienst (8.0); setzt nur „Mit Google verbinden“. | Zielprofilseite |\n| `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |\n| `target_profiles[].removal_window_minutes` | Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10. | Zielprofilseite |",
   "title": "Weitere Zielprofile (`target_profiles`)"
+ },
+ {
+  "id": "web-einstellungen/gehostete-google-anmeldung-80",
+  "path": [
+   "Einstellungen der Weboberfläche",
+   "Vollständige Referenz weiterer Einstellungen (5.3)",
+   "Gehostete Google-Anmeldung (8.0)"
+  ],
+  "setting_ids": [
+   "hosted_auth.ca",
+   "hosted_auth.certificate",
+   "hosted_auth.enabled",
+   "hosted_auth.instance_id",
+   "hosted_auth.key",
+   "hosted_auth.service_url",
+   "targets.google_connection"
+  ],
+  "source": "docs/Web-Einstellungen.md",
+  "text": "Gehostete Inboxstride-Instanzen verbinden den Google Kalender über einen zentralen Anmeldedienst.\nDen Abschnitt `hosted_auth` legt der Betreiber fest; bei der Ersteinrichtung übernimmt Mailhelp ihn\naus `MAILHELP_HOSTED_AUTH_URL`, `MAILHELP_HOSTED_AUTH_INSTANCE`, `MAILHELP_HOSTED_AUTH_CERT`,\n`MAILHELP_HOSTED_AUTH_KEY` und `MAILHELP_HOSTED_AUTH_CA`. Nutzer bearbeiten ihn nicht.\n\n| Schlüssel | Wirkung und Werte | Bedienweg |\n| --- | --- | --- |\n| `targets.google_connection` | Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`. Nur für den Google Kalender, nicht für Google Tasks. | Mit Google verbinden |\n| `hosted_auth.enabled` | Zentralen Anmeldedienst verwenden; Standard `false`. | Betreiber |\n| `hosted_auth.service_url` | Interne mTLS-Adresse des Dienstes, `https://` mit Host und optionalem Port. | Betreiber |\n| `hosted_auth.instance_id` | Kennung der Instanz im Register des Dienstes. | Betreiber |\n| `hosted_auth.certificate` | Pfad zum Clientzertifikat der Instanz. | Betreiber |\n| `hosted_auth.key` | Pfad zum privaten Schlüssel des Clientzertifikats; nur für den Dienst lesbar. | Betreiber |\n| `hosted_auth.ca` | Pfad zum CA-Zertifikat, mit dem der Dienst geprüft wird. | Betreiber |",
+  "title": "Gehostete Google-Anmeldung (8.0)"
  },
  {
   "id": "web-einstellungen/notion-als-aufgabenziel-72",
@@ -1369,6 +1390,18 @@
   "title": "Verbindungsprobleme"
  },
  {
+  "id": "bedienung/google-ueber-inboxstride-verbinden",
+  "path": [
+   "Alltagsbedienung",
+   "Verbindungsprobleme",
+   "Google über Inboxstride verbinden"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "In einer gehosteten Inboxstride-Instanz verbindest du den Google Kalender ohne eigene Client-Daten\noder Tokens. In der Ersteinrichtung (Schritt „Kalender und Aufgaben“) und unter\n**Einstellungen → Zielprofile** führt **Mit Google verbinden** zu Google. Dort wählst du dein Konto\nund erlaubst den Kalenderzugriff. Zurück bei Inboxstride setzt du mit **Kalender auswählen** fort,\nwählst einen Kalender mit Schreibrecht und bestätigst mit **Verbindung übernehmen**. Erst dann gilt\ndie neue Verbindung; vorher bleibt eine bisherige unverändert, auch bei Abbruch oder Fehler.\n\nDie Verbindung selbst legt keine Termine an. Bei einem Wechsel des Kontos brauchen offene Vorschläge\ndieses Profils eine neue Bestätigung. Lehnt Google den Zugang später ab, führt der Hinweis\n„Verbindungsprobleme“ direkt zu **Google erneut verbinden**. Google Tasks bleibt der eigenen\nEinrichtung mit Google-Client vorbehalten.",
+  "title": "Google über Inboxstride verbinden"
+ },
+ {
   "id": "bedienung/fehlgeschlagene-mails",
   "path": [
    "Alltagsbedienung",
@@ -1652,5 +1685,40 @@
   "source": "docs/Betrieb.md",
   "text": "Die Einstellungen zeigen neun Prüfstufen für das angemeldete Gerät. Unter iOS\nMailhelp vom Home-Bildschirm als installierte Web-App über HTTPS öffnen.\nServer-Push unter Einrichtung einschalten, gültigen VAPID-Kontakt eintragen und\nneu starten. Anschließend das Gerät aktivieren. Fehlende Postfachkanäle lassen\nsich nach einer ausdrücklichen, versionsgeprüften Vorschau ergänzen.\n\nEin Test-Push überträgt ausschließlich einen festen neutralen Typ. Anbieterannahme\nund Geräterückmeldung sind getrennte Zustände; die sichtbare Systemmeldung muss\nam Gerät geprüft werden. Nach Schlüsselwechsel oder 401/403 neu aktivieren.\n429, 5xx und Netzwerkfehler bleiben wiederholbar. Eigene Änderungen und vor der\nAktivierung offene Vorschläge erzeugen keinen neuen Push. Abonnements, VAPID,\nAktivierungszeiten und Versionsherkunft im dauerhaften Datenverzeichnis sichern.\nEinzelheiten: [Release 6.8](archiv/Release-6.8.md).",
   "title": "Web-Push ab 6.8.1"
+ },
+ {
+  "id": "betrieb/verifizierter-inboxstride-serverstand-vom-19-november-2026",
+  "path": [
+   "Betrieb und Update",
+   "Verifizierter Inboxstride-Serverstand vom 19. November 2026"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Produktion und öffentliche Demo wurden um etwa 07:00 Uhr MEZ von 7.8.1 auf 7.9.3\naktualisiert. Quelle ist ausschließlich der committed Stand\n`70f671b04b84b91c2ddaab4b2a63b4a567aabbb7`; Image\n`mailhelp-production:7.9.3-70f671b`, Buildkontext\n`/opt/mailhelp/releases/7.9.3-70f671b`. Das Image wurde auf dem Server gebaut und\nvor Nutzung isoliert ohne Netzwerk auf die installierte Version geprüft.\nDie vollständigen Python-/Browserprüfungen dieses Quellstands sind im\n[Releasebericht 8.0, Zwischenstand 7.9.3](Release-8.0.md) nachgewiesen.\n\n| Komponente | Aktiver Stand |\n| --- | --- |\n| Produktion | `mailhelp-update-mailhelp-1`, Compose-Projekt `mailhelp-update`, Datei `/opt/mailhelp/compose.setup.yaml`, nur Hostport `127.0.0.1:8765` |\n| Produktionsdaten | `/opt/mailhelp/runtime` als Bind-Mount nach `/config`; eigene Konfiguration/Secrets bleiben erhalten |\n| Demo | `mailhelp-demo-mailhelp-demo-1`, Projekt `mailhelp-demo`, Datei `/opt/mailhelp-demo/compose.yaml` |\n| Demo-Daten | Eigenes Volume `mailhelp-demo-runtime`, keine Produktionsdateien oder Zugangsdaten |\n| Demo-Netz | Internes `mailhelp-demo-isolated`, `172.30.86.0/28`, Container `172.30.86.2`; keine veröffentlichten Ports |\n| Demo-Schutz | Schreibgeschütztes Root-Dateisystem, temporäres `/tmp`, keine Capabilities, `no-new-privileges`; 384 MiB RAM, 0,5 CPU, 128 Prozesse |\n| Öffentlich | `https://stefan.inboxstride.de/` und `https://demo.inboxstride.de/` über bestehenden Host-nginx |\n\nGeheimnisfreie, mit der tatsächlichen Compose-Konfiguration abgeglichene Vorlagen:\n[Produktion](../ops/server/production.compose.example.yaml),\n[Demo](../ops/server/demo.compose.example.yaml),\n[Hinweise](../ops/server/README.md). Der zentrale OAuth-Dienst aus 8.0 ist weiterhin\nnicht in Betrieb; 7.9.3 enthält nur dessen noch nicht angebundene Grundlage.",
+  "title": "Verifizierter Inboxstride-Serverstand vom 19. November 2026"
+ },
+ {
+  "id": "betrieb/sicherung-und-updateablauf-dieses-releases",
+  "path": [
+   "Betrieb und Update",
+   "Verifizierter Inboxstride-Serverstand vom 19. November 2026",
+   "Sicherung und Updateablauf dieses Releases"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Die erfolgreiche Übernahme ist unter\n`/opt/mailhelp/backups/upgrade-7.9.3-20261119T055857Z` gesichert und dokumentiert:\n\n- `production-compose.yaml` und `demo-compose.yaml`: vorherige Compose-Dateien.\n- `production-runtime.tar.gz`: konsistente Sicherung des angehaltenen Produktionsdienstes,\n  Archivwurzel `production-runtime` einschließlich privater Konfiguration, Daten und Logs.\n- `demo-runtime.tar.gz`: konsistente Sicherung des angehaltenen Demo-Volumes,\n  Archivwurzel `demo-runtime`.\n- `deployment.json` und `verification.json`: Übernahme- und Prüfnachweis ohne Tokenwerte.\n  Der private Sicherungsordner hat Modus 0700 und liegt nicht im Webverzeichnis.\n\nReihenfolge: neues Image bauen; Demo anhalten und sichern; Konfiguration im neuen\nImage ohne Netzwerk validieren; Demo umstellen und prüfen; Produktion anhalten und\nsichern; Produktions-Compose auf das neue Image und den neuen Buildkontext umstellen;\nStart, Version, Datenbindung und HTTPS prüfen. Die bestehenden Images bleiben erhalten.\nSicherung auf demselben VPS ersetzt keine verschlüsselte externe Katastrophensicherung.\n\nFür die isolierte Konfigurationsprüfung benötigt auch `--check` einen beschreibbaren\nLogpfad. Das Runtime-Verzeichnis bleibt schreibgeschützt; temporäres `/tmp` bereitstellen:\n\n```sh\ndocker run --rm --network none --read-only \\\n  --tmpfs /tmp:size=16777216,mode=1777 \\\n  --mount type=bind,src=/opt/mailhelp/runtime,dst=/config,readonly \\\n  mailhelp-production:7.9.3-70f671b \\\n  --check --config-directory /config --log-directory /tmp/check-logs\n```\n\nAufrufe auf internen IPs brauchen den richtigen Host-Kopf; eine Anfrage ohne ihn\nkann korrekt mit HTTP 421 abgewiesen werden und ist kein Beleg eines Dienstfehlers:\n\n```sh\ncurl --fail -H 'Host: demo.inboxstride.de' http://172.30.86.2:8765/health\ncurl --fail -H 'Host: stefan.inboxstride.de' http://127.0.0.1:8765/health\n```\n\nZwei Vorversuche wurden vor der Produktionsumstellung kontrolliert zurückgenommen:\nzunächst scheiterte die Prüfung am schreibgeschützten Logpfad, dann am fehlenden\nHost-Kopf der Demo-Anfrage. Die vorherigen Container wurden jeweils wieder gestartet;\nRuntime-Sicherungen wurden nicht über neuere Daten zurückgespielt. Diese Versuche\nsind unter `upgrade-7.9.3-20261119T055527Z` und `upgrade-7.9.3-20261119T055636Z`\nals zurückgenommen dokumentiert, nicht als aktiver Stand.",
+  "title": "Sicherung und Updateablauf dieses Releases"
+ },
+ {
+  "id": "betrieb/abnahme-und-rueckkehrgrenzen",
+  "path": [
+   "Betrieb und Update",
+   "Verifizierter Inboxstride-Serverstand vom 19. November 2026",
+   "Abnahme und Rückkehrgrenzen"
+  ],
+  "setting_ids": [],
+  "source": "docs/Betrieb.md",
+  "text": "Nachgewiesen: beide Container liefern 7.9.3, keine automatischen Neustarts; Demo-Health\nist `healthy`; öffentliche Health-/Anmeldeseiten liefern HTTPS 200. Die Demo-Einstiege\n`/de/` und `/en/` liefern die richtige Sprache. Ein Socketversuch aus der Demo zu\neiner externen Adresse scheitert; internes Netz und getrenntes Volume sind erhalten.\nProduktionskonfiguration und Zugangsdaten stimmen per Prüfsumme mit dem Stand vor\ndem Wechsel überein, bestehende Sitzungen und Ledger-Schreibnachweise sind erhalten.\nGoogle Kalender, Todoist, Telegram, LLM und IServ meldeten beim Start bestätigten\nZugriff; bis zur Abnahme trat kein Anwendungsfehler auf. Landingpage, Datenschutz\nund Nutzungsbedingungen blieben über HTTPS erreichbar. Keine Testtermine oder\nTestaufgaben wurden angelegt; Produktiv-Neubewertungen wurden nicht ausgelöst.\n\nVor Umschaltung der Produktion kann auf die gesicherten Compose-Dateien und das\nvorherige Image `mailhelp-production:7.8.1-ae4dcb9` zurückgekehrt werden. Nach Start\nder neuen Produktion zuerst kontrolliert stoppen und Schema-/Schreibnachweise prüfen:\nneue Felder oder inzwischen bestätigte Aktionen können eine blinde Rückkehr unsicher\nmachen. Eine alte Runtime-Sicherung niemals ungeprüft über den aktuellen Bestand\nspielen; unklare externe Resultate vor jeder Wiederholung abgleichen. Eine eventuelle\nDatenrückmigration gesondert prüfen. Der Stand 7.9.3 ist bei erfolgreicher Abnahme\ndie aktive Installation; die Altversion ist nur eine Rückkehrmöglichkeit.",
+  "title": "Abnahme und Rückkehrgrenzen"
  }
 ]

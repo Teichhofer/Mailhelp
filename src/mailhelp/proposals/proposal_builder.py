@@ -190,7 +190,7 @@ class ProposalBuilder:
                 start=cal.start,
                 end=cal.end,
                 all_day=cal.all_day,
-                end_origin="calendar", target_provider=self.targets.calendar_provider,
+                end_origin="calendar", target_provider=self.targets.calendar_binding,
             ))
         return proposals, ics_summaries
 
@@ -210,7 +210,7 @@ class ProposalBuilder:
         questions = self._questions(item, question)
         values: dict[str, Any] = {}
         values.update(meeting_mode=mode, end_origin=origin, default_duration_minutes=applied,
-                      target_provider=self.targets.task_provider if kind == "task" else self.targets.calendar_provider)
+                      target_provider=self.targets.task_provider if kind == "task" else self.targets.calendar_binding)
         if temporal is not None and temporal.resolved:
             if kind == "task":
                 values["due"] = temporal.value

@@ -291,6 +291,19 @@ imap:
 iserv:
   # Alle Konten erscheinen einzeln auf /status; enabled: false bleibt als deaktiviert sichtbar.
   accounts: []
+# 8.0: zentraler Google-Anmeldedienst der gehosteten Inboxstride-Instanzen. Der Betreiber legt den
+# Abschnitt fest (bei der Ersteinrichtung aus MAILHELP_HOSTED_AUTH_URL, _INSTANCE, _CERT, _KEY und _CA).
+# Für den eigenen Betrieb mit eigenem Google-Client bleibt enabled: false.
+hosted_auth:
+  enabled: false
+  # Interne mTLS-Adresse des Dienstes, zum Beispiel https://auth-intern.example.org:8443
+  service_url: ""
+  # Instanz-ID aus dem Register des Dienstes
+  instance_id: ""
+  # Pfade zu Clientzertifikat, Schlüssel und CA-Zertifikat der Instanz (Dateien, keine Inhalte)
+  certificate: ""
+  key: ""
+  ca: ""
 #  accounts:
 #  - id: 1
 #    label: Elternbriefe
@@ -347,6 +360,10 @@ targets:
   # Nur bei google_tasks: Listen-ID oder @default (erste Liste des Kontos). Die Google-Anmeldung
   # ("mailhelp --google-auth" oder Einstellungen → Zugangsdaten) braucht dann das Google-Tasks-Recht.
   google_tasks_list: "@default"
+  # 8.0, nur gehostete Inboxstride-Instanzen: Referenz des Google-Zugangs beim zentralen Anmeldedienst.
+  # Setzt ausschließlich "Mit Google verbinden"; dann sind keine GOOGLE_OAUTH_* in .env nötig.
+  # Gilt nur für den Google Kalender (nicht für Google Tasks) und braucht hosted_auth.enabled.
+  google_connection: ""
   # Nur bei notion: Datenquellen-ID (nicht die Datenbank) und die IDs der zugeordneten Eigenschaften.
   # Pflicht: title (Titel), description (Text), due (Datum), source (URL), operation_key (Text);
   # optional status (Status, Auswahl oder Kontrollkästchen) mit Optionen-IDs für offen und erledigt.

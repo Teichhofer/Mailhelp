@@ -43,5 +43,42 @@ und verlorene Schreibvorgänge.
 100 % Zeilen- und Branch-Abdeckung (einschließlich `inboxstride_auth`); Browsersuite 977 bestanden,
 234 übersprungen.
 
+## 7.9.4 – Schnittstellen des Dienstes und Anbindung der Instanz
+
+**Zentraler Dienst:**
+
+- Öffentlicher Callback mit strikter Parameterprüfung (doppelte oder fehlende Parameter → 400) und
+  interner mTLS-Schnittstelle. Eine Instanz ist nur über den Fingerabdruck ihres Zertifikats bekannt;
+  Sperren im Register widerruft sie sofort.
+- Eigene CA (`ca.py`) für Server- und Instanzzertifikate (ECDSA P-256, Server 397 Tage,
+  CA 10 Jahre).
+- Betreiberkommandos `python -m inboxstride_auth create-key | ca-init | issue | register | disable |
+  set-client | sweep | serve`. Pfade kommen aus der Umgebung, Geheimnisse nie aus der Kommandozeile;
+  `set-client` liest Googles JSON-Datei und erhöht die Clientrevision.
+
+**Mailhelp-Instanz:**
+
+- `hosted_auth` und `google_connection` (Konfigurationsbeispiel, Referenz, Suchkatalog).
+  `HostedTokenProvider` versorgt den Google-Kalender; Google-Geheimnisse in `.env` entfallen.
+- „Mit Google verbinden“ in Ersteinrichtung und Zielprofilen; Google-Felder für Client-Daten sind im
+  gehosteten Modus ausgeblendet. „Google erneut verbinden“ direkt aus der Warnung von 7.9.2.
+- Zielbindung `google-<Verbindung>` für Termin-Vorschläge: Ein Kontowechsel bei gleicher
+  Kalender-ID schreibt keine früher bestätigte Version ins neue Konto.
+- Fingerabdrücke bestehender Installationen bleiben unverändert (`hosted_auth` und
+  `google_connection` beeinflussen keine Analyse).
+
+**Tests:** `tests/web/test_hosted_google_web.py` führt den gesamten Ablauf zwischen Instanz,
+zentralem Dienst (echte Anfragebehandlung) und simuliertem Google durch: Erstverbindung, Ersatz
+einer Verbindung, Rückkehr ohne Sitzungscookie, fremde Sitzung oder Instanz, Abbruch, fehlende
+Berechtigungen, Ausfall des Dienstes, veraltete Entwürfe und abgelaufene Vorgänge.
+`tests/auth/test_auth_http.py` startet echte mTLS-Server auf localhost: Ohne Zertifikat und mit
+dem Zertifikat einer fremden CA kommt keine Verbindung zustande.
+
+**Prüfung 7.9.4:** `devtools.check full` mit 6 194 bestandenen Tests und 100 % Zeilen- und
+Branch-Abdeckung; ein Leitfadentest las eine fett gesetzte Versionsnummer in `docs/Betrieb.md` als
+Bedienelement (Formatierung korrigiert, Dokumentationstests danach 136 bestanden). Browsersuite
+976 bestanden, 234 übersprungen, ein Zeitausreißer (`test_script_steps_that_end_in_a_navigation`),
+der einzeln besteht.
+
 **Noch nicht enthalten:** HTTP- und mTLS-Schicht, Anbindung der Mailhelp-Instanz (Tokenprovider,
 Einrichtung, Zielprofile), Serverhandbuch und Vorlagen, Betrieb. Der Dienst läuft noch nirgends.

@@ -43,7 +43,9 @@ EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "auto_draft", "
                         "activity_report", "notifications", "briefings",
                         "event_defaults", "proposal_reconciliation", "target_profiles",
                         # 7.5: the interface language never changes an analysis.
-                        "language"})
+                        "language",
+                        # 8.0: how a Google access is obtained never changes an analysis.
+                        "hosted_auth"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
                      # 3.5.3: learning records of manual decisions.
                      ("retention", "decision_learning_days"), ("learning", "decision_llm_content"),
@@ -56,7 +58,9 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                                                       # 7.2: Google Tasks as a further task target.
                                                       "google_tasks_list", "notion_data_source_id",
                                                       "notion_properties", "notion_open_status",
-                                                      "notion_done_statuses")),
+                                                      "notion_done_statuses",
+                                                      # 8.0: the hosted Google connection reference.
+                                                      "google_connection")),
                      # 7.2: its timeouts; former fingerprints that still contain the section keep their value.
                      ("timeouts", "google_tasks"), ("timeouts", "notion"))
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",

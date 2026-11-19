@@ -29,6 +29,9 @@ def writer_for[W](writers: Mapping[str, W], proposal: Proposal) -> W | None:
 
 
 def provider_key(writer: TargetWriter) -> str:
+    """The binding a proposal must carry for this writer; 8.0: a hosted Google calendar names its connection."""
+    if writer.binding:
+        return writer.binding
     return {"google_calendar": "google", "outlook_calendar": "outlook",
             "caldav_calendar": "caldav", "caldav_tasks": "caldav"}.get(writer.service, writer.service)
 

@@ -664,8 +664,23 @@ Profile 1 is the `targets` section; additional profiles (ID 2–99) are managed 
 | `target_profiles[].outlook_calendar` | Outlook calendar, default `default`. | Target profile page |
 | `target_profiles[].microsoft_todo_list` | Microsoft To Do list, default `default` (list “Tasks”). | Target profile page |
 | `target_profiles[].google_tasks_list` | Google Tasks list, default `@default` (first list of the account). | Target profile page |
+| `target_profiles[].google_connection` | Reference of the Google access at the Inboxstride sign-in service (8.0); set only by “Connect with Google”. | Target profile page |
 | `target_profiles[].microsoft_tenant` | Microsoft tenant for sign-in, default `common`. | Target profile page |
 | `target_profiles[].removal_window_minutes` | Time window in minutes after creating an entry during which it can be removed again: 1–1440; default 10. | Target profile page |
+
+### Hosted Google sign-in (8.0) <!-- mailhelp-id:web-einstellungen/gehostete-google-anmeldung-80 -->
+
+Hosted Inboxstride instances connect Google Calendar through a central sign-in service. The operator sets the `hosted_auth` section; during the initial setup Mailhelp takes it from `MAILHELP_HOSTED_AUTH_URL`, `MAILHELP_HOSTED_AUTH_INSTANCE`, `MAILHELP_HOSTED_AUTH_CERT`, `MAILHELP_HOSTED_AUTH_KEY` and `MAILHELP_HOSTED_AUTH_CA`. Users do not edit it.
+
+| Key | Effect and values | Where |
+| --- | --- | --- |
+| `targets.google_connection` | Reference of the Google access at the sign-in service (32 hexadecimal characters); empty in self-hosting with `GOOGLE_OAUTH_*`. Only for Google Calendar, not for Google Tasks. | Connect with Google |
+| `hosted_auth.enabled` | Use the central sign-in service; default `false`. | Operator |
+| `hosted_auth.service_url` | Internal mTLS address of the service, `https://` with host and optional port. | Operator |
+| `hosted_auth.instance_id` | Identifier of the instance in the service's registry. | Operator |
+| `hosted_auth.certificate` | Path to the instance's client certificate. | Operator |
+| `hosted_auth.key` | Path to the private key of the client certificate; readable by the service only. | Operator |
+| `hosted_auth.ca` | Path to the CA certificate used to verify the service. | Operator |
 
 ### Notion as Task Target (7.2) <!-- mailhelp-id:web-einstellungen/notion-als-aufgabenziel-72 -->
 

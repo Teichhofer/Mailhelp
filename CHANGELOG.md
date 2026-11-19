@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.4 – Vorbereitung 8.0: Dienstschnittstellen und Instanzanbindung
+
+- Zentraler Anmeldedienst: öffentlicher Google-Callback, interne mTLS-Schnittstelle, eigene CA und Betreiberkommandos.
+- Instanz: „Mit Google verbinden“ in Ersteinrichtung und Zielprofilen ohne Client-Daten; Tokens vom zentralen Dienst; „Google erneut verbinden“ aus der Warnung.
+- Neue Einstellungen `hosted_auth` und `targets.google_connection`; Zielbindung an die Verbindung, damit ein Kontowechsel keine alte Bestätigung umlenkt.
+
 ## 7.9.3 – Vorbereitung 8.0: Grundlage des zentralen Google-Anmeldedienstes
 
 - Neue Komponente `inboxstride_auth`: versionierter Zustand für Instanzen, Anmeldeaufträge und Verbindungen; verschlüsselter Geheimnisspeicher (Fernet, Schlüssel außerhalb des Zustands).

@@ -7,8 +7,10 @@ from typing import Any
 
 from ..config import Settings, read_yaml
 from ..config.loader import _dotenv
+from ..external.hosted_oauth import cached_client
 from ..mailbox.mailbox_settings import target_profiles
 from ..runtime.oauth_web import BrowserOAuth, OAuthConfig, oauth_config
+from ..web.hosted_google_site import HostedGoogleSite, HostedProfiles
 from ..web.notion_site import NotionSite
 from ..web.oauth_site import OAuthSite
 
@@ -50,6 +52,16 @@ def attach_accounts(app: Any, site: Any, directory: Path) -> None:
         setup = site.setup_page.runtime.setup
         return target_profiles(setup.draft_settings())[profile], setup.state().version
 
+    def hosted_draft(profile: int) -> tuple[str, int]:
+        return calendar_context(profile, "google_connection")
+
+    def hosted_target(profile: int) -> str:
+        target_profiles(site.setup_page.runtime.setup.draft_settings())[profile]  # unknown numbers raise
+        return f"profile:{profile}"
+
     OAuthSite(site, service, calendar_context, save_calendar, "/einrichtung")
     NotionSite(site, directory, targets_context, save_targets)
+    # 8.0: "Mit Google verbinden" through the central Inboxstride service of a hosted instance.
+    HostedGoogleSite(site, app.store, cached_client(lambda: saved().hosted_auth),
+                     HostedProfiles(hosted_draft, save_targets, hosted_target), "/einrichtung")
     app.services.oauth = service

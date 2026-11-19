@@ -41,6 +41,7 @@ from .runtime_settings import (
 )
 from .target_settings import (
     EventDefaultsSettings,
+    HostedAuthSettings,
     OriginalAttachmentSettings,
     ProposalReconciliationSettings,
     TargetProfileSettings,
@@ -89,6 +90,15 @@ class Settings(ConfigModel):
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
     iserv: IServSettings = Field(default_factory=IServSettings)
+    # 8.0: the central Inboxstride OAuth service of a hosted instance.
+    hosted_auth: HostedAuthSettings = Field(default_factory=HostedAuthSettings)
+
+    @model_validator(mode="after")
+    def hosted_connections_need_the_service(self) -> Settings:
+        if not self.hosted_auth.enabled and any(item.google_connection for item in (self.targets,
+                                                                                    *self.target_profiles)):
+            raise ValueError("google_connection benötigt hosted_auth.enabled")
+        return self
 
     @model_validator(mode="after")
     def iserv_uses_enabled_mailboxes(self) -> Settings:

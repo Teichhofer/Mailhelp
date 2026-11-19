@@ -3,6 +3,27 @@
 Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 8.0: Google über Inboxstride verbinden (in Umsetzung)
+
+Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](docs/Release-8.0.md).
+
+- **Zentraler Dienst** (`inboxstride_auth`, eigene Komponente): öffentlich nur
+  `GET /auth/google/callback` und `GET /health`; intern per mTLS (eigene CA, Instanz über den
+  SHA-256-Fingerabdruck ihres Clientzertifikats im Betreiberregister) `POST /intern/start`, `redeem`,
+  `activate`, `token`, `disconnect` und `connection`. Antworten tragen `Cache-Control: no-store`,
+  `Referrer-Policy: no-referrer` und eine restriktive CSP; Anfragezeilen werden nicht protokolliert.
+  Refresh-Tokens, PKCE-Verifier und Client-Secret liegen Fernet-verschlüsselt, der Schlüssel außerhalb
+  des Zustands.
+- **Instanz**: `hosted_auth` (Betreiber; bei der Ersteinrichtung aus `MAILHELP_HOSTED_AUTH_*`) und je
+  Zielprofil `google_connection`. Mit Verbindung erhält der Google-Kalender seine Access-Tokens vom
+  Dienst (`HostedTokenProvider`); ein abgelehnter Zugang meldet `token_refresh_denied` und damit die
+  Warnung aus 7.9.2 mit „Google erneut verbinden“. Event-Vorschläge binden `target_provider` an
+  `google-<Verbindung>`; ein Kontowechsel lässt alte Bestätigungen als Zielabweichung enden.
+- **Ablauf**: `/google/verbinden` (POST mit Sitzung, CSRF, Idempotenzschlüssel) → Google → zentraler
+  Callback → `/einrichtung/google/abschluss?beleg=` (neutrale Seite, Fortsetzung nur per
+  same-origin POST) → `/google/kalender` (lesende Liste der Kalender mit Schreibrecht) → ausdrückliche
+  Übernahme als Einrichtungsentwurf. Vor der Übernahme bleibt die bisherige Verbindung aktiv.
+
 ## Ergänzung 7.9: Konferenzlink für bestehende Kalendertermine
 
 Plan: [docs/Planung-7.9.md](docs/Planung-7.9.md). Seit 7.9.1 vergleicht Mailhelp nach festgestellter

@@ -398,6 +398,20 @@ Zugangsdaten allein genügt nicht. Eine geöffnete Seite zeigt neue Hinweise und
 spätestens 15 Sekunden. Zeitüberschreitungen und Netzwerkfehler gelten nicht als Anmeldeproblem.
 Mailhelp prüft verbundene Dienste beim Start und danach alle 15 Minuten rein lesend.
 
+### Google über Inboxstride verbinden
+
+In einer gehosteten Inboxstride-Instanz verbindest du den Google Kalender ohne eigene Client-Daten
+oder Tokens. In der Ersteinrichtung (Schritt „Kalender und Aufgaben“) und unter
+**Einstellungen → Zielprofile** führt **Mit Google verbinden** zu Google. Dort wählst du dein Konto
+und erlaubst den Kalenderzugriff. Zurück bei Inboxstride setzt du mit **Kalender auswählen** fort,
+wählst einen Kalender mit Schreibrecht und bestätigst mit **Verbindung übernehmen**. Erst dann gilt
+die neue Verbindung; vorher bleibt eine bisherige unverändert, auch bei Abbruch oder Fehler.
+
+Die Verbindung selbst legt keine Termine an. Bei einem Wechsel des Kontos brauchen offene Vorschläge
+dieses Profils eine neue Bestätigung. Lehnt Google den Zugang später ab, führt der Hinweis
+„Verbindungsprobleme“ direkt zu **Google erneut verbinden**. Google Tasks bleibt der eigenen
+Einrichtung mit Google-Client vorbehalten.
+
 ## Fehlgeschlagene Mails
 
 Die Statusseite zeigt unter „Letzte Fehler und Handlungsbedarf“, welche Mail erneut

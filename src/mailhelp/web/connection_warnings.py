@@ -42,17 +42,23 @@ def _service(problem: ConnectionProblem) -> tuple[str, str, str]:
     return name, str(effect), "/einstellungen/zielprofile"
 
 
-def connection_warnings(problems: Iterable[ConnectionProblem], timezone: str) -> str:
-    """One warning per affected connection; nothing at all while every used connection signs in."""
+def connection_warnings(problems: Iterable[ConnectionProblem], timezone: str, *, hosted_google: bool = False) -> str:
+    """One warning per affected connection; nothing at all while every used connection signs in.
+
+    8.0: with the hosted Google sign-in, a Google problem leads straight to "Google erneut verbinden".
+    """
     items = []
     zone = ZoneInfo(timezone)
     for problem in problems:
         name, effect, link = _service(problem)
+        action = tr("Verbindung prüfen")
+        if hosted_google and problem.service in {"google_oauth", "google_calendar"}:
+            link, action = f"/google/verbinden?profile={problem.number or 1}", tr("Google erneut verbinden")
         when = tr("Zuletzt fehlgeschlagen: {when}.", when=day_time(problem.last_seen.astimezone(zone)))
         items.append(
             f'<li class="connection-warning"><span class="icon" aria-hidden="true">⚠️</span> '
             f"<strong>{e(name)}: {e(_CODES[problem.code])}</strong> {e(effect)} {e(when)} "
-            f'<a href="{e(link)}">{tr("Verbindung prüfen")}</a></li>')
+            f'<a href="{e(link)}">{action}</a></li>')
     if not items:
         return ""
     heading = tr("Verbindungsprobleme")

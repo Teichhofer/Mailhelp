@@ -1,0 +1,22 @@
+# Verifizierter Stand 19.11.2026, Mailhelp 7.9.3, Commit 70f671b.
+# Zielpfad auf dem Host: /opt/mailhelp/compose.setup.yaml.
+# Zugangsdaten liegen privat unter /opt/mailhelp/runtime/.env.
+services:
+  mailhelp:
+    build:
+      context: /opt/mailhelp/releases/7.9.3-70f671b
+    image: mailhelp-production:7.9.3-70f671b
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 45s
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      MAILHELP_SETUP_HOST: 0.0.0.0
+      MAILHELP_SETUP_ALLOWED_HOSTS: ${MAILHELP_SETUP_ALLOWED_HOSTS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./runtime:/config
+volumes:
+  mailhelp-config:

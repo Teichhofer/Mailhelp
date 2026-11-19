@@ -84,7 +84,8 @@ def provider_secret_names(targets: TargetSettings) -> list[str]:
     names = []
     if targets.task_provider == "todoist":
         names += ["TODOIST_TOKEN"]
-    if targets.uses_google:
+    if targets.uses_google and not targets.google_connection:
+        # 8.0: a hosted Google connection needs no secrets in the instance.
         names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     if targets.uses_caldav:
         names += ["CALDAV_USERNAME", "CALDAV_PASSWORD"]

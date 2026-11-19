@@ -31,6 +31,66 @@
  },
  {
   "area": "Other settings",
+  "help": "Path to the CA certificate used to verify the service.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.ca",
+  "key": "hosted_auth.ca",
+  "label": "hosted_auth.ca",
+  "path": "File",
+  "summary": "Path to the CA certificate used to verify the service."
+ },
+ {
+  "area": "Other settings",
+  "help": "Path to the instance's client certificate.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.certificate",
+  "key": "hosted_auth.certificate",
+  "label": "hosted_auth.certificate",
+  "path": "File",
+  "summary": "Path to the instance's client certificate."
+ },
+ {
+  "area": "Other settings",
+  "help": "Use the central sign-in service; default `false`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.enabled",
+  "key": "hosted_auth.enabled",
+  "label": "hosted_auth.enabled",
+  "path": "File",
+  "summary": "Use the central sign-in service; default `false`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Identifier of the instance in the service's registry.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.instance_id",
+  "key": "hosted_auth.instance_id",
+  "label": "hosted_auth.instance_id",
+  "path": "File",
+  "summary": "Identifier of the instance in the service's registry."
+ },
+ {
+  "area": "Other settings",
+  "help": "Path to the private key of the client certificate; readable by the service only.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.key",
+  "key": "hosted_auth.key",
+  "label": "hosted_auth.key",
+  "path": "File",
+  "summary": "Path to the private key of the client certificate; readable by the service only."
+ },
+ {
+  "area": "Other settings",
+  "help": "Internal mTLS address of the service, `https://` with host and optional port.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:hosted_auth.service_url",
+  "key": "hosted_auth.service_url",
+  "label": "hosted_auth.service_url",
+  "path": "File",
+  "summary": "Internal mTLS address of the service, `https://` with host and optional port."
+ },
+ {
+  "area": "Other settings",
   "help": "Connection type `ssl`, `starttls` or `plain` (unencrypted, only useful in your own network); if not specified, `ssl`.",
   "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
   "id": "setting:imap.connection_mode",
@@ -1111,6 +1171,16 @@
  },
  {
   "area": "Other settings",
+  "help": "Reference of the Google access at the Inboxstride sign-in service (8.0); set only by “Connect with Google”.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].google_connection",
+  "key": "target_profiles[].google_connection",
+  "label": "target_profiles[].google_connection",
+  "path": "Zielprofilseite",
+  "summary": "Reference of the Google access at the Inboxstride sign-in service (8.0); set only by “Connect with Google”."
+ },
+ {
+  "area": "Other settings",
   "help": "Google Tasks list, default `@default` (first list of the account).",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].google_tasks_list",
@@ -1288,6 +1358,16 @@
   "label": "target_profiles[].todoist_project",
   "path": "Zielprofilseite",
   "summary": "Todoist project ID, up to 500 characters."
+ },
+ {
+  "area": "Other settings",
+  "help": "Reference of the Google access at the sign-in service (32 hexadecimal characters); empty in self-hosting with `GOOGLE_OAUTH_*`. Only for Google Calendar, not for Google Tasks.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:targets.google_connection",
+  "key": "targets.google_connection",
+  "label": "targets.google_connection",
+  "path": "File",
+  "summary": "Reference of the Google access at the sign-in service (32 hexadecimal characters); empty in self-hosting with `GOOGLE_OAUTH_*`. Only for Google Calendar, not fo"
  },
  {
   "area": "Other settings",
