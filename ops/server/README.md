@@ -1,8 +1,8 @@
 # Verifizierte Servervorlagen
 
-Stand: 19. November 2026. Produktion und Demo: Mailhelp 7.9.5, Quellcommit
-`2073ef0`, Image `mailhelp-production:7.9.5-2073ef0`; zentraler Anmeldedienst
-`inboxstride-auth:7.9.5-2073ef0`.
+Stand: 19. November 2026. Produktion und Demo: Mailhelp 7.9.8, Quellcommit
+`51adae6`, Image `mailhelp-production:7.9.8-51adae6`; zentraler Anmeldedienst
+`inboxstride-auth:7.9.5-2073ef0` (unverändert).
 
 | Vorlage | Installationsort | Compose-Projekt |
 | --- | --- | --- |

@@ -444,6 +444,14 @@ Der bisherige eigene Google-Zugang der Produktion ist unverändert aktiv
 `access_confirmed`). Erst „Mit Google verbinden“ mit ausdrücklicher Übernahme stellt ein
 Zielprofil auf den zentralen Dienst um; diese Pilotanmeldung ist noch nicht erfolgt.
 
+Update auf 7.9.8 (19.11.2026, mit Freigabe): Bugfix für „Weiter zu Google“ (die
+Sicherheitsrichtlinie verwarf die Weiterleitung zu Google). Commit `51adae6`, Image
+`mailhelp-production:7.9.8-51adae6` nach Offline-Konfigurationsprüfung; Sicherung
+`/opt/mailhelp/backups/upgrade-7.9.8-20261119T202944Z`; Health und Version 7.9.8 beider
+Container geprüft. Netz `inboxstride-auth` und `hosted_auth` blieben erhalten; der Anmeldedienst
+wurde nicht verändert. Rückkehr auf `mailhelp-production:7.9.5-2073ef0` mit den Compose-Dateien
+dieser Sicherung.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

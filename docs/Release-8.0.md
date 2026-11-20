@@ -149,5 +149,24 @@ echten Browser. Jetzt erlaubt nur die Seite „Mit Google verbinden“ zusätzli
 `test_the_connect_page_allows_its_form_to_continue_to_google` schlug vor der Korrektur fehl; ein
 Playwright-Probelauf bestätigte Sperre und Korrektur in Chromium und WebKit.
 
+## 7.9.9 – Bugfix „Verbindung übernehmen“
+
+Der zweite Pilotversuch kam bis zur Kalenderwahl; „Verbindung übernehmen“ meldete dann „Die
+Verbindung wurde inzwischen geändert oder ist abgelaufen“. Das Log zeigte die erfolgreiche zentrale
+Aktivierung (`/intern/activate`) und unmittelbar danach HTTP 409 der Instanz. Eine lesende
+Nachstellung im Produktionscontainer ergab `ValueError: Nicht angebotene Einstellung`: Der
+Einstellungsentwurf ließ `targets.google_connection` nicht zu. Die Tests hatten das Speichern durch
+ein Testdouble ersetzt; der erweiterte Test
+`test_the_running_app_binds_target_profiles_and_offers_the_connection` speichert jetzt über den echten
+Entwurf für die Profile 1 und 2 und schlug vor der Korrektur mit derselben Meldung fehl.
+
+Außerdem lief die zentrale Aktivierung vor dem lokalen Speichern. Sie ersetzt die bisherige
+Verbindung des Ziels und löscht deren Geheimnis; ein danach scheiterndes Speichern hätte ein Profil
+mit getrennter Verbindung hinterlassen. Jetzt wird zuerst gespeichert (der Kandidat behält beim
+Aktivieren seine Kennung), dann aktiviert. Tests: abgelehntes Speichern aktiviert nichts, ein
+Ausfall während der Aktivierung wird durch erneutes Übernehmen nachgeholt, eine abweichende
+Antwort des Dienstes wird abgewiesen. Die beim Pilotversuch aktivierte, ungenutzte Verbindung
+ersetzt der Dienst bei der nächsten erfolgreichen Übernahme für dasselbe Zielprofil.
+
 **Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
 `docs/Serverhandbuch.md`, Prüfung aller lebenden Dokumente für 8.x.

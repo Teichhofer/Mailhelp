@@ -381,7 +381,7 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Weboberfläche | ja |
 | `targets.google_calendar` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
-| `targets.google_connection` | str | '' |  | Datei | ja |
+| `targets.google_connection` | str | '' |  | Einrichtung | ja |
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |

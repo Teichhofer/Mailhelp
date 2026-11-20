@@ -294,6 +294,12 @@ class HostedGoogleSite:
         return self._page(200, tr("Kalender auswählen"), body)
 
     def adopt(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """Save the profile first, then activate centrally.
+
+        Bugfix 7.9.8: activation replaces the previous access of the target and deletes its secret, so it
+        must be the last step. The candidate keeps its id when it becomes active; a repeated adoption after
+        an outage saves the same values again and repeats the activation without a second effect.
+        """
         client = self.client()
         try:
             if client is None:
@@ -302,11 +308,13 @@ class HostedGoogleSite:
             if form["calendar"] not in dict(self._choices(client, pending["connection"])):
                 raise ValueError("Kalender nicht verfügbar")
             previous, _version = self.draft(pending["profile"])
-            activated = client.post("/intern/activate", {"session": session_reference(session),
-                                                         "job": pending["job"], "version": pending["version"]})
             self.save("web:" + session.id, pending["profile"],
                       {"calendar_provider": "google", "google_calendar": form["calendar"],
-                       "google_connection": str(activated["connection"])}, int(form["version"]), form["key"])
+                       "google_connection": pending["connection"]}, int(form["version"]), form["key"])
+            activated = client.post("/intern/activate", {"session": session_reference(session),
+                                                         "job": pending["job"], "version": pending["version"]})
+            if activated.get("connection") != pending["connection"]:
+                raise HostedRefused("connection_changed")
         except LookupError:
             return self._failed(tr("Kein offener Google-Vorgang. Bitte „Mit Google verbinden“ erneut starten."))
         except (KeyError, ValueError, HostedRefused):

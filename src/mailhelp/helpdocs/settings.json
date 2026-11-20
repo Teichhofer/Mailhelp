@@ -1366,8 +1366,8 @@
   "id": "setting:targets.google_connection",
   "key": "targets.google_connection",
   "label": "targets.google_connection",
-  "path": "Datei",
-  "summary": "Datei: Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`."
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`."
  },
  {
   "area": "Weitere Einstellungen",

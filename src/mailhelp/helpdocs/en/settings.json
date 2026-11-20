@@ -1366,7 +1366,7 @@
   "id": "setting:targets.google_connection",
   "key": "targets.google_connection",
   "label": "targets.google_connection",
-  "path": "File",
+  "path": "Setup",
   "summary": "Reference of the Google access at the sign-in service (32 hexadecimal characters); empty in self-hosting with `GOOGLE_OAUTH_*`. Only for Google Calendar, not fo"
  },
  {

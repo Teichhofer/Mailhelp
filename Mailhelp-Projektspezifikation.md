@@ -23,6 +23,8 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   Callback → `/einrichtung/google/abschluss?beleg=` (neutrale Seite, Fortsetzung nur per
   same-origin POST) → `/google/kalender` (lesende Liste der Kalender mit Schreibrecht) → ausdrückliche
   Übernahme als Einrichtungsentwurf. Vor der Übernahme bleibt die bisherige Verbindung aktiv.
+  Die Übernahme speichert zuerst das Zielprofil mit der Kennung des Kandidaten und aktiviert erst
+  danach zentral, weil die Aktivierung die bisherige Verbindung unwiderruflich ersetzt (seit 7.9.9).
   Nur die Seite `/google/verbinden` erweitert `form-action` um `https://accounts.google.com`, weil
   Browser die Weiterleitung nach dem Absenden gegen diese Richtlinie prüfen (seit 7.9.8).
 - **Verwaltung** (seit 7.9.5): `/google/kalender/wechseln` liest mit dem vorhandenen Zugang die

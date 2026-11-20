@@ -106,6 +106,14 @@ def test_the_running_app_binds_target_profiles_and_offers_the_connection(configu
     client.close()
     page = c.web.browser.request("GET", "/einstellungen/zielprofile").body.decode()
     assert page.count('href="/google/verbinden?profile=') == 2
+    # Bugfix 7.9.8: the adoption saves through the real settings draft; google_connection was refused there
+    # as "Nicht angebotene Einstellung" after the central service had already activated the access.
+    actor = "web:" + c.web.auth.authenticate(c.web.browser.cookies["mh_session"]).id
+    setup = c.web.site.setup_page.runtime.setup
+    for number, key in ((1, "a" * 32), (2, "b" * 32)):
+        profiles.save(actor, number, {"calendar_provider": "google", "google_calendar": "familie",
+                                      "google_connection": CONNECTION}, setup.state().version, key)
+        assert profiles.draft(number) == (CONNECTION, setup.state().version)
 
 
 def test_a_hosted_connection_needs_the_service_and_the_calendar_only(tmp_path):

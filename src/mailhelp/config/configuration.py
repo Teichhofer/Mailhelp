@@ -219,6 +219,9 @@ for section, fields in {
 }.items():
     SETUP_FIELDS.update(f"notifications.{section}.{name}" for name in fields)
 SETUP_FIELDS.add("notifications.telegram_content")
+# 7.9.8: written only by the explicit adoption of a hosted Google sign-in (web/hosted_google_site.py);
+# no form offers it as an input field.
+SETUP_FIELDS.add("targets.google_connection")
 # Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
 MAILBOX_SETUP_FIELDS = ("label", "enabled", "host", "port", "connection_mode", "folders", "primary_folder",
                         "drafts_folder", "historical_start")

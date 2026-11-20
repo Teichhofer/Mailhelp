@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.9 – Bugfix: „Verbindung übernehmen“ scheiterte
+
+- Bugfix: Nach der Google-Anmeldung endete „Verbindung übernehmen“ mit „Die Verbindung wurde inzwischen geändert oder ist abgelaufen“. Der Einstellungsentwurf lehnte `targets.google_connection` als nicht angebotene Einstellung ab; das Feld ist jetzt für diese Übernahme zugelassen, ohne als Eingabefeld zu erscheinen.
+- Die Übernahme speichert zuerst das Zielprofil und aktiviert erst danach beim Anmeldedienst. Die Aktivierung ersetzt die bisherige Verbindung unwiderruflich; scheitert das Speichern, bleibt sie jetzt erhalten. Nach einem Ausfall des Dienstes wiederholt eine erneute Übernahme die Aktivierung ohne doppelte Wirkung.
+- Betriebsnachweis des Updates auf 7.9.8.
+
 ## 7.9.8 – Bugfix: „Weiter zu Google“ blieb ohne Wirkung
 
 - Bugfix: Der Klick auf „Weiter zu Google“ graute nur den Button aus. Browser prüfen die Weiterleitung nach dem Absenden gegen `form-action` der Sicherheitsrichtlinie, die nur die eigene Adresse erlaubte. Die Seite „Mit Google verbinden“ erlaubt jetzt zusätzlich `https://accounts.google.com`; alle anderen Seiten bleiben unverändert.

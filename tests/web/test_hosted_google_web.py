@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
+from mailhelp.external.hosted_oauth import HostedUnavailable
 from mailhelp.web.hosted_google_site import PENDING, HostedGoogleSite, HostedProfiles, session_reference
 from mailhelp.web.http import SECURITY_HEADERS
 from tests.fakes.hosted_google import Central
@@ -338,6 +339,62 @@ def test_disconnecting_refuses_stale_forms_and_keeps_the_access_during_outages(h
     hosted.hosted_state["client"] = None
     assert hosted.browser.request("POST", "/google/trennen", form).status == 503
     assert central.service.state.read().connections[connection].status == "active"
+
+
+def pending_choice(web, code):
+    """A further sign-in up to the calendar choice; returns the adoption form."""
+    returned = connect(web, code=code)
+    web.browser.request("POST", "/einrichtung/google/abschluss",
+                        fields(returned.body.decode(), "/einrichtung/google/abschluss"))
+    form = fields(web.browser.request("GET", "/google/kalender").body.decode(), "/google/kalender")
+    return {**form, "calendar": "familie@group.calendar.google.com"}
+
+
+def test_a_refused_local_save_activates_nothing(hosted, central, monkeypatch):
+    # Bugfix 7.9.8: the service had activated the access before the profile refused it. Activation replaces
+    # the previous access irreversibly, so it now comes only after a successful save.
+    previous = adopted(hosted)
+    form = pending_choice(hosted, "second")
+
+    def refused(*args):
+        raise ValueError("Nicht angebotene Einstellung")
+    monkeypatch.setattr(hosted.hosted_site, "save", refused)
+    assert hosted.browser.request("POST", "/google/kalender", form).status == 409
+    state = central.service.state.read()
+    assert hosted.profiles.connections[1] == previous and state.connections[previous].status == "active"
+    assert [c.status for i, c in state.connections.items() if i != previous] == ["candidate"]
+
+
+def test_an_outage_during_activation_is_repeated_by_adopting_again(hosted, central, monkeypatch):
+    previous = adopted(hosted)
+    form = pending_choice(hosted, "second")
+    client = hosted.hosted_state["client"]
+    real_post = client.post
+
+    def down_on_activate(path, data):
+        if path == "/intern/activate":
+            raise HostedUnavailable("weg")
+        return real_post(path, data)
+    monkeypatch.setattr(client, "post", down_on_activate)
+    assert hosted.browser.request("POST", "/google/kalender", form).status == 503
+    assert central.service.state.read().connections[previous].status == "active"
+    monkeypatch.setattr(client, "post", real_post)
+    again = fields(hosted.browser.request("GET", "/google/kalender").body.decode(), "/google/kalender")
+    answer = hosted.browser.request("POST", "/google/kalender", {**again, "calendar": form["calendar"]})
+    assert answer.status == 303
+    state = central.service.state.read()
+    current = hosted.profiles.connections[1]
+    assert current != previous and state.connections[current].status == "active"
+    assert state.connections[previous].status == "disconnected"
+
+
+def test_an_activation_naming_another_access_is_refused(hosted, monkeypatch):
+    form = pending_choice(hosted, "good")
+    client = hosted.hosted_state["client"]
+    real_post = client.post
+    monkeypatch.setattr(client, "post", lambda path, data: {"connection": "f" * 32} if path == "/intern/activate"
+                        else real_post(path, data))
+    assert hosted.browser.request("POST", "/google/kalender", form).status == 409
 
 
 def test_only_a_google_address_is_followed(hosted):
