@@ -6,6 +6,9 @@ import shutil
 from html import escape as e
 from pathlib import Path
 
+# The delivered site was built on Windows: every generated text file ends its lines with CRLF. Writing them
+# explicitly keeps the build byte for byte reproducible on every platform (7.9.10; fingerprints hash bytes).
+NEWLINE = "\r\n"
 # INBOXSTRIDE_SITE_ROOT builds a copy elsewhere (the reproduction test); by default the checkout itself.
 ROOT = Path(os.environ.get("INBOXSTRIDE_SITE_ROOT") or Path(__file__).parent)
 PUBLIC = ROOT / "public"
@@ -522,7 +525,7 @@ TERMS = {'de': (ROOT/'content/terms-de.html').read_text('utf-8'),
 def write(path,content):
  target=PUBLIC/path.lstrip('/')/'index.html'
  target.parent.mkdir(parents=True,exist_ok=True)
- target.write_text(content,encoding='utf-8')
+ target.write_text(content,encoding='utf-8', newline=NEWLINE)
 
 for lang,c in COPY.items():
  write(c['home'],frame(lang,c['title'],homepage(lang),c['home'],c['other']))
@@ -534,10 +537,10 @@ for lang,c in COPY.items():
  other='/en/thanks/' if lang=='de' else '/danke/'
  write(thanks,frame(lang,c['thanksTitle'],f'<main id="main" class="legal"><h1>{c["thanksTitle"]}</h1><p>{c["thanksText"]}</p><a class="button" href="{c["home"]}">{c["back"]}{icon("arrow")}</a></main>',thanks,other,noindex=True))
 
-(PUBLIC/'assets/favicon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="#174d3b"/><path d="M12 24h24m-10-10 10 10-10 10" fill="none" stroke="#d8efa3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>')
-(PUBLIC/'robots.txt').write_text('User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /danke/\nDisallow: /en/thanks/\nSitemap: https://inboxstride.de/sitemap.xml\n')
+(PUBLIC/'assets/favicon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="#174d3b"/><path d="M12 24h24m-10-10 10 10-10 10" fill="none" stroke="#d8efa3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>', newline=NEWLINE)
+(PUBLIC/'robots.txt').write_text('User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /danke/\nDisallow: /en/thanks/\nSitemap: https://inboxstride.de/sitemap.xml\n', newline=NEWLINE)
 paths=['/','/en/','/impressum/','/en/legal/','/datenschutz/','/en/privacy/','/nutzungsbedingungen/','/en/terms/']
-(PUBLIC/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>https://inboxstride.de'+p+'</loc></url>' for p in paths)+'</urlset>')
+(PUBLIC/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>https://inboxstride.de'+p+'</loc></url>' for p in paths)+'</urlset>', newline=NEWLINE)
 
 print('Static pages generated')
 
@@ -554,7 +557,7 @@ for name in ["dm-sans-latin.woff2", "workflow.webp", "workspace-screen-v2.webp",
 
 css = (assets / "site.css").read_text("utf-8")
 css = css.replace("/assets/dm-sans-latin.woff2", mapping["/assets/dm-sans-latin.woff2"])
-(assets / "site.css").write_text(css, encoding="utf-8")
+(assets / "site.css").write_text(css, encoding="utf-8", newline=NEWLINE)
 for name in ["site.css", "site.js", "consent.js"]:
     source = assets / name
     digest = hashlib.sha256(source.read_bytes()).hexdigest()[:12]
@@ -566,6 +569,6 @@ for path in (ROOT / "public").rglob("*.html"):
     text = path.read_text("utf-8")
     for before, after in mapping.items():
         text = text.replace(before, after)
-    path.write_text(re.sub(r">\s*<", ">\n<", text) + "\n", encoding="utf-8")
+    path.write_text(re.sub(r">\s*<", ">\n<", text) + "\n", encoding="utf-8", newline=NEWLINE)
 
 print("Fingerprinted local assets and formatted static pages")

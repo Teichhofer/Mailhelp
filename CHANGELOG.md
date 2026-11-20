@@ -1,5 +1,11 @@
 # Änderungen
 
+## 7.9.10 – Bugfix: angenommenes Terminende verschob vorhandene Termine
+
+- Bugfix: Nannte eine Mail zu einem schon eingetragenen Termin nur den Beginn (etwa Zugangsdaten mit „Beginn um 9.00 Uhr“), bot Mailhelp das aus der Standarddauer angenommene Ende als Änderung an („Ende 16:30 → 10:00“). Ein solches Ende übernimmt jetzt die Dauer des gefundenen Kalendertermins; ein in der Mail genanntes Ende ändert den Termin weiterhin.
+- Landingpage: Der Nachbau war nur im ursprünglichen Arbeitsverzeichnis byte-gleich. Git normalisierte die Zeilenenden der Assets, deren Dateinamen aus Inhaltsprüfsummen entstehen; `landing/public/**` bleibt jetzt byte-genau (`-text`), und `build_site.py` schreibt CRLF auf jedem System.
+- README: Verweis auf eine noch nicht versionierte Planung entfernt (seit 7.9.6 in einem frischen Checkout ein toter Link).
+
 ## 7.9.9 – Bugfix: „Verbindung übernehmen“ scheiterte
 
 - Bugfix: Nach der Google-Anmeldung endete „Verbindung übernehmen“ mit „Die Verbindung wurde inzwischen geändert oder ist abgelaufen“. Der Einstellungsentwurf lehnte `targets.google_connection` als nicht angebotene Einstellung ab; das Feld ist jetzt für diese Übernahme zugelassen, ohne als Eingabefeld zu erscheinen.

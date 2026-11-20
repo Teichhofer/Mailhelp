@@ -168,5 +168,21 @@ Ausfall während der Aktivierung wird durch erneutes Übernehmen nachgeholt, ein
 Antwort des Dienstes wird abgewiesen. Die beim Pilotversuch aktivierte, ungenutzte Verbindung
 ersetzt der Dienst bei der nächsten erfolgreichen Übernahme für dasselbe Zielprofil.
 
+## 7.9.10 – Bugfix angenommenes Terminende
+
+Beim „Auffrischungsseminar Betriebssicherheit“ (Kalender 9:00–16:30) boten die Mails mit den
+Zugangsdaten und die Anmeldebestätigung „Ende 20.11.2026 16:30 Uhr → 10:00 Uhr“ an. Diese Mails nennen
+nur „Beginn um 9.00 Uhr“; das Modell lieferte korrekt kein Ende (`end_time_text` leer), Mailhelp
+ergänzte die Standarddauer von 60 Minuten (`end_origin: standard`), und die Vorprüfung verglich dieses
+angenommene Ende mit dem vorhandenen Termin. Jetzt übernimmt ein angenommenes Ende die Dauer des
+gefundenen Kalendertermins (`keep_calendar_end`, Vorprüfung und Zielzuordnung). Regressionstest
+`test_an_assumed_default_end_is_no_change_to_the_calendar_entry` war vor der Korrektur rot.
+
+Die erste Prüfung dieses Stands in einem frischen Worktree fand zwei ältere Fehler, die im gemeinsamen
+Arbeitsverzeichnis verdeckt waren: Der Landingpage-Nachbau hing von den Zeilenenden ab, die Git beim
+Einchecken der Assets normalisiert hatte (die Dateinamen der Assets sind Inhaltsprüfsummen), und die
+README verlinkte seit 7.9.6 eine nur lokal vorhandene Planung. Beides ist behoben; CI baut unter
+Ubuntu und Windows aus frischen Checkouts.
+
 **Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
 `docs/Serverhandbuch.md`, Prüfung aller lebenden Dokumente für 8.x.

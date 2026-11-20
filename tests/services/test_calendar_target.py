@@ -50,6 +50,19 @@ def test_a_move_to_another_day_targets_the_entry_on_the_earlier_day():
         "2026-12-06")
 
 
+def test_a_change_with_only_an_assumed_end_keeps_the_duration_of_its_entry():
+    # Bugfix 7.9.10: the targeted path applies the same rule as the pre-check for a default end.
+    proposal = built(evidence="Die Sitzung am 04.12.2026 beginnt erst um 19:30 Uhr statt 18:00 Uhr.",
+                     date_text="04.12.2026", time_text="19:30 Uhr", time_requirement="timed")
+    start = datetime(2026, 12, 4, 19, 30, tzinfo=BERLIN)
+    assumed = proposal.model_copy(update={"start": start, "end": datetime(2026, 12, 4, 20, 30, tzinfo=BERLIN),
+                                          "known_temporal_facts": None, "end_origin": "standard",
+                                          "default_duration_minutes": 60})
+    result, _ = check(assumed, SESSION)
+    assert result.target_event_id == "gr-1" and result.end_origin == "calendar"
+    assert result.end == datetime(2026, 12, 4, 21, 30, tzinfo=BERLIN) and result.default_duration_minutes is None
+
+
 def test_a_later_start_on_the_same_day_keeps_the_duration():
     proposal = built(evidence="Die Sitzung am 04.12.2026 beginnt erst um 19:30 Uhr statt 18:00 Uhr.",
                      date_text="04.12.2026", time_text="19:30 Uhr", time_requirement="timed")

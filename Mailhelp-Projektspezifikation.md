@@ -33,6 +33,9 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   `disconnect` auf und sperrt die Verbindung im Prozess auch für einen noch zwischengespeicherten
   Token; die Referenz bleibt im Profil, damit es ohne eigene Google-Geheimnisse gültig bleibt, und
   die Warnung führt zu „Google erneut verbinden“. Google-Grants werden nie automatisch widerrufen.
+- **Angenommenes Terminende** (seit 7.9.10): Ein Ende aus der Standarddauer (`end_origin: standard`)
+  übernimmt beim Abgleich mit einem gefundenen zeitgebundenen Kalendertermin dessen Dauer
+  (`end_origin: calendar`); nur ein in der Mail genanntes Ende ändert das Terminende.
 - **Landingpage** (seit 7.9.7): Quellen, Formulardienst `lead_service.py` und Seitenbau
   `build_site.py` unter `landing/`; Installation mit `devtools/landing_install.py`. Der Seitenbau
   muss die ausgelieferten Dateien Byte für Byte erzeugen (`tests/landing/test_landing_build.py`).

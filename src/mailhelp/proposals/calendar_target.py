@@ -46,6 +46,20 @@ def raw_moment(raw: dict[str, str]) -> date | datetime | None:
     return date.fromisoformat(raw["date"]) if "date" in raw else None
 
 
+def keep_calendar_end(proposal: Proposal, existing: CalendarOverlapEvent) -> Proposal:
+    """An end from the default duration is an assumption; the matched entry's duration wins.
+
+    Bugfix 7.9.10: a mail naming only the start ("Beginn um 9.00 Uhr") otherwise turned the assumed end
+    into a change of the existing entry ("Ende 16:30 → 10:00"). An end named in the mail stays.
+    """
+    old_start, old_end = raw_moment(existing.start), raw_moment(existing.end)
+    if (proposal.end_origin != "standard" or not isinstance(proposal.start, datetime)
+            or not isinstance(old_start, datetime) or not isinstance(old_end, datetime)):
+        return proposal
+    return proposal.model_copy(update={"end": proposal.start + (old_end - old_start), "end_origin": "calendar",
+                                       "default_duration_minutes": None})
+
+
 def _midnight(day: date) -> datetime:
     return datetime.combine(day, datetime.min.time(), UTC)
 
@@ -127,6 +141,7 @@ class CalendarTargetFinder:
         return {"start": known.date, "end": known.date + duration, "all_day": True}
 
     def _targeted(self, proposal: Proposal, existing: CalendarOverlapEvent) -> Proposal:
+        proposal = keep_calendar_end(proposal, existing)
         times = self._times(proposal, existing)
         updated = proposal.model_copy(update={
             **times, **({"known_temporal_facts": None, "end_origin": "calendar"} if times else {}),
@@ -189,4 +204,5 @@ class CalendarTargetFinder:
         return CalendarCandidate(event_id=item.id, title=item.summary[:500], start=start, end=end)
 
 
-__all__ = ["AMBIGUOUS", "GONE", "NOT_FOUND", "TARGETED", "TARGET_QUESTIONS", "CalendarTargetFinder", "raw_moment"]
+__all__ = ["AMBIGUOUS", "GONE", "NOT_FOUND", "TARGETED", "TARGET_QUESTIONS", "CalendarTargetFinder",
+           "keep_calendar_end", "raw_moment"]

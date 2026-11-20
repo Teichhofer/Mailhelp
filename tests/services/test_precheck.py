@@ -194,6 +194,56 @@ def test_precheck_calendar_reschedule_detected():
     assert not res.is_cancellation
 
 
+def seminar_calendar(start=None, end=None):
+    """A Google writer whose calendar holds the seminar from 9:00 to 16:30."""
+    start = start or {"dateTime": "2026-11-20T09:00:00+01:00"}
+    end = end or {"dateTime": "2026-11-20T16:30:00+01:00"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"items": [{
+            "id": "cal-seminar", "summary": "Auffrischungsseminar Betriebssicherheit", "start": start, "end": end}]})
+    return HttpWriter(service="google_calendar", token="tok", target="primary", calendar_timezone="Europe/Berlin",
+                      transport=httpx.MockTransport(handler))
+
+
+def seminar_mail(hour=9):
+    """Only "Beginn um 9.00 Uhr": the end comes from the default video duration of 60 minutes."""
+    start = datetime.fromisoformat(f"2026-11-20T{hour:02d}:00:00+01:00")
+    return make_event_proposal(title="Auffrischungsseminar Betriebssicherheit", start=start,
+                               end=start.replace(hour=hour + 1)).model_copy(
+        update={"end_origin": "standard", "default_duration_minutes": 60})
+
+
+def test_an_assumed_default_end_is_no_change_to_the_calendar_entry():
+    # Bugfix 7.9.10: the login data mail named only the start; the default end 10:00 was offered as
+    # "Ende 20.11.2026 16:30 Uhr → 20.11.2026 10:00 Uhr" against the entry that ends at 16:30.
+    res = DuplicatePreCheckService(writer=seminar_calendar()).check_proposal(seminar_mail())
+    assert res.status == ProposalStatus.ALREADY_EXISTS and res.time_changes == []
+    assert res.duplicate_match is not None and res.duplicate_match.external_id == "cal-seminar"
+
+
+def test_a_new_start_with_an_assumed_end_keeps_the_calendar_duration():
+    res = DuplicatePreCheckService(writer=seminar_calendar()).check_proposal(seminar_mail(hour=10))
+    assert res.target_event_id == "cal-seminar" and res.end_origin == "calendar"
+    assert res.default_duration_minutes is None
+    assert res.end == datetime.fromisoformat("2026-11-20T17:30:00+01:00")
+    assert res.time_changes == ["Beginn 20.11.2026 09:00 Uhr → 20.11.2026 10:00 Uhr",
+                                "Ende 20.11.2026 16:30 Uhr → 20.11.2026 17:30 Uhr"]
+
+
+def test_an_end_named_in_the_mail_still_changes_the_calendar_entry():
+    proposal = seminar_mail().model_copy(update={"end_origin": "mail_end", "default_duration_minutes": None})
+    res = DuplicatePreCheckService(writer=seminar_calendar()).check_proposal(proposal)
+    assert res.time_changes == ["Ende 20.11.2026 16:30 Uhr → 20.11.2026 10:00 Uhr"]
+
+
+def test_an_assumed_end_against_an_all_day_entry_is_left_to_the_existing_comparison():
+    # An all-day entry has no clock duration to take over.
+    writer = seminar_calendar(start={"date": "2026-11-20"}, end={"date": "2026-11-21"})
+    res = DuplicatePreCheckService(writer=writer).check_proposal(seminar_mail())
+    assert res.end_origin == "standard" and res.default_duration_minutes == 60
+
+
 def test_precheck_calendar_cancellation():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={

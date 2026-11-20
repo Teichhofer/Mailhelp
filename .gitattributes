@@ -1,2 +1,5 @@
 # 7.1.2: the demo dataset is verified byte for byte against its manifest; never convert line endings.
 src/mailhelp/defaults/demo/** -text
+# 7.9.10: the landing page is rebuilt byte for byte (tests/landing/test_landing_build.py); its fingerprinted
+# assets and pages keep their delivered line endings.
+landing/public/** -text

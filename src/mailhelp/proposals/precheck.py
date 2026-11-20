@@ -18,7 +18,7 @@ from ..external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_ke
 from ..logging import EventLogger, NullLogger
 from ..persistence.ledger import ActionLedgerPort
 from . import conference_supplement
-from .calendar_target import TARGETED, CalendarTargetFinder
+from .calendar_target import TARGETED, CalendarTargetFinder, keep_calendar_end
 
 
 class DuplicatePreCheckService:
@@ -157,6 +157,7 @@ class DuplicatePreCheckService:
                 )
 
             if is_match:
+                proposal = keep_calendar_end(proposal, item)
                 changes, _interval = writer.time_changes(proposal, item)
                 is_reschedule_or_cancel = bool(changes) or proposal.classification in {
                     ProposalClassification.CHANGE,
