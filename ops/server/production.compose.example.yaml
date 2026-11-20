@@ -1,12 +1,12 @@
-# Verifizierter Stand 19.11.2026, Mailhelp 7.9.8, Commit 51adae6.
+# Verifizierter Stand 20.11.2026, Mailhelp 7.9.10, Commit fd4d1e7.
 # Zielpfad auf dem Host: /opt/mailhelp/compose.setup.yaml.
 # Zugangsdaten liegen privat unter /opt/mailhelp/runtime/.env; das Instanzzertifikat für den
 # zentralen Anmeldedienst unter /opt/mailhelp/runtime/hosted-auth/ (Eigentümer 65532, 0600).
 services:
   mailhelp:
     build:
-      context: /opt/mailhelp/releases/7.9.8-51adae6
-    image: mailhelp-production:7.9.8-51adae6
+      context: /opt/mailhelp/releases/7.9.10-fd4d1e7
+    image: mailhelp-production:7.9.10-fd4d1e7
     restart: unless-stopped
     init: true
     stop_grace_period: 45s

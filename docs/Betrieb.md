@@ -452,6 +452,13 @@ Container geprüft. Netz `inboxstride-auth` und `hosted_auth` blieben erhalten; 
 wurde nicht verändert. Rückkehr auf `mailhelp-production:7.9.5-2073ef0` mit den Compose-Dateien
 dieser Sicherung.
 
+Update auf 7.9.10 (20.11.2026, mit Freigabe): enthält die Bugfixes aus 7.9.9 („Verbindung
+übernehmen“) und 7.9.10 (angenommenes Terminende). Commit `fd4d1e7`, Image
+`mailhelp-production:7.9.10-fd4d1e7` nach Offline-Konfigurationsprüfung; Sicherung
+`/opt/mailhelp/backups/upgrade-7.9.10-20261120T165909Z`; Health und Version 7.9.10 beider
+Container geprüft; Netz `inboxstride-auth` und `hosted_auth` erhalten. Rückkehr auf
+`mailhelp-production:7.9.8-51adae6` mit den Compose-Dateien dieser Sicherung.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

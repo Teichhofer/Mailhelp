@@ -1,5 +1,9 @@
 # Änderungen
 
+## 7.9.11 – Betriebsnachweis des Updates auf 7.9.10
+
+- Produktion und Demo laufen 7.9.10 (mit den Bugfixes aus 7.9.9 und 7.9.10); Sicherung, Prüfungen und Rückkehr in `docs/Betrieb.md`, Servervorlagen unter `ops/server/` auf das neue Image.
+
 ## 7.9.10 – Bugfix: angenommenes Terminende verschob vorhandene Termine
 
 - Bugfix: Nannte eine Mail zu einem schon eingetragenen Termin nur den Beginn (etwa Zugangsdaten mit „Beginn um 9.00 Uhr“), bot Mailhelp das aus der Standarddauer angenommene Ende als Änderung an („Ende 16:30 → 10:00“). Ein solches Ende übernimmt jetzt die Dauer des gefundenen Kalendertermins; ein in der Mail genanntes Ende ändert den Termin weiterhin.
