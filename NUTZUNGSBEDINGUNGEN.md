@@ -7,7 +7,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Nutzungsbedingungen für Mailhelp
 
-Stand: 16. November 2026 · Geprüft für Mailhelp 7.0
+Stand: 16. November 2026 · Geprüft für Mailhelp 8.1
 
 ## 1. Gegenstand
 

@@ -1,12 +1,14 @@
 # Operation and updates <!-- mailhelp-id:betrieb/betrieb-und-update -->
 
-Reviewed for Mailhelp 7.0.
+Reviewed for Mailhelp 8.1.
 
-Verified server update on 19 November 2026: production and demo now run Mailhelp
+Historical verified server update on 19 November 2026: production and demo ran Mailhelp
 7.9.3 from commit `70f671b04b84b91c2ddaab4b2a63b4a567aabbb7` using image
 `mailhelp-production:7.9.3-70f671b`. Production configuration, credentials, sessions
 and action receipts were preserved; public HTTPS, both demo languages, demo network
-isolation and Google access were verified. The central OAuth service is not enabled.
+isolation and Google access were verified. At that point the central OAuth service was not enabled.
+The later verified inventory and current limits are recorded in the
+[server handbook](../Serverhandbuch.md); this historical entry does not supersede it.
 See the [German operating record](../Betrieb.md) and [server templates](../../ops/server/README.md)
 for exact paths, consistent backups, update order and rollback restrictions. Never
 overwrite newer action receipts with a pre-update runtime backup.
@@ -19,13 +21,25 @@ firewall rules, file permissions, backups and OAuth configuration. Clearly label
 failed or reverted attempts rather than describing them as the active setup.
 Keep secrets outside Git.
 
-[Version 8.0 planning](../Planung-8.0.md) requires a version-controlled server handbook
-at docs/Serverhandbuch.md (planned) and secret-free templates under `ops/server/`.
-The full rebuild and recovery guide still needs to be created. Until then, record
-the verified operational state in the operating documentation. Local notes and
+[The server handbook](../Serverhandbuch.md) and secret-free templates under `ops/server/`
+combine the verified inventory with rebuild and recovery instructions. Documented
+instructions do not prove a recovery drill; this document retains historical
+operational evidence. Local notes and
 server-only configuration files do not replace a Git-backed source of truth.
 
 ## Recurring processing errors <!-- mailhelp-id:betrieb/wiederkehrende-verarbeitungsfehler -->
+
+For one paused date/time clarification fixed in 8.1: stop the application and make
+a consistent private backup. Check the mail ID, proposal ID, current version,
+answered question and stored normalized answer, including an unambiguous four-digit
+year. Run `python -m devtools.recover_revision --data data/production --mail <mail-id> --proposal <proposal-id> --version <version> --timezone Europe/Berlin`
+using the actual data path and configured timezone. The default is read-only preflight.
+Only after successful preflight, repeat with `--apply`. The tool rechecks version and
+state under lock and requeues just this answer without a model call or external action.
+Restart and verify exactly one successor version, the correct local start and the
+remaining end question. Never reset all paused answers. On failure keep it paused;
+restore the consistent backup only while stopped and before new processing, without
+overwriting newer write evidence. Ask the user for the missing end; never guess it.
 
 Mailhelp tries the same failure for an email at most five times. The intervals are 1 minute, 5 minutes, 30 minutes and 2 hours. After that, the email remains stored and is no longer picked up automatically. Permanent errors are abandoned immediately. Provider rate limits apply only their own waiting period. Status shows the stage, start, attempt count and next attempt. Telegram reports abandonment once, with a link to the email if the web interface is enabled.
 

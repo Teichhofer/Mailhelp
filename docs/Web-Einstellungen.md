@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Geprüft für Mailhelp 7.0; Inventur aller Schlüssel: [Prüfbericht 7.0](Pruefung-Dokumentation-7.0.md).
+Geprüft für Mailhelp 8.1; Inventur aller Schlüssel: [Prüfbericht 7.0](Pruefung-Dokumentation-7.0.md).
 
 ## Themenübersicht
 
@@ -667,10 +667,22 @@ Profil 1 ist der Abschnitt `targets`; weitere Profile (ID 2–99) verwaltet
 | `target_profiles[].microsoft_todo_list` | Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“). | Zielprofilseite |
 | `target_profiles[].google_tasks_list` | Google-Tasks-Liste, Standard `@default` (erste Liste des Kontos). | Zielprofilseite |
 | `target_profiles[].google_connection` | Referenz des Google-Zugangs beim Inboxstride-Anmeldedienst (8.0); setzt nur „Mit Google verbinden“. | Zielprofilseite |
+| `target_profiles[].microsoft_connection` | Referenz des Microsoft-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Microsoft verbinden“. | Zielprofilseite |
+| `target_profiles[].notion_connection` | Referenz des Notion-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Notion verbinden“. | Zielprofilseite |
 | `target_profiles[].microsoft_tenant` | Microsoft-Mandant für die Anmeldung, Standard `common`. | Zielprofilseite |
 | `target_profiles[].removal_window_minutes` | Zeitfenster in Minuten nach dem Anlegen eines Eintrags, in dem er wieder entfernt werden kann: 1–1440; Standard 10. | Zielprofilseite |
 
 ### Gehostete Google-Anmeldung (8.0)
+
+| Postfachschlüssel (8.1) | Bedeutung | Bedienweg |
+| --- | --- | --- |
+| `imap.auth_method` | Altes Einpostfachformat: `password`, `gmail` oder `microsoft`. OAuth braucht den zentralen Anmeldedienst. | Postfach verbinden |
+| `imap.oauth_connection` | Altes Einpostfachformat: eigene Postfach-Verbindungsreferenz, keine Kalenderreferenz. | Postfach verbinden |
+| `imap.mailboxes[].auth_method` | Anmeldung je Postfach; Standard `password`. | Postfach verbinden |
+| `imap.mailboxes[].oauth_connection` | Kennung des Postfachzugangs; im Passwortmodus leer. | Postfach verbinden |
+
+OAuth-Postfächer verwenden ausschließlich ihren gebundenen Anbieterserver auf Port 993
+mit TLS. Kalender- und Postfachfreigaben bleiben getrennt.
 
 Gehostete Inboxstride-Instanzen verbinden den Google Kalender über einen zentralen Anmeldedienst.
 Den Abschnitt `hosted_auth` legt der Betreiber fest; bei der Ersteinrichtung übernimmt Mailhelp ihn
@@ -680,6 +692,8 @@ aus `MAILHELP_HOSTED_AUTH_URL`, `MAILHELP_HOSTED_AUTH_INSTANCE`, `MAILHELP_HOSTE
 | Schlüssel | Wirkung und Werte | Bedienweg |
 | --- | --- | --- |
 | `targets.google_connection` | Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`. Nur für den Google Kalender, nicht für Google Tasks. | Mit Google verbinden |
+| `targets.microsoft_connection` | Referenz des Microsoft-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `MICROSOFT_*`. | Mit Microsoft verbinden |
+| `targets.notion_connection` | Referenz des Notion-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `NOTION_TOKEN` oder `NOTION_CLIENT_*`. | Mit Notion verbinden |
 | `hosted_auth.enabled` | Zentralen Anmeldedienst verwenden; Standard `false`. | Betreiber |
 | `hosted_auth.service_url` | Interne mTLS-Adresse des Dienstes, `https://` mit Host und optionalem Port. | Betreiber |
 | `hosted_auth.instance_id` | Kennung der Instanz im Register des Dienstes. | Betreiber |

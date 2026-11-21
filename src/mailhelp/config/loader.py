@@ -89,7 +89,7 @@ def provider_secret_names(targets: TargetSettings) -> list[str]:
         names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     if targets.uses_caldav:
         names += ["CALDAV_USERNAME", "CALDAV_PASSWORD"]
-    if targets.uses_microsoft:
+    if targets.uses_microsoft and not targets.microsoft_connection:
         names.append("MICROSOFT_CLIENT_ID")
     return names
 
@@ -117,11 +117,12 @@ def imap_secret_values(imap: ImapSettings, env: dict[str, str]
     credentials, missing = {}, []
     for mailbox in imap.enabled_mailboxes():
         user, password = imap_secret_names(mailbox, env, imap.legacy_format)
-        absent = [name for name in (user, password) if not env.get(name)]
+        required = (user, password) if mailbox.auth_method == "password" else (user,)
+        absent = [name for name in required if not env.get(name)]
         if absent:
             missing += absent
         else:
-            credentials[mailbox.id] = {"username": env[user], "password": env[password]}
+            credentials[mailbox.id] = {"username": env[user], "password": env.get(password, "")}
     return credentials, missing
 
 

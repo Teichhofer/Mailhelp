@@ -44,7 +44,7 @@ class FakeGoogle:
         self.issued += 1
         answer = {"access_token": f"access-{self.issued}", "expires_in": 3600, "token_type": "Bearer",
                   "scope": "https://www.googleapis.com/auth/calendar.events" if value.startswith("narrow")
-                  else FULL_SCOPE}
+                  else form.get("scope", FULL_SCOPE)}
         if form["grant_type"] == "authorization_code" and not value.startswith("norefresh"):
             answer["refresh_token"] = f"refresh-for-{value}"
         if form["grant_type"] == "refresh_token" and self.rotate:

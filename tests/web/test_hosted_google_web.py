@@ -9,6 +9,7 @@ from mailhelp.external.hosted_oauth import HostedUnavailable
 from mailhelp.web.hosted_google_site import PENDING, HostedGoogleSite, HostedProfiles, session_reference
 from mailhelp.web.http import SECURITY_HEADERS
 from tests.fakes.hosted_google import Central
+from tests.fakes.hosted_web import central, fields  # noqa: F401
 from tests.fakes.shared_web_actions import web as web  # noqa: F401 - the fixture
 from tests.fakes.shared_web_auth import Browser
 
@@ -39,13 +40,6 @@ class Profiles:
 
 
 @pytest.fixture
-def central(tmp_path):
-    hub = Central(tmp_path)
-    yield hub
-    hub.close()
-
-
-@pytest.fixture
 def hosted(web, central):
     profiles = Profiles()
     client = central.client("anna")
@@ -56,11 +50,6 @@ def hosted(web, central):
     web.profiles, web.central, web.hosted_state = profiles, central, state
     yield web
     client.close()
-
-
-def fields(html, action):
-    block = re.search(rf'<form method="post" action="{re.escape(action)}"[^>]*>(.*?)</form>', html, re.S)[1]
-    return {name: unescape(value) for name, value in re.findall(r'name="([^"]+)" value="([^"]*)"', block)}
 
 
 def connect(web, profile=1, code="good"):

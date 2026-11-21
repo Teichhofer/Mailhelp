@@ -5,6 +5,8 @@ deterministic answer parsing raise them; neither depends on the other.
 """
 from __future__ import annotations
 
+from typing import Literal
+
 
 class RevisionError(ValueError):
     """Base class for content-free revision error classification."""
@@ -16,6 +18,11 @@ class IncompleteUserAnswer(RevisionError):
 
 class ContradictoryRevision(RevisionError):
     """A revision is semantically inconsistent with its predecessor."""
+
+    def __init__(self, message: str, code: Literal["revision_conflict", "known_clock_changed",
+                 "known_facts_changed", "known_facts_lost"] = "revision_conflict") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class TechnicalRevisionError(RevisionError):

@@ -1,25 +1,25 @@
 {
- "app_version": "7.9.11",
+ "app_version": "8.2.1",
  "locale": "en",
- "revision": "9d98a74c8645e710168451687255e49ea8727e699919e0b3ce0e43f073582318",
+ "revision": "e06993d11a53ece2224620213a5eed410784cfcf7c2ba0c01c7287e3e349fe83",
  "schema_version": 2,
  "sections": 130,
  "sources": [
   {
    "path": "docs/en/Web-Einstellungen.md",
-   "sha256": "c6b37fbd6cb25c199174ae093f25c142a56f29a20d89bcd5beb32481ed056a07"
+   "sha256": "31086fcd139e4a2e6bc4083c94f4fd0298a818bf89512b1be16f6895293d77d6"
   },
   {
    "path": "docs/en/Ersteinrichtung.md",
-   "sha256": "a1b8a4794257aecd53f3a25f01de6148a8ebd47f0e626b15e69b391c0a7ac9ad"
+   "sha256": "adb5465394d1efdf73e42195034e272854206b81304a6a92125b4e0807ac88bf"
   },
   {
    "path": "docs/en/Konten-verwalten.md",
-   "sha256": "9c816699c6aa01c90ffdcbdbe8c6c383244896396e1f374e91ce3363d301ec26"
+   "sha256": "a5e0e77131cf9c91cd2c73d333d4afa59fc9e2adb5303744c9d496078710235d"
   },
   {
    "path": "docs/en/Ziele-einrichten.md",
-   "sha256": "106abaf2cbf7613f63d7bc0dae06a5b09a9791ea042150bae098a05cfda83207"
+   "sha256": "0909cdeebba094abe78c4d17f152bfffef716fbb1037a6b182653045cd1a08f8"
   },
   {
    "path": "docs/en/Bedienung.md",
@@ -27,11 +27,11 @@
   },
   {
    "path": "docs/en/Fehlerbehebung.md",
-   "sha256": "ac52221c21247bdcfeb8013cb3561cbdcd7d68fd1f07bf419ddc9a9b5e0b17ab"
+   "sha256": "eb642096a745545ad60a3d0e0330444666ff6c8971bda1290fefc91ec40142f6"
   },
   {
    "path": "docs/en/Betrieb.md",
-   "sha256": "824913ac1264c54302df0856d4d2cefb340d7c344f6a38eb9b53272b2e0cd0c1"
+   "sha256": "76b38769cdc3f649bd5358f8592bd3516bcd8ec53f77eedb3fc45a242c0f1a3d"
   }
  ]
 }

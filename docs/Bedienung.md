@@ -1,6 +1,6 @@
 # Alltagsbedienung
 
-Geprüft für Mailhelp 7.0. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
+Geprüft für Mailhelp 8.1. Was im Alltag zu tun ist: Vorschläge prüfen und entscheiden, Mails
 nachlesen, Rückfragen beantworten und den Stand von Eintragungen verfolgen.
 
 ## Offene Entscheidungen

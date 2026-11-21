@@ -143,3 +143,15 @@ def test_a_specific_heading_outranks_the_same_word_in_ancestor_headings():
         id="betrieb/" + title.lower(), title=title, path=("Betrieb und Update", title),
         source="docs/Betrieb.md", text="Synthetische Bedienanleitung.", setting_ids=()) for title in titles))
     assert base.select("Wie mache ich ein Update?")[0].id == "betrieb/update"
+
+
+def test_a_rare_full_word_outranks_a_shared_stem_without_promoting_common_words():
+    from mailhelp.helpdocs import HelpBase, Section
+
+    sections = tuple(Section(str(number), "Einstellungen", ("Einstellungen",), "docs/Betrieb.md",
+        "Kontrolle der Eintragung und Änderung." if number < 4 else "Kontrollabrufe der Eintragung und Änderung.",
+        ()) for number in range(5))
+    base = HelpBase("synthetic", sections)
+    assert base.select("Wie viele Kontrollabrufe nach einer Eintragung?")[0].id == "4"
+    # The common full word must not change the alphabetical tie-break among equivalent sections.
+    assert base.select("Warum ist meine Änderung nach der Eintragung noch nicht aktiv?")[0].id == "0"

@@ -10,9 +10,13 @@ from ..config.loader import _dotenv
 from ..external.hosted_oauth import cached_client
 from ..mailbox.mailbox_settings import target_profiles
 from ..runtime.oauth_web import BrowserOAuth, OAuthConfig, oauth_config
+from ..runtime.onboarding import OnboardingService
 from ..web.hosted_google_site import HostedGoogleSite, HostedProfiles
+from ..web.hosted_targets_site import HostedTargetContext, HostedTargetsSite
 from ..web.notion_site import NotionSite
 from ..web.oauth_site import OAuthSite
+from ..web.onboarding_site import OnboardingSite
+from .mailbox_accounts import attach_running_mailbox
 
 
 def attach_accounts(app: Any, site: Any, directory: Path) -> None:
@@ -59,9 +63,23 @@ def attach_accounts(app: Any, site: Any, directory: Path) -> None:
         target_profiles(site.setup_page.runtime.setup.draft_settings())[profile]  # unknown numbers raise
         return f"profile:{profile}"
 
+    client = cached_client(lambda: saved().hosted_auth)
+
+    def hosted_notion_token(profile: int) -> str:
+        hub = client()
+        conn, _ver = calendar_context(profile, "notion_connection")
+        if hub is None or not conn:
+            return ""
+        return str(hub.post("/intern/token", {"connection": conn, "purpose": "notion"}).get("access_token", ""))
+
     OAuthSite(site, service, calendar_context, save_calendar, "/einrichtung")
-    NotionSite(site, directory, targets_context, save_targets)
-    # 8.0: "Mit Google verbinden" through the central Inboxstride service of a hosted instance.
-    HostedGoogleSite(site, app.store, cached_client(lambda: saved().hosted_auth),
+    NotionSite(site, directory, targets_context, save_targets, hosted_token=hosted_notion_token)
+    # 8.0 / 8.2: central Inboxstride OAuth for Google, Microsoft and Notion targets, plus guided onboarding.
+    HostedGoogleSite(site, app.store, client,
                      HostedProfiles(hosted_draft, save_targets, hosted_target), "/einrichtung")
+    HostedTargetsSite(site, app.store, client,
+                      HostedTargetContext(calendar_context, save_targets, hosted_target), "/einrichtung")
+    OnboardingSite(site, OnboardingService(directory, app.store, authorize,
+                                           lambda value: site.auth._mac("onboarding", value)), "/einrichtung")
+    attach_running_mailbox(app, site, saved)
     app.services.oauth = service

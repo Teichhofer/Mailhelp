@@ -153,7 +153,7 @@ def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Pat
 def _build_imap(mailbox: MailboxSettings, settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
                 logger: JsonlLogger, access_diagnostics: bool, stack: ExitStack) -> Any:
     credentials = secrets.imap_credentials(mailbox.id)
-    address, options = reader_arguments(mailbox, credentials)
+    address, options = reader_arguments(mailbox, credentials, settings.hosted_auth)
     try:
         imap = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options,
                           policy=policy("imap"), logger=logger, batch_size=settings.imap.batch_size)

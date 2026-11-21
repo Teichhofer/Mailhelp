@@ -504,7 +504,10 @@ class MailhelpSite:
         problems = connection_health.current(self.views.store)
         configuration = getattr(self.archive, "configuration", None)
         hosted = configuration is not None and configuration.active.hosted_auth.enabled
-        return (connection_warnings(problems, self.configured_timezone, hosted_google=hosted),
+        mailbox_auth = ({box.id: box.auth_method for box in configuration.active.imap.configured_mailboxes()}
+                        if configuration is not None else {})
+        return (connection_warnings(problems, self.configured_timezone, hosted_google=hosted,
+                                    mailbox_auth=mailbox_auth),
                 connection_health.digest(problems))
 
     def open_fingerprint(self, overview: Overview) -> str:

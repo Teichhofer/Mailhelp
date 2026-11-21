@@ -18,13 +18,17 @@ from ..logging import JsonlLogger
 from ..persistence.storage import JsonStore, atomic_replace
 from ..runtime.initial_setup import InitialSetup
 from ..runtime.oauth_web import BrowserOAuth, oauth_config
+from ..runtime.onboarding import OnboardingService
 from ..runtime.setup_checks import SetupChecks
 from ..web.app import WebApp
 from ..web.auth import WebAuth
 from ..web.hosted_google_site import HostedGoogleSite, HostedProfiles
+from ..web.hosted_targets_site import HostedTargetContext, HostedTargetsSite
 from ..web.initial_site import InitialSite
 from ..web.oauth_site import OAuthSite
+from ..web.onboarding_site import OnboardingSite
 from ..web.server import WebServer
+from .mailbox_accounts import attach_initial_mailbox
 
 
 def ensure_web_secret(directory: Path) -> str:
@@ -86,9 +90,15 @@ def create_initial(directory: Path, store: JsonStore, settings: WebSettings, sto
     def hosted_settings() -> HostedAuthSettings:
         return Settings.model_validate(setup.state().config).hosted_auth
 
+    client = cached_client(hosted_settings)
     OAuthSite(site, oauth, calendar_context, save_calendar)
-    HostedGoogleSite(site, store, cached_client(hosted_settings),
+    HostedGoogleSite(site, store, client,
                      HostedProfiles(hosted_draft, hosted_save, hosted_target), "/einrichtung/start", navigation=False)
+    HostedTargetsSite(site, store, client,
+                      HostedTargetContext(calendar_context, hosted_save, hosted_target), "/einrichtung/start",
+                      navigation=False)
+    OnboardingSite(site, OnboardingService(directory, store, authorize, sign), "/einrichtung/start", navigation=False)
+    attach_initial_mailbox(site, setup, store)
     return WebServer(settings.host, settings.port, app, logger), auth, setup, oauth
 
 

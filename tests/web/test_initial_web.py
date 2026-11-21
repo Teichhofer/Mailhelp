@@ -24,6 +24,30 @@ def browser(h,signed=True):
     return result
 
 
+def test_provider_defaults_are_a_read_only_preview(initial):
+    h = initial
+    h.setup.save(h.actor, h.form(1, password="synthetic-password"))
+    b = browser(h)
+    before = h.setup.state().model_dump()
+    form = {**h.form(2), "csrf": h.auth.csrf_token(h.actor.removeprefix("web:")),
+            "provider": "auto", "provider_email": "test@web.de", "provider_apply": "yes"}
+    # The browser fixture and setup harness refer to the same authenticated session.
+    result = b.request("POST", "/einrichtung/pruefen", form)
+    assert result.status == 200 and b'imap.web.de' in result.body
+    assert h.setup.state().model_dump() == before and h.checks.calls == []
+    assert b.request("POST", "/einrichtung/pruefen", {**form, "provider": "unknown"}).status == 400
+
+
+def test_provider_preview_preserves_the_icloud_username_pattern(initial):
+    h = initial
+    h.setup.save(h.actor, h.form(1, password="synthetic-password"))
+    form = {**h.form(2), "csrf": h.auth.csrf_token(h.session.id), "provider": "icloud",
+            "provider_email": "apple@icloud.com", "provider_apply": "yes"}
+    result = browser(h).request("POST", "/einrichtung/pruefen", form)
+    assert result.status == 200
+    assert re.search(r'<input[^>]*name="IMAP_USERNAME"[^>]*value="apple"', result.body.decode())
+
+
 def test_login_page_both_code_channels_password_and_csrf(initial):
     h=initial
     b=browser(h,False)

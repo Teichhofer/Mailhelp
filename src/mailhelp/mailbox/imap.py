@@ -11,15 +11,22 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
+from ..external.contracts import AccessTokenProvider, OAuthTokenError
+from ..external.hosted_oauth import HostedAuthClient, HostedTokenProvider
 from ..llm.adapter import RetryPolicy
 from ..logging import EventLogger, NullLogger
 
 if TYPE_CHECKING:
     from ..config import ImapCredentials, MailboxSettings
+    from ..config.target_settings import HostedAuthSettings
 
 T = TypeVar("T")
+
+
+class ImapTokenProvider(AccessTokenProvider, Protocol):
+    def close(self) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -223,12 +230,19 @@ def account_id(host: str, port: int, username: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
 
 
-def reader_arguments(mailbox: MailboxSettings, credentials: ImapCredentials
+def reader_arguments(mailbox: MailboxSettings, credentials: ImapCredentials,
+                     hosted_auth: HostedAuthSettings | None = None
                      ) -> tuple[tuple[str, int, str, str], dict[str, Any]]:
     """Connection arguments of :class:`ImapReader` for one configured mailbox (3.1)."""
     address = (mailbox.host, mailbox.port, credentials.username, credentials.password.get_secret_value())
-    return address, {"factory": imaplib.IMAP4_SSL if mailbox.connection_mode == "ssl" else imaplib.IMAP4,
-                     "starttls": mailbox.connection_mode == "starttls"}
+    options: dict[str, Any] = {"factory": imaplib.IMAP4_SSL if mailbox.connection_mode == "ssl" else imaplib.IMAP4,
+                               "starttls": mailbox.connection_mode == "starttls"}
+    if mailbox.auth_method != "password":
+        if hosted_auth is None or not hosted_auth.enabled:
+            raise ValueError("Postfach-OAuth benötigt den konfigurierten Anmeldedienst")
+        options["token_provider"] = HostedTokenProvider(HostedAuthClient(hosted_auth), mailbox.oauth_connection,
+                                                        purpose=mailbox.auth_method)
+    return address, options
 
 
 def mailbox_account_id(mailbox: MailboxSettings, credentials: ImapCredentials) -> str:
@@ -238,17 +252,28 @@ def mailbox_account_id(mailbox: MailboxSettings, credentials: ImapCredentials) -
 class ImapReader:
     def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30,
                  factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None,
-                 logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25) -> None:
+                 logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25,
+                 token_provider: ImapTokenProvider | None = None) -> None:
         # Connection material deliberately remains in memory only.  In
         # particular it is never included in events or persistent state.
         self._host, self._port = host, port
+        self._token_provider = token_provider
+        if token_provider is not None and (port != 993 or host not in {"imap.gmail.com", "outlook.office365.com"}
+                                            or any(char in username for char in "\x00\x01\r\n")):
+            token_provider.close()
+            raise ValueError("Unsicheres OAuth-Ziel oder ungültige Anmeldekennung")
         self._username, self._password = username, password
         self._timeout, self._factory, self._starttls = timeout, factory, starttls
         self.policy = policy or RetryPolicy(2, 1, 4, lambda _delay: False)
         self.logger = logger or NullLogger()
         self.batch_size = batch_size
         self._reconnect_required = False
-        self.connection = self._connect()
+        try:
+            self.connection = self._connect()
+        except BaseException:
+            if token_provider is not None:
+                token_provider.close()
+            raise
         self.account_id = account_id(host, port, username)
         self.last_uidvalidity: int | None = None
         try:
@@ -274,7 +299,19 @@ class ImapReader:
             if status != "OK":
                 raise StartTlsFailed("IMAP STARTTLS fehlgeschlagen")
         try:
-            self.connection.login(self._username, self._password)
+            if self._token_provider is None:
+                self.connection.login(self._username, self._password)
+            else:
+                self.connection.debug = 0
+                token = self._token_provider.access_token()
+                if not token or any(char in token for char in "\x00\x01\r\n"):
+                    raise ImapLoginRejected("Ungültiger OAuth-Token")
+                payload = f"user={self._username}\x01auth=Bearer {token}\x01\x01".encode()
+                self.connection.authenticate("XOAUTH2", lambda challenge: payload if not challenge else b"")
+        except OAuthTokenError:
+            raise ImapLoginRejected(
+                "IMAP-Anmeldung vom Server abgelehnt. OAuth-Postfachzugang erneut verbinden."
+            ) from None
         except imaplib.IMAP4.error:
             raise ImapLoginRejected(
                 "IMAP-Anmeldung vom Server abgelehnt. Die erfolgreiche "
@@ -288,7 +325,7 @@ class ImapReader:
             ) from None
 
     def _reconnect(self) -> None:
-        self.close()
+        self._logout()
         self.connection = self._connect()
         try:
             self._authenticate()
@@ -554,6 +591,11 @@ class ImapReader:
         return result
 
     def close(self) -> None:
+        self._logout()
+        if self._token_provider is not None:
+            self._token_provider.close()
+
+    def _logout(self) -> None:
         """Log out without turning an already broken transport into a run failure."""
         try:
             self.connection.logout()
@@ -561,4 +603,4 @@ class ImapReader:
             # LOGOUT is only best-effort once TLS/the socket has already failed.
             # In particular, do not mask a successful run (or an exception from
             # construction) with imaplib's follow-up ``socket error`` abort.
-            self.logger.event("WARNING", "imap", "logout_failed", error=exc)
+            self.logger.event("WARNING", "imap", "logout_failed", error_class=type(exc).__name__)

@@ -1,0 +1,13 @@
+# Alternative zur bestehenden Cron-Erneuerung, nicht zusätzlich aktivieren.
+# Instanzname = existierender Let's-Encrypt-Zertifikatname, z. B. auth.example.org.
+[Unit]
+Description=Renew Mailhelp TLS certificate %i
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/mailhelp-acme:/webroot certbot/certbot:v5.10.0 renew --cert-name %i --quiet
+ExecStartPost=/usr/sbin/nginx -t
+ExecStartPost=/usr/bin/systemctl reload nginx

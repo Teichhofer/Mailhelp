@@ -1,6 +1,12 @@
 # Connect Calendar and Tasks <!-- mailhelp-id:ziele-einrichten/kalender-und-aufgaben-verbinden -->
 
-Verified for Mailhelp 7.2; provider documentation compared on 11 and 16 November 2026. A **target profile** determines into which calendar and which task list
+Hosted Inboxstride instances use **Connect with Google**, then select a calendar
+with write access and explicitly **Adopt connection**. The operator manages client
+credentials centrally. Changing only the calendar uses the existing grant;
+disconnecting stops token issuance without deleting events. Mailbox access requires
+its own grant. The direct self-hosted calendar setup below remains supported.
+
+Verified for Mailhelp 8.1; provider documentation compared on 11 and 16 November 2026. A **target profile** determines into which calendar and which task list
 confirmed proposals of a mailbox are entered. Profile 1 is the `targets` section
 from initial setup; additional profiles are managed in **Settings → Target profiles**. An
 **account** is the access at the provider (credentials in `.env`), the calendar or

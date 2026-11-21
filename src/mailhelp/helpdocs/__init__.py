@@ -186,7 +186,9 @@ class HelpBase:
         by a short stem, so "starte" finds "starten". Earlier questions help follow-up questions.
         """
         own = set(stems(question))
-        specific = {word[:STEM] for word in words(question) if len(word) >= RARE_LENGTH}
+        exact = set(words(question))
+        precise = {word for word in exact if len(word) >= RARE_LENGTH}
+        specific = {word[:STEM] for word in precise}
         asked = _expanded(own)
         earlier = _expanded({word for text in history for word in stems(text)}) - asked
         referenced = _settings_named(set(words(question))) | ({setting_id} if setting_id else set())
@@ -194,12 +196,16 @@ class HelpBase:
         # but only where the new question fits as well (or has no meaningful word of its own).
         remembered = _settings_named({word for text in history for word in words(text)})
         frequency = self._frequency()
+        exact_hits = {section.id: precise & set(words(section.text)) for section in self.sections}
+        exact_frequency = {word: sum(word in found for found in exact_hits.values()) for word in precise}
         scored = []
         for section in self.sections:
             title, body = self._index[section.id]
             hits = {word for word in own if word in title or word in body}
             synonym = bool((asked - own) & (title | body))
             score = 3 * len(asked & title) + len(hits) + int(synonym) + len(earlier & title)
+            score += sum(6 // frequency[word] for word in hits)
+            score += sum(4 for word in exact_hits[section.id] if exact_frequency[word] <= RARE_SECTIONS)
             heading = set(stems(section.title))
             score += 6 * len(asked & heading) // max(1, len(heading))
             named = bool(referenced & set(section.setting_ids)) or (

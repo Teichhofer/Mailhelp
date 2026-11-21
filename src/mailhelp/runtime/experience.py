@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 @contextmanager
 def _reader(settings: Settings, secrets: Secrets, mailbox: MailboxSettings) -> Iterator[ImapReader]:
     """One IMAP session of *mailbox*; closed again on every exit."""
-    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id), settings.hosted_auth)
     reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
     try:
         yield reader

@@ -1,6 +1,6 @@
 # Architektur
 
-Geprüft für Mailhelp 7.0 (Stand 16. November 2026)  
+Geprüft für Mailhelp 8.1 (Stand 16. November 2026)
 Dieses Dokument beschreibt den Aufbau des Pakets `mailhelp`, den Weg einer Mail, den
 Bestätigungsweg für externe Schreibzugriffe und die gespeicherten Zustände. Es ersetzt die
 früheren Dokumente `Architektur-1.6`, `-2.1`, `-2.4` und `Paketstruktur` (jetzt im

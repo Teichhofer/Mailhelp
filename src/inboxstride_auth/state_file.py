@@ -30,6 +30,10 @@ class StateFile:
         self._lock = threading.RLock()
 
     def read(self) -> AuthState:
+        with self._lock:
+            return self._read()
+
+    def _read(self) -> AuthState:
         if not self.path.exists():
             return AuthState()
         try:

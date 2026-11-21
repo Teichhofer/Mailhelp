@@ -11,7 +11,22 @@ Stand: 20. November 2026. Produktion und Demo: Mailhelp 7.9.10, Quellcommit
 
 Vorlagen beschreiben den erfolgreich geprüften aktuellen Stand, kein vollständiges
 Serverhandbuch. DNS, nginx/TLS, Host-Firewall und Secret-/Backupbereitstellung werden
-im Serverhandbuch der Planung 8.0 vervollständigt.
+im [Serverhandbuch](../../docs/Serverhandbuch.md) zusammengeführt. Ergänzende
+Neuaufbauvorlagen sind noch keine automatisch übernommenen Serveränderungen:
+
+| Vorlage | Ziel / Parameter | Validierung und Übernahme | Rückkehr |
+| --- | --- | --- | --- |
+| `nginx-mailhelp.example.conf` | Nutzer-Site; `DOMAIN` ersetzen, Zertifikat bereitstellen | `nginx -t`, danach reload; Site vorher sichern | Gesicherte Site prüfen/reload |
+| `nginx-demo.example.conf` | Demo-Site; `DOMAIN`, Compose-IP abgleichen | `nginx -t`, danach reload, Host/Limits prüfen | Gesicherte Demo-Site |
+| `nginx-auth-mailboxes.location.example.conf` | 8.1-Location im Auth-HTTPS-Server | Erst Anbieterregistrierung, dann prüfen/reload | Zusätzliche Location entfernen |
+| `mailhelp-cert-renew@.service`, `@.timer` | `/etc/systemd/system/`; Instanz = Zertifikatname | `systemd-analyze verify`, daemon-reload, Timer aktivieren | Timer aus, bisherigen Cron wiederherstellen |
+| `firewall.example.txt` | Geprüfter SSH-Port statt `SSH_PORT` | Zuerst `--dry-run` und zweiter SSH-Zugang | Nur geänderte Regeln zurücknehmen |
+| `permissions.example.txt` | Konkrete Pfade, UID/GID des Images | `stat`, einzelne Installationsschritte | Vorher notierte Eigentümer/Modi |
+
+TLS-Units sind eine Alternative zum vorhandenen Cron, niemals parallel aktivieren.
+Landingpage-/Formulardienstvorlagen liegen unter `landing/ops/`. Private Werte folgen
+`.env.example` und `config.example.yaml` und werden getrennt bereitgestellt.
+Postfach-OAuth: [Einrichtung und Freigaben](OAuth-Postfaecher.md).
 Produktions-Konfiguration und Kundendaten sind nicht enthalten.
 
 Seit 19.11.2026 ist zusätzlich das [tägliche Dropbox-Backup](Dropbox-Backup.md)
@@ -41,7 +56,9 @@ Keine Geheimnisse in Buildkontext, Image oder Git aufnehmen.
 
 ## Zentraler Anmeldedienst (eingerichtet 19.11.2026)
 
-Eingerichtet und geprüft mit 7.9.5; die Pilotanmeldung eines Google-Kontos steht noch aus.
+Eingerichtet und geprüft mit 7.9.5. Der Betreiber meldet einen erfolgreichen Pilot;
+am 20.11.2026 ist zentral ein Zugang aktiv, lokal aber noch keine Kalenderreferenz
+gespeichert. Der konsistente Abschluss bleibt zu prüfen; keine automatische Zuordnung.
 Einzelheiten, Prüfungen und Rückkehr: [Betrieb](../../docs/Betrieb.md).
 
 | Vorlage | Installationsort | Compose-Projekt |

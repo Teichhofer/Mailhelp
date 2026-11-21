@@ -1,5 +1,44 @@
 # Änderungen
 
+## 8.2.1 – Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths (in Prüfung)
+
+- Zentrale Ziel-OAuths über `inboxstride_auth` für Microsoft-Ziele (`microsoft_targets`:
+  Outlook-Kalender und Microsoft To Do) sowie Notion (`notion`, `set-notion-client`,
+  `/auth/notion/callback`); gleichzeitige Zielverbindungen verschiedener Anbieter je
+  Zielprofil bleiben unabhängig aktiv.
+- Instanzanbindung (`/microsoft/verbinden`, `/notion/verbinden`, `/microsoft/ziele`,
+  `/notion/ziele`) mit `SameSite=Strict`-sicherer Rückkehr, Zielprüfung, lokaler
+  Speicherung vor zentraler Aktivierung (`targets.microsoft_connection`,
+  `targets.notion_connection`), Verbindungsbindung (`outlook-<Verbindung>`) und
+  direkter Wiederverbindung aus Verbindungsproblemen.
+- Geführtes 3-Schritte-Self-Service-Onboarding (`/onboarding`) mit Zustandsmodell
+  (`onboarding.json`), Anbietererkennung, Zielprüfung, Starter-Themenprofilen,
+  schreibfreiem Testmodus-Probelauf und ausdrücklicher Aktivierung (DE/EN).
+
+## 8.1.1 – Postfach-Anbieter, Mail-OAuth und zuverlässige Terminantworten (in Prüfung)
+
+- Acht lokal verfügbare IMAP-Anbietervorlagen, Domainvorschlag, Anbieterhinweise und
+  manuell bearbeitbare Serverdaten in Ersteinrichtung und Postfachverwaltung.
+- Getrennte OAuth2-Zugänge für Gmail und Microsoft-IMAP, zentrale verschlüsselte
+  Refresh-Tokens, zweckgebundene Tokenausgabe, Ordnerprüfung und explizite Übernahme.
+  Anbieterregistrierung und Google-Mail-Freigabe sind noch Voraussetzung für Produktivbetrieb.
+- Neue und ersetzte Reader werden zwischen Mailzyklen installiert; Fehler behalten
+  den bisherigen Reader. Bestehende Passwortkonten und Analysefingerabdrücke bleiben kompatibel.
+- Bugfix: Ein fehlendes Datum lässt sich zu einer bekannten Uhrzeit ergänzen, ohne
+  dass die Schutzprüfung den Vorgang fälschlich pausiert; bekannte Zeiten bleiben geschützt.
+- Gezieltes Reparaturwerkzeug mit schreibfreier Vorprüfung für pausierte Rückfragen.
+  Revisionsfehler protokollieren einen datensparsamen Vertragscode ohne Rohantwort.
+- Vorlagen mit Quellenprüfdatum, TLS-Port und Benutzernamensmuster; iCloud-Vorschau
+  berücksichtigt den lokalen Namen. Fehlerhafte Adressen erzeugen keinen Anbietervorschlag.
+- Direkte Wiederverbindung betroffener OAuth-Postfächer; fremde Konfigurationsänderungen
+  verhindern auch nach lokalem Speichern eine wiederholte Aktivierung.
+- Bekannte Termindaten werden bei vollständigen UTC-Zeitintervallen in der konfigurierten
+  Zeitzone geschützt. Die Hilfesuche gewichtet direkte Worttreffer und seltene Begriffe.
+- Serverhandbuch und ergänzende nginx-, Rechte-, Firewall- und TLS-Vorlagen aus Planung 8.0.
+  Produktivstand und noch nicht aktivierte Erweiterungen werden getrennt dokumentiert.
+- Zentraldienst gegen gleichzeitige Callbacks, verlorene parallele Geheimnisschreibvorgänge
+  und verspätete Token-Erneuerung nach Trennung oder Kontowechsel abgesichert.
+
 ## 7.9.11 – Betriebsnachweis des Updates auf 7.9.10
 
 - Produktion und Demo laufen 7.9.10 (mit den Bugfixes aus 7.9.9 und 7.9.10); Sicherung, Prüfungen und Rückkehr in `docs/Betrieb.md`, Servervorlagen unter `ops/server/` auf das neue Image.

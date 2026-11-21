@@ -19,17 +19,18 @@ from urllib.parse import urlencode
 
 from pydantic import ValidationError
 
-from .google import ClientRefused, GoogleTokens, GrantRefused, TemporaryFailure, UnclearResult, authorization_url
+from .google import ClientRefused, GoogleTokens, GrantRefused, TemporaryFailure, UnclearResult
 from .models import (
     JOB_LIFETIME,
+    MAIL_SCOPES,
     RECEIPT_LIFETIME,
-    SCOPES,
     TERMINAL,
     TRANSITIONS,
     AuthJob,
     AuthState,
     Connection,
     Instance,
+    Purpose,
 )
 from .secret_store import SecretStore
 from .state_file import StateFile
@@ -66,9 +67,11 @@ class AuthService:
     def __init__(self, state: StateFile, store: SecretStore, google: GoogleTokens,
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC),
                  token: Callable[[int], str] = secrets.token_urlsafe,
-                 monotonic: Callable[[], float] = time.monotonic) -> None:
+                 monotonic: Callable[[], float] = time.monotonic,
+                 mail_providers: dict[str, GoogleTokens] | None = None) -> None:
         self.state, self.store, self.google = state, store, google
         self.clock, self.token, self.monotonic = clock, token, monotonic
+        self.mail_providers = mail_providers or {}
         # Short-lived access tokens only in memory, per connection: (token, valid until monotonic).
         self._tokens: dict[str, tuple[str, float]] = {}
         # One renewal per connection at a time; parallel requests reuse its result (Planung 8.0, 6).
@@ -80,27 +83,58 @@ class AuthService:
     def register(self, instance: Instance) -> None:
         register_instance(self.state, instance)
 
+    def _provider(self, purpose: str) -> GoogleTokens:
+        if purpose == "calendar":
+            if not self.google.client.client_id:
+                raise Refused("provider_not_configured")
+            return self.google
+        if purpose not in self.mail_providers:
+            raise Refused("provider_not_configured")
+        return self.mail_providers[purpose]
+
+    RETURN_PATHS = {
+        "calendar": "/einrichtung/google/abschluss",
+        "microsoft_targets": "/einrichtung/microsoft/abschluss",
+        "notion": "/einrichtung/notion/abschluss",
+    }
+    PROVIDER_NAMES = {
+        "calendar": "google", "gmail": "google",
+        "microsoft": "microsoft", "microsoft_targets": "microsoft",
+        "notion": "notion",
+    }
+
+    @staticmethod
+    def _return_url(instance: Instance, job: AuthJob) -> str:
+        path = AuthService.RETURN_PATHS.get(job.purpose, "/einrichtung/postfach/abschluss")
+        return f"https://{instance.host}{path}"
+
+    @staticmethod
+    def _same_slot(target: str, purpose: str, other_target: str, other_purpose: str) -> bool:
+        return target == other_target and (target.startswith("mailbox:") or purpose == other_purpose)
+
     # Start ---------------------------------------------------------------------------------
 
     def start(self, instance_id: str, session: str, target: str,
-              operation: Literal["connect", "reauthorize", "replace"], key: str) -> tuple[AuthJob, str]:
+              operation: Literal["connect", "reauthorize", "replace"], key: str,
+              purpose: Purpose = "calendar") -> tuple[AuthJob, str]:
         """A new sign-in, or the same one again for the same idempotency key, and its Google URL."""
         now = self.clock()
         state = self.state.read()
         instance = state.instances.get(instance_id)
         if instance is None or not instance.enabled:
             raise Refused("unknown_instance")
+        provider = self._provider(purpose)
         job_id = digest(f"{instance_id}\n{key}")[:32]
         existing = state.jobs.get(job_id)
-        if existing is not None and (existing.session, existing.target, existing.operation) != (
-                digest(session), target, operation):
+        if existing is not None and (existing.session, existing.target, existing.operation, existing.purpose) != (
+                digest(session), target, operation, purpose):
             raise Refused("key_reused")
         if existing is not None and existing.state != "awaiting_google":
             raise Refused("job_not_open")
         verifier, oauth_state = self.token(48), self.token(32)
         if existing is None:
             job = AuthJob(id=job_id, instance=instance_id, session=digest(session), target=target,
-                          operation=operation, client_revision=state.client_revision, created=now,
+                          operation=operation, purpose=purpose, client_revision=state.client_revision, created=now,
                           expires=now + JOB_LIFETIME).advance("awaiting_google", now, state_hash=digest(oauth_state))
         else:
             # A repeated start (for example after a crash) gets a fresh state; the old one stops working.
@@ -111,26 +145,28 @@ class AuthService:
         def change(current: AuthState) -> AuthState:
             jobs = dict(current.jobs)
             for other in current.jobs.values():
-                # A newly started sign-in for the same target makes older open ones stale.
-                if (other.instance, other.target) == (instance_id, target) and other.id != job.id \
-                        and other.state not in TERMINAL and other.state != "activating":
+                # A newly started sign-in for the same target slot makes older open ones stale.
+                if other.instance == instance_id and self._same_slot(target, purpose, other.target, other.purpose) \
+                        and other.id != job.id and other.state not in TERMINAL and other.state != "activating":
                     jobs[other.id] = (other.advance("cancelled", now) if "cancelled" in TRANSITIONS[other.state]
                                       else other)
             jobs[job.id] = job
             return current.model_copy(update={"jobs": jobs})
         self.state.update(change)
-        client = self.google.client
-        return job, authorization_url(client, oauth_state, _challenge(verifier), SCOPES)
+        return job, provider.authorize(oauth_state, _challenge(verifier), MAIL_SCOPES[purpose])
 
     # Google's return ----------------------------------------------------------------------------
 
-    def callback(self, oauth_state: str, code: str | None, error: str | None) -> str:
+    def callback(self, oauth_state: str, code: str | None, error: str | None,
+                 provider_name: str = "google") -> str:
         """Exchange the code once and send the browser to its instance with a one-time receipt."""
         now = self.clock()
         state = self.state.read()
         job = next((item for item in state.jobs.values() if item.state_hash == digest(oauth_state)), None)
         if job is None:
             raise Refused("unknown_state")
+        if provider_name != self.PROVIDER_NAMES[job.purpose]:
+            raise Refused("wrong_provider")
         instance = state.instances[job.instance]
         if job.state != "awaiting_google":
             raise Refused("state_used")
@@ -140,29 +176,30 @@ class AuthService:
         if error is not None or not code:
             self._end(job, "cancelled" if error == "access_denied" else "failed", now,
                       "access_denied" if error == "access_denied" else "provider_error")
-            return f"{instance.return_url}?{urlencode({'abbruch': '1'})}"
+            return f"{self._return_url(instance, job)}?{urlencode({'abbruch': '1'})}"
         self._save_job(job.advance("exchanging", now))
         verifier = self.store.get(f"pkce:{job.id}")
         self.store.delete(f"pkce:{job.id}")
         try:
-            answer = self.google.exchange(code, verifier or "")
+            answer = self._provider(job.purpose).exchange(code, verifier or "")
         except (UnclearResult, ClientRefused, GrantRefused) as exc:
             reason = {UnclearResult: "exchange_unclear", ClientRefused: "client_refused",
                       GrantRefused: "grant_refused"}[type(exc)]
             self._end(self._current(job.id), "failed", now, reason)
-            return f"{instance.return_url}?{urlencode({'abbruch': '1'})}"
+            return f"{self._return_url(instance, job)}?{urlencode({'abbruch': '1'})}"
         connection_id = digest(f"{job.id}:candidate")[:32]
         try:
             if answer.refresh_token is None:
                 raise Refused("no_refresh_token")
             connection = Connection(id=connection_id, instance=job.instance, target=job.target, status="candidate",
+                                    purpose=job.purpose,
                                     generation=1, scopes=tuple(answer.scope.split()),
                                     secret=f"refresh:{connection_id}", client_revision=job.client_revision,
                                     created=now)
         except (Refused, ValidationError) as exc:
             self._end(self._current(job.id), "failed", now,
                       exc.code if isinstance(exc, Refused) else "missing_scopes")
-            return f"{instance.return_url}?{urlencode({'abbruch': '1'})}"
+            return f"{self._return_url(instance, job)}?{urlencode({'abbruch': '1'})}"
         self.store.put(connection.secret, answer.refresh_token)
         receipt = self.token(32)
         ready = self._current(job.id).advance(
@@ -174,7 +211,7 @@ class AuthService:
                                               "connections": {**current.connections, connection.id: connection}})
         self.state.update(change)
         self._tokens[connection.id] = (answer.access_token, self.monotonic() + answer.expires_in - REFRESH_MARGIN)
-        return f"{instance.return_url}?{urlencode({'beleg': receipt})}"
+        return f"{self._return_url(instance, job)}?{urlencode({'beleg': receipt})}"
 
     # Local completion ----------------------------------------------------------------------------
 
@@ -214,8 +251,10 @@ class AuthService:
             if job.state == "active":
                 return current
             connections = dict(current.connections)
-            previous = [item for item in connections.values() if (item.instance, item.target) == (
-                job.instance, job.target) and item.status in {"active", "reconnect_required"}]
+            previous = [item for item in connections.values()
+                        if item.instance == job.instance
+                        and self._same_slot(job.target, job.purpose, item.target, item.purpose)
+                        and item.status in {"active", "reconnect_required"}]
             for item in previous:
                 connections[item.id] = item.model_copy(update={"status": "disconnected"})
                 replaced.append(item.secret)
@@ -233,20 +272,27 @@ class AuthService:
 
     # Tokens ------------------------------------------------------------------------------------
 
-    def access_token(self, instance_id: str, connection_id: str) -> tuple[str, int]:
+    def access_token(self, instance_id: str, connection_id: str, purpose: str = "calendar") -> tuple[str, int]:
         """(access token, seconds valid) for a candidate or active access of exactly this instance."""
-        connection = self.state.read().connections.get(connection_id)
-        if connection is None or connection.instance != instance_id:
-            raise Refused("unknown_connection")
-        if connection.status not in {"candidate", "active"}:
-            raise Refused(connection.status)
+        self._connection(instance_id, connection_id, purpose)
         with self._renewals_lock:
             renewal = self._renewals.setdefault(connection_id, threading.Lock())
         with renewal:
+            connection = self._connection(instance_id, connection_id, purpose)
             cached = self._tokens.get(connection_id)
             if cached is not None and cached[1] > self.monotonic():
                 return cached[0], int(cached[1] - self.monotonic())
             return self._renew(connection)
+
+    def _connection(self, instance_id: str, connection_id: str, purpose: str) -> Connection:
+        connection = self.state.read().connections.get(connection_id)
+        if connection is None or connection.instance != instance_id:
+            raise Refused("unknown_connection")
+        if connection.purpose != purpose:
+            raise Refused("wrong_purpose")
+        if connection.status not in {"candidate", "active"}:
+            raise Refused(connection.status)
+        return connection
 
     def _renew(self, connection: Connection) -> tuple[str, int]:
         connection_id = connection.id
@@ -254,7 +300,7 @@ class AuthService:
         if refresh is None:
             raise Refused("reconnect_required")
         try:
-            answer = self.google.refresh(refresh)
+            answer = self._provider(connection.purpose).refresh(refresh)
         except GrantRefused:
             self._mark(connection_id, "reconnect_required")
             raise Refused("reconnect_required") from None
@@ -262,10 +308,20 @@ class AuthService:
             raise Refused("client_refused") from None
         except TemporaryFailure:
             raise Refused("temporarily_unavailable") from None
-        if answer.refresh_token is not None:
-            self.store.put(connection.secret, answer.refresh_token)  # rotation; a missing one keeps the old
+        if answer.scope and not set(MAIL_SCOPES[connection.purpose]).issubset(answer.scope.split()):
+            self._mark(connection_id, "reconnect_required")
+            raise Refused("missing_scopes")
         valid = answer.expires_in - REFRESH_MARGIN
-        self._tokens[connection_id] = (answer.access_token, self.monotonic() + valid)
+
+        def commit(current: AuthState) -> AuthState:
+            # A disconnect/replacement during the remote request must win over a late refresh.
+            self._connection(connection.instance, connection.id, connection.purpose)
+            if answer.refresh_token is not None:
+                self.store.put(connection.secret, answer.refresh_token)
+            self._tokens[connection_id] = (answer.access_token, self.monotonic() + valid)
+            return current
+
+        self.state.update(commit)
         return answer.access_token, valid
 
     def disconnect(self, instance_id: str, connection_id: str) -> None:
@@ -308,6 +364,8 @@ class AuthService:
 
     def _save_job(self, job: AuthJob) -> None:
         def change(current: AuthState) -> AuthState:
+            if current.jobs[job.id].version != job.version - 1:
+                raise Refused("job_changed")
             return current.model_copy(update={"jobs": {**current.jobs, job.id: job}})
         self.state.update(change)
 

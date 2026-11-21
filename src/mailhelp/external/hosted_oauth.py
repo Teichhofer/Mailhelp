@@ -94,8 +94,9 @@ class HostedTokenProvider:
     """``AccessTokenProvider`` for a hosted Google connection; reports sign-in outcomes like Google's."""
 
     def __init__(self, client: HostedAuthClient, connection: str, logger: EventLogger | None = None,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+                 clock: Callable[[], float] = time.monotonic, purpose: str = "calendar") -> None:
         self.client, self.connection, self.clock = client, connection, clock
+        self.purpose = purpose
         self._logger = logger or NullLogger()
         self._token: str | None = None
         self._until = 0.0
@@ -109,7 +110,10 @@ class HostedTokenProvider:
             return self._token
         self._logger.event("INFO", "google_oauth", "token_refresh_started", mode="hosted")
         try:
-            answer = self.client.post("/intern/token", {"connection": self.connection})
+            data = {"connection": self.connection}
+            if self.purpose != "calendar":
+                data["purpose"] = self.purpose
+            answer = self.client.post("/intern/token", data)
         except HostedRefused as exc:
             # The same event as a refused direct renewal: the warning of 7.9.2 names Google sign-in.
             self._logger.event("ERROR", "google_oauth", "token_refresh_denied", mode="hosted", reason=exc.code)

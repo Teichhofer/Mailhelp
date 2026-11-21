@@ -55,9 +55,9 @@ def _mismatch(mailbox: MailboxSettings) -> bool:
 
 
 def _connect(mailbox: MailboxSettings, credentials: ImapCredentials,
-             reader: Callable[..., ImapReader]) -> ImapReader:
+             reader: Callable[..., ImapReader], settings: Settings) -> ImapReader:
     """Open and log in; every failure becomes the most specific catalogue code."""
-    address, options = reader_arguments(mailbox, credentials)
+    address, options = reader_arguments(mailbox, credentials, settings.hosted_auth)
     try:
         return reader(*address, timeout=TIMEOUT, **options)
     except ImapLoginRejected:
@@ -99,7 +99,7 @@ class SetupChecks:
             raise SetupProblem("imap.missing", detail=", ".join(missing))
         mailbox = settings.imap.enabled_mailboxes()[0]
         reader = _connect(mailbox, ImapCredentials.model_validate(credentials[mailbox.id]),
-                          self.reader or ImapReader)
+                          self.reader or ImapReader, settings)
         try:
             folders = reader.list_folders()
             names = [folder.name for folder in folders]

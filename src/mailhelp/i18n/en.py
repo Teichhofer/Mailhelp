@@ -9601,6 +9601,38 @@ EN = {
         '<h1>Choose another calendar</h1><p>Target profile {profile}. Open proposals need a new confirmation after '
         'the change.</p>'
     ),
+    '<h1>Anmeldung zurückgekehrt</h1><p>Zum sicheren Abschluss bitte die Verbindung öffnen.</p>': (
+        '<h1>Sign-in returned</h1><p>Please open the connection to finish securely.</p>'),
+    ('<h1>Postfach nicht verbunden</h1><p>Verbindung, Berechtigungen oder Einrichtungsstand prüfen und den Vorgang '
+     'erneut starten. Der Betreiber muss den Postfachzugang beim Anbieter freischalten.</p>'): (
+        '<h1>Mailbox not connected</h1><p>Check the connection, permissions or setup state and start again. '
+        'The operator must enable mailbox access with the provider.</p>'),
+    ('<h1>Postfach verbinden</h1><p>Diese Freigabe betrifft den Mailabruf. Kalenderverbindungen bleiben getrennt. '
+     'Erst nach der Ordnerprüfung übernimmst du den Zugang.</p>'): (
+        '<h1>Connect mailbox</h1><p>This permission concerns email access. Calendar connections remain separate. '
+        'Adopt the connection after checking its folders.</p>'),
+    'Beim Anbieter anmelden': 'Sign in with provider',
+    'Google-Postfach verbinden': 'Connect Google mailbox',
+    'Microsoft-Postfach verbinden': 'Connect Microsoft mailbox',
+    'Postfach prüfen': 'Check mailbox',
+    'Postfach verbinden': 'Connect mailbox',
+    'Postfachverbindung übernehmen': 'Adopt mailbox connection',
+    'Postfachverbindung trennen': 'Disconnect mailbox',
+    'Postfach erneut verbinden': 'Reconnect mailbox',
+    'Mailanbieter ändern': 'Change email provider',
+    'Passwortpostfach nicht vorhanden.': 'Password mailbox not found.',
+    'Verbindung prüfen und Postfach aktualisieren': 'Check connection and update mailbox',
+    ('<section class="card"><p>Die neue Verbindung wird lesend geprüft. Erst nach erfolgreicher Prüfung '
+     'werden die Änderungen gespeichert und zwischen zwei Mailzyklen aktiviert.</p>'): (
+        '<section class="card"><p>The new connection is checked read-only. Changes are saved only after '
+        'a successful check and activated between mail cycles.</p>'),
+    'Automatisch erkennen': 'Detect automatically',
+    'Anderer Anbieter / Manuell': 'Other provider / Manual',
+    'E-Mail-Adresse des Postfachs': 'Mailbox email address',
+    'Mailanbieter': 'Email provider',
+    'Anbietereinstellungen laden': 'Load provider settings',
+    'Anleitung des Anbieters': 'Provider instructions',
+    'Unbekannter Mailanbieter.': 'Unknown email provider.',
     'Anderen Kalender wählen': 'Choose another calendar',
     'Dieses Zielprofil hat keine Google-Verbindung über Inboxstride.': (
         'This target profile has no Google connection through Inboxstride.'
@@ -9611,4 +9643,106 @@ EN = {
         'Conflicting video link: in the calendar “{previous}”, according to the email “{proposed}”. '
         'Which video link applies?'
     ),
+    # 8.2: Self-service onboarding and central target OAuths
+    '5 aktuelle Mails probeweise im Testmodus auswerten': 'Evaluate 5 recent emails as a test-mode dry run',
+    '<h1>Anmeldung zurückgekehrt</h1><p>Zum sicheren Abschluss bitte die Zielauswahl öffnen.</p>': (
+        '<h1>Sign-in returned</h1><p>Please open the target selection to finish securely.</p>'
+    ),
+    '<h1>Ziel auswählen und übernehmen</h1><p>Zielprofil {profile}.</p>': (
+        '<h1>Select and adopt target</h1><p>Target profile {profile}.</p>'
+    ),
+    '<h1>Zielverbindung prüfen</h1><p>Mit deiner aktuellen Sitzung bestätigen.</p>': (
+        '<h1>Check target connection</h1><p>Confirm with your current session.</p>'
+    ),
+    '<p role="status">Microsoft ist über Inboxstride verbunden. <a href="{link}">Microsoft erneut verbinden</a></p>': (
+        '<p role="status">Microsoft is connected through Inboxstride. '
+        '<a href="{link}">Reconnect Microsoft</a></p>'
+    ),
+    '<p role="status">Notion ist über Inboxstride verbunden. <a href="{link}">Notion erneut verbinden</a></p>': (
+        '<p role="status">Notion is connected through Inboxstride. '
+        '<a href="{link}">Reconnect Notion</a></p>'
+    ),
+    '<p role="status">✓ Postfach geprüft: {summary}</p>': '<p role="status">✓ Mailbox checked: {summary}</p>',
+    '<p role="status">✓ Zielsystem geprüft: {summary}</p>': '<p role="status">✓ Target system checked: {summary}</p>',
+    '<p><a class="button" href="{link}">Mit Microsoft verbinden</a></p>': (
+        '<p><a class="button" href="{link}">Connect with Microsoft</a></p>'
+    ),
+    '<p><a class="button" href="{link}">Mit Notion verbinden</a></p>': (
+        '<p><a class="button" href="{link}">Connect with Notion</a></p>'
+    ),
+    '<p>Erkannter Anbieter: <strong>{label}</strong> ({host}:{port}).</p>': (
+        '<p>Detected provider: <strong>{label}</strong> ({host}:{port}).</p>'
+    ),
+    ('<p>Geführte Ersteinrichtung ohne manuelle Server- oder Token-Dateien. '
+     'Jederzeit <a href="{expert}">zur Expertenansicht</a> wechselbar.</p>'): (
+        '<p>Guided initial setup without manual server or token files. '
+        'You can switch to the <a href="{expert}">expert view</a> at any time.</p>'
+    ),
+    ('<p>Zielprofil {profile}. Nach der Anmeldung beim Anbieter prüfst du hier die Zielauswahl '
+     'und übernimmst die Verbindung ausdrücklich. Die Verbindung selbst legt keine Einträge an.</p>'): (
+        '<p>Target profile {profile}. After signing in with the provider, review the target selection '
+        'here and adopt the connection explicitly. The connection itself creates no entries.</p>'
+    ),
+    'Aktivierung nicht möglich. Bitte Probelauf und Bestätigung prüfen.': (
+        'Activation not possible. Please check the dry run and confirmation.'
+    ),
+    'Anmeldung zurückgekehrt': 'Sign-in returned',
+    'Beruf & Projekte': 'Work & Projects',
+    'Der Abschlussbeleg ist ungültig oder abgelaufen. Bitte erneut starten.': (
+        'The completion receipt is invalid or expired. Please start again.'
+    ),
+    'Die Anfrage war unvollständig oder veraltet. Bitte erneut versuchen.': (
+        'The request was incomplete or outdated. Please try again.'
+    ),
+    'Die Anmeldung beim Anbieter wurde abgebrochen oder ist abgelaufen.': (
+        'The sign-in with the provider was cancelled or has expired.'
+    ),
+    'Die Ziele konnten nicht gelesen werden oder der Vorgang ist abgelaufen.': (
+        'The targets could not be read or the operation has expired.'
+    ),
+    ('Die Zielverbindung über Inboxstride ist für diese Installation nicht '
+     'eingerichtet. Bitte den Betreiber informieren.'): (
+        'The target connection through Inboxstride is not configured for this installation. '
+        'Please contact the operator.'
+    ),
+    'Einrichtung übernehmen und produktiven Betrieb aktivieren': 'Apply setup and activate production mode',
+    'Gmail per OAuth verbinden': 'Connect Gmail via OAuth',
+    'Mailhelp einrichten (3 Schritte)': 'Set up Mailhelp (3 steps)',
+    'Microsoft erneut verbinden': 'Reconnect Microsoft',
+    'Microsoft verbinden': 'Connect Microsoft',
+    'Microsoft-Postfach per OAuth verbinden': 'Connect Microsoft mailbox via OAuth',
+    'Mit Microsoft verbinden': 'Connect with Microsoft',
+    'Mit Notion verbinden': 'Connect with Notion',
+    'Notion erneut verbinden': 'Reconnect Notion',
+    'Notion verbinden': 'Connect Notion',
+    'Onboarding': 'Onboarding',
+    'Onboarding überspringen': 'Skip onboarding',
+    'Onboarding-Schritt nicht möglich': 'Onboarding step not possible',
+    'Onboarding-Stand wurde inzwischen geändert.': 'Onboarding state has changed meanwhile.',
+    'Postfach prüfen und weiter': 'Check mailbox and continue',
+    'Postfachprüfung fehlgeschlagen oder Einrichtungsstand veraltet.': (
+        'Mailbox check failed or setup state is outdated.'
+    ),
+    'Privat & Familie': 'Personal & Family',
+    'Probelauf nicht möglich. Bitte mindestens ein Themenprofil wählen.': (
+        'Dry run not possible. Please select at least one topic profile.'
+    ),
+    'Produktiven Betrieb aktivieren': 'Activate production mode',
+    'Schritt 1: Postfach verbinden': 'Step 1: Connect mailbox',
+    'Schritt 2: Zielsystem verbinden': 'Step 2: Connect target system',
+    'Schritt 3: Themen wählen & Probelauf im Testmodus': 'Step 3: Choose topics & test-mode dry run',
+    'Starter-Themenprofile': 'Starter topic profiles',
+    'Testmodus-Vorschau: Es wurden keine externen Termine oder Aufgaben angelegt.': (
+        'Test-mode preview: No external events or tasks were created.'
+    ),
+    'Verein & Ehrenamt': 'Club & Volunteering',
+    'Weiter zum Anbieter': 'Continue to provider',
+    'Ziel auswählen und übernehmen': 'Select and adopt target',
+    'Zielprüfung fehlgeschlagen. Zuerst Schritt 1 abschließen.': (
+        'Target check failed. Complete step 1 first.'
+    ),
+    'Zielsystem prüfen und weiter': 'Check target system and continue',
+    'Zielverbindung nicht möglich': 'Target connection not possible',
+    'Zielverbindung prüfen': 'Check target connection',
+    'Zielverbindung übernehmen': 'Adopt target connection',
 }

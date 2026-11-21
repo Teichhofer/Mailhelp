@@ -9,6 +9,7 @@ from ..runtime.initial_setup import FIELDS, HIDDEN_FIELDS, SECRET_FIELDS, Initia
 from ..runtime.setup_messages import CATALOGUE, CheckResult
 from .forms import field, post_form, select
 from .pages import e, layout
+from .provider_fields import provider_fields
 
 _INITIAL_PAGE_TEXT_1 = msg(
     "<p>Die Verbindungen werden erneut lesend geprüft. Danach wird die Konfiguration "
@@ -173,6 +174,21 @@ def hosted_google_box(targets: dict[str, object], profile: int = 1) -> str:
               '<p><a class="button primary" href="{link}">Mit Google verbinden</a></p>', link=link)
 
 
+def hosted_target_boxes(targets: dict[str, object], profile: int = 1) -> str:
+    """8.2: Microsoft and Notion target connections through Inboxstride."""
+    ms_link = f"/microsoft/verbinden?profile={profile}"
+    notion_link = f"/notion/verbinden?profile={profile}"
+    ms = (tr('<p role="status">Microsoft ist über Inboxstride verbunden. '
+             '<a href="{link}">Microsoft erneut verbinden</a></p>', link=ms_link)
+          if targets.get("microsoft_connection")
+          else tr('<p><a class="button" href="{link}">Mit Microsoft verbinden</a></p>', link=ms_link))
+    notion = (tr('<p role="status">Notion ist über Inboxstride verbunden. '
+                 '<a href="{link}">Notion erneut verbinden</a></p>', link=notion_link)
+              if targets.get("notion_connection")
+              else tr('<p><a class="button" href="{link}">Mit Notion verbinden</a></p>', link=notion_link))
+    return ms + notion
+
+
 def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[CheckResult] | None = None,
                  values: dict[str, str] | None = None) -> str:
     navigation = '<nav aria-label="Einrichtungsschritte">' + " · ".join(
@@ -192,7 +208,15 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
     else:
         check = checks[0] if checks else None
         controls = _fields(state, step, values, _found(check))
+        if step == 2:
+            controls = provider_fields(values or {}, "/einrichtung/pruefen") + controls
         for name in SECRET_FIELDS[step]:
+            if (step == 2 and name == "IMAP_PASSWORD"
+                    and state.config["imap"].get("auth_method", "password") != "password"):
+                continue
+            if step == 2 and name == "IMAP_USERNAME":
+                controls += field(name, name, (values or {}).get(name, (values or {}).get("provider_email", "")))
+                continue
             if hosted and name.startswith("GOOGLE_OAUTH_"):
                 continue  # 8.0: the operator's central sign-in holds them; users never enter Google secrets.
             controls += tr(
@@ -229,7 +253,8 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
         step=step,
     )
     if step == 4:
-        body += hosted_google_box(state.config["targets"]) if hosted else tr(_INITIAL_PAGE_TEXT_4)
+        body += (hosted_google_box(state.config["targets"])
+                 + hosted_target_boxes(state.config["targets"])) if hosted else tr(_INITIAL_PAGE_TEXT_4)
     return layout("Ersteinrichtung", '<section class="card">' + body + '</section>', signed_in=False,
                   after='<script src="/static/setup.js" defer></script>')
 

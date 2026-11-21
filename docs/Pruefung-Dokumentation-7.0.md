@@ -171,7 +171,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **293 Einstellungen**, davon **293** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -209,6 +209,7 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `hosted_auth.instance_id` | str | '' |  | Datei | ja |
 | `hosted_auth.key` | str | '' | Länge ≤ 500 | Datei | ja |
 | `hosted_auth.service_url` | str | '' | Länge ≤ 500 | Datei | ja |
+| `imap.auth_method` | Auswahl: password, gmail, microsoft (optional) | – |  | Datei | ja |
 | `imap.batch_size` | int | 25 | ≥ 1, ≤ 1000 | Weboberfläche | ja |
 | `imap.connection_mode` | Auswahl: ssl, starttls, plain (optional) | – |  | Einrichtung | ja |
 | `imap.drafts_folder` | str (optional) | – |  | Einrichtung | ja |
@@ -217,6 +218,7 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `imap.historical_start` | datetime (optional) | – |  | Einrichtung | ja |
 | `imap.host` | str (optional) | – | Länge ≥ 1, Länge ≤ 253 | Einrichtung | ja |
 | `imap.mailboxes[].activity_report_folder` | str (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].auth_method` | Auswahl: password, gmail, microsoft | 'password' |  | Datei | ja |
 | `imap.mailboxes[].auto_draft` | bool (optional) | – |  | Postfachseite | ja |
 | `imap.mailboxes[].connection_mode` | Auswahl: ssl, starttls, plain | 'ssl' |  | Postfachseite | ja |
 | `imap.mailboxes[].daily_briefing` | bool | True |  | Postfachseite | ja |
@@ -238,6 +240,7 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `imap.mailboxes[].notifications.quiet_hours.enabled` | bool (optional) | – |  | Postfachseite | ja |
 | `imap.mailboxes[].notifications.quiet_hours.end` | str (optional) | – |  | Postfachseite | ja |
 | `imap.mailboxes[].notifications.quiet_hours.start` | str (optional) | – |  | Postfachseite | ja |
+| `imap.mailboxes[].oauth_connection` | str | '' |  | Datei | ja |
 | `imap.mailboxes[].own_addresses` | list[str] | [] | Länge ≤ 20 | Datei | ja |
 | `imap.mailboxes[].personal_info` | str (optional) | – | Länge ≤ 2000 | Postfachseite | ja |
 | `imap.mailboxes[].port` | int | Pflicht | ≥ 1, ≤ 65535 | Postfachseite | ja |
@@ -245,6 +248,7 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `imap.mailboxes[].retention.full_mail_days` | int oder Auswahl: disabled, unlimited | Pflicht |  | Postfachseite | ja |
 | `imap.mailboxes[].smart_reply` | bool (optional) | – |  | Postfachseite | ja |
 | `imap.mailboxes[].target_profile` | int | 1 | ≥ 1, ≤ 99 | Postfachseite | ja |
+| `imap.oauth_connection` | str (optional) | – |  | Datei | ja |
 | `imap.port` | int (optional) | – | ≥ 1, ≤ 65535 | Einrichtung | ja |
 | `imap.primary_folder` | str (optional) | – |  | Einrichtung | ja |
 | `iserv.accounts[].enabled` | bool | True |  | IServ-Seite | ja |
@@ -362,8 +366,10 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `target_profiles[].google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].id` | int | Pflicht | ≥ 2, ≤ 99 | Zielprofilseite | ja |
 | `target_profiles[].label` | str | Pflicht | Länge ≥ 1, Länge ≤ 40 | Zielprofilseite | ja |
+| `target_profiles[].microsoft_connection` | str | '' |  | Zielprofilseite | ja |
 | `target_profiles[].microsoft_tenant` | str | 'common' |  | Zielprofilseite | ja |
 | `target_profiles[].microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
+| `target_profiles[].notion_connection` | str | '' |  | Zielprofilseite | ja |
 | `target_profiles[].notion_data_source_id` | str | '' | Länge ≤ 36 | Zielprofilseite | ja |
 | `target_profiles[].notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Zielprofilseite | ja |
 | `target_profiles[].notion_open_status` | str | '' | Länge ≤ 100 | Zielprofilseite | ja |
@@ -383,8 +389,10 @@ Erzeugt mit `python -m devtools.inventory`: **285 Einstellungen**, davon **285**
 | `targets.google_calendar` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `targets.google_connection` | str | '' |  | Einrichtung | ja |
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
+| `targets.microsoft_connection` | str | '' |  | Einrichtung | ja |
 | `targets.microsoft_tenant` | str | 'common' |  | Weboberfläche | ja |
 | `targets.microsoft_todo_list` | str | 'default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |
+| `targets.notion_connection` | str | '' |  | Einrichtung | ja |
 | `targets.notion_data_source_id` | str | '' | Länge ≤ 36 | Einrichtung | ja |
 | `targets.notion_done_statuses` | list[str] | [] | Länge ≤ 50 | Einrichtung | ja |
 | `targets.notion_open_status` | str | '' | Länge ≤ 100 | Einrichtung | ja |

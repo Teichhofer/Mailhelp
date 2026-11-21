@@ -26,5 +26,5 @@ def build_revision_successor(original: Proposal, question: str, normalized_answe
         _, candidate = revision_service.revise_proposal(
             original, question, normalized_answer
         )
-    revised = validate_revision_successor(original, candidate)
+    revised = validate_revision_successor(original, candidate, configured_timezone=configured_timezone)
     return protect_revision(original, revised), deterministic

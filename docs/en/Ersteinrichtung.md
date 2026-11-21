@@ -1,6 +1,14 @@
 # Initial setup <!-- mailhelp-id:ersteinrichtung/ersteinrichtung -->
 
-Verified for Mailhelp 7.0. This guide leads from an empty directory to the first
+From 8.1, enter your mailbox email address, select a provider or use automatic
+detection and choose **Load provider settings**. This only loads local defaults;
+it neither connects nor saves the mailbox. Server settings remain editable.
+Gmail and Microsoft mailbox OAuth require a separate grant and prior operator
+registration. Choose **Connect Google mailbox** or **Connect Microsoft mailbox**,
+check the available folders and explicitly adopt the connection. Calendar grants
+do not authorize mailbox access.
+
+Verified for Mailhelp 8.1. This guide leads from an empty directory to the first
 checked suggestion. It applies to Windows 11 and Linux; deviations for Docker are marked.
 
 **Goal:** Mailhelp is running, is reachable in the browser, reads a mailbox, has an AI connection

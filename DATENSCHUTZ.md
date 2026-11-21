@@ -11,7 +11,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 16. November 2026 · Geprüft für Mailhelp 7.0
+Stand: 16. November 2026 · Geprüft für Mailhelp 8.1
 
 ## 1. Worum es geht
 
@@ -132,6 +132,26 @@ gelten zusätzlich deren eigene Datenschutzbestimmungen.
 
 ## 6. Daten aus Google-Konten (Google API Services)
 
+### Zentrale Anmeldung und Postfachzugänge ab 8.1
+
+Bei gehosteter Anmeldung verwaltet der getrennte Inboxstride-Anmeldedienst
+Refresh-Tokens verschlüsselt. Der Schlüssel liegt außerhalb des Zustandsverzeichnisses;
+Sicherung und Wiederherstellung benötigen beide getrennt gesicherten Bestandteile.
+Die jeweilige Mailhelp-Instanz erhält über gegenseitig authentifiziertes TLS nur
+zweckgebundene, kurzlebige Access-Tokens. Kalender- und Postfachfreigaben werden
+getrennt erteilt und getrennt verwaltet. Der Anmeldedienst analysiert keine Mailinhalte.
+
+Gmail-IMAP benötigt den weitreichenden Scope `https://mail.google.com/`.
+Dieser Zugang bleibt standardmäßig deaktiviert. Vor seiner produktiven Freischaltung
+müssen Anbieterfreigaben, öffentliche Anwendungsinformationen und die in Abschnitt 5
+beschriebene Weitergabe ausgewählter Mailinhalte an den konfigurierten KI-Dienst
+geprüft und aufeinander abgestimmt werden. Die Implementierung oder ein synthetischer
+Test belegt keine Google-Freigabe. Microsoft-Postfachzugang verwendet separat
+`https://outlook.office.com/IMAP.AccessAsUser.All` und `offline_access` und benötigt
+eine eigene App-Registrierung und die erforderliche Zustimmung.
+
+### Google-Kalender
+
 Mailhelp greift mit OAuth und den folgenden Berechtigungen auf Google Kalender zu:
 
 - `https://www.googleapis.com/auth/calendar.events`: Lesen von Terminen im Zeitraum
@@ -141,6 +161,9 @@ Mailhelp greift mit OAuth und den folgenden Berechtigungen auf Google Kalender z
   von Mailhelp angelegten Termins;
 - `https://www.googleapis.com/auth/calendar.calendars.readonly`: Prüfen, ob der
   konfigurierte Zielkalender erreichbar ist.
+- Im zentralen Anmeldeablauf zusätzlich
+  `https://www.googleapis.com/auth/calendar.calendarlist.readonly`: zugängliche
+  Kalender zur ausdrücklichen Auswahl des Zielkalenders anzeigen.
 
 Die Nutzung und Übertragung von Informationen, die Mailhelp von Google-APIs erhält,
 hält die [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy)

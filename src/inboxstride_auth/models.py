@@ -18,6 +18,15 @@ RESERVED_SUBDOMAINS = frozenset({"auth", "demo", "www", "api", "mail", "admin"})
 SCOPES = ("https://www.googleapis.com/auth/calendar.events",
           "https://www.googleapis.com/auth/calendar.calendars.readonly",
           "https://www.googleapis.com/auth/calendar.calendarlist.readonly")
+MICROSOFT_TARGET_SCOPES = ("https://graph.microsoft.com/Calendars.ReadWrite",
+                           "https://graph.microsoft.com/Tasks.ReadWrite")
+NOTION_SCOPES = ("notion",)
+Purpose = Literal["calendar", "gmail", "microsoft", "microsoft_targets", "notion"]
+MAILBOX_PURPOSES = frozenset({"gmail", "microsoft"})
+MAIL_SCOPES: dict[str, tuple[str, ...]] = {
+    "calendar": SCOPES, "gmail": ("https://mail.google.com/",),
+    "microsoft": ("https://outlook.office.com/IMAP.AccessAsUser.All",),
+    "microsoft_targets": MICROSOFT_TARGET_SCOPES, "notion": NOTION_SCOPES}
 
 JobState = Literal["registered", "awaiting_google", "exchanging", "candidate_ready", "awaiting_local_confirmation",
                    "activating", "active", "cancelled", "expired", "failed", "blocked"]
@@ -70,7 +79,8 @@ class AuthJob(StrictModel):
     instance: str = Field(pattern=_ID)
     # Opaque reference of the local web session; the local session itself never leaves the instance.
     session: str = Field(pattern=r"^[a-f0-9]{64}$")
-    target: str = Field(pattern=r"^(profile:[1-9][0-9]?|draft:[a-f0-9]{32})$")
+    target: str = Field(pattern=r"^(profile:[1-9][0-9]?|draft:[a-f0-9]{32}|mailbox:[1-9][0-9]?)$")
+    purpose: Purpose = "calendar"
     operation: Literal["connect", "reauthorize", "replace"]
     client_revision: int = Field(ge=1)
     state: JobState = "registered"
@@ -86,6 +96,8 @@ class AuthJob(StrictModel):
 
     @model_validator(mode="after")
     def consistent(self) -> AuthJob:
+        if (self.purpose not in MAILBOX_PURPOSES) == self.target.startswith("mailbox:"):
+            raise ValueError("Zweck und Ziel passen nicht zusammen")
         if self.expires - self.created > JOB_LIFETIME:
             raise ValueError("Ein Anmeldeauftrag läuft höchstens 10 Minuten")
         if self.receipt_expires is not None and (self.receipt_expires > self.expires or self.receipt_hash is None):
@@ -109,7 +121,8 @@ class Connection(StrictModel):
     id: str = Field(pattern=r"^[a-f0-9]{32}$")
     instance: str = Field(pattern=_ID)
     # The same binding as the job: a target profile, or a setup draft before config.yaml exists.
-    target: str = Field(pattern=r"^(profile:[1-9][0-9]?|draft:[a-f0-9]{32})$")
+    target: str = Field(pattern=r"^(profile:[1-9][0-9]?|draft:[a-f0-9]{32}|mailbox:[1-9][0-9]?)$")
+    purpose: Purpose = "calendar"
     status: Literal["candidate", "active", "reconnect_required", "disconnected"]
     generation: int = Field(ge=1)
     scopes: tuple[str, ...]
@@ -120,22 +133,35 @@ class Connection(StrictModel):
 
     @field_validator("scopes")
     @classmethod
-    def required_scopes(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        missing = [scope for scope in SCOPES if scope not in value]
+    def normalized_scopes(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(sorted(set(value)))
+
+    @model_validator(mode="after")
+    def required_scopes(self) -> Connection:
+        if (self.purpose not in MAILBOX_PURPOSES) == self.target.startswith("mailbox:"):
+            raise ValueError("Zweck und Ziel passen nicht zusammen")
+        missing = [scope for scope in MAIL_SCOPES[self.purpose] if scope not in self.scopes]
         if missing:
             raise ValueError("Erforderliche Kalenderberechtigungen fehlen")
-        return tuple(sorted(set(value)))
+        return self
 
 
 class AuthState(StrictModel):
     """The whole readable state; ``revision`` is the compare-and-swap counter of every write."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     revision: int = Field(default=0, ge=0)
     client_revision: int = Field(default=1, ge=1)
     instances: dict[str, Instance] = Field(default_factory=dict)
     jobs: dict[str, AuthJob] = Field(default_factory=dict)
     connections: dict[str, Connection] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_calendar_state(cls, value: object) -> object:
+        if isinstance(value, dict) and value.get("schema_version") == 1:
+            return {**value, "schema_version": 2}
+        return value
 
     @model_validator(mode="after")
     def references(self) -> AuthState:

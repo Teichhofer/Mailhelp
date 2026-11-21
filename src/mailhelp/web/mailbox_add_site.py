@@ -11,18 +11,20 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
-from ..config import MAX_MAILBOXES, MailboxSettings
+from ..config import MAX_MAILBOXES, MailboxSettings, imap_secret_names
 from ..config.configuration import ConfigurationConflict, file_hash
 from ..config.env_file import EnvFileConflict
 from ..config.env_file import file_hash as env_hash
 from ..i18n import msg, tr
 from ..mailbox.connection_activation import ActivationProblem
-from ..mailbox.mailbox_activation import MailboxActivation
+from ..mailbox.mailbox_activation import MailboxActivation, ReconnectActivation
+from ..mailbox.provider_presets import apply_provider
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
 from .iserv_site import reason, start_boundary
 from .pages import e
+from .provider_fields import provider_fields
 
 _SECTION_TEXT_1 = msg(
     '<section class="card" id="postfach-hinzufuegen"><h2>Postfach '
@@ -71,36 +73,56 @@ class MailboxAddSite:
     def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         site.app.route("POST", ACTIVATE, site.signed_in(self.activate))
+        site.app.route("GET", ROUTE + r"/(?P<number>[1-9][0-9]?)/anbieter", site.signed_in(self.offer_edit))
 
     @property
     def runtime(self) -> Any:
         return self.site.setup_page.runtime
 
-    def section(self, session: WebSession, cfg: Settings, values: dict[str, str] | None = None) -> str:
+    def section(self, session: WebSession, cfg: Settings, values: dict[str, str] | None = None,
+                *, existing_number: int | None = None) -> str:
         """The card with the activation form; *values* refill it after a rejected attempt."""
         boxes = cfg.imap.configured_mailboxes()
-        if len(boxes) >= MAX_MAILBOXES:
+        if existing_number is None and len(boxes) >= MAX_MAILBOXES:
             return tr('<p class="meta">Es sind bereits {p0} Postfächer eingerichtet.</p>', p0=MAX_MAILBOXES)
         used = {box.id for box in boxes}
-        number = next(number for number in range(1, 100) if number not in used)
+        number = existing_number or next(number for number in range(1, 100) if number not in used)
         today = self.site.clock().astimezone(ZoneInfo(cfg.timezone)).strftime("%d.%m.%Y")
         given = {"label": "", "host": "", "port": "993", "connection_mode": "ssl", "folders": "INBOX",
                  "drafts_folder": "Drafts", "historical_start": today, "username": "", **(values or {})}
+        if existing_number is not None:
+            box = cfg.imap.mailbox(existing_number)
+            assert box is not None
+            given = {**given, **{field: str(getattr(box, field)) for field in (
+                "label", "host", "port", "connection_mode", "drafts_folder")},
+                "folders": ", ".join(box.folders),
+                "historical_start": box.historical_start.isoformat() if box.historical_start else "",
+                **(values or {})}
         env = self.runtime.environment()
         user_name, password_name = f"IMAP_{number}_USERNAME", f"IMAP_{number}_PASSWORD"
         stored = bool(env.get(user_name) and env.get(password_name))
+        if existing_number is not None:
+            assert box is not None
+            previous_user, previous_password = imap_secret_names(box, env, cfg.imap.legacy_format)
+            stored = bool(env.get(previous_user) and env.get(previous_password))
         fields = _activation_fields(given, stored, number)
         path = self.runtime.app.configuration.directory
         form = post_form(
             ACTIVATE,
             self.site.auth.csrf_token(session.id),
             fields,
+            msg("Verbindung prüfen und Postfach aktualisieren") if existing_number else
             msg("Verbindung prüfen und Postfach aktivieren"),
             id=number,
             version=self.runtime.setup.state().version,
             revision=file_hash(path / "config.yaml"),
             env_revision=env_hash(path / ".env"),
+            replace="yes" if existing_number else "no",
         )
+        if existing_number is not None:
+            return tr("<section class=\"card\"><p>Die neue Verbindung wird lesend geprüft. "
+                      "Erst nach erfolgreicher Prüfung werden die Änderungen gespeichert und "
+                      "zwischen zwei Mailzyklen aktiviert.</p>") + form + "</section>"
         return (
             tr(
                 (_SECTION_TEXT_1),
@@ -118,11 +140,29 @@ class MailboxAddSite:
             return self.site.mailbox_page.unavailable()
         values = {name: form.get(name, "") for name in ("label", "host", "port", "connection_mode", "folders",
                                                          "drafts_folder", "historical_start", "username")}
+        if form.get("replace") == "yes":
+            values["_editing"] = form.get("id", "")
+        if form.get("provider_apply") == "yes":
+            try:
+                values = apply_provider({**form, **values})
+            except KeyError:
+                return Response.text(400, msg("Unbekannter Mailanbieter."))
+            values.pop("password", None)
+            if form.get("replace") == "yes":
+                return self.offer_edit(request, session, form.get("id", "0"), values)
+            return self.site.mailbox_page.index(request, session, "", values)
         try:
             number = int(form["id"])
+            base: dict[str, Any] = {}
+            if form.get("replace") == "yes":
+                previous = self.runtime.setup.draft_settings().imap.mailbox(number)
+                if previous is None or previous.auth_method != "password":
+                    raise ValueError("Nur ein bestehendes Passwortpostfach kann so geändert werden")
+                base = previous.model_dump()
             folders = [folder.strip() for folder in form["folders"].split(",") if folder.strip()]
             mailbox = MailboxSettings.model_validate(
                 {
+                    **base,
                     "id": number,
                     "label": form["label"].strip() or tr("Postfach {p0}", p0=number),
                     "host": form["host"].strip(),
@@ -135,7 +175,8 @@ class MailboxAddSite:
                     ),
                 }
             )
-            MailboxActivation(self.runtime).activate(
+            activation = ReconnectActivation if form.get("replace") == "yes" else MailboxActivation
+            activation(self.runtime).activate(
                 f"web:{session.id}", int(form["version"]), form["key"], form["revision"], form["env_revision"],
                 mailbox, form.get("username", "").strip(), form.get("password", ""))
         except (ConfigurationConflict, EnvFileConflict):
@@ -171,9 +212,28 @@ class MailboxAddSite:
         return Response.redirect(ROUTE + msg("?aktiviert=1"))
 
     def rejected(self, request: Request, session: WebSession, message: str, values: dict[str, str]) -> Response:
+        if values.get("_editing"):
+            page = self.offer_edit(request, session, values["_editing"], values, message)
+            page.status = 422
+            return page
         page = self.site.mailbox_page.index(request, session, message, values)
         page.status = 422
         return page
+
+    def offer_edit(self, _request: Request, session: WebSession, number: str,
+                   values: dict[str, str] | None = None, problem: str = "") -> Response:
+        if self.runtime is None:
+            return self.site.mailbox_page.unavailable()
+        cfg = self.runtime.setup.draft_settings()
+        try:
+            box = cfg.imap.mailbox(int(number))
+        except ValueError:
+            return Response.text(404, msg("Passwortpostfach nicht vorhanden."))
+        if box is None or box.auth_method != "password":
+            return Response.text(404, msg("Passwortpostfach nicht vorhanden."))
+        body = f'<p role="alert">{e(problem)}</p>' if problem else ""
+        body += self.section(session, cfg, values, existing_number=box.id)
+        return self.site.mailbox_page.page(msg("Mailanbieter ändern"), body)
 
 
 __all__ = ["ACTIVATE", "MailboxAddSite"]
@@ -184,7 +244,7 @@ def _activation_fields(given: dict[str, str], stored: bool, number: int) -> str:
     modes = "".join(f'<option value="{key}"{" selected" if key == given["connection_mode"] else ""}>'
                     f'{e(text)}</option>' for key, text in MODES)
     fields = (
-        "<fieldset><legend>Server</legend>"
+        provider_fields(given, ACTIVATE, number) + "<fieldset><legend>Server</legend>"
         + _input(
             "label", msg("Anzeigename"), given["label"], maxlength="40", placeholder=tr("Postfach {p0}", p0=number)
         )

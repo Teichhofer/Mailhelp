@@ -168,21 +168,50 @@ Ausfall während der Aktivierung wird durch erneutes Übernehmen nachgeholt, ein
 Antwort des Dienstes wird abgewiesen. Die beim Pilotversuch aktivierte, ungenutzte Verbindung
 ersetzt der Dienst bei der nächsten erfolgreichen Übernahme für dasselbe Zielprofil.
 
-## 7.9.10 – Bugfix angenommenes Terminende
+## Abgleich und Abschlussarbeit am 20.11.2026
 
-Beim „Auffrischungsseminar Betriebssicherheit“ (Kalender 9:00–16:30) boten die Mails mit den
-Zugangsdaten und die Anmeldebestätigung „Ende 20.11.2026 16:30 Uhr → 10:00 Uhr“ an. Diese Mails nennen
-nur „Beginn um 9.00 Uhr“; das Modell lieferte korrekt kein Ende (`end_time_text` leer), Mailhelp
-ergänzte die Standarddauer von 60 Minuten (`end_origin: standard`), und die Vorprüfung verglich dieses
-angenommene Ende mit dem vorhandenen Termin. Jetzt übernimmt ein angenommenes Ende die Dauer des
-gefundenen Kalendertermins (`keep_calendar_end`, Vorprüfung und Zielzuordnung). Regressionstest
-`test_an_assumed_default_end_is_no_change_to_the_calendar_entry` war vor der Korrektur rot.
+| Bestandteil der Planung | Befund |
+| --- | --- |
+| Zentraldienst, Secret-Store, mTLS, Kalenderwahl, Wechsel und Trennung | Bereits in 7.9.3–7.9.8 implementiert; die uncommittierte Korrektur 7.9.9 war zu Arbeitsbeginn vorhanden und bleibt erhalten |
+| DNS/TLS, Auth-Container, Instanzregistrierung, isolierte Demo | Lesend auf dem Server bestätigt; Produktion/Demo weiterhin 7.9.8, Auth 7.9.5 |
+| Landingpage-Quellen | Bereits unter `landing/`, mit Buildvergleich und Formulartests |
+| Serverhandbuch | Neu als [Serverhandbuch](Serverhandbuch.md) zusammengeführt; weitere nginx-, Rechte-, Firewall- und TLS-Vorlagen unter `ops/server/` |
+| Echte Pilotanmeldung | Betreiber meldet erfolgreichen Abschluss; Serverabgleich zeigt eine aktive zentrale Verbindung, aber noch keine lokale Kalenderreferenz. Nicht automatisch zuordnen |
+| Browsernachweise | Neue echte Browserfälle mit simuliertem Google, zentralem Callback und zwei Instanzhosts: Ersteinrichtung ohne config.yaml sowie Verbindungsersatz |
+| Dokumentation | Relevante Bedienwege DE/EN, Versionsmarkierungen und Konfigurationsreferenz werden für 8.x nachgeführt |
 
-Die erste Prüfung dieses Stands in einem frischen Worktree fand zwei ältere Fehler, die im gemeinsamen
-Arbeitsverzeichnis verdeckt waren: Der Landingpage-Nachbau hing von den Zeilenenden ab, die Git beim
-Einchecken der Assets normalisiert hatte (die Dateinamen der Assets sind Inhaltsprüfsummen), und die
-README verlinkte seit 7.9.6 eine nur lokal vorhandene Planung. Beides ist behoben; CI baut unter
-Ubuntu und Windows aus frischen Checkouts.
+Die isolierte VPS-Wiederherstellungsprobe entfällt gemäß Entscheidung vom 19.11.2026;
+sie wird nicht als durchgeführt ausgewiesen. Ein kompletter produktiver Restore
+ist weiterhin ungetestet. Die bestehende Dropbox-Sicherung erfolgt ausdrücklich
+unverschlüsselt einschließlich Zugangsdaten auf Betreiberwunsch; abweichende frühere
+Planformulierungen zur zusätzlichen Archivverschlüsselung sind damit ersetzt.
 
-**Offen bis 8.0:** Pilotanmeldung mit „Mit Google verbinden“ (Browser des Betreibers),
-`docs/Serverhandbuch.md`, Prüfung aller lebenden Dokumente für 8.x.
+**Ausstehende Freigaben:** Vollständige Prüfungen des kombinierten 8.1-Arbeitsstands
+und konsistente lokale Übernahme des Pilotzugangs. Der gemeldete Browsererfolg allein
+belegt die lokale Zuordnung noch nicht. Keine automatische Migration auf einen
+unbekannten oder nur als `primary` bezeichneten Kalender.
+
+## Abschlussprüfung des lokalen Arbeitsstands
+
+Erneuter Abgleich am 20. November 2026: Zentraldienst, mTLS, Secret-Store,
+Instanzanbindung, Kalenderverwaltung, Landingpage-Quellen, Serverhandbuch und
+geheimnisfreie Vorlagen liegen bereits vor. Der kombinierte Arbeitsstand 8.1.1
+wird mit allen vollständigen Prüfungen abgenommen; Ergebnisse stehen im
+[Releasebericht 8.1](Release-8.1.md).
+
+Zusätzlich wurden Konfigurationsbeispiele auf den aktuellen Hauptversionsstand
+gebracht und echte Browserfälle für Erstverbindung und Austausch beibehalten.
+Fünf zusätzliche Regressionen reproduzierten vor der Korrektur parallelen
+Code-Tausch, verspätete Token-Erneuerung nach Trennung/Kontowechsel, veraltete
+Zugangsprüfung nach Wartezeit sowie verlorene parallele Geheimnisschreibvorgänge.
+Auftragsübergänge prüfen nun ihre Vorgängerversion atomar; Secret-/Zustandszugriffe
+sind innerhalb des Dienstprozesses gesperrt. Ein Refresh speichert sein Ergebnis
+nur bei weiterhin gültiger Verbindung unter derselben Zustandssperre. Die gezielte
+Auth-Prüfung besteht mit 86 Tests. Betreiberkommandos auf denselben Dateien erfordern
+weiterhin einen gestoppten Auth-Dienst; dafür wurde die Betriebsanleitung präzisiert.
+Es wurde in diesem Arbeitsgang weder auf einen Server zugegriffen noch ein
+Produktivprofil geändert. Die historische Pilotzuordnung ist deshalb weiterhin
+offen. Vollständige Prüfungen des kombinierten Arbeitsstands 8.0–8.2 (Version 8.2.1):
+`python -m devtools.check full --workers 12` mit 6 372 bestandenen Tests, 2 bestandenen
+Lasttests und 100,00 % Zeilen- und Branch-Abdeckung (41 187 Anweisungen, 11 602 Branches);
+Browsersuite mit 998 bestandenen Tests (234 übersprungen) und 100 % JavaScript-Abdeckung.

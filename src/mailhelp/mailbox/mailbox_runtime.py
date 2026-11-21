@@ -24,19 +24,25 @@ class MailboxRuntime(PendingConnections):
     def _apply(self, pending: Pending) -> None:
         configured, secrets = pending
         app = self.app
-        running = {source.mailbox.id for source in app.sources}
-        added = [box for box in configured.imap.enabled_mailboxes() if box.id not in running]
+        running = {source.mailbox.id: source for source in app.sources}
+        added = [box for box in configured.imap.enabled_mailboxes()
+                 if box.id not in running or box != running[box.id].mailbox
+                 or secrets.imap_credentials(box.id) != self.secrets.imap_credentials(box.id)]
+        replacements = {box.id: box for box in added}
         current = app.settings.imap
+        existing = current.configured_mailboxes()
+        entries = [replacements.get(box.id, box) for box in existing]
+        entries += [box for box in added if box.id not in {entry.id for entry in existing}]
         imap = ImapSettings.model_validate({
             "batch_size": current.batch_size, "global_newest_first": current.global_newest_first,
-            "mailboxes": [box.model_dump() for box in (*current.configured_mailboxes(), *added)]})
+            "mailboxes": [box.model_dump() for box in entries]})
         settings = app.settings.model_copy(update={"imap": imap})
         timeouts = settings.timeouts.imap
         with ExitStack() as resources:
             sources = []
             for mailbox in added:
                 credentials = secrets.imap_credentials(mailbox.id)
-                address, options = reader_arguments(mailbox, credentials)
+                address, options = reader_arguments(mailbox, credentials, settings.hosted_auth)
                 policy = RetryPolicy(timeouts.retries, timeouts.initial_backoff_seconds,
                                      timeouts.max_backoff_seconds, app.stop_event.wait)
                 # Connects and signs in here; a failure leaves the running mailboxes as they are.
@@ -52,7 +58,11 @@ class MailboxRuntime(PendingConnections):
             app.orchestrator.mailbox_usernames = {
                 **app.orchestrator.mailbox_usernames,
                 **{box.id: self.secrets.imap_credentials(box.id).username for box in added}}
-            app.sources.extend(sources)
+            retired = [source for source in app.sources if source.mailbox.id in replacements]
+            rebuilt = {source.mailbox.id: source for source in sources}
+            app.sources[:] = [rebuilt.get(source.mailbox.id, source) for source in app.sources]
+            app.sources.extend(source for source in sources if source.mailbox.id not in running)
+            app.imap = app.sources[0].reader
             app.settings = app.mailbox.settings = settings
             app.configuration.active = app.configuration.active.model_copy(update={"imap": imap})
             app.logger.metrics.mailbox_numbers = {
@@ -65,6 +75,8 @@ class MailboxRuntime(PendingConnections):
             if app.experience is not None:
                 app.experience.add_mailboxes(settings, self.secrets)
             self.resources.enter_context(resources.pop_all())
+            for source in retired:
+                source.reader.close()
         app.logger.event("INFO", "imap", "mailboxes_activated", count=len(sources))
 
 

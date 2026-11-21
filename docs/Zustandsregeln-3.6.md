@@ -1,6 +1,6 @@
 # Zustandsregeln und Testnachweise für 3.6
 
-Geprüft für Mailhelp 7.0 (Stand der Regeln: 3. November 2026). Verbindlicher Bestandteil der
+Geprüft für Mailhelp 8.1 (Stand der Regeln: 3. November 2026). Verbindlicher Bestandteil der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md), Schritte 1.1 und 1.2.
 
 ## Review und Command-Inbox

@@ -65,7 +65,7 @@ OwnAddress = Annotated[str, Field(min_length=3, max_length=254,
 
 # Fields of one mailbox; before 3.1 they were written directly below ``imap``.
 MAILBOX_FIELDS = ("host", "port", "folders", "primary_folder", "connection_mode", "historical_start",
-                  "drafts_folder")
+                  "drafts_folder", "auth_method", "oauth_connection")
 
 MAX_MAILBOXES = 10
 
@@ -80,6 +80,8 @@ class MailboxSettings(ConfigModel):
     folders: list[str] = Field(min_length=1, max_length=100)
     primary_folder: str = "INBOX"
     connection_mode: ConnectionMode = "ssl"
+    auth_method: Literal["password", "gmail", "microsoft"] = "password"
+    oauth_connection: str = Field(default="", pattern=r"^([a-f0-9]{32})?$")
     historical_start: datetime | None = None
     drafts_folder: DraftsFolder = "Drafts"
     target_profile: int = Field(default=1, ge=1, le=99)
@@ -116,6 +118,10 @@ class MailboxSettings(ConfigModel):
         """The primary inbox is required; every other configured folder is optional."""
         if self.primary_folder not in self.folders:
             raise ValueError("primary_folder muss in folders enthalten sein")
+        if self.auth_method != "password":
+            host = {"gmail": "imap.gmail.com", "microsoft": "outlook.office365.com"}[self.auth_method]
+            if (not self.oauth_connection or self.host != host or self.port != 993 or self.connection_mode != "ssl"):
+                raise ValueError("Postfach-OAuth benötigt eine Verbindung und den gebundenen TLS-Server")
         return self
 
     @property
@@ -145,6 +151,8 @@ class ImapSettings(ConfigModel):
     folders: list[str] | None = Field(default=None, min_length=1, max_length=100)
     primary_folder: str | None = None
     connection_mode: ConnectionMode | None = None
+    auth_method: Literal["password", "gmail", "microsoft"] | None = None
+    oauth_connection: str | None = Field(default=None, pattern=r"^([a-f0-9]{32})?$")
     historical_start: datetime | None = None
     drafts_folder: DraftsFolder | None = None
 

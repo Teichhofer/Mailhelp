@@ -1,0 +1,12 @@
+# Einzeln geprüfte Zielverzeichnisse; keine pauschalen rekursiven Rechteänderungen.
+# UID:GID 65532:65532 entspricht den vorhandenen Mailhelp-/Auth-Images.
+install -d -o 65532 -g 65532 -m 0700 /opt/mailhelp/runtime
+install -d -o 65532 -g 65532 -m 0700 /opt/inboxstride-auth/state
+install -d -o 65532 -g 65532 -m 0700 /opt/inboxstride-auth/secrets
+install -d -o 65532 -g 65532 -m 0700 /opt/inboxstride-auth/logs
+install -d -o root -g root -m 0700 /opt/inboxstride-auth/ca
+install -d -o root -g root -m 0700 /etc/mailhelp-backup
+install -d -o root -g root -m 0700 /opt/mailhelp/server-docs
+# Private Dateien separat mit Eigentümer der jeweiligen Komponente und Modus 0600 installieren.
+# Inhalte aus privater Sicherung oder neuer Anbieterautorisierung, niemals aus dieser Vorlage.
+# Kontrolle: stat -c '%u:%g %a %n' PFAD; Rückkehrwerte vor jeder Änderung notieren.

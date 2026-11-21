@@ -37,9 +37,10 @@ Save = Callable[[str, int, dict[str, Any], int, str], None]
 
 class NotionSite:
     def __init__(self, site: Any, directory: Path, context: Context, save: Save,
-                 transport: httpx.BaseTransport | None = None, setup_path: str = "/einrichtung") -> None:
+                 transport: httpx.BaseTransport | None = None, setup_path: str = "/einrichtung",
+                 hosted_token: Callable[[int], str] = lambda _profile: "") -> None:
         self.site, self.directory, self.context, self.save, self.transport = site, directory, context, save, transport
-        self.setup_path = setup_path
+        self.setup_path, self.hosted_token = setup_path, hosted_token
         for method, path, handler in (("GET", "/notion/datenquelle", self.sources),
                                       ("POST", "/notion/datenquelle", self.choose_source),
                                       ("GET", "/notion/zuordnung", self.mapping),
@@ -67,7 +68,7 @@ class NotionSite:
         )
 
     def _token(self, profile: int) -> str:
-        return notion_token(self.directory, profile)
+        return self.hosted_token(profile) or notion_token(self.directory, profile)
 
     def sources(self, request: Request, session: WebSession) -> Response:
         try:

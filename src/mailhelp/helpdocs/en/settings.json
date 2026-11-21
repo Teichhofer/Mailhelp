@@ -91,6 +91,16 @@
  },
  {
   "area": "Other settings",
+  "help": "Legacy single mailbox: `password`, `gmail` or `microsoft`; OAuth needs the central service.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.auth_method",
+  "key": "imap.auth_method",
+  "label": "imap.auth_method",
+  "path": "File",
+  "summary": "Legacy single mailbox: `password`, `gmail` or `microsoft`; OAuth needs the central service."
+ },
+ {
+  "area": "Other settings",
   "help": "Connection type `ssl`, `starttls` or `plain` (unencrypted, only useful in your own network); if not specified, `ssl`.",
   "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
   "id": "setting:imap.connection_mode",
@@ -148,6 +158,16 @@
   "label": "imap.mailboxes[].activity_report_folder",
   "path": "Postfachseite",
   "summary": "Preselected folder for activity reports."
+ },
+ {
+  "area": "Other settings",
+  "help": "Authentication per mailbox; default `password`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.mailboxes[].auth_method",
+  "key": "imap.mailboxes[].auth_method",
+  "label": "imap.mailboxes[].auth_method",
+  "path": "File",
+  "summary": "Authentication per mailbox; default `password`."
  },
  {
   "area": "Other settings",
@@ -361,6 +381,16 @@
  },
  {
   "area": "Other settings",
+  "help": "Mailbox connection identifier; empty in password mode.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.mailboxes[].oauth_connection",
+  "key": "imap.mailboxes[].oauth_connection",
+  "label": "imap.mailboxes[].oauth_connection",
+  "path": "File",
+  "summary": "Mailbox connection identifier; empty in password mode."
+ },
+ {
+  "area": "Other settings",
   "help": "Additional own sender addresses (aliases), at most 20; the IMAP username already counts. Mails from these addresses are considered own Note or forwarding.",
   "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
   "id": "setting:imap.mailboxes[].own_addresses",
@@ -428,6 +458,16 @@
   "label": "imap.mailboxes[].target_profile",
   "path": "Postfachseite",
   "summary": "Target profile 1–99 for new Proposals of this mailbox; default 1. Existing Proposals remain bound to their target."
+ },
+ {
+  "area": "Other settings",
+  "help": "Legacy single mailbox: separate mailbox connection reference, never a calendar reference.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.oauth_connection",
+  "key": "imap.oauth_connection",
+  "label": "imap.oauth_connection",
+  "path": "File",
+  "summary": "Legacy single mailbox: separate mailbox connection reference, never a calendar reference."
  },
  {
   "area": "Other settings",
@@ -1211,6 +1251,16 @@
  },
  {
   "area": "Other settings",
+  "help": "Reference of the Microsoft access at the Inboxstride sign-in service (8.2); set only by “Connect with Microsoft”.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_connection",
+  "key": "target_profiles[].microsoft_connection",
+  "label": "target_profiles[].microsoft_connection",
+  "path": "Zielprofilseite",
+  "summary": "Reference of the Microsoft access at the Inboxstride sign-in service (8.2); set only by “Connect with Microsoft”."
+ },
+ {
+  "area": "Other settings",
   "help": "Microsoft tenant for sign-in, default `common`.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].microsoft_tenant",
@@ -1228,6 +1278,16 @@
   "label": "target_profiles[].microsoft_todo_list",
   "path": "Zielprofilseite",
   "summary": "Microsoft To Do list, default `default` (list “Tasks”)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Reference of the Notion access at the Inboxstride sign-in service (8.2); set only by “Connect with Notion”.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].notion_connection",
+  "key": "target_profiles[].notion_connection",
+  "label": "target_profiles[].notion_connection",
+  "path": "Zielprofilseite",
+  "summary": "Reference of the Notion access at the Inboxstride sign-in service (8.2); set only by “Connect with Notion”."
  },
  {
   "area": "Other settings",
@@ -1368,6 +1428,26 @@
   "label": "targets.google_connection",
   "path": "Setup",
   "summary": "Reference of the Google access at the sign-in service (32 hexadecimal characters); empty in self-hosting with `GOOGLE_OAUTH_*`. Only for Google Calendar, not fo"
+ },
+ {
+  "area": "Other settings",
+  "help": "Reference of the Microsoft access at the sign-in service (32 hexadecimal characters, 8.2); empty in self-hosting with `MICROSOFT_*`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:targets.microsoft_connection",
+  "key": "targets.microsoft_connection",
+  "label": "targets.microsoft_connection",
+  "path": "Setup",
+  "summary": "Reference of the Microsoft access at the sign-in service (32 hexadecimal characters, 8.2); empty in self-hosting with `MICROSOFT_*`."
+ },
+ {
+  "area": "Other settings",
+  "help": "Reference of the Notion access at the sign-in service (32 hexadecimal characters, 8.2); empty in self-hosting with `NOTION_TOKEN` or `NOTION_CLIENT_*`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:targets.notion_connection",
+  "key": "targets.notion_connection",
+  "label": "targets.notion_connection",
+  "path": "Setup",
+  "summary": "Reference of the Notion access at the sign-in service (32 hexadecimal characters, 8.2); empty in self-hosting with `NOTION_TOKEN` or `NOTION_CLIENT_*`."
  },
  {
   "area": "Other settings",

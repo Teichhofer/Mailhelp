@@ -148,7 +148,7 @@ def test_the_writers_obtain_google_access_by_mode(tmp_path):
     assert google_tokens(none, secrets, 15, None, None) is None
 
 
-def test_hosted_google_warnings_lead_to_reconnecting(web):
+def test_hosted_google_warnings_lead_to_reconnecting(web, tmp_path):
     from datetime import UTC, datetime
     when = datetime(2026, 11, 19, 8, tzinfo=UTC)
     problems = [ConnectionProblem(key="google_oauth", service="google_oauth", code="refresh_denied",
@@ -161,7 +161,9 @@ def test_hosted_google_warnings_lead_to_reconnecting(web):
     assert 'href="/google/verbinden?profile=1">Google erneut verbinden' in html
     assert 'href="/google/verbinden?profile=2">Google erneut verbinden' in html
     assert 'href="/einstellungen/zielprofile">Verbindung prüfen' in html
-    web.site.archive.configuration = SimpleNamespace(active=SimpleNamespace(hosted_auth=hosted_settings()))
+    from tests.fakes.shared_application import settings
+    configured = settings(tmp_path).model_copy(update={"hosted_auth": hosted_settings()})
+    web.site.archive.configuration = SimpleNamespace(active=configured)
     from mailhelp.support.connection_health import STATE, ConnectionHealth
     web.store.save(STATE, ConnectionHealth(sequence=1, problems={"google_oauth": problems[0]}).model_dump(mode="json"))
     assert "Google erneut verbinden" in web.site.connection_state()[0]

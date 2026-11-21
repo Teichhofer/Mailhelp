@@ -1,6 +1,12 @@
 # Manage accounts <!-- mailhelp-id:konten-verwalten/konten-verwalten -->
 
-Verified for Mailhelp 7.0. Add, change and remove additional mailboxes, IServ accounts and additional Calendar/Task targets in an already set up installation.
+From 8.1, the add-mailbox form offers the same local provider defaults as initial
+setup. Custom domains can be assigned to a hosting provider explicitly; manual
+setup remains available. Gmail/Microsoft mailbox OAuth needs operator registration
+and a separate grant. New readers replace the affected mailbox between mail cycles;
+a failed connection keeps the previous reader and leaves other mailboxes unchanged.
+
+Verified for Mailhelp 8.1. Add, change and remove additional mailboxes, IServ accounts and additional Calendar/Task targets in an already set up installation.
 
 **Principle:** Credentials are stored only in `.env` and are maintained under **Settings → Credentials**; only “stored” or “missing” is displayed. Changes to mailboxes and targets are drafts and are only applied after a renewed explicit confirmation. None of these pages creates Tasks or Events.
 
@@ -76,6 +82,11 @@ Profile 1 is the target from the initial setup (**Edit default profile 1**). Add
 | Renew credentials | **Settings → Credentials** | Diagnostics immediately, email retrieval after restart |
 
 ## If something does not work <!-- mailhelp-id:konten-verwalten/wenn-etwas-nicht-klappt -->
+
+For a rejected mailbox OAuth sign-in, “Reconnect mailbox” in the warning opens the
+affected Google or Microsoft mailbox. Restart the flow after a configuration or
+credential change. For iCloud, start with the suggested name before `@`; if sign-in
+fails, try the full iCloud address as described in Apple's instructions.
 
 | Situation | Next Stage |
 | --- | --- |

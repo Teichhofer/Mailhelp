@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from ..config import WebSettings
 from ..i18n import msg, tr
+from ..mailbox.provider_presets import apply_provider
 from ..runtime.initial_checks import InitialChecks, invalid_findings
 from ..runtime.initial_setup import SECRET_FIELDS, InitialSetup
 from ..runtime.setup_messages import CheckResult, SetupProblem, classify, finding
@@ -129,6 +130,12 @@ class InitialSite:
         step = int(form["step"]) if form.get("step", "").isdigit() else 0
         if not 1 <= step <= min(5, self.setup.state().completed_step + 1):
             return Response.text(400, msg("Ungültiger Prüfschritt."))
+        if step == 2 and form.get("provider_apply") == "yes":
+            try:
+                values = apply_provider(form, initial=True)
+            except KeyError:
+                return Response.text(400, msg("Unbekannter Mailanbieter."))
+            return self._result(session, step, values, [], 200)
         try:
             results = self.checks.check_all(actor) if step == 5 else [self.checks.check(actor, form)]
         except PermissionError:
@@ -139,6 +146,7 @@ class InitialSite:
     def _result(self, session: WebSession, step: int, form: dict[str, str], results: list[CheckResult],
                 status: int) -> Response:
         hidden = {"csrf", "key", "version", "step", "password", "confirm", *SECRET_FIELDS.get(step, ())}
+        hidden.discard("IMAP_USERNAME")
         values = {name: value for name, value in form.items() if name not in hidden}
         return Response.html(status, initial_page(self.setup.state(), self.auth.csrf_token(session.id), step,
                                                   checks=results, values=values))

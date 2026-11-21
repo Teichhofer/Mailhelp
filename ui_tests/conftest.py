@@ -264,6 +264,21 @@ def browser(browser_runtime):
     instance.close()
 
 
+@pytest.fixture
+def https_browser(browser_runtime, tmp_path):
+    from tests.fakes.https_browser import HttpsBrowser
+    running = []
+
+    def start(width):
+        instance = HttpsBrowser(browser_runtime, tmp_path / f"https-{len(running)}", width, Page)
+        running.append(instance)
+        return instance
+
+    yield start
+    for instance in reversed(running):
+        instance.close()
+
+
 class MeasuredContext:
     """Collect before a manually owned context destroys its pages and counters."""
 

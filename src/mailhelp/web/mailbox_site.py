@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 from ..config import Settings, Topic, read_yaml
+from ..config.env_file import file_hash as connection_hash
 from ..domain.proposal import Proposal
 from ..i18n import msg, tr
 from ..mailbox.mailbox_settings import effective_settings
@@ -15,6 +16,7 @@ from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
 from .pages import e, layout, notice
+from .provider_fields import mailbox_oauth_controls
 from .setup_site import CHOICES
 from .setup_site import LABELS as TARGET_LABELS
 
@@ -252,6 +254,13 @@ class MailboxSite:
             + "</nav>"
         )
         csrf, version = self.site.auth.csrf_token(session.id), self.runtime.setup.state().version
+        if box.auth_method == "password":
+            body += f'<p><a href="/einstellungen/postfaecher/{mailbox_number}/anbieter">'
+            body += e(tr("Mailanbieter ändern")) + "</a></p>"
+        if cfg.hosted_auth.enabled:
+            directory = self.runtime.app.configuration.directory
+            revision = connection_hash(directory / "config.yaml") + ":" + connection_hash(directory / ".env")
+            body += mailbox_oauth_controls(box, csrf, version, revision)
         if tab in FIELDS:
             body += self._field_sections(cfg, box, mailbox_number, tab, csrf, version)
         elif tab == "topics":

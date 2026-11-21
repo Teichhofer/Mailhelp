@@ -90,6 +90,8 @@ class ConnectionActivation[Item: (MailboxSettings, IServAccountSettings)](ABC):
         user = username or (previous.username if previous else "")
         secret = password or (previous.password.get_secret_value() if previous else "")
         values = dict(zip(item.secret_names, (user, secret), strict=True))
+        if getattr(item, "auth_method", "password") != "password":
+            values = {item.secret_names[0]: user}
         for field, value in values.items():
             validate(field, value)
         # Process variables keep precedence; do not silently test a value the service cannot use.

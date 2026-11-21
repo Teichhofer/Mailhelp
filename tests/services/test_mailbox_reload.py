@@ -106,6 +106,33 @@ def test_failed_connection_closes_new_readers_and_retries_without_partial_instal
     assert len(ctx.app.sources) == 4 and ctx.controller.pending is None
 
 
+def test_reconnect_replaces_one_reader_at_the_safe_boundary(reloadable):
+    ctx = reloadable
+    cfg = ctx.cfg.model_copy(deep=True)
+    cfg.imap.mailboxes[0] = cfg.imap.mailbox(1).model_copy(update={"label": "Reconnected"})
+    old = ctx.app.sources[0]
+    ctx.controller.request(cfg, ctx.keys)
+    assert ctx.app.sources[0] is old and not old.reader.closed
+    ctx.controller.apply_pending()
+    assert ctx.app.sources[0] is not old and old.reader.closed
+    assert ctx.app.sources[0].account_id == old.account_id
+    assert ctx.app.sources[1] is ctx.original_sources[1] and not ctx.app.sources[1].reader.closed
+    ctx.controller.request(cfg, ctx.keys)
+    ctx.controller.apply_pending()
+    assert len(Reader.instances) == 3
+
+
+def test_failed_reconnect_keeps_the_old_reader(reloadable):
+    ctx = reloadable
+    cfg = ctx.cfg.model_copy(deep=True)
+    cfg.imap.mailboxes[0] = cfg.imap.mailbox(1).model_copy(update={"host": "fail.example.test"})
+    Reader.fail = "fail.example.test"
+    ctx.controller.request(cfg, ctx.keys)
+    ctx.controller.apply_pending()
+    assert ctx.app.sources == ctx.original_sources and not ctx.original_sources[0].reader.closed
+    assert ctx.controller.pending is not None
+
+
 @pytest.mark.parametrize("drafts", [False, True])
 @pytest.mark.parametrize("multiple", [False, True])
 def test_experience_updates_draft_targets_and_mailbox_filters(reloadable, drafts, multiple):

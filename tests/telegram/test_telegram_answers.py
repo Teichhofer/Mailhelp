@@ -269,7 +269,7 @@ def test_contradictory_answer_is_domain_failure_not_incomplete(tmp_path):
         c, transport, log = controller(
             store, [message(2, "Antwort")],
             revision_service=InterpretationErrorService(
-                ContradictoryRevision("fachlicher Widerspruch")))
+                ContradictoryRevision("synthetic-private-clock", "known_clock_changed")))
         c.persist(item)
         store.save("telegram-dialog", TelegramDialogState(
             mail_id=item.source_mail_id, proposal_id=item.id,
@@ -287,6 +287,8 @@ def test_contradictory_answer_is_domain_failure_not_incomplete(tmp_path):
         event = next(entry for entry in log.events
                      if entry[0][2] == "answer_revision_failed")
         assert event[1]["error_class"] == "ContradictoryRevision"
+        assert event[1]["revision_contract"] == "known_clock_changed"
+        assert "synthetic-private-clock" not in str(log.events)
 
 
 def test_interpretation_timeout_is_resumed_from_persisted_answer_after_restart(tmp_path):

@@ -1,6 +1,6 @@
 # Google Kalender über den OAuth 2.0 Playground einrichten
 
-Geprüft für Mailhelp 7.0 (Googles Oberfläche zuletzt am 4. November 2026 abgeglichen). Dieser manuelle Browser-Ablauf liefert die Google-Zugangsdaten
+Geprüft für Mailhelp 8.1 (Googles Oberfläche zuletzt am 4. November 2026 abgeglichen). Dieser manuelle Browser-Ablauf liefert die Google-Zugangsdaten
 für Mailhelp, auch wenn Mailhelp in Docker oder auf einem anderen Rechner läuft.
 Seit 3.7 ist die Anleitung direkt im Einrichtungsschritt „Kalender und Aufgaben“
 und bei den Zielprofilen erreichbar. Die bestehende lokale Anmeldung über

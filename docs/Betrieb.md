@@ -1,6 +1,6 @@
 # Betrieb und Update
 
-Geprüft für Mailhelp 7.0.
+Geprüft für Mailhelp 8.1.
 
 Für Serveränderungen gilt zusätzlich die Dokumentationspflicht aus [AGENTS.md](../AGENTS.md):
 Nach nachgewiesen erfolgreicher Einrichtung, Änderung oder Reparatur den bestätigten
@@ -10,13 +10,36 @@ TLS, Container, systemd, Firewall, Dateirechte, Sicherung und OAuth-Konfiguratio
 Fehlversuche und zurückgenommene Änderungen als solche kennzeichnen, nicht als
 gültige Einrichtung übernehmen. Geheimnisse bleiben außerhalb von Git.
 
-[Planung 8.0](Planung-8.0.md) sieht dafür ein versioniertes Serverhandbuch unter
-docs/Serverhandbuch.md (geplant) und geheimnisfreie Vorlagen unter `ops/server/` vor.
-Diese vollständige Neuaufbau-/Wiederherstellungsanleitung ist noch zu erstellen;
-bis dahin hier den verifizierten Betriebsstand ergänzen. Lokale Notizen oder nur
+[Serverhandbuch](Serverhandbuch.md) und geheimnisfreie Vorlagen unter `ops/server/`
+führen den bestätigten Bestand und die Neuaufbau-/Wiederherstellungsanleitung zusammen.
+Der dokumentierte Ablauf ersetzt keine durchgeführte Wiederherstellungsprobe;
+hier bleiben die historischen Betriebsnachweise erhalten. Lokale Notizen oder nur
 auf dem Server gespeicherte Konfigurationen ersetzen keine Git-Sicherung.
 
 ## Wiederkehrende Verarbeitungsfehler
+
+Für die gezielte Wiederaufnahme einer durch den Datum-/Uhrzeitfehler pausierten
+Terminantwort ab 8.1 gilt folgender Betreiberablauf:
+
+1. Anwendung geordnet beenden und den Datenbestand konsistent privat sichern.
+   Mail-ID, Vorschlags-ID, aktuelle Version, beantwortete Frage und gespeicherte
+   normalisierte Antwort abgleichen. Kein allgemeines Zurücksetzen pausierter Vorgänge.
+2. Mit geprüfter neuer Anwendung schreibfrei vorprüfen:
+   `python -m devtools.recover_revision --data data/production --mail <Mail-ID> --proposal <Vorschlags-ID> --version <Version> --timezone Europe/Berlin`.
+   Den tatsächlichen Datenpfad und die konfigurierte Zeitzone verwenden. Die Antwort
+   muss ein eindeutig normalisiertes Datum mit vierstelligem Jahr enthalten.
+3. Nur nach erfolgreicher Vorprüfung denselben Befehl mit `--apply` ausführen. Das
+   Werkzeug prüft Version und Zustand erneut unter Sperre und setzt nur diese Antwort
+   auf `retry_required`; Antwort und Herkunft bleiben erhalten. Kein LLM-Aufruf und
+   keine Kalender-/Todoist-Anlage werden dabei ausgeführt.
+4. Anwendung starten. Genau eine Nachfolgeversion, richtige lokale Beginnzeit,
+   verarbeitete Antwort und verbleibende Endfrage prüfen. Wiederholen darf keine
+   zweite Version erzeugen. Bei erneutem Fehler begrenzt pausiert lassen; der
+   Vertragscode allein ist kein hinreichendes Auswahlkriterium.
+5. Rückkehr vor dem erneuten Start: bei weiterhin gestoppter Anwendung den
+   konsistenten gesicherten Datenbestand wiederherstellen. Nach Verarbeitung keine
+   ältere Sicherung über neuere Schreibnachweise legen. Ein fehlendes Terminende
+   weiter vom Nutzer klären lassen; es wird nicht geraten.
 
 Mailhelp versucht dasselbe Fehlerbild je Mail höchstens fünfmal. Die Pausen zwischen
 den Versuchen betragen 1 Minute, 5 Minuten, 30 Minuten und 2 Stunden. Danach bleibt die

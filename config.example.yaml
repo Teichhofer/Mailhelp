@@ -1,4 +1,4 @@
-# Geprüft für Mailhelp 7.0.
+# Geprüft für Mailhelp 8.1.
 # Mobile Navigation und Wischgesten passen sich automatisch an Bildschirm und Eingabegerät an.
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
 # 3.7: Ohne config.yaml öffnet der Start die Ersteinrichtung; Einmalcode steht im Terminal.
@@ -263,6 +263,10 @@ imap:
   # drafts_folder muss ebenfalls auf einen tatsächlich vorhandenen Ordner zeigen.
   drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test
+  # 8.1: password oder ausdrücklich verbundenes gmail-/microsoft-Postfach.
+  # OAuth-Verbindungen niemals aus einem Kalenderprofil übernehmen.
+  auth_method: password
+  oauth_connection: ''
   port: 993
   connection_mode: ssl
   # Suchtreffer an/unter der gespeicherten Start-UID bleiben auch bei leeren
@@ -360,10 +364,11 @@ targets:
   # Nur bei google_tasks: Listen-ID oder @default (erste Liste des Kontos). Die Google-Anmeldung
   # ("mailhelp --google-auth" oder Einstellungen → Zugangsdaten) braucht dann das Google-Tasks-Recht.
   google_tasks_list: "@default"
-  # 8.0, nur gehostete Inboxstride-Instanzen: Referenz des Google-Zugangs beim zentralen Anmeldedienst.
-  # Setzt ausschließlich "Mit Google verbinden"; dann sind keine GOOGLE_OAUTH_* in .env nötig.
-  # Gilt nur für den Google Kalender (nicht für Google Tasks) und braucht hosted_auth.enabled.
+  # 8.0 / 8.2, nur gehostete Inboxstride-Instanzen: Referenz des Google-, Microsoft- oder Notion-Zugangs
+  # beim zentralen Anmeldedienst. Setzt ausschließlich "Mit … verbinden"; erfordert hosted_auth.enabled.
   google_connection: ""
+  microsoft_connection: ""
+  notion_connection: ""
   # Nur bei notion: Datenquellen-ID (nicht die Datenbank) und die IDs der zugeordneten Eigenschaften.
   # Pflicht: title (Titel), description (Text), due (Datum), source (URL), operation_key (Text);
   # optional status (Status, Auswahl oder Kontrollkästchen) mit Optionen-IDs für offen und erledigt.

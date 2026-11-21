@@ -7,6 +7,10 @@
 **Status:** In Umsetzung seit 7.9.3, siehe [Release 8.0](Release-8.0.md). Kein Auftrag zur
 Bereitstellung oder Änderung produktiver Konten.
 
+**Abgleich 20.11.2026:** Die Anwendungsteile und das Serverhandbuch sind im lokalen
+Arbeitsstand 8.1.1 enthalten. Der [Releasebericht](Release-8.0.md#abschlussprüfung-des-lokalen-arbeitsstands)
+führt die verbleibenden Abnahmen auf; dieser Plan ist kein Nachweis eines Deployments.
+
 **Grundlagen:** [Entwicklungsregeln](../AGENTS.md), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Planung 7.9](Planung-7.9.md), [Google-Webserver-OAuth](https://developers.google.com/identity/protocols/oauth2/web-server),
 [Google-Kalenderberechtigungen](https://developers.google.com/workspace/calendar/api/auth),

@@ -14,7 +14,7 @@ from . import mailbox_site as mailbox_site_module
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
-from .initial_pages import hosted_google_box
+from .initial_pages import hosted_google_box, hosted_target_boxes
 from .pages import e
 
 _PROFILES_TEXT_1 = msg(
@@ -52,8 +52,8 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
     body = tr(_PROFILES_TEXT_1)
     hosted = cfg.hosted_auth.enabled
     if hosted:
-        # 8.0: hosted instances connect Google through Inboxstride, without client data.
-        body += hosted_google_box(cfg.targets.model_dump())
+        # 8.0 / 8.2: hosted instances connect Google, Microsoft and Notion through Inboxstride.
+        body += hosted_google_box(cfg.targets.model_dump()) + hosted_target_boxes(cfg.targets.model_dump())
     for profile in cfg.target_profiles:
         references = profile_references(site.site.views.store, cfg, profile.id)
         body += '<section class="card"><h2>' + e(profile.label) + f" · {profile.id}</h2>"
@@ -68,7 +68,8 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
             p6=profile.id,
         )
         if hosted:
-            body += hosted_google_box(profile.model_dump(), profile.id)
+            body += (hosted_google_box(profile.model_dump(), profile.id)
+                     + hosted_target_boxes(profile.model_dump(), profile.id))
         for field, value in profile.model_dump().items():
             if field == "id":
                 continue

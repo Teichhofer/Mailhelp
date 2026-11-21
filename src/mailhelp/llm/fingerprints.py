@@ -59,8 +59,9 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                                                       "google_tasks_list", "notion_data_source_id",
                                                       "notion_properties", "notion_open_status",
                                                       "notion_done_statuses",
-                                                      # 8.0: the hosted Google connection reference.
-                                                      "google_connection")),
+                                                      # 8.0 / 8.2: hosted connection references.
+                                                      "google_connection", "microsoft_connection",
+                                                      "notion_connection")),
                      # 7.2: its timeouts; former fingerprints that still contain the section keep their value.
                      ("timeouts", "google_tasks"), ("timeouts", "notion"))
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
@@ -84,7 +85,7 @@ def _imap_before_3_1(settings: Settings) -> dict[str, Any] | None:
     mailbox = settings.imap.mailbox(1)
     if mailbox is None:
         return None
-    return {**mailbox.model_dump(mode="json", include=set(MAILBOX_FIELDS)),
+    return {**mailbox.model_dump(mode="json", include=set(MAILBOX_FIELDS) - {"auth_method", "oauth_connection"}),
             "batch_size": settings.imap.batch_size, "global_newest_first": settings.imap.global_newest_first}
 
 

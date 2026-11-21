@@ -663,8 +663,7 @@ def test_imap_logout_ignores_broken_transport_without_masking_original_error():
     assert len(logger.events) == 1
     level, module, event, fields = logger.events[0]
     assert (level, module, event) == ("WARNING", "imap", "logout_failed")
-    assert str(fields["error"]) == "socket error: TLS connection already broken"
-    assert isinstance(logger.events[0][3]["error"], imaplib.IMAP4.abort)
+    assert fields == {"error_class": "abort"}
 
     failed = BrokenLogout()
     failed.login = lambda *_args: (_ for _ in ()).throw(RuntimeError("login failed"))

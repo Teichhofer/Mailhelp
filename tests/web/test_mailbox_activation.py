@@ -53,6 +53,56 @@ def form(ctx):
     return {**ctx.web.form(ROUTE, action=ACTIVATE), **VALUES}
 
 
+def test_existing_password_mailbox_uses_presets_without_saving_or_connecting(activation):
+    ctx = activation
+    route = ROUTE + "/1/anbieter"
+    assert ctx.web.browser.request("GET", route).status == 200
+    submitted = {**ctx.web.form(route, action=ACTIVATE), **VALUES, "id": "1", "replace": "yes",
+                 "provider": "gmx", "provider_apply": "yes"}
+    before = (ctx.tmp_path / "config.yaml").read_bytes()
+    page = ctx.web.browser.request("POST", ACTIVATE, submitted)
+    assert page.status == 200 and b"imap.gmx.net" in page.body
+    assert (ctx.tmp_path / "config.yaml").read_bytes() == before and Reader.calls == []
+    assert ctx.web.browser.request("POST", ACTIVATE, {**submitted, "id": "bad"}).status == 404
+    assert ctx.web.browser.request("GET", ROUTE + "/99/anbieter").status == 404
+
+
+def test_new_mailbox_provider_preview_never_saves_credentials(activation):
+    ctx = activation
+    submitted = {**form(ctx), "provider": "webde", "provider_email": "name@web.de", "provider_apply": "yes"}
+    before = (ctx.tmp_path / "config.yaml").read_bytes()
+    result = ctx.web.browser.request("POST", ACTIVATE, submitted)
+    assert result.status == 200 and b'imap.web.de' in result.body
+    assert VALUES["password"] not in result.body.decode()
+    assert (ctx.tmp_path / "config.yaml").read_bytes() == before and not Reader.calls
+    assert not (ctx.tmp_path / ".env").exists()
+    assert ctx.web.browser.request("POST", ACTIVATE, {**submitted, "provider": "untrusted"}).status == 400
+
+
+def test_existing_password_mailbox_update_preserves_unrelated_policies(activation):
+    ctx = activation
+    route = ROUTE + "/1/anbieter"
+    submitted = {**ctx.web.form(route, action=ACTIVATE), **VALUES, "id": "1", "replace": "yes"}
+    original = ctx.cfg.imap.mailbox(1)
+    other = ctx.cfg.imap.mailbox(2)
+    assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 303
+    saved = Settings.model_validate(yaml.safe_load((ctx.tmp_path / "config.yaml").read_text(encoding="utf-8")))
+    assert saved.imap.mailbox(1).target_profile == original.target_profile
+    assert saved.imap.mailbox(2) == other
+    calls = list(Reader.calls)
+    assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 303 and Reader.calls == calls
+
+
+def test_rejected_provider_edit_keeps_the_correct_mailbox_context(activation):
+    ctx = activation
+    submitted = {**ctx.web.form(ROUTE + "/1/anbieter", action=ACTIVATE), **VALUES,
+                 "id": "1", "replace": "yes", "port": "bad"}
+    result = ctx.web.browser.request("POST", ACTIVATE, submitted)
+    assert result.status == 422 and b'Mailanbieter' in result.body and b'name="id" value="1"' in result.body
+    assert ctx.reloads == []
+    assert ctx.web.browser.request("POST", ACTIVATE, {**submitted, "id": "99"}).status == 422
+
+
 def test_check_save_retry_and_restart(activation):
     ctx = activation
     submitted = form(ctx)
@@ -239,6 +289,7 @@ def test_limit_and_missing_runtime(activation):
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 422
     ctx.web.site.setup_page.runtime = None
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 503
+    assert ctx.web.browser.request("GET", ROUTE + "/1/anbieter").status == 503
 
 
 def test_legacy_configuration_is_migrated_without_losing_the_old_mailbox(configured, monkeypatch):

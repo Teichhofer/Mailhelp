@@ -42,19 +42,27 @@ def _page(status: int, title: str, text: str) -> Answer:
                   {"Content-Type": "text/html; charset=utf-8"})
 
 
+_CALLBACKS = {
+    "/auth/google/callback": "google",
+    "/auth/microsoft/callback": "microsoft",
+    "/auth/notion/callback": "notion",
+}
+
+
 def public(service: AuthService, method: str, target: str, log: Callable[[str, dict[str, Any]], None]) -> Answer:
     """Google's return and the health check; any other path does not exist."""
     parts = urlsplit(target)
     if method == "GET" and parts.path == "/health":
         return _json(200, {"status": "ok"})
-    if method != "GET" or parts.path != "/auth/google/callback":
+    if method != "GET" or parts.path not in _CALLBACKS:
         return _page(404, "Nicht gefunden", "Diese Adresse gibt es nicht.")
     query = parse_qs(parts.query, keep_blank_values=True, max_num_fields=10)
     if any(len(values) != 1 for values in query.values()) or "state" not in query:
         log("callback_refused", {"reason": "parameters"})
         return _page(400, "Anmeldung nicht möglich", "Die Rückmeldung von Google ist unvollständig.")
     try:
-        redirect = service.callback(query["state"][0], query.get("code", [None])[0], query.get("error", [None])[0])
+        redirect = service.callback(query["state"][0], query.get("code", [None])[0], query.get("error", [None])[0],
+                                    _CALLBACKS[parts.path])
     except Refused as exc:
         log("callback_refused", {"reason": exc.code})
         return _page(400, "Anmeldung nicht mehr gültig",
@@ -64,7 +72,7 @@ def public(service: AuthService, method: str, target: str, log: Callable[[str, d
 
 
 _ROUTES = {"/intern/start", "/intern/redeem", "/intern/activate", "/intern/token", "/intern/disconnect",
-           "/intern/connection"}
+           "/intern/connection", "/intern/providers"}
 
 
 def internal(service: AuthService, method: str, path: str, body: bytes, peer: str | None,
@@ -94,19 +102,21 @@ def internal(service: AuthService, method: str, path: str, body: bytes, peer: st
 
 
 def _call(service: AuthService, instance: str, path: str, data: dict[str, Any]) -> dict[str, Any]:
+    if path == "/intern/providers":
+        return {"providers": sorted(service.mail_providers)}
     if path == "/intern/start":
         job, url = service.start(instance, str(data["session"]), str(data["target"]), data["operation"],
-                                 str(data["key"]))
+                                 str(data["key"]), data.get("purpose", "calendar"))
         return {"job": job.id, "version": job.version, "url": url}
     if path == "/intern/redeem":
         job = service.redeem(instance, str(data["session"]), str(data["receipt"]))
         return {"job": job.id, "version": job.version, "connection": job.candidate, "target": job.target,
-                "operation": job.operation}
+                "operation": job.operation, "purpose": job.purpose}
     if path == "/intern/activate":
         connection = service.activate(instance, str(data["session"]), str(data["job"]), int(data["version"]))
         return {"connection": connection.id, "generation": connection.generation, "target": connection.target}
     if path == "/intern/token":
-        token, valid = service.access_token(instance, str(data["connection"]))
+        token, valid = service.access_token(instance, str(data["connection"]), str(data.get("purpose", "calendar")))
         return {"access_token": token, "expires_in": valid}
     if path == "/intern/disconnect":
         service.disconnect(instance, str(data["connection"]))

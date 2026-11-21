@@ -13,9 +13,28 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 7.9.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.2.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
-7.9.11 dokumentiert das Serverupdate auf 7.9.10. 7.9.10 behebt, dass eine Mail mit nur einer Beginnzeit das Ende eines vorhandenen Termins auf die Standarddauer verkürzen wollte. 7.9.9 behebt, dass „Verbindung übernehmen“ nach der Google-Anmeldung scheiterte, und aktiviert eine neue Verbindung erst, wenn das Zielprofil gespeichert ist. 7.9.8 behebt, dass „Weiter zu Google“ beim Verbinden über Inboxstride ohne Wirkung blieb. 7.9.7 nimmt die Quellen der Landingpage `inboxstride.de` unter `landing/` ins Repository auf; ein Test baut die ausgelieferte Seite daraus Byte für Byte nach. 7.9.6 nimmt den zentralen Anmeldedienst unter `auth.inboxstride.de` in Betrieb und bindet die Produktion an; bis zur Pilotanmeldung nutzt sie weiter ihren eigenen Google-Zugang. Der Server wird täglich nach Dropbox gesichert. 7.9.5 ergänzt die Verwaltung gehosteter Google-Verbindungen: **Anderen Kalender wählen** wechselt den Kalender mit dem vorhandenen Zugang ohne neue Google-Anmeldung, und **Verbindung trennen** beendet die Tokenausgabe sofort, ohne Termine zu löschen oder die Google-Freigabe zu widerrufen. Der zentrale Anmeldedienst erhält ein eigenes schlankes Docker-Image. 7.9.4 führt die Vorbereitung von 8.0 fort: Gehostete Instanzen können den Google Kalender mit „Mit Google verbinden“ über den zentralen Inboxstride-Anmeldedienst verbinden, ohne Client-Daten oder Tokens einzutragen; der Dienst hat dafür einen öffentlichen Callback und eine interne mTLS-Schnittstelle mit eigener CA. Im eigenen Betrieb bleibt alles wie bisher. 7.9.3 bereitet Planung 8.0 vor: Die neue Komponente `inboxstride_auth` enthält Zustandsmodell, verschlüsselten Geheimnisspeicher und den geprüften Anmeldeablauf eines zentralen Google-Anmeldedienstes. Sie ist noch nicht in Betrieb; die Mailhelp-Anwendung verhält sich unverändert.
+Arbeitsstand 8.2.1: Geführtes 3-Schritte-Self-Service-Onboarding (`/onboarding`) mit
+Anbietererkennung, Zielauswahl, kuratierten Starter-Themenprofilen und risikofreiem
+Probelauf im Testmodus vor der ausdrücklichen Aktivierung. Gehostete Inboxstride-Instanzen
+können neben Google Kalender (8.0) und Postfach-OAuth2 (8.1) auch Microsoft-Ziele
+(Outlook-Kalender und Microsoft To Do) sowie Notion über den zentralen Anmeldedienst
+verbinden (`targets.microsoft_connection`, `targets.notion_connection`).
+
+Arbeitsstand 8.1.1: Anbietervorlagen vereinfachen die Postfacheinrichtung; Gmail- und
+Microsoft-Postfachzugänge verwenden getrenntes OAuth2 mit lesender Ordnerprüfung.
+Die Anbieterregistrierungen sind vor Produktivfreigabe noch einzurichten.
+Terminantworten dürfen ein fehlendes Datum zu einer bekannten Uhrzeit ergänzen;
+pausierte Rückfragen lassen sich gezielt vorprüfen und wieder aufnehmen.
+Die Vorlagen berücksichtigen das iCloud-Benutzernamensformat. Postfachwarnungen
+führen direkt zur passenden Wiederverbindung; wiederholte Übernahmen prüfen auch
+nach lokalem Speichern den Konfigurationsstand. UTC-Zeitangaben werden beim
+Schutz bekannter Termindaten in der eingestellten Zeitzone verglichen.
+Der Stand aus 8.0 mit zentralem Google-Kalenderzugang ist enthalten. Prüfungen und
+Freigabegrenzen: [8.0](docs/Release-8.0.md), [8.1](docs/Release-8.1.md), [8.2](docs/Release-8.2.md).
+
+7.9.9 behebt, dass „Verbindung übernehmen“ nach der Google-Anmeldung scheiterte, und aktiviert eine neue Verbindung erst, wenn das Zielprofil gespeichert ist. 7.9.8 behebt, dass „Weiter zu Google“ beim Verbinden über Inboxstride ohne Wirkung blieb. 7.9.7 nimmt die Quellen der Landingpage `inboxstride.de` unter `landing/` ins Repository auf; ein Test baut die ausgelieferte Seite daraus Byte für Byte nach. 7.9.6 nimmt den zentralen Anmeldedienst unter `auth.inboxstride.de` in Betrieb und bindet die Produktion an; bis zur Pilotanmeldung nutzt sie weiter ihren eigenen Google-Zugang. Der Server wird täglich nach Dropbox gesichert. 7.9.5 ergänzt die Verwaltung gehosteter Google-Verbindungen: **Anderen Kalender wählen** wechselt den Kalender mit dem vorhandenen Zugang ohne neue Google-Anmeldung, und **Verbindung trennen** beendet die Tokenausgabe sofort, ohne Termine zu löschen oder die Google-Freigabe zu widerrufen. Der zentrale Anmeldedienst erhält ein eigenes schlankes Docker-Image. 7.9.4 führt die Vorbereitung von 8.0 fort: Gehostete Instanzen können den Google Kalender mit „Mit Google verbinden“ über den zentralen Inboxstride-Anmeldedienst verbinden, ohne Client-Daten oder Tokens einzutragen; der Dienst hat dafür einen öffentlichen Callback und eine interne mTLS-Schnittstelle mit eigener CA. Im eigenen Betrieb bleibt alles wie bisher. 7.9.3 bereitet Planung 8.0 vor: Die neue Komponente `inboxstride_auth` enthält Zustandsmodell, verschlüsselten Geheimnisspeicher und den geprüften Anmeldeablauf eines zentralen Google-Anmeldedienstes. Sie ist noch nicht in Betrieb; die Mailhelp-Anwendung verhält sich unverändert.
 
 7.9 ist mit 7.9.2 abgeschlossen: Lehnt ein verbundener Dienst die Anmeldung ab, etwa bei einer abgelaufenen Google-Freigabe, steht über Offen und Mails ein dauerhafter Hinweis „Verbindungsprobleme“ mit Auswirkung und Link „Verbindung prüfen“, bis der Dienst wieder erreichbar ist. Mailhelp prüft die Verbindungen dazu alle 15 Minuten rein lesend. 7.9.1 ergänzt den Einwahllink eines bereits eingetragenen Online-Termins: Liefert eine spätere Mail den Konferenzlink, bietet Mailhelp „Bestehenden Termin aktualisieren: Videolink ergänzen“ an statt den Vorschlag als Duplikat abzuschließen. Erst die Bestätigung schreibt den Link genau einmal in den vorhandenen Termin; Titel, Zeiten und eigene Notizen bleiben erhalten. Ein anderer vorhandener Konferenzlink wird nur nach ausdrücklicher Auswahl ersetzt, und ältere Duplikate mit Link lassen sich mit **Mit Kalender erneut abgleichen** neu bewerten.
 
@@ -210,8 +229,15 @@ im [Archiv](docs/archiv/). Die statische Projektwebsite liegt unter [website/](w
 Serveränderungen müssen nach erfolgreicher Prüfung vor Abschluss der Arbeit in der
 Betriebsdokumentation und den betroffenen Vorlagen nachgeführt werden; siehe
 [Entwicklungsregeln](AGENTS.md). Das vollständige Serverhandbuch mit Neuaufbau,
-Reparatur, Wiederherstellung und geheimnisfreien Konfigurationsvorlagen ist Bestandteil
-der [Planung 8.0](docs/Planung-8.0.md). Es ist noch zu erstellen.
+Reparatur, Wiederherstellung und geheimnisfreien Konfigurationsvorlagen steht im
+[Serverhandbuch](docs/Serverhandbuch.md) mit [Vorlagen](ops/server/README.md).
+
+[Planung 8.1](docs/Planung-8.1.md) beschreibt die vereinfachte Postfacheinrichtung
+mit Anbieterauswahl, automatischen IMAP-Einstellungen und OAuth2 für Gmail und
+Microsoft-Postfächer. Zusätzlich enthält sie den Fix für blockierte Terminrückfragen
+beim Ergänzen eines Datums zu einer bekannten Uhrzeit sowie die gezielte Wiederaufnahme
+betroffener Vorgänge. Den aktuellen Umsetzungs- und Prüfstand dokumentiert
+[Release 8.1](docs/Release-8.1.md).
 
 ## Lizenz
 

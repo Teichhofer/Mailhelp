@@ -16,11 +16,14 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from .ca import create_ca, fingerprint, issue
 from .google import Client, GoogleTokens
 from .http_api import serve, server_context
-from .models import AuthState, Instance
+from .microsoft import MicrosoftTokens
+from .models import MAIL_SCOPES, AuthState, Instance
+from .notion import NotionTokens
 from .secret_store import SecretStore, create_key
 from .service import AuthService, register_instance
 from .state_file import StateFile
@@ -49,13 +52,73 @@ def event_log(path: Path) -> Callable[[str, dict[str, Any]], None]:
     return write
 
 
+def public_origin(environ: dict[str, str]) -> str:
+    origin = environ.get("INBOXSTRIDE_AUTH_PUBLIC_URL", "https://auth.inboxstride.de").rstrip("/")
+    parts = urlsplit(origin)
+    local_http = parts.scheme == "http" and parts.hostname in {"localhost", "127.0.0.1"}
+    if (not parts.hostname or parts.username or parts.password or parts.path or parts.query or parts.fragment
+            or (parts.scheme != "https" and not local_http)):
+        raise ValueError("Invalid public auth origin")
+    return origin
+
+
 def build(environ: dict[str, str]) -> AuthService:
     state_dir = Path(_env("INBOXSTRIDE_AUTH_STATE", environ))
     store = SecretStore(state_dir, Path(_env("INBOXSTRIDE_AUTH_KEY", environ)))
     client_id, client_secret = store.get("client:id"), store.get("client:secret")
-    if not client_id or not client_secret:
+    microsoft_id, microsoft_secret = store.get("microsoft:id"), store.get("microsoft:secret")
+    notion_id, notion_secret = store.get("notion:id"), store.get("notion:secret")
+    if (not client_id or not client_secret) and (
+            (not microsoft_id or not microsoft_secret) and (not notion_id or not notion_secret)
+            or environ.get("INBOXSTRIDE_AUTH_GMAIL_ENABLED") == "1"):
         raise SystemExit("Google-Client fehlt; zuerst 'set-client' ausführen")
-    return AuthService(StateFile(state_dir), store, GoogleTokens(Client(client_id, client_secret)))
+    origin = public_origin(environ)
+    google = GoogleTokens(Client(client_id or "", client_secret or "", origin + "/auth/google/callback"))
+    mail: dict[str, GoogleTokens] = {}
+    if environ.get("INBOXSTRIDE_AUTH_GMAIL_ENABLED") == "1":
+        mail["gmail"] = google
+    if microsoft_id and microsoft_secret:
+        ms_client = Client(microsoft_id, microsoft_secret, origin + "/auth/microsoft/callback")
+        tenant = store.get("microsoft:tenant") or "common"
+        mail["microsoft"] = MicrosoftTokens(ms_client, tenant)
+        if environ.get("INBOXSTRIDE_AUTH_MICROSOFT_TARGETS_ENABLED") == "1":
+            mail["microsoft_targets"] = MicrosoftTokens(ms_client, tenant, scopes=MAIL_SCOPES["microsoft_targets"])
+    if notion_id and notion_secret:
+        mail["notion"] = NotionTokens(Client(notion_id, notion_secret, origin + "/auth/notion/callback"))
+    return AuthService(StateFile(state_dir), store, google, mail_providers=mail)
+
+
+def set_notion_client(environ: dict[str, str], client_file: Path) -> None:
+    """Import the registered Notion OAuth application from a private file."""
+    data = json.loads(client_file.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or any(not isinstance(data.get(key), str) or not data[key]
+                                         for key in ("client_id", "client_secret")):
+        raise ValueError("Missing Notion client")
+    client = Client(data["client_id"], data["client_secret"], public_origin(environ) + "/auth/notion/callback")
+    NotionTokens(client).close()
+    store = SecretStore(Path(_env("INBOXSTRIDE_AUTH_STATE", environ)), Path(_env("INBOXSTRIDE_AUTH_KEY", environ)))
+    store.put("notion:id", client.client_id)
+    store.put("notion:secret", client.client_secret)
+    states = StateFile(Path(_env("INBOXSTRIDE_AUTH_STATE", environ)))
+    states.update(lambda state: state.model_copy(update={"client_revision": state.client_revision + 1}))
+
+
+def set_mail_client(environ: dict[str, str], client_file: Path) -> None:
+    """Import the separately registered Microsoft IMAP application from a private file."""
+    data = json.loads(client_file.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or any(not isinstance(data.get(key), str) or not data[key]
+                                         for key in ("client_id", "client_secret")):
+        raise ValueError("Missing Microsoft client")
+    client = Client(data["client_id"], data["client_secret"], public_origin(environ) + "/auth/microsoft/callback")
+    tenant = data.get("tenant", "common")
+    probe = MicrosoftTokens(client, tenant)
+    probe.close()
+    store = SecretStore(Path(_env("INBOXSTRIDE_AUTH_STATE", environ)),
+                        Path(_env("INBOXSTRIDE_AUTH_KEY", environ)))
+    for key, value in (("id", client.client_id), ("secret", client.client_secret), ("tenant", tenant)):
+        store.put("microsoft:" + key, value)
+    states = StateFile(Path(_env("INBOXSTRIDE_AUTH_STATE", environ)))
+    states.update(lambda state: state.model_copy(update={"client_revision": state.client_revision + 1}))
 
 
 def set_client(environ: dict[str, str], client_file: Path) -> int:
@@ -93,6 +156,10 @@ def main(argv: Sequence[str] | None = None, environ: dict[str, str] | None = Non
     block = commands.add_parser("disable", help="Instanz sperren (widerruft ihr Zertifikat sofort)")
     block.add_argument("id")
     client = commands.add_parser("set-client", help="Google-Webanwendungsclient aus JSON übernehmen")
+    mail_client = commands.add_parser("set-mail-client", help="Microsoft-IMAP-Client aus privater JSON übernehmen")
+    notion_client = commands.add_parser("set-notion-client", help="Notion-OAuth-Client aus privater JSON übernehmen")
+    mail_client.add_argument("file", type=Path)
+    notion_client.add_argument("file", type=Path)
     client.add_argument("file", type=Path)
     commands.add_parser("sweep", help="Abgelaufene Aufträge beenden")
     commands.add_parser("serve", help="Öffentlichen Callback und interne mTLS-Schnittstelle starten")
@@ -115,6 +182,12 @@ def main(argv: Sequence[str] | None = None, environ: dict[str, str] | None = Non
             states.update(disable)
     elif args.command == "set-client":
         print(f"Clientrevision {set_client(environ, args.file)}")
+    elif args.command == "set-mail-client":
+        set_mail_client(environ, args.file)
+        print("Microsoft-IMAP-Client gespeichert")
+    elif args.command == "set-notion-client":
+        set_notion_client(environ, args.file)
+        print("Notion-OAuth-Client gespeichert")
     elif args.command == "sweep":
         print(build(environ).sweep())
     else:

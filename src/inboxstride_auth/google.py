@@ -68,9 +68,13 @@ def authorization_url(client: Client, state: str, challenge: str, scopes: tuple[
 
 
 class GoogleTokens:
+    token_url = TOKEN
     def __init__(self, client: Client, timeout: float = 15, transport: httpx.BaseTransport | None = None) -> None:
         self.client = client
         self._http = httpx.Client(timeout=timeout, transport=transport)
+
+    def authorize(self, state: str, challenge: str, scopes: tuple[str, ...]) -> str:
+        return authorization_url(self.client, state, challenge, scopes)
 
     def exchange(self, code: str, verifier: str) -> TokenAnswer:
         try:
@@ -85,7 +89,7 @@ class GoogleTokens:
 
     def _post(self, data: dict[str, str]) -> TokenAnswer:
         try:
-            response = self._http.post(TOKEN, data={**data, "client_id": self.client.client_id,
+            response = self._http.post(self.token_url, data={**data, "client_id": self.client.client_id,
                                                     "client_secret": self.client.client_secret})
         except httpx.HTTPError:
             raise TemporaryFailure("Google nicht erreichbar") from None

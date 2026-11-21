@@ -335,7 +335,7 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
 def _comparison_reader(settings: Settings, secrets: Secrets, recorder: ComparisonRecorder,
                        stack: ExitStack, mailbox: MailboxSettings) -> ImapReader:
     cfg = settings.timeouts.imap
-    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id), settings.hosted_auth)
     reader = ImapReader(
         *address, cfg.timeout_seconds, **options,
         policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,

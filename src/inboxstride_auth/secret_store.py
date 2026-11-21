@@ -11,6 +11,7 @@ import json
 import os
 import stat
 import tempfile
+import threading
 from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
@@ -52,6 +53,7 @@ def _write(path: Path, text: str) -> None:
 
 class SecretStore:
     def __init__(self, directory: Path, key_file: Path) -> None:
+        self._lock = threading.RLock()
         directory, key_file = directory.resolve(), key_file.resolve()
         if key_file.is_relative_to(directory):
             raise SecretStoreError("Der Schlüssel darf nicht im Zustandsverzeichnis liegen")
@@ -68,6 +70,10 @@ class SecretStore:
         directory.mkdir(parents=True, exist_ok=True)
 
     def _load(self) -> dict[str, str]:
+        with self._lock:
+            return self._read()
+
+    def _read(self) -> dict[str, str]:
         if not self.path.exists():
             return {}
         try:
@@ -83,9 +89,10 @@ class SecretStore:
                + "\n")
 
     def put(self, name: str, value: str) -> None:
-        secrets = self._load()
-        secrets[name] = self._fernet.encrypt(value.encode("utf-8")).decode("ascii")
-        self._save(secrets)
+        with self._lock:
+            secrets = self._load()
+            secrets[name] = self._fernet.encrypt(value.encode("utf-8")).decode("ascii")
+            self._save(secrets)
 
     def get(self, name: str) -> str | None:
         token = self._load().get(name)
@@ -97,17 +104,22 @@ class SecretStore:
             raise SecretStoreError("Geheimnis lässt sich mit keinem Schlüssel entschlüsseln") from None
 
     def delete(self, name: str) -> bool:
-        secrets = self._load()
-        if secrets.pop(name, None) is None:
-            return False
-        self._save(secrets)
-        return True
+        with self._lock:
+            secrets = self._load()
+            if secrets.pop(name, None) is None:
+                return False
+            self._save(secrets)
+            return True
 
     def names(self) -> list[str]:
         return sorted(self._load())
 
     def rotate(self) -> int:
         """Re-encrypt every secret with the primary key; returns how many were rewritten."""
+        with self._lock:
+            return self._rotate()
+
+    def _rotate(self) -> int:
         secrets = self._load()
         try:
             rotated = {name: self._fernet.rotate(token.encode("ascii")).decode("ascii")

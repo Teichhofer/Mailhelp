@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any, Protocol, TypeVar
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ValidationError
 
@@ -26,6 +27,7 @@ from ..domain.extraction import (
 )
 from ..domain.prepared import PreparedAttachment
 from ..domain.proposal import (
+    KnownTemporalFacts,
     Proposal,
     ProposalRevisionChanges,
     ProposalRevisionDelta,
@@ -100,8 +102,24 @@ class Completer(Protocol):
         """Return the call id and the parsed JSON answer."""
 
 
+def _local_day(value: date | datetime | None, timezone: str | None) -> date | None:
+    if isinstance(value, datetime):
+        return (value.astimezone(ZoneInfo(timezone)) if timezone is not None else value).date()
+    return value
+
+
+def _validate_known_clock(known: KnownTemporalFacts | None, revised: Proposal, timezone: str | None) -> None:
+    successor_start = (revised.known_temporal_facts.start
+                       if revised.known_temporal_facts is not None else revised.start)
+    if known is not None and known.start_time is not None and isinstance(successor_start, datetime):
+        local_start = successor_start.astimezone(ZoneInfo(timezone)) if timezone is not None else successor_start
+        if local_start.time() != known.start_time:
+            raise ContradictoryRevision("Eine bekannte Beginnzeit darf nicht verändert werden", "known_clock_changed")
+
+
 def validate_revision_successor(previous: Proposal, candidate: Any, *,
-                                allow_all_day_resolution: bool = False) -> Proposal:
+                                allow_all_day_resolution: bool = False,
+                                configured_timezone: str | None = None) -> Proposal:
     """Compatibility boundary for services returning an already built successor."""
     revised = Proposal.model_validate(candidate)
     if revised.id != previous.id:
@@ -130,24 +148,25 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
     )
     if known is not None and revised.all_day and not resolved_all_day:
         raise ContradictoryRevision("Ein bekanntes Datum ohne Ganztagsevidenz darf nicht ganztägig werden")
+    _validate_known_clock(known, revised, configured_timezone)
     if known is not None and revised.known_temporal_facts is not None and revised.known_temporal_facts != known:
         enriched_start = (known.start is None
-                          and revised.known_temporal_facts.date == known.date
+                          and (known.date is None or revised.known_temporal_facts.date == known.date)
                           and revised.known_temporal_facts.end_date == known.end_date
                           and revised.known_temporal_facts.start is not None)
         if not enriched_start:
-            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden")
+            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden", "known_facts_changed")
     if known is not None and revised.known_temporal_facts is None:
         complete_timed = (isinstance(revised.start, datetime)
                           and isinstance(revised.end, datetime))
-        start_day = revised.start.date() if isinstance(revised.start, datetime) else None
+        start_day = _local_day(revised.start, configured_timezone)
         if (not complete_timed and not resolved_all_day) or (
             complete_timed and known.date is not None and start_day != known.date
         ):
-            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
+            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen", "known_facts_lost")
         if ((known.start is not None and revised.start != known.start)
                 or (known.end_date is not None and isinstance(revised.end, datetime)
-                    and revised.end.date() != known.end_date)):
+                    and _local_day(revised.end, configured_timezone) != known.end_date)):
             raise ContradictoryRevision("Eine bekannte Beginnzeit oder ein Enddatum darf nicht verändert werden")
     if previous.start is not None and revised.start != previous.start:
         raise ContradictoryRevision("Ein bestätigter Terminbeginn darf nicht verändert werden")

@@ -66,6 +66,21 @@ def microsoft_tokens(settings: Settings, secrets: Secrets, base_directory: Path,
         timeout, transport, logger=logger)
 
 
+def notion_tokens(settings: Settings, secrets: Secrets, base_directory: Path, timeout: float,
+                  transport: httpx.BaseTransport | None, logger: EventLogger | None,
+                  profile_id: int) -> str | NotionTokenProvider | HostedTokenProvider:
+    if settings.targets.notion_connection:
+        return HostedTokenProvider(HostedAuthClient(settings.hosted_auth, transport, timeout),
+                                   settings.targets.notion_connection, logger, purpose="notion")
+    token = secrets.notion_token.get_secret_value()
+    if token:
+        return token
+    return NotionTokenProvider(secrets.notion_client_id.get_secret_value(),
+                               secrets.notion_client_secret.get_secret_value(),
+                               NotionTokenFile(token_path(base_directory, profile_id)), timeout,
+                               transport, logger)
+
+
 def google_tokens(settings: Settings, secrets: Secrets, timeout: float, transport: httpx.BaseTransport | None,
                   logger: EventLogger | None) -> GoogleOAuthTokenProvider | HostedTokenProvider | None:
     """The Google sign-in of a profile: hosted through Inboxstride (8.0), direct (7.2) or none."""
@@ -110,10 +125,15 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         return policy(name) if policy is not None else None
 
     caldav = (secrets.caldav_username.get_secret_value(), secrets.caldav_password.get_secret_value())
-    microsoft: MicrosoftTokenProvider | None = None
+    microsoft: MicrosoftTokenProvider | HostedTokenProvider | None = None
     if targets.uses_microsoft:
-        microsoft = microsoft_tokens(
-            settings, secrets, base_directory, timeout("microsoft"), transport, logger, profile_id
+        microsoft = (
+            HostedTokenProvider(HostedAuthClient(settings.hosted_auth, transport, timeout("microsoft")),
+                                targets.microsoft_connection, logger, purpose="microsoft_targets")
+            if targets.microsoft_connection
+            else microsoft_tokens(
+                settings, secrets, base_directory, timeout("microsoft"), transport, logger, profile_id
+            )
         )
         resources.append(microsoft)
         stack.callback(microsoft.close)
@@ -137,13 +157,8 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         tasks = GoogleTasks(google, targets.google_tasks_list, timeout("google_tasks"), transport,
                             retry("google_tasks"), logger, settings.timezone)
     elif targets.task_provider == "notion":
-        token: str | NotionTokenProvider = secrets.notion_token.get_secret_value()
-        if not token:
-            # 7.2.5: a public connection signed in through OAuth; its grant file belongs to the profile.
-            token = NotionTokenProvider(secrets.notion_client_id.get_secret_value(),
-                                        secrets.notion_client_secret.get_secret_value(),
-                                        NotionTokenFile(token_path(base_directory, profile_id)), timeout("notion"),
-                                        transport, logger)
+        token = notion_tokens(settings, secrets, base_directory, timeout("notion"), transport, logger, profile_id)
+        if not isinstance(token, str):
             resources.append(token)
             stack.callback(token.close)
         tasks = NotionTasks(token, targets.notion_data_source_id,
@@ -166,6 +181,7 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         assert microsoft is not None
         calendar = OutlookCalendar(microsoft, targets.outlook_calendar, timeout("microsoft"), transport,
                                    retry("microsoft"), logger, settings.timezone, calendar_matcher)
+        calendar.binding = targets.calendar_binding if targets.microsoft_connection else ""
     else:
         calendar = CalDavCalendar(targets.caldav_calendar_url, *caldav, timeout("caldav"), transport,
                                   retry("caldav"), logger, settings.timezone, calendar_matcher)

@@ -40,6 +40,10 @@ def test_initial_wizard_from_empty_directory_to_saved_configuration(page,initial
     expect(page.locator('input[name="timezone"]')).to_have_value('Europe/Berlin')
     page.get_by_label('Web-Passwort (mindestens 12 Zeichen)').fill('synthetic-browser-password')
     page.get_by_role('button',name='Speichern und weiter',exact=True).click()
+    page.get_by_label('E-Mail-Adresse des Postfachs', exact=True).fill('synthetic@web.de')
+    page.get_by_role('button', name='Anbietereinstellungen laden', exact=True).click()
+    expect(page.get_by_label('IMAP-Server', exact=True)).to_have_value('imap.web.de')
+    assert h.checks.calls == []
     page.get_by_label('IMAP-Server',exact=True).fill('imap.example.test')
     page.get_by_label('IMAP_USERNAME',exact=True).fill('synthetic@example.test')
     page.get_by_label('IMAP_PASSWORD',exact=True).fill('synthetic-imap-password')

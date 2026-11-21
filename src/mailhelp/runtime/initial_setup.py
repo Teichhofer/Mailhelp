@@ -24,15 +24,18 @@ from .web_password import WebPassword
 
 FIELDS = {
     1: ("timezone",),
-    2: ("imap.host", "imap.port", "imap.connection_mode", "imap.primary_folder", "imap.drafts_folder"),
+    2: ("imap.host", "imap.port", "imap.connection_mode", "imap.primary_folder", "imap.drafts_folder",
+        "imap.auth_method", "imap.oauth_connection"),
     3: ("llm.provider", "llm.ollama_address"),
     4: ("targets.calendar_provider", "targets.task_provider", "targets.google_calendar", "targets.todoist_project",
         "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
         "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
-        "targets.google_connection", "web.google_redirect_uri"),
+        "targets.google_connection", "targets.microsoft_connection", "targets.notion_connection",
+        "web.google_redirect_uri"),
 }
-# 8.0: set only by the hosted Google sign-in, never typed into a form; a saved step keeps the value.
-HIDDEN_FIELDS = frozenset({"targets.google_connection"})
+# 8.0 / 8.2: set only by the hosted sign-in, never typed into a form; a saved step keeps the value.
+HIDDEN_FIELDS = frozenset({"targets.google_connection", "targets.microsoft_connection", "targets.notion_connection",
+                           "imap.auth_method", "imap.oauth_connection"})
 SECRET_FIELDS = {
     1: (), 2: ("IMAP_USERNAME", "IMAP_PASSWORD"), 3: ("OPENROUTER_API_KEY",),
     4: ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN", "TODOIST_TOKEN",

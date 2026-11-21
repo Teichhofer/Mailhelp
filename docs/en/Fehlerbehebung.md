@@ -1,6 +1,13 @@
 # Troubleshooting <!-- mailhelp-id:fehlerbehebung/fehler-beheben -->
 
-Reviewed for Mailhelp 7.0. Safe next steps for common problems. None of these steps creates duplicate entries: Mailhelp never repeats a write whose outcome is unclear; it reconciles it with the provider first.
+Reviewed for Mailhelp 8.1. Safe next steps for common problems. None of these steps creates duplicate entries: Mailhelp never repeats a write whose outcome is unclear; it reconciles it with the provider first.
+
+For contradictory event revisions, `answer_revision_failed` includes the content-free
+`revision_contract`: `known_clock_changed`, `known_facts_changed`, `known_facts_lost`
+or `revision_conflict`. These distinguish changed clocks, changed/lost temporal facts
+and other conflicts without logging the answer. A code alone never authorizes recovery:
+check the current version and stored normalized answer, then use the read-only
+preflight described in [Operation](Betrieb.md).
 
 | Situation | Cause | Next step |
 | --- | --- | --- |

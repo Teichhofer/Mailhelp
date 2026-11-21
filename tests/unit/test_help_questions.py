@@ -61,3 +61,10 @@ def test_typical_questions_find_corresponding_section(question: str, expected_se
     assert expected_section_id in matched
     # It should even be the top result or in the first two results
     assert matched[0] == expected_section_id
+
+
+def test_control_poll_limit_remains_findable_when_other_sections_share_its_stem():
+    sections = load().select("Wie viele Kontrollabrufe macht Mailhelp nach einer Eintragung?")
+    matching = next(section for section in sections if
+                    section.id == "web-einstellungen/ki-anbindung-nachanalyse-und-nachpruefung")
+    assert "write_verification.max_attempts" in matching.text

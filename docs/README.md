@@ -1,6 +1,6 @@
 # Dokumentation
 
-Geprüft für Mailhelp 7.0
+Geprüft für Mailhelp 8.1
 
 Hier stehen die Dokumente, die den aktuellen Stand beschreiben. Abgeschlossene Pläne,
 Release-Berichte, Konzepte und frühere Prüfberichte liegen im [Archiv](archiv/); sie beschreiben
@@ -27,8 +27,9 @@ den Stand ihrer Version und werden nicht mehr nachgeführt.
 | [Projektwebsite](GitHub-Pages.md) | Aufbau und Veröffentlichung von `website/` |
 
 Serveränderungen werden nach erfolgreicher Prüfung gemäß [AGENTS.md](../AGENTS.md)
-in der Betriebsdokumentation nachgeführt. [Planung 8.0](Planung-8.0.md) enthält das
-noch zu erstellende Serverhandbuch samt Vorlagen, Neuaufbau und Wiederherstellungsprobe.
+in der Betriebsdokumentation nachgeführt. Das in [Planung 8.0](Planung-8.0.md)
+geforderte zusammengeführte [Serverhandbuch](Serverhandbuch.md) liegt vor;
+seine Grenzen und der tatsächlich geprüfte Serverstand stehen im Dokument.
 Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git gespeichert.
 
 ## Aufbau und Regeln
@@ -58,6 +59,7 @@ Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git ge
 | [Planung 7.8](Planung-7.8.md), [Release 7.8](Release-7.8.md) | Vollständige Lokalisierung und englische Demo |
 | [Planung 7.9](Planung-7.9.md), [Release 7.9](Release-7.9.md) | Kalender-Zugangsdaten ergänzen und Anmeldeprobleme sichtbar machen |
 | [Planung 8.0](Planung-8.0.md), [Release 8.0](Release-8.0.md) | Zentraler Google-Zugang, Ersteinrichtung und Serverhandbuch mit Konfigurationsvorlagen |
+| [Planung 8.1](Planung-8.1.md) | Anbietervorlagen und Postfach-OAuth2; Fehlerbehebung für Datumsergänzung bei bekannter Uhrzeit und Wiederaufnahme pausierter Rückfragen |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

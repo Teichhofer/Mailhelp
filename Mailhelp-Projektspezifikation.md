@@ -1,9 +1,52 @@
 # Mailhelp – Projektspezifikation
 
-Geprüft für Mailhelp 7.0 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
+Geprüft für Mailhelp 8.1 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
-## Ergänzung 8.0: Google über Inboxstride verbinden (in Umsetzung)
+## Ergänzung 8.2: Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths
+
+Plan: [docs/Planung-8.2.md](docs/Planung-8.2.md), Stand: [docs/Release-8.2.md](docs/Release-8.2.md).
+
+- **Zentrale Ziel-OAuths:** `inboxstride_auth` unterstützt neben `calendar`, `gmail` und
+  `microsoft` die Zielzwecke `microsoft_targets` (Microsoft Graph Kalender und To Do) und
+  `notion` (`/auth/notion/callback`, `set-notion-client`). Zielverbindungen desselben
+  Zielprofils mit unterschiedlichem Zweck (`calendar`, `microsoft_targets`, `notion`)
+  koexistieren unabhängig.
+- **Instanz:** `targets.microsoft_connection` und `targets.notion_connection` (auch je
+  `target_profiles[]`) binden den zentralen Zugang; `HostedTargetsSite` prüft die
+  Zielauswahl lesend, speichert den lokalen Entwurf vor `/intern/activate` und trennt
+  Verbindungen über `/intern/disconnect` und `forget_locally`. Outlook-Vorschläge binden
+  `calendar_binding` an `outlook-<Verbindung>`.
+- **Geführtes Onboarding (`/onboarding`):** Dreistufiger Assistent (`OnboardingService`,
+  `onboarding.json`) für Postfachprüfung (Schritt 1), Zielsystemprüfung (Schritt 2) sowie
+  Starter-Themenprofile und begrenzten Probelauf im Testmodus (Schritt 3). Erst die
+  ausdrückliche Bestätigung schreibt `topics.yaml` und schließt das Onboarding ab;
+  Überspringen in die Expertenansicht (`/einrichtung`) ist jederzeit möglich.
+
+## Ergänzung 8.1: Postfach-Anbieter und Terminrückfragen
+
+Lokale Anbietervorlagen werden ausdrücklich in das angezeigte Formular übernommen,
+ohne Verbindungstest oder Speicherung. Manuelle Änderungen bleiben möglich. Unbekannte
+Domains werden nicht durch Raten oder Passwortversand an Suchdienste aufgelöst.
+Postfach-OAuth verwendet getrennte Zwecke, Postfach-IDs und Berechtigungen; eine
+Kalenderverbindung ist kein Mailzugang. Tokenausgabe erfolgt nur an die berechtigte
+Instanz. Kandidat und aktiver Zugang bleiben bis zur ausdrücklichen Übernahme getrennt.
+Anbieterfreigaben sind Voraussetzung für die produktive Verfügbarkeit.
+Die Vorlagen enthalten Port, TLS-Modus, Benutzernamensmuster und Quellenprüfdatum.
+iCloud schlägt zunächst den lokalen Namen vor; die vollständige Adresse bleibt
+manuell wählbar. OAuth-Postfachwarnungen führen zur erneuten Anmeldung genau
+dieses Postfachs. Ein Wiederholungsversuch nach lokalem Speichern bleibt an den
+gespeicherten Konfigurationsstand gebunden; fremde Änderungen sperren die Aktivierung.
+
+Ein datumsunabhängig bekannter Beginn darf durch eine gültige Antwort um sein Datum
+ergänzt werden. Die bekannte Uhrzeit bleibt in der konfigurierten Zeitzone erhalten;
+auch ein vollständiger neuer Zeitraum darf sie nicht überschreiben. Das fehlende Ende
+bleibt offen. Wiederaufnahme einer pausierten Antwort benötigt eine passende aktuelle
+Version und Vorprüfung; sie erteilt keine Kalender-/Todoist-Schreibfreigabe.
+Datumsvergleiche vollständiger Zeitintervalle erfolgen ebenfalls in der konfigurierten
+Zeitzone. Eine UTC-Darstellung mit anderem UTC-Kalendertag verändert das lokale Datum nicht.
+
+## Ergänzung 8.0: Google über Inboxstride verbinden
 
 Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](docs/Release-8.0.md).
 
@@ -33,9 +76,6 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   `disconnect` auf und sperrt die Verbindung im Prozess auch für einen noch zwischengespeicherten
   Token; die Referenz bleibt im Profil, damit es ohne eigene Google-Geheimnisse gültig bleibt, und
   die Warnung führt zu „Google erneut verbinden“. Google-Grants werden nie automatisch widerrufen.
-- **Angenommenes Terminende** (seit 7.9.10): Ein Ende aus der Standarddauer (`end_origin: standard`)
-  übernimmt beim Abgleich mit einem gefundenen zeitgebundenen Kalendertermin dessen Dauer
-  (`end_origin: calendar`); nur ein in der Mail genanntes Ende ändert das Terminende.
 - **Landingpage** (seit 7.9.7): Quellen, Formulardienst `lead_service.py` und Seitenbau
   `build_site.py` unter `landing/`; Installation mit `devtools/landing_install.py`. Der Seitenbau
   muss die ausgelieferten Dateien Byte für Byte erzeugen (`tests/landing/test_landing_build.py`).

@@ -1,6 +1,14 @@
 # Konten verwalten
 
-Geprüft für Mailhelp 7.0. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in
+Ab 8.1 bietet das Hinzufügen eines Postfachs dieselbe lokale Anbieterauswahl wie die
+Ersteinrichtung. Eigene Domains können ausdrücklich einem Hoster zugeordnet werden;
+unbekannte Domains bleiben manuell einrichtbar. Die Auswahl ändert keine bestehenden
+Konten. Gmail-/Microsoft-Postfach-OAuth benötigt eine getrennte Freigabe und vorherige
+Einrichtung durch den Betreiber. Ein geprüfter neuer Zugang ersetzt den bisherigen
+Reader zwischen zwei Mailzyklen. Schlägt der Verbindungsaufbau fehl, bleibt der
+bisherige Reader erhalten; andere Postfächer werden nicht neu gestartet.
+
+Geprüft für Mailhelp 8.1. Weitere Postfächer, IServ-Konten und weitere Kalender-/Aufgabenziele in
 einer bereits eingerichteten Installation hinzufügen, ändern und entfernen.
 
 **Grundsatz:** Zugangsdaten stehen nur in `.env` und werden unter **Einstellungen →
@@ -91,6 +99,12 @@ Profil 1 ist das Ziel aus der Ersteinrichtung (**Standardprofil 1 bearbeiten**).
 | Zugangsdaten erneuern | **Einstellungen → Zugangsdaten** | Diagnose sofort, Mailabruf nach Neustart |
 
 ## Wenn etwas nicht klappt
+
+Bei einem abgelehnten OAuth-Postfachzugang führt „Postfach erneut verbinden“ aus der
+Warnung direkt zur Anmeldung des betroffenen Google- oder Microsoft-Postfachs.
+Nach einer zwischenzeitlichen Änderung an Konfiguration oder Zugangsdaten den
+Vorgang neu beginnen. Bei iCloud zunächst den vorgeschlagenen Namen vor `@` nutzen;
+falls die Anmeldung scheitert, die vollständige iCloud-Adresse gemäß Anbieteranleitung testen.
 
 | Lage | Nächster Schritt |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Mailhelp-Projektwebsite
 
-Geprüft für Mailhelp 7.0.
+Geprüft für Mailhelp 8.1.
 
 Die statische Website liegt in `website/`. Sie enthält Startseite, Einrichtung,
 Konfiguration, Datenschutz, Impressum und Nutzungsbedingungen. Betreiber ist

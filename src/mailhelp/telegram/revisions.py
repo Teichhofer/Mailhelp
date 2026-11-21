@@ -425,6 +425,8 @@ class ProposalRevisionProcessor:
     ) -> None:
         """Log a revision failure without untrusted answer or question content."""
         fields: dict[str, Any] = {}
+        if isinstance(exc, ContradictoryRevision):
+            fields["revision_contract"] = exc.code
         if isinstance(exc, ValidationError):
             fields["validation_errors"] = [
                 {

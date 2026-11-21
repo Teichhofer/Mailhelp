@@ -62,9 +62,11 @@ class TargetSettings(ConfigModel):
                            "notion"] = "todoist"
     todoist_project: str = Field(default="", max_length=500)
     google_calendar: str = Field(default="", max_length=500)
-    # 8.0: reference of a Google access held by the central Inboxstride service (hosted mode);
-    # empty for the direct mode with the profile's own GOOGLE_OAUTH_* secrets.
+    # 8.0 / 8.2: references of accesses held by the central Inboxstride service (hosted mode);
+    # empty for the direct mode with the profile's own secrets.
     google_connection: str = Field(default="", pattern=r"^([a-f0-9]{32})?$")
+    microsoft_connection: str = Field(default="", pattern=r"^([a-f0-9]{32})?$")
+    notion_connection: str = Field(default="", pattern=r"^([a-f0-9]{32})?$")
     caldav_calendar_url: str = Field(default="", max_length=2000)
     caldav_task_url: str = Field(default="", max_length=2000)
     outlook_calendar: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
@@ -126,6 +128,8 @@ class TargetSettings(ConfigModel):
         """
         if self.google_connection and self.calendar_provider == "google":
             return "google-" + self.google_connection[:16]
+        if self.microsoft_connection and self.calendar_provider == "outlook":
+            return "outlook-" + self.microsoft_connection[:16]
         return self.calendar_provider
 
     @property

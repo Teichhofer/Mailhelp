@@ -91,6 +91,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Altes Einpostfachformat: `password`, `gmail` oder `microsoft`. OAuth braucht den zentralen Anmeldedienst.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.auth_method",
+  "key": "imap.auth_method",
+  "label": "imap.auth_method",
+  "path": "Datei",
+  "summary": "Datei: Altes Einpostfachformat: `password`, `gmail` oder `microsoft`."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Verbindungsart `ssl`, `starttls` oder `plain` (unverschlüsselt, nur im eigenen Netz sinnvoll); ohne Angabe `ssl`.",
   "href": "/hilfe/dokumentation/web-einstellungen/ersteinrichtung-und-postfach-1-aelteres-einzelformat",
   "id": "setting:imap.connection_mode",
@@ -148,6 +158,16 @@
   "label": "imap.mailboxes[].activity_report_folder",
   "path": "Postfachseite",
   "summary": "Postfachseite: Vorausgewählter Ordner für Tätigkeitsberichte."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Anmeldung je Postfach; Standard `password`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.mailboxes[].auth_method",
+  "key": "imap.mailboxes[].auth_method",
+  "label": "imap.mailboxes[].auth_method",
+  "path": "Datei",
+  "summary": "Datei: Anmeldung je Postfach; Standard `password`."
  },
  {
   "area": "Weitere Einstellungen",
@@ -361,6 +381,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Kennung des Postfachzugangs; im Passwortmodus leer.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.mailboxes[].oauth_connection",
+  "key": "imap.mailboxes[].oauth_connection",
+  "label": "imap.mailboxes[].oauth_connection",
+  "path": "Datei",
+  "summary": "Datei: Kennung des Postfachzugangs; im Passwortmodus leer."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Weitere eigene Absenderadressen (Aliase), höchstens 20; der IMAP-Benutzername zählt bereits. Mails von diesen Adressen gelten als eigene Notiz oder Weiterleitung.",
   "href": "/hilfe/dokumentation/web-einstellungen/postfaecher-imapmailboxes",
   "id": "setting:imap.mailboxes[].own_addresses",
@@ -428,6 +458,16 @@
   "label": "imap.mailboxes[].target_profile",
   "path": "Postfachseite",
   "summary": "Postfachseite: Zielprofil 1–99 für neue Vorschläge dieses Postfachs; Standard 1."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Altes Einpostfachformat: eigene Postfach-Verbindungsreferenz, keine Kalenderreferenz.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:imap.oauth_connection",
+  "key": "imap.oauth_connection",
+  "label": "imap.oauth_connection",
+  "path": "Datei",
+  "summary": "Datei: Altes Einpostfachformat: eigene Postfach-Verbindungsreferenz, keine Kalenderreferenz."
  },
  {
   "area": "Weitere Einstellungen",
@@ -1211,6 +1251,16 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Referenz des Microsoft-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Microsoft verbinden“.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].microsoft_connection",
+  "key": "target_profiles[].microsoft_connection",
+  "label": "target_profiles[].microsoft_connection",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Referenz des Microsoft-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Microsoft verbinden“."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Microsoft-Mandant für die Anmeldung, Standard `common`.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].microsoft_tenant",
@@ -1228,6 +1278,16 @@
   "label": "target_profiles[].microsoft_todo_list",
   "path": "Zielprofilseite",
   "summary": "Zielprofilseite: Microsoft-To-Do-Liste, Standard `default` (Liste „Aufgaben“)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Referenz des Notion-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Notion verbinden“.",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].notion_connection",
+  "key": "target_profiles[].notion_connection",
+  "label": "target_profiles[].notion_connection",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Referenz des Notion-Zugangs beim Inboxstride-Anmeldedienst (8.2); setzt nur „Mit Notion verbinden“."
  },
  {
   "area": "Weitere Einstellungen",
@@ -1368,6 +1428,26 @@
   "label": "targets.google_connection",
   "path": "Einrichtung",
   "summary": "Einrichtung: Referenz des Google-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen); leer im eigenen Betrieb mit `GOOGLE_OAUTH_*`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Referenz des Microsoft-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `MICROSOFT_*`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:targets.microsoft_connection",
+  "key": "targets.microsoft_connection",
+  "label": "targets.microsoft_connection",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Referenz des Microsoft-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `MICROSOFT_*`."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Referenz des Notion-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `NOTION_TOKEN` oder `NOTION_CLIENT_*`.",
+  "href": "/hilfe/dokumentation/web-einstellungen/gehostete-google-anmeldung-80",
+  "id": "setting:targets.notion_connection",
+  "key": "targets.notion_connection",
+  "label": "targets.notion_connection",
+  "path": "Einrichtung",
+  "summary": "Einrichtung: Referenz des Notion-Zugangs beim Anmeldedienst (32 Hexadezimalzeichen, 8.2); leer im eigenen Betrieb mit `NOTION_TOKEN` oder `NOTION_CLIENT_*`."
  },
  {
   "area": "Weitere Einstellungen",

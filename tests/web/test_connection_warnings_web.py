@@ -85,3 +85,15 @@ def test_each_connection_names_its_effect_and_setup_page():
     assert "<strong>Google sign-in: Sign-in failed.</strong>" in english and ">Check connection</a>" in english
     assert "Last failed: Nov 18, 2026, 21:18." in english
     assert connection_warnings([], "UTC") == ""
+
+
+@pytest.mark.parametrize("method,provider", [("gmail", "gmail"), ("microsoft", "microsoft")])
+def test_mailbox_warning_reconnects_the_affected_mailbox_only(method, provider):
+    problems = [problem("imap:account", "imap", "login_rejected", 2)]
+    html = connection_warnings(problems, "UTC", mailbox_auth={2: method})
+    assert f'/postfach/oauth?provider={provider}&amp;mailbox=2' in html
+    assert ">Postfach erneut verbinden</a>" in html
+    with use_locale(Locale.EN):
+        html = connection_warnings(problems, "UTC", mailbox_auth={2: method})
+        assert ">Reconnect mailbox</a>" in html
+    assert '/postfach/oauth' not in connection_warnings(problems, "UTC", mailbox_auth={2: "password"})

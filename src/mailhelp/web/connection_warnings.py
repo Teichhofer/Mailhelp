@@ -42,7 +42,8 @@ def _service(problem: ConnectionProblem) -> tuple[str, str, str]:
     return name, str(effect), "/einstellungen/zielprofile"
 
 
-def connection_warnings(problems: Iterable[ConnectionProblem], timezone: str, *, hosted_google: bool = False) -> str:
+def connection_warnings(problems: Iterable[ConnectionProblem], timezone: str, *, hosted_google: bool = False,
+                        mailbox_auth: dict[int, str] | None = None) -> str:
     """One warning per affected connection; nothing at all while every used connection signs in.
 
     8.0: with the hosted Google sign-in, a Google problem leads straight to "Google erneut verbinden".
@@ -54,6 +55,14 @@ def connection_warnings(problems: Iterable[ConnectionProblem], timezone: str, *,
         action = tr("Verbindung prüfen")
         if hosted_google and problem.service in {"google_oauth", "google_calendar"}:
             link, action = f"/google/verbinden?profile={problem.number or 1}", tr("Google erneut verbinden")
+        if hosted_google and problem.service in {"microsoft_oauth", "outlook_calendar", "microsoft_todo"}:
+            link, action = f"/microsoft/verbinden?profile={problem.number or 1}", tr("Microsoft erneut verbinden")
+        if hosted_google and problem.service == "notion":
+            link, action = f"/notion/verbinden?profile={problem.number or 1}", tr("Notion erneut verbinden")
+        method = (mailbox_auth or {}).get(problem.number or 0)
+        if problem.service == "imap" and method in {"gmail", "microsoft"}:
+            link = f"/postfach/oauth?provider={method}&mailbox={problem.number}"
+            action = tr("Postfach erneut verbinden")
         when = tr("Zuletzt fehlgeschlagen: {when}.", when=day_time(problem.last_seen.astimezone(zone)))
         items.append(
             f'<li class="connection-warning"><span class="icon" aria-hidden="true">⚠️</span> '

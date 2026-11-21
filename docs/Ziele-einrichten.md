@@ -1,6 +1,6 @@
 # Kalender und Aufgaben verbinden
 
-Geprüft für Mailhelp 7.2; Anbieterunterlagen am 11. und 16. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste
+Geprüft für Mailhelp 8.1; Anbieterunterlagen am 11. und 16. November 2026 abgeglichen. Ein **Zielprofil** legt fest, in welchen Kalender und welche Aufgabenliste
 bestätigte Vorschläge eines Postfachs eingetragen werden. Profil 1 ist der Abschnitt `targets`
 aus der Ersteinrichtung; weitere Profile verwaltet **Einstellungen → Zielprofile**. Ein
 **Konto** ist der Zugang beim Anbieter (Zugangsdaten in `.env`), die Kalender- bzw.
@@ -29,6 +29,13 @@ abgelehnt. Solche Einträge bitte beim Anbieter bearbeiten.
 | Kalenderdatei | Kalender (über Telegram) | – | – | nicht prüfbar | ob die Datei importiert wurde, kann Mailhelp nicht wissen |
 
 ## Google Kalender
+
+Bei gehostetem Inboxstride **Mit Google verbinden** im Assistenten oder Zielprofil
+wählen. Nach der Rückkehr einen Kalender mit Schreibrecht auswählen und
+**Verbindung übernehmen** bestätigen. Clientdaten und Tokens verwaltet der Betreiber.
+**Anderen Kalender wählen** verwendet den bestehenden Zugang. **Verbindung trennen**
+beendet dessen Tokenausgabe; Termine bleiben erhalten. Postfachzugriff ist eine eigene
+Freigabe. Für direkten Selbstbetrieb mit eigenen Clientdaten gilt:
 
 1. Unter **Einstellungen → Zugangsdaten** Client-ID und Client-Geheimnis des
    Webanwendungs-Clients hinterlegen; die **Google-Rückleitungsadresse (Webanwendungs-Client)**

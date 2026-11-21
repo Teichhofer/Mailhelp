@@ -1,6 +1,18 @@
 # Ersteinrichtung
 
-Geprüft für Mailhelp 7.0. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten
+Ab 8.1 vereinfacht die Anbieterauswahl den Postfachschritt: E-Mail-Adresse eingeben,
+Mailanbieter auswählen oder erkennen lassen und **Anbietereinstellungen laden**
+wählen. Dies lädt nur lokale Vorlagen und verbindet noch kein Postfach. Server,
+Port und TLS bleiben anschließend manuell bearbeitbar. Hinweise des Anbieters zu
+IMAP-Freischaltung und App-Passwörtern beachten.
+
+Gmail und Microsoft benötigen eine eigene Postfachfreigabe. Die Links
+**Google-Postfach verbinden** und **Microsoft-Postfach verbinden** führen zur Anmeldung,
+danach zu lesender Ordnerprüfung und ausdrücklicher Übernahme. Der Betreiber muss
+zuvor die jeweilige App registrieren und freischalten. Kalenderfreigaben ersetzen
+diesen Zugang nicht. Ohne Registrierung ist der Ablauf kontrolliert gesperrt.
+
+Geprüft für Mailhelp 8.1. Diese Anleitung führt von einem leeren Verzeichnis bis zum ersten
 geprüften Vorschlag. Sie gilt für Windows 11 und Linux; Abweichungen für Docker sind markiert.
 
 **Ziel:** Mailhelp läuft, ist im Browser erreichbar, liest ein Postfach, hat eine KI-Anbindung

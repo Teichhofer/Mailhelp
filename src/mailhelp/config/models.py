@@ -95,9 +95,13 @@ class Settings(ConfigModel):
 
     @model_validator(mode="after")
     def hosted_connections_need_the_service(self) -> Settings:
-        if not self.hosted_auth.enabled and any(item.google_connection for item in (self.targets,
-                                                                                    *self.target_profiles)):
+        if not self.hosted_auth.enabled and any(
+                item.google_connection or item.microsoft_connection or item.notion_connection
+                for item in (self.targets, *self.target_profiles)):
             raise ValueError("google_connection benötigt hosted_auth.enabled")
+        if not self.hosted_auth.enabled and any(box.auth_method != "password"
+                                                for box in self.imap.enabled_mailboxes()):
+            raise ValueError("Postfach-OAuth benötigt hosted_auth.enabled")
         return self
 
     @model_validator(mode="after")

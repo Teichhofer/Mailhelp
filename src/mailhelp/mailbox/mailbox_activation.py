@@ -65,4 +65,16 @@ class MailboxActivation(ConnectionActivation[MailboxSettings]):
         self.runtime.app.mailbox_runtime.request(cfg, keys)
 
 
-__all__ = ["MailboxActivation"]
+class ReconnectActivation(MailboxActivation):
+    """Replace one mailbox while preserving unrelated entries and policies."""
+    def merged(self, saved: Settings, item: MailboxSettings) -> Settings:
+        if saved.imap.mailbox(item.id) is None:
+            return super().merged(saved, item)
+        entries = [item.model_dump(mode="json") if box.id == item.id else box.model_dump(mode="json")
+                   for box in saved.imap.configured_mailboxes()]
+        imap = {"batch_size": saved.imap.batch_size, "global_newest_first": saved.imap.global_newest_first,
+                "mailboxes": entries}
+        return Settings.model_validate({**saved.model_dump(), "imap": imap})
+
+
+__all__ = ["MailboxActivation", "ReconnectActivation"]

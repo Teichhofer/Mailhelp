@@ -1,8 +1,15 @@
 # Fehler beheben
 
-Geprüft für Mailhelp 7.0. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
+Geprüft für Mailhelp 8.1. Sichere nächste Schritte für häufige Probleme. Keine dieser Maßnahmen legt
 Einträge doppelt an: Mailhelp wiederholt nie eine Anlage, deren Ergebnis unklar ist, sondern
 gleicht sie zuerst mit dem Anbieter ab.
+
+Bei pausierten Terminrückfragen protokolliert `answer_revision_failed` für
+Widersprüche zusätzlich den datensparsamen `revision_contract`: `known_clock_changed`
+(bekannte Uhrzeit), `known_facts_changed` (bekannte Zeitfakten), `known_facts_lost`
+(verlorene Zeitfakten) oder `revision_conflict` (anderer Revisionswiderspruch).
+Der Code allein autorisiert keine Wiederaufnahme; dafür weiterhin aktuelle Version,
+gespeicherte normalisierte Antwort und schreibfreie Vorprüfung abgleichen.
 
 | Lage | Ursache | Nächster Schritt |
 | --- | --- | --- |

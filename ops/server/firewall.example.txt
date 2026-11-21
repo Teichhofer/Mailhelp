@@ -1,0 +1,11 @@
+# Neuaufbau-Vorlage, NICHT die aktive Firewallkonfiguration.
+# SSH_PORT zuerst aus der tatsächlichen SSH-Konfiguration ermitteln.
+# Vor Aktivierung zweite funktionierende Administrationssitzung prüfen.
+ufw --dry-run default deny incoming
+ufw --dry-run default allow outgoing
+ufw --dry-run allow SSH_PORT/tcp
+ufw --dry-run allow 80/tcp
+ufw --dry-run allow 443/tcp
+# Nach Kontrolle dieselben Einzelregeln ohne --dry-run setzen und separat aktivieren.
+# Docker darf keine externen App-Ports veröffentlichen; Compose-Loopback-Bindings prüfen.
+# Rückkehr: an der weiterhin offenen Administrationssitzung die geänderten Regeln rückgängig machen.

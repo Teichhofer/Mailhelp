@@ -1,0 +1,97 @@
+# Geprüfte Standardangebote; keine Kundenzugangsdaten. Stand 20.11.2026.
+webde:
+  label: WEB.DE
+  domains: [web.de]
+  host: imap.web.de
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://hilfe.web.de/pop-imap/imap/imap-serverdaten.html
+  de: IMAP in den Postfacheinstellungen einschalten; gegebenenfalls ein App-Passwort verwenden.
+  en: Enable IMAP in mailbox settings; use an app password if required.
+gmx:
+  label: GMX Deutschland
+  domains: [gmx.de, gmx.net]
+  host: imap.gmx.net
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://hilfe.gmx.net/pop-imap/imap/imap-serverdaten.html
+  de: IMAP in den Postfacheinstellungen einschalten; gegebenenfalls ein App-Passwort verwenden.
+  en: Enable IMAP in mailbox settings; use an app password if required.
+telekom:
+  label: Telekom / T-Online
+  domains: [t-online.de, magenta.de]
+  host: secureimap.t-online.de
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://www.telekom.de/hilfe/apps-dienste/e-mail/posteingang-postausgang-server
+  de: Das separate Passwort für E-Mail-Programme verwenden.
+  en: Use the separate password for email programs.
+ionos:
+  label: IONOS Mail Basic / Business
+  domains: []
+  host: imap.ionos.de
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://www.ionos.de/hilfe/e-mail/allgemeine-themen/serverinformationen-fuer-imap-pop3-und-smtp/
+  de: Postfachpasswort verwenden. Hosted Exchange benötigt andere Einstellungen.
+  en: Use your mailbox password. Hosted Exchange needs different settings.
+strato:
+  label: STRATO
+  domains: []
+  host: imap.strato.de
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://www.strato.de/faq/mail/externes-e-mail-programm-mit-strato-e-mail-adresse-nutzen/
+  de: Vollständige E-Mail-Adresse und Postfachpasswort verwenden.
+  en: Use your full email address and mailbox password.
+gmail:
+  label: Gmail / Google Workspace
+  domains: [gmail.com, googlemail.com]
+  host: imap.gmail.com
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: oauth2
+  help_url: https://support.google.com/accounts/answer/185833
+  de: Das normale Google-Passwort funktioniert nicht. Postfach-OAuth oder ein erlaubtes App-Passwort verwenden.
+  en: Your regular Google password will not work. Use mailbox OAuth or an eligible app password.
+outlook:
+  label: Outlook.com / Hotmail / Microsoft 365
+  domains: [outlook.com, outlook.de, hotmail.com, hotmail.de, live.com, live.de]
+  host: outlook.office365.com
+  port: 993
+  connection_mode: ssl
+  username_pattern: email
+  checked_on: 2026-11-20
+  authentication: oauth2
+  help_url: https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth/
+  de: OAuth2 ist erforderlich; IMAP muss für das Postfach erlaubt sein.
+  en: OAuth2 is required; IMAP must be allowed for this mailbox.
+icloud:
+  label: Apple iCloud
+  domains: [icloud.com, me.com, mac.com]
+  host: imap.mail.me.com
+  port: 993
+  connection_mode: ssl
+  username_pattern: local_part
+  checked_on: 2026-11-20
+  authentication: password
+  help_url: https://support.apple.com/en-mt/102525
+  de: Ein anwendungsspezifisches Apple-Passwort verwenden. Als Benutzername zunächst den Teil vor @ verwenden; falls nötig die vollständige iCloud-Adresse eintragen.
+  en: Use an Apple app-specific password. Start with the part before @ as the username; if necessary enter the full iCloud address.

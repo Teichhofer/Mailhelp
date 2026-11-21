@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Geprüft für Mailhelp 7.0. Die Einrichtungshinweise gelten
+Geprüft für Mailhelp 8.1. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
