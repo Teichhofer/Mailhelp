@@ -11,11 +11,11 @@ import yaml
 
 from ..config import Settings
 from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
-from ..i18n import msg, tr
+from ..i18n import COOKIE, msg, tr
 from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from .auth import WebSession
-from .http import Request, Response
+from .http import Request, Response, cookie
 from .pages import layout, notice
 from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page
 from .settings_search import LIVE_LIMIT, bounded, search
@@ -180,7 +180,10 @@ class SettingsSite:
         if form.get("confirm") != "yes":
             body = settings_confirmation(form, request.path, self.site.auth.csrf_token(session.id), raw, value)
             return Response.html(200, layout(tr("Bestätigen"), body))
-        return self.archive.queue(request, command)
+        response = self.archive.queue(request, command)
+        if form["name"] == "language":
+            response.cookies.append(cookie(request, COOKIE, str(value), 31536000, http_only=False, same_site="Lax"))
+        return response
 
     def save_topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration

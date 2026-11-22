@@ -169,3 +169,46 @@ def test_b15_b16_catalog_data_labels_and_english_docs():
     assert "TT.MM.JJJJ" not in web_settings_en
     targets_en = Path("docs/en/Ziele-einrichten.md").read_text(encoding="utf-8")
     assert "Frist: 12.05.2026, 18:00 Uhr" not in targets_en
+
+
+def test_configured_instance_language_takes_priority_over_browser_accept_language(configured, tmp_path):
+    """8.3.2: configured settings.language wins over browser Accept-Language on real instances."""
+    from mailhelp.web.factory import create_web
+    from mailhelp.web.http import Request
+
+    cfg = configured.cfg.model_copy(update={"language": "de"})
+    components = create_web(cfg, "s" * 40, configured.web.store, lambda _m: None,
+                            configured.web.logger, configured.web.commands)
+    app = components.server.handler
+    # Browser sends Accept-Language: en-US, but instance is configured for German -> must stay German!
+    resp = app(Request("GET", "/anmelden", {"host": "127.0.0.1:8765", "accept-language": "en-US,en;q=0.9"}, "", b""))
+    assert resp.status == 200
+    assert '<html lang="de">' in resp.body.decode()
+    assert "<title>Anmelden · Mailhelp</title>" in resp.body.decode()
+
+    # Explicit cookie choice via language switcher still overrides configured language.
+    resp_en = app(Request("GET", "/anmelden", {"host": "127.0.0.1:8765", "cookie": "mailhelp_lang=en"}, "", b""))
+    assert '<html lang="en">' in resp_en.body.decode()
+
+    # Saving language in web settings also updates the browser cookie so an old cookie cannot hide it.
+    from mailhelp.config.configuration import file_hash
+
+    cfg_hash = file_hash(configured.tmp_path / "config.yaml")
+    session = configured.web.auth.authenticate(configured.web.browser.cookies["mh_session"])
+    csrf = configured.web.auth.csrf_token(session.id)
+    save_resp = configured.web.browser.request(
+        "POST",
+        "/einstellungen/speichern",
+        {
+            "csrf": csrf,
+            "key": "lang-" + "a" * 24,
+            "name": "language",
+            "value": "de",
+            "expected_hash": cfg_hash,
+            "confirm": "yes",
+        },
+        **{"cookie": f"mh_session={configured.web.browser.cookies['mh_session']}; mailhelp_lang=en"},
+    )
+    assert save_resp.status in {202, 303}
+    assert any(c.startswith("mailhelp_lang=de;") for c in save_resp.cookies)
+

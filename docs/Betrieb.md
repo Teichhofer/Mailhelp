@@ -496,6 +496,21 @@ und `mailhelp-demo-mailhelp-demo-1` bestätigt. Netz `inboxstride-auth`,
 Rückkehr auf `mailhelp-production:7.9.10-fd4d1e7` über die Compose-Dateien dieser Sicherung
 nach vorheriger Prüfung von Schema- und Schreibnachweisen.
 
+Update auf 8.3.1 (22.11.2026, mit Freigabe): vollständige Bereinigung der Sprachausgabe
+(DE/EN) gemäß [Planung 8.3](Planung-8.3.md). Quelle ist Commit `48543e5` (`git archive` nach
+`/opt/mailhelp/uploads/mailhelp-8.3.1-48543e5.tar.gz`, entpackt unter
+`/opt/mailhelp/releases/8.3.1-48543e5`), Image `mailhelp-production:8.3.1-48543e5`. Vorab
+erfolgreiche Offline-Konfigurationsprüfung (`--check` ohne Netzwerk, schreibgeschützter
+Konfigurationsmount, „Konfiguration ist gültig.“). Beide Container kontrolliert gestoppt,
+konsistente Laufzeitsicherung unter `/opt/mailhelp/backups/upgrade-8.3.1-20261122T105024Z`
+angelegt, anschließend umgestellt und geprüft: Healthcheck für `stefan.inboxstride.de`
+und `demo.inboxstride.de` erfolgreich, Version 8.3.1 für `mailhelp-update-mailhelp-1`
+und `mailhelp-demo-mailhelp-demo-1` bestätigt. Live-Sprachprüfung (101 DE- und 107 EN-Seiten
+der Demo sowie Produktiv-Anmeldung DE/EN) ohne verbleibende Sprachfehler bestanden.
+Netz `inboxstride-auth`, `hosted_auth` und `inboxstride-auth:7.9.5-2073ef0` blieben
+unverändert erhalten. Rückkehr auf `mailhelp-production:8.2.1-183649f` über die
+Compose-Dateien dieser Sicherung nach vorheriger Prüfung von Schema- und Schreibnachweisen.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

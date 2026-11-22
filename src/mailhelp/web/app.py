@@ -69,8 +69,9 @@ class WebApp:
             version = hashlib.sha256(b"\0".join(self.assets[name] for name in SHELL_FILES)).hexdigest()[:16]
             self.assets["sw.js"] = self.assets["sw.js"].replace(SHELL_VERSION, version.encode())
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
-        # 7.5: the configured language; a browser's choice or its Accept-Language comes first.
+        # 7.5: the configured language; 8.3.2: configured instances prefer it over Accept-Language.
         self.default_locale = Locale.DE
+        self.prefer_configured_locale = False
         self.route("GET", "/health", self.health)
         self.route("GET", "/sprache", self.language)
         self.route("GET", r"/(?P<language>de|en)/", self.language)
@@ -81,7 +82,8 @@ class WebApp:
         self._routes.append((method, re.compile(pattern), handler))
 
     def __call__(self, request: Request) -> Response:
-        locale = negotiate(request.cookies().get(COOKIE), request.header("accept-language"), self.default_locale)
+        accept = None if self.prefer_configured_locale else request.header("accept-language")
+        locale = negotiate(request.cookies().get(COOKIE), accept, self.default_locale)
         with use_locale(locale):
             return self.dispatch(request)
 

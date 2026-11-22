@@ -65,6 +65,7 @@ def create_web(settings: Settings, secret: str | None, store: JsonStore,
     app = WebApp(settings.web.allowed_hosts,
                  settings.web.port if settings.web.lan_access else None)
     app.default_locale = Locale(settings.language)
+    app.prefer_configured_locale = True
     views = ReviewViews(store, settings.timezone, settings.test_mode)
     site = MailhelpSite(app, auth, settings.web, settings.timezone, logger, views, commands,
                  link_base=lambda: base_url(settings),

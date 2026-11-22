@@ -13,7 +13,12 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.3.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.3.2 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.3.2: In konfigurierten Instanzen hat die eingestellte Sprache (`language` in
+`config.yaml`) Vorrang vor dem `Accept-Language`-Header des Browsers; beim Speichern von
+`language` in den Web-Einstellungen wird das Browser-Cookie `mailhelp_lang` direkt mit
+aktualisiert. In der öffentlichen Demo bleibt die automatische Browser-Spracherkennung aktiv.
 
 Version 8.3.1: Vollständige Bereinigung der englischen und deutschen Sprachausgabe nach
 Live-Prüfung auf Produktiv- und Demo-Server: Seitentitel, Web-Passwort, Einrichtung,

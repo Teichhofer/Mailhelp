@@ -1,5 +1,16 @@
 # Änderungen
 
+## 8.3.2 – Konfigurierte Sprache hat Vorrang vor Browser-Accept-Language
+
+- In konfigurierten Mailhelp-Instanzen (`create_web()`) hat die in `config.yaml` eingestellte
+  Sprache (`language`) nun Vorrang vor dem `Accept-Language`-Header des Browsers; nur eine
+  ausdrückliche Wahl über den Sprachumschalter (`mailhelp_lang`-Cookie) überschreibt sie.
+  In der öffentlichen Demo bleibt `Accept-Language` für Besucher ohne Cookie weiterhin aktiv.
+- Beim Speichern der Einstellung `language` in den Web-Einstellungen wird gleichzeitig das
+  `mailhelp_lang`-Cookie im Browser auf die gewählte Sprache gesetzt, damit ein älteres Cookie
+  die neue Auswahl nicht überdeckt.
+- Regressionstest in `tests/web/test_i18n_83_regressions.py` ergänzt.
+
 ## 8.3.1 – Vollständige Bereinigung der Sprachausgabe (DE/EN)
 
 - Seitentitel (`Sign in`, `Initial setup`, `Help`, `Web password`), Web-Passwort-Seite,
