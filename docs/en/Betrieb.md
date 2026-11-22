@@ -187,3 +187,7 @@ The service runs without root, with a read-only file system and a health check; 
 ### Update of production and demo, binding of production <!-- mailhelp-id:betrieb/update-von-produktion-und-demo-anbindung-der-produktion -->
 
 Both containers were backed up and switched to 7.9.5; production then received the `hosted_auth` settings and the service network. The pilot sign-in of a Google account is still open.
+
+### Update 8.3.2 and host package updates <!-- mailhelp-id:betrieb/update-832-und-host-paketupdates -->
+
+Production and demo run 8.3.2 (`mailhelp-production:8.3.2-86dcfc5`), where configured instances prefer the language set in `config.yaml` over the browser `Accept-Language` header while keeping explicit language switching via cookie. Every server deployment of a new Mailhelp version must also update all installed host packages (`apt-get update && apt-get upgrade -y`), verify the running `nginx` binary and check `/var/run/reboot-required`. On 22 Nov 2026, all 40 pending host updates were installed and verified after a controlled reboot onto kernel `7.0.0-44-generic` (`nginx 1.28.3-2ubuntu1.14`, 0 pending updates, all services active).

@@ -13,7 +13,12 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.3.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.3.3 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.3.3: Serverhandbuch, Betriebsnachweis und Entwicklungsregeln dokumentieren das
+verbindliche Aktualisieren aller installierten Host-Programme und Systempakete bei jedem
+Server-Deployment sowie den verifizierten Stand `8.3.2-86dcfc5` und das Host-Update auf
+Kernel `7.0.0-44-generic`.
 
 Version 8.3.2: In konfigurierten Instanzen hat die eingestellte Sprache (`language` in
 `config.yaml`) Vorrang vor dem `Accept-Language`-Header des Browsers; beim Speichern von

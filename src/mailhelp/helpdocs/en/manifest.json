@@ -1,9 +1,9 @@
 {
- "app_version": "8.3.2",
+ "app_version": "8.3.3",
  "locale": "en",
- "revision": "f5c80990eee012410cf5c9d2ae64b3c19c9a4f1c4b2f1689cb75df122fdafe62",
+ "revision": "947f237fffea49b7540699224757cd6f032f0fc6580c774bdbe8cd0d9ed8a6cb",
  "schema_version": 2,
- "sections": 130,
+ "sections": 131,
  "sources": [
   {
    "path": "docs/en/Web-Einstellungen.md",
@@ -31,7 +31,7 @@
   },
   {
    "path": "docs/en/Betrieb.md",
-   "sha256": "76b38769cdc3f649bd5358f8592bd3516bcd8ec53f77eedb3fc45a242c0f1a3d"
+   "sha256": "e5dfb36d09807d05237274c7a9d46896a1cd1aed0b30f7c2956a04d594c61b98"
   }
  ]
 }

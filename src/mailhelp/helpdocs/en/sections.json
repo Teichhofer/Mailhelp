@@ -1810,5 +1810,17 @@
   "source": "docs/en/Betrieb.md",
   "text": "Both containers were backed up and switched to 7.9.5; production then received the `hosted_auth` settings and the service network. The pilot sign-in of a Google account is still open.",
   "title": "Update of production and demo, binding of production"
+ },
+ {
+  "id": "betrieb/update-832-und-host-paketupdates",
+  "path": [
+   "Operation and updates",
+   "Update to 7.9.5 and central sign-in service (19 Nov 2026)",
+   "Update 8.3.2 and host package updates"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Production and demo run 8.3.2 (`mailhelp-production:8.3.2-86dcfc5`), where configured instances prefer the language set in `config.yaml` over the browser `Accept-Language` header while keeping explicit language switching via cookie. Every server deployment of a new Mailhelp version must also update all installed host packages (`apt-get update && apt-get upgrade -y`), verify the running `nginx` binary and check `/var/run/reboot-required`. On 22 Nov 2026, all 40 pending host updates were installed and verified after a controlled reboot onto kernel `7.0.0-44-generic` (`nginx 1.28.3-2ubuntu1.14`, 0 pending updates, all services active).",
+  "title": "Update 8.3.2 and host package updates"
  }
 ]

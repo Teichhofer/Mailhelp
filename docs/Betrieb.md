@@ -511,6 +511,43 @@ Netz `inboxstride-auth`, `hosted_auth` und `inboxstride-auth:7.9.5-2073ef0` blie
 unverändert erhalten. Rückkehr auf `mailhelp-production:8.2.1-183649f` über die
 Compose-Dateien dieser Sicherung nach vorheriger Prüfung von Schema- und Schreibnachweisen.
 
+### Update 8.3.2 und Host-Paketupdates
+
+Update auf 8.3.2 (22.11.2026, mit Freigabe): Vorrang der konfigurierten Sprache (`config.yaml`)
+vor Browser-`Accept-Language` in konfigurierten Instanzen sowie Synchronisierung des
+Sprach-Cookies (`mailhelp_lang`) beim Speichern der Sprache in den Web-Einstellungen.
+Quelle ist Commit `86dcfc5` (`git archive` nach `/opt/mailhelp/uploads/mailhelp-8.3.2-86dcfc5.tar.gz`,
+entpackt unter `/opt/mailhelp/releases/8.3.2-86dcfc5`), Image `mailhelp-production:8.3.2-86dcfc5`.
+Vorab erfolgreiche Offline-Konfigurationsprüfung (`--check` mit schreibgeschütztem
+Konfigurationsmount und `--log-directory /tmp/check-logs`, „Konfiguration ist gültig.“).
+Vorab-Sicherung von Compose-Dateien und Laufzeit unter
+`/opt/mailhelp/backups/pre-8.3.2-20261122T154610Z`, anschließend Umstellung von
+`mailhelp-update-mailhelp-1` und `mailhelp-demo-mailhelp-demo-1` und Live-Prüfung:
+`stefan.inboxstride.de/anmelden` liefert mit `Accept-Language: en-US` ohne Cookie `<html lang="de">`
+(„Anmelden · Mailhelp“) und mit `Cookie: mailhelp_lang=en` `<html lang="en">` („Sign in · Mailhelp“);
+`demo.inboxstride.de` behält die `Accept-Language`-Erkennung für DE und EN bei.
+Netz `inboxstride-auth`, `hosted_auth` und `inboxstride-auth:7.9.5-2073ef0` blieben
+unverändert erhalten. Rückkehr auf `mailhelp-production:8.3.1-48543e5` über die
+Compose-Dateien aus `/opt/mailhelp/backups/pre-8.3.2-20261122T154610Z`.
+
+Verbindlicher Ablauf ab 22.11.2026 (siehe auch [Serverhandbuch](Serverhandbuch.md)):
+Bei jedem Deployment einer neuen Mailhelp-Version auf dem Server werden zugleich alle
+installierten Systempakete und Programme aktualisiert (`apt-get update && apt-get upgrade -y`),
+laufende Dienste (insbesondere `nginx`) auf das aktuelle Binary geprüft und ein eventuell
+erforderlicher Neustart (`/var/run/reboot-required`) kontrolliert durchgeführt und verifiziert.
+
+Host-Paketupdate & Neustart (22.11.2026, mit Freigabe): Prüfung ergab, dass `nginx`
+(`1.28.3-2ubuntu1.14`, inkl. Patches gegen `CVE-2026-123007`, `CVE-2026-123633` und
+`CVE-2026-125283`) bereits über `unattended-upgrades` eingespielt und neu gestartet war.
+Zusätzlich wurden alle 40 offenen `resolute-updates`-Pakete (`apt-get upgrade` +
+`apt-get full-upgrade`, u. a. `systemd 259.9` und Kernel `7.0.0-44-generic`) installiert,
+`nginx -t` geprüft und ein kontrollierter Server-Neustart durchgeführt. Nach dem Neustart
+verifiziert: Kernel `7.0.0-44-generic` aktiv, `/var/run/reboot-required` nicht vorhanden,
+0 offene Paketupdates, `docker`, `nginx`, `inboxstride`, `unattended-upgrades` und
+`mailhelp-dropbox-backup.timer` aktiv, alle drei Container laufen (`mailhelp-production:8.3.2-86dcfc5`
+und `inboxstride-auth:7.9.5-2073ef0`), `stefan.inboxstride.de/anmelden` (200, `<html lang="de">`),
+`demo.inboxstride.de/` (200) und `inboxstride.de/` (200) erreichbar.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

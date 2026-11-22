@@ -1,6 +1,6 @@
 # Serverhandbuch Inboxstride
 
-Geprüft für Mailhelp 8.3.1
+Geprüft für Mailhelp 8.3.2
 
 Stand: 22. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
 mit den [Konfigurationsvorlagen](../ops/server/README.md). Detaillierte Änderungsnachweise
@@ -13,7 +13,7 @@ Centron, Deutschland; Ubuntu 26.04.1 LTS. Zuletzt ermittelt: Docker 29.1.3,
 Compose 2.40.3, nginx 1.28.3. Update und Kontrolle am 22.11.2026: nginx und Formulardienst
 aktiv, drei Container aktiv, Produktion, Demo und Auth gesund.
 Produktion und Demo verwenden nach dem Update vom 22.11.2026 tatsächlich
-`mailhelp-production:8.3.1-48543e5` (Commit `48543e5`), der Auth-Dienst unverändert
+`mailhelp-production:8.3.2-86dcfc5` (Commit `86dcfc5`), der Auth-Dienst unverändert
 `inboxstride-auth:7.9.5-2073ef0`. Änderungen im lokalen Checkout sind damit
 nicht automatisch produktiv. Der Betreiber bestätigt am 20.11.2026 den erfolgreichen
 Google-Pilotabschluss einschließlich Übernehmen der Verbindung. Der anschließende
@@ -165,6 +165,18 @@ wieder gültig. Vertragsende: Daten binnen 14 Tagen löschen, soweit keine geset
 Aufbewahrungspflichten bestehen; Dropbox-Historie und zentrale Geheimnisse einbeziehen.
 
 ## Update, Prüfung und Rückkehr
+
+Bei jedem Deployment einer neuen Mailhelp-Version auf dem Server ist verpflichtend
+auch ein Update aller installierten Host-Programme und Systempakete durchzuführen:
+1. Paketlisten aktualisieren und ausstehende Paket- und Sicherheitsupdates einspielen
+   (`apt-get update && apt-get upgrade -y`, einschließlich `nginx`, `openssl`, `systemd`,
+   `docker`, `rclone`, `python3` sowie Kernel-/Bibliothekspaketen); zusätzlich aktuelle
+   Container-Hilfsimages (z. B. `certbot/certbot`) auf Aktualität prüfen.
+2. Nach `nginx`-Updates `nginx -t`, `systemctl status nginx` und das tatsächlich laufende
+   Binary (`/proc/$(cat /run/nginx.pid)/exe`, kein `(deleted)`) prüfen.
+3. `/var/run/reboot-required` prüfen: Falls ein Neustart (z. B. nach Kernel- oder
+   `libc6`-Updates) erforderlich ist, diesen kontrolliert nach Abschluss der Sicherung
+   einplanen/ausführen und danach alle Container, `nginx` und HTTPS-Endpunkte verifizieren.
 
 Quellen und Images zunächst separat bauen. Mit `docker compose -p <Projekt>
 -f <Datei> config --quiet` prüfen; Aufruf gegebenenfalls mit privater Env-Datei,

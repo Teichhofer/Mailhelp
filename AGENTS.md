@@ -36,6 +36,10 @@ Geprüft für Mailhelp 8.1.
   (DNS, nginx, TLS, Docker, systemd, Firewall, Ports, Rechte, Sicherung, OAuth und Dienste).
   Maßgeblich ist nach Umsetzung von 8.0 das geplante Serverhandbuch docs/Serverhandbuch.md mit `ops/server/`;
   bis dahin den bestätigten Stand in `docs/Betrieb.md` dokumentieren.
+- Bei jedem Deployment einer neuen Mailhelp-Version auf dem Server ist zusätzlich ein
+  Update aller installierten Host-Programme und Systempakete (`apt-get update && apt-get upgrade -y`,
+  inkl. `nginx`-Binary-Prüfung und Kontrolle von `/var/run/reboot-required`) durchzuführen
+  und im Serverhandbuch/Betriebsnachweis zu protokollieren.
 - Halte zusätzlich eine geheimnisfreie Kopie der aktuellen Serveranleitungen und
   Konfigurationsvorlagen unter `/opt/mailhelp/server-docs` auf dem Server synchron.
   Diese Ablage ist verpflichtender Bestandteil des täglichen Serverbackups.

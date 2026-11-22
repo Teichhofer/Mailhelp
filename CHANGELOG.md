@@ -1,5 +1,14 @@
 # Änderungen
 
+## 8.3.3 – Serverdokumentation: verbindliche Host-Updates beim Deployment
+
+- `docs/Serverhandbuch.md`, `docs/Betrieb.md` und `AGENTS.md` um die verbindliche Regel
+  ergänzt, bei jedem Server-Deployment auch alle installierten Host-Programme und
+  Systempakete zu aktualisieren (`apt-get update && apt-get upgrade -y`, `nginx`-Binary-
+  und `/var/run/reboot-required`-Prüfung).
+- Betriebsnachweise für das Produktiv-/Demo-Deployment `8.3.2-86dcfc5` sowie das
+  Host-Paketupdate inkl. kontrolliertem Neustart auf Kernel `7.0.0-44-generic` ergänzt.
+
 ## 8.3.2 – Konfigurierte Sprache hat Vorrang vor Browser-Accept-Language
 
 - In konfigurierten Mailhelp-Instanzen (`create_web()`) hat die in `config.yaml` eingestellte
