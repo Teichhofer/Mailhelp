@@ -113,15 +113,21 @@ def _conflict_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
 
 
 def format_proposal(
-    proposal: Proposal, configured_timezone: str, test_mode: bool = False
+    proposal: Proposal,
+    configured_timezone: str,
+    test_mode: bool = False,
+    *,
+    reminder_setting: tuple[bool, int] | None = None,
 ) -> str:
     """Render a compact card: title and time first, deviations and questions after."""
-    card = card_content(proposal, configured_timezone, test_mode)
+    card = card_content(proposal, configured_timezone, test_mode, reminder_setting=reminder_setting)
     event = card.kind == ProposalKind.EVENT
     version = f" ({tr('Version {number}', number=card.version)})" if card.version > 1 else ""
     lines = [f"{tr('📅 Termin') if event else tr('✅ Aufgabe')}{version}: {card.title}"]
     if card.when:
         lines.append(f"🕒 {card.when}")
+    if card.reminder:
+        lines.append(f"🔔 {card.reminder}")
     if card.location:
         lines.append(f"📍 {card.location}")
     if card.video_link:

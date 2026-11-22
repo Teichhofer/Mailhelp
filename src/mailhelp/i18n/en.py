@@ -9896,4 +9896,38 @@ EN = {
         'Review and confirm documents (test-mode example)'
     ),
     'Frist: Freitag · Simuliert': 'Deadline: Friday · Simulated',
+    'Erinnerung': 'Reminder',
+    'Erinnerung: keine': 'Reminder: none',
+    'Erinnerung: zum Beginn': 'Reminder: at start',
+    'Erinnerung: 1 Minute vor Beginn': 'Reminder: 1 minute before start',
+    'Erinnerung: {minutes} Minuten vor Beginn': 'Reminder: {minutes} minutes before start',
+    'Kalendererinnerung hinzufügen': 'Add calendar reminder',
+    'Minuten vor Beginn': 'Minutes before start',
+    (
+        'Kalendererinnerung ist aktuell deaktiviert; dieser Minutenwert bleibt als '
+        'Vorbereitung gespeichert.'
+    ): (
+        'Calendar reminder is currently disabled; this minute value remains saved for when '
+        're-enabled.'
+    ),
+    (
+        'Legt fest, ob neu angelegte zeitgebundene Kalendereinträge dieses Zielprofils '
+        'eine Erinnerung beim Kalenderanbieter erhalten (Standard: ja). Ganztägige Termine '
+        'und bestehende Einträge ohne bestätigte Aktualisierung bleiben unverändert. '
+        'Das Speichern löst keinen Schreibzugriff auf den Kalender aus.'
+    ): (
+        'Determines whether newly created timed calendar events of this target profile '
+        'receive a reminder from the calendar provider (default: yes). All-day events '
+        'and existing entries without a confirmed update remain unchanged. '
+        'Saving does not trigger any calendar write access.'
+    ),
+    (
+        'Anzahl der Minuten vor Terminbeginn für die Kalendererinnerung (Standard: 5; '
+        'zulässig: 0 bis 1440; 0 erinnert zum Beginn). Bleibt bei deaktivierter Erinnerung '
+        'als Vorbereitung gespeichert. Das Speichern löst keinen Schreibzugriff aus.'
+    ): (
+        'Number of minutes before event start for the calendar reminder (default: 5; '
+        'allowed: 0 to 1440; 0 reminds at start). Remains saved as preparation when the '
+        'reminder is disabled. Saving does not trigger any write access.'
+    ),
 }

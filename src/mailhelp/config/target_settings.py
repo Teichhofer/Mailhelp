@@ -81,6 +81,8 @@ class TargetSettings(ConfigModel):
     notion_done_statuses: list[str] = Field(default_factory=list, max_length=50)
     microsoft_tenant: str = Field(default="common", pattern=r"^[A-Za-z0-9.-]{1,100}$")
     removal_window_minutes: int = Field(default=10, ge=1, le=1440)
+    calendar_reminder_enabled: bool = True
+    calendar_reminder_minutes: int = Field(default=5, ge=0, le=1440)
 
     @model_validator(mode="after")
     def provider_targets(self) -> TargetSettings:

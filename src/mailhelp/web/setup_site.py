@@ -88,6 +88,8 @@ LABELS = {
     "targets.microsoft_todo_list": msg("Microsoft-To-Do-Liste"),
     "targets.microsoft_tenant": msg("Microsoft-Mandant"),
     "targets.google_tasks_list": msg("Google-Tasks-Liste"),
+    "targets.calendar_reminder_enabled": msg("Kalendererinnerung hinzufügen"),
+    "targets.calendar_reminder_minutes": msg("Minuten vor Beginn"),
     "push.enabled": msg("Web-Push am Server aktivieren"),
     "push.subject": msg("VAPID-Kontaktadresse (mailto:name@domain)"),
     "notifications.quiet_hours.enabled": msg("Ruhezeiten aktivieren"),

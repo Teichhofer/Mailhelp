@@ -43,10 +43,11 @@ def test_numbered_parts():
     (proposal(due="2026-05-10"), "✅ Aufgabe: Aufgabe\n🕒 Fällig: 10.05.2026\n📝 Text\nBeleg: „Beleg“"),
     (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00",
               location="Raum 1", video_link="https://video.example.test/abc"),
-     "📅 Termin: Aufgabe\n🕒 10.05.2026, 10:00–11:00 Uhr\n📍 Raum 1\n"
+     "📅 Termin: Aufgabe\n🕒 10.05.2026, 10:00–11:00 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\n📍 Raum 1\n"
      "🔗 https://video.example.test/abc\n📝 Text\nBeleg: „Beleg“"),
     (proposal(kind="event", start="2026-05-10T22:00:00+02:00", end="2026-05-11T01:00:00+02:00"),
-     "📅 Termin: Aufgabe\n🕒 10.05.2026, 22:00 Uhr – 11.05.2026, 01:00 Uhr\n📝 Text\nBeleg: „Beleg“"),
+     "📅 Termin: Aufgabe\n🕒 10.05.2026, 22:00 Uhr – 11.05.2026, 01:00 Uhr\n"
+     "🔔 Erinnerung: 5 Minuten vor Beginn\n📝 Text\nBeleg: „Beleg“"),
     (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-11", location=None),
      "📅 Termin: Aufgabe\n🕒 10.05.2026, ganztägig\n📝 Text\nBeleg: „Beleg“"),
     (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-13"),

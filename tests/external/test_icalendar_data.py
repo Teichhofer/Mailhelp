@@ -31,7 +31,7 @@ def test_texts_are_escaped_folded_and_read_back():
     fields = event_summary(parse_calendar(content), "Europe/Berlin")
     assert fields == {"summary": title[:500], "description": "Zeile 1\nZeile 2", "location": "Aula",
                       "start": {"dateTime": "2026-05-10T10:00:00+00:00"},
-                      "end": {"dateTime": "2026-05-10T11:00:00+00:00"}, "cancelled": False}
+                      "end": {"dateTime": "2026-05-10T11:00:00+00:00"}, "cancelled": False, "reminder": "none"}
 
 
 @pytest.mark.parametrize("content", [

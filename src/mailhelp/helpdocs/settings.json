@@ -1201,6 +1201,26 @@
  },
  {
   "area": "Weitere Einstellungen",
+  "help": "Automatische Kalendererinnerung für neue zeitgebundene Termine dieses Zielprofils (Standard: `true`).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_reminder_enabled",
+  "key": "target_profiles[].calendar_reminder_enabled",
+  "label": "target_profiles[].calendar_reminder_enabled",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Automatische Kalendererinnerung für neue zeitgebundene Termine dieses Zielprofils (Standard: `true`)."
+ },
+ {
+  "area": "Weitere Einstellungen",
+  "help": "Minuten vor Terminbeginn für die Kalendererinnerung dieses Zielprofils: 0–1440; Standard 5 (`0` = zum Beginn).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_reminder_minutes",
+  "key": "target_profiles[].calendar_reminder_minutes",
+  "label": "target_profiles[].calendar_reminder_minutes",
+  "path": "Zielprofilseite",
+  "summary": "Zielprofilseite: Minuten vor Terminbeginn für die Kalendererinnerung dieses Zielprofils: 0–1440; Standard 5 (`0` = zum Beginn)."
+ },
+ {
+  "area": "Weitere Einstellungen",
   "help": "Kalender-ID bei Google, bis 500 Zeichen.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].google_calendar",

@@ -345,6 +345,17 @@ SETTING_HELP.update(
                 "Outlook-Kalender und Microsoft To Do."
             
         ),
+        "targets.calendar_reminder_enabled": msg(
+            "Legt fest, ob neu angelegte zeitgebundene Kalendereinträge dieses Zielprofils "
+            "eine Erinnerung beim Kalenderanbieter erhalten (Standard: ja). Ganztägige Termine "
+            "und bestehende Einträge ohne bestätigte Aktualisierung bleiben unverändert. "
+            "Das Speichern löst keinen Schreibzugriff auf den Kalender aus."
+        ),
+        "targets.calendar_reminder_minutes": msg(
+            "Anzahl der Minuten vor Terminbeginn für die Kalendererinnerung (Standard: 5; "
+            "zulässig: 0 bis 1440; 0 erinnert zum Beginn). Bleibt bei deaktivierter Erinnerung "
+            "als Vorbereitung gespeichert. Das Speichern löst keinen Schreibzugriff aus."
+        ),
         "attachments.store_originals": msg(
             
                 "ja (true) speichert Originaldokumente (PDF, Word, Excel, OpenDocument, "

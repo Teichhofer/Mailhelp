@@ -61,7 +61,10 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                                                       "notion_done_statuses",
                                                       # 8.0 / 8.2: hosted connection references.
                                                       "google_connection", "microsoft_connection",
-                                                      "notion_connection")),
+                                                      "notion_connection",
+                                                      # 8.4: calendar reminder settings.
+                                                      "calendar_reminder_enabled",
+                                                      "calendar_reminder_minutes")),
                      # 7.2: its timeouts; former fingerprints that still contain the section keep their value.
                      ("timeouts", "google_tasks"), ("timeouts", "notion"))
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",

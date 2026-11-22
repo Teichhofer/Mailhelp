@@ -357,6 +357,7 @@ def _attach_views(application: Application, components: Any, configuration: Conf
     assert dialog is not None
     components.site.views.profile_label = dialog.presenter.profile_of
     components.site.views.profile_available = dialog.presenter.profile_available
+    components.site.views.reminder_setting = dialog.presenter.reminder_of
     components.site.views.removal_window_minutes = lambda: configuration.active.targets.removal_window_minutes
     components.site.views.removable = lambda proposal: getattr(
         writer_for(dialog.writers, proposal), "supports_remove", True)
@@ -487,6 +488,7 @@ def _wire_profiles(application: Application, dialog: TelegramDialogController, w
         application.settings, writers, proposal)
     dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)
     dialog.presenter.profile_available = dialog.decision_service.profile_available
+    dialog.presenter.reminder_of = lambda proposal: profile_binding.calendar_reminder(application.settings, proposal)
     dialog.presenter.profiles_status = lambda: profile_binding.summary(application.settings, writers)
     dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
 

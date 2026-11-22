@@ -145,6 +145,8 @@ def control(name: str, value: object, prefix: str = "mailbox") -> str:
             )
             + "</select>"
         )
+    elif name == "calendar_reminder_minutes":
+        field = f'<input id="{identity}" type="number" min="0" max="1440" step="1" name="value" value="{e(shown)}">'
     else:
         field = f'<input id="{identity}" name="value" value="{e(shown)}" maxlength="2000">'
     return f'<label for="{identity}">{e(title)}</label>{field}'

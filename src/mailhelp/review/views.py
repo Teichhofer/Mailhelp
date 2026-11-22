@@ -359,6 +359,7 @@ class ReviewViews:
         self.mailboxes: dict[str, tuple[int, str]] = {}
         self.profile_label: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
+        self.reminder_setting: Callable[[Proposal], tuple[bool, int]] = lambda proposal: (True, 5)
         self.removal_window_minutes: Callable[[], int] = lambda: 10
         # 7.2: whether the target of a proposal can remove an entry (``TargetWriter.supports_remove``).
         self.removable: Callable[[Proposal], bool] = lambda proposal: True
@@ -590,7 +591,12 @@ class ReviewViews:
             editing and pointer.retry_required)
         paused = clarification is not None and ProposalRevisionStatus.PAUSED in {
             clarification.interpretation_status, clarification.proposal_revision_status}
-        card = card_content(proposal, self.configured_timezone, self.test_mode)
+        card = card_content(
+            proposal,
+            self.configured_timezone,
+            self.test_mode,
+            reminder_setting=self.reminder_setting(proposal),
+        )
         label = self.profile_label(proposal)
         if label:
             card = replace(card, profile_label=label, target=proposal.target)

@@ -13,7 +13,12 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.3.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.4.1: Automatische Erinnerungen für neue zeitgebundene Kalendereinträge je
+Zielprofil (Standard: 5 Minuten vor Beginn, 0–1440 Minuten, optional deaktivierbar;
+Google Kalender, Outlook/Microsoft 365 und CalDAV/iCloud), gemeinsame Vorschau in Web
+und Telegram (DE/EN) sowie Nachleseprüfung beim Kalenderanbieter.
 
 Version 8.3.3: Serverhandbuch, Betriebsnachweis und Entwicklungsregeln dokumentieren das
 verbindliche Aktualisieren aller installierten Host-Programme und Systempakete bei jedem

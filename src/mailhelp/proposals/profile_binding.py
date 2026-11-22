@@ -42,6 +42,12 @@ def label(settings: Settings, proposal: Proposal) -> str:
     return f"{provider} · {name}"
 
 
+def calendar_reminder(settings: Settings, proposal: Proposal) -> tuple[bool, int]:
+    """8.4: return ``(enabled, minutes)`` for the target profile bound to *proposal*."""
+    target = target_profiles(settings).get(proposal.target_profile, settings.targets)
+    return target.calendar_reminder_enabled, target.calendar_reminder_minutes
+
+
 def policy_hash(settings: Settings) -> str:
     return hashlib.sha256(
         json.dumps(

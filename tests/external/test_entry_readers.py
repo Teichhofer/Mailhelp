@@ -231,7 +231,7 @@ def test_a_google_event_with_another_time_or_all_day_flag_is_a_mismatch(tmp_path
     service.override["/calendar/v3/calendars/primary/events/id1"] = lambda request: httpx.Response(200, json={
         **service.items["id1"], "start": {"date": "2026-07-02"}, "end": {"date": "2026-07-03"}, "location": ""})
     _created, record = write_and_check(tmp_path, service, event(), "primary")
-    assert set(record.differences) == {"start", "end", "all_day", "location"}
+    assert set(record.differences) == {"start", "end", "all_day", "location", "reminder"}
 
 
 def test_the_expected_description_contains_what_was_sent():

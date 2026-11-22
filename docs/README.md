@@ -62,7 +62,7 @@ Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git ge
 | [Planung 8.1](Planung-8.1.md), [Release 8.1](Release-8.1.md) | Anbietervorlagen und Postfach-OAuth2; Fehlerbehebung für Datumsergänzung bei bekannter Uhrzeit und Wiederaufnahme pausierter Rückfragen |
 | [Planung 8.2](Planung-8.2.md), [Release 8.2](Release-8.2.md) | Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths (Microsoft & Notion) |
 | [Planung 8.3](Planung-8.3.md) | Vollständige Bereinigung der Sprachausgabe (DE/EN) nach Live-Prüfung auf Produktiv- und Demo-Server |
-| [Planung 8.4](Planung-8.4.md) | Automatische Erinnerungen für neue Kalendereinträge, standardmäßig fünf Minuten vor Beginn |
+| [Planung 8.4](Planung-8.4.md), [Release 8.4](Release-8.4.md) | Automatische Erinnerungen für neue Kalendereinträge, standardmäßig fünf Minuten vor Beginn |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

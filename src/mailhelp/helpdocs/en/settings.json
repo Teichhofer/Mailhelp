@@ -1201,6 +1201,26 @@
  },
  {
   "area": "Other settings",
+  "help": "Automatic calendar reminder for newly created timed events of this target profile (default: `true`).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_reminder_enabled",
+  "key": "target_profiles[].calendar_reminder_enabled",
+  "label": "target_profiles[].calendar_reminder_enabled",
+  "path": "Zielprofilseite",
+  "summary": "Automatic calendar reminder for newly created timed events of this target profile (default: `true`)."
+ },
+ {
+  "area": "Other settings",
+  "help": "Minutes before event start for the calendar reminder of this target profile: 0–1440; default 5 (`0` = at start).",
+  "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
+  "id": "setting:target_profiles[].calendar_reminder_minutes",
+  "key": "target_profiles[].calendar_reminder_minutes",
+  "label": "target_profiles[].calendar_reminder_minutes",
+  "path": "Zielprofilseite",
+  "summary": "Minutes before event start for the calendar reminder of this target profile: 0–1440; default 5 (`0` = at start)."
+ },
+ {
+  "area": "Other settings",
   "help": "Calendar ID at Google, up to 500 characters.",
   "href": "/hilfe/dokumentation/web-einstellungen/weitere-zielprofile-targetprofiles",
   "id": "setting:target_profiles[].google_calendar",

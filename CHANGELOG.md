@@ -1,5 +1,22 @@
 # Änderungen
 
+## 8.4.1 – Automatische Erinnerungen für neue Kalendereinträge
+
+- Zielprofile (`TargetSettings` / `TargetProfileSettings`) erhalten
+  `calendar_reminder_enabled` (Standard `true`) und `calendar_reminder_minutes`
+  (Standard `5`, Bereich `0`–`1440`, `0` = zum Beginn); bestehende Konfigurationen
+  übernehmen beim Upgrade implizit `true` und `5`.
+- Gemeinsame Hilfsfunktionen in `src/mailhelp/external/reminders.py` speisen Vorschau
+  (Web und Telegram, DE/EN), Kalender-Write-Pfad und Nachleseprüfung aus derselben Quelle.
+  Ganztägige Termine, Absagen, reine Videolink-Ergänzungen und übersprungene Dubletten
+  erhalten keinen minutengenauen Alarm.
+- Provider-Payloads und Nachleseprüfung für Google Kalender (`reminders.overrides`),
+  Outlook / Microsoft 365 (`isReminderOn`, `reminderMinutesBeforeStart`) und CalDAV / iCloud
+  (`VALARM` inkl. Update-Erhaltung fremder Eigenschaften) umgesetzt.
+- Zweisprachige Einstellungen und Hilfetexte auf `/einstellungen` und
+  `/einstellungen/zielprofile` sowie Aktualisierung von `config.example.yaml`,
+  `docs/Web-Einstellungen.md` (DE/EN) und [Release 8.4](docs/Release-8.4.md).
+
 ## 8.3.3 – Serverdokumentation: verbindliche Host-Updates beim Deployment
 
 - `docs/Serverhandbuch.md`, `docs/Betrieb.md` und `AGENTS.md` um die verbindliche Regel

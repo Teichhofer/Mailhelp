@@ -37,6 +37,7 @@ class ProposalPresenter:
         self.mailbox_of: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_of: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
+        self.reminder_of: Callable[[Proposal], tuple[bool, int]] = lambda proposal: (True, 5)
         self.profiles_status: Callable[[], str] = lambda: ""
         self.retarget_choices: Callable[[Proposal], list[tuple[int, str, str]]] = lambda proposal: []
 
@@ -54,7 +55,12 @@ class ProposalPresenter:
                     if previous is not None
                     else ""
                 )
-                + format_proposal(proposal, self.configured_timezone, self.test_mode)
+                + format_proposal(
+                    proposal,
+                    self.configured_timezone,
+                    self.test_mode,
+                    reminder_setting=self.reminder_of(proposal),
+                )
                 + (
                     f"\n\nZielprofil: {self.profile_of(proposal)} · {proposal.target}"
                     if self.profile_of(proposal)

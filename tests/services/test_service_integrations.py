@@ -137,7 +137,9 @@ def test_calendar_payloads_separate_timed_and_all_day_intervals():
         "start":{"dateTime":"2026-05-10T10:00:00+02:00"},
         "end":{"dateTime":"2026-05-10T11:00:00+02:00"},
         "location":"Raum 1", "extendedProperties":{"private":{"mailhelp_key":"timed"}},
+        "reminders":{"useDefault":False,"overrides":[{"method":"popup","minutes":5}]},
     }
+    assert "reminders" not in payloads[1]
     assert payloads[1]["start"] == {"date":"2026-05-10"}
     assert payloads[1]["end"] == {"date":"2026-05-11"}  # exclusive
     assert payloads[1]["description"] == "" and "location" not in payloads[1]

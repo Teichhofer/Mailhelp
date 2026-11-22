@@ -169,7 +169,7 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
         tasks = kind(targets.caldav_task_url, *caldav, timeout("caldav"), transport, retry("caldav"), logger)
 
     stack.callback(tasks.close)
-    calendar: TargetWriter
+    calendar: HttpWriter | OutlookCalendar | CalDavCalendar
     if targets.calendar_provider == "google":
         assert google is not None
         calendar = HttpWriter("google_calendar", google, targets.google_calendar, timeout("google_calendar"), transport,
@@ -185,6 +185,8 @@ def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *
     else:
         calendar = CalDavCalendar(targets.caldav_calendar_url, *caldav, timeout("caldav"), transport,
                                   retry("caldav"), logger, settings.timezone, calendar_matcher)
+    calendar.calendar_reminder_enabled = targets.calendar_reminder_enabled
+    calendar.calendar_reminder_minutes = targets.calendar_reminder_minutes
     stack.callback(calendar.close)
     calendar.target_profile = tasks.target_profile = profile_id
     return Writers(calendar, tasks, resources)

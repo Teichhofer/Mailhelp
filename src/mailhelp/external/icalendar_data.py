@@ -13,6 +13,7 @@ from typing import Any
 
 from ..text.calendar_parser import _parse_ical_datetime, _unescape_text, _unfold_ical
 from .ical import _fold_ical_line, _ical_datetime, _ical_text
+from .reminders import minutes_from_trigger, trigger_for_minutes
 
 MAX_RESOURCE_BYTES = 1_000_000
 PRODID = "-//Mailhelp//CalDAV//DE"
@@ -153,6 +154,16 @@ def _apply(event: Component, body: dict[str, Any], key: str) -> None:
     if "DTEND" in names:
         names.add("DURATION")
     event.properties = [item for item in event.properties if item.name not in names] + replaced
+    if "reminders" in body:
+        event.children = [child for child in event.children if child.name != "VALARM"]
+        overrides = body["reminders"].get("overrides") or []
+        if overrides:
+            minutes = int(overrides[0]["minutes"])
+            event.children.append(Component("VALARM", [
+                Property("TRIGGER", {}, trigger_for_minutes(minutes)),
+                Property("ACTION", {}, "DISPLAY"),
+                Property("DESCRIPTION", {}, "Mailhelp-Erinnerung"),
+            ]))
 
 
 def master(calendar: Component, kind: str) -> Component:
@@ -184,6 +195,14 @@ def boundary(prop: Property | None, zone: str) -> dict[str, str] | None:
     return {"date": value.isoformat()} if all_day else {"dateTime": value.isoformat()}
 
 
+def _alarm_fact(event: Component) -> str:
+    alarms = [child for child in event.children if child.name == "VALARM"]
+    if not alarms:
+        return "none"
+    parsed = minutes_from_trigger(alarms[0].text("TRIGGER"))
+    return str(parsed) if parsed is not None else "other"
+
+
 def event_summary(calendar: Component, zone: str) -> dict[str, Any] | None:
     """Fields of a single event for duplicate checks; None for series or incomplete events."""
     try:
@@ -196,7 +215,7 @@ def event_summary(calendar: Component, zone: str) -> dict[str, Any] | None:
         return None
     return {"summary": event.text("SUMMARY")[:500], "description": event.text("DESCRIPTION")[:4000],
             "location": event.text("LOCATION")[:1000] or None, "start": start, "end": end,
-            "cancelled": event.text("STATUS").upper() == "CANCELLED"}
+            "cancelled": event.text("STATUS").upper() == "CANCELLED", "reminder": _alarm_fact(event)}
 
 
 def open_todo(calendar: Component) -> dict[str, str] | None:

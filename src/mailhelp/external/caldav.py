@@ -261,8 +261,10 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
         if fields["cancelled"]:
             return None
         start, end = fields["start"], fields["end"]
-        facts = event_facts(fields["summary"], fields["description"], None, None, "date" in start,
-                            fields["location"], self.target)
+        all_day = "date" in start
+        reminder = None if all_day else fields.get("reminder")
+        facts = event_facts(fields["summary"], fields["description"], None, None, all_day,
+                            fields["location"], self.target, reminder=reminder)
         uid = master(calendar, "VEVENT").text("UID")
         return EntryRead({**facts, "start": start.get("dateTime") or start.get("date"),
                           "end": end.get("dateTime") or end.get("date"), "uid": uid})

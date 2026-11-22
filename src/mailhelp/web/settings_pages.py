@@ -94,6 +94,8 @@ EXTRA_LABELS = {
     "targets.microsoft_todo_list": msg("Microsoft-To-Do-Liste"),
     "targets.microsoft_tenant": msg("Microsoft-Mandant"),
     "targets.google_tasks_list": msg("Google-Tasks-Liste"),
+    "targets.calendar_reminder_enabled": msg("Kalendererinnerung hinzufügen"),
+    "targets.calendar_reminder_minutes": msg("Minuten vor Beginn"),
     "attachments.store_originals": msg("Originale speichern"),
     "attachments.max_original_bytes": msg("Höchstgröße je Datei (Bytes)"),
     "attachments.max_total_bytes": msg("Höchstgröße je Mail (Bytes)"),
@@ -220,6 +222,14 @@ def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
         return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
     if name in PROVIDER_CHOICES:
         return select("value", label, saved, list(PROVIDER_CHOICES[name]))
+    if name == "targets.calendar_reminder_minutes":
+        shown = "" if saved is None else saved
+        inactive = (raw or {}).get("targets", {}).get("calendar_reminder_enabled") is False
+        hint = (
+            f'<p class="meta">{e(tr("Kalendererinnerung ist aktuell deaktiviert; dieser Minutenwert bleibt als Vorbereitung gespeichert."))}</p>'
+            if inactive else ""
+        )
+        return f'<label>{label}<input type="number" min="0" max="1440" step="1" name="value" value="{e(shown)}" required></label>{hint}'
     kind = "number" if isinstance(saved, (int, float)) else "text"
     step = ' step="any"' if kind == "number" else ""
     shown = "" if saved is None else saved

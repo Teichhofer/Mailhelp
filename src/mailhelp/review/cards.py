@@ -15,9 +15,10 @@ from datetime import date, datetime, timedelta
 from email.utils import parseaddr
 from zoneinfo import ZoneInfo
 
-from ..domain.proposal import Proposal, ProposalKind
+from ..domain.proposal import Proposal, ProposalKind, ProposalStatus
 from ..external.contracts import proposal_is_writable
 from ..external.google_tasks import DUE_NOTE
+from ..external.reminders import reminder_preview_text
 from ..formatting import format_datetime_local
 from ..i18n import tr
 from ..i18n.formatting import clock, clock_suffix, day, day_time
@@ -180,10 +181,34 @@ class CardContent:
     profile_label: str | None = None
     target: str | None = None
     target_hint: str | None = None
+    reminder: str | None = None
+
+
+def _reminder_for_card(proposal: Proposal, reminder_setting: tuple[bool, int] | None) -> str | None:
+    if proposal.kind != ProposalKind.EVENT:
+        return None
+    if proposal.calendar_supplement is not None and not proposal.time_changes:
+        return None
+    duplicate_skipped = (
+        proposal.status == ProposalStatus.ALREADY_EXISTS
+        or (
+            proposal.duplicate_match is not None
+            and proposal.explicit_duplicate_create_confirmed_version != proposal.version
+        )
+    )
+    enabled, minutes = (True, 5) if reminder_setting is None else reminder_setting
+    return reminder_preview_text(
+        enabled,
+        minutes,
+        all_day=proposal.all_day,
+        operation="cancel" if proposal.is_cancellation else "create",
+        duplicate_skipped=duplicate_skipped,
+    )
 
 
 def card_content(proposal: Proposal, configured_timezone: str,
-                 test_mode: bool = False) -> CardContent:
+                 test_mode: bool = False, *,
+                 reminder_setting: tuple[bool, int] | None = None) -> CardContent:
     """Build the card; deviations from the defaults are the only labels shown."""
     event = proposal.kind == ProposalKind.EVENT
     description = full_description(proposal)
@@ -210,6 +235,7 @@ def card_content(proposal: Proposal, configured_timezone: str,
         evidence=shorten(proposal.evidence, EVIDENCE_LIMIT),
         evidence_full=proposal.evidence,
         target_hint=DUE_NOTE if not event and proposal.target_provider == "google_tasks" else None,
+        reminder=_reminder_for_card(proposal, reminder_setting),
     )
 
 

@@ -93,6 +93,7 @@ def test_google_calendar_remove_success():
     start_str = "2026-12-01T10:00:00+00:00"
     end_str = "2026-12-01T11:00:00+00:00"
     ev = timed("ev-1", "Zahnarzttermin", start_str, end_str, description="Routinekontrolle", location=None)
+    ev["reminders"] = {"useDefault": False, "overrides": [{"method": "popup", "minutes": 5}]}
     fake_cal = FakeGoogleCalendar(ev)
     writer = HttpWriter(service="google_calendar", token="tok", target="primary",
                         calendar_timezone="UTC", transport=httpx.MockTransport(fake_cal))
@@ -196,6 +197,7 @@ def test_google_calendar_remove_timeout_after_write():
     start_str = "2026-12-01T10:00:00+00:00"
     end_str = "2026-12-01T11:00:00+00:00"
     ev = timed("ev-1", "Zahnarzttermin", start_str, end_str, description="Routinekontrolle")
+    ev["reminders"] = {"useDefault": False, "overrides": [{"method": "popup", "minutes": 5}]}
     fake_cal = FakeGoogleCalendar(ev)
     fake_cal.lose_patch_answer = True
     writer = HttpWriter(service="google_calendar", token="tok", target="primary",

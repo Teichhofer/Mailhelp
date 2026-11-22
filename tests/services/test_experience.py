@@ -781,7 +781,8 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant", "removal_window_minutes",
                  "google_tasks_list", "notion_data_source_id", "notion_properties",
                  "notion_open_status", "notion_done_statuses", "google_connection",
-                 "microsoft_connection", "notion_connection"):
+                 "microsoft_connection", "notion_connection",
+                 "calendar_reminder_enabled", "calendar_reminder_minutes"):
         legacy["targets"].pop(name)
     legacy.pop("llm", None)
     assert _hash([legacy, analysis_prompts(prompts), []]) in legacy_fingerprints(cfg, prompts, [])

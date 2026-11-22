@@ -77,9 +77,13 @@ def task_facts(title: str, description: str, due: date | datetime | None, contai
 
 
 def event_facts(title: str, description: str, start: date | datetime | None, end: date | datetime | None,
-                all_day: bool, location: str | None, container: str) -> dict[str, Any]:
-    return {"kind": "event", "title": title, "description": description, "start": _iso(start),
-            "end": _iso(end), "all_day": all_day, "location": location, "container": container}
+                all_day: bool, location: str | None, container: str,
+                reminder: str | None = None) -> dict[str, Any]:
+    facts: dict[str, Any] = {"kind": "event", "title": title, "description": description, "start": _iso(start),
+                             "end": _iso(end), "all_day": all_day, "location": location, "container": container}
+    if reminder is not None:
+        facts["reminder"] = reminder
+    return facts
 
 
 def _text(value: Any) -> str:

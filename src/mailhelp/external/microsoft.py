@@ -38,6 +38,7 @@ from .contracts import (
     validation_path,
 )
 from .provider import ProviderWriter
+from .reminders import reminder_fact_from_microsoft
 from .verification import EntryRead, event_facts, task_facts
 
 GRAPH = "https://graph.microsoft.com/v1.0"
@@ -45,7 +46,8 @@ LOGIN = "https://login.microsoftonline.com"
 SCOPES = "offline_access Calendars.ReadWrite Tasks.ReadWrite"
 # Named MAPI property that carries the idempotency key on every Outlook event.
 KEY_PROPERTY = "String {6b1c9a0e-4f43-4c9a-9d55-6d61696c6865} Name mailhelpKey"
-_EVENT_FIELDS = "id,subject,body,location,start,end,isAllDay,isCancelled,webLink,onlineMeeting"
+_EVENT_FIELDS = ("id,subject,body,location,start,end,isAllDay,isCancelled,webLink,onlineMeeting,"
+                 "isReminderOn,reminderMinutesBeforeStart")
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
@@ -191,6 +193,8 @@ class GraphEvent(IntegrationModel):
     webLink: str | None = None
     # 7.9: the Teams (or other provider) join link of an online meeting.
     onlineMeeting: dict[str, Any] | None = None
+    isReminderOn: bool | None = None
+    reminderMinutesBeforeStart: int | None = None
 
 
 class GraphTask(IntegrationModel):
@@ -366,6 +370,15 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
             if name in body:
                 result[name], all_day = _graph_time(body[name])
                 result["isAllDay"] = all_day
+        if "reminders" in body:
+            overrides = body["reminders"].get("overrides") or []
+            if overrides:
+                result["isReminderOn"] = True
+                result["reminderMinutesBeforeStart"] = overrides[0]["minutes"]
+            else:
+                result["isReminderOn"] = False
+        elif result.get("isAllDay"):
+            result["isReminderOn"] = False
         return result
 
     def _insert_calendar_event(self, proposal: Proposal, key: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -422,8 +435,12 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
         event = None if item is None else self._overlap(item)
         if event is None:
             return None
-        facts = event_facts(event.summary, event.description, None, None, "date" in event.start,
-                            event.location, self.target)
+        assert item is not None
+        raw = GraphEvent.model_validate(item)
+        all_day = "date" in event.start
+        reminder = None if all_day else reminder_fact_from_microsoft(raw.isReminderOn, raw.reminderMinutesBeforeStart)
+        facts = event_facts(event.summary, event.description, None, None, all_day,
+                            event.location, self.target, reminder=reminder)
         return EntryRead({**facts, "start": event.start.get("dateTime") or event.start.get("date"),
                           "end": event.end.get("dateTime") or event.end.get("date")}, link=event.htmlLink)
 

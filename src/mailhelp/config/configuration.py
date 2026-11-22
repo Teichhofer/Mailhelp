@@ -143,6 +143,7 @@ SETTINGS_FIELDS = {
     "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
     "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
     "targets.microsoft_todo_list", "targets.microsoft_tenant", "targets.google_tasks_list",
+    "targets.calendar_reminder_enabled", "targets.calendar_reminder_minutes",
     "attachments.store_originals", "attachments.max_original_bytes", "attachments.max_total_bytes",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_attachment_bytes",
     "limits.max_llm_payload_bytes",

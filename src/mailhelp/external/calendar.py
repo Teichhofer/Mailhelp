@@ -25,6 +25,7 @@ from .contracts import (
     PreparedWrite,
     validation_path,
 )
+from .reminders import google_reminders_payload, reminder_fact_from_google
 from .transport import HttpTransport
 from .verification import EntryRead, compare, event_facts
 
@@ -39,6 +40,7 @@ class CalendarEventRead(IntegrationModel):
     htmlLink: str | None = None
     start: dict[str, str]
     end: dict[str, str]
+    reminders: dict[str, Any] | None = None
 
 
 class CalendarResource(IntegrationModel):
@@ -64,6 +66,9 @@ def _now(configured_timezone: str | None) -> datetime:
 
 
 class CalendarOperations(HttpTransport):
+    calendar_reminder_enabled: bool = True
+    calendar_reminder_minutes: int = 5
+
     def _reconcile_calendar(self, key: str) -> dict[str, Any] | None:
         query = {"privateExtendedProperty": f"mailhelp_key={key}"}
         response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", query))
@@ -146,8 +151,9 @@ class CalendarOperations(HttpTransport):
         return self._event_expected(proposal, self._calendar_event_body(proposal, key))
 
     def _event_expected(self, proposal: Proposal, body: dict[str, Any]) -> dict[str, Any]:
+        reminder = reminder_fact_from_google(body.get("reminders"))
         return event_facts(body["summary"], body["description"], proposal.start, proposal.end, proposal.all_day,
-                           body.get("location"), self.target)
+                           body.get("location"), self.target, reminder=reminder)
 
     def _calendar_account(self) -> str:
         """The calendar's own id; for ``primary`` that is the account, never the alias."""
@@ -175,7 +181,9 @@ class CalendarOperations(HttpTransport):
             raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
                              f"{validation_path(exc)}") from exc
         all_day = "dateTime" not in event.start
-        facts = event_facts(event.summary, event.description, None, None, all_day, event.location, self.target)
+        reminder = None if all_day else reminder_fact_from_google(event.reminders)
+        facts = event_facts(event.summary, event.description, None, None, all_day, event.location, self.target,
+                            reminder=reminder)
         return EntryRead({**facts, "start": _point(event.start), "end": _point(event.end)}, link=event.htmlLink)
 
     def _prepare_target(self, proposal: Proposal, key: str, event_id: str) -> PreparedWrite:
@@ -233,8 +241,10 @@ class CalendarOperations(HttpTransport):
     def _existing_expected(self, existing: CalendarOverlapEvent, body: dict[str, Any]) -> dict[str, Any]:
         """The existing entry with exactly the confirmed changes; its own title always stays."""
         start, end = body.get("start", existing.start), body.get("end", existing.end)
+        reminder = reminder_fact_from_google(body.get("reminders"))
         facts = event_facts(existing.summary, body.get("description", existing.description), None, None,
-                            "dateTime" not in start, body.get("location", existing.location), self.target)
+                            "dateTime" not in start, body.get("location", existing.location), self.target,
+                            reminder=reminder)
         return {**facts, "start": _point(start), "end": _point(end)}
 
     def _supplement_state(self, proposal: Proposal, supplement: CalendarSupplement, existing: CalendarOverlapEvent,
@@ -279,6 +289,11 @@ class CalendarOperations(HttpTransport):
             "extendedProperties": {"private": {"mailhelp_key": key}}}
         if validated.location is not None:
             body["location"] = validated.location
+        reminders = google_reminders_payload(
+            self.calendar_reminder_enabled, self.calendar_reminder_minutes, all_day=validated.all_day
+        )
+        if reminders is not None:
+            body["reminders"] = reminders
         return body
 
     def _insert_calendar_event(self, proposal: Proposal, key: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -500,6 +515,11 @@ class CalendarOperations(HttpTransport):
                 "extendedProperties": {"private": {"mailhelp_key": key}}}
         if validated.location is not None:
             body["location"] = validated.location
+        reminders = google_reminders_payload(
+            self.calendar_reminder_enabled, self.calendar_reminder_minutes, all_day=validated.all_day
+        )
+        if reminders is not None:
+            body["reminders"] = reminders
         return body
 
 

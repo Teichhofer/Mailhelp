@@ -524,7 +524,7 @@ Vorab-Sicherung von Compose-Dateien und Laufzeit unter
 `/opt/mailhelp/backups/pre-8.3.2-20261122T154610Z`, anschließend Umstellung von
 `mailhelp-update-mailhelp-1` und `mailhelp-demo-mailhelp-demo-1` und Live-Prüfung:
 `stefan.inboxstride.de/anmelden` liefert mit `Accept-Language: en-US` ohne Cookie `<html lang="de">`
-(„Anmelden · Mailhelp“) und mit `Cookie: mailhelp_lang=en` `<html lang="en">` („Sign in · Mailhelp“);
+(`Anmelden · Mailhelp`) und mit `Cookie: mailhelp_lang=en` `<html lang="en">` (`Sign in · Mailhelp`);
 `demo.inboxstride.de` behält die `Accept-Language`-Erkennung für DE und EN bei.
 Netz `inboxstride-auth`, `hosted_auth` und `inboxstride-auth:7.9.5-2073ef0` blieben
 unverändert erhalten. Rückkehr auf `mailhelp-production:8.3.1-48543e5` über die

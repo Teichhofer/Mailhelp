@@ -171,7 +171,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 
 <!-- inventar:start -->
 
-Erzeugt mit `python -m devtools.inventory`: **293 Einstellungen**, davon **293** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
+Erzeugt mit `python -m devtools.inventory`: **297 Einstellungen**, davon **297** mit eigenem Eintrag in [Web-Einstellungen](Web-Einstellungen.md).
 
 | Schlüssel | Typ | Standard | Grenzen | Bedienweg | Referenz |
 | --- | --- | --- | --- | --- | --- |
@@ -361,6 +361,8 @@ Erzeugt mit `python -m devtools.inventory`: **293 Einstellungen**, davon **293**
 | `target_profiles[].caldav_calendar_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
 | `target_profiles[].caldav_task_url` | str | '' | Länge ≤ 2000 | Zielprofilseite | ja |
 | `target_profiles[].calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Zielprofilseite | ja |
+| `target_profiles[].calendar_reminder_enabled` | bool | True |  | Zielprofilseite | ja |
+| `target_profiles[].calendar_reminder_minutes` | int | 5 | ≥ 0, ≤ 1440 | Zielprofilseite | ja |
 | `target_profiles[].google_calendar` | str | '' | Länge ≤ 500 | Zielprofilseite | ja |
 | `target_profiles[].google_connection` | str | '' |  | Zielprofilseite | ja |
 | `target_profiles[].google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Zielprofilseite | ja |
@@ -386,6 +388,8 @@ Erzeugt mit `python -m devtools.inventory`: **293 Einstellungen**, davon **293**
 | `targets.caldav_calendar_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.caldav_task_url` | str | '' | Länge ≤ 2000 | Weboberfläche | ja |
 | `targets.calendar_provider` | Auswahl: google, caldav, outlook | 'google' |  | Weboberfläche | ja |
+| `targets.calendar_reminder_enabled` | bool | True |  | Weboberfläche | ja |
+| `targets.calendar_reminder_minutes` | int | 5 | ≥ 0, ≤ 1440 | Weboberfläche | ja |
 | `targets.google_calendar` | str | '' | Länge ≤ 500 | Weboberfläche | ja |
 | `targets.google_connection` | str | '' |  | Einrichtung | ja |
 | `targets.google_tasks_list` | str | '@default' | Länge ≥ 1, Länge ≤ 500 | Weboberfläche | ja |

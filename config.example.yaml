@@ -385,6 +385,10 @@ targets:
   # Frist in Minuten nach dem Anlegen, in der ein Eintrag im Kalender oder in der Aufgabenliste
   # über die Weboberfläche oder Telegram wieder entfernt werden kann (1–1440; Standard 10).
   removal_window_minutes: 10
+  # 8.4: Automatische Kalendererinnerung für neue zeitgebundene Termine dieses Zielprofils.
+  # Standard: aktiviert, 5 Minuten vor Beginn (0–1440; 0 = zum Beginn; ganztägige Termine ohne Alarm).
+  calendar_reminder_enabled: true
+  calendar_reminder_minutes: 5
 # Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails
 # zum Herunterladen in der Weboberfläche; gelöscht mit retention.full_mail_days.
 attachments:

@@ -23,7 +23,7 @@ STATE_TEXTS = {
 
 FIELD_LABELS = {"title": "Titel", "description": "Beschreibung", "due": "Fälligkeit", "start": "Beginn",
                 "end": "Ende", "all_day": "Ganztägig", "location": "Ort", "container": "Projekt/Kalender",
-                "kind": "Art", "status": "Status", "uid": "Kennung"}
+                "kind": "Art", "status": "Status", "uid": "Kennung", "reminder": "Erinnerung"}
 
 ERROR_TEXTS = {
     "not_visible": "der Eintrag ist beim Anbieter nicht auffindbar",

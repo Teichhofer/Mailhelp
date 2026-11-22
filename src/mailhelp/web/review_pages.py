@@ -72,7 +72,8 @@ def _expandable(short: str, full: str, label: str, quote: bool) -> str:
 def _card_facts(card: Any) -> list[str]:
     facts = []
     if card.when:
-        facts.append(_fact("🕒", e(card.when), msg("Zeit")))
+        when_text = f"{e(card.when)} · {e(card.reminder)}" if card.reminder else e(card.when)
+        facts.append(_fact("🕒", when_text, msg("Zeit")))
     if card.due:
         facts.append(_fact("🕒", tr("Fällig: {due}", due=e(card.due)), msg("Frist")))
     if card.target_hint:

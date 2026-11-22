@@ -25,7 +25,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Elternabend Klasse 4b\n🕒 21.10.2026, 19:00–20:30 Uhr\n📍 Grundschule am Park, Raum 12\n📝 Themen: Klassenfahrt, Sportfest und die neue Hausaufgabenregel. Bitte die unterschriebene Einverständniserklärung mitbringen.\nBeleg: „Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die…“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Elternabend Klasse 4b\n🕒 21.10.2026, 19:00–20:30 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\n📍 Grundschule am Park, Raum 12\n📝 Themen: Klassenfahrt, Sportfest und die neue Hausaufgabenregel. Bitte die unterschriebene Einverständniserklärung mitbringen.\nBeleg: „Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die…“"
     ]
   },
   "proposal-000000000000000000000001-elternabend-v1": {
@@ -54,7 +54,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Elternabend Klasse 4b\n🕒 21.10.2026, 19:00–20:30 Uhr\n📍 Grundschule am Park, Raum 12\n📝 Themen: Klassenfahrt, Sportfest und die neue Hausaufgabenregel. Bitte die unterschriebene Einverständniserklärung mitbringen.\nBeleg: „Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die…“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Elternabend Klasse 4b\n🕒 21.10.2026, 19:00–20:30 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\n📍 Grundschule am Park, Raum 12\n📝 Themen: Klassenfahrt, Sportfest und die neue Hausaufgabenregel. Bitte die unterschriebene Einverständniserklärung mitbringen.\nBeleg: „Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die…“"
     ]
   },
   "proposal-000000000000000000000001-formular": {
@@ -137,7 +137,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Zahnarzt Kontrolle\n🕒 23.10.2026\n❓ Offen:\n- Wann beginnt der Termin?\nBeleg: „Ihr Kontrolltermin ist am 23.10. – die Uhrzeit teilen wir Ihnen noch mit.“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Zahnarzt Kontrolle\n🕒 23.10.2026\n🔔 Erinnerung: 5 Minuten vor Beginn\n❓ Offen:\n- Wann beginnt der Termin?\nBeleg: „Ihr Kontrolltermin ist am 23.10. – die Uhrzeit teilen wir Ihnen noch mit.“"
     ]
   },
   "proposal-000000000000000000000002-zahnarzt-v1": {
@@ -162,7 +162,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Zahnarzt Kontrolle\n🕒 23.10.2026\n❓ Offen:\n- Wann beginnt der Termin?\nBeleg: „Ihr Kontrolltermin ist am 23.10. – die Uhrzeit teilen wir Ihnen noch mit.“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Zahnarzt Kontrolle\n🕒 23.10.2026\n🔔 Erinnerung: 5 Minuten vor Beginn\n❓ Offen:\n- Wann beginnt der Termin?\nBeleg: „Ihr Kontrolltermin ist am 23.10. – die Uhrzeit teilen wir Ihnen noch mit.“"
     ]
   },
   "proposal-000000000000000000000003-fest": {
@@ -187,7 +187,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Herbstfest des Fördervereins\n🕒 25.10.2026, 13:00–17:00 Uhr\nZuständig: Noch unklar\n⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.\n❓ Offen:\n- Bist du dafür zuständig?\nBeleg: „Der Förderverein lädt alle Familien zum Herbstfest am 25.10. von 14 bis 18 Uhr ein.“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Herbstfest des Fördervereins\n🕒 25.10.2026, 13:00–17:00 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\nZuständig: Noch unklar\n⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.\n❓ Offen:\n- Bist du dafür zuständig?\nBeleg: „Der Förderverein lädt alle Familien zum Herbstfest am 25.10. von 14 bis 18 Uhr ein.“"
     ]
   },
   "proposal-000000000000000000000003-fest-v1": {
@@ -212,7 +212,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Herbstfest des Fördervereins\n🕒 25.10.2026, 13:00–17:00 Uhr\nZuständig: Noch unklar\n⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.\n❓ Offen:\n- Bist du dafür zuständig?\nBeleg: „Der Förderverein lädt alle Familien zum Herbstfest am 25.10. von 14 bis 18 Uhr ein.“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Herbstfest des Fördervereins\n🕒 25.10.2026, 13:00–17:00 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\nZuständig: Noch unklar\n⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.\n❓ Offen:\n- Bist du dafür zuständig?\nBeleg: „Der Förderverein lädt alle Familien zum Herbstfest am 25.10. von 14 bis 18 Uhr ein.“"
     ]
   },
   "proposal-000000000000000000000004-boese": {
@@ -299,7 +299,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Kinderturnen\n🕒 14.10.2026, 16:00–17:00 Uhr\nBeleg: „Beleg“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Kinderturnen\n🕒 14.10.2026, 16:00–17:00 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\nBeleg: „Beleg“"
     ]
   },
   "proposal-000000000000000000000005-turnen-v1": {
@@ -328,7 +328,7 @@
       ]
     },
     "parts": [
-      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Kinderturnen\n🕒 14.10.2026, 16:00–17:00 Uhr\nBeleg: „Beleg“"
+      "✉️ Synthetischer · Synthetischer Betreff\n📅 Termin: Kinderturnen\n🕒 14.10.2026, 16:00–17:00 Uhr\n🔔 Erinnerung: 5 Minuten vor Beginn\nBeleg: „Beleg“"
     ]
   },
   "proposal-000000000000000000000006-werbung": {
