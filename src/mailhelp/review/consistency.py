@@ -14,6 +14,7 @@ from enum import StrEnum
 
 from ..domain.mail import MailState
 from ..domain.proposal import ProposalCertainty, ProposalKind
+from ..i18n import de
 from .explanation import conflict_note
 
 # Words that tie an organisational duty (registration, reply) to an appointment.
@@ -44,19 +45,20 @@ def _due_day(value: date | datetime) -> date:
 def _incomplete(state: MailState) -> list[tuple[str, str]]:
     found = []
     if state.error is not None:
-        found.append(("Die Auswertung brach mit einem Fehler ab; ihr Ergebnis ist unvollständig.",
-                      "Gespeicherter Verarbeitungsfehler"))
+        found.append((de("Die Auswertung brach mit einem Fehler ab; ihr Ergebnis ist unvollständig."),
+                      de("Gespeicherter Verarbeitungsfehler")))
     mail = state.prepared
     if mail is None:
         return found
     if mail.metadata.get("text_shortened"):
-        found.append(("Der Mailtext wurde wegen der Größengrenze gekürzt.", "Mailtext"))
+        found.append((de("Der Mailtext wurde wegen der Größengrenze gekürzt."), de("Mailtext")))
     omitted = mail.metadata.get("attachments_omitted") or 0
     if omitted:
-        found.append((f"{omitted} Anhänge wurden wegen der Grenze nicht gelesen.", "Anhänge"))
+        found.append((de("{p0} Anhänge wurden wegen der Grenze nicht gelesen.", p0=omitted), de("Anhänge")))
     for attachment in mail.extracted_attachments:
         if attachment.extraction_status != "success":
-            found.append(("Ein Anhang konnte nicht gelesen werden.", f"Anhang „{attachment.filename}“"))
+            found.append((de("Ein Anhang konnte nicht gelesen werden."),
+                          de("Anhang „{p0}“", p0=attachment.filename)))
     return found
 
 
@@ -68,7 +70,7 @@ def hints(state: MailState) -> tuple[Hint, ...]:
         found.setdefault((rule, text, evidence), Hint(rule, severity, text, evidence, state.analysis_round))
 
     for conflict in state.extraction_count_conflicts:
-        add(Rule.COUNT_CONFLICT, "warn", conflict_note(conflict), "Router und Extraktion")
+        add(Rule.COUNT_CONFLICT, "warn", conflict_note(conflict), de("Router und Extraktion"))
     proposals = [item for item in state.proposals if item.status != "merged"]
     tasks = [item for item in proposals if item.kind == ProposalKind.TASK]
     events = [item for item in proposals if item.kind == ProposalKind.EVENT]
@@ -76,23 +78,23 @@ def hints(state: MailState) -> tuple[Hint, ...]:
     deadlines = state.summary.deadlines if state.summary is not None else []
     if relevant and deadlines and not tasks:
         add(Rule.POSSIBLE_OMISSION, "info",
-            "Die Zusammenfassung nennt eine Frist, zu der es keinen Aufgabenvorschlag gibt. Bitte prüfen, ob ein "
-            "eigener Auftrag dahintersteht; eine Frist allein ist keine Aufgabe.",
-            "Zusammenfassung: " + "; ".join(deadlines))
+            de("Die Zusammenfassung nennt eine Frist, zu der es keinen Aufgabenvorschlag gibt. Bitte prüfen, ob ein "
+               "eigener Auftrag dahintersteht; eine Frist allein ist keine Aufgabe."),
+            de("Zusammenfassung: {p0}", p0="; ".join(deadlines)))
     for event in events:
         if not tasks and REGISTRATION.search(" ".join((event.title, event.description, event.evidence))):
             add(Rule.UNASSIGNED_DUTY, "info",
-                "Zum Termin wird eine Anmeldung oder Rückmeldung erwähnt, für die es keine eigene Aufgabe gibt.",
-                f"Termin „{event.title}“")
+                de("Zum Termin wird eine Anmeldung oder Rückmeldung erwähnt, für die es keine eigene Aufgabe gibt."),
+                de("Termin „{p0}“", p0=event.title))
     received = state.prepared.received if state.prepared is not None else None
     for item in proposals:
         if item.certainty == ProposalCertainty.CONTRADICTORY:
-            add(Rule.CONTRADICTION, "warn", "Die Mail enthält widersprüchliche Angaben zu diesem Vorschlag.",
-                f"Vorschlag „{item.title}“")
+            add(Rule.CONTRADICTION, "warn", de("Die Mail enthält widersprüchliche Angaben zu diesem Vorschlag."),
+                de("Vorschlag „{p0}“", p0=item.title))
         if item.kind == ProposalKind.TASK and item.due is not None and received is not None:
             if _due_day(item.due) < datetime.fromisoformat(received).date():
-                add(Rule.CONTRADICTION, "warn", "Die Frist liegt vor dem Eingang der Mail.",
-                    f"Vorschlag „{item.title}“")
+                add(Rule.CONTRADICTION, "warn", de("Die Frist liegt vor dem Eingang der Mail."),
+                    de("Vorschlag „{p0}“", p0=item.title))
     for text, evidence in _incomplete(state):
         add(Rule.INCOMPLETE, "warn", text, evidence)
     order = list(Rule)

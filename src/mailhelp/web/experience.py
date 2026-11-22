@@ -215,7 +215,7 @@ class ExperienceSite:
         if status in {"editing", "uncertain"}:
             readonly = " readonly" if status == "uncertain" else ""
             cancel = ("" if status == "uncertain" else
-                      '<button class="button" name="mode" value="cancel" formnovalidate>Abbrechen</button>')
+                      f'<button class="button" name="mode" value="cancel" formnovalidate>{e(tr("Abbrechen"))}</button>')
             html += tr(
                 (_EDITOR_TEXT_2),
                 p0=mail_id,

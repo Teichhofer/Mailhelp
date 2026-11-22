@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, quote
 
 from ..config.env_file import EnvFileConflict, file_hash, set_value
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
@@ -70,7 +70,8 @@ class SecretsSite:
         group = None
         for heading, name in self.runtime.secret_fields():
             if heading != group:
-                body += ("</section>" if group is not None else "") + f'<section class="card"><h2>{e(heading)}</h2>'
+                close = "</section>" if group is not None else ""
+                body += f'{close}<section class="card"><h2>{e(stored(heading))}</h2>'
                 group = heading
             state = msg("hinterlegt") if env.get(name) else msg("fehlt")
             body += f'<p><strong>{e(name)}</strong> · {state}</p>'

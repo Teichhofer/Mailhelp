@@ -138,7 +138,7 @@ class TopicSite:
         selected = sorted(documents[kind], key=lambda item: (not item.enabled, item.name.casefold(), item.id))
         drafts = self.editing.drafts("web:" + session.id)
         if drafts:
-            body += '<section class="card"><h2>Ausstehende Themenänderungen</h2><ul>'
+            body += f'<section class="card"><h2>{e(tr("Ausstehende Themenänderungen"))}</h2><ul>'
             body += "".join(
                 tr(
                     ('<li><a href="/themen/entwurf/{p0}">{p1}: Vorschau anzeigen</a></li>'),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from itertools import groupby
 
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..runtime.credentials import CredentialSnapshot
 from .forms import post_form
 from .pages import e, notice
@@ -42,10 +42,11 @@ def credentials_section(snapshot: CredentialSnapshot | None, csrf: str) -> str:
         return body + notice(tr("Die Zugangsdatenverwaltung ist derzeit nicht verfügbar."), "warn") + "</section>"
     body += tr(_CREDENTIALS_SECTION_TEXT_2)
     for group, fields in groupby(snapshot.fields, key=lambda item: item.group):
-        body += '<section class="credential-group"><h3>' + e(group) + '</h3>'
+        body += '<section class="credential-group"><h3>' + e(stored(group)) + '</h3>'
         for item in fields:
             status = msg("vorhanden") if item.present else msg("fehlt")
-            body += ('<details class="setting credential-setting"><summary><span>' + e(item.label)
+            label = stored(item.label)
+            body += ('<details class="setting credential-setting"><summary><span>' + e(label)
                      + '</span><strong>' + status + '</strong></summary>'
                      '<p class="meta"><code>' + e(item.name) + '</code></p>')
             if item.overridden:
@@ -62,7 +63,7 @@ def credentials_section(snapshot: CredentialSnapshot | None, csrf: str) -> str:
             control = tr(
                 (_CREDENTIALS_SECTION_TEXT_4),
                 p0=e(identity),
-                p1=e(item.label),
+                p1=e(label),
                 p2=e(identity),
             )
             body += post_form(

@@ -358,7 +358,7 @@ def _nav(current: str) -> str:
     entries.append((f'/einstellungen?bereich={CREDENTIALS_AREA}', msg("Zugangsdaten"), CREDENTIALS_AREA))
     links = "".join(f'<a href="{href}"{' aria-current="page"' if key == current else ""}>{e(title)}</a>'
                     for href, title, key in entries)
-    return ('<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>'
+    return (tr('<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>')
             + links + "</nav>")
 
 
@@ -501,9 +501,12 @@ def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None
     if not results:
         return notice(tr("Keine Einstellung zu „{p0}“ gefunden.", p0=query), "info")
     areas = {title: key for key, title, *_ in AREAS}
-    rows = "".join(f'<p class="meta">Bereich <a href="/einstellungen?bereich={areas[item.area]}">{e(item.area)}</a>'
-                   f" · {e(item.group)}</p>" + _setting_row(item.key, raw, active, revision, csrf)
-                   for item in results if item.key is not None and item.path == "Weboberfläche")
+    rows = "".join(
+        tr('<p class="meta">Bereich <a href="/einstellungen?bereich={p0}">{p1}</a> · {p2}</p>',
+           p0=areas[item.area], p1=e(item.area), p2=e(item.group))
+        + _setting_row(item.key, raw, active, revision, csrf)
+        for item in results if item.key is not None and item.path == "Weboberfläche"
+    )
     pages = "".join(f'<li><a href="{e(item.href)}">{e(item.label)}</a> '
                     f'<span class="meta">{e(item.path)} · {e(item.summary)}</span></li>'
                     for item in results if item.path != "Weboberfläche")

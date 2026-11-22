@@ -386,7 +386,7 @@ def _event_form(report: ActivityReport, index: int, event: ReportEvent | None, c
                             else ("", "", ""))
     exclude = ""
     if event is not None:
-        label = msg("Wieder aufnehmen") if event.excluded else "Ausschließen"
+        label = msg("Wieder aufnehmen") if event.excluded else msg("Ausschließen")
         exclude = (f'<form method="post" action="/berichte/{report.id}/mail/{index}">'
                    f'{_hidden(csrf, report.version, mode="include" if event.excluded else "exclude", event=event.id)}'
                    f'<button class="button small">{label}</button></form>')

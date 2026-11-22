@@ -365,7 +365,7 @@ class MailboxSite:
                 'ausnehmen</option><option value="unallow">Ausnahme '
                 "entfernen</option></select>"
             ),
-            "Filteränderung vormerken",
+            msg("Filteränderung vormerken"),
             number=mailbox_number,
             version=version,
         )

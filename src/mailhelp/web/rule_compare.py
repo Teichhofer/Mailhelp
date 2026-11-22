@@ -56,7 +56,7 @@ def lines(before: list[str], after: list[str]) -> str:
 
 def badge(status: str) -> str:
     classes = {"neu": "accent", "geändert": "warn", "unverändert": "info"}
-    return f'<span class="badge {classes[status]}">{status}</span>'
+    return f'<span class="badge {classes[status]}">{e(tr(status))}</span>'
 
 
 def compare(before: dict[str, Any] | None, after: dict[str, Any]) -> str:
@@ -67,7 +67,7 @@ def compare(before: dict[str, Any] | None, after: dict[str, Any]) -> str:
         if before is not None and key in before and old == new:
             unchanged.append(f"<dt>{label} {badge('unverändert')}</dt><dd>{e(shown(key, new))}</dd>")
             continue
-        status = msg("neu") if before is None else msg("geändert")
+        status = "neu" if before is None else "geändert"
         if isinstance(new, list) and key != "mailboxes":
             value = lines(old or [], new)
         else:

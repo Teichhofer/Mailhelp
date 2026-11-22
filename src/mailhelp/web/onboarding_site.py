@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..mailbox.provider_presets import detect_provider, providers
 from ..runtime.onboarding import STARTER_PRESETS, OnboardingService, OnboardingState
 from .auth import WebSession
@@ -13,7 +13,7 @@ from .pages import e, error_page, layout
 
 
 def _step_mailbox_box(state: OnboardingState, csrf: str, email: str = "") -> str:
-    status = (tr('<p role="status">✓ Postfach geprüft: {summary}</p>', summary=e(state.mailbox_summary))
+    status = (tr('<p role="status">✓ Postfach geprüft: {summary}</p>', summary=e(stored(state.mailbox_summary)))
               if state.mailbox_checked else "")
     detected = detect_provider(email) if email else "manual"
     hint = ""
@@ -38,7 +38,7 @@ def _step_mailbox_box(state: OnboardingState, csrf: str, email: str = "") -> str
 
 
 def _step_target_box(state: OnboardingState, csrf: str) -> str:
-    status = (tr('<p role="status">✓ Zielsystem geprüft: {summary}</p>', summary=e(state.target_summary))
+    status = (tr('<p role="status">✓ Zielsystem geprüft: {summary}</p>', summary=e(stored(state.target_summary)))
               if state.target_checked else "")
     tiles = (
         '<p><a class="button" href="/google/verbinden?profile=1">'
@@ -71,7 +71,7 @@ def _step_topics_box(state: OnboardingState, csrf: str) -> str:
     preview = ""
     if state.dryrun_results:
         items = "".join(
-            f"<li><strong>{e(item.title)}</strong> – {e(item.detail)}</li>"
+            f"<li><strong>{e(stored(item.title))}</strong> – {e(stored(item.detail))}</li>"
             for item in state.dryrun_results
         )
         preview = (

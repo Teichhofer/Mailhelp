@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..formatting import duration_text, format_datetime_local
-from ..i18n import heading, msg, tr
+from ..i18n import heading, msg, stored, tr
 from ..i18n.formatting import decimal
 from ..review.cards import sender_name
 from ..review.consistency import Hint
@@ -376,12 +376,14 @@ def analysis_section(mail_id: str, state: MailState, record: dict[str, Any]) -> 
     )
     body += tr(
         "<p>{p0}</p><p>Themen: {p1}</p>",
-        p0=e(relevance.get("reason", msg("Keine Begründung mehr verfügbar"))),
+        p0=e(stored(relevance.get("reason") or str(msg("Keine Begründung mehr verfügbar")))),
         p1=e(", ".join(names)),
     )
     body += tr("<p>Menschliche Entscheidung: {p0}</p><h2>Erkannte Aktionen</h2><ul>", p0=e(human or msg("keine")))
-    body += "".join(f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(p.status.value)}</li>'
-                    for p in state.proposals)
+    body += "".join(
+        f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(STATUS_LABELS[p.status])}</li>'
+        for p in state.proposals
+    )
     return body + tr('</ul><a class="button" href="/verlauf?q={p0}">Verlauf dieser Mail</a></section>', p0=mail_id)
 
 
@@ -398,10 +400,10 @@ def _path_step(step: Step, topics: dict[str, str], tag: str = "li") -> str:
     if step.model_reason:
         body += tr(
             ('<p class="model-reason"><span class="meta">Modellbewertung, keine geprüfte Tatsache:</span> „{p0}“</p>'),
-            p0=e(step.model_reason),
+            p0=e(stored(step.model_reason)),
         )
     if step.notes:
-        body += '<ul class="path-notes">' + "".join(f"<li>{e(note)}</li>" for note in step.notes) + "</ul>"
+        body += '<ul class="path-notes">' + "".join(f"<li>{e(stored(note))}</li>" for note in step.notes) + "</ul>"
     return body + f"</{tag}>"
 
 
@@ -418,12 +420,12 @@ def _hints(hints: tuple[Hint, ...]) -> str:
             p0=hint.severity,
             p1=hint.severity,
             p2=msg("Prüfen") if hint.severity == "warn" else msg("Hinweis"),
-            p3=e(hint.text),
-            p4=e(hint.evidence),
+            p3=e(stored(hint.text)),
+            p4=e(stored(hint.evidence)),
         )
         for hint in hints
     )
-    return f'<h3>Prüfhinweise</h3><ul class="path-hints">{items}</ul>'
+    return f'<h3>{e(tr("Prüfhinweise"))}</h3><ul class="path-hints">{items}</ul>'
 
 
 def processing_path_section(explanation: Explanation, topics: dict[str, str], hints: tuple[Hint, ...] = ()) -> str:

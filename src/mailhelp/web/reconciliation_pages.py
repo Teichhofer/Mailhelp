@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import display_date, event_time, shorten
 from ..review.views import STATUS_LABELS
@@ -58,8 +58,8 @@ def sources_fragment(proposal: Proposal, linked: list[Proposal], zone: str) -> s
     """Source mails and related proposals shown on a proposal's detail page."""
     body = tr("<section><h2>Quellen und zugehörige Vorgänge</h2><ul>")
     for source in proposal.sources:
-        body += (f'<li><a href="/mail/{e(source.mail_id)}">Quellenmail</a> · {e(source.subject)} '
-                 f'· {e(source.sent_at or "Zeit nicht mehr gespeichert")}</li>')
+        body += (f'<li><a href="/mail/{e(source.mail_id)}">{e(tr("Quellenmail"))}</a> · {e(source.subject)} '
+                 f'· {e(source.sent_at or tr("Zeit nicht mehr gespeichert"))}</li>')
     for item in linked:
         status = msg("bereits im Kalender/bei den Aufgaben") if item.status == "already_exists" else msg("Vorschlag")
         body += (f'<li><a href="{e(proposal_link(item))}">{e(item.title)}</a> · '
@@ -84,7 +84,7 @@ def target_text(item: Proposal) -> str:
     labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
     # 6.2.4: older proposals have no stored service; the target profile decides when confirming.
     return (
-        f"{labels.get(item.target_provider, item.target_provider)} · {item.target}"
+        f"{stored(labels.get(item.target_provider, item.target_provider))} · {item.target}"
         if item.target_provider
         else tr("Zielprofil „{p0}“", p0=f"{item.target}")
     )

@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 from ..config import ConfigModel, Topic, read_yaml, validated_file
 from ..domain.extraction import ActionRoute
 from ..domain.relevance import Relevance
+from ..i18n import de
 from ..logging import EventLogger
 from ..processing.analysis import Analyzer
 from .openrouter import OpenRouterClient, RateLimitExceeded
@@ -254,11 +255,11 @@ class DecisionAnalyzer:
                          or (decision == "relevant" and not ids))
         if contradiction or uncertain:
             decision = "unclear"
-        reason = "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+        reason = de("Decision-Modell: typisierte Relevanz- und Themenentscheidung.")
         if contradiction:
-            reason += " Widerspruch zwischen Gesamtentscheidung und Themenzuordnung."
+            reason += " " + de("Widerspruch zwischen Gesamtentscheidung und Themenzuordnung.")
         if uncertain:
-            reason += " Unsichere Themen: " + ", ".join(uncertain) + "."
+            reason += " " + de("Unsichere Themen: {p0}.", p0=", ".join(uncertain))
         return call, Relevance(decision=decision, topic_ids=ids, reason=reason)
 
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
@@ -271,7 +272,7 @@ class DecisionAnalyzer:
             action_state=answers["action_state"]["choice"],
             task_count=int(answers["task_count"]["choice"]),
             event_count=int(answers["event_count"]["choice"]),
-            reason="Decision-Modell: typisierte Aktionsart und Kandidatenzahlen.")
+            reason=de("Decision-Modell: typisierte Aktionsart und Kandidatenzahlen."))
 
 
 def load_relevance_prompts(directory: Path) -> DecisionPrompts:

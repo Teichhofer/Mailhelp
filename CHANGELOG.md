@@ -1,5 +1,22 @@
 # Änderungen
 
+## 8.3.1 – Vollständige Bereinigung der Sprachausgabe (DE/EN)
+
+- Seitentitel (`Sign in`, `Initial setup`, `Help`, `Web password`), Web-Passwort-Seite,
+  Login-Fehlerseiten, Einrichtungs-Änderungsliste, Zugangsdaten-Gruppen/Labels,
+  Status-Dienstnamen (`Google Calendar`, `IMAP mailbox`, `Jev (relevance)`),
+  Vorschlagsabgleich (`Source email`), Konsistenzhinweise (`Review hints` samt Belegen),
+  Entscheidungsmodell-Begründungen (`Decision model: …`) und Auswertungslabels
+  (`Without topic`, `Sender removed`) auf Englisch vollständig übersetzt.
+- Bugfix (DE & EN): Auf `/mail/<id>` wird in der Liste der erkannten Aktionen das lesbare
+  Statuslabel statt des rohen Enum-Werts `pending_confirmation` angezeigt.
+- Bugfix: `Message(str)`-Subklassen-Falle bei `"; ".join(...)` in der Ordnerdiagnose
+  (`/einrichtung`) behoben; mobile `data-label`-Attribute im EN-Katalog und deutsche
+  Übersetzungsreste in `docs/en/Web-Einstellungen.md` und `docs/en/Ziele-einrichten.md`
+  bereinigt.
+- Neue Regressionstests (`tests/web/test_i18n_83_regressions.py`) für alle in
+  `docs/Planung-8.3.md` erfassten Sprachbefunde.
+
 ## 8.2.1 – Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths (in Prüfung)
 
 - Zentrale Ziel-OAuths über `inboxstride_auth` für Microsoft-Ziele (`microsoft_targets`:

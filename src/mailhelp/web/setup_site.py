@@ -234,16 +234,16 @@ class SetupSite:
         listed = self.site.views.store.load("setup-folders", {})
         mailboxes = self._raw()["imap"].get("mailboxes")
         if mailboxes is None:
-            parts = [", ".join(listed.get("folders", [])) or msg("noch nicht geprüft")]
+            parts = [", ".join(listed.get("folders", [])) or tr("noch nicht geprüft")]
         else:
             parts = [
                 tr("Postfach {p0}: ", p0=item["id"])
-                + (", ".join(listed.get("mailboxes", {}).get(str(item["id"]), [])) or msg("noch nicht geprüft"))
+                + (", ".join(listed.get("mailboxes", {}).get(str(item["id"]), [])) or tr("noch nicht geprüft"))
                 for item in mailboxes
             ]
         return (
             tr("<p>Vorhandene Ordner aus der letzten Diagnose: ")
-            + e("; ".join(parts))
+            + e("; ".join(str(part) for part in parts))
             + tr(
                 ". Lesbarkeit beweist keine Schreibberechtigung. Postfächer "
                 "hinzufügen oder entfernen: <a "
@@ -258,7 +258,7 @@ class SetupSite:
         state, cfg = self.runtime.setup.state(), self.runtime.setup.configuration
         body = tr("<h1>Einrichtung</h1>") + self.links()
         body += tr("<p>Aktueller Schritt: {p0} · Entwurfsversion: {p1}</p>", p0=state.step, p1=state.version)
-        body += '<ul>' + "".join(f'<li>{e(name)}: {status}</li>'
+        body += '<ul>' + "".join(f'<li>{e(name)}: {e(tr(status))}</li>'
                                   for name, status in self.runtime.secret_status().items()) + '</ul>'
         body += tr(_SETUP_TEXT_1)
         for index, title in enumerate(STEPS, 1):
@@ -288,10 +288,10 @@ class SetupSite:
                 refresh="yes",
             )
         baseline = self._raw(with_patch=False)
-        body += '<h2>Änderungsliste</h2><ul>' + "".join(
+        body += f'<h2>{e(tr("Änderungsliste"))}</h2><ul>' + "".join(
             f'<li>{e(name)}: {e(json.dumps(lookup(baseline, name), ensure_ascii=False))} '
             f'→ {e(json.dumps(value, ensure_ascii=False))} '
-            f'({"sofort" if name.split(".")[0] in LIVE_FIELDS else "Neustart erforderlich"})</li>'
+            f'({e(tr("sofort") if name.split(".")[0] in LIVE_FIELDS else tr("Neustart erforderlich"))})</li>'
             for name, value in state.patch.items() if lookup(baseline, name) != value) + '</ul>'
         body += tr(_SETUP_TEXT_2)
         body += post_form(

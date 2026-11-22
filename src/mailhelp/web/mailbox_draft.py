@@ -41,7 +41,7 @@ def preview(site: MailboxSite, session: WebSession) -> str:
             )
         elif state.kind == "senders":
             text += tr("<dt>Postfach</dt><dd>{p0}</dd>", p0=state.patch["mailbox_id"])
-            text += "<dt>Filteränderung</dt><dd>" + e(state.patch) + "</dd>"
+            text += f"<dt>{e(tr('Filteränderung'))}</dt><dd>" + e(state.patch) + "</dd>"
         else:
             cfg = site.runtime.setup.draft_settings()
             if "imap.mailboxes" in state.patch:

@@ -288,7 +288,7 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
             p0=f"{e(csrf)}",
         )
     return layout(
-        "Anmelden",
+        tr("Anmelden"),
         tr(
             '<section class="card narrow">\n<h1>Gerät koppeln</h1>\n{p0}{p1}\n</section>', p0=f"{message}", p1=f"{body}"
         ),

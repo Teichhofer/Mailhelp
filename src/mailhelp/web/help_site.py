@@ -53,8 +53,8 @@ class HelpSite:
         return Response.html(
             503,
             layout(
-                "Hilfe",
-                "<h1>Hilfe</h1>"
+                tr("Hilfe"),
+                tr("<h1>Hilfe</h1>")
                 + notice(
                     tr(
                         "Die mitgelieferte Dokumentation ist nicht verfügbar oder gehört "
@@ -78,7 +78,7 @@ class HelpSite:
                 f'<li><a href="/hilfe/dokumentation/{e(item.id)}">{e(label)}</a></li>')
         body = "".join(f"<section><h2>{e(title)}</h2><ul>{''.join(links)}</ul></section>"
                        for title, links in groups.items())
-        return Response.html(200, layout("Hilfe", tr("<h1>Hilfe und Dokumentation</h1>{p0}", p0=body)))
+        return Response.html(200, layout(tr("Hilfe"), tr("<h1>Hilfe und Dokumentation</h1>{p0}", p0=body)))
 
     def section(self, request: Request, session: WebSession, section: str) -> Response:
         try:
@@ -88,7 +88,7 @@ class HelpSite:
         item = base.get(section)
         if item is None:
             return Response.html(
-                404, layout("Hilfe", "<h1>Hilfe</h1>" + notice(tr("Diesen Abschnitt gibt es nicht."), "warn"))
+                404, layout(tr("Hilfe"), tr("<h1>Hilfe</h1>") + notice(tr("Diesen Abschnitt gibt es nicht."), "warn"))
             )
         trail = " › ".join(item.path)
         return Response.html(

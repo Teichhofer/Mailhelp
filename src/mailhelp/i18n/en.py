@@ -5170,9 +5170,9 @@ EN = {
     ): (
             '</td><td data-label="Status"><span '
             'class="badge">{p0}</span></td><td '
-            'data-label="Geltungsbereich">{p1}</td><td '
-            'data-label="Beispiele / Ausschlüsse">{p2} / '
-            '{p3}</td><td data-label="Beschreibung">{p4}</td><td '
+            'data-label="Scope">{p1}</td><td '
+            'data-label="Examples / exclusions">{p2} / '
+            '{p3}</td><td data-label="Description">{p4}</td><td '
             'class="topic-action"><a class="button" href="{p5}" '
             'aria-label="Edit {p6}">Edit</a></td></tr>'
         ),
@@ -9745,4 +9745,155 @@ EN = {
     'Zielverbindung nicht möglich': 'Target connection not possible',
     'Zielverbindung prüfen': 'Check target connection',
     'Zielverbindung übernehmen': 'Adopt target connection',
+    # 8.3: completeness fixes for EN UI, stored system texts, credentials, status and setup
+    '<h1>Hilfe</h1>': '<h1>Help</h1>',
+    (
+        '<h1>Web-Passwort ändern</h1><p>Alternativ bleiben Terminal- und Telegram-Codes verfügbar. '
+        'Am Host setzt mailhelp --reset-web-password das Passwort zurück und meldet alle Geräte ab.</p>'
+        '<form method="post" action="/einstellungen/web-passwort" class="stack">'
+        '<input type="hidden" name="csrf" value="{p0}">'
+        '<input type="hidden" name="version" value="{p1}">'
+        '<label for="new-password">Neues Passwort (mindestens 12 Zeichen)</label>'
+        '<input id="new-password" type="password" name="password" minlength="12" maxlength="1024" '
+        'autocomplete="new-password" required><button type="submit">Passwort speichern</button></form>'
+    ): (
+        '<h1>Change web password</h1><p>Terminal and Telegram codes remain available as alternatives. '
+        'On the host, mailhelp --reset-web-password resets the password and signs out all devices.</p>'
+        '<form method="post" action="/einstellungen/web-passwort" class="stack">'
+        '<input type="hidden" name="csrf" value="{p0}">'
+        '<input type="hidden" name="version" value="{p1}">'
+        '<label for="new-password">New password (at least 12 characters)</label>'
+        '<input id="new-password" type="password" name="password" minlength="12" maxlength="1024" '
+        'autocomplete="new-password" required><button type="submit">Save password</button></form>'
+    ),
+    '<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>': (
+        '<nav class="settings-index" aria-label="Settings areas"><p class="eyebrow">Areas</p>'
+    ),
+    '<p class="meta">Bereich <a href="/einstellungen?bereich={p0}">{p1}</a> · {p2}</p>': (
+        '<p class="meta">Area <a href="/einstellungen?bereich={p0}">{p1}</a> · {p2}</p>'
+    ),
+    'Absender entfernt': 'Sender removed',
+    (
+        'Am Host mailhelp --pair starten; in Docker docker compose exec mailhelp mailhelp --pair '
+        '--config-directory /config. Einmalcode anschließend hier eingeben.'
+    ): (
+        'Run mailhelp --pair on the host; with Docker run docker compose exec mailhelp mailhelp --pair '
+        '--config-directory /config. Then enter the one-time code here.'
+    ),
+    'Anhang „{p0}“': 'Attachment “{p0}”',
+    'Anhänge': 'Attachments',
+    'Anmelden': 'Sign in',
+    'Anmeldung fehlgeschlagen': 'Sign-in failed',
+    'Ausschließen': 'Exclude',
+    'Ausstehende Themenänderungen': 'Pending topic changes',
+    'Bitte später erneut versuchen': 'Please try again later',
+    'Code nicht gesendet': 'Code not sent',
+    'Decision-Modell: typisierte Aktionsart und Kandidatenzahlen.': (
+        'Decision model: typed action kind and candidate counts.'
+    ),
+    'Decision-Modell: typisierte Relevanz- und Themenentscheidung.': (
+        'Decision model: typed relevance and topic decision.'
+    ),
+    'Der Code konnte nicht über Telegram gesendet werden. Bitte später erneut versuchen.': (
+        'The code could not be sent via Telegram. Please try again later.'
+    ),
+    'Der Mailtext wurde wegen der Größengrenze gekürzt.': (
+        'The email text was shortened due to the size limit.'
+    ),
+    'Die Auswertung brach mit einem Fehler ab; ihr Ergebnis ist unvollständig.': (
+        'Analysis stopped with an error; its result is incomplete.'
+    ),
+    'Die Frist liegt vor dem Eingang der Mail.': (
+        'The deadline is before the email was received.'
+    ),
+    'Die Mail enthält widersprüchliche Angaben zu diesem Vorschlag.': (
+        'The email contains contradictory information for this proposal.'
+    ),
+    (
+        'Die Zusammenfassung nennt eine Frist, zu der es keinen Aufgabenvorschlag gibt. '
+        'Bitte prüfen, ob ein eigener Auftrag dahintersteht; eine Frist allein ist keine Aufgabe.'
+    ): (
+        'The summary mentions a deadline without a matching task proposal. '
+        'Please check whether a separate action is required; a deadline alone is not a task.'
+    ),
+    'Ein Anhang konnte nicht gelesen werden.': 'An attachment could not be read.',
+    'Ersteinrichtung': 'Initial setup',
+    'Filteränderung': 'Filter change',
+    'Filteränderung vormerken': 'Stage filter change',
+    'Gespeicherter Verarbeitungsfehler': 'Stored processing error',
+    'Hilfe': 'Help',
+    'Lokalen Code anfordern': 'Request local code',
+    'Mailtext': 'Email text',
+    'Mindestens 12 Zeichen verwenden und bei einem Versionskonflikt die Seite neu laden.': (
+        'Use at least 12 characters and reload the page in case of a version conflict.'
+    ),
+    'Neustart erforderlich': 'Restart required',
+    'Passwort nicht gespeichert': 'Password not saved',
+    'Passwort prüfen oder einen Code verwenden. Nach mehreren Fehlversuchen später erneut versuchen.': (
+        'Check your password or use a code. After several failed attempts, please try again later.'
+    ),
+    'Profiländerung vormerken': 'Stage profile change',
+    'Prüfhinweise': 'Review hints',
+    'Quellenmail': 'Source email',
+    'Router und Extraktion': 'Router and extraction',
+    'Termin „{p0}“': 'Event “{p0}”',
+    'Unsichere Themen: {p0}.': 'Uncertain topics: {p0}.',
+    'Vorschlag „{p0}“': 'Proposal “{p0}”',
+    'Widerspruch zwischen Gesamtentscheidung und Themenzuordnung.': (
+        'Contradiction between overall decision and topic assignment.'
+    ),
+    'Zeit nicht mehr gespeichert': 'Time no longer stored',
+    'Zum Termin wird eine Anmeldung oder Rückmeldung erwähnt, für die es keine eigene Aufgabe gibt.': (
+        'The event mentions a registration or reply for which there is no separate task.'
+    ),
+    'Zusammenfassung: {p0}': 'Summary: {p0}',
+    'sofort': 'immediate',
+    '{p0} Anhänge wurden wegen der Grenze nicht gelesen.': (
+        '{p0} attachments were not read due to the limit.'
+    ),
+    'Änderungsliste': 'Change list',
+    # Provider, service, credential, evaluation & onboarding stored labels
+    'IMAP-Postfach': 'IMAP mailbox',
+    'Jev (Relevanz)': 'Jev (relevance)',
+    'IServ-Anmeldung fehlgeschlagen': 'IServ sign-in failed',
+    'Postfach {p0} ({p1})': 'Mailbox {p0} ({p1})',
+    'Postfach {p0} · {p1}': 'Mailbox {p0} · {p1}',
+    'IServ-Konto {p0} ({p1})': 'IServ account {p0} ({p1})',
+    'Zielprofil {p0}': 'Target profile {p0}',
+    'Zielprofil {p0} · {p1}': 'Target profile {p0} · {p1}',
+    'IMAP-Benutzername': 'IMAP username',
+    'IMAP-Passwort': 'IMAP password',
+    'OpenRouter API-Schlüssel': 'OpenRouter API key',
+    'Telegram Bot-Token': 'Telegram bot token',
+    'Todoist API-Token': 'Todoist API token',
+    'Todoist Client-ID': 'Todoist client ID',
+    'Todoist Client-Schlüssel': 'Todoist client secret',
+    'Google OAuth Client-ID': 'Google OAuth client ID',
+    'Google OAuth Client-Schlüssel': 'Google OAuth client secret',
+    'Google OAuth Refresh-Token': 'Google OAuth refresh token',
+    'CalDAV-Benutzername': 'CalDAV username',
+    'CalDAV-Passwort': 'CalDAV password',
+    'Microsoft Client-ID': 'Microsoft client ID',
+    'Microsoft Client-Schlüssel': 'Microsoft client secret',
+    'Microsoft Refresh-Token': 'Microsoft refresh token',
+    'Notion-Verbindungstoken': 'Notion integration token',
+    'Notion OAuth Client-ID': 'Notion OAuth client ID',
+    'Notion OAuth Client-Schlüssel': 'Notion OAuth client secret',
+    'Ohne Thema': 'Without topic',
+    'Von diesem Absender hast du {p0} von {p1} Vorschlägen verworfen. Künftig aussortieren?': (
+        'You dismissed {p0} of {p1} proposals from this sender. Filter out in the future?'
+    ),
+    (
+        'Seit dem letzten Regellauf liegen {p0} neue Ablehnungen vor. '
+        'Ein neuer Lernlauf kann deine Themenregeln verbessern.'
+    ): (
+        'There are {p0} new dismissals since the last rule run. '
+        'A new learning run can improve your topic rules.'
+    ),
+    'IMAP-Postfach lesend geprüft': 'IMAP mailbox checked read-only',
+    'Zielsystem lesend geprüft': 'Target system checked read-only',
+    'Unterlagen prüfen und bestätigen (Testmodus-Beispiel)': (
+        'Review and confirm documents (test-mode example)'
+    ),
+    'Frist: Freitag · Simuliert': 'Deadline: Friday · Simulated',
 }

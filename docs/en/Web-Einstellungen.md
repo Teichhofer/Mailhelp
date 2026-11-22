@@ -25,7 +25,7 @@ exclusions, there is one entry per line; a semicolon remains part of the entry.
 4. Check “Explicitly save change” and select “Save change”. With
    “Continue editing” you return without saving.
 
-Errors are in Deutsch directly on the affected field and in a focused
+Errors are shown directly on the affected field and in a focused
 summary with links to the inputs. Field help and errors are linked
 with the inputs for assistive technologies. The inputs are retained. If the
 topic file has been changed in the meantime, select “Reload” and review the change again. An
@@ -180,7 +180,7 @@ At `/einstellungen/iserv`, **Check connection and activate account** activates a
 directly: Only after successful login are account and credentials saved, and retrieval
 starts without restart in the next secure email cycle. Alternatively, accounts can be created and changed as a
 setup draft.
-“Do not process older messages before” accepts `TT.MM.JJJJ [HH:MM]` (e.g. `01.09.2026 07:30`),
+“Do not process older messages before” accepts `DD.MM.YYYY [HH:MM]` (e.g. `01.09.2026 07:30`),
 `JJJJ-MM-TT` (e.g. `2026-09-01`) or an ISO-8601 timestamp with UTC offset.
 A pure date applies from 00:00 in the time zone of the configuration draft;
 for `Europe/Berlin`, `01.09.2026` is stored as `2026-09-01T00:00:00+02:00`.
@@ -523,7 +523,7 @@ setup note.
 
 ## IServ Accounts (3.3.10) <!-- mailhelp-id:web-einstellungen/iserv-konten-3310 -->
 
-Under `/einstellungen/iserv`, IServ accounts for parent letters are created, changed, activated, deactivated, and removed. Per account: display name, HTTPS address of the school (a copied IServ link or the address without `https://` is shortened to the school address), the mailbox whose target profile and defaults apply, and optionally the start limit (`TT.MM.JJJJ [HH:MM]` or ISO 8601; empty: that of the mailbox). The page names invalid fields with their cause.
+Under `/einstellungen/iserv`, IServ accounts for parent letters are created, changed, activated, deactivated, and removed. Per account: display name, HTTPS address of the school (a copied IServ link or the address without `https://` is shortened to the school address), the mailbox whose target profile and defaults apply, and optionally the start limit (`DD.MM.YYYY [HH:MM]` or ISO 8601; empty: that of the mailbox). The page names invalid fields with their cause.
 Every change is a draft; it is applied after the current diagnosis `iserv` and explicit confirmation. Parent letters are always considered relevant. The access data belongs on the Access Data page. Effect after the next restart.
 
 ## Credentials (3.3.11) <!-- mailhelp-id:web-einstellungen/zugangsdaten-3311 -->

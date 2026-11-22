@@ -65,7 +65,7 @@ can expire after seven days. Then renew the sign-in and check the project status
 
 The list selection creates a versioned draft. The first Task then requires the explicit confirmation of its suggestion version. Preview and Telegram show “Google Tasks adopts the Date; the exact Deadline is in the text.”.
 
-Google Tasks stores only a day for a Task, no time. Mailhelp enters the confirmed day in the configured time zone and additionally writes an exact Deadline into the text, for example `Frist: 12.05.2026, 18:00 Uhr (Europe/Berlin)`. There is no time-exact reminder from Google for this. Without a Deadline, the Date remains empty.
+Google Tasks stores only a day for a Task, no time. Mailhelp enters the confirmed day in the configured time zone and additionally writes an exact Deadline into the text, for example `Deadline: 2026-05-12, 18:00 (Europe/Berlin)`. There is no time-exact reminder from Google for this. Without a Deadline, the Date remains empty.
 
 ## Notion <!-- mailhelp-id:ziele-einrichten/notion -->
 

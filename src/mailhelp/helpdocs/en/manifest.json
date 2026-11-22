@@ -1,13 +1,13 @@
 {
- "app_version": "8.2.1",
+ "app_version": "8.3.1",
  "locale": "en",
- "revision": "e06993d11a53ece2224620213a5eed410784cfcf7c2ba0c01c7287e3e349fe83",
+ "revision": "f5c80990eee012410cf5c9d2ae64b3c19c9a4f1c4b2f1689cb75df122fdafe62",
  "schema_version": 2,
  "sections": 130,
  "sources": [
   {
    "path": "docs/en/Web-Einstellungen.md",
-   "sha256": "31086fcd139e4a2e6bc4083c94f4fd0298a818bf89512b1be16f6895293d77d6"
+   "sha256": "abec70d0b5d964903091db79d58e73f9992630398969a0f54bcf29235e118406"
   },
   {
    "path": "docs/en/Ersteinrichtung.md",
@@ -19,7 +19,7 @@
   },
   {
    "path": "docs/en/Ziele-einrichten.md",
-   "sha256": "0909cdeebba094abe78c4d17f152bfffef716fbb1037a6b182653045cd1a08f8"
+   "sha256": "af2b9564aaa7613cd816ebf5bf3781d430b7d747292d90c007165a59d5df186e"
   },
   {
    "path": "docs/en/Bedienung.md",

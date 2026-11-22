@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from ..config import Settings
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..formatting import format_datetime_local
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..mailbox.mailbox_settings import active_profiles, profile_label, target_profiles
 
 CALENDAR_SERVICES = {"google": "google_calendar", "caldav": "caldav_calendar", "outlook": "outlook_calendar"}
@@ -39,14 +39,14 @@ def configured_accounts(settings: Settings) -> tuple[AccountInfo, ...]:
         accounts += [
             AccountInfo(
                 f"{CALENDAR_SERVICES[target.calendar_provider]}:{number}",
-                tr("Kalender · {p0} · {p1}", p0=f"{label}", p1=f"{CALENDAR_LABELS[target.calendar_provider]}"),
+                tr("Kalender · {p0} · {p1}", p0=f"{label}", p1=stored(CALENDAR_LABELS[target.calendar_provider])),
                 number in active,
                 msg("nicht verwendet"),
                 connection=target.model_dump_json(exclude={"id", "label"}),
             ),
             AccountInfo(
                 f"{TASK_SERVICES[target.task_provider]}:{number}",
-                tr("Aufgaben · {p0} · {p1}", p0=label, p1=TASK_LABELS[target.task_provider]),
+                tr("Aufgaben · {p0} · {p1}", p0=label, p1=stored(TASK_LABELS[target.task_provider])),
                 number in active,
                 msg("nicht verwendet"),
                 connection=target.model_dump_json(exclude={"id", "label"}),

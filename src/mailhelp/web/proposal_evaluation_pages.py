@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..review.prefilter_hints import PrefilterHint
 from ..review.proposal_evaluation import PERIODS, ProposalEvaluationReport, SenderHint
 from ..review.reject_reasons import REJECT_REASONS
@@ -69,7 +69,7 @@ def _hints_section(hints: list[SenderHint] | tuple[SenderHint, ...]) -> str:
                     'class="button primary small" '
                     'href="/lernen/absender-hinweis?sender={p1}">Ansehen</a></p></div>'
                 ),
-                p0=e(h.trigger_sentence),
+                p0=e(stored(h.trigger_sentence)),
                 p1=quote(h.sender),
             )
             for h in hints
@@ -224,7 +224,7 @@ def _topics_table(report: ProposalEvaluationReport, params: dict[str, Any], base
         sorted_topics.sort(key=lambda t: (t.decided, t.quote), reverse=True)
 
     topic_rows = "".join(
-        f'<tr><td><a href="/mails?topic={quote(t.topic_id)}">{e(t.topic_name)}</a></td>'
+        f'<tr><td><a href="/mails?topic={quote(t.topic_id)}">{e(stored(t.topic_name))}</a></td>'
         f'<td>{t.decided}</td>'
         f'<td>{t.accepted}</td>'
         f'<td>{t.rejected}</td>'
@@ -266,7 +266,7 @@ def _senders_table(report: ProposalEvaluationReport, params: dict[str, Any], bas
     sender_rows = []
     for s_item in sorted_senders:
         if s_item.sender == "Absender entfernt":
-            sender_cell = e(s_item.sender)
+            sender_cell = e(tr("Absender entfernt"))
         else:
             sender_cell = f'<a href="/mails?q={quote(s_item.sender)}">{e(s_item.sender)}</a>'
         sender_rows.append(

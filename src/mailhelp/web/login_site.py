@@ -6,6 +6,7 @@ from typing import Protocol
 from urllib.parse import parse_qs
 
 from ..config import WebSettings
+from ..i18n import tr
 from ..runtime.web_password import WebPassword
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
@@ -74,8 +75,9 @@ class LoginSite:
             token = self.site.auth.password_login(form.get("password", ""),
                                                  device_name(request.header("user-agent")))
         except (PairingLimited, PairingRefused):
-            return Response.html(429, error_page("Anmeldung fehlgeschlagen",
-                "Passwort prüfen oder einen Code verwenden. Nach mehreren Fehlversuchen später erneut versuchen.",
+            return Response.html(429, error_page(
+                tr("Anmeldung fehlgeschlagen"),
+                tr("Passwort prüfen oder einen Code verwenden. Nach mehreren Fehlversuchen später erneut versuchen."),
                 signed_in=False))
         response = Response.redirect("/")
         response.cookies.append(self._cookie(request, SESSION_COOKIE, token,
@@ -84,23 +86,30 @@ class LoginSite:
 
     def password_settings(self, _request: Request, session: WebSession) -> Response:
         state = WebPassword(self.site.auth.store).state()
-        body = ('<h1>Web-Passwort ändern</h1><p>Alternativ bleiben Terminal- und Telegram-Codes verfügbar. '
+        body = tr(
+            (
+                '<h1>Web-Passwort ändern</h1><p>Alternativ bleiben Terminal- und Telegram-Codes verfügbar. '
                 'Am Host setzt mailhelp --reset-web-password das Passwort zurück und meldet alle Geräte ab.</p>'
                 '<form method="post" action="/einstellungen/web-passwort" class="stack">'
-                f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
-                f'<input type="hidden" name="version" value="{state.version}">'
+                '<input type="hidden" name="csrf" value="{p0}">'
+                '<input type="hidden" name="version" value="{p1}">'
                 '<label for="new-password">Neues Passwort (mindestens 12 Zeichen)</label>'
                 '<input id="new-password" type="password" name="password" minlength="12" maxlength="1024" '
-                'autocomplete="new-password" required><button type="submit">Passwort speichern</button></form>')
-        return Response.html(200, layout("Web-Passwort", body))
+                'autocomplete="new-password" required><button type="submit">Passwort speichern</button></form>'
+            ),
+            p0=e(self.site.auth.csrf_token(session.id)),
+            p1=state.version,
+        )
+        return Response.html(200, layout(tr("Web-Passwort"), body))
 
     def save_password(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:
             WebPassword(self.site.auth.store).set(form.get("password", ""), int(form.get("version", "-1")),
                                                  lambda: self.site.auth.active(session.id))
         except (ValueError, PermissionError):
-            return Response.html(409, error_page("Passwort nicht gespeichert",
-                "Mindestens 12 Zeichen verwenden und bei einem Versionskonflikt die Seite neu laden."))
+            return Response.html(409, error_page(
+                tr("Passwort nicht gespeichert"),
+                tr("Mindestens 12 Zeichen verwenden und bei einem Versionskonflikt die Seite neu laden.")))
         return Response.redirect("/einstellungen/web-passwort")
 
     def request_code(self, request: Request) -> Response:
@@ -110,20 +119,21 @@ class LoginSite:
         nonce, _ = checked
         if self.site.auth.channel == "console":
             return Response.html(200, error_page(
-                "Lokalen Code anfordern", "Am Host mailhelp --pair starten; in Docker docker compose exec "
-                "mailhelp mailhelp --pair --config-directory /config. Einmalcode anschließend hier eingeben.",
+                tr("Lokalen Code anfordern"),
+                tr("Am Host mailhelp --pair starten; in Docker docker compose exec "
+                   "mailhelp mailhelp --pair --config-directory /config. Einmalcode anschließend hier eingeben."),
                 signed_in=False))
         try:
             self.site.auth.request_code(nonce, device_name(request.header("user-agent")))
         except PairingLimited as exc:
             self.site.logger.event("WARNING", "web", "pairing_limited", step="request")
-            return Response.html(429, error_page("Bitte später erneut versuchen", str(exc),
+            return Response.html(429, error_page(tr("Bitte später erneut versuchen"), str(exc),
                                                  signed_in=False))
         except Exception as exc:
             self.site.logger.event("ERROR", "web", "pairing_code_not_sent", error_class=type(exc).__name__)
             return Response.html(503, error_page(
-                "Code nicht gesendet",
-                "Der Code konnte nicht über Telegram gesendet werden. Bitte später erneut versuchen.",
+                tr("Code nicht gesendet"),
+                tr("Der Code konnte nicht über Telegram gesendet werden. Bitte später erneut versuchen."),
                 signed_in=False))
         self.site.logger.event("INFO", "web", "pairing_code_requested")
         return Response.redirect("/anmelden")
@@ -138,7 +148,7 @@ class LoginSite:
             token = self.site.auth.redeem(nonce, form.get("code", ""), device)
         except PairingLimited as exc:
             self.site.logger.event("WARNING", "web", "pairing_limited", step="redeem")
-            return Response.html(429, error_page("Bitte später erneut versuchen", str(exc),
+            return Response.html(429, error_page(tr("Bitte später erneut versuchen"), str(exc),
                                                  signed_in=False))
         except PairingRefused as exc:
             self.site.logger.event("WARNING", "web", "pairing_refused")

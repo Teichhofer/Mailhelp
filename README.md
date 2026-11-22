@@ -13,7 +13,14 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.2.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.3.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.3.1: Vollständige Bereinigung der englischen und deutschen Sprachausgabe nach
+Live-Prüfung auf Produktiv- und Demo-Server: Seitentitel, Web-Passwort, Einrichtung,
+Zugangsdaten, Status-Dienstnamen, Konsistenzhinweise, Entscheidungsbegründungen,
+Vorschlagsabgleich, Auswertungslabels, mobile Tabellen-Labels und englische Dokumentation
+sind konsistent übersetzt; auf `/mail/<id>` erscheint statt `pending_confirmation` das
+lesbare Statuslabel ([Planung 8.3](docs/Planung-8.3.md)).
 
 Arbeitsstand 8.2.1: Geführtes 3-Schritte-Self-Service-Onboarding (`/onboarding`) mit
 Anbietererkennung, Zielauswahl, kuratierten Starter-Themenprofilen und risikofreiem

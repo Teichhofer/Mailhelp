@@ -482,6 +482,20 @@ Update auf 7.9.10 (20.11.2026, mit Freigabe): enthält die Bugfixes aus 7.9.9 (�
 Container geprüft; Netz `inboxstride-auth` und `hosted_auth` erhalten. Rückkehr auf
 `mailhelp-production:7.9.8-51adae6` mit den Compose-Dateien dieser Sicherung.
 
+Update auf 8.2.1 (21.11.2026, mit Freigabe): umfasst Abschluss 8.0, vereinfachte Postfacheinrichtung
+8.1 und Self-Service-Onboarding / zentrale Ziel-OAuths 8.2. Quelle ist Commit `183649f`
+(`git archive` nach `/opt/mailhelp/uploads/mailhelp-8.2.1-183649f.tar.gz`, entpackt unter
+`/opt/mailhelp/releases/8.2.1-183649f`), Image `mailhelp-production:8.2.1-183649f`. Vorab
+erfolgreiche Offline-Konfigurationsprüfung (`--check` ohne Netzwerk, schreibgeschützter
+Konfigurationsmount, „Konfiguration ist gültig.“). Beide Container kontrolliert gestoppt,
+konsistente Laufzeitsicherung unter `/opt/mailhelp/backups/upgrade-8.2.1-20261121T065501Z`
+angelegt, anschließend umgestellt und geprüft: Healthcheck für `stefan.inboxstride.de`
+und `demo.inboxstride.de` erfolgreich, Version 8.2.1 für `mailhelp-update-mailhelp-1`
+und `mailhelp-demo-mailhelp-demo-1` bestätigt. Netz `inboxstride-auth`,
+`hosted_auth` und `inboxstride-auth:7.9.5-2073ef0` blieben unverändert erhalten.
+Rückkehr auf `mailhelp-production:7.9.10-fd4d1e7` über die Compose-Dateien dieser Sicherung
+nach vorheriger Prüfung von Schema- und Schreibnachweisen.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

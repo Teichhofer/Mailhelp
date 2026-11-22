@@ -255,7 +255,7 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
     if step == 4:
         body += (hosted_google_box(state.config["targets"])
                  + hosted_target_boxes(state.config["targets"])) if hosted else tr(_INITIAL_PAGE_TEXT_4)
-    return layout("Ersteinrichtung", '<section class="card">' + body + '</section>', signed_in=False,
+    return layout(tr("Ersteinrichtung"), '<section class="card">' + body + '</section>', signed_in=False,
                   after='<script src="/static/setup.js" defer></script>')
 
 

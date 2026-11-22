@@ -8,7 +8,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..formatting import duration_text, format_datetime_local
-from ..i18n import msg, tr
+from ..i18n import msg, stored, tr
 from ..review.inbox import CommandStatus
 from ..review.views import STAGE_LABELS, STATUS_LABELS, Overview, RunStatus, SystemStatus, german_number
 from .labels import count_text
@@ -97,7 +97,7 @@ def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
     services = list(info.services) + sorted(set(contacts) - set(info.services))
     contact_rows = [
         (
-            service,
+            stored(service),
             (msg("zuletzt erfolgreich ") + _when(datetime.fromisoformat(contacts[service]), zone))
             if service in contacts
             else msg("unbekannt"),

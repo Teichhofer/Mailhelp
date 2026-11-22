@@ -20,7 +20,7 @@ class Shape(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         self.tags.append((tag, [(key, value) for key, value in attrs
-                                if key not in {"title", "aria-label", "placeholder"}]))
+                                if key not in {"title", "aria-label", "placeholder", "data-label"}]))
 
     def handle_endtag(self, tag):
         self.tags.append(("/" + tag, []))

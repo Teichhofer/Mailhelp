@@ -77,7 +77,7 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
                 "/einstellungen/zielprofile/speichern",
                 site.site.auth.csrf_token(session.id),
                 mailbox_site_module.control(field, value, prefix=f"profile-{profile.id}"),
-                "Profiländerung vormerken",
+                msg("Profiländerung vormerken"),
                 number=profile.id,
                 field=field,
                 version=site.runtime.setup.state().version,
