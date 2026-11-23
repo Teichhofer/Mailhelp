@@ -63,6 +63,30 @@ def test_wizard_draft_review_queue_and_session_recheck(configured):
     assert web.writer.created == 0 and web.writer.reconciled == 0
 
 
+@pytest.mark.slow
+def test_a_connection_change_without_a_current_check_names_the_next_step(configured):
+    # Bugfix 8.4.3: the 8.0 pilot adopted its Google calendar into the draft; "Einstellungen übernehmen"
+    # answered only "Bestätigung und Sitzung prüfen" because the connection had not been checked again.
+    web, runtime = configured.web, configured.runtime
+    form = web.form("/einrichtung", action="/einrichtung/speichern", name="targets.google_calendar")
+    assert web.browser.request("POST", "/einrichtung/speichern", {**form, "value": "familie"}).status == 303
+    review = web.browser.request("GET", "/einrichtung").body.decode()
+    assert "noch nicht erfolgreich geprüft" in review and 'href="/diagnose"' in review
+    apply = web.form("/einrichtung", action="/einrichtung/uebernehmen")
+    refused = web.browser.request("POST", "/einrichtung/uebernehmen", {**apply, "confirm": "yes"})
+    page = refused.body.decode()
+    assert refused.status == 409 and "Einstellungen noch nicht übernommen" in page and 'href="/diagnose"' in page
+    assert web.commands.queued() == []
+    runtime.diagnostics.checks["calendar"] = lambda actor: ("ready", "")
+    check = web.form("/diagnose", action="/diagnose/pruefen", name="calendar")
+    assert web.browser.request("POST", "/diagnose/pruefen", check).status == 303
+    review = web.browser.request("GET", "/einrichtung").body.decode()
+    assert "noch nicht erfolgreich geprüft" not in review
+    apply = web.form("/einrichtung", action="/einrichtung/uebernehmen")
+    assert web.browser.request("POST", "/einrichtung/uebernehmen", {**apply, "confirm": "yes"}).status == 303
+    assert len(web.commands.queued()) == 1
+
+
 MAILBOX_CONFIG = """imap:
   mailboxes:
   - id: 1   # privat

@@ -548,6 +548,20 @@ verifiziert: Kernel `7.0.0-44-generic` aktiv, `/var/run/reboot-required` nicht v
 und `inboxstride-auth:7.9.5-2073ef0`), `stefan.inboxstride.de/anmelden` (200, `<html lang="de">`),
 `demo.inboxstride.de/` (200) und `inboxstride.de/` (200) erreichbar.
 
+Update auf 8.4.2 (23.11.2026, mit Freigabe): enthält automatische Kalendererinnerungen
+(8.4.1) sowie den Vision-OCR-Bugfix für Smartphone-JPEGs im MPO-Format (8.4.2).
+Host-Paketupdate geprüft (`apt-get update && apt-get upgrade -y`: 0 offene Updates,
+`nginx -t` erfolgreich, `/proc/1096/exe -> /usr/sbin/nginx`, `/var/run/reboot-required`
+nicht vorhanden). Quelle ist Commit `8286062` (`/opt/mailhelp/releases/8.4.2-8286062`),
+Image `mailhelp-production:8.4.2-8286062`; vorab Offline-`--check` bestanden.
+Beide Container kontrolliert gestoppt, konsistente Sicherung unter
+`/opt/mailhelp/backups/pre-8.4.2-20261123T072014Z` angelegt, anschließend umgestellt
+und verifiziert: `mailhelp-update-mailhelp-1`, `mailhelp-demo-mailhelp-demo-1` (`healthy`)
+und `inboxstride-auth-auth-1` (`healthy`) aktiv; `stefan.inboxstride.de/anmelden`,
+`demo.inboxstride.de/` und `inboxstride.de/` liefern HTTP 200; `vision.open_image()`
+dekodiert den gespeicherten MPO-Anhang (`1134x2016`) fehlerfrei. Rückkehr auf
+`mailhelp-production:8.3.2-86dcfc5` über `/opt/mailhelp/backups/pre-8.4.2-20261123T072014Z`.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

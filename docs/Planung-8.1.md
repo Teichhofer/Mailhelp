@@ -1,7 +1,7 @@
 # Mailhelp 8.1 – Einfache Postfacheinrichtung und zuverlässige Terminrückfragen
 
-**Stand:** 20. November 2026. **Status:** In Umsetzung; Nachweise und offene
-Freigaben im [Releasebericht](Release-8.1.md). Arbeitsversion 8.1.1.
+**Stand:** 20. November 2026. **Status:** Umgesetzt (8.1.1, ausgeliefert mit 8.2.1); offen sind nur
+Anbieterfreigaben des Betreibers (Gmail, Microsoft Entra), siehe [Releasebericht](Release-8.1.md).
 
 **Zielversion:** 8.1, erste Auslieferung 8.1.1; Patchversionen gemäß AGENTS.md.
 

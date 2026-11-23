@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.4.3 – Abschluss 8.0 bis 8.4 und Planung 8.5
+
+- Bugfix: Eine Übernahme mit geänderter Verbindung ohne aktuelle Verbindungsprüfung meldete nur „Bestätigung und Sitzung prüfen“ (so scheiterte die Pilotübernahme der zentralen Google-Verbindung). Die Prüfseite nennt das fehlende „Verbindungen prüfen“ jetzt vorab; eine abgelehnte Übernahme antwortet mit Grund und Knopf.
+- Betriebsnachweis des Updates auf 8.4.2 (Betrieb, Serverhandbuch).
+- Status der Planungen 8.0 bis 8.2 nachgeführt: umgesetzt, offen nur Betreiberschritte (Pilotübernahme, Anbieterregistrierungen).
+- Neu: [Planung 8.5](docs/Planung-8.5.md) für übersichtliche Einstellungen.
+
 ## 8.4.2 – Bugfix: Smartphone-JPEGs im MPO-Format für die Bilderkennung akzeptieren
 
 - Bugfix in `src/mailhelp/processing/vision.py`: `IMAGE_FORMATS` akzeptiert nun auch

@@ -8660,6 +8660,12 @@ EN = {
     'Einstellungen nicht übernommen; Bestätigung und Sitzung prüfen.': (
         'Settings not applied; check confirmation and session.'
     ),
+    'Einstellungen noch nicht übernommen': 'Settings not applied yet',
+    'Der Entwurf ändert eine Verbindung, die seit der Änderung noch nicht erfolgreich geprüft wurde. Bitte zuerst '
+    'die Verbindungen prüfen und danach die Einstellungen übernehmen.': (
+        'The draft changes a connection that has not been checked successfully since the change. Please check '
+        'the connections first and then apply the settings.'
+    ),
     'Einstellungen übernehmen': 'Apply settings',
     'Einstellungsdatei geändert; bitte neu laden.': 'Settings file changed; please reload.',
     'Elternbriefe': 'Parent letters',

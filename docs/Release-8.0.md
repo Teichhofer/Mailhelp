@@ -215,3 +215,19 @@ offen. Vollständige Prüfungen des kombinierten Arbeitsstands 8.0–8.2 (Versio
 `python -m devtools.check full --workers 12` mit 6 372 bestandenen Tests, 2 bestandenen
 Lasttests und 100,00 % Zeilen- und Branch-Abdeckung (41 187 Anweisungen, 11 602 Branches);
 Browsersuite mit 998 bestandenen Tests (234 übersprungen) und 100 % JavaScript-Abdeckung.
+
+## 8.4.3 – Pilotübernahme: fehlende Verbindungsprüfung wird benannt
+
+Die zentrale Google-Verbindung des Piloten ist beim Anmeldedienst aktiv, aber nicht in
+`config.yaml` übernommen. Das Log zeigt am 21.11.2026 `POST /einrichtung/uebernehmen` mit HTTP 422;
+der Entwurf war danach leer. Ursache: Ein Entwurf, der den Kalender ändert, braucht eine aktuelle
+erfolgreiche Verbindungsprüfung des Entwurfs; die Seite meldete aber nur „Einstellungen nicht
+übernommen; Bestätigung und Sitzung prüfen.“. Seit 8.4.3 zeigt die Prüfseite vor der Bestätigung
+den Hinweis mit „Verbindungen prüfen“, und eine trotzdem abgelehnte Übernahme antwortet mit
+HTTP 409, nennt den Grund und bietet denselben Knopf. Regressionstest
+`test_a_connection_change_without_a_current_check_names_the_next_step`.
+
+Nächster Schritt des Betreibers: „Mit Google verbinden“ für Zielprofil 1 erneut ausführen,
+Kalender wählen, „Verbindung übernehmen“, dann „Verbindungen prüfen“ (Kalender), danach im Schritt
+„Prüfen und übernehmen“ die Einstellungen übernehmen. Die beim Anmeldedienst schon aktive
+Verbindung ersetzt die nächste erfolgreiche Übernahme für dasselbe Zielprofil.

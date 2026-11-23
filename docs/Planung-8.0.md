@@ -4,8 +4,9 @@
 
 **Stand:** 18. November 2026.
 
-**Status:** In Umsetzung seit 7.9.3, siehe [Release 8.0](Release-8.0.md). Kein Auftrag zur
-Bereitstellung oder Änderung produktiver Konten.
+**Status:** Umgesetzt (7.9.3 bis 8.2.1, Abschlusskorrektur 8.4.3), siehe [Release 8.0](Release-8.0.md).
+Offen sind nur Betreiberschritte: die Pilotübernahme der zentralen Google-Verbindung im Browser des
+Betreibers. Kein Auftrag zur Bereitstellung oder Änderung produktiver Konten.
 
 **Abgleich 20.11.2026:** Die Anwendungsteile und das Serverhandbuch sind im lokalen
 Arbeitsstand 8.1.1 enthalten. Der [Releasebericht](Release-8.0.md#abschlussprüfung-des-lokalen-arbeitsstands)

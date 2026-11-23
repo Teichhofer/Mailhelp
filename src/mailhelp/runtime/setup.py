@@ -46,12 +46,51 @@ class SetupState(BaseModel):
     configuration_hash: str = ""
 
 
+class DiagnosisRequired(ValueError):
+    """The draft changes a connection without a current successful read-only check (8.4.3)."""
+
+
+# Draft fields whose change needs a current successful diagnosis of that connection.
+DIAGNOSED = {"imap": ("imap.",),
+             "calendar": ("targets.google_calendar", "targets.calendar_provider", "targets.caldav_calendar_url",
+                          "targets.outlook_calendar", "targets.microsoft_tenant"),
+             "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
+                         "targets.microsoft_todo_list", "targets.google_tasks_list"),
+             "iserv": ("iserv.",)}
+
+
 class SetupService:
     def __init__(self, configuration: ConfigurationService) -> None:
         self.configuration, self.store = configuration, configuration.store
 
     def state(self) -> SetupState:
         return self.store.load_model("setup-state", SetupState, SetupState())
+
+    def diagnosis_gaps(self) -> list[str]:
+        """Why the current draft cannot be approved yet; empty when the checks are current."""
+        state = self.state()
+        return self._diagnosis_gaps(state) if state.kind == "settings" else []
+
+    def _diagnosis_gaps(self, state: SetupState) -> list[str]:
+        diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
+        fingerprint = self.fingerprint()
+        gaps = []
+        for name, prefixes in DIAGNOSED.items():
+            if any(field.startswith(prefixes) for field in state.patch):
+                result = diagnostics.results.get(name)
+                # Without enabled IServ accounts the check reports "disabled", e.g. after removing the last.
+                accepted = {"ready", "limited", "disabled"} if name == "iserv" else {"ready", "limited"}
+                if result is None or result.status not in accepted or result.config_revision != fingerprint:
+                    gaps.append("Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose")
+        if "target_profiles" in state.patch or "imap.mailboxes" in state.patch or any(
+                name.endswith(".target_profile") for name in state.patch):
+            for number in active_profiles(self.draft_settings()):
+                components = ("calendar", "todoist") if number == 1 else (f"calendar:{number}", f"tasks:{number}")
+                for name in components:
+                    result = diagnostics.results.get(name)
+                    if result is None or result.status != "ready" or result.config_revision != fingerprint:
+                        gaps.append("Zielprofil benötigt eine aktuelle erfolgreiche Diagnose")
+        return gaps
 
     def draft_settings(self) -> Settings:
         state = self.state()
@@ -173,28 +212,7 @@ class SetupService:
             command = AdminCommand(kind=AdminKind.SETUP, actor=actor, expected_hash=expected_hash,
                                    idempotency_key=key, patch=state.patch, acknowledged=True)
             self.configuration.candidate(command)
-            checks = {"imap": ("imap.",),
-                      "calendar": ("targets.google_calendar", "targets.calendar_provider",
-                                   "targets.caldav_calendar_url", "targets.outlook_calendar",
-                                   "targets.microsoft_tenant"),
-                      "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
-                                  "targets.microsoft_todo_list", "targets.google_tasks_list"),
-                      "iserv": ("iserv.",)}
-            diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
-            for name, prefixes in checks.items():
-                if any(field.startswith(prefixes) for field in state.patch):
-                    result = diagnostics.results.get(name)
-                    # Without enabled IServ accounts the check reports "disabled", e.g. after removing the last.
-                    accepted = {"ready", "limited", "disabled"} if name == "iserv" else {"ready", "limited"}
-                    if (result is None or result.status not in accepted
-                            or result.config_revision != self.fingerprint()):
-                        raise ValueError("Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose")
-            if "target_profiles" in state.patch or "imap.mailboxes" in state.patch or any(
-                    name.endswith(".target_profile") for name in state.patch):
-                for number in active_profiles(self.draft_settings()):
-                    components = ("calendar", "todoist") if number == 1 else (f"calendar:{number}", f"tasks:{number}")
-                    for name in components:
-                        result = diagnostics.results.get(name)
-                        if result is None or result.status != "ready" or result.config_revision != self.fingerprint():
-                            raise ValueError("Zielprofil benötigt eine aktuelle erfolgreiche Diagnose")
+            gaps = self._diagnosis_gaps(state)
+            if gaps:
+                raise DiagnosisRequired(gaps[0])
             return command

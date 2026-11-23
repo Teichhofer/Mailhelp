@@ -225,11 +225,10 @@ def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
     if name == "targets.calendar_reminder_minutes":
         shown = "" if saved is None else saved
         inactive = (raw or {}).get("targets", {}).get("calendar_reminder_enabled") is False
-        hint = (
-            f'<p class="meta">{e(tr("Kalendererinnerung ist aktuell deaktiviert; dieser Minutenwert bleibt als Vorbereitung gespeichert."))}</p>'
-            if inactive else ""
-        )
-        return f'<label>{label}<input type="number" min="0" max="1440" step="1" name="value" value="{e(shown)}" required></label>{hint}'
+        off = tr("Kalendererinnerung ist aktuell deaktiviert; dieser Minutenwert bleibt als Vorbereitung gespeichert.")
+        hint = f'<p class="meta">{e(off)}</p>' if inactive else ""
+        return (f'<label>{label}<input type="number" min="0" max="1440" step="1" name="value" value="{e(shown)}" '
+                f'required></label>{hint}')
     kind = "number" if isinstance(saved, (int, float)) else "text"
     step = ' step="any"' if kind == "number" else ""
     shown = "" if saved is None else saved

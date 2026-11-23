@@ -110,7 +110,7 @@ def test_add_change_deactivate_and_remove_an_account_only_after_approval(profile
 @pytest.mark.slow
 def test_connection_changes_need_a_current_diagnosis_but_removal_of_all_does_not(profiled):
     assert submit(profiled, "add", **NEW).status == 303
-    assert approve(profiled, diagnosed=False) == 422
+    assert approve(profiled, diagnosed=False) == 409  # 8.4.3: refused with the missing check named
     assert config(profiled)["iserv"]["accounts"] == []
     runtime = profiled.runtime
     assert approve(profiled) == 303

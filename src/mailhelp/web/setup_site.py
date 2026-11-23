@@ -13,11 +13,12 @@ from ..config.configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, Configurat
 from ..config.notifications import CATEGORIES, effective_profile
 from ..i18n import msg, tr
 from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
+from ..runtime.setup import DiagnosisRequired
 from .auth import PairingLimited, WebSession
 from .forms import post_form
 from .http import Request, Response
 from .local_pairing import issue
-from .pages import e, layout
+from .pages import e, layout, notice
 
 _SETUP_TEXT_1 = msg(
     "<p>Windows 11 oder Docker unter Linux. Zugangsdaten unter <a "
@@ -31,6 +32,17 @@ _SETUP_TEXT_2 = msg(
     "Verbindungseinstellungen benötigen nach Übernahme einen Neustart. Übernahme "
     "autorisiert keine Kalendertermine oder Aufgaben.</p>"
 )
+
+# 8.4.3: shown before the approval and when it is refused for a missing check.
+_DIAGNOSIS_NEEDED = msg(
+    "Der Entwurf ändert eine Verbindung, die seit der Änderung noch nicht erfolgreich geprüft wurde. "
+    "Bitte zuerst die Verbindungen prüfen und danach die Einstellungen übernehmen."
+)
+
+
+def _diagnosis_needed(kind: str) -> str:
+    return (notice(tr(_DIAGNOSIS_NEEDED), kind)
+            + f'<p><a class="button primary" href="/diagnose">{e(tr("Verbindungen prüfen"))}</a></p>')
 
 _SETUP_TEXT_3 = msg(
     "<p>Welche Modelle mit welchen Parametern arbeiten, zeigt <a "
@@ -296,6 +308,9 @@ class SetupSite:
             f'({e(tr("sofort") if name.split(".")[0] in LIVE_FIELDS else tr("Neustart erforderlich"))})</li>'
             for name, value in state.patch.items() if lookup(baseline, name) != value) + '</ul>'
         body += tr(_SETUP_TEXT_2)
+        if self.runtime.setup.diagnosis_gaps():
+            # 8.4.3: the approval would be refused; say why before the button, with the next step.
+            body += _diagnosis_needed("warn")
         body += post_form(
             "/einrichtung/uebernehmen",
             self.site.auth.csrf_token(session.id),
@@ -338,6 +353,11 @@ class SetupSite:
                                                  form["key"], form["expected_hash"])
         except ConfigurationConflict:
             return Response.text(409, msg("Konfiguration oder Entwurf geändert; Differenz erneut prüfen."))
+        except DiagnosisRequired:
+            # 8.4.3: the pilot of 8.0 ended here with the general message below; name the missing check.
+            title = tr("Einstellungen noch nicht übernommen")
+            return Response.html(409, layout(title, f'<section class="card narrow"><h1>{e(title)}</h1>'
+                                                    + _diagnosis_needed("error") + "</section>"))
         except (ValueError, KeyError, PermissionError, OSError):
             return Response.text(422, msg("Einstellungen nicht übernommen; Bestätigung und Sitzung prüfen."))
         return self.site.archive.queue(request, command)

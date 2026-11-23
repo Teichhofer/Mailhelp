@@ -1,7 +1,7 @@
 # Mailhelp 8.2 – Umsetzung und Freigabestand
 
-Stand: 20. November 2026. Arbeitsversion 8.2.1, lokal vorbereitet, noch nicht produktiv
-bereitgestellt. Grundlage: [Planung 8.2](Planung-8.2.md), aufbauend auf [8.0](Release-8.0.md)
+Stand: 23. November 2026. Version 8.2.1; seit den Updates auf 8.3.2 und 8.4.2 auf dem
+Produktionsserver (siehe [Betrieb](Betrieb.md)). Grundlage: [Planung 8.2](Planung-8.2.md), aufbauend auf [8.0](Release-8.0.md)
 und [8.1](Release-8.1.md).
 
 ## Implementiert
@@ -54,5 +54,5 @@ und [8.1](Release-8.1.md).
 1. Produktive Anbieterregistrierungen für Microsoft-Ziele und Notion-OAuth im zentralen
    Anmeldedienst sind durch den Betreiber einzurichten und freizuschalten, bevor diese
    Pfade auf dem Produktionsserver aktiviert werden.
-2. Dieser Stand ist im Git-Repository versioniert, jedoch noch nicht auf dem
-   Produktionsserver ausgerollt.
+2. Erledigt: Der Stand ist produktiv (8.4.2 am 23.11.2026); Microsoft-Ziele und Notion-OAuth
+   bleiben bis zu den Anbieterregistrierungen gesperrt.

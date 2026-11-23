@@ -406,6 +406,8 @@ oder Tokens. In der Ersteinrichtung (Schritt „Kalender und Aufgaben“) und un
 und erlaubst den Kalenderzugriff. Zurück bei Inboxstride setzt du mit **Kalender auswählen** fort,
 wählst einen Kalender mit Schreibrecht und bestätigst mit **Verbindung übernehmen**. Erst dann gilt
 die neue Verbindung; vorher bleibt eine bisherige unverändert, auch bei Abbruch oder Fehler.
+Wirksam wird sie wie jede Verbindungsänderung erst, wenn du in der Einrichtung **Verbindungen prüfen**
+ausführst und danach die Einstellungen übernimmst; fehlt die Prüfung, nennt die Einrichtung das.
 
 Die Verbindung selbst legt keine Termine an. Bei einem Wechsel des Kontos brauchen offene Vorschläge
 dieses Profils eine neue Bestätigung. Lehnt Google den Zugang später ab, führt der Hinweis

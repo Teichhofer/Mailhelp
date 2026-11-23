@@ -1,7 +1,7 @@
 # Mailhelp 8.2 – Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths
 
-**Stand:** 20. November 2026. **Status:** In Umsetzung (Arbeitsversion 8.2.1); Nachweise und offene
-Anbieterfreigaben im [Releasebericht 8.2](Release-8.2.md).
+**Stand:** 20. November 2026. **Status:** Umgesetzt (8.2.1, produktiv seit dem Update auf 8.3/8.4); offen
+sind nur Anbieterregistrierungen des Betreibers (Microsoft-Ziele, Notion), siehe [Releasebericht 8.2](Release-8.2.md).
 
 **Zielversion:** 8.2, erste Auslieferung 8.2.1; weitere Commits mit fortlaufenden Patchversionen gemäß [Entwicklungsregeln](../AGENTS.md).
 

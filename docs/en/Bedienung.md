@@ -287,7 +287,7 @@ The notice stays visible with filters, reloads and restarts and cannot be dismis
 
 ### Connecting Google through Inboxstride <!-- mailhelp-id:bedienung/google-ueber-inboxstride-verbinden -->
 
-In a hosted Inboxstride instance you connect Google Calendar without client data or tokens of your own. In the initial setup (step “Calendar and tasks”) and under **Settings → Target profiles**, **Connect with Google** leads to Google. There you choose your account and allow calendar access. Back at Inboxstride you continue with **Choose calendar**, pick a calendar with write access and confirm with **Adopt connection**. Only then does the new connection apply; until then a previous one stays unchanged, also after a cancellation or an error.
+In a hosted Inboxstride instance you connect Google Calendar without client data or tokens of your own. In the initial setup (step “Calendar and tasks”) and under **Settings → Target profiles**, **Connect with Google** leads to Google. There you choose your account and allow calendar access. Back at Inboxstride you continue with **Choose calendar**, pick a calendar with write access and confirm with **Adopt connection**. Only then does the new connection apply; until then a previous one stays unchanged, also after a cancellation or an error. Like every connection change it takes effect only after you run **Check connections** in the setup and then apply the settings; if the check is missing, the setup says so.
 
 The connection itself creates no events. When the account changes, open proposals of this profile need a new confirmation. If Google later refuses the access, the “Connection problems” notice leads straight to **Reconnect Google**. Google Tasks remains reserved for self-hosting with an own Google client.
 
