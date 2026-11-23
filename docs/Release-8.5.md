@@ -26,6 +26,12 @@ Stand: 23. November 2026. Version 8.5.1. Grundlage: [Planung 8.5](Planung-8.5.md
   Kennzeichen „Standard“.
 - Treffer der Suche behalten das einzelne Formular je Einstellung.
 
+## Auslieferung
+
+Am 23. November 2026 mit Freigabe auf Produktion und Demo eingespielt (Sicherung
+`upgrade-8.5.1-20261123T160044Z`, Health und Version beider Container geprüft); Einzelheiten in
+[Betrieb](Betrieb.md).
+
 ## Prüfung
 
 - `python -m devtools.check full --workers 12`: 6 408 bestanden, 2 Lasttests bestanden, 100 % Zeilen-

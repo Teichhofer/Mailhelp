@@ -562,6 +562,21 @@ und `inboxstride-auth-auth-1` (`healthy`) aktiv; `stefan.inboxstride.de/anmelden
 dekodiert den gespeicherten MPO-Anhang (`1134x2016`) fehlerfrei. Rückkehr auf
 `mailhelp-production:8.3.2-86dcfc5` über `/opt/mailhelp/backups/pre-8.4.2-20261123T072014Z`.
 
+Update auf 8.5.1 (23.11.2026, mit Freigabe): enthält die Abschlusskorrektur 8.4.3 (die Einrichtung
+nennt eine fehlende Verbindungsprüfung) und die überarbeiteten Einstellungen 8.5.1. Quelle ist Commit
+`6eefc1d` (`/opt/mailhelp/releases/8.5.1-6eefc1d`), Image `mailhelp-production:8.5.1-6eefc1d`;
+vorab Offline-`--check` bestanden. Host-Pakete: Laut den beim Update auf 8.4.2 am selben Tag
+aktualisierten Paketlisten standen keine Updates aus, `/var/run/reboot-required` war nicht vorhanden;
+ein erneutes `apt-get update && apt-get upgrade -y` wurde in diesem Arbeitsgang nicht ausgeführt.
+Beide Container kontrolliert gestoppt, konsistente Sicherung unter
+`/opt/mailhelp/backups/upgrade-8.5.1-20261123T160044Z`, umgestellt und geprüft: Health und Version 8.5.1
+beider Container, Buildkontext der Produktion jetzt `/opt/mailhelp/releases/8.5.1-6eefc1d`, Netz
+`inboxstride-auth` und `hosted_auth` erhalten; `stefan.inboxstride.de` und `demo.inboxstride.de`
+antworten (303 zur Anmeldung), `inboxstride.de/` und `auth.inboxstride.de/health` mit 200; LLM,
+Telegram, Todoist, Google Kalender und IServ melden `access_confirmed`. Bekannt und unabhängig vom
+Update: Eine Mail scheitert seit dem 21.11.2026 wiederholt mit `mime_limit_exceeded`. Rückkehr auf
+`mailhelp-production:8.4.2-8286062` mit den Compose-Dateien dieser Sicherung.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

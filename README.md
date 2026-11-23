@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.5.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.5.2 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.5.2 dokumentiert das Serverupdate auf 8.5.1.
 
 Version 8.5.1: Die Einstellungen sind nach Aufgaben in sechs Bereiche gegliedert. Mehrere Werte eines
 Abschnitts lassen sich gemeinsam prüfen und übernehmen; jedes Feld zeigt seine Wirkung und ob es vom

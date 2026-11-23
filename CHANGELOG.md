@@ -1,5 +1,9 @@
 # Änderungen
 
+## 8.5.2 – Betriebsnachweis des Updates auf 8.5.1
+
+- Produktion und Demo laufen 8.5.1 (Commit `6eefc1d`); Sicherung, Prüfungen und Rückkehr in `docs/Betrieb.md`, Serverhandbuch und Vorlagen unter `ops/server/` nachgeführt.
+
 ## 8.5.1 – Übersichtliche Einstellungen
 
 - Einstellungen in sechs Bereichen nach Aufgaben: Allgemein, Benachrichtigungen, Antworten und Termine, KI und Auswertung, Daten und Datenschutz, Erweitert; frühere Adressen leiten weiter.
