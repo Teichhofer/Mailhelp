@@ -1,5 +1,14 @@
 # Änderungen
 
+## 8.4.2 – Bugfix: Smartphone-JPEGs im MPO-Format für die Bilderkennung akzeptieren
+
+- Bugfix in `src/mailhelp/processing/vision.py`: `IMAGE_FORMATS` akzeptiert nun auch
+  `MPO` (Multi-Picture Object, eine JPEG-Variante moderner iPhone-/Android-HDR-Fotos).
+  Bisher verwarf `open_image()` solche JPEGs als `skipped_unreadable`, sodass Datum und
+  Uhrzeit aus abfotografierten Terminen nicht per Bilderkennung gelesen wurden.
+- Regressionstest `test_mpo_jpeg_from_smartphone_is_accepted_by_vision_pipeline` in
+  `tests/services/test_vision.py` ergänzt.
+
 ## 8.4.1 – Automatische Erinnerungen für neue Kalendereinträge
 
 - Zielprofile (`TargetSettings` / `TargetProfileSettings`) erhalten

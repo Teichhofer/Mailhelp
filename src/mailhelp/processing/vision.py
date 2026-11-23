@@ -30,7 +30,8 @@ from ..text.attachment_extractor import MAX_TEXT_CHARACTERS, clean_text, truncat
 IMAGE_TYPES = frozenset({"image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/webp"})
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 # The decoded format decides, not the untrusted header or file name.
-IMAGE_FORMATS = frozenset({"JPEG", "PNG", "WEBP"})
+# MPO (Multi-Picture Object) is a JPEG container used by modern smartphone HDR photos.
+IMAGE_FORMATS = frozenset({"JPEG", "MPO", "PNG", "WEBP"})
 # Smaller images are icons, logos or tracking pixels.
 MIN_IMAGE_PIXELS = 150
 MIN_IMAGE_BYTES = 10_240

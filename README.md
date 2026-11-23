@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.4.2 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.4.2: Bugfix für die Bilderkennung – Smartphone-JPEGs im MPO-Format (z. B.
+iPhone-/Android-HDR-Fotos mit Gain-Map) werden nicht mehr als unlesbar übersprungen,
+sondern sauber dekodiert und per Vision-OCR ausgelesen.
 
 Version 8.4.1: Automatische Erinnerungen für neue zeitgebundene Kalendereinträge je
 Zielprofil (Standard: 5 Minuten vor Beginn, 0–1440 Minuten, optional deaktivierbar;

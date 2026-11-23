@@ -181,3 +181,26 @@ def test_vision_result_rejects_text_for_illegible_documents():
     with pytest.raises(ValueError):
         VisionExtractionResult(legible=False, text="erfunden")
     assert VisionExtractionResult(legible=False, text=" ").text == " "
+
+
+def _mpo_jpeg_bytes() -> bytes:
+    """Build a valid multi-picture JPEG (MPO), as produced by iPhone/Android HDR photos."""
+    buf = io.BytesIO()
+    first = noise(240, 240)
+    second = noise(240, 240)
+    first.save(buf, format="MPO", save_all=True, append_images=[second])
+    return buf.getvalue()
+
+
+def test_mpo_jpeg_from_smartphone_is_accepted_by_vision_pipeline():
+    payload = _mpo_jpeg_bytes()
+    decoded = Image.open(io.BytesIO(payload))
+    assert decoded.format == "MPO"
+
+    opened = vision.open_image(payload)
+    assert opened is not None and opened.format == "MPO"
+    assert vision.encode(opened, 512).startswith("data:image/jpeg;base64,")
+
+    raw = mail(("image0.jpeg", "image", "jpeg", payload))
+    jobs, skipped = vision.plan(raw, prepared(raw), SETTINGS)
+    assert skipped == {} and len(jobs) == 1 and jobs[0].filename == "image0.jpeg"
