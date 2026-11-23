@@ -32,14 +32,14 @@ def test_window54_failed_fallback_keeps_the_current_page_and_can_recover(page, m
         status=503, content_type="application/json", body='{"error":"Speicher vorübergehend gesperrt"}'))
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Nicht verlieren")
-    abruf = page.locator('a.settings-tile[href="/einstellungen?bereich=abruf"]')
+    abruf = page.locator('a.settings-tile[href="/einstellungen?bereich=allgemein"]')
     abruf.click()
     expect(page.locator("#help-window-status")).to_contain_text("Speicher vorübergehend gesperrt")
     expect(page.page).to_have_url(mailhelp.url + "/einstellungen")
     expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Nicht verlieren")
     page.unroute("**/hilfe/fenster")
     navigate_collected(page, mailhelp, abruf)
-    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=abruf")
+    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=allgemein")
     expect(window(page)).to_be_visible()
     expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Nicht verlieren")
 
@@ -209,7 +209,7 @@ def test_window54_double_submit_and_cached_page_restore_keep_one_job(page, mailh
     assert len(service.state(mailhelp.auth.sessions()[0].id).jobs) == 1
     page.locator(".help-sources a").last.click()
     expect(window(page)).to_be_visible()
-    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=abruf#einstellung-poll-interval-seconds")
+    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=allgemein#einstellung-poll-interval-seconds")
 
 
 def test_window54_failed_fallback_warns_before_unload_and_recovers_on_link_navigation(page, mailhelp):
@@ -231,8 +231,8 @@ def test_window54_failed_fallback_warns_before_unload_and_recovers_on_link_navig
     }""")
     expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier hier")
     page.unroute("**/hilfe/fenster")
-    abruf = page.locator('a.settings-tile[href="/einstellungen?bereich=abruf"]')
+    abruf = page.locator('a.settings-tile[href="/einstellungen?bereich=allgemein"]')
     navigate_collected(page, mailhelp, abruf)
-    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=abruf")
+    expect(page.page).to_have_url(mailhelp.url + "/einstellungen?bereich=allgemein")
     expect(window(page)).to_be_visible()
     expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value("Entwurf bleibt hier hier")

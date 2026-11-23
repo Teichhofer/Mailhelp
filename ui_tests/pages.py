@@ -54,28 +54,39 @@ class DetailPane:
 
 
 class SettingsPage:
-    """Settings with their explicit two-step confirmation."""
+    """Settings in section forms (8.5) with their explicit review and confirmation."""
 
     def __init__(self, page, url: str):
         self.page, self.url = page, url
 
-    def open(self, area: str = "abruf") -> SettingsPage:
+    def open(self, area: str = "allgemein") -> SettingsPage:
         self.page.goto(f"{self.url}/einstellungen?bereich={area}")
         return self
 
     def expand(self, label: str):
-        setting = self.page.locator("details.setting").filter(has_text=label)
-        setting.locator("summary").click()
-        return setting
+        """The field of the setting whose label starts with *label*, found by its anchor."""
+        from mailhelp.config.configuration import SETTINGS_FIELDS
+        from mailhelp.web.settings_pages import setting_label
+        from mailhelp.web.settings_search import anchor
+        (name,) = [name for name in SETTINGS_FIELDS if str(setting_label(name)).startswith(label)]
+        return self.page.locator("#" + anchor(name))
+
+    @staticmethod
+    def control(setting):
+        return setting.locator("input:not([type=hidden]), textarea, select").first
 
     def propose(self, setting, value: str) -> None:
-        """Fill in a new value and reach the confirmation page."""
-        setting.get_by_label("Neuer Wert").fill(value)
-        setting.get_by_role("button", name="Prüfen").click()
-        expect(self.page.get_by_role("heading", name="Änderung bestätigen")).to_be_visible()
+        """Change one value and reach the review page of its section."""
+        control = self.control(setting)
+        if control.evaluate("element => element.tagName") == "SELECT":
+            control.select_option(value)
+        else:
+            control.fill(value)
+        setting.locator("xpath=ancestor::form").get_by_role("button", name="Änderungen prüfen").click()
+        expect(self.page.get_by_role("heading", name="Änderungen prüfen")).to_be_visible()
 
     def confirm(self) -> None:
-        self.page.get_by_role("button", name="Änderung ausdrücklich speichern").click()
+        self.page.get_by_role("button", name="Änderungen ausdrücklich speichern").click()
 
 
 __all__ = ["MASTER", "PANE", "DetailPane", "Overview", "SettingsPage"]

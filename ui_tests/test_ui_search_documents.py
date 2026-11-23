@@ -64,11 +64,11 @@ def test_provider_choice_in_the_settings(page, mailhelp):
     sign_in(page, mailhelp)
     settings = SettingsPage(page, mailhelp.url).open("antworten")
     calendar = settings.expand("Kalenderdienst")
-    choice = calendar.get_by_label("Neuer Wert")
+    choice = settings.control(calendar)
     expect(choice.locator("option")).to_have_text(["Google Kalender", "CalDAV (Nextcloud, iCloud, …)",
                                                    "Outlook / Microsoft 365"])
     tasks = settings.expand("Aufgabendienst")
-    expect(tasks.get_by_label("Neuer Wert").locator("option")).to_have_text([
+    expect(settings.control(tasks).locator("option")).to_have_text([
         "Todoist", "Microsoft To Do", "CalDAV-Aufgaben (VTODO)", "Apple Erinnerungen (iCloud)", "Google Tasks",
         "Notion"])
     assert audit(page, f"v23-anbieter-{page.device}", page.mobile) == []

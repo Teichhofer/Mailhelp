@@ -18,6 +18,7 @@ from mailhelp.persistence.storage import JsonStore
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.inbox import CommandStatus
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_e2e_simulated import NachholterminRouter
 from tests.fakes.shared_web_actions import Web
 from tests.fakes.shared_web_v12 import configure
@@ -153,16 +154,16 @@ def test_settings_saved_then_stopped_and_taken_over_after_a_restart(tmp_path):
     with JsonStore(tmp_path / "data") as store:
         web, *_ = analyse(store, NachholterminRouter())
         service, metrics, lifecycle, active, calls = configure(web, tmp_path)
-        live = fields(web, "/einstellungen?bereich=abruf", "/einstellungen/speichern", name="poll_interval_seconds")
+        live = single_setting_form(web, "poll_interval_seconds")
         web.browser.request("POST", "/einstellungen/speichern", {**live, "value": "45", "confirm": "yes"})
         web.run()
-        later = fields(web, "/einstellungen?bereich=abruf", "/einstellungen/speichern", name="timeouts.imap.timeout_seconds")
+        later = single_setting_form(web, "timeouts.imap.timeout_seconds")
         web.browser.request("POST", "/einstellungen/speichern", {**later, "value": "55", "confirm": "yes"})
         web.run()
         assert active[-1].poll_interval_seconds == 45
         assert service.active.timeouts.imap.timeout_seconds != 55
-        page = web.browser.request("GET", "/einstellungen?bereich=abruf").body.decode()
-        assert "Gespeichert: 55.0 · gespeichert – wirkt erst nach einem Neustart" in page
+        page = web.browser.request("GET", "/einstellungen?bereich=erweitert").body.decode()
+        assert "Gespeichert, noch nicht aktiv: IMAP: Zeitlimit (s): 55.0" in page
         stop = fields(web, "/einstellungen/beenden", "/einstellungen/beenden")
         answer = web.browser.request("POST", "/einstellungen/beenden", stop)
         answer.after_send()

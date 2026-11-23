@@ -65,7 +65,7 @@ def test_a_question_is_sent_shown_as_pending_and_answered_with_server_links(chat
     page = get(chat.web)
     assert "Erklärung &lt;b&gt;fett&lt;/b&gt;" in page and "<b>fett" not in page
     assert 'href="/hilfe/dokumentation/web-einstellungen/mailabruf-und-betrieb"' in page
-    assert 'href="/einstellungen?bereich=abruf#einstellung-poll-interval-seconds"' in page
+    assert 'href="/einstellungen?bereich=allgemein#einstellung-poll-interval-seconds"' in page
     assert chat.web.browser.request("GET", "/api/hilfe/auftrag/" + "0" * 32).status == 404
 
 
@@ -115,8 +115,9 @@ def test_errors_interruptions_and_clearing(chat, monkeypatch):
 
 def test_the_settings_offer_help_on_every_setting(web, tmp_path):
     configure(web, tmp_path)
-    page = get(web, "/einstellungen?bereich=abruf")
+    page = get(web, "/einstellungen")
     assert '<a class="button" href="/hilfe">Hilfe zu Einstellungen</a>' in page
+    page = get(web, "/einstellungen?bereich=allgemein")
     assert 'href="/hilfe?einstellung=poll_interval_seconds">Dazu fragen</a>' in page
 
 

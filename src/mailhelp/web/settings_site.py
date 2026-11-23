@@ -10,14 +10,26 @@ from urllib.parse import parse_qs, quote
 import yaml
 
 from ..config import Settings
-from ..config.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..config.configuration import SETTINGS_FIELDS, AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..i18n import COOKIE, msg, tr
 from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from .auth import WebSession
 from .http import Request, Response, cookie
 from .pages import layout, notice
-from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page
+from .settings_pages import (
+    AREA_KEYS,
+    LEGACY_AREAS,
+    NO_DEFAULT,
+    SETTING_PREFIX,
+    TEXT_SETTINGS,
+    _lookup,
+    default_value,
+    setting_label,
+    settings_confirmation,
+    settings_page,
+    settings_review,
+)
 from .settings_search import LIVE_LIMIT, bounded, search
 from .topic_site import TopicSite
 
@@ -35,6 +47,51 @@ def _effective(raw: dict[str, Any]) -> dict[str, Any]:
         return Settings.model_validate(raw).model_dump(mode="json")
     except ValueError:
         return raw
+
+
+def _parsed(name: str, text: str, saved: object = None, *, typed: bool = False) -> Any:
+    """A form value as the configuration stores it.
+
+    *typed* (8.5 section forms) keeps saved strings as text and an emptied optional value as
+    ``None``, so an unchanged value such as a numeric project ID is never reported as a change.
+    """
+    if name == "briefings.times":
+        return [part for part in re.split(r"[,;\s]+", text.strip()) if part]
+    if name in TEXT_SETTINGS:
+        # Browsers send line breaks as CRLF; the file keeps plain LF.
+        return text.replace("\r\n", "\n").strip()
+    if typed and saved is None and text == "":
+        return None
+    if typed and isinstance(saved, str):
+        return text
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+
+def _section_patch(form: dict[str, str], saved: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    """The changed values of a section form; ``zuruecksetzen`` asks for one default value instead."""
+    reset = form.get("zuruecksetzen")
+    if reset:
+        default = default_value(reset) if reset in SETTINGS_FIELDS else NO_DEFAULT
+        if default is NO_DEFAULT:
+            raise ValueError("Kein Standardwert")
+        text = default if isinstance(default, str) else json.dumps(default)
+        return {reset: default}, {reset: text}
+    patch: dict[str, Any] = {}
+    texts: dict[str, str] = {}
+    for key, text in form.items():
+        if not key.startswith(SETTING_PREFIX):
+            continue
+        name = key.removeprefix(SETTING_PREFIX)
+        if name not in SETTINGS_FIELDS:
+            raise ValueError("Nicht angebotene Einstellung")
+        current = _lookup(saved, name)
+        value = _parsed(name, text, current, typed=True)
+        if value != current:
+            patch[name], texts[name] = value, text
+    return patch, texts
 
 
 TOPIC_FILES = (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.yaml"))
@@ -63,6 +120,9 @@ class SettingsSite:
     def settings(self, request: Request, session: WebSession) -> Response:
         query = parse_qs(request.query)
         area = query.get("bereich", [""])[0]
+        if area in LEGACY_AREAS:
+            # 8.5: bookmarks and help links of the former areas keep working.
+            return Response(308, headers={"Location": f"/einstellungen?bereich={LEGACY_AREAS[area]}"})
         if area and area not in AREA_KEYS:
             return self.site._reply(request, 404, msg("Unbekannter Einstellungsbereich."))
         configuration = self.archive.configuration
@@ -154,18 +214,11 @@ class SettingsSite:
         configuration = self.archive.configuration
         if configuration is None:
             return self.site._reply(request, 503, msg("Konfiguration nicht verfügbar."))
+        if "name" not in form:
+            return self._save_section(request, session, form)
         value: Any
         try:
-            if form["name"] == "briefings.times":
-                value = [part for part in re.split(r"[,;\s]+", form["value"].strip()) if part]
-            elif form["name"] in TEXT_SETTINGS:
-                # Browsers send line breaks as CRLF; the file keeps plain LF.
-                value = form["value"].replace("\r\n", "\n").strip()
-            else:
-                try:
-                    value = json.loads(form["value"])
-                except json.JSONDecodeError:
-                    value = form["value"]
+            value = _parsed(form["name"], form["value"])
             command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], patch={form["name"]: value},
                                    acknowledged=True)
@@ -180,10 +233,68 @@ class SettingsSite:
         if form.get("confirm") != "yes":
             body = settings_confirmation(form, request.path, self.site.auth.csrf_token(session.id), raw, value)
             return Response.html(200, layout(tr("Bestätigen"), body))
+        return self._queued(request, command)
+
+    def _queued(self, request: Request, command: AdminCommand) -> Response:
         response = self.archive.queue(request, command)
-        if form["name"] == "language":
-            response.cookies.append(cookie(request, COOKIE, str(value), 31536000, http_only=False, same_site="Lax"))
+        if "language" in command.patch:
+            language = str(command.patch["language"])
+            response.cookies.append(cookie(request, COOKIE, language, 31536000, http_only=False, same_site="Lax"))
         return response
+
+    def _save_section(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """8.5: the changed values of one section form; checked together, taken over together."""
+        configuration = self.archive.configuration
+        assert configuration is not None  # checked by save_settings
+        area = form.get("bereich", "")
+        try:
+            raw = yaml.safe_load((configuration.directory / "config.yaml").read_text(encoding="utf-8"))
+            saved = _effective(raw)
+            patch, texts = _section_patch(form, saved)
+            if not patch:
+                return self._unchanged(area)
+            command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{session.id}", idempotency_key=form["key"],
+                                   expected_hash=form["expected_hash"], patch=patch, acknowledged=True)
+            try:
+                configuration.candidate(command)
+            except ConfigurationConflict:
+                raise
+            except ValueError:
+                return self._invalid(configuration, command)
+        except ConfigurationConflict:
+            return self.site._reply(request, 409, msg("Einstellungsdatei geändert; bitte neu laden."))
+        except (ValueError, KeyError, OSError):
+            return self.site._reply(
+                request, 422, msg("Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
+            )
+        if form.get("confirm") != "yes":
+            body = settings_review(patch, texts, form["expected_hash"], self.site.auth.csrf_token(session.id),
+                                   saved, area)
+            return Response.html(200, layout(tr("Änderungen prüfen"), body, active="/einstellungen"))
+        return self._queued(request, command)
+
+    @staticmethod
+    def _unchanged(area: str) -> Response:
+        back = "/einstellungen?bereich=" + area if area in AREA_KEYS else "/einstellungen"
+        body = (tr("<h1>Keine Änderung</h1>") + notice(tr("Alle Werte entsprechen dem gespeicherten Stand."), "info")
+                + f'<p><a class="button" href="{back}">{tr("Zurück")}</a></p>')
+        return Response.html(200, layout(tr("Keine Änderung"), body, active="/einstellungen"))
+
+    @staticmethod
+    def _invalid(configuration: Any, command: AdminCommand) -> Response:
+        """Name every value the configuration would reject; nothing is taken over."""
+        refused = []
+        for name, value in command.patch.items():
+            try:
+                configuration.candidate(command.model_copy(update={"patch": {name: value}}))
+            except ValueError:
+                refused.append(str(setting_label(name)))
+        if not refused:  # valid alone, but not together
+            refused = [str(setting_label(name)) for name in command.patch]
+        body = (tr("<h1>Nicht übernommen</h1>")
+                + notice(tr("Ungültiger Wert bei: {p0}. Es wurde nichts gespeichert.", p0=", ".join(refused)),
+                         "error"))
+        return Response.html(422, layout(tr("Nicht übernommen"), body, active="/einstellungen"))
 
     def save_topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration

@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.4.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.5.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.5.1: Die Einstellungen sind nach Aufgaben in sechs Bereiche gegliedert. Mehrere Werte eines
+Abschnitts lassen sich gemeinsam prüfen und übernehmen; jedes Feld zeigt seine Wirkung und ob es vom
+Standard abweicht. Selten benötigte Werte stehen unter „Erweitert“.
 
 Version 8.4.3: Die Einrichtung nennt vor dem Übernehmen, wenn eine geänderte Verbindung noch geprüft
 werden muss, und bietet „Verbindungen prüfen“ direkt an. Planung 8.5 beschreibt die Überarbeitung der

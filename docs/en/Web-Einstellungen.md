@@ -84,19 +84,31 @@ An unknown area returns HTTP 404. The interface works without JavaScript.
 
 | Area | Address | Content |
 | --- | --- | --- |
-| Email retrieval | `?bereich=abruf` | Retrieval, Email limits, Time limits, Repetitions |
-| Notifications | `?bereich=benachrichtigungen` | Telegram, Daily overview, Push control |
+| General | `?bereich=allgemein` | Language, time zone, polling interval, retrieval scope, dry run |
+| Notifications | `?bereich=benachrichtigungen` | Telegram, Daily overview, mailbox briefings, Push control |
 | Replies and Events | `?bereich=antworten` | Replies, Event durations, Review, Goals |
 | AI and Statistics | `?bereich=ki` | Model table (read-only), Images, Learning, Reports, Costs |
-| Data and logs | `?bereich=daten` | Attachments, Retention, Logging |
-| Web interface and System | `?bereich=system` | Sessions, Network, Devices, Restart, Exit |
+| Data and privacy | `?bereich=daten` | Attachments, Retention, Logging |
+| Advanced | `?bereich=erweitert` | Email limits, timeouts and retries, web interface, restart, exit |
 | Credentials | `?bereich=zugangsdaten` | Passwords and API keys |
 
 ### Edit topic <!-- mailhelp-id:web-einstellungen/thema-bearbeiten-2 -->
 
-On large screens, the section navigation remains reachable next to the values;
-on mobile, it is located above the settings groups. Saving and confirmation
-continue to run via `/einstellungen/speichern` and the command queue.
+Since 8.5 the former addresses `?bereich=abruf`, `?bereich=briefing` and `?bereich=system`
+lead permanently (HTTP 308) to General, Notifications and Advanced. Every area page carries its name
+as heading and a way back to all settings. On large screens the list of areas stays next to the
+values; on a phone a "Section" choice with "Open" selects the area, also without JavaScript.
+
+Section forms (8.5): every section is one form with all values as input, choice or text field. Below
+each field are its effect (immediately or after a restart), "Default" or "customised (default: …)", a
+note for saved values that are not active yet and "Ask about this"; "Technical details" shows the key,
+the saved and the active value. "Reset to default" puts the default into the review. "Review changes"
+lists every changed value of the section with its old and new value and its effect; "Explicitly save
+changes" takes them over together in one command. An invalid value names the settings concerned and
+nothing is saved. With JavaScript the bar below the section counts changed values, and the browser
+asks before leaving a page with unsaved changes. The timeouts of all services are a table under
+Advanced (service × timeout, retries, first and longest wait). Search results keep the single form per
+setting. Saving and confirmation run through `/einstellungen/speichern` and the command queue.
 
 ## Add mailbox (3.5) <!-- mailhelp-id:web-einstellungen/postfach-hinzufuegen-35 -->
 
@@ -562,7 +574,7 @@ Guide: [Release 3.2](../archiv/Release-3.2.md).
 
 ## Mailbox Briefings (4.9) <!-- mailhelp-id:web-einstellungen/postfach-briefings-49 -->
 
-Under `/einstellungen?bereich=briefing`; times are entered with comma or semicolon.
+Under `/einstellungen?bereich=benachrichtigungen`; times are entered with comma or semicolon.
 
 | Setting / Key | Effect and Values | Application |
 | --- | --- | --- |

@@ -18,7 +18,9 @@ def test_all_settings_have_matching_documentation_and_connected_help():
         assert page.count(f'id="{identity}"') == 1
         assert f'aria-describedby="{identity}"' in page
         assert escape(explanation, quote=True) in page
-    assert page.count('role="tooltip"') == len(SETTINGS_FIELDS) + 1
+    # 8.5: the timeouts table describes each cell without a visible bubble; the models help adds one.
+    timeouts = [name for name in SETTINGS_FIELDS if name.startswith("timeouts.")]
+    assert page.count('role="tooltip"') == len(SETTINGS_FIELDS) - len(timeouts) + 1
     for explanation in EXTRA_HELP.values():
         assert explanation in document
 

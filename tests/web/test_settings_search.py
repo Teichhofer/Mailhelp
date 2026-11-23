@@ -26,7 +26,7 @@ def test_the_catalog_covers_every_area_setting_and_the_special_pages():
     from devtools.inventory import settings_rows
     assert {entry.key for entry in entries if entry.key} == {row.key for row in settings_rows("")}
     timezone = next(entry for entry in entries if entry.key == "timezone")
-    assert timezone.href == "/einstellungen?bereich=abruf#einstellung-timezone" and timezone.path == "Weboberfläche"
+    assert timezone.href == "/einstellungen?bereich=allgemein#einstellung-timezone" and timezone.path == "Weboberfläche"
     assert {"page:postfaecher", "page:iserv", "page:zielprofile", "page:themen", "page:zugangsdaten"} <= {
         entry.id for entry in entries}
     assert anchor("timeouts.imap.retries") == "einstellung-timeouts-imap-retries"
@@ -64,12 +64,12 @@ def test_the_form_search_lists_settings_with_anchors_and_pages(web, tmp_path):
     configure(web, tmp_path)
     page = web.browser.request("GET", "/einstellungen?suche=" + quote("Zeitzone")).body.decode()
     assert '<div class="setting-row" id="einstellung-timezone">' in page and "Treffer für „Zeitzone“" in page
-    assert 'Bereich <a href="/einstellungen?bereich=abruf">Mailabruf</a>' in page
+    assert 'Bereich <a href="/einstellungen?bereich=allgemein">Allgemein</a>' in page
     page = web.browser.request("GET", "/einstellungen?suche=" + quote("Postfach")).body.decode()
     assert '<h2>Seiten</h2>' in page and '<a href="/einstellungen/postfaecher">Postfächer</a>' in page
     page = web.browser.request("GET", "/einstellungen?suche=Elternbriefe").body.decode()
     assert '<a href="/einstellungen/iserv">IServ-Konten</a>' in page and "<h2>Einstellungen</h2>" not in page
-    area = web.browser.request("GET", "/einstellungen?bereich=abruf").body.decode()
+    area = web.browser.request("GET", "/einstellungen?bereich=allgemein").body.decode()
     assert 'id="einstellung-poll-interval-seconds"' in area
 
 

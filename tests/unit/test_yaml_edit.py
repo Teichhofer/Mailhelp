@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from mailhelp.support.yaml_edit import YamlEditError, render, set_scalars
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 
 TEXT = """# Kopfkommentar
@@ -91,7 +92,7 @@ def test_web_settings_keep_the_comments_of_the_real_example(web, tmp_path):
     (tmp_path / "config.yaml").write_text(example, encoding="utf-8")
     text = set_scalars(example, {"data_directory": base["data_directory"]})
     (tmp_path / "config.yaml").write_text(text, encoding="utf-8")
-    form = web.form("/einstellungen?bereich=abruf", action="/einstellungen/speichern", name="poll_interval_seconds")
+    form = single_setting_form(web, "poll_interval_seconds")
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "90", "confirm": "yes"})
     assert response.status == 303
     web.run()
@@ -194,9 +195,9 @@ def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_p
     service, _, _, active, _ = configure(web, tmp_path)
     page = web.browser.request("GET", "/einstellungen?bereich=antworten").body.decode()
     assert "<h2>Antworten</h2>" in page and "Persönliche Angaben für Antworten" in page
-    assert '<textarea name="value" rows="6" maxlength="2000"></textarea>' in page
-    assert "<strong>nicht gesetzt</strong>" in page
-    form = web.form("/einstellungen?bereich=antworten", action="/einstellungen/speichern", name="personal_info")
+    assert '<textarea name="setting:personal_info" rows="6" maxlength="2000"></textarea>' in page
+    assert "<code>personal_info</code> · gespeichert: nicht gesetzt" in page
+    form = single_setting_form(web, "personal_info")
     text = "Max Mustermann\r\nElternbeirat Klasse 4b\r\nBitte duzen <ok>"
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": text})
     body = response.body.decode()
@@ -210,17 +211,17 @@ def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_p
     # Applied without a restart.
     assert service.active.personal_info == expected and active[-1].personal_info == expected
     page = web.browser.request("GET", "/einstellungen?bereich=antworten").body.decode()
-    assert "<strong>Max Mustermann Elternbeirat Klasse 4b Bitte duzen &lt;ok&gt;</strong>" in page
+    assert "gespeichert: Max Mustermann Elternbeirat Klasse 4b Bitte duzen &lt;ok&gt;" in page
     assert "Elternbeirat Klasse 4b\nBitte duzen &lt;ok&gt;</textarea>" in page
     # Numbers stay text; long texts are shortened in the overview; control characters are refused.
-    form = web.form("/einstellungen?bereich=antworten", action="/einstellungen/speichern", name="personal_info")
+    form = single_setting_form(web, "personal_info")
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1234", "confirm": "yes"})
     assert response.status == 303
     web.run()
     assert service.active.personal_info == "1234"
-    form = web.form("/einstellungen?bereich=antworten", action="/einstellungen/speichern", name="personal_info")
+    form = single_setting_form(web, "personal_info")
     web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "a" * 80, "confirm": "yes"})
     web.run()
-    assert "<strong>" + "a" * 59 + "…</strong>" in web.browser.request("GET", "/einstellungen?bereich=antworten").body.decode()
-    form = web.form("/einstellungen?bereich=antworten", action="/einstellungen/speichern", name="personal_info")
+    assert "gespeichert: " + "a" * 59 + "…" in web.browser.request("GET", "/einstellungen?bereich=antworten").body.decode()
+    form = single_setting_form(web, "personal_info")
     assert web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "a\x07b"}).status == 422

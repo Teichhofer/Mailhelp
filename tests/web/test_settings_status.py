@@ -13,7 +13,7 @@ def test_the_overview_has_one_tile_per_purpose(web):
     page = web.browser.request("GET", "/einstellungen").body.decode()
     tiles = re.findall(r'<a class="settings-tile[^"]*" href="([^"]+)"><strong>([^<]+)</strong>', page)
     titles = [title for _href, title in tiles]
-    assert len(tiles) == 18
+    assert len(tiles) == 17  # 8.5: six areas instead of seven
     for gone in ("Diagnose", "Lesender Selbsttest", "Benachrichtigungsprofil", "Zustellhistorie", "Geräte"):
         assert gone not in titles
     assert ("/diagnose", "Verbindungen prüfen") in tiles

@@ -42,7 +42,7 @@ def test_without_a_session_the_search_answers_401(web):
 
 
 def test_the_search_field_offers_the_live_region_on_the_overview_and_areas(web):
-    for path in ("/einstellungen", "/einstellungen?bereich=abruf"):
+    for path in ("/einstellungen", "/einstellungen?bereich=allgemein"):
         page = web.browser.request("GET", path).body.decode()
         assert 'data-live-search="/api/einstellungen/suche"' in page
         assert 'id="settings-live-status" role="status" aria-live="polite"' in page

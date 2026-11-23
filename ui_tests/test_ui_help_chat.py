@@ -24,7 +24,7 @@ def test_a_question_from_a_setting_is_answered_with_sources(page, mailhelp):
     service = HelpChat(mailhelp.store, HelpChatSettings, load, Analyzer, mailhelp.auth.active)
     mailhelp.site.archive.help.chat = service
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen?bereich=abruf")
+    page.goto(f"{mailhelp.url}/einstellungen?bereich=allgemein")
     page.locator('#einstellung-poll-interval-seconds a.ask-help').click()
     expect(page.get_by_text("Bezug: Abrufintervall (Sekunden)")).to_be_visible()
     assert audit(page, "help-chat-53-" + page.device, page.mobile) == []

@@ -16,6 +16,8 @@ def messages(locale: Locale) -> str:
 
 JS_TEXTS = (
     " zum Verwerfen markiert.",
+    " Änderungen",
+    "1 Änderung",
     " zur Übernahme ausgewählt · ",
     " – vergrößert",
     " – wird verarbeitet …",

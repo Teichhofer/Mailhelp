@@ -11,6 +11,7 @@ from mailhelp.config.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_web_v12 import configure
 from tests.scenarios.web_scenario import mail_id
@@ -38,8 +39,7 @@ def test_invalid_manual_folder_is_rejected(configured, folder):
                                        ("drafts.folder", "null"), ("auto_draft", "true")])
 def test_web_settings_require_confirmation_and_activate_without_restart(web, tmp_path, name, value):
     configuration, _, _, active, _ = configure(web, tmp_path)
-    path = "/einstellungen?bereich=antworten"
-    form = web.form(path, action="/einstellungen/speichern", name=name)
+    form = single_setting_form(web, name)
     form["value"] = value
     preview = web.browser.request("POST", "/einstellungen/speichern", form)
     assert preview.status == 200 and not active
@@ -65,7 +65,7 @@ def test_web_settings_require_confirmation_and_activate_without_restart(web, tmp
 
 def test_settings_reject_invalid_session_and_csrf(web, tmp_path):
     configure(web, tmp_path)
-    form = web.form("/einstellungen?bereich=antworten", action="/einstellungen/speichern", name="drafts.enabled")
+    form = single_setting_form(web, "drafts.enabled")
     form.update(value="false", confirm="yes")
     assert web.browser.request("POST", "/einstellungen/speichern", {**form, "csrf": "invalid"}).status == 403
     web.auth.revoke_all()

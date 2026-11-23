@@ -32,12 +32,58 @@
   function openTarget() {
     var id = decodeURIComponent(location.hash.slice(1));
     var row = id ? document.getElementById(id) : null;
-    if (!row || !row.classList.contains("setting-row")) return;
-    var details = row.querySelector("details");
-    if (details) details.open = true;
+    if (!row) return;
+    if (row.classList.contains("setting-row")) {
+      var details = row.querySelector("details");
+      if (details) details.open = true;
+    } else if (row.matches("input")) {
+      row.focus();  // 8.5: a cell of the timeouts table
+    } else if (row.classList.contains("setting-field")) {
+      row.querySelector("input, select, textarea").focus();  // 8.5: a value of a section form
+    }
   }
   window.addEventListener("hashchange", openTarget);
+  // 8.5: after the load as well; the browser's own jump to the anchor would otherwise reset the focus.
+  window.addEventListener("load", openTarget);
   openTarget();
+})();
+
+// 8.5: the save bar of a section counts changed values and warns before leaving with unsaved changes.
+(function () {
+  var forms = document.querySelectorAll("form[data-settings-form]");
+  if (!forms.length) return;
+  var submitting = false;
+  function changed(control) {
+    if (control.type === "hidden") return false;
+    if (control.tagName === "SELECT") {
+      return Array.prototype.some.call(control.options, function (option) {
+        return option.selected !== option.defaultSelected;
+      });
+    }
+    return control.value !== control.defaultValue;
+  }
+  function count(form) {
+    return Array.prototype.filter.call(form.elements, function (control) {
+      return /^setting:/.test(control.name) && changed(control);
+    }).length;
+  }
+  function update(form) {
+    var number = count(form);
+    var bar = form.querySelector("[data-settings-savebar]");
+    bar.classList.toggle("changed", number > 0);
+    bar.querySelector("[data-settings-changes]").textContent =
+      number === 0 ? "" : number === 1 ? mailhelpText("1 Änderung") : number + mailhelpText(" Änderungen");
+  }
+  Array.prototype.forEach.call(forms, function (form) {
+    form.addEventListener("input", function () { update(form); });
+    form.addEventListener("change", function () { update(form); });
+    form.addEventListener("submit", function () { submitting = true; });
+  });
+  window.addEventListener("beforeunload", function (event) {
+    if (submitting) return;
+    var unsaved = Array.prototype.some.call(forms, function (form) { return count(form) > 0; });
+    if (unsaved) event.preventDefault();
+  });
 })();
 
 // 5.3: live search below the settings search field; "Suchen" keeps the full result page.

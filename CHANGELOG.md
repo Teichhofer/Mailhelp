@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.5.1 – Übersichtliche Einstellungen
+
+- Einstellungen in sechs Bereichen nach Aufgaben: Allgemein, Benachrichtigungen, Antworten und Termine, KI und Auswertung, Daten und Datenschutz, Erweitert; frühere Adressen leiten weiter.
+- Ein Formular je Abschnitt: mehrere Werte ändern, auf einer Prüfseite gemeinsam prüfen und mit einem Befehl übernehmen; ungültige Werte werden benannt, nichts wird teilweise gespeichert.
+- Felder mit Wirkung, Standardkennzeichen, „Auf Standard zurücksetzen“ und technischen Details; Ja/Nein statt `true`/`false`; Zeitlimits als Tabelle unter „Erweitert“.
+- Übersicht mit Handlungsbedarf zuerst; auf dem Smartphone eine Bereichsauswahl statt neun Knöpfen.
+- Einrichtung und Benachrichtigungsprofil zeigen Kategorien, Kanäle, Anbieter und Zugangsdaten mit Namen statt Rohwerten.
+
 ## 8.4.3 – Abschluss 8.0 bis 8.4 und Planung 8.5
 
 - Bugfix: Eine Übernahme mit geänderter Verbindung ohne aktuelle Verbindungsprüfung meldete nur „Bestätigung und Sitzung prüfen“ (so scheiterte die Pilotübernahme der zentralen Google-Verbindung). Die Prüfseite nennt das fehlende „Verbindungen prüfen“ jetzt vorab; eine abgelehnte Übernahme antwortet mit Grund und Knopf.

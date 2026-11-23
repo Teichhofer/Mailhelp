@@ -42,7 +42,7 @@ def test_setup_lists_the_credentials_of_every_enabled_iserv_account(configured, 
     (configured.tmp_path / ".env").write_text("ISERV_1_USERNAME=eltern\nISERV_1_PASSWORD=geheim\n", encoding="utf-8")
     assert runtime.secret_status()[NAMES] == "vorhanden"
     page = configured.web.browser.request("GET", "/einrichtung").body.decode()
-    assert f"{NAMES}: vorhanden" in page and "geheim" not in page
+    assert f"IServ-Zugang ({NAMES}): vorhanden" in page and "geheim" not in page
 
 
 class Reader:

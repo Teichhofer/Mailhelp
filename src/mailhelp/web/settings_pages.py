@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import secrets
 from typing import Any
 
+from pydantic import BaseModel
+
+from ..config import Settings
 from ..config.configuration import LIVE_FIELDS, SETTINGS_FIELDS
 from ..i18n import msg, tr
 from ..runtime.credentials import CredentialSnapshot
@@ -203,37 +207,41 @@ def _shown(name: str, value: object) -> str:
     return text
 
 
-def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
-    label = msg("Neuer Wert")
+def _input(name: str, saved: object, raw: dict[str, Any] | None = None, *, key: str = "value",
+           label: str | None = None) -> str:
+    """The control of one setting; *key* is the form field (8.5: ``setting:<name>`` in section forms)."""
+    label = label or msg("Neuer Wert")
     if name == "briefings.times":
-        return field("value", label, ", ".join(saved if isinstance(saved, list) else []))
+        return field(key, label, ", ".join(saved if isinstance(saved, list) else []))
     if name == "briefings.mailbox":
         boxes = (raw or {}).get("imap", {}).get("mailboxes") or [{"id": 1, "label": "Standard"}]
         options = [("default", msg("Erstes aktives Postfach"))] + [
             (str(box["id"]), box["label"]) for box in boxes if box.get("enabled", True)
         ]
-        return select("value", label, str(saved or "default"), options)
+        return select(key, label, str(saved or "default"), options)
     if name in TEXT_SETTINGS:
-        return (f'<label>{label}<textarea name="value" rows="6" maxlength="2000">{e(saved or "")}</textarea></label>'
-                f'<p class="meta">{e(TEXT_SETTINGS[name])}</p>')
+        return (f'<label>{label}<textarea name="{e(key)}" rows="6" maxlength="2000">{e(saved or "")}</textarea>'
+                f'</label><p class="meta">{e(TEXT_SETTINGS[name])}</p>')
     if isinstance(saved, bool):
-        return select("value", label, json.dumps(saved), [("true", "ja"), ("false", msg("nein"))])
+        return select(key, label, json.dumps(saved), [("true", msg("Ja")), ("false", msg("Nein"))])
     if name.endswith(".level"):
-        return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
+        return select(key, label, saved, [(level, level) for level in LEVEL_CHOICES])
     if name in PROVIDER_CHOICES:
-        return select("value", label, saved, list(PROVIDER_CHOICES[name]))
+        return select(key, label, saved, list(PROVIDER_CHOICES[name]))
     if name == "targets.calendar_reminder_minutes":
         shown = "" if saved is None else saved
         inactive = (raw or {}).get("targets", {}).get("calendar_reminder_enabled") is False
         off = tr("Kalendererinnerung ist aktuell deaktiviert; dieser Minutenwert bleibt als Vorbereitung gespeichert.")
         hint = f'<p class="meta">{e(off)}</p>' if inactive else ""
-        return (f'<label>{label}<input type="number" min="0" max="1440" step="1" name="value" value="{e(shown)}" '
-                f'required></label>{hint}')
+        return (f'<label>{label}<input type="number" min="0" max="1440" step="1" name="{e(key)}" '
+                f'value="{e(shown)}" required></label>{hint}')
     kind = "number" if isinstance(saved, (int, float)) else "text"
     step = ' step="any"' if kind == "number" else ""
     shown = "" if saved is None else saved
-    return (f'<label>{label}<input type="{kind}"{step} name="value" value="{e(shown)}" '
-            'maxlength="200" required></label>')
+    # 8.5: an optional value may stay empty; required would block the whole section form.
+    required = "" if saved is None else " required"
+    return (f'<label>{label}<input type="{kind}"{step} name="{e(key)}" value="{e(shown)}" '
+            f'maxlength="200"{required}></label>')
 
 
 def _models_table(models: list[tuple[str, str, str, str]]) -> str:
@@ -290,25 +298,133 @@ def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, 
     )
 
 
+NO_DEFAULT = object()
+# 8.5: section forms send each value as ``setting:<name>``; the prefix keeps them apart from the form's own fields.
+SETTING_PREFIX = "setting:"
+
+
+def default_value(name: str) -> object:
+    """The value a missing setting takes, as JSON; :data:`NO_DEFAULT` for required settings."""
+    model: Any = Settings
+    value: Any = NO_DEFAULT
+    for part in name.split("."):
+        if model is None:  # below a plain default value (a dictionary)
+            value = value.get(part, NO_DEFAULT) if isinstance(value, dict) else NO_DEFAULT
+            if value is NO_DEFAULT:
+                return NO_DEFAULT
+            continue
+        info = model.model_fields.get(part)
+        if info is None:
+            return NO_DEFAULT
+        if info.is_required():
+            # A required section still gives its own fields defaults (e.g. ``limits``).
+            section = info.annotation
+            if not (isinstance(section, type) and issubclass(section, BaseModel)):
+                return NO_DEFAULT
+            model = section
+            continue
+        default = info.get_default(call_default_factory=True)
+        if isinstance(default, BaseModel):
+            model, value = type(default), default.model_dump(mode="json")
+        else:
+            model, value = None, default
+    return value
+
+
+def _badges(name: str, raw: dict[str, Any], active: dict[str, Any] | None) -> str:
+    saved, current = _lookup(raw, name), _lookup(active, name)
+    live = name.split(".")[0] in LIVE_FIELDS
+    parts = [msg("wirkt sofort") if live else msg("wirkt nach Neustart")]
+    default = default_value(name)
+    if default is not NO_DEFAULT:
+        parts.append(msg("Standard") if saved == default
+                     else tr("angepasst (Standard: {p0})", p0=_shown(name, default)))
+    if active is not None and current != saved:
+        parts.append(msg("gespeichert, noch nicht aktiv"))
+    return " · ".join(e(part) for part in parts)
+
+
+def _field_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None) -> str:
+    """One labelled control of a section form with its effect, default state and help."""
+    saved = _lookup(raw, name)
+    label = setting_label(name)
+    default = default_value(name)
+    reset = ""
+    if default is not NO_DEFAULT and saved != default:
+        reset = (f'<button class="button small link-button" name="zuruecksetzen" value="{e(name)}">'
+                 f'{e(tr("Auf Standard zurücksetzen"))}</button>')
+    return (
+        f'<div class="setting-field" id="{anchor(name)}">'
+        + _input(name, saved, raw, key=SETTING_PREFIX + name, label=label)
+        + help_bubble(name, label, SETTING_HELP[name])
+        + f'<p class="meta setting-badges">{_badges(name, raw, active)} · '
+        + f'<a class="ask-help" href="/hilfe?einstellung={e(name)}">{e(tr("Dazu fragen"))}</a></p>'
+        + reset
+        + f'<details class="setting-technical"><summary>{e(tr("Technische Details"))}</summary>'
+        + f'<p class="meta"><code>{e(name)}</code> · {e(tr("gespeichert"))}: {e(_shown(name, saved))} · '
+        + f'{e(tr("aktiv"))}: {e(_shown(name, _lookup(active, name)))}</p></details></div>'
+    )
+
+
+def _timeouts_table(names: list[str], raw: dict[str, Any], active: dict[str, Any] | None) -> str:
+    """8.5: the timeouts of all services as one table: a row per service, a column per value."""
+    services = sorted({name.split(".")[1] for name in names}, key=lambda service: str(SERVICE_LABELS[service]))
+    head = "".join(f'<th scope="col">{e(TIMEOUT_LABELS[key])}</th>' for key in TIMEOUT_LABELS)
+    rows = ""
+    for service in services:
+        cells = ""
+        for key in TIMEOUT_LABELS:
+            name = f"timeouts.{service}.{key}"
+            value = _lookup(raw, name)
+            identity = "help-" + name.replace(".", "-")
+            cells += (f'<td><input type="number" step="any" name="{e(SETTING_PREFIX + name)}" value="{e(value)}" '
+                      f'aria-label="{e(setting_label(name))}" aria-describedby="{e(identity)}" id="{anchor(name)}" '
+                      f'required><span class="visually-hidden" id="{e(identity)}">{e(SETTING_HELP[name])}</span></td>')
+        rows += f'<tr><th scope="row">{e(SERVICE_LABELS[service])}</th>{cells}</tr>'
+    pending = [f"{setting_label(name)}: {_shown(name, _lookup(raw, name))}" for name in names
+               if active is not None and _lookup(active, name) != _lookup(raw, name)]
+    note = (f'<p class="meta">{e(tr("Gespeichert, noch nicht aktiv"))}: {e("; ".join(pending))}</p>'
+            if pending else "")
+    # A scrolling wrapper is reachable by keyboard (axe: scrollable-region-focusable).
+    return (f'<div class="table-scroll" tabindex="0" role="region" aria-label="{e(tr("Zeitlimits"))}">'
+            f'<table class="timeouts-table"><thead><tr><th scope="col">'
+            f'{e(tr("Dienst"))}</th>{head}</tr></thead><tbody>{rows}</tbody></table></div>'
+            f'<p class="meta">{e(tr("Zeitlimits und Wartezeiten in Sekunden; wirken nach einem Neustart."))}</p>'
+            + note)
+
+
+def _section(group: str, raw: dict[str, Any], active: dict[str, Any] | None, revision: str, csrf: str,
+             area: str) -> str:
+    """8.5: one form per section; only changed values are taken over on the review page."""
+    names = _names(group)
+    timeouts = [name for name in names if name.startswith("timeouts.")]
+    fields = "".join(_field_row(name, raw, active) for name in names if name not in timeouts)
+    if timeouts:
+        fields += _timeouts_table(timeouts, raw, active)
+    bar = (f'<div class="settings-savebar" data-settings-savebar><span class="meta" data-settings-changes '
+           f'role="status" aria-live="polite"></span><button class="button primary">{e(tr("Änderungen prüfen"))}'
+           f'</button></div>')
+    hidden = (field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
+              + field("expected_hash", "", revision, hidden=True) + field("bereich", "", area, hidden=True))
+    return (f'<section class="settings-section"><h2>{e(group)}</h2><form method="post" '
+            f'action="/einstellungen/speichern" class="stack settings-form" data-settings-form>{hidden}'
+            f'{fields}{bar}</form></section>')
+
+
 # Areas of /einstellungen?bereich=…: (key, title, description, groups of SETTING_GROUPS).
+# 8.5: grouped by the user's tasks; rarely needed values are under "Erweitert".
 AREAS = (
     (
-        "briefing",
-        msg("Postfach-Briefings"),
-        msg("Uhrzeiten, Zielpostfach und leere Briefings"),
-        (msg("Postfach-Briefings"),),
-    ),
-    (
-        'abruf',
-        msg("Mailabruf"),
-        msg("Abrufintervall, Zeitzone, Mailgrenzen, Zeitlimits und Wiederholungen"),
-        (msg("Mailabruf und Betrieb"), msg("Aufrufbudget und Mailgrenzen"), msg("Zeitlimits und Wiederholungen")),
+        "allgemein",
+        msg("Allgemein"),
+        msg("Sprache, Zeitzone, Abrufintervall und Trockenlauf"),
+        (msg("Mailabruf und Betrieb"),),
     ),
     (
         'benachrichtigungen',
         msg("Benachrichtigungen"),
-        msg("Telegram, Push und Tagesüberblick"),
-        (msg("Telegram"), msg("Tagesüberblick")),
+        msg("Telegram, Tagesüberblick und Postfach-Briefings"),
+        (msg("Telegram"), msg("Tagesüberblick"), msg("Postfach-Briefings")),
     ),
     (
         'antworten',
@@ -330,19 +446,21 @@ AREAS = (
     ),
     (
         'daten',
-        msg("Daten und Protokolle"),
+        msg("Daten und Datenschutz"),
         msg("Originalanhänge, Aufbewahrung und Protokollierung"),
         (msg("Originalanhänge"), msg("Aufbewahrung"), msg("Protokollierung")),
     ),
     (
-        "system",
-        msg("Weboberfläche und System"),
-        msg("Sitzungen, Netzwerkzugriff, Geräte, Neustart und Beenden"),
-        (msg("Weboberfläche"),),
+        "erweitert",
+        msg("Erweitert"),
+        msg("Aufrufbudget, Mailgrenzen, Zeitlimits, Wiederholungen, Weboberfläche und System"),
+        (msg("Aufrufbudget und Mailgrenzen"), msg("Zeitlimits und Wiederholungen"), msg("Weboberfläche")),
     ),
 )
 CREDENTIALS_AREA = 'zugangsdaten'
 AREA_KEYS = frozenset({key for key, *_ in AREAS} | {CREDENTIALS_AREA})
+# 8.5: addresses of the former areas lead to the area that holds their settings now.
+LEGACY_AREAS = {"abruf": "allgemein", "briefing": "benachrichtigungen", "system": "erweitert"}
 _GROUPS = dict(SETTING_GROUPS)
 
 
@@ -367,8 +485,14 @@ def _nav(current: str) -> str:
     entries.append((f'/einstellungen?bereich={CREDENTIALS_AREA}', msg("Zugangsdaten"), CREDENTIALS_AREA))
     links = "".join(f'<a href="{href}"{' aria-current="page"' if key == current else ""}>{e(title)}</a>'
                     for href, title, key in entries)
+    # 8.5: on a phone one compact choice instead of nine buttons; a GET form works without JavaScript.
+    options = "".join(f'<option value="{e(key)}"{" selected" if key == current else ""}>{e(title)}</option>'
+                      for _href, title, key in entries)
+    chooser = (f'<form method="get" action="/einstellungen" class="settings-chooser"><label>'
+               f'{e(tr("Bereich"))}<select name="bereich">{options}</select></label>'
+               f'<button class="button small">{e(tr("Öffnen"))}</button></form>')
     return (tr('<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>')
-            + links + "</nav>")
+            + links + "</nav>" + chooser)
 
 
 def _search(query: str) -> str:
@@ -393,11 +517,36 @@ def _search(query: str) -> str:
     )
 
 
-def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
+def _pending(raw: dict[str, Any] | None, active: dict[str, Any] | None, groups: tuple[str, ...]) -> int:
+    names = [name for group in groups for name in _names(group)]
+    return sum(_lookup(active, name) != _lookup(raw, name) for name in names) if raw is not None else 0
+
+
+def _attention(raw: dict[str, Any] | None, active: dict[str, Any] | None,
+               credentials: CredentialSnapshot | None) -> str:
+    """8.5: what needs the user first; the accounts and areas follow below."""
+    items = []
+    pending = sum(_pending(raw, active, groups) for *_head, groups in AREAS)
+    if pending:
+        items.append(tr('<li>{p0} gespeicherte Änderungen sind noch nicht aktiv. <a href="/dienst/neu-laden">'
+                        'Konfiguration neu laden</a> oder <a href="/einstellungen/neustarten">Mailhelp neu '
+                        'starten</a>.</li>', p0=pending))
+    missing = [item for item in credentials.fields if not item.present] if credentials is not None else []
+    if missing:
+        items.append(tr('<li>{p0} Zugangsdaten fehlen. <a href="/einstellungen?bereich=zugangsdaten">'
+                        'Zugangsdaten ansehen</a></li>', p0=len(missing)))
+    if not items:
+        return notice(tr("Keine offenen Punkte: alle Einstellungen sind aktiv."), "ok")
+    return (f'<section class="settings-section settings-attention"><h2>{e(tr("Handlungsbedarf"))}</h2>'
+            f'<ul>{"".join(items)}</ul></section>')
+
+
+def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None,
+              credentials: CredentialSnapshot | None = None) -> str:
     counted = active is not None
     mailboxes: Any = _lookup(active, "imap.mailboxes") or [None]
     accounts: Any = _lookup(active, "iserv.accounts") or []
-    body = _tiles(
+    body = _attention(raw, active, credentials) + _tiles(
         msg("Konten und Verbindungen"),
         (
             _tile(
@@ -411,13 +560,13 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
                 msg("IServ-Konten"),
                 (tr("{p0} eingerichtet · ", p0=f"{len(accounts)}") if counted else "") + msg("Elternbriefe abrufen"),
             )
-            + _tile("/einstellungen/zielprofile", msg("Zielprofile"), msg("Kalender und Aufgabenlisten je Postfach"))
+            + _tile("/einstellungen/zielprofile", msg("Kalender und Aufgaben"),
+                    msg("Zielprofile: Kalender und Aufgabenlisten je Postfach"))
             + _tile(
                 '/einstellungen?bereich={p0}'.format(p0=f'{CREDENTIALS_AREA}'),
                 msg("Zugangsdaten"),
                 msg("Passwörter und API-Schlüssel"),
             )
-            + _tile("/einrichtung", msg("Einrichtung"), msg("Verbindungen Schritt für Schritt einrichten"))
             # 6.2.9: one entry for every read-only check (diagnosis per service and the whole self-test).
             + _tile(
                 "/diagnose", msg("Verbindungen prüfen"), msg("Lesend prüfen: einzelne Dienste oder alles auf einmal")
@@ -426,8 +575,7 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     )
     tiles = ""
     for key, title, text, groups in AREAS:
-        names = [name for group in groups for name in _names(group)]
-        changed = sum(_lookup(active, name) != _lookup(raw, name) for name in names) if raw is not None else 0
+        changed = _pending(raw, active, groups)
         badge = (
             tr(
                 '<em class="badge warn">{p0} {p1} ausstehend</em>',
@@ -438,7 +586,7 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
             else ""
         )
         tiles += _tile('/einstellungen?bereich={p0}'.format(p0=f'{key}'), title, text, badge)
-    body += _tiles(msg("Allgemeine Einstellungen"), tiles)
+    body += _tiles(msg("Bereiche"), tiles)
     # 6.2.9: profile and delivery history are part of "Benachrichtigungen"; devices are in the main navigation.
     body += _tiles(
         msg("Inhalte"),
@@ -450,7 +598,8 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     body += _tiles(
         "System",
         (
-            _tile(
+            _tile("/einrichtung", msg("Einrichtung"), msg("Verbindungen Schritt für Schritt einrichten"))
+            + _tile(
                 "/einstellungen/neustarten", msg("Mailhelp neu starten"), msg("Kontrollierter Neustart mit Bestätigung")
             )
             + _tile(
@@ -466,8 +615,8 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
 
 def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str,
           models: list[tuple[str, str, str, str]], push: str) -> str:
-    title, text, groups = next((title, text, groups) for name, title, text, groups in AREAS if name == key)
-    body = f'<div class="area-heading"><h2>{e(title)}</h2><p class="meta">{e(text)}</p></div>'
+    groups = next(groups for name, _title, _text, groups in AREAS if name == key)
+    body = ""
     if key == "benachrichtigungen":
         body += (
             tr(
@@ -486,7 +635,7 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
             + _models_table(models)
             + "</section>"
         )
-    elif key == "system":
+    elif key == "erweitert":
         body += tr(
             '<p class="settings-shortcuts"><a class="button small" '
             'href="/geraete">Geräte</a> <a class="button small" '
@@ -496,10 +645,7 @@ def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, r
         )
     if raw is None:
         return body + notice(tr("Konfigurationsdienst nicht verfügbar."), "warn")
-    for group in groups:
-        body += f'<section class="settings-section"><h2>{e(group)}</h2>'
-        body += "".join(_setting_row(name, raw, active, revision, csrf) for name in _names(group)) + "</section>"
-    return body
+    return body + "".join(_section(group, raw, active, revision, csrf, key) for group in groups)
 
 
 def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str) -> str:
@@ -537,15 +683,22 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
                   push: str = "") -> str:
     """The overview, one area or search results; *area* is empty or one of :data:`AREA_KEYS`."""
     query = query.strip()
-    body = page_head(
-        msg("Einstellungen"),
-        msg("Verwaltung"),
-        tr(
-            "Konten verbinden, allgemeine Regeln festlegen und gezielt je "
-            "Postfach anpassen. Jede Änderung wird vor dem Speichern noch "
-            "einmal angezeigt."
-        ),
-    ) + tr('<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p>')
+    titles = {key: (title, text) for key, title, text, _groups in AREAS}
+    titles[CREDENTIALS_AREA] = (msg("Zugangsdaten"), msg("Passwörter und API-Schlüssel"))
+    if area and not query:
+        # 8.5: the area is the page title; the eyebrow and the back link name where it belongs.
+        title, text = titles[area]
+        body = page_head(title, msg("Einstellungen"), text, back=("/einstellungen", msg("Alle Einstellungen")))
+    else:
+        body = page_head(
+            msg("Einstellungen"),
+            msg("Verwaltung"),
+            tr(
+                "Konten verbinden, allgemeine Regeln festlegen und gezielt je "
+                "Postfach anpassen. Jede Änderung wird vor dem Speichern noch "
+                "einmal angezeigt."
+            ),
+        ) + tr('<p><a class="button" href="/hilfe">Hilfe zu Einstellungen</a></p>')
     if query:
         content = _search(query) + _found(query, raw, active, revision, csrf)
     elif area == CREDENTIALS_AREA:
@@ -553,9 +706,30 @@ def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] |
     elif area:
         content = _search("") + _area(area, raw, active, revision, csrf, models, push)
     else:
-        content = _search("") + _overview(raw, active)
+        content = _search("") + _overview(raw, active, credentials)
     return (body + '<div class="settings-layout">' + (_nav("" if query else area) if area or query else "")
             + '<div class="settings-values">' + content + "</div></div>")
+
+
+def _warnings(name: str, value: object) -> str:
+    """Consequences that need attention before a value is taken over."""
+    body = ""
+    if name.startswith("retention."):
+        body += notice(tr("Aufbewahrung kann Inhalte unwiderruflich entfernen."), "warn")
+    if (
+        name in {"logging.llm.include_requests", "logging.llm.include_responses", "learning.decision_llm_content"}
+        and value is True
+    ):
+        body += notice(tr("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten."), "warn")
+    if name == "test_mode" and value is False:
+        body += notice(tr("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden."), "warn")
+    return body
+
+
+def _compared(name: str, old_value: object, value: object) -> tuple[str, str]:
+    old_text = str(old_value) if name in TEXT_SETTINGS and old_value else _shown(name, old_value)
+    new_text = str(value) if name in TEXT_SETTINGS and value else _shown(name, value)
+    return old_text, new_text
 
 
 def settings_confirmation(form: dict[str, str], route: str, csrf: str,
@@ -568,19 +742,9 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str,
         else msg("Wird nach einem Neustart verwendet.")
     )
     body = tr("<h1>Änderung bestätigen</h1><h2>{p0}</h2><p>{p1}</p>", p0=e(setting_label(name)), p1=timing)
-    if name.startswith("retention."):
-        body += notice(tr("Aufbewahrung kann Inhalte unwiderruflich entfernen."), "warn")
-    if (
-        name in {"logging.llm.include_requests", "logging.llm.include_responses", "learning.decision_llm_content"}
-        and value is True
-    ):
-        body += notice(tr("Inhaltslogging speichert vollständige LLM-Inhalte einschließlich Maildaten."), "warn")
-    if name == "test_mode" and value is False:
-        body += notice(tr("Produktivbetrieb: ausdrücklich bestätigte Aktionen können extern angelegt werden."), "warn")
+    body += _warnings(name, value)
     hidden: dict[str, Any] = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
-    old_value = _lookup(raw, name)
-    old_text = str(old_value) if name in TEXT_SETTINGS and old_value else _shown(name, old_value)
-    new_text = str(value) if name in TEXT_SETTINGS and value else _shown(name, value)
+    old_text, new_text = _compared(name, _lookup(raw, name), value)
     body += tr(
         (
             '<dl class="facts-table"><dt>Bisher gespeichert</dt><dd '
@@ -591,3 +755,27 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str,
         p1=e(new_text),
     )
     return body + post_form(route, csrf, "", msg("Änderung ausdrücklich speichern"), confirm="yes", **hidden)
+
+
+def settings_review(patch: dict[str, Any], texts: dict[str, str], expected_hash: str, csrf: str,
+                    raw: dict[str, Any], area: str) -> str:
+    """8.5: all changes of one section form; one confirmation takes them over together."""
+    rows = ""
+    for name, value in patch.items():
+        old_text, new_text = _compared(name, _lookup(raw, name), value)
+        timing = msg("sofort") if name.split(".")[0] in LIVE_FIELDS else msg("nach Neustart")
+        rows += (f'<tr><th scope="row">{e(setting_label(name))}</th><td class="compare-text">{e(old_text)}</td>'
+                 f'<td class="compare-text">{e(new_text)}</td><td>{e(timing)}</td></tr>')
+    count = len(patch)
+    body = (tr("<h1>Änderungen prüfen</h1><p>{p0} Änderung wird übernommen.</p>", p0=count) if count == 1
+            else tr("<h1>Änderungen prüfen</h1><p>{p0} Änderungen werden gemeinsam übernommen.</p>", p0=count))
+    body += "".join(_warnings(name, value) for name, value in patch.items())
+    body += (f'<div class="table-scroll" tabindex="0" role="region" aria-label="{e(tr("Änderungen"))}">'
+             f'<table class="settings-review"><thead><tr><th scope="col">'
+             f'{e(tr("Einstellung"))}</th><th scope="col">{e(tr("Bisher"))}</th><th scope="col">{e(tr("Neu"))}'
+             f'</th><th scope="col">{e(tr("Wirkt"))}</th></tr></thead><tbody>{rows}</tbody></table></div>')
+    hidden = {SETTING_PREFIX + name: texts[name] for name in patch}
+    back = "/einstellungen?bereich=" + area if area in AREA_KEYS else "/einstellungen"
+    return (body + post_form("/einstellungen/speichern", csrf, "", msg("Änderungen ausdrücklich speichern"),
+                             primary=True, confirm="yes", expected_hash=expected_hash, bereich=area, **hidden)
+            + f'<p><a href="{e(back)}">{e(tr("Abbrechen und zurück"))}</a></p>')

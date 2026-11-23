@@ -6,6 +6,7 @@ import yaml
 
 from mailhelp.config.configuration import SETTINGS_FIELDS, SETUP_FIELDS, AdminCommand, AdminKind, file_hash
 from mailhelp.web.settings_pages import AREAS, SETTING_GROUPS
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_web_v12 import configure
 
 VALID = {
@@ -58,7 +59,7 @@ def test_settings_page_shows_the_new_groups_with_their_controls(web, tmp_path):
     for group in ("Telegram", "Bildauswertung", "Tagesüberblick", "Tätigkeitsberichte", "Lernmodus", "Weboberfläche"):
         assert f">{group}<" in page
     assert "Mails je Abrufdurchlauf" in page and "Antwortentwürfe anbieten" in page
-    form = web.form("/einstellungen?bereich=abruf", action="/einstellungen/speichern", name="imap.batch_size")
+    form = single_setting_form(web, "imap.batch_size")
     accepted = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "60", "confirm": "yes"})
     assert accepted.status == 303
     web.run()

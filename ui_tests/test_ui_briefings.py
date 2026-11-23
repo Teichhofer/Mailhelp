@@ -13,17 +13,17 @@ from tests.scenarios.web_scenario import mail_id
 
 def test_briefing_settings_have_usable_controls_and_save_times(page, mailhelp):
     sign_in(page, mailhelp)
-    settings = SettingsPage(page, mailhelp.url).open("briefing")
+    settings = SettingsPage(page, mailhelp.url).open("benachrichtigungen")
     setting = settings.expand("Uhrzeiten für Postfach-Briefings")
-    expect(setting.get_by_label("Neuer Wert")).to_have_value("07:00, 13:00, 18:00")
+    expect(settings.control(setting)).to_have_value("07:00, 13:00, 18:00")
     assert audit(page, "v49-settings-" + page.device, page.mobile) == []
     settings.propose(setting, "08:15; 17:45")
     settings.confirm()
     expect(page.locator("main")).to_contain_text("Gespeichert", timeout=10000)
     assert mailhelp.site.archive.configuration.active.briefings.times == ["08:15", "17:45"]
-    settings.open("briefing")
+    settings.open("benachrichtigungen")
     mailbox = settings.expand("Zielpostfach für Briefings")
-    expect(mailbox.get_by_label("Neuer Wert")).to_have_value("default")
+    expect(settings.control(mailbox)).to_have_value("default")
     assert page.errors == [] and mailhelp.writer.created == []
 
 

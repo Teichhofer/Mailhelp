@@ -9936,4 +9936,90 @@ EN = {
         'allowed: 0 to 1440; 0 reminds at start). Remains saved as preparation when the '
         'reminder is disabled. Saving does not trigger any write access.'
     ),
+    # 8.5: settings sections, review page and overview.
+    'Zeitlimits': 'Timeouts',
+    'Aktionsergebnisse melden über': 'Report action results via',
+    'Betriebsprobleme melden über': 'Report operating problems via',
+    'Entscheidungen melden über': 'Report decisions via',
+    'Google-Anmeldung (Refresh-Token)': 'Google sign-in (refresh token)',
+    'IServ-Zugang ({p0})': 'IServ access ({p0})',
+    'Keinen Kanal': 'No channel',
+    'Microsoft-Client-ID': 'Microsoft client ID',
+    'Neutral (ohne Mailinhalte)': 'Neutral (without mail content)',
+    'OpenRouter-API-Schlüssel': 'OpenRouter API key',
+    'Postfachzugang ({p0})': 'Mailbox access ({p0})',
+    'Tagesüberblick senden über': 'Send daily overview via',
+    'Telegram-Bot-Token': 'Telegram bot token',
+    'Todoist-Token': 'Todoist token',
+    'Push im Browser': 'Browser push',
+    'Zusammenfassung (Betreffzeilen an Telegram)': 'Summary (subject lines to Telegram)',
+    'Zustellhistorie aufbewahren (Tage)': 'Keep delivery history (days)',
+    'Zustellung: erste Wartezeit (Sekunden)': 'Delivery: first wait (seconds)',
+    'Zustellung: höchstens Versuche': 'Delivery: maximum attempts',
+    'Zustellung: höchstens wartende Meldungen': 'Delivery: maximum pending messages',
+    'Zustellung: längste Wartezeit (Sekunden)': 'Delivery: longest wait (seconds)',
+    ' Änderungen': ' changes',
+    '1 Änderung': '1 change',
+    '<h1>Keine Änderung</h1>': '<h1>No change</h1>',
+    '<h1>Nicht übernommen</h1>': '<h1>Not applied</h1>',
+    '<h1>Änderungen prüfen</h1><p>{p0} Änderung wird übernommen.</p>': (
+        '<h1>Review changes</h1><p>{p0} change will be applied.</p>'
+    ),
+    '<h1>Änderungen prüfen</h1><p>{p0} Änderungen werden gemeinsam übernommen.</p>': (
+        '<h1>Review changes</h1><p>{p0} changes will be applied together.</p>'
+    ),
+    (
+        '<li>{p0} Zugangsdaten fehlen. <a href="/einstellungen?bereich=zugangsdaten">Zugangsdaten '
+        'ansehen</a></li>'
+    ): (
+        '<li>{p0} credentials are missing. <a href="/einstellungen?bereich=zugangsdaten">View '
+        'credentials</a></li>'
+    ),
+    (
+        '<li>{p0} gespeicherte Änderungen sind noch nicht aktiv. <a '
+        'href="/dienst/neu-laden">Konfiguration neu laden</a> oder <a '
+        'href="/einstellungen/neustarten">Mailhelp neu starten</a>.</li>'
+    ): (
+        '<li>{p0} saved changes are not active yet. <a href="/dienst/neu-laden">Reload '
+        'configuration</a> or <a href="/einstellungen/neustarten">restart Mailhelp</a>.</li>'
+    ),
+    'Abbrechen und zurück': 'Cancel and go back',
+    'Alle Einstellungen': 'All settings',
+    'Alle Werte entsprechen dem gespeicherten Stand.': 'All values match the saved state.',
+    'Allgemein': 'General',
+    'Auf Standard zurücksetzen': 'Reset to default',
+    'Aufrufbudget, Mailgrenzen, Zeitlimits, Wiederholungen, Weboberfläche und System': (
+        'Call budget, mail limits, timeouts, retries, web interface and system'
+    ),
+    'Bereich': 'Section',
+    'Bereiche': 'Sections',
+    'Bisher': 'Before',
+    'Daten und Datenschutz': 'Data and privacy',
+    'Dazu fragen': 'Ask about this',
+    'Dienst': 'Service',
+    'Einstellung': 'Setting',
+    'Erweitert': 'Advanced',
+    'Gespeichert, noch nicht aktiv': 'Saved, not active yet',
+    'Handlungsbedarf': 'Needs attention',
+    'Keine offenen Punkte: alle Einstellungen sind aktiv.': 'Nothing open: all settings are active.',
+    'Keine Änderung': 'No change',
+    'Nicht übernommen': 'Not applied',
+    'Sprache, Zeitzone, Abrufintervall und Trockenlauf': 'Language, time zone, polling interval and dry run',
+    'Standard': 'Default',
+    'Technische Details': 'Technical details',
+    'Telegram, Tagesüberblick und Postfach-Briefings': 'Telegram, daily overview and mailbox briefings',
+    'Ungültiger Wert bei: {p0}. Es wurde nichts gespeichert.': 'Invalid value for: {p0}. Nothing was saved.',
+    'Wirkt': 'Takes effect',
+    'Zeitlimits und Wartezeiten in Sekunden; wirken nach einem Neustart.': (
+        'Timeouts and waiting times in seconds; they take effect after a restart.'
+    ),
+    'Zielprofile: Kalender und Aufgabenlisten je Postfach': 'Target profiles: calendars and task lists per mailbox',
+    'angepasst (Standard: {p0})': 'customised (default: {p0})',
+    'gespeichert': 'saved',
+    'gespeichert, noch nicht aktiv': 'saved, not active yet',
+    'nach Neustart': 'after restart',
+    'wirkt nach Neustart': 'takes effect after restart',
+    'wirkt sofort': 'takes effect immediately',
+    'Änderungen ausdrücklich speichern': 'Explicitly save changes',
+    'Öffnen': 'Open',
 }

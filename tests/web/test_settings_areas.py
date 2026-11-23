@@ -12,7 +12,7 @@ from tests.fakes.shared_web_v12 import configure
 def test_overview_links_counts_and_pending_badges(profiled):
     ctx = profiled
     page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
-    for title in ("Konten und Verbindungen", "Allgemeine Einstellungen", "Inhalte", "System"):
+    for title in ("Konten und Verbindungen", "Bereiche", "Inhalte", "System"):
         assert f"<h2>{title}</h2>" in page
     assert "2 eingerichtet" in page and "0 eingerichtet" in page
     assert 'name="suche"' in page and "/einstellungen/speichern" not in page
@@ -24,6 +24,8 @@ def test_overview_links_counts_and_pending_badges(profiled):
     path.write_text(yaml.safe_dump(raw))
     page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
     assert "1 Änderung ausstehend" in page and "2 Änderungen ausstehend" in page
+    # 8.5: the overview names the pending changes first, with the way to take them over.
+    assert "<h2>Handlungsbedarf</h2>" in page and "3 gespeicherte Änderungen sind noch nicht aktiv" in page
 
 
 @pytest.mark.parametrize("area", sorted(AREA_KEYS))
@@ -38,7 +40,11 @@ def test_areas_have_current_navigation_and_only_their_own_controls(web, tmp_path
     groups = next(groups for key, _, _, groups in AREAS if key == area)
     names = {name for group in groups for name in _names(group)}
     for name in SETTINGS_FIELDS:
-        assert (f'name="name" value="{name}"' in page) == (name in names)
+        assert (f'name="setting:{name}"' in page) == (name in names)
+    # 8.5: one form per section and the area as page title.
+    assert page.count('data-settings-form') == len(groups)
+    title = next(title for key, title, _, _ in AREAS if key == area)
+    assert f"<h1>{title}</h1>" in page and '← Alle Einstellungen' in page
     assert ('id="push-controls"' in page) == (area == "benachrichtigungen")
     assert ("Modelle (nur lesend)" in page) == (area == "ki")
 
@@ -68,7 +74,7 @@ def test_unknown_area_is_not_found_and_empty_search_returns_overview(web):
 def test_unavailable_configuration_keeps_navigation_and_reports_problem(web):
     page = web.browser.request("GET", "/einstellungen").body.decode()
     assert "hinzufügen, prüfen und anpassen" in page and "eingerichtet ·" not in page
-    for area in ("abruf", "ki"):
+    for area in ("allgemein", "ki"):
         page = web.browser.request("GET", "/einstellungen?bereich=" + area).body.decode()
         assert "Konfigurationsdienst nicht verfügbar" in page
     page = web.browser.request("GET", "/einstellungen?suche=Zeitzone").body.decode()
@@ -87,7 +93,7 @@ def test_settings_left_out_of_config_yaml_are_not_pending(profiled):
     page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
     assert "ausstehend" not in page
     area = ctx.web.browser.request("GET", "/einstellungen?bereich=daten").body.decode()
-    assert "Gespeichert: 60 · aktiv" in area and "nächsten sicheren Stelle" not in area
+    assert "Standard" in area and "noch nicht aktiv" not in area
     # A config.yaml the program would reject still shows its literal values as pending.
     raw["poll_interval_seconds"] = 1
     path.write_text(yaml.safe_dump(raw))

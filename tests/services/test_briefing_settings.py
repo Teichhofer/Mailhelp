@@ -6,6 +6,7 @@ from mailhelp.config import Settings
 from mailhelp.config.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints
 from mailhelp.web.settings_pages import _input
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_web_v12 import configure
 
@@ -49,8 +50,8 @@ def test_disabled_briefings_may_have_no_times_and_valid_times_are_sorted(configu
 ])
 def test_web_edits_require_confirmation_and_apply_without_restart(web, tmp_path, name, value, expected):
     _, _, _, active, _ = configure(web, tmp_path)
-    path, route = "/einstellungen?bereich=briefing", "/einstellungen/speichern"
-    form = web.form(path, action=route, name=name)
+    route = "/einstellungen/speichern"
+    form = single_setting_form(web, name)
     form["value"] = value
     assert web.browser.request("POST", route, form).status == 200 and not active
     form["confirm"] = "yes"
@@ -69,10 +70,13 @@ def test_web_edits_require_confirmation_and_apply_without_restart(web, tmp_path,
 
 def test_editor_has_times_and_enabled_mailbox_choices_and_keeps_auth_guards(profiled):
     web = profiled.web
-    html = web.browser.request("GET", "/einstellungen?bereich=briefing").body.decode()
+    # 8.5: the former address leads to the notifications area that holds the briefings now.
+    assert web.browser.request("GET", "/einstellungen?bereich=briefing").headers["Location"] == (
+        "/einstellungen?bereich=benachrichtigungen")
+    html = web.browser.request("GET", "/einstellungen?bereich=benachrichtigungen").body.decode()
     assert 'value="default"' in html and 'value="1"' in html and 'value="2"' in html
     assert "07:00, 13:00, 18:00" in html
-    form = web.form("/einstellungen?bereich=briefing", action="/einstellungen/speichern", name="briefings.enabled")
+    form = single_setting_form(web, "briefings.enabled")
     form.update(value="true", confirm="yes")
     assert web.browser.request("POST", "/einstellungen/speichern", {**form, "csrf": "bad"}).status == 403
     web.auth.revoke_all()

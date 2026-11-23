@@ -18,6 +18,7 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.lifecycle import Lifecycle
 from mailhelp.runtime.retention import RetentionService
 from mailhelp.support.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
+from tests.fakes.settings_sections import single_setting_form
 from tests.fakes.shared_application import settings
 from tests.fakes.shared_review import command
 from tests.fakes.shared_web_v12 import configure as configure
@@ -151,10 +152,10 @@ def test_web_edit_saves_new_version_without_external_write(web):
 
 def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
     service, metrics, lifecycle, active, calls = configure(web, tmp_path)
-    page = web.browser.request('GET', '/einstellungen?bereich=abruf').body.decode()
+    page = web.browser.request('GET', '/einstellungen?bereich=allgemein').body.decode()
     assert 'poll_interval_seconds' in page
     assert 'include_requests' in web.browser.request('GET', '/einstellungen?bereich=daten').body.decode()
-    form = web.form('/einstellungen?bereich=abruf', action='/einstellungen/speichern', name='poll_interval_seconds')
+    form = single_setting_form(web, 'poll_interval_seconds')
     form['value'] = '10'
     preview = web.browser.request('POST', '/einstellungen/speichern', form)
     assert preview.status == 200 and 'ausdrücklich' in preview.body.decode()
@@ -166,7 +167,7 @@ def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
     assert active[-1].poll_interval_seconds == 10
     assert 'Gespeichert' in web.browser.request('GET', accepted.headers['Location']).body.decode()
     assert web.browser.request('POST', '/einstellungen/speichern', {**form, 'confirm': 'yes'}).status == 409
-    form = web.form('/einstellungen?bereich=abruf', action='/einstellungen/speichern', name='timezone')
+    form = single_setting_form(web, 'timezone')
     assert web.browser.request('POST', '/einstellungen/speichern', {**form, 'value': 'Bad/Zone', 'confirm': 'yes'}).status == 422
     form['value'] = 'Europe/Berlin'
     result = web.browser.request('POST', '/einstellungen/speichern', {**form, 'confirm': 'yes'})

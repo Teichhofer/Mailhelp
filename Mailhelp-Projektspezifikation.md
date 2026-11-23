@@ -46,6 +46,24 @@ Version und Vorprüfung; sie erteilt keine Kalender-/Todoist-Schreibfreigabe.
 Datumsvergleiche vollständiger Zeitintervalle erfolgen ebenfalls in der konfigurierten
 Zeitzone. Eine UTC-Darstellung mit anderem UTC-Kalendertag verändert das lokale Datum nicht.
 
+## Ergänzung 8.5: Übersichtliche Einstellungen
+
+Plan: [docs/Planung-8.5.md](docs/Planung-8.5.md), Stand: [docs/Release-8.5.md](docs/Release-8.5.md).
+
+- Bereiche (`AREAS` in `web/settings_pages.py`): `allgemein`, `benachrichtigungen`, `antworten`, `ki`,
+  `daten`, `erweitert`; `abruf`, `briefing` und `system` leiten mit HTTP 308 auf `allgemein`,
+  `benachrichtigungen` und `erweitert` um. Jede Einstellung aus `SETTINGS_FIELDS` steht in genau einem
+  Bereich.
+- Abschnittsformulare senden jeden Wert als `setting:<Schlüssel>` an `POST /einstellungen/speichern`
+  (höchstens 120 Felder). Nur Werte, die vom gespeicherten Stand abweichen, bilden den Patch; gespeicherte
+  Texte bleiben Text, ein geleertes optionales Feld bleibt `null`. Ohne `confirm=yes` antwortet die
+  Prüfseite mit allen Änderungen; mit `confirm=yes` entsteht genau ein `AdminCommand`. `zuruecksetzen`
+  ersetzt den Patch durch den Standardwert dieser Einstellung (aus dem Modell; ohne Standardwert HTTP 422).
+  Ein abgelehnter Patch nennt die betroffenen Einstellungen (HTTP 422). Das einzelne Formular
+  (`name`/`value`) bleibt für Suchtreffer erhalten.
+- Sitzung, CSRF, erwarteter Dateistand und Idempotenzschlüssel gelten unverändert; Einstellungen ändern
+  nie externe Ziele.
+
 ## Ergänzung 8.0: Google über Inboxstride verbinden
 
 Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](docs/Release-8.0.md).

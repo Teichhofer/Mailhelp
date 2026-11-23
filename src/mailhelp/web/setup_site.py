@@ -113,6 +113,35 @@ LABELS = {
     "notifications.telegram_content": msg("Telegram-Inhalte"),
     "daily_briefing.enabled": msg("Tagesüberblick aktivieren"),
     "daily_briefing.time": msg("Tagesüberblick um"),
+    # 8.5: readable names instead of configuration keys.
+    "notifications.categories.decisions": msg("Entscheidungen melden über"),
+    "notifications.categories.action_results": msg("Aktionsergebnisse melden über"),
+    "notifications.categories.daily_briefing": msg("Tagesüberblick senden über"),
+    "notifications.categories.system_errors": msg("Betriebsprobleme melden über"),
+    "notifications.delivery.max_attempts": msg("Zustellung: höchstens Versuche"),
+    "notifications.delivery.initial_backoff_seconds": msg("Zustellung: erste Wartezeit (Sekunden)"),
+    "notifications.delivery.max_backoff_seconds": msg("Zustellung: längste Wartezeit (Sekunden)"),
+    "notifications.delivery.history_days": msg("Zustellhistorie aufbewahren (Tage)"),
+    "notifications.delivery.max_pending": msg("Zustellung: höchstens wartende Meldungen"),
+}
+# 8.5: what a choice means instead of its stored value; the value sent stays the same.
+CHOICE_LABELS = {
+    "true": msg("Ja"), "false": msg("Nein"),
+    "[]": msg("Keinen Kanal"), '["telegram"]': msg("Telegram"), '["web_push"]': msg("Push im Browser"),
+    '["telegram", "web_push"]': msg("Telegram und Web-Push"),
+    "ssl": msg("SSL/TLS (meist Port 993)"), "starttls": msg("STARTTLS (meist Port 143)"),
+    "plain": msg("Unverschlüsselt (nur im eigenen Netz)"),
+    "neutral": msg("Neutral (ohne Mailinhalte)"), "summary": msg("Zusammenfassung (Betreffzeilen an Telegram)"),
+    "google": msg("Google Kalender"), "caldav": msg("CalDAV"), "outlook": msg("Outlook / Microsoft 365"),
+    "todoist": msg("Todoist"), "microsoft_todo": msg("Microsoft To Do"), "apple_reminders": msg("Apple Erinnerungen"),
+    "google_tasks": msg("Google Tasks"),
+}
+# 8.5: the secrets the setup reports as missing or present, by name.
+SECRET_LABELS = {
+    "openrouter_api_key": msg("OpenRouter-API-Schlüssel"), "telegram_bot_token": msg("Telegram-Bot-Token"),
+    "todoist_token": msg("Todoist-Token"), "google_oauth_refresh_token": msg("Google-Anmeldung (Refresh-Token)"),
+    "caldav_username": msg("CalDAV-Benutzername"), "caldav_password": msg("CalDAV-Passwort"),
+    "microsoft_client_id": msg("Microsoft-Client-ID"),
 }
 CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "false"),
            "imap.connection_mode": ("ssl", "starttls", "plain"),
@@ -143,6 +172,12 @@ def field_label(raw: dict[str, Any], name: str) -> str:
     return tr("{p0} – Postfach {p1} ({p2})", p0=LABELS["imap." + parts[3]], p1=mailbox["id"], p2=mailbox["label"])
 
 
+def _secret_label(name: str) -> str:
+    if "/" in name:  # the user name and password pair of one mailbox or IServ account
+        return tr("IServ-Zugang ({p0})", p0=name) if name.startswith("ISERV") else tr("Postfachzugang ({p0})", p0=name)
+    return str(SECRET_LABELS.get(name, name))
+
+
 def input_field(name: str, value: object, choices: Sequence[str] | None = None, label: str | None = None) -> str:
     label = label or LABELS.get(name, name)
     identity = "setting-" + name.replace(".", "-")
@@ -151,8 +186,8 @@ def input_field(name: str, value: object, choices: Sequence[str] | None = None, 
         choices = ("true", "false")
     if choices is not None:
         control = f'<select id="{identity}" name="value">' + "".join(
-            f'<option value="{e(item)}"{" selected" if item == shown else ""}>{e(item)}</option>'
-            for item in choices) + '</select>'
+            f'<option value="{e(item)}"{" selected" if item == shown else ""}>{e(CHOICE_LABELS.get(item, item))}'
+            '</option>' for item in choices) + '</select>'
     else:
         control = f'<input id="{identity}" name="value" value="{e(shown)}" maxlength="4000" required>'
     return f'<label for="{identity}">{e(label)}</label>{control}'
@@ -272,7 +307,7 @@ class SetupSite:
         state, cfg = self.runtime.setup.state(), self.runtime.setup.configuration
         body = tr("<h1>Einrichtung</h1>") + self.links()
         body += tr("<p>Aktueller Schritt: {p0} · Entwurfsversion: {p1}</p>", p0=state.step, p1=state.version)
-        body += '<ul>' + "".join(f'<li>{e(name)}: {e(tr(status))}</li>'
+        body += '<ul>' + "".join(f'<li>{e(_secret_label(name))}: {e(tr(status))}</li>'
                                   for name, status in self.runtime.secret_status().items()) + '</ul>'
         body += tr(_SETUP_TEXT_1)
         for index, title in enumerate(STEPS, 1):

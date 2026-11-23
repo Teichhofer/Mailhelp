@@ -49,8 +49,7 @@ def test_draft_switch_and_manual_folder_can_be_saved_in_the_browser(page, mailhe
     settings = SettingsPage(page, mailhelp.url).open("antworten")
     setting = settings.expand("Antwortentwürfe zulassen")
     assert audit(page, f"v48-settings-{page.device}", page.mobile) == []
-    setting.get_by_label("Neuer Wert").select_option("false")
-    setting.get_by_role("button", name="Prüfen").click()
+    settings.propose(setting, "false")
     settings.confirm()
     expect(page.locator("main")).to_contain_text("Gespeichert", timeout=10000)
     assert mailhelp.site.archive.configuration.active.drafts.enabled is False

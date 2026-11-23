@@ -1,4 +1,5 @@
 """Settings overview, search and IMAP activation across desktop and phone widths."""
+import re
 from types import SimpleNamespace as NS
 
 from playwright.sync_api import expect
@@ -15,11 +16,20 @@ def test_overview_search_and_area_navigation(page, mailhelp):
     expect(page.get_by_role("heading", name="Konten und Verbindungen", exact=True)).to_be_visible()
     assert audit(page, "settings35-overview-" + page.device, page.mobile) == []
     nav = page.get_by_role("navigation", name="Einstellungsbereiche")
-    page.locator('a.settings-tile[href="/einstellungen?bereich=abruf"]').click()
-    expect(page.locator('a[aria-current="page"][href="/einstellungen?bereich=abruf"]')).to_be_visible()
+    page.locator('a.settings-tile[href="/einstellungen?bereich=allgemein"]').click()
+    if page.mobile:  # 8.5: the area is chosen with one control on a phone
+        expect(page.locator("form.settings-chooser select")).to_have_value("allgemein")
+    else:
+        expect(page.locator('a[aria-current="page"][href="/einstellungen?bereich=allgemein"]')).to_be_visible()
     expect(page.get_by_role("heading", name="Mailabruf und Betrieb", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Allgemein", exact=True, level=1)).to_be_visible()
     assert audit(page, "settings35-area-" + page.device, page.mobile) == []
-    nav.get_by_role("link", name="Übersicht", exact=True).click()
+    if page.mobile:  # 8.5: one area choice instead of the list
+        expect(nav).to_be_hidden()
+        page.locator("form.settings-chooser select").select_option("")
+        page.get_by_role("button", name="Öffnen", exact=True).click()
+    else:
+        nav.get_by_role("link", name="Übersicht", exact=True).click()
     page.get_by_role("searchbox", name="Einstellung suchen").fill("Mailabruf Zeitzone")
     page.get_by_role("button", name="Suchen", exact=True).click()
     expect(page.locator("details.setting summary")).to_have_count(1)
@@ -72,3 +82,45 @@ def test_mailbox_activation_form_keeps_inputs_on_error_and_then_saves(page, setu
     assert len(activated) == 1 and activated[0][0].imap.mailbox(2).label == "Verein"
     assert "synthetic-password" not in page.content() and setup_server.writer.created == []
     assert audit(page, "settings35-mailbox-active-" + page.device, page.mobile) == []
+
+
+def test_a_section_counts_its_changes_warns_before_leaving_and_reviews_them_together(page, mailhelp):
+    """8.5: one form per section; the bar counts changed values, a submit never warns."""
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + "/einstellungen?bereich=allgemein")
+    form = page.locator("form[data-settings-form]").first
+    changes = form.locator("[data-settings-changes]")
+    interval = form.get_by_label("Abrufintervall (Sekunden)", exact=True)
+    unchanged = ("() => { const event = new Event('beforeunload', {cancelable: true}); "
+                 "window.dispatchEvent(event); return event.defaultPrevented; }")
+    assert page.evaluate(unchanged) is False  # nothing to lose yet
+    interval.fill("47")
+    expect(changes).to_have_text("1 Änderung")
+    form.locator('select[name="setting:test_mode"]').select_option("false")
+    expect(changes).to_have_text("2 Änderungen")
+    expect(form.locator("[data-settings-savebar]")).to_have_class(re.compile("changed"))
+    form.locator('select[name="setting:test_mode"]').select_option("true")
+    expect(changes).to_have_text("1 Änderung")
+    leave = ("() => { const event = new Event('beforeunload', {cancelable: true}); "
+             "window.dispatchEvent(event); return event.defaultPrevented; }")
+    assert page.evaluate(leave) is True  # the browser asks before unsaved changes are lost
+    page.evaluate("document.querySelector('form[data-settings-form]').dispatchEvent(new Event('submit'))")
+    assert page.evaluate(leave) is False  # sending the form is no loss
+    assert page.errors == []
+
+
+def test_a_reviewed_section_is_saved_without_a_leave_warning(page, mailhelp):
+    sign_in(page, mailhelp)
+    page.goto(mailhelp.url + "/einstellungen?bereich=allgemein")
+    form = page.locator("form[data-settings-form]").first
+    form.get_by_label("Abrufintervall (Sekunden)", exact=True).fill("47")
+    warned = []
+    page.on("dialog", lambda dialog: (warned.append(dialog.type), dialog.accept()))
+    form.get_by_role("button", name="Änderungen prüfen", exact=True).click()
+    expect(page.get_by_role("heading", name="Änderungen prüfen")).to_be_visible()
+    expect(page.locator("main")).to_contain_text("1 Änderung wird übernommen")
+    assert audit(page, "settings85-review-" + page.device, page.mobile) == []
+    page.get_by_role("button", name="Änderungen ausdrücklich speichern", exact=True).click()
+    expect(page.locator("main")).to_contain_text("Gespeichert", timeout=10000)
+    assert mailhelp.site.archive.configuration.active.poll_interval_seconds == 47
+    assert warned == [] and page.errors == []

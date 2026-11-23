@@ -771,7 +771,27 @@ form fieldset legend { font-weight: 600; padding: 0 6px; }
 .guest-shell .nav-language a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; }
 .tab-menu .nav-language { margin: 0; }
 
+/* 8.5: one form per settings section; every value is a labelled control with its effect and help. */
+.settings-form { gap: 0; }
+.setting-field { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 4px 8px; align-items: start;
+  padding: 12px 0; border-top: 1px solid var(--border); }
+.setting-field > label { grid-column: 1; grid-row: 1; }
+.setting-field > .setting-help { grid-column: 2; grid-row: 1; align-self: end; }
+.setting-field > :not(label):not(.setting-help) { grid-column: 1 / -1; }
+.setting-badges { margin: 0; }
+.setting-technical summary { display: flex; align-items: center; min-height: 44px; color: var(--muted);
+  font-size: var(--text-xs); }
+.setting-field .link-button { justify-self: start; min-height: 44px; }
+.timeouts-table input { width: 6.5em; min-height: 44px; }
+.settings-savebar { position: sticky; bottom: 12px; z-index: 2; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-menu); }
+.settings-savebar.changed { border-color: var(--accent); }
+.settings-attention ul { margin: 0; padding-left: 1.2em; }
+.settings-chooser { display: flex; align-items: end; gap: 8px; margin-top: 12px; }
+.settings-chooser label { flex: 1 1 auto; }
 @media (min-width: 900px) {
+  .settings-chooser { display: none; }
   .settings-layout { grid-template-columns: 205px minmax(0, 1fr); }
   .settings-index { display: grid; position: sticky; top: 24px; gap: 4px; }
   .settings-index a { border-color: transparent; background: transparent; padding: 10px 12px; }
@@ -1140,6 +1160,8 @@ body:has(#help-window:not([hidden])) #inhalt form:has(input[name="confirm"][valu
 /* Content scrolled into view (also by keyboard focus) never ends up underneath the bar. */
 html:has(.confirm-bar) { scroll-padding-bottom: 12rem; }
 @media (max-width: 899px) { .confirm-bar { bottom: calc(64px + env(safe-area-inset-bottom)); } }
+/* 8.5: a phone chooses the settings area with one control; the list of areas is for wide screens. */
+@media (max-width: 899px) { .settings-index { display: none; } .settings-savebar { bottom: calc(84px + env(safe-area-inset-bottom)); } }
 .learning-steps fieldset { border: 1px solid var(--border); border-radius: var(--radius-m); padding: .75rem 1rem 1rem; margin: 0 0 1rem; }
 .learning-steps legend { font-weight: 700; padding: 0 .35rem; }
 .learning-steps label { display: block; margin-top: .5rem; }

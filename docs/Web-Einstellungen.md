@@ -70,7 +70,7 @@ eingegebenen Wörter enthalten. Großschreibung, Leerraum und Umlaute (`ä`/`ae`
 nicht; Synonyme verbinden etwa „KI“ und „Modell“, „Postfach“ und „Konto“, „Abruf“ und
 „Intervall“. Zuerst stehen exakte Schlüssel oder Bezeichnungen, dann Wortanfänge, dann übrige
 Treffer, bei Gleichstand alphabetisch. Jeder Treffer führt mit einem Anker
-(`#einstellung-<schlüssel>`) direkt zur Einstellung und klappt sie auf.
+(`#einstellung-<schlüssel>`) direkt zur Einstellung und setzt den Cursor in ihr Feld.
 
 Live-Suche (5.3): Auf der Übersicht und jeder Bereichsseite erscheinen beim Tippen ab dem ersten
 Zeichen bis zu zehn Treffer direkt unter dem Suchfeld, ohne Klick auf „Suchen“ und ohne neue
@@ -84,17 +84,33 @@ Ein unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne Java
 
 | Bereich | Adresse | Inhalt |
 | --- | --- | --- |
-| Mailabruf | `?bereich=abruf` | Abruf, Mailgrenzen, Zeitlimits, Wiederholungen |
-| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Push-Steuerung |
+| Allgemein | `?bereich=allgemein` | Sprache, Zeitzone, Abrufintervall, Abrufumfang, Trockenlauf |
+| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Postfach-Briefings, Push-Steuerung |
 | Antworten und Termine | `?bereich=antworten` | Antworten, Termindauern, Abgleich, Ziele |
 | KI und Auswertung | `?bereich=ki` | Modelltabelle (nur lesend), Bilder, Lernen, Berichte, Kosten |
-| Daten und Protokolle | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |
-| Weboberfläche und System | `?bereich=system` | Sitzungen, Netzwerk, Geräte, Neustart, Beenden |
+| Daten und Datenschutz | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |
+| Erweitert | `?bereich=erweitert` | Mailgrenzen, Zeitlimits und Wiederholungen, Weboberfläche, Neustart, Beenden |
 | Zugangsdaten | `?bereich=zugangsdaten` | Passwörter und API-Schlüssel |
 
-Auf großen Bildschirmen bleibt die Bereichsnavigation neben den Werten erreichbar;
-auf dem Handy steht sie oberhalb der Einstellungsgruppen. Speichern und Bestätigung
-laufen weiterhin über `/einstellungen/speichern` und die Befehlswarteschlange.
+Seit 8.5 führen die früheren Adressen `?bereich=abruf`, `?bereich=briefing` und
+`?bereich=system` dauerhaft (HTTP 308) zu „Allgemein“, „Benachrichtigungen“ und „Erweitert“.
+Jede Bereichsseite trägt ihren Namen als Überschrift und einen Rückweg zu allen Einstellungen.
+Auf großen Bildschirmen steht die Bereichsliste neben den Werten, auf dem Handy wählt eine
+Auswahl „Bereich“ mit „Öffnen“ den Bereich (auch ohne JavaScript).
+
+Abschnittsformulare (8.5): Jeder Abschnitt ist ein Formular mit allen Werten als Eingabefeld,
+Auswahl oder Textfeld. Unter jedem Feld stehen die Wirkung („wirkt sofort“ oder „wirkt nach
+Neustart“), „Standard“ oder „angepasst (Standard: …)“, ein Hinweis bei gespeicherten, noch nicht
+aktiven Werten und „Dazu fragen“; „Technische Details“ zeigt Schlüssel, gespeicherten und aktiven
+Wert. „Auf Standard zurücksetzen“ übernimmt den Standardwert in die Prüfung. „Änderungen
+prüfen“ zeigt alle geänderten Werte dieses Abschnitts mit bisherigem und neuem Wert und ihrer
+Wirkung; „Änderungen ausdrücklich speichern“ übernimmt sie gemeinsam mit einem Befehl. Ist ein
+Wert ungültig, nennt die Antwort die betroffenen Einstellungen und speichert nichts. Mit
+JavaScript zählt die Leiste unter dem Abschnitt die geänderten Werte, und der Browser fragt vor
+dem Verlassen der Seite mit ungesicherten Änderungen. Die Zeitlimits aller Dienste stehen unter
+„Erweitert“ als Tabelle (Dienst × Zeitlimit, Wiederholungen, erste und längste Wartezeit). Treffer
+der Suche behalten das einzelne Formular je Einstellung. Speichern und Bestätigung laufen über
+`/einstellungen/speichern` und die Befehlswarteschlange.
 
 ## Postfach hinzufügen (3.5)
 
@@ -564,7 +580,7 @@ Anleitung: [Release 3.2](archiv/Release-3.2.md).
 
 ## Postfach-Briefings (4.9)
 
-Unter `/einstellungen?bereich=briefing`; Zeiten werden mit Komma oder Semikolon eingegeben.
+Unter `/einstellungen?bereich=benachrichtigungen`; Zeiten werden mit Komma oder Semikolon eingegeben.
 
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |

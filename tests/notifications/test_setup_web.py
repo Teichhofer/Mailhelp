@@ -306,8 +306,9 @@ def test_setup_offers_the_providers_with_defaults_for_a_2_2_configuration(config
         raw["targets"].pop(name)
     path.write_text(yaml.safe_dump(raw), encoding="utf-8")
     page = configured.web.browser.request("GET", "/einrichtung").body.decode()
-    assert '<option value="google" selected>google</option>' in page
-    assert '<option value="apple_reminders">apple_reminders</option>' in page
+    # 8.5: the stored value stays, the choice is shown with its name.
+    assert '<option value="google" selected>Google Kalender</option>' in page
+    assert '<option value="apple_reminders">Apple Erinnerungen</option>' in page
     assert 'name="value" value="default"' in page and "Microsoft-Mandant" in page
 
 

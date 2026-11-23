@@ -506,7 +506,7 @@ def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
     setting = settings.expand("Persönliche Angaben für Antworten")
     assert audit(page, f"v20-persoenlich-{page.device}", page.mobile) == []
     settings.propose(setting, "Max Mustermann\nElternbeirat Klasse 4b")
-    preview = page.locator("main dd.compare-text").last
+    preview = page.locator("main .compare-text").last
     expect(preview).to_have_text("Max Mustermann\nElternbeirat Klasse 4b")
     expect(preview).to_have_css("white-space", "pre-wrap")
     settings.confirm()
@@ -632,10 +632,10 @@ def test_background_refresh_to_inbox_zero(page, mailhelp):
 def test_setting_help_hover_keyboard_touch_and_escape(page, mailhelp):
     from mailhelp.web.setting_help import SETTING_HELP
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen?bereich=abruf")
+    page.goto(f"{mailhelp.url}/einstellungen?bereich=allgemein")
     controls = page.locator(".info-trigger")
     from mailhelp.web.settings_pages import AREAS, _names
-    groups = next(groups for key, _, _, groups in AREAS if key == "abruf")
+    groups = next(groups for key, _, _, groups in AREAS if key == "allgemein")
     expect(controls).to_have_count(sum(len(_names(group)) for group in groups))
     trigger = page.get_by_role("button", name="Info zu Abrufintervall (Sekunden)", exact=True)
     tip = page.locator("#help-poll_interval_seconds")
@@ -651,10 +651,10 @@ def test_setting_help_hover_keyboard_touch_and_escape(page, mailhelp):
         expect(tip).to_be_visible()
         page.keyboard.press("Escape")  # Hover must be dismissible without first focusing the trigger.
         expect(tip).to_be_hidden()
-        page.get_by_role("heading", name="Einstellungen", exact=True).hover()
+        page.get_by_role("heading", name="Allgemein", exact=True).hover()
         trigger.hover()
         expect(tip).to_be_visible()
-        page.get_by_role("heading", name="Einstellungen", exact=True).hover()
+        page.get_by_role("heading", name="Allgemein", exact=True).hover()
         expect(tip).to_be_hidden()
     trigger.click()
     expect(tip).to_be_visible()

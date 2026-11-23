@@ -179,8 +179,10 @@ class MailhelpSite:
         if content_type != FORM_TYPE:
             return Response.text(415, msg("Nur Formulardaten werden angenommen."))
         try:
+            # 8.5: a settings section sends all its values (the timeouts table alone has 40).
             return request.form(max_num_fields=200 if request.path in {"/themen/lernen", "/lernen/entscheidungen"} else
-                                120 if request.path.startswith("/serie/") else 20)
+                                120 if request.path.startswith("/serie/") or request.path == "/einstellungen/speichern"
+                                else 20)
         except (UnicodeDecodeError, ValueError):
             return Response.text(400, msg("Ungültige Formulardaten."))
 

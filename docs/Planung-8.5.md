@@ -1,6 +1,7 @@
 # Mailhelp 8.5 – Übersichtliche Einstellungen
 
-**Stand:** 23. November 2026. **Status:** Geplant. Erste Auslieferung 8.5.1; weitere Commits mit
+**Stand:** 23. November 2026. **Status:** Umgesetzt (8.5.1), Abweichungen im [Releasebericht 8.5](Release-8.5.md).
+Erste Auslieferung 8.5.1; weitere Commits mit
 fortlaufenden Patchversionen gemäß [Entwicklungsregeln](../AGENTS.md).
 
 **Grundlagen:** [Entwicklungsregeln](../AGENTS.md),

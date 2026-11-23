@@ -94,7 +94,7 @@ def test_window54_a_late_source_never_replaces_the_newer_document(page, mailhelp
     sign_in(page, mailhelp)
     # Starting on the area keeps the final settings link a same-document jump, so the
     # coverage of everything before it survives until the teardown takes it.
-    page.goto(mailhelp.url + "/einstellungen?bereich=abruf")
+    page.goto(mailhelp.url + "/einstellungen?bereich=allgemein")
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Was bewirkt das Abrufintervall?")
     page.get_by_role("button", name="Frage senden", exact=True).click()
@@ -120,7 +120,7 @@ def test_window54_a_late_source_never_replaces_the_newer_document(page, mailhelp
     expect(page.locator(".help-document-text")).to_have_text(current)
     page.get_by_role("button", name="Zurück zum Gespräch", exact=True).click()
     page.locator('.help-sources a[href^="/einstellungen"]').click()
-    page.wait_for_url(re.compile(r".*/einstellungen\?bereich=abruf#einstellung-poll-interval-seconds$"))
+    page.wait_for_url(re.compile(r".*/einstellungen\?bereich=allgemein#einstellung-poll-interval-seconds$"))
     expect(page.locator("#help-window")).to_be_visible()
 
 
@@ -128,18 +128,17 @@ def test_window54_a_jump_to_a_setting_of_the_same_page_keeps_unsaved_values(page
     # 5.4.1 regression: the anchor jump fired popstate, which reloaded the whole page and
     # discarded the value typed into the open setting.
     sign_in(page, mailhelp)
-    page.goto(mailhelp.url + "/einstellungen?bereich=abruf")
+    page.goto(mailhelp.url + "/einstellungen?bereich=allgemein")
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     row = page.locator("#einstellung-poll-interval-seconds")
-    row.locator("summary").click()
-    row.get_by_label("Neuer Wert", exact=True).fill("75")
+    row.get_by_label("Abrufintervall (Sekunden)", exact=True).fill("75")
     page.evaluate("window.sameDocument = true")
     page.get_by_role("searchbox", name="Einstellung suchen").fill("Zeitzone")
-    result = page.locator('#settings-live-results a[href="/einstellungen?bereich=abruf#einstellung-timezone"]')
+    result = page.locator('#settings-live-results a[href="/einstellungen?bereich=allgemein#einstellung-timezone"]')
     result.click()
-    page.wait_for_url(mailhelp.url + "/einstellungen?bereich=abruf#einstellung-timezone")
-    expect(page.locator("#einstellung-timezone details")).to_have_attribute("open", "")
+    page.wait_for_url(mailhelp.url + "/einstellungen?bereich=allgemein#einstellung-timezone")
+    expect(page.locator("#einstellung-timezone select, #einstellung-timezone input")).to_be_focused()
     assert page.evaluate("window.sameDocument") is True
-    expect(row.get_by_label("Neuer Wert", exact=True)).to_have_value("75")
+    expect(row.get_by_label("Abrufintervall (Sekunden)", exact=True)).to_have_value("75")
     expect(page.locator("#help-window")).to_be_visible()
     assert page.errors == []
