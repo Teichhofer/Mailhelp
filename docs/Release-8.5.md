@@ -1,6 +1,6 @@
 # Mailhelp 8.5 – Umsetzung und Freigabestand
 
-Stand: 23. November 2026. Version 8.5.1. Grundlage: [Planung 8.5](Planung-8.5.md).
+Stand: 24. November 2026. Version 8.5.3. Grundlage: [Planung 8.5](Planung-8.5.md).
 
 ## Umgesetzt in 8.5.1
 
@@ -15,6 +15,13 @@ Stand: 23. November 2026. Version 8.5.1. Grundlage: [Planung 8.5](Planung-8.5.md
 | Smartphone | Auswahl „Bereich“ mit „Öffnen“ statt neun Knöpfen; Speicherleiste über der Tab-Leiste |
 | Einrichtung und Benachrichtigungsprofil | Anzeigenamen für Kategorien, Kanäle, Anbieter, Verbindungsarten und Zugangsdaten |
 | Fehlermeldung bei fehlender Prüfung | vorgezogen in 8.4.3 |
+
+## Bugfix 8.5.3
+
+Eine aufgegebene Mail (etwa `mime_limit_exceeded`) blieb außerhalb des IMAP-Checkpoints und wurde
+bei jedem Abruf erneut geholt und abgebrochen. Sie wird jetzt vermerkt; „Erneut versuchen“ nimmt sie
+über den Mailzustand auf. Regressionstest:
+`test_regression_abandoned_failure_is_checkpointed_and_not_fetched_again`.
 
 ## Abweichungen vom Plan
 

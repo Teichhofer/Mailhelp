@@ -66,6 +66,13 @@ class ProcessingResult:
             for item in self.state.get("proposals", [])
         )
 
+    @property
+    def abandoned(self) -> bool:
+        """8.5.3: a failure that is not retried automatically; only a manual retry resumes it,
+        and that retry starts from the durable mail state, not from the IMAP checkpoint."""
+        retry = self.state.get("processing_retry") or {}
+        return self.outcome is ProcessingOutcome.FAILED and bool(retry.get("abandoned"))
+
     def __getitem__(self, key: str) -> Any:
         """Keep state inspection concise while making the outcome explicit."""
         return self.state[key]

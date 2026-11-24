@@ -63,10 +63,12 @@ def _process_queued(service: MailboxRunService, source: MailboxSource, run_name:
         # on to independent mail behind the held relevance question.
         return True
     service._finish_entry(run_name, queued, current, result)
-    if result.outcome is ProcessingOutcome.FAILED:
+    if result.outcome is ProcessingOutcome.FAILED and not result.abandoned:
         # A failed result is terminal for this run but deliberately not
         # checkpointed, so its durable MailState remains eligible for a
         # later retry.  Continue with the next independent queue item.
+        # An abandoned failure is checkpointed (8.5.3); a manual retry
+        # resumes it from its mail state.
         return True
     checkpoint_name, checkpoint, ranges = contexts[source.account_id, current.folder]
     ranges = service._complete_uid(checkpoint_name, checkpoint, ranges, current.uid, current.uidvalidity)

@@ -1801,7 +1801,10 @@ lokalen Folgeschritte; Relevanz, Zusammenfassung, deren Telegram-Versand und ber
 erfolgreiche parallele Extraktionen werden weder erneut aufgerufen noch versandt.
 
 Ein dauerhaft gespeicherter terminaler Fehler einer einzelnen Mail schließt deren
-Run-Position als `failed` ab, ohne einen IMAP-Checkpoint zu setzen. Andere Mails
+Run-Position als `failed` ab, ohne einen IMAP-Checkpoint zu setzen. Ist die Verarbeitung
+aufgegeben (`processing_retry.abandoned`: nicht wiederholbarer Fehler oder fünf Versuche), wird
+der Checkpoint dagegen gesetzt (8.5.3), damit der Abruf sie nicht bei jedem Lauf erneut holt;
+„Erneut versuchen“ nimmt sie über den Mailzustand wieder auf. Andere Mails
 werden weiterverarbeitet. Nur ein unerwarteter Fehler ohne garantiert dauerhaften
 Mailzustand hält die Queue auf `processing` an; ein Neustart kann diese Position
 kontrolliert wiederaufnehmen.
@@ -1875,7 +1878,8 @@ Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe
 Die Laufzusammenfassung zählt einen vom Orchestrator mit terminalem Fehler
 beendeten Analyseversuch als analysiert und fehlgeschlagen, während die übrige Warteschlange mit unabhängigen Mails fortgesetzt wird. Der IMAP-Checkpoint wird für diese Mail nicht
 fortgeschrieben, sodass ein späterer Lauf sie nach Behebung der Ursache wieder
-aufnehmen kann.
+aufnehmen kann; eine aufgegebene Mail wird dagegen vermerkt und nur durch „Erneut versuchen“
+wieder aufgenommen.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
 Das separate Telegram-Log erfasst jede erfolgreich gesendete und jede validierte

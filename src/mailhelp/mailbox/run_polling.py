@@ -80,13 +80,16 @@ def _poll_folder_directly(service: MailboxRunService, source: MailboxSource, fol
                               error=result.state.get("error"))
             # This mail has a durable failure state.  Isolate its
             # terminal attempt from the batch and leave its UID out of
-            # the checkpoint, but do not strand later messages.
-            continue
+            # the checkpoint, but do not strand later messages.  An
+            # abandoned failure is checkpointed (8.5.3): otherwise every
+            # poll fetches it again only to abandon it once more.
+            if not result.abandoned:
+                continue
         if result.state.get("awaiting_relevance"):
             # Only this mail is deferred; its UID is not complete yet.
             continue
         # Every result reaching this point has a durable mail state.
-        # Failed results are excluded above so their checkpoint remains
+        # Retryable failures are excluded above so their checkpoint remains
         # available for restart recovery.
         ranges = service._complete_uid(checkpoint_name, checkpoint, ranges, mail.uid, mail.uidvalidity)
     if not mails:

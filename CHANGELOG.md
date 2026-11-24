@@ -1,5 +1,9 @@
 # Änderungen
 
+## 8.5.3 – Bugfix: aufgegebene Mail nicht bei jedem Abruf neu holen
+
+- Eine Mail, deren Verarbeitung aufgegeben wurde (nicht wiederholbarer Fehler wie `mime_limit_exceeded` oder fünf Fehlversuche), wird jetzt im IMAP-Checkpoint als erledigt vermerkt. Bisher wurde sie bei jedem Abruf erneut geholt und sofort wieder aufgegeben; auf dem Server waren es seit dem 21.11.2026 mehrere Tausend Durchläufe. „Erneut versuchen“ nimmt sie weiterhin über den gespeicherten Mailzustand auf. Fehler, die noch automatisch wiederholt werden, bleiben wie bisher außerhalb des Checkpoints. Regressionstest in `tests/services/test_mailbox_checkpoints.py`.
+
 ## 8.5.2 – Betriebsnachweis des Updates auf 8.5.1
 
 - Produktion und Demo laufen 8.5.1 (Commit `6eefc1d`); Sicherung, Prüfungen und Rückkehr in `docs/Betrieb.md`, Serverhandbuch und Vorlagen unter `ops/server/` nachgeführt.

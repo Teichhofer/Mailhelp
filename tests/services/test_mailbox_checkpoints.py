@@ -307,3 +307,50 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     failed_dialog.dialog=Dialog(RuntimeError("dialog"))
     failed_dialog._poll_telegram()
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
+
+
+def test_regression_abandoned_failure_is_checkpointed_and_not_fetched_again(tmp_path):
+    """8.5.3: a mail abandoned after a non-retryable failure (e.g. ``mime_limit_exceeded``) was
+    left out of the checkpoint, fetched on every poll and abandoned again – thousands of times.
+    An abandoned failure now completes its UID; a manual retry resumes it from its mail state.
+    A failure that will still be retried stays out of the checkpoint."""
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
+    key = _checkpoint_name("0" * 24, "INBOX")
+    abandoned_state = {"error": {"code": "mime_limit_exceeded", "retryable": False},
+                       "processing_retry": {"abandoned": True}}
+    pending_state = {"error": {"code": "llm_timeout"}, "processing_retry": {"abandoned": False}}
+
+    class FailingOrch(Orch):
+        def __init__(self, state):
+            super().__init__()
+            self.state = state
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            return ProcessingResult(ProcessingOutcome.FAILED, self.state)
+
+    mail = FetchedMail("INBOX", 7, 5, b"x", "0" * 24, stamp)
+    polled = app(tmp_path, Imap([(7, [mail])]), Telegram([]), FailingOrch(abandoned_state))
+    assert polled.mailbox.poll()[0].outcome is ProcessingOutcome.FAILED
+    assert polled.store.values[key]["completed_uid_ranges"] == [(5, 5)]
+    retried = app(tmp_path, Imap([(7, [mail])]), Telegram([]), FailingOrch(pending_state))
+    retried.mailbox.poll()
+    assert retried.store.values[key]["completed_uid_ranges"] == []
+
+    class GlobalImap:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def discover_since(self, *args):
+            return [MailCandidate("INBOX", 7, 5, "0" * 24, stamp)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+        def determine_start_uid(self, _folder, _start):
+            return 4
+
+    queued = app(tmp_path, GlobalImap(), Telegram([]), FailingOrch(abandoned_state),
+                 global_newest_first=True)
+    queued.mailbox.poll()
+    assert queued.store.values[key]["completed_uid_ranges"] == [(5, 5)]
+    queued_retry = app(tmp_path, GlobalImap(), Telegram([]), FailingOrch(pending_state),
+                       global_newest_first=True)
+    queued_retry.mailbox.poll()
+    assert queued_retry.store.values[key]["completed_uid_ranges"] == []
