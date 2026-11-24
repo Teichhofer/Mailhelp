@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12.10'
+          python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.lock -r requirements-lint.lock -r requirements-mutation.lock
       - run: python -m pip install --no-deps -e .
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12.10'
+          python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.lock -r requirements-lint.lock
       - run: python -m pip install --no-deps -e .
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12.10'
+          python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.lock playwright==1.62.0 axe-playwright-python==0.1.8
       - run: python -m pip install --no-deps -e .
@@ -58,6 +58,7 @@ jobs:
         with:
           name: ui-screenshots
           path: .test-tmp/ui-screens
+          if-no-files-found: ignore
 
   package-smoke:
     strategy:
@@ -68,7 +69,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12.10'
+          python-version: '3.12'
       - run: python -m pip install -r requirements.lock hatchling==1.27.0
       - run: python -m hatchling build
       - name: Install the actual wheel, not an editable checkout

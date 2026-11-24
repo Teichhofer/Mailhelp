@@ -1,4 +1,4 @@
-FROM python:3.12.10-slim
+FROM python:3.12.16-slim
 WORKDIR /app
 COPY pyproject.toml README.md requirements.lock ./
 COPY src ./src

@@ -1836,7 +1836,7 @@
   ],
   "setting_ids": [],
   "source": "docs/en/Betrieb.md",
-  "text": "On 24 Nov 2026 production and demo were updated to 8.5.3 (`mailhelp-production:8.5.3-241e23e`) after an offline `--check`, with a consistent backup under `/opt/mailhelp/backups/upgrade-8.5.3-20261124T064706Z`; health, version and all public endpoints were verified. No host package updates were pending and no reboot was required. An abandoned mail was still fetched again on every resume; 8.5.4 fixes the cause. Rollback: `mailhelp-production:8.5.1-6eefc1d` with the compose files of that backup.",
+  "text": "On 24 Nov 2026 production and demo were updated to 8.5.3 (`mailhelp-production:8.5.3-241e23e`) after an offline `--check`, with a consistent backup under `/opt/mailhelp/backups/upgrade-8.5.3-20261124T064706Z`; health, version and all public endpoints were verified. No host package updates were pending and no reboot was required. An abandoned mail was still fetched again on every resume; 8.5.4 fixes the cause. Rollback: `mailhelp-production:8.5.1-6eefc1d` with the compose files of that backup.\n\n8.5.4 (`mailhelp-production:8.5.4-1ea1c98`) was deployed the same day with the backup `upgrade-8.5.4-20261124T094338Z`. The abandoned mail was retried once, failed again on `max_llm_payload_bytes`, was saved and has not been fetched since. Rollback: `mailhelp-production:8.5.3-241e23e`.",
   "title": "Update 8.5.3 and polling loop"
  }
 ]

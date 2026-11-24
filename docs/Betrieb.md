@@ -592,6 +592,15 @@ kontrolliert gestoppt, konsistente Sicherung unter
 (`resume_failed`); die Ursache ist in 8.5.4 behoben. Rückkehr auf
 `mailhelp-production:8.5.1-6eefc1d` mit den Compose-Dateien dieser Sicherung.
 
+Update auf 8.5.4 (24.11.2026, mit Freigabe): Commit `1ea1c98` (`/opt/mailhelp/releases/8.5.4-1ea1c98`),
+Image `mailhelp-production:8.5.4-1ea1c98`; vorab Offline-`--check` bestanden, keine ausstehenden
+Host-Pakete (`apt list --upgradable`), kein Neustart nötig. Sicherung unter
+`/opt/mailhelp/backups/upgrade-8.5.4-20261124T094338Z`; Health und Version 8.5.4 beider Container
+geprüft. Wirkung: Die aufgegebene Mail wurde um 09:44 einmal neu vorbereitet, scheiterte erneut an
+`max_llm_payload_bytes` und wurde gespeichert; in den folgenden Abrufzyklen (mehrere neue Mails
+regulär verarbeitet) wurde sie nicht mehr gestartet. Rückkehr auf `mailhelp-production:8.5.3-241e23e`
+mit den Compose-Dateien dieser Sicherung.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

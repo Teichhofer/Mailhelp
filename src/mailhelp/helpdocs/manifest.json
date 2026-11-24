@@ -1,6 +1,6 @@
 {
- "app_version": "8.5.4",
- "revision": "07803c2e05baff128146c1a84fa5efc9d04baaf3f11cd88b934e2f53e96c9751",
+ "app_version": "8.6.1",
+ "revision": "4917c6ed70bd1d5eea209585870f4f713d6725b829b12cf2315724d721902693",
  "schema_version": 1,
  "sections": 132,
  "sources": [
@@ -30,7 +30,7 @@
   },
   {
    "path": "docs/Betrieb.md",
-   "sha256": "dd066ae6bb49c84913ef3733339c10dab2fd9ba870c220a2af7596ef42214fc4"
+   "sha256": "30e3f31ac22c75a915ef0fee9946e87fe7746e988316ddade32471d16c33d97b"
   }
  ]
 }

@@ -1,6 +1,6 @@
 # Serverhandbuch Inboxstride
 
-Geprüft für Mailhelp 8.5.3
+Geprüft für Mailhelp 8.5.4
 
 Stand: 23. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
 mit den [Konfigurationsvorlagen](../ops/server/README.md). Detaillierte Änderungsnachweise
@@ -13,7 +13,7 @@ Centron, Deutschland; Ubuntu 26.04.1 LTS. Zuletzt ermittelt: Docker 29.1.3,
 Compose 2.40.3, nginx 1.28.3. Update und Kontrolle am 22.11.2026: nginx und Formulardienst
 aktiv, drei Container aktiv, Produktion, Demo und Auth gesund.
 Produktion und Demo verwenden nach dem Update vom 24.11.2026 tatsächlich
-`mailhelp-production:8.5.3-241e23e` (Commit `241e23e`), der Auth-Dienst unverändert
+`mailhelp-production:8.5.4-1ea1c98` (Commit `1ea1c98`), der Auth-Dienst unverändert
 `inboxstride-auth:7.9.5-2073ef0`. Änderungen im lokalen Checkout sind damit
 nicht automatisch produktiv. Der Betreiber bestätigt am 20.11.2026 den erfolgreichen
 Google-Pilotabschluss einschließlich Übernehmen der Verbindung. Der anschließende

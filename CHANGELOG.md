@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.6.1 – Stabile Python-3.12-CI für Ubuntu 26.04
+
+- Alle GitHub-Workflows (`CI`, `Mutation audit`, `Release`, `Weekly`) verwenden `python-version: '3.12'` statt der festen Patchversion `3.12.10`, für die es auf `ubuntu-latest` (Ubuntu 26.04) keinen Build gibt.
+- `ui-screenshots` und `mutation-results` laden mit `if-no-files-found: ignore` hoch: Ein Abbruch im Setup erzeugt keine irreführende Folgemeldung mehr.
+- `Dockerfile` und `ops/auth/Dockerfile` bauen auf `python:3.12.16-slim`.
+- Regressionstest `tests/release/test_ci_workflows.py` prüft Python-Kanal, Artefakt-Uploads und das gemeinsame Basisimage.
+- Betriebsnachweis: Produktion und Demo laufen 8.5.4 (Commit `1ea1c98`); die Schleife der aufgegebenen Mail ist beendet.
+
 ## 8.5.4 – Bugfix: aufgegebene Mail nach Konfigurationsänderung einmal neu versuchen
 
 - Ursache der Schleife aus 8.5.3: Nach einer Konfigurationsänderung gibt die Wiederaufnahme eine aufgegebene Mail für einen neuen Versuch frei, der Orchestrator wies sie aber vorher als aufgegeben ab, ohne etwas zu speichern. So wurde sie bei jeder Wiederaufnahme erneut geholt (`resume_failed`). Jetzt erhält die geänderte Konfiguration genau einen neuen Versuch, dessen Ergebnis gespeichert wird; danach bleibt die Mail liegen. Regressionstest in `tests/services/test_orchestrator_flow.py`.

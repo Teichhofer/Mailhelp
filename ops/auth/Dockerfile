@@ -1,7 +1,7 @@
 # 8.0: the central Inboxstride sign-in service as its own image (Planung 8.0, section 7).
 # Build from the repository root: docker build -f ops/auth/Dockerfile -t inboxstride-auth:<version> .
 # Only the service package and its pinned subset of requirements.lock; no Mailhelp code.
-FROM python:3.12.10-slim
+FROM python:3.12.16-slim
 WORKDIR /app
 COPY ops/auth/requirements.lock ./requirements.lock
 RUN pip install --no-cache-dir --no-deps -r requirements.lock

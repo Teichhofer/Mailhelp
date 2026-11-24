@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12.10'
+          python-version: '3.12'
           cache: pip
           cache-dependency-path: |
             requirements.lock
@@ -29,3 +29,4 @@ jobs:
           path: |
             mutants/mutmut-cicd-stats.json
             mutants/**/*.meta
+          if-no-files-found: ignore
