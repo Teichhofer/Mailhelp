@@ -401,7 +401,8 @@ erster/letzter Fehlschlag, Aufgabestatus und Benachrichtigungsmarke), `processin
 und die letzte `processing_operation`. Alte Zustände verwenden die leeren Standardwerte.
 Fünf Fehlversuche je Schritt, Fehlercode und Konfiguration sind die Obergrenze; die
 vier Pausen sind 60, 300, 1800 und 7200 Sekunden. Dauerhafte Fehler werden sofort
-aufgegeben. Anbieterlimits verbrauchen keinen Versuch, Erfolg entfernt den Zähler.
+aufgegeben. Ändert sich danach die Konfiguration, erhält die Mail genau einen neuen Versuch,
+dessen Ergebnis gespeichert wird (8.5.4). Anbieterlimits verbrauchen keinen Versuch, Erfolg entfernt den Zähler.
 Wartezeit und Aufgabestatus werden vor IMAP und Budget geprüft. Externe Schreibversuche
 und deren Abgleich bleiben von dieser Begrenzung unberührt.
 
@@ -1879,7 +1880,7 @@ Die Laufzusammenfassung zählt einen vom Orchestrator mit terminalem Fehler
 beendeten Analyseversuch als analysiert und fehlgeschlagen, während die übrige Warteschlange mit unabhängigen Mails fortgesetzt wird. Der IMAP-Checkpoint wird für diese Mail nicht
 fortgeschrieben, sodass ein späterer Lauf sie nach Behebung der Ursache wieder
 aufnehmen kann; eine aufgegebene Mail wird dagegen vermerkt und nur durch „Erneut versuchen“
-wieder aufgenommen.
+oder nach einer Konfigurationsänderung wieder aufgenommen.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
 Das separate Telegram-Log erfasst jede erfolgreich gesendete und jede validierte

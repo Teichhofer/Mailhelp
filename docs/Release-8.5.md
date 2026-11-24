@@ -1,6 +1,6 @@
 # Mailhelp 8.5 – Umsetzung und Freigabestand
 
-Stand: 24. November 2026. Version 8.5.3. Grundlage: [Planung 8.5](Planung-8.5.md).
+Stand: 24. November 2026. Version 8.5.4. Grundlage: [Planung 8.5](Planung-8.5.md).
 
 ## Umgesetzt in 8.5.1
 
@@ -22,6 +22,13 @@ Eine aufgegebene Mail (etwa `mime_limit_exceeded`) blieb außerhalb des IMAP-Che
 bei jedem Abruf erneut geholt und abgebrochen. Sie wird jetzt vermerkt; „Erneut versuchen“ nimmt sie
 über den Mailzustand auf. Regressionstest:
 `test_regression_abandoned_failure_is_checkpointed_and_not_fetched_again`.
+
+## Bugfix 8.5.4
+
+Nach dem Einspielen von 8.5.3 lief die Schleife über die Wiederaufnahme weiter: Die geänderte
+Konfiguration gab die aufgegebene Mail für einen neuen Versuch frei, der Orchestrator wies sie aber
+vorher ab, ohne zu speichern. Jetzt gilt die Freigabe zuerst; der eine neue Versuch wird gespeichert.
+Regressionstest: `test_regression_abandoned_mail_retries_once_after_configuration_change`.
 
 ## Abweichungen vom Plan
 

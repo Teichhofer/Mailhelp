@@ -857,3 +857,30 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
     ]
     exceeded = [kwargs for args, kwargs in log.events if args[2] == "mime_limit_exceeded"]
     assert [event["limit"] for event in exceeded] == [limit_name]
+
+
+def test_regression_abandoned_mail_retries_once_after_configuration_change(tmp_path):
+    """8.5.3: ``blocked`` releases an abandoned mail whose configuration changed since it failed,
+    but the orchestrator refused it as abandoned before applying that release – nothing was saved,
+    so every resume fetched it again (thousands of times on the server). The changed
+    configuration now gets its one new attempt and records it; afterwards the mail stays put."""
+    calls = []
+    class Failing:
+        def relevance(self, mail, topics):
+            calls.append(1)
+            raise PermanentError("synthetic")
+    topic = Topic(id="x", name="x", enabled=True, description="x")
+    mail = FetchedMail("INBOX", 1, 42, b"From: sender@example.test\nSubject: Large\n\nBody")
+    with JsonStore(tmp_path/"abandoned") as store:
+        first = Orchestrator(Failing(), store, Notify(), 1, [topic], 1000).process(mail)
+        assert first["processing_retry"]["abandoned"] is True and calls == [1]
+        name = f"mail-{first['id']}"
+        stored = store.load(name)
+        current = stored["processing_retry"]["fingerprint"]
+        stored["processing_retry"]["fingerprint"] = "older-configuration:relevance:permanent_adapter_error"
+        store.save(name, stored)
+        retried = Orchestrator(Failing(), store, Notify(), 1, [topic], 1000).process(mail)
+        assert retried.outcome is ProcessingOutcome.FAILED and calls == [1, 1]
+        assert store.load(name)["processing_retry"]["fingerprint"] == current
+        again = Orchestrator(Failing(), store, Notify(), 1, [topic], 1000).process(mail)
+        assert again.outcome is ProcessingOutcome.FAILED and calls == [1, 1]

@@ -2,7 +2,7 @@
 # Nur synthetische Demo-Daten; kein Produktiv-Mount und keine Secrets.
 services:
   mailhelp-demo:
-    image: mailhelp-production:8.5.1-6eefc1d
+    image: mailhelp-production:8.5.3-241e23e
     command: ["--demo", "--config-directory", "/config"]
     restart: unless-stopped
     init: true

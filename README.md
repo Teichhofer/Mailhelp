@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.5.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.5.4 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.5.4: Nach einer Konfigurationsänderung wird eine aufgegebene Mail genau einmal neu versucht
+statt bei jeder Wiederaufnahme erneut geholt.
 
 Version 8.5.3: Eine aufgegebene Mail wird nicht mehr bei jedem Abruf erneut geholt und abgebrochen;
 „Erneut versuchen“ in der Fehlerliste nimmt sie weiterhin auf.

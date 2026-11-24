@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.5.4 – Bugfix: aufgegebene Mail nach Konfigurationsänderung einmal neu versuchen
+
+- Ursache der Schleife aus 8.5.3: Nach einer Konfigurationsänderung gibt die Wiederaufnahme eine aufgegebene Mail für einen neuen Versuch frei, der Orchestrator wies sie aber vorher als aufgegeben ab, ohne etwas zu speichern. So wurde sie bei jeder Wiederaufnahme erneut geholt (`resume_failed`). Jetzt erhält die geänderte Konfiguration genau einen neuen Versuch, dessen Ergebnis gespeichert wird; danach bleibt die Mail liegen. Regressionstest in `tests/services/test_orchestrator_flow.py`.
+- Betriebsnachweis: Produktion und Demo laufen 8.5.3 (Commit `241e23e`).
+
 ## 8.5.3 – Bugfix: aufgegebene Mail nicht bei jedem Abruf neu holen
 
 - Eine Mail, deren Verarbeitung aufgegeben wurde (nicht wiederholbarer Fehler wie `mime_limit_exceeded` oder fünf Fehlversuche), wird jetzt im IMAP-Checkpoint als erledigt vermerkt. Bisher wurde sie bei jedem Abruf erneut geholt und sofort wieder aufgegeben; auf dem Server waren es seit dem 21.11.2026 mehrere Tausend Durchläufe. „Erneut versuchen“ nimmt sie weiterhin über den gespeicherten Mailzustand auf. Fehler, die noch automatisch wiederholt werden, bleiben wie bisher außerhalb des Checkpoints. Regressionstest in `tests/services/test_mailbox_checkpoints.py`.

@@ -577,6 +577,21 @@ Telegram, Todoist, Google Kalender und IServ melden `access_confirmed`. Bekannt 
 Update: Eine Mail scheitert seit dem 21.11.2026 wiederholt mit `mime_limit_exceeded`. Rückkehr auf
 `mailhelp-production:8.4.2-8286062` mit den Compose-Dateien dieser Sicherung.
 
+### Update 8.5.3 und Abrufschleife
+
+Update auf 8.5.3 (24.11.2026, mit Freigabe): Bugfix für die Abrufschleife der aufgegebenen Mail.
+Quelle ist Commit `241e23e` (`/opt/mailhelp/releases/8.5.3-241e23e`), Image
+`mailhelp-production:8.5.3-241e23e`; vorab Offline-`--check` bestanden. Host-Pakete:
+`apt list --upgradable` meldete keine ausstehenden Updates, `/var/run/reboot-required` war nicht
+vorhanden; `apt-get update && apt-get upgrade -y` selbst wurde nicht ausgeführt. Beide Container
+kontrolliert gestoppt, konsistente Sicherung unter
+`/opt/mailhelp/backups/upgrade-8.5.3-20261124T064706Z`, umgestellt und geprüft: Health und Version
+8.5.3 beider Container; `stefan.inboxstride.de` und `demo.inboxstride.de` antworten mit 303,
+`inboxstride.de/` und `auth.inboxstride.de/health` mit 200; Google Kalender und IServ melden
+`access_confirmed`. Befund danach: Die Mail wird weiter über die Wiederaufnahme geholt
+(`resume_failed`); die Ursache ist in 8.5.4 behoben. Rückkehr auf
+`mailhelp-production:8.5.1-6eefc1d` mit den Compose-Dateien dieser Sicherung.
+
 Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei aus der Sicherung
 `hosted-auth-…` und Neuerstellen des Containers; Update mit den Compose-Dateien aus
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit

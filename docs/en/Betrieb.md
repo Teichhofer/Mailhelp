@@ -191,3 +191,7 @@ Both containers were backed up and switched to 7.9.5; production then received t
 ### Update 8.3.2 and host package updates <!-- mailhelp-id:betrieb/update-832-und-host-paketupdates -->
 
 Production and demo run 8.3.2 (`mailhelp-production:8.3.2-86dcfc5`), where configured instances prefer the language set in `config.yaml` over the browser `Accept-Language` header while keeping explicit language switching via cookie. Every server deployment of a new Mailhelp version must also update all installed host packages (`apt-get update && apt-get upgrade -y`), verify the running `nginx` binary and check `/var/run/reboot-required`. On 22 Nov 2026, all 40 pending host updates were installed and verified after a controlled reboot onto kernel `7.0.0-44-generic` (`nginx 1.28.3-2ubuntu1.14`, 0 pending updates, all services active).
+
+### Update 8.5.3 and polling loop <!-- mailhelp-id:betrieb/update-853-und-abrufschleife -->
+
+On 24 Nov 2026 production and demo were updated to 8.5.3 (`mailhelp-production:8.5.3-241e23e`) after an offline `--check`, with a consistent backup under `/opt/mailhelp/backups/upgrade-8.5.3-20261124T064706Z`; health, version and all public endpoints were verified. No host package updates were pending and no reboot was required. An abandoned mail was still fetched again on every resume; 8.5.4 fixes the cause. Rollback: `mailhelp-production:8.5.1-6eefc1d` with the compose files of that backup.

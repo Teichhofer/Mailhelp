@@ -302,11 +302,15 @@ class Orchestrator:
             self.logger.event("WARNING", "orchestrator", "configuration_changed", mail_id=state.id,
                               state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
+        # ``blocked`` first: a configuration changed since the failure releases an abandoned mail
+        # for one new attempt (8.5.3); refusing it before that release looped on every resume.
+        is_blocked = blocked(state, self.fingerprint_for(state.imap.account_id),
+                             datetime.fromtimestamp(self.clock(), UTC))
         retry = state.processing_retry
         if retry is not None and retry.abandoned:
             self.logger.event("WARNING", "orchestrator", "processing_abandoned", mail_id=state.id)
             return ProcessingResult(ProcessingOutcome.FAILED, state.model_dump(mode="json"))
-        if blocked(state, self.fingerprint_for(state.imap.account_id), datetime.fromtimestamp(self.clock(), UTC)):
+        if is_blocked:
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id,
                               deferred_until=state.deferred_until)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
