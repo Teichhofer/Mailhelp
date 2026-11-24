@@ -63,3 +63,18 @@ def test_dockerfiles_share_a_current_python_312_patch_image():
     assert len(set(bases.values())) == 1, bases
     match = re.fullmatch(r"python:3\.12\.(\d+)-slim", next(iter(bases.values())))
     assert match is not None and int(match.group(1)) >= 16, bases
+
+
+PAGES_MINIMUM = {"actions/configure-pages": 6, "actions/upload-pages-artifact": 5, "actions/deploy-pages": 5}
+
+
+def test_regression_pages_actions_use_node24_majors():
+    """8.6.2: ``deploy-pages@v4`` (Node.js 20, forced onto Node.js 24) repeatedly failed with
+    "No artifacts named github-pages were found"; the publication uses the current majors."""
+    used = {}
+    for _job, _runners, step in _steps(ROOT / ".github" / "workflows" / "pages.yml"):
+        action, _, version = str(step.get("uses", "")).partition("@v")
+        if action in PAGES_MINIMUM:
+            used[action] = int(version.split(".")[0])
+    assert used.keys() == PAGES_MINIMUM.keys()
+    assert all(used[action] >= minimum for action, minimum in PAGES_MINIMUM.items()), used

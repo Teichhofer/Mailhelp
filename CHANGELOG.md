@@ -1,5 +1,9 @@
 # Änderungen
 
+## 8.6.2 – Bugfix: Veröffentlichung der Website auf GitHub Pages
+
+- `pages.yml` verwendet `actions/configure-pages@v6`, `actions/upload-pages-artifact@v5` und `actions/deploy-pages@v5` (Node.js 24). Mit den Node.js-20-Versionen scheiterte „Publish website“ wiederholt mit „No artifacts named github-pages were found“. Regressionstest in `tests/release/test_ci_workflows.py`.
+
 ## 8.6.1 – Stabile Python-3.12-CI für Ubuntu 26.04
 
 - Alle GitHub-Workflows (`CI`, `Mutation audit`, `Release`, `Weekly`) verwenden `python-version: '3.12'` statt der festen Patchversion `3.12.10`, für die es auf `ubuntu-latest` (Ubuntu 26.04) keinen Build gibt.

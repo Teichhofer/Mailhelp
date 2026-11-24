@@ -1,6 +1,6 @@
 # Mailhelp 8.6 – Umsetzung und Freigabestand
 
-Stand: 24. November 2026. Version 8.6.1. Grundlage: [Planung 8.6](Planung-8.6.md).
+Stand: 24. November 2026. Version 8.6.2. Grundlage: [Planung 8.6](Planung-8.6.md).
 
 ## Umgesetzt in 8.6.1
 
@@ -14,6 +14,14 @@ Stand: 24. November 2026. Version 8.6.1. Grundlage: [Planung 8.6](Planung-8.6.md
 
 `.python-version` bleibt bei `3.12.10`: Die Datei beschreibt den lokalen Windows-Entwicklungsstand und
 wird von keinem Workflow gelesen. `requires-python` und alle Sperrdateien sind unverändert.
+
+## Bugfix 8.6.2
+
+Die Veröffentlichung auf GitHub Pages scheiterte bei den Pushes von 8.5.4 und 8.6.1 (und vereinzelt am
+21. und 22.11.) in „Publish website“ mit „No artifacts named github-pages were found“. Die Pages-Actions
+liefen noch in den Node.js-20-Versionen (`configure-pages@v5`, `upload-pages-artifact@v4`,
+`deploy-pages@v4`) und werden jetzt in den aktuellen Hauptversionen v6, v5 und v5 verwendet.
+Regressionstest: `test_regression_pages_actions_use_node24_majors`.
 
 ## Prüfung
 
