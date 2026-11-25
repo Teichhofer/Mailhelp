@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Lernen in Punkten und Kundeninstanz `kunde`
 
-**Stand:** 25. November 2026. **Status:** Geplant. Ergänzt [Planung 8.7](Planung-8.7.md) (AP4 Lernen,
+**Stand:** 25. November 2026. **Status:** In Umsetzung; Kundeninstanz `kunde` seit 8.7.3 eingerichtet (§6). Ergänzt [Planung 8.7](Planung-8.7.md) (AP4 Lernen,
 AP5–AP7) um die Betreiberentscheidungen vom 25. November 2026. Der Hauptplan bleibt unverändert
 verbindlich; dieser Plan autorisiert keine Kundenfreischaltung vor Abschluss von AP4–AP6.
 

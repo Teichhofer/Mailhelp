@@ -1838,5 +1838,16 @@
   "source": "docs/en/Betrieb.md",
   "text": "On 24 Nov 2026 production and demo were updated to 8.5.3 (`mailhelp-production:8.5.3-241e23e`) after an offline `--check`, with a consistent backup under `/opt/mailhelp/backups/upgrade-8.5.3-20261124T064706Z`; health, version and all public endpoints were verified. No host package updates were pending and no reboot was required. An abandoned mail was still fetched again on every resume; 8.5.4 fixes the cause. Rollback: `mailhelp-production:8.5.1-6eefc1d` with the compose files of that backup.\n\n8.5.4 (`mailhelp-production:8.5.4-1ea1c98`) was deployed the same day with the backup `upgrade-8.5.4-20261124T094338Z`. The abandoned mail was retried once, failed again on `max_llm_payload_bytes`, was saved and has not been fetched since. Rollback: `mailhelp-production:8.5.3-241e23e`.",
   "title": "Update 8.5.3 and polling loop"
+ },
+ {
+  "id": "betrieb/kundeninstanz-kunde-25112026",
+  "path": [
+   "Operation and updates",
+   "Customer instance `kunde` (25 Nov 2026)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "Set up on the operator's instruction for plan 8.7 AP5–AP7 as an operator test instance, not released to a customer. Production, demo and auth were not changed. Separate container `mailhelp-kunde` (`/opt/mailhelp-kunde`, image `mailhelp-production:8.7.2-e00a136`, port `127.0.0.1:8766`) behind `kunde.inboxstride.de` with its own Let's Encrypt certificate (renewal script `renew-mailhelp-kunde` and cron job). Customer mode comes from a root-owned `operator.yaml` mounted read-only. Valuation revision 1: 1 USD per EUR, markup 900 % (0.01 USD = 100 points), set with `--set-valuation 1 900` before the first setup. The instance is part of the daily backup. Checks: HTTPS 200, HTTP 308, unknown host 421; production and demo unchanged. The operator still completes the first setup with the code from `docker logs mailhelp-kunde-mailhelp-1`, entering the operator's own OpenRouter key. Rollback: `docker compose -p mailhelp-kunde down`, remove the nginx links and the cron file, restore the backup configuration from `config.yaml.before-kunde-20261125`.",
+  "title": "Customer instance `kunde` (25 Nov 2026)"
  }
 ]

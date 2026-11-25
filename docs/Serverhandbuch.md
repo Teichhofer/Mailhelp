@@ -1,8 +1,8 @@
 # Serverhandbuch Inboxstride
 
-Geprüft für Mailhelp 8.5.4
+Geprüft für Mailhelp 8.5.4 (Produktion, Demo) und 8.7.2 (Kundeninstanz `kunde`)
 
-Stand: 23. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
+Stand: 25. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
 mit den [Konfigurationsvorlagen](../ops/server/README.md). Detaillierte Änderungsnachweise
 und ältere Rückkehrpunkte stehen in [Betrieb](Betrieb.md). Private Dateien werden
 aus der getrennten Sicherung bereitgestellt, niemals aus Git.
@@ -24,6 +24,7 @@ Kalenderreferenz. Der produktive Profilwechsel ist noch nicht nachgewiesen.
 | --- | --- | --- |
 | Produktion | `/opt/mailhelp/releases/`, `/opt/mailhelp/runtime` | nginx → `127.0.0.1:8765`, `stefan.inboxstride.de` |
 | Demo | `/opt/mailhelp-demo/compose.yaml`, Volume `mailhelp-demo-runtime` | nginx → `172.30.86.2:8765`, `demo.inboxstride.de` |
+| Kundeninstanz (8.7, Test) | `/opt/mailhelp-kunde/compose.yaml`, `/opt/mailhelp-kunde/runtime`, `operator.yaml`; Image `mailhelp-production:8.7.2-e00a136` | nginx → `127.0.0.1:8766`, `kunde.inboxstride.de` |
 | Landingpage | Git `landing/`; `/opt/inboxstride/current` → Release | `inboxstride.de`, `www.inboxstride.de` |
 | Formulardienst | systemd `inboxstride`, `/var/lib/inboxstride/leads` | Loopback-Port 8877, nginx |
 | OAuth | `/opt/inboxstride-auth/`, Compose `inboxstride-auth` | nginx → `127.0.0.1:8780`; intern mTLS `auth-intern:8443` |
@@ -57,6 +58,9 @@ Dateirückdownload und Archivprüfsummen wurden dagegen geprüft, siehe Backup-A
    frische Ersteinrichtung vorbereiten. Vorlagen niemals über private Konfiguration kopieren.
 7. Demo aus der eigenen Vorlage mit eigenem Volume und isoliertem Netz einrichten.
    Sie erhält weder Produktions-Mounts noch Auth-Netz oder produktive Zugangsdaten.
+   Kundeninstanzen (8.7) aus `ops/server/kunde.compose.example.yaml` mit eigenem Verzeichnis,
+   schreibgeschützt eingebundener `operator.yaml` und eigenem Bewertungsstand
+   (`--set-valuation` vor der Ersteinrichtung) einrichten, siehe [Betrieb](Betrieb.md).
 8. Landingpage aus `landing/` bauen; Quell-README und `devtools/landing_install.py`
    für die Installation verwenden. Formulardaten außerhalb der Releases wiederherstellen.
 9. DNS, nginx und TLS wie unten einrichten. Erst nach internen Gesundheitsprüfungen
@@ -75,7 +79,7 @@ eine reguläre Datei, kein Link. Die Auth-Vorlage ist
 `ops/server/nginx-auth.inboxstride.de.example.conf`; die übrigen bestehenden Sites
 werden aus der privaten Serverkonfigurationssicherung wiederhergestellt und an DNS
 und Pfade angepasst. Bestehende Site-Namen: `inboxstride-http`, `inboxstride-https`,
-`mailhelp-demo-http`, `mailhelp-demo-https`, `mailhelp-domain`, `mailhelp-http`,
+`mailhelp-demo-http`, `mailhelp-demo-https`, `mailhelp-kunde-http`, `mailhelp-kunde-https`, `mailhelp-domain`, `mailhelp-http`,
 `mailhelp-ip`, `auth.inboxstride.de`. Vor jedem Reload `nginx -t` ausführen.
 
 Öffentlich erforderlich: HTTP 80 für ACME/Weiterleitung, HTTPS 443 sowie der bewusst
@@ -90,7 +94,7 @@ der am 20.11.2026 gelesenen Produktions-Site ist dies eine noch zu übernehmende
 Let's Encrypt wird per certbot-Container v5.10.0 und Webroot erneuert. Schlüssel
 und Konfiguration liegen unter `/etc/letsencrypt`. Die tatsächlich vorhandenen
 Erneuerungsskripte unter `/usr/local/sbin` heißen `renew-inboxstride`,
-`renew-inboxstride-auth`, `renew-mailhelp-demo`, `renew-mailhelp-domain` und
+`renew-inboxstride-auth`, `renew-mailhelp-demo`, `renew-mailhelp-kunde`, `renew-mailhelp-domain` und
 `renew-mailhelp-ip`; zugehörige Zeitpläne liegen unter `/etc/cron.d`. Sie sind im
 Backup enthalten. Bei Neuaufbau Webroot, Zertifikatnamen, DNS und nginx-Pfade zuerst
 abgleichen, dann die wiederhergestellten Skripte prüfen. Testausstellung gegen

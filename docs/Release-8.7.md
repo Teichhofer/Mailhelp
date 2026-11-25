@@ -26,6 +26,13 @@ Stand: 25. November 2026. Version 8.7.1. Grundlage: [Planung 8.7](Planung-8.7.md
 | Planung | [Lernen in Punkten und Kundeninstanz `kunde`](Planung-8.7-Lernen.md); Bewertung der Instanz `kunde`: 1 USD je EUR, Aufschlag 900 % (Faktor 10) |
 | Vorlage | `ops/server/kunde.compose.example.yaml`; `operator.yaml` schreibgeschützt eingebunden |
 
+## Umgesetzt in 8.7.3
+
+Kundeninstanz `kunde` (Plan [Lernen in Punkten](Planung-8.7-Lernen.md) §6) auf dem Server mit
+8.7.2 eingerichtet und geprüft, Einzelheiten in [Betrieb](Betrieb.md). Sie läuft im
+Ersteinrichtungsmodus; die Ersteinrichtung mit dem Betreiber-OpenRouter-Schlüssel nimmt der
+Betreiber vor. Keine Kundenfreischaltung.
+
 Protokolle, Logging-Einstellungen, Rotation und Aufbewahrung sind unverändert. Der Verbrauchsbestand ist
 eine eigene Datei und wird nicht aus Logs aufgebaut.
 

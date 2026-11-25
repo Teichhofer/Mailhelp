@@ -9,6 +9,7 @@ containers:
   - mailhelp-update-mailhelp-1
   - mailhelp-demo-mailhelp-demo-1
   - inboxstride-auth-auth-1
+  - mailhelp-kunde-mailhelp-1
 services:
   - inboxstride.service
 required_paths:
@@ -19,6 +20,8 @@ required_paths:
   - /etc/mailhelp-backup
   - /opt/mailhelp-backup
   - /opt/mailhelp/server-docs
+  # 8.7: Kundeninstanz mit Rollen, Bewertungsständen und usage/attempts.jsonl
+  - /opt/mailhelp-kunde
 optional_paths:
   - /opt/mailhelp/releases
   - /opt/mailhelp-demo/compose.yaml

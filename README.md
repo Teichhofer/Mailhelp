@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.3 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.3: Betrieb – eigene Kundeninstanz `kunde.inboxstride.de` für die Abnahme des
+Kundenmodus eingerichtet (Testinstanz, keine Kundenfreischaltung).
 
 Version 8.7.2: `mailhelp --set-valuation` funktioniert schon vor der Ersteinrichtung. Neuer Plan für
 Lernen in Punkten und die Kundeninstanz `kunde` ([Planung](docs/Planung-8.7-Lernen.md)).

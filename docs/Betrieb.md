@@ -606,3 +606,44 @@ Rückkehr: Anbindung durch Zurückspielen von `config.yaml` und Compose-Datei au
 `upgrade-7.9.5-…` und Image `mailhelp-production:7.9.3-70f671b`. Der Dienst lässt sich mit
 `docker compose -p inboxstride-auth down` anhalten und die nginx-Site entfernen; Zustand,
 Schlüssel und CA dann nicht löschen, solange Verbindungen bestehen könnten.
+
+## Kundeninstanz `kunde` (25.11.2026)
+
+Eingerichtet auf Anweisung des Betreibers für Planung 8.7 AP5–AP7
+([Planung](Planung-8.7-Lernen.md) §6). Betreiber-Testinstanz, keine Kundenfreischaltung.
+Produktion, Demo und Auth wurden dabei nicht verändert.
+
+| Bestandteil | Istzustand (geprüft 25.11.2026) |
+| --- | --- |
+| Quelle / Image | Commit `e00a136`, `/opt/mailhelp/releases/8.7.2-e00a136`, `mailhelp-production:8.7.2-e00a136` |
+| Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
+| Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
+| Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
+| Bewertung | Stand 1, gültig ab 2026-11-25T10:49:25Z: 1 USD je EUR, Aufschlag 900 % (0,01 USD = 100 Punkte), `runtime/data/production/usage/valuations.json` |
+| nginx | `mailhelp-kunde-http` (ACME/Umleitung), `mailhelp-kunde-https` → `127.0.0.1:8766`; Vorlage `ops/server/nginx-kunde.example.conf` |
+| TLS | Let's Encrypt `kunde.inboxstride.de`, gültig bis 23.02.2027; `/usr/local/sbin/renew-mailhelp-kunde`, Cron `/etc/cron.d/mailhelp-kunde-cert-renew` (Minute 47, alle 6 h) |
+| Sicherung | `/etc/mailhelp-backup/config.yaml`: Container `mailhelp-kunde-mailhelp-1`, Pfad `/opt/mailhelp-kunde` (Vorzustand `config.yaml.before-kunde-20261125`) |
+| Anmeldedienst | Nicht angebunden (kein `inboxstride-auth`-Netz, kein Instanzzertifikat) |
+
+Schritte: Release extrahiert und gebaut; `apt-get update && apt-get upgrade -y` (nichts eingespielt,
+`libsqlite3-0` wegen Phasing zurückgestellt), kein `/var/run/reboot-required`, nginx 1.28.3 mit
+laufendem Binary `/usr/sbin/nginx`, `certbot/certbot:v5.10.0` aktuell. Verzeichnisse angelegt,
+`docker compose … config --quiet`; Bewertungsstand mit
+`echo BEWERTUNG | docker compose -p mailhelp-kunde -f compose.yaml run --rm -T mailhelp --config-directory /config --set-valuation 1 900`;
+Zertifikat nach erfolgreichem `--dry-run` per Webroot ausgestellt; Container gestartet.
+
+Prüfungen: Container läuft im Ersteinrichtungsmodus; `https://kunde.inboxstride.de/anmelden` 200,
+HTTP 308 auf HTTPS, fremder Host am Loopbackport 421; `stefan.` und `demo.inboxstride.de` weiterhin 200.
+
+Fehlversuch: Ein erster `--set-valuation` mit 8.7.1 brach ohne `config.yaml` ab (behoben in 8.7.2);
+das 8.7.1-Image wurde danach entfernt.
+
+Offen beim Betreiber: Ersteinrichtung mit dem Code aus `docker logs mailhelp-kunde-mailhelp-1`
+(neuer Code: `docker restart mailhelp-kunde-mailhelp-1`), dabei eigenen OpenRouter-Schlüssel eintragen;
+nach dem Neustart Kundenmodus im Log (`customer_mode_active`) prüfen; Betreiberzugang
+`docker exec mailhelp-kunde-mailhelp-1 mailhelp --pair --operator --config-directory /config`.
+
+Rückkehr: `docker compose -p mailhelp-kunde -f /opt/mailhelp-kunde/compose.yaml down`, Links
+`sites-enabled/mailhelp-kunde-https` und `-http` entfernen, `nginx -t`, reload; Cron-Datei entfernen;
+Backup-Konfiguration aus `config.yaml.before-kunde-20261125` zurückspielen. Daten unter
+`/opt/mailhelp-kunde` erst nach Entscheidung des Betreibers löschen.

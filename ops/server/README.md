@@ -8,7 +8,7 @@ Stand: 24. November 2026. Produktion und Demo: Mailhelp 8.5.4, Quellcommit
 | --- | --- | --- |
 | `production.compose.example.yaml` | `/opt/mailhelp/compose.setup.yaml` | `mailhelp-update` |
 | `demo.compose.example.yaml` | `/opt/mailhelp-demo/compose.yaml` | `mailhelp-demo` |
-| `kunde.compose.example.yaml` | `/opt/mailhelp-kunde/compose.yaml` (8.7, geplant, siehe [Planung](../../docs/Planung-8.7-Lernen.md)) | `mailhelp-kunde` |
+| `kunde.compose.example.yaml` | `/opt/mailhelp-kunde/compose.yaml` (8.7.2, eingerichtet 25.11.2026, [Planung](../../docs/Planung-8.7-Lernen.md)) | `mailhelp-kunde` |
 
 Vorlagen beschreiben den erfolgreich geprüften aktuellen Stand, kein vollständiges
 Serverhandbuch. DNS, nginx/TLS, Host-Firewall und Secret-/Backupbereitstellung werden
@@ -18,6 +18,7 @@ Neuaufbauvorlagen sind noch keine automatisch übernommenen Serveränderungen:
 | Vorlage | Ziel / Parameter | Validierung und Übernahme | Rückkehr |
 | --- | --- | --- | --- |
 | `nginx-mailhelp.example.conf` | Nutzer-Site; `DOMAIN` ersetzen, Zertifikat bereitstellen | `nginx -t`, danach reload; Site vorher sichern | Gesicherte Site prüfen/reload |
+| `nginx-kunde.example.conf` | Kundeninstanz `kunde.inboxstride.de` → `127.0.0.1:8766` | `nginx -t`, danach reload | Links in `sites-enabled` entfernen |
 | `nginx-demo.example.conf` | Demo-Site; `DOMAIN`, Compose-IP abgleichen | `nginx -t`, danach reload, Host/Limits prüfen | Gesicherte Demo-Site |
 | `nginx-auth-mailboxes.location.example.conf` | 8.1-Location im Auth-HTTPS-Server | Erst Anbieterregistrierung, dann prüfen/reload | Zusätzliche Location entfernen |
 | `mailhelp-cert-renew@.service`, `@.timer` | `/etc/systemd/system/`; Instanz = Zertifikatname | `systemd-analyze verify`, daemon-reload, Timer aktivieren | Timer aus, bisherigen Cron wiederherstellen |

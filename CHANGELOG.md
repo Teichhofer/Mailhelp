@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.7.3 – Kundeninstanz `kunde` eingerichtet (Betrieb)
+
+- Serverbestand 25.11.2026: eigener Container `mailhelp-kunde` mit Image `mailhelp-production:8.7.2-e00a136` unter `kunde.inboxstride.de` (nginx, Let's-Encrypt-Zertifikat, Erneuerung per Cron), Kundenmodus über schreibgeschützt eingebundene `operator.yaml`, Bewertungsstand 1 (1 USD je EUR, Aufschlag 900 %), Aufnahme in die tägliche Sicherung. Läuft im Ersteinrichtungsmodus; keine Kundenfreischaltung. Produktion und Demo unverändert auf 8.5.4.
+- Vorlagen `ops/server/kunde.compose.example.yaml`, `ops/server/nginx-kunde.example.conf`, `ops/server/backup-config.example.yaml`; Serverhandbuch und Betrieb nachgeführt.
+
 ## 8.7.2 – Bugfix: Bewertungsstand vor der Ersteinrichtung; Plan „Lernen in Punkten“
 
 - `mailhelp --set-valuation` brach ohne `config.yaml` mit einem Traceback ab. Gerade vor der Ersteinrichtung einer Kundeninstanz muss der Bewertungsstand aber schon bestehen (Planung 8.7 §5.2). Jetzt schreibt das Kommando dorthin, wo Ersteinrichtung und anschließender Dienst lesen (`data/production`). Regressionstest `test_regression_the_valuation_can_be_set_before_the_first_setup`.
