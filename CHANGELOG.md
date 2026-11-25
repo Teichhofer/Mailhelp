@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.6.3 – Bugfix: Vollprüfung in GitHub Actions
+
+- Ursache der seit dem 20.11.2026 scheiternden CI-Jobs `tests (ubuntu-latest)` und `tests (windows-latest)`, unter WSL-Ubuntu nachgestellt:
+  - `landing/ASSETS.md` verlinkte eine lokale Datei unter `C:/Users/...`, die nur auf dem Entwicklungsrechner existiert. Der Linktest lehnt lokale absolute Pfade jetzt auf jeder Plattform ab. Regressionstest `test_regression_a_local_absolute_path_is_broken_even_where_it_exists`.
+  - `tests/auth/test_auth_secret_store.py` legte die absichtlich ungültige Schlüsseldatei für andere lesbar an. Unter Linux wurde sie deshalb schon an der Rechteprüfung abgewiesen, die Inhaltsprüfung blieb ungetestet, und die Abdeckung fiel auf 99,99 %. Die Datei ist jetzt wie ein echter Schlüssel privat.
+- Korrektur zu 8.6.2: Die neuen Pages-Actions beheben „No artifacts named github-pages were found“ nicht. Das Artefakt wird in jedem Lauf hochgeladen; dieselbe Konfiguration lief am 24.11. um 06:41 noch erfolgreich. Die Ursache liegt außerhalb des Repositorys. Abhilfe ist ein erneuter Lauf von „GitHub Pages“. Die aktuellen Action-Versionen bleiben.
+
 ## 8.6.2 – Bugfix: Veröffentlichung der Website auf GitHub Pages
 
 - `pages.yml` verwendet `actions/configure-pages@v6`, `actions/upload-pages-artifact@v5` und `actions/deploy-pages@v5` (Node.js 24). Mit den Node.js-20-Versionen scheiterte „Publish website“ wiederholt mit „No artifacts named github-pages were found“. Regressionstest in `tests/release/test_ci_workflows.py`.

@@ -57,6 +57,8 @@ def test_unsafe_or_unusable_keys_are_refused(paths, tmp_path):
         SecretStore(state, tmp_path / "missing.key")
     broken = tmp_path / "broken.key"
     broken.write_text("kein-schluessel\n", encoding="ascii")
+    # 8.6.3: private like a real key file, otherwise Linux refuses it as readable before checking its content.
+    broken.chmod(0o600)
     with pytest.raises(SecretStoreError, match="ungültig"):
         SecretStore(state, broken)
     with pytest.raises(FileExistsError):

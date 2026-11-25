@@ -23,6 +23,9 @@ def _broken(path: Path) -> list[str]:
     result = []
     for target in LINK.findall(path.read_text(encoding="utf-8")):
         file = target.split("#", 1)[0]
+        if re.match(r"[A-Za-z]:[/\\]|[/\\]", file):
+            result.append(target)  # 8.6.3: a local absolute path resolves only on the machine that wrote it
+            continue
         if re.match(r"[a-z]+:", target) or not re.search(r"[./]", file):
             continue  # web links, anchors and text in brackets such as an emoji
         if archived and not DOCUMENT.search(file):
@@ -47,6 +50,15 @@ def test_a_broken_link_is_found_and_archived_code_links_are_tolerated(tmp_path, 
     monkeypatch.setitem(globals(), "ROOT", tmp_path)
     assert _broken(tmp_path / "docs" / "Living.md") == ["Missing.md", "../src/gone.py"]
     assert _broken(archive / "Old.md") == ["Gone.md#x"]
+
+
+def test_regression_a_local_absolute_path_is_broken_even_where_it_exists(tmp_path):
+    """8.6.3: landing/ASSETS.md linked C:/Users/... – valid on the writing machine, broken in Linux CI."""
+    existing = tmp_path / "skill.md"
+    existing.write_text("x", encoding="utf-8")
+    doc = tmp_path / "Doc.md"
+    doc.write_text(f"[a]({existing.as_posix()}) [b](C:\\x\\y.md) [c](/etc/hosts) [d](skill.md)", encoding="utf-8")
+    assert _broken(doc) == [existing.as_posix(), "C:\\x\\y.md", "/etc/hosts"]
 
 
 def test_the_archive_holds_the_finished_plans_and_reports():

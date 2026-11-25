@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.6.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.6.3 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.6.3: Die Vollprüfung besteht auch in GitHub Actions unter Linux und Windows wieder.
 
 Version 8.6.2: Die Projektwebsite wird mit den aktuellen GitHub-Pages-Actions veröffentlicht.
 

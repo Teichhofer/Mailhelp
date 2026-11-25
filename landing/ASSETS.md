@@ -1,7 +1,7 @@
 # Bildmotive und Schrift
 
 Die beiden Motive wurden mit dem eingebauten Imagegen-Werkzeug über den
-[Imagegen-Skill](C:/Users/User/.codex/skills/.system/imagegen/SKILL.md) erzeugt.
+lokalen Imagegen-Skill des Entwicklungsrechners erzeugt.
 Die PNG-Originale bleiben im Codex-Bildverzeichnis. Für die Website wurden
 komprimierte WebP-Dateien gespeichert. Der Build erzeugt zusätzlich Dateinamen
 mit Inhaltsprüfsummen für das Browser-Caching.
