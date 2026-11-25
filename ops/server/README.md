@@ -8,6 +8,7 @@ Stand: 24. November 2026. Produktion und Demo: Mailhelp 8.5.4, Quellcommit
 | --- | --- | --- |
 | `production.compose.example.yaml` | `/opt/mailhelp/compose.setup.yaml` | `mailhelp-update` |
 | `demo.compose.example.yaml` | `/opt/mailhelp-demo/compose.yaml` | `mailhelp-demo` |
+| `kunde.compose.example.yaml` | `/opt/mailhelp-kunde/compose.yaml` (8.7, geplant, siehe [Planung](../../docs/Planung-8.7-Lernen.md)) | `mailhelp-kunde` |
 
 Vorlagen beschreiben den erfolgreich geprüften aktuellen Stand, kein vollständiges
 Serverhandbuch. DNS, nginx/TLS, Host-Firewall und Secret-/Backupbereitstellung werden

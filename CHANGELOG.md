@@ -1,5 +1,11 @@
 # Änderungen
 
+## 8.7.2 – Bugfix: Bewertungsstand vor der Ersteinrichtung; Plan „Lernen in Punkten“
+
+- `mailhelp --set-valuation` brach ohne `config.yaml` mit einem Traceback ab. Gerade vor der Ersteinrichtung einer Kundeninstanz muss der Bewertungsstand aber schon bestehen (Planung 8.7 §5.2). Jetzt schreibt das Kommando dorthin, wo Ersteinrichtung und anschließender Dienst lesen (`data/production`). Regressionstest `test_regression_the_valuation_can_be_set_before_the_first_setup`.
+- [Planung 8.7 – Lernen in Punkten und Kundeninstanz `kunde`](docs/Planung-8.7-Lernen.md): Umstellung der Lernfunktionen auf Punkte, Betreiberentscheidungen vom 25.11.2026 (eigener Container unter `kunde.inboxstride.de`, Kurs 1 USD je EUR, Aufschlag Faktor 10 = 900 %).
+- Compose-Vorlage `ops/server/kunde.compose.example.yaml` für die Kundeninstanz (noch nicht als Serverbestand bestätigt).
+
 ## 8.7.1 – Kundenmodus und Verbrauch in Punkten: Grundlagen
 
 Umsetzungsschritt nach [Planung 8.7](docs/Planung-8.7.md). Noch keine Kundenfreischaltung, siehe `docs/Release-8.7.md`.

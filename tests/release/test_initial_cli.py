@@ -59,6 +59,19 @@ def test_the_operator_sets_the_valuation_at_the_host_while_the_service_may_run(i
     assert (h.store.directory/'usage'/'valuations.json').is_file()
 
 
+def test_regression_the_valuation_can_be_set_before_the_first_setup(initial,monkeypatch,capsys):
+    """8.7.2: without config.yaml --set-valuation crashed; it now writes where setup and service read."""
+    h=initial
+    assert not (h.directory/'config.yaml').exists()
+    monkeypatch.setattr(sys,'argv',['mailhelp','--set-valuation','1','900','--config-directory',str(h.directory)])
+    monkeypatch.setattr('builtins.input',lambda _prompt:'BEWERTUNG')
+    assert cli.main()==0 and '100,00 Punkte' in capsys.readouterr().out
+    config=h.setup.state().config
+    namespace='test' if config['test_mode'] else 'production'
+    assert (h.directory/config['data_directory']/namespace).resolve()==h.store.directory.resolve()
+    assert (h.store.directory/'usage'/'valuations.json').is_file()
+
+
 def test_the_operator_pairs_at_the_host_and_operator_needs_pair(tmp_path,monkeypatch,capsys):
     """8.7: --pair --operator asks the running service for an operator code; --operator alone is refused."""
     calls=[]

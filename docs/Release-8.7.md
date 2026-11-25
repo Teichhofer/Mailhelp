@@ -18,6 +18,14 @@ Stand: 25. November 2026. Version 8.7.1. Grundlage: [Planung 8.7](Planung-8.7.md
 | AP4 Kundenansichten | Begonnen: Seite `/verbrauch` mit heute, laufendem Monat und Zeitraum sowie Aufteilung nach Schritt und Tag, nur in Punkten. Offen: rechtegerechte Einstellungsseiten, Punkte statt Geldwerten in Lernen, Berichten, Hilfschat und Diagrammen, rollenabhängige Suche und Hilfe. Bis dahin sind Lernen (`/lernen`, `/themen/lernen`) und Berichte (`/berichte`) für Kundensitzungen gesperrt, weil sie noch Budgets und Schätzungen in Geld zeigen. |
 | AP5–AP7 | Offen, außer Dokumentation dieses Stands. |
 
+## Umgesetzt in 8.7.2
+
+| Thema | Umsetzung |
+| --- | --- |
+| Bugfix Bewertungsstand | `mailhelp --set-valuation` funktioniert vor der Ersteinrichtung (bisher Abbruch ohne `config.yaml`) und schreibt nach `data/production`, wo Ersteinrichtung und Dienst lesen |
+| Planung | [Lernen in Punkten und Kundeninstanz `kunde`](Planung-8.7-Lernen.md); Bewertung der Instanz `kunde`: 1 USD je EUR, Aufschlag 900 % (Faktor 10) |
+| Vorlage | `ops/server/kunde.compose.example.yaml`; `operator.yaml` schreibgeschützt eingebunden |
+
 Protokolle, Logging-Einstellungen, Rotation und Aufbewahrung sind unverändert. Der Verbrauchsbestand ist
 eine eigene Datei und wird nicht aus Logs aufgebaut.
 

@@ -1,0 +1,37 @@
+# Mailhelp 8.7: Kundeninstanz „kunde“ (Betreiber-Testinstanz, Planung-8.7-Lernen.md §6).
+# Zielpfad auf dem Host: /opt/mailhelp-kunde/compose.yaml, Compose-Projekt mailhelp-kunde.
+# Laufzeitdaten: /opt/mailhelp-kunde/runtime (Eigentümer 65532, 0700) mit eigener privater .env.
+# operator.yaml liegt außerhalb der Laufzeitdaten (root, 0644) und wird schreibgeschützt eingebunden,
+# damit weder Weboberfläche noch Anwendung den Kundenmodus abschalten können.
+# Keine Produktions-Mounts, kein Auth-Netz, keine produktiven Zugangsdaten.
+services:
+  mailhelp:
+    image: mailhelp-production:8.7.1-7fbeda5
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 45s
+    ports:
+      - "127.0.0.1:8766:8765"
+    environment:
+      MAILHELP_SETUP_HOST: 0.0.0.0
+      MAILHELP_SETUP_ALLOWED_HOSTS: kunde.inboxstride.de
+    volumes:
+      - ./runtime:/config
+      - ./operator.yaml:/config/operator.yaml:ro
+    networks:
+      - kunde
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "3"
+networks:
+  kunde:
+    name: mailhelp-kunde

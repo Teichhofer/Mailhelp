@@ -262,7 +262,12 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         return 0
     if args.set_valuation is not None:
         # 8.7: works while the service runs; the file is replaced atomically and read before each attempt.
-        settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
+        config = args.config_directory / "config.yaml"
+        if not config.exists():
+            # 8.7.2: before the first setup the valuation must already exist (Plan 8.7 §5.2); the setup and
+            # the service it starts use data/production below the configuration directory.
+            return set_valuation(args.config_directory / "data" / "production", *args.set_valuation)
+        settings = Settings.model_validate(read_yaml(config))
         namespace = "test" if settings.test_mode else "production"
         return set_valuation(runtime_path(settings.data_directory, args.config_directory) / namespace,
                              *args.set_valuation)
