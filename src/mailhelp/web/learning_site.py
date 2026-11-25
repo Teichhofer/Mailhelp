@@ -4,15 +4,33 @@ from __future__ import annotations
 
 import json
 import secrets
+from decimal import Decimal
 from typing import Any
 
 from ..i18n import msg, tr
 from ..runtime.learning_jobs import LearningConflict, LearningSelection
+from ..usage.budget import decimal_of, limit_float, minimum_points, parse_points, points_to_usd, tokens_to_points
+from ..usage.points import Valuation
+from . import consumption
 from .http import Response
 from .labels import count_text
 from .learning_pages import heading
 from .learning_setup import setup_form
 from .pages import e, layout, notice
+
+# 8.7.4: what a customer sees instead of the money wording of the shared job texts.
+CUSTOMER_MESSAGES = {
+    "Angehalten: Budget, Sitzung oder Konfiguration prüfen.":
+        msg("Angehalten: Punktegrenze, Sitzung oder Konfiguration prüfen."),
+    "Budget reicht für den geschätzten Lauf nicht aus.":
+        msg("Die Punktegrenze reicht für die Schätzung nicht aus."),
+    "Auswahl gemeinsam gespeichert. Konfiguration neu laden.":
+        msg("Auswahl gemeinsam gespeichert. Neue Analysen übernehmen die Themen am nächsten sicheren "
+            "Verarbeitungspunkt, neue Abrufordner beim nächsten Start."),
+}
+CUSTOMER_KEYS = {"mailbox", "folders", "count", "points", "revision"}
+NOT_SET_UP = msg("Lernen aus dem Postfach ist vom Betreiber noch nicht eingerichtet.")
+REVALUED = msg("Bewertung geändert, bitte Schätzung prüfen.")
 
 _REVIEW_TEXT_1 = msg(
     '<input type="hidden" name="name" value="{p0}"><label><input type="checkbox" '
@@ -65,15 +83,28 @@ class LearningSite:
             f'<input type="hidden" name="action" value="{e(action)}">{content}</form>'
         )
 
+    def customer(self, session: Any) -> bool:
+        return not self.site.auth.is_operator(session)
+
+    def priced(self) -> tuple[Valuation, Decimal] | None:
+        """Valuation in force and the operator's price assumption; both are needed for points."""
+        found = consumption.valuation(self.site.usage.meter, self.site.clock())
+        price = self.site.learning_price
+        return (found, price) if found is not None and price is not None else None
+
     def home(self, request: Any, session: Any) -> Response:
         state = self.jobs.state()
+        customer = self.customer(session)
         content = heading(
             msg("Aus dem Postfach lernen"),
             msg(
-                
+                "Entdecke neue Themen in vorhandenen Mails. Prüfe erst Auswahl und Verbrauch, "
+                "dann gib den lesenden Lauf ausdrücklich frei."
+            ) if customer else msg(
+
                     "Entdecke neue Themen in vorhandenen Mails. Prüfe erst Auswahl und Kosten, "
                     "dann gib den lesenden Lauf ausdrücklich frei."
-                
+
             ),
         ) + tr(
             '<p role="status">{p0}: {p1} geprüft, {p2} Fehler.</p>',
@@ -81,7 +112,8 @@ class LearningSite:
             p1=count_text(state.cursor, "Mail", "Mails"),
             p2=state.failures,
         )
-        content += notice(state.message) if state.message else ""
+        message = CUSTOMER_MESSAGES.get(state.message, state.message) if customer else state.message
+        content += notice(message) if message else ""
         stale = self.jobs.stale(state)
         if stale:
             content += notice(
@@ -92,7 +124,8 @@ class LearningSite:
                 "warn",
             )
         if state.status in {"empty", "done", "cancelled", "review"} or stale:
-            content += self.start_form(request, session, state)
+            content += (self.customer_start_form(request, session, state) if customer
+                        else self.start_form(request, session, state))
         actions = {
             "running": (("pause", msg("Pausieren")), ("cancel", "Abbrechen")),
             "paused": (
@@ -103,15 +136,17 @@ class LearningSite:
         for action, label in actions:
             content += self.form(session, state, action, f'<button class="button">{label}</button>')
         if state.selection is not None:
-            cost = state.reserved_tokens * state.selection.usd_per_million_tokens / 1000000
-            content += tr(
-                "<p>Reserviert: {p0} Tokens, {p1} USD des gewählten Budgets.</p>",
-                p0=state.reserved_tokens,
-                p1=f"{cost:.6f}",
-            )
+            if not customer:
+                cost = state.reserved_tokens * state.selection.usd_per_million_tokens / 1000000
+                content += tr(
+                    "<p>Reserviert: {p0} Tokens, {p1} USD des gewählten Budgets.</p>",
+                    p0=state.reserved_tokens,
+                    p1=f"{cost:.6f}",
+                )
+            content += self.points_usage(state, customer)
         if state.status == "review":
             content += self.review(session, state)
-        if state.status == "done":
+        if state.status == "done" and not customer:
             content += tr('<p><a class="button" href="/dienst/neu-laden">Konfiguration neu laden</a></p>')
         return Response.html(
             200,
@@ -187,6 +222,80 @@ class LearningSite:
                 content += notice(tr("Angaben für die Schätzung prüfen."), "error")
         return content
 
+    def points_usage(self, state: Any, customer: bool) -> str:
+        """Reservation and actual usage in points; nothing while usage is not recorded."""
+        limit = self.jobs.points(state)
+        meter = self.site.usage.meter
+        rated = consumption.valuation(meter, self.site.clock(), limit.revision if limit is not None else None)
+        if rated is None:
+            return ""
+        assert meter is not None and state.selection is not None
+        reserved = tokens_to_points(state.reserved_tokens, decimal_of(state.selection.usd_per_million_tokens), rated)
+        text = consumption.reserved_text(reserved, int(limit.points) if limit is not None else None)
+        text += " " + consumption.actual_text(consumption.learning_usage(meter, state.started_at))
+        return f'<p class="{"" if customer else "meta"}">{e(text)}</p>'
+
+    @staticmethod
+    def selection(mailbox: int, folders: list[str], count: int, limit: int, rated: Valuation,
+                  price: Decimal) -> LearningSelection:
+        """The run's internal limits, computed on the server from the points limit."""
+        return LearningSelection(mailbox=mailbox, folders=folders, count=count,
+                                 budget_usd=limit_float(points_to_usd(limit, rated)),
+                                 usd_per_million_tokens=float(price))
+
+    def customer_start_form(self, request: Any, session: Any, state: Any) -> str:
+        priced = self.priced()
+        if priced is None:
+            return notice(NOT_SET_UP, "warn")
+        rated, price = priced
+        content, query = setup_form(self.worker, request.query, customer=True)
+        if request.query and "prepare" not in query:
+            try:
+                limit = parse_points(query["points"][0])
+                folders = list(dict.fromkeys(query.get("folder", []) + query.get("folders", [""])[0].splitlines()))
+                selection = self.selection(int(query["mailbox"][0]), folders, int(query["count"][0]), limit,
+                                           rated, price)
+                if selection.mailbox not in {box.id for box in self.worker.app.settings.imap.enabled_mailboxes()}:
+                    raise ValueError("Postfach nicht verfügbar")
+                tokens, ceiling = self.worker.estimate(selection), self.worker.maximum(selection)
+                content += tr("<p>Auswahl: Postfach {p0}, {p1} Mails, Ordner {p2}.</p>", p0=selection.mailbox,
+                              p1=selection.count, p2=e(", ".join(selection.folders)))
+                content += "<p>" + e(consumption.estimate_text(tokens_to_points(tokens, price, rated),
+                                                               tokens_to_points(ceiling, price, rated)))
+                content += " " + tr("Die Punktegrenze wird vor jedem Aufruf geprüft; der Lauf hält an, bevor sie "
+                                    "überschritten würde.") + "</p>"
+                needed = minimum_points(tokens, price, rated)
+                if limit < needed:
+                    content += notice(tr("Die Punktegrenze reicht für die Schätzung nicht aus. Bitte mindestens "
+                                         "{p0} angeben.", p0=consumption.points_text(Decimal(needed))), "error")
+                else:
+                    chosen = {"mailbox": selection.mailbox, "folders": selection.folders, "count": selection.count,
+                              "points": str(limit), "revision": rated.revision}
+                    content += self.form(session, state, "start", tr(
+                        '<input type="hidden" name="selection" value="{p0}"><button class="button">'
+                        "Lesenden Lernlauf starten (verbraucht Punkte)</button>",
+                        p0=e(json.dumps(chosen, ensure_ascii=False))))
+            except (ValueError, KeyError):
+                content += notice(tr("Angaben für die Schätzung prüfen."), "error")
+        return content
+
+    def customer_payload(self, raw: str) -> tuple[dict[str, Any], tuple[int, int]]:
+        """Only mailbox, folders, count, points and revision; any money field refuses the whole start."""
+        data = json.loads(raw)
+        if (not isinstance(data, dict) or set(data) != CUSTOMER_KEYS or type(data["points"]) is not str
+                or type(data["revision"]) is not int):
+            raise ValueError("Ungültige Auswahl")
+        priced = self.priced()
+        if priced is None:
+            raise LearningConflict(NOT_SET_UP)
+        rated, price = priced
+        if data["revision"] != rated.revision:
+            raise LearningConflict(REVALUED)
+        limit = parse_points(data["points"])
+        payload = {"mailbox": data["mailbox"], "folders": data["folders"], "count": data["count"],
+                   "budget_usd": limit_float(points_to_usd(limit, rated)), "usd_per_million_tokens": float(price)}
+        return payload, (limit, rated.revision)
+
     def review(self, session: Any, state: Any) -> str:
         content = tr("<h2>Themen, Ausschlüsse und Belege</h2>")
         for index, card in enumerate(state.cards):
@@ -247,10 +356,14 @@ class LearningSite:
         return Response.json(200, {"fingerprint": f"learning-{state.version}-{state.cursor}-{state.status}"})
 
     def act(self, request: Any, session: Any, form: Any) -> Response:
+        customer = self.customer(session)
+        limit = None
         try:
             action = form["action"]
-            payload = {}
-            if action == "start":
+            payload: dict[str, Any] = {}
+            if action == "start" and customer:
+                payload, limit = self.customer_payload(form["selection"])
+            elif action == "start":
                 payload = json.loads(form["selection"])
             elif action == "edit":
                 payload = {
@@ -263,10 +376,11 @@ class LearningSite:
                 }
             elif action == "folder":
                 payload = {"name": form["name"], "selected": "selected" in form}
-            self.jobs.change("web:" + session.id, int(form["version"]), form["key"], action, payload)
+            self.jobs.change("web:" + session.id, int(form["version"]), form["key"], action, payload, limit)
         except LearningConflict as exc:
             # The reason is one of Mailhelp's own fixed texts, never mail content.
-            return self._rejected(type(exc).__name__, str(exc))
+            reason = str(exc)
+            return self._rejected(type(exc).__name__, CUSTOMER_MESSAGES.get(reason, reason) if customer else reason)
         except (ValueError, KeyError, TypeError) as exc:
             return self._rejected(type(exc).__name__, msg("Auswahl ungültig oder inzwischen geändert."))
         return Response.redirect("/lernen/postfach")

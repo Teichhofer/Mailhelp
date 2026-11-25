@@ -142,6 +142,25 @@ During the run, the page shows “Running: … mails checked, … errors”. You
 the run stops before it would be exceeded. If the configuration has been changed since the start,
 the run cannot be resumed; a new learning run replaces it.
 
+### Learning in a customer instance <!-- mailhelp-id:bedienung/lernen-in-einer-kundeninstanz -->
+
+In a customer instance run by an operator (customer mode, from 8.7.4) the learning run counts in
+points instead of money. The operator sets prices, tokens and models; you do not see them.
+
+1. Choose mailbox, folders and number as above. In the “3. Points limit” stage, enter the
+   **Points limit for this run** (a whole number from 1 to 10,000,000). The limit is not a credit
+   balance but the ceiling of this one run.
+2. Select **Show estimate**. Mailhelp states the estimated usage and the worst case in points.
+   If the limit is not sufficient, the required minimum number of points is shown there.
+3. Select **Start read-only learning run (uses points)**. If the operator changes the valuation
+   between estimate and start, the start is refused; show the estimate again.
+
+During the run the page shows reserved and actually used points; calls whose cost is not known yet
+are counted and named. The run stops before it would exceed the limit. After the adoption, new
+topics apply from the next analysis and new fetch folders from the next start; you do not need to
+reload anything. The “Usage” page also shows the usage under “Learn from mailbox”. If
+the operator has not set up learning yet, the page says so and offers no start.
+
 ### Check and take result <!-- mailhelp-id:bedienung/ergebnis-pruefen-und-uebernehmen -->
 
 After the run, **Topics, exclusions and evidence** show per suggestion the title, description, the

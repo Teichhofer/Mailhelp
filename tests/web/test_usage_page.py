@@ -91,3 +91,23 @@ def test_english_points(usage):
     usage.browser.cookies["mailhelp_lang"] = "en"
     page = text(usage.browser.request("GET", "/verbrauch"))
     assert "10.00 points" in page and "10,00 Punkte" not in page and "1 call(s) cannot be valued yet" in page
+
+
+def test_learning_steps_form_one_row_and_named_features_keep_their_name(web, tmp_path):
+    from mailhelp.usage.valuations import usage_scope
+    meter = UsageMeter(tmp_path / "usage", lambda: NOW)
+    meter.valuations.add(Decimal(1), Decimal(900), "operator-cli", NOW - timedelta(days=1))
+    with usage_scope("learning"):
+        for name, stage in (("a", "relevance"), ("b", "learning_classification"), ("c", "learning_abstraction")):
+            meter.begin(name, stage)
+            meter.settle(name, "0.01")
+    for name, stage in (("d", "decision_rule_learning"), ("e", "settings_help"), ("f", "summary")):
+        meter.begin(name, stage)
+        meter.settle(name, "0.001")
+    web.site.usage.meter = meter
+    web.site.clock = lambda: NOW
+    page = text(web.browser.request("GET", "/verbrauch"))
+    assert "<th scope=\"row\">Aus dem Postfach lernen</th><td>300,00 Punkte</td>" in page
+    assert "<th scope=\"row\">Aus Entscheidungen lernen</th><td>10,00 Punkte</td>" in page
+    assert "<th scope=\"row\">Hilfschat</th>" in page and "<th scope=\"row\">Zusammenfassung</th>" in page
+    assert page.count("Aus dem Postfach lernen</th>") == 1

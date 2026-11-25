@@ -4035,7 +4035,7 @@
   "surface": "help_site",
   "producer": "src/mailhelp/web/help_site.py",
   "line": 171,
-  "key": "<form method=\"post\" action=\"/hilfe/frage\" class=\"stack help-form\"><input type=\"hidden\" name=\"csrf\" value=\"{p0}\"><input type=\"hidden\" name=\"key\" value=\"{p1}\"><input type=\"hidden\" name=\"version\" value=\"{p2}\">{p3}<input type=\"hidden\" name=\"return_to\" value=\"{p4}\"><input type=\"hidden\" name=\"window_version\" value=\"{p5}\"><label for=\"help-question\">Deine Frage zu Einstellungen und Bedienung</label><textarea id=\"help-question\" name=\"frage\" rows=\"3\" maxlength=\"8000\" required>{p6}</textarea><details class=\"help-cost-hint\"><summary>Kostenpflichtig</summary><p class=\"meta\">Frage, kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an den aktiven KI-Anbieter und können Kosten verursachen. Keine Passwörter oder Tokens eingeben. Der Hilfschat erklärt nur; er ändert keine Einstellungen.</p></details><button class=\"button primary\" type=\"submit\">Frage senden</button></form>",
+  "key": "<form method=\"post\" action=\"/hilfe/frage\" class=\"stack help-form\"><input type=\"hidden\" name=\"csrf\" value=\"{p0}\"><input type=\"hidden\" name=\"key\" value=\"{p1}\"><input type=\"hidden\" name=\"version\" value=\"{p2}\">{p3}<input type=\"hidden\" name=\"return_to\" value=\"{p4}\"><input type=\"hidden\" name=\"window_version\" value=\"{p5}\"><label for=\"help-question\">Deine Frage zu Einstellungen und Bedienung</label><textarea id=\"help-question\" name=\"frage\" rows=\"3\" maxlength=\"8000\" required>{p6}</textarea>{p7}<button class=\"button primary\" type=\"submit\">Frage senden</button></form>",
   "kind": "owned-interface-text",
   "test": "tests/unit/test_localization_inventory.py"
  },

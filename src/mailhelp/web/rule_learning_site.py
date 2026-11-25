@@ -40,6 +40,18 @@ _RENDER_TEXT_2 = msg(
     'type="submit">Entscheidungen analysieren</button>'
 )
 
+# 8.7.4: the same step for a customer, whose usage is counted in points.
+_CUSTOMER_RENDER_TEXT_2 = msg(
+    "<p>Die gewählten Entscheidungen werden mit den aktuellen Themenregeln analysiert. "
+    "Betreff, begrenzte Textauszüge und Korrekturen gehen an den KI-Anbieter. Die Analyse "
+    "verbraucht Punkte. Es werden keine Mails abgerufen oder externen Einträge "
+    'angelegt.</p><label><input type="checkbox" name="confirm" value="yes" required> '
+    "Datenübertragung und Analyse ausdrücklich starten (verbraucht Punkte)</label><p>Eine "
+    'neue Analyse ersetzt einen noch offenen Prüfentwurf.</p><button class="button" '
+    'type="submit">Entscheidungen analysieren</button>'
+)
+NOT_SET_UP = msg("Lernen aus Entscheidungen ist vom Betreiber noch nicht eingerichtet.")
+
 _REJECTED_LIST_TEXT_1 = msg(
     '<form method="post" action="/lernen/entscheidungen"><input type="hidden" name="csrf" '
     'value="{p0}"><input type="hidden" name="key" value="{p1}"><input type="hidden" '
@@ -156,21 +168,30 @@ class RuleLearningSite:
                 
             ),
         )
-        content += notice(message, "error") if message else ""
-        content += notice(state.message) if state.message else ""
+        customer = not self.site.auth.is_operator(session)
+
+        def shown(text: str) -> str:
+            # Operator configuration (prompts.yaml) is never named on a customer page.
+            return NOT_SET_UP if customer and "prompts.yaml" in text else text
+
+        content += notice(shown(message), "error") if message else ""
+        content += notice(shown(state.message)) if state.message else ""
         content += f'<p role="status">Analysestand: {e(STATUSES[state.status])} · Version {state.version}</p>'
         if state.status == "review":
             content += self.review(session, state, values or {})
         if state.status in {"empty", "done", "failed", "interrupted", "review"}:
             if state.status == "review":
                 content += tr(
+                    '<details class="rule-reanalyze"><summary>Neue Analyse vorbereiten (verbraucht Punkte)</summary>'
+                ) if customer else tr(
                     '<details class="rule-reanalyze"><summary>Neue kostenpflichtige Analyse vorbereiten</summary>'
                 )
             content += self.form(
                 session,
                 state,
                 "analyze",
-                (self.scopes(session, (values or {}).get("scope", "new")) + tr(_RENDER_TEXT_2)),
+                (self.scopes(session, (values or {}).get("scope", "new"), customer)
+                 + tr(_CUSTOMER_RENDER_TEXT_2 if customer else _RENDER_TEXT_2)),
             )
             if state.status == "review":
                 content += '</details>'
@@ -247,7 +268,7 @@ class RuleLearningSite:
             )
         return body + "</ul></details>"
 
-    def scopes(self, session: WebSession, chosen: str) -> str:
+    def scopes(self, session: WebSession, chosen: str, customer: bool = False) -> str:
         """5.7.6: only the decisions since the last analysis, or every usable one in the log."""
         assert self.service is not None
         summary = self.service.overview("web:" + session.id)
@@ -261,6 +282,10 @@ class RuleLearningSite:
                 "all",
                 tr("Alle bisherigen verwertbaren Entscheidungen ({p0})", p0=f"{summary['all_decisions']}"),
                 tr(
+                    "Höchstens {p0}, neueste zuerst. Mehr Belege, mehr Punkte; die "
+                    "Nutzlastgrenze kann ältere Belege auslassen.",
+                    p0=MAX_EVIDENCE_ALL,
+                ) if customer else tr(
                     (
                         "Höchstens {p0}, neueste zuerst. Mehr Belege, höhere Kosten; die "
                         "Nutzlastgrenze kann ältere Belege auslassen."

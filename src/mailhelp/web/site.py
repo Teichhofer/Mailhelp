@@ -14,6 +14,7 @@ import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
@@ -145,6 +146,8 @@ class MailhelpSite:
         self.proposal_evaluation = ProposalEvaluationSite(self)
         self.status_details = StatusDetails(self)
         self.usage = UsageSite(self)
+        # 8.7.4: the operator's price assumption for learning runs in points (operator.yaml).
+        self.learning_price: Decimal | None = None
         self.notification_runtime: NotificationRuntime | None = None
         # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
         self.reanalysis_page: ReanalysisSite | None = None

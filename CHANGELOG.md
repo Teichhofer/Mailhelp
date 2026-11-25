@@ -1,5 +1,14 @@
 # Änderungen
 
+## 8.7.4 – Lernen in Punkten
+
+- Umsetzung von [Lernen in Punkten](docs/Planung-8.7-Lernen.md) §4: Kunden wählen für „Aus dem Postfach lernen“ eine ganze Punktegrenze (1–10.000.000) als Ausführungsgrenze des Laufs. Der Server rechnet sie mit dem gültigen Bewertungsstand und der neuen Betreibereinstellung `learning_usd_per_million_tokens` (`operator.yaml`) in die USD-Grenze um (`usage/budget.py`, abgerundet, nie darüber). Ohne Preisannahme oder Bewertungsstand bietet die Kundenansicht keinen Lauf an.
+- Kundenansicht ohne Geld-, Preis-, Token- und Modellangaben, auch nicht im versteckten Formularfeld: geschätzter Verbrauch und ungünstigster Fall, reservierte und tatsächlich verbrauchte Punkte (mit Zahl der noch nicht bewertbaren Aufrufe). Eingeschleuste Geldfelder oder eine zwischen Schätzung und Start geänderte Bewertung lehnen den Start vollständig ab.
+- Punktegrenze und Bewertungsrevision liegen in `web-learning-points.json`; `web-learning.json` behält sein Format. Aufrufe eines Lernlaufs werden als `learning.<Schritt>` erfasst und unter „Verbrauch“ als „Aus dem Postfach lernen“ zusammengefasst; „Aus Entscheidungen lernen“ und „Hilfschat“ erscheinen mit eigenem Namen.
+- Übernahme durch Kunden ändert in `config.yaml` nur Kundenfelder (sonst vollständige Ablehnung) und übernimmt die neuen Themen wie das Speichern unter „Themen“, ohne Link auf „Konfiguration neu laden“.
+- `/lernen`, `/lernen/entscheidungen` und das Hilfschat-Formular sprechen für Kunden von Punkten statt Kosten; ein fehlender Schritt `decision_rule_learning` nennt Kunden gegenüber nicht `prompts.yaml`. Die Lernwege sind für Kundensitzungen freigegeben (`web/permissions.py`). Berichte bleiben gesperrt.
+- Betreiber behalten das USD-Formular und sehen zusätzlich Punkte; selbst betriebene Instanzen sind unverändert. Noch nicht ausgeliefert; keine Kundenfreischaltung.
+
 ## 8.7.3 – Kundeninstanz `kunde` eingerichtet (Betrieb)
 
 - Serverbestand 25.11.2026: eigener Container `mailhelp-kunde` mit Image `mailhelp-production:8.7.2-e00a136` unter `kunde.inboxstride.de` (nginx, Let's-Encrypt-Zertifikat, Erneuerung per Cron), Kundenmodus über schreibgeschützt eingebundene `operator.yaml`, Bewertungsstand 1 (1 USD je EUR, Aufschlag 900 %), Aufnahme in die tägliche Sicherung. Läuft im Ersteinrichtungsmodus; keine Kundenfreischaltung. Produktion und Demo unverändert auf 8.5.4.

@@ -17,7 +17,7 @@ from ..i18n import Locale, current, tr
 from ..review.views import STAGE_LABELS
 from ..usage.ledger import Purpose, Summary, summarize
 from ..usage.points import current as current_valuation
-from ..usage.points import display
+from ..usage.points import display, total
 from .auth import WebSession
 from .http import Request, Response
 from .pages import e, layout, page_head
@@ -28,6 +28,19 @@ if TYPE_CHECKING:
 
 PATH = "/verbrauch"
 MAX_DAYS = 366
+# 8.7.4: steps outside mail processing; a learning run's calls carry the prefix "learning.".
+FEATURE_LABELS = {
+    "learning": "Aus dem Postfach lernen",
+    "decision_rule_learning": "Aus Entscheidungen lernen",
+    "settings_help": "Hilfschat",
+}
+
+
+def stage_label(stage: str) -> str:
+    feature = stage.split(".", 1)[0]
+    if feature in FEATURE_LABELS:
+        return tr(FEATURE_LABELS[feature])
+    return tr(STAGE_LABELS[stage]) if stage in STAGE_LABELS else tr("Weitere KI-Schritte")
 
 
 class UsageSite:
@@ -75,9 +88,12 @@ class UsageSite:
         body = head + '<div class="tiles">' + "".join(self._tile(label, item, english) for label, item in tiles)
         body += "</div>"
         body += self._form(start, end)
-        steps = [(tr(STAGE_LABELS[stage]) if stage in STAGE_LABELS else tr("Weitere KI-Schritte"), value)
-                 for stage, value in period.by_stage.items()]
-        body += self._table(tr("Nach Verarbeitungsschritt"), steps, english)
+        steps: dict[str, Decimal] = {}
+        for stage, value in period.by_stage.items():
+            # Several steps of one feature (a learning run) form one row; the sum stays exact.
+            label = stage_label(stage)
+            steps[label] = total([steps.get(label, Decimal(0)), value])
+        body += self._table(tr("Nach Verarbeitungsschritt"), list(steps.items()), english)
         body += self._table(tr("Nach Tag"), [(day.isoformat(), value) for day, value in period.by_day.items()],
                             english)
         body += '<p class="meta">' + tr("Einzelwerte gerundet; Summen aus den genauen Werten.")

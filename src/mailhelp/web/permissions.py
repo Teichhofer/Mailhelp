@@ -29,8 +29,7 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("POST", r"/aktion/[a-f0-9]{32}/gesehen"),
         ("GET", r"/status/(?:vorschlaege|relevanzfragen|web-aktionen)"),
         ("GET POST", r"/serie/.+"),
-        # Topics and sender rules. Learning (/lernen, /themen/lernen) and reports (/berichte) still show
-        # budgets and estimates in money; they follow once they show points (Planung 8.7, AP4).
+        # Topics and sender rules. Reports (/berichte) still show money; they follow in AP4.
         ("GET", r"/themen|/themen/(?:relevant|ausschluss)/[a-z0-9_-]{1,64}|/themen/entwurf/[a-f0-9]{64}"),
         ("POST", r"/themen/(?:pruefen|speichern)"),
         ("GET POST", r"/einstellungen/(?:absender|ignorierte-absender)(?:/.*)?"),
@@ -50,6 +49,11 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("GET", r"/api/hilfe/(?:fenster|auftrag/[a-f0-9]{32})"),
         # Usage in points
         ("GET", r"/verbrauch"),
+        # 8.7.4: learning shows points only; adoptions change only topics, sender rules and folders
+        ("GET POST", r"/lernen|/lernen/postfach|/lernen/entscheidungen|/themen/lernen"),
+        ("GET", r"/api/lernen|/api/lernen/uebersicht|/lernen/vorschlaege|/lernen/absender-hinweis"),
+        ("POST", r"/lernen/absender-hinweis/(?:uebernehmen|nicht-mehr-vorschlagen|wieder-zulassen)"
+                 r"|/lernen/hinweis-ausblenden"),
     )
 )
 

@@ -196,6 +196,26 @@ Während des Laufs zeigt die Seite „Läuft: … Mails geprüft, … Fehler“.
 der Lauf hält an, bevor es überschritten würde. Wurde die Konfiguration seit dem Start geändert,
 lässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.
 
+### Lernen in einer Kundeninstanz
+
+In einer vom Betreiber geführten Kundeninstanz (Kundenmodus, ab 8.7.4) zählt der Lernlauf in
+Punkten statt in Geld. Preise, Tokens und Modelle legt der Betreiber fest; du siehst sie nicht.
+
+1. Postfach, Ordner und Anzahl wie oben wählen. Im Schritt „3. Punktegrenze“ die
+   **Punktegrenze für diesen Lauf** angeben (ganze Zahl von 1 bis 10.000.000). Die Grenze ist kein
+   Guthaben, sondern die Obergrenze dieses einen Laufs.
+2. **Schätzung anzeigen** wählen. Mailhelp nennt den geschätzten Verbrauch und den ungünstigsten
+   Fall in Punkten. Reicht die Grenze nicht, steht dort die nötige Mindestzahl an Punkten.
+3. **Lesenden Lernlauf starten (verbraucht Punkte)** wählen. Ändert der Betreiber zwischen
+   Schätzung und Start die Bewertung, wird der Start abgelehnt; die Schätzung erneut anzeigen.
+
+Während des Laufs stehen reservierte und tatsächlich verbrauchte Punkte auf der Seite; Aufrufe, deren
+Kosten noch nicht feststehen, werden gezählt und genannt. Der Lauf hält an, bevor er die Grenze
+überschreiten würde. Nach der Übernahme gelten neue Themen ab der nächsten Analyse, neue Abrufordner
+beim nächsten Start; ein Neuladen durch dich ist nicht nötig. Den Verbrauch zeigt auch die Seite
+„Verbrauch“ unter „Aus dem Postfach lernen“. Hat der Betreiber Lernen noch nicht
+eingerichtet, sagt die Seite das und bietet keinen Start an.
+
 ### Ergebnis prüfen und übernehmen
 
 Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Beschreibung, die

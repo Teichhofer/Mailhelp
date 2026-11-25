@@ -33,8 +33,18 @@ _SETUP_FORM_TEXT_3 = msg(
     'startest.</p><button class="button">Schätzung anzeigen</button></form>'
 )
 
+# 8.7.4: customers choose a points limit; models, prices and tokens are the operator's.
+_CUSTOMER_FORM_TEXT = msg(
+    '</fieldset><fieldset><legend>3. Punktegrenze</legend><label>Punktegrenze für diesen Lauf'
+    '<input name="points" type="number" min="1" max="10000000" step="1" value="{p0}" required></label>'
+    "<p>Der Lauf hält an, bevor er die Grenze überschreiten würde. Gelesen wird ohne Änderung am "
+    "Postfach. Es entstehen keine Termine oder Aufgaben.</p></fieldset><p>4. Die Schätzung zeigt den "
+    "Verbrauch in Punkten, bevor du den Lauf ausdrücklich startest.</p>"
+    '<button class="button">Schätzung anzeigen</button></form>'
+)
 
-def setup_form(worker: Any, query_string: str) -> tuple[str, dict[str, list[str]]]:
+
+def setup_form(worker: Any, query_string: str, *, customer: bool = False) -> tuple[str, dict[str, list[str]]]:
     try:
         query = parse_qs(query_string, keep_blank_values=True, max_num_fields=120)
     except ValueError:
@@ -66,16 +76,19 @@ def setup_form(worker: Any, query_string: str) -> tuple[str, dict[str, list[str]
         (_SETUP_FORM_TEXT_2),
         p0=e(extra),
     )
-    for key, title, default, maximum in (
+    fields = (("count", "Anzahl Mails", "20", "1000"),) if customer else (
         ("count", "Anzahl Mails", "20", "1000"),
         ("price", msg("Preisobergrenze USD je Million Tokens"), "", "10000"),
         ("budget", "Budget USD", "", "1000"),
-    ):
+    )
+    for key, title, default, maximum in fields:
         if key == "price":
             body += tr("</fieldset><fieldset><legend>3. Kosten und Budget</legend>")
         minimum, step = ("1", "1") if key == "count" else ("0.000001", "any")
         body += (f'<label>{title}<input name="{key}" type="number" min="{minimum}" max="{maximum}" '
                  f'step="{step}" value="{e(query.get(key, [default])[0])}" required></label>')
+    if customer:
+        return body + tr(_CUSTOMER_FORM_TEXT, p0=e(query.get("points", [""])[0])), query
     models = sorted({route.model for stage in ("relevance", "learning_classification", "learning_abstraction")
                      for route in worker.app.analyzer.prompts.resolved_routes(stage)[0]})
     body += tr(

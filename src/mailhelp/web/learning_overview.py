@@ -17,7 +17,7 @@ from .learning_pages import UPDATED, cost_hint, heading
 from .learning_site import LABELS
 from .pages import e, layout
 from .proposal_evaluation_pages import learning_run_hint_banner
-from .rule_learning_site import STATUSES
+from .rule_learning_site import NOT_SET_UP, STATUSES
 
 RULE_HELP = "/hilfe/dokumentation/bedienung/aus-entscheidungen-lernen"
 
@@ -55,6 +55,7 @@ class LearningOverviewSite:
         )
 
     def home(self, request: Any, session: Any) -> Response:
+        customer = not self.site.auth.is_operator(session)
         body = heading(
             msg("Lernen"),
             msg(
@@ -85,8 +86,9 @@ class LearningOverviewSite:
             ),
             mailbox_status,
             last_run,
+            customer=customer,
         )
-        body += _decision_card(self, session)
+        body += _decision_card(self, session, customer)
         store = getattr(self.site, "views", self.site).store if hasattr(self.site, "views") else self.site.store
         report = evaluate_proposals(store)
         if report.summary.total_decided:
@@ -127,8 +129,8 @@ class LearningOverviewSite:
 
     @staticmethod
     def card(title: str, href: str, introduction: str, status: str, metric: str,
-             more: str = "", cost: bool = True) -> str:
-        cost_html = cost_hint() if cost else ""
+             more: str = "", cost: bool = True, customer: bool = False) -> str:
+        cost_html = cost_hint(customer) if cost else ""
         return (
             f'<section class="card stack"><h2>{e(title)}</h2><p>{e(introduction)}</p>'
             f'<p role="status">{e(status)}</p>{more}<p>{e(metric)}</p>'
@@ -137,7 +139,7 @@ class LearningOverviewSite:
         )
 
 
-def _decision_card(self: LearningOverviewSite, session: Any) -> str:
+def _decision_card(self: LearningOverviewSite, session: Any, customer: bool = False) -> str:
     body = ""
     service, more = self.site.rule_learning.service, ""
     if service is None:
@@ -157,7 +159,9 @@ def _decision_card(self: LearningOverviewSite, session: Any) -> str:
         metric = count_text(
             summary["new_decisions"], msg("neue verwertbare Entscheidung"), msg("neue verwertbare Entscheidungen")
         ) + tr(" seit der letzten Analyse, {p0} verwertbare insgesamt.", p0=german_number(summary["all_decisions"]))
-        if not summary["available"]:
+        if not summary["available"] and customer:
+            status = NOT_SET_UP
+        elif not summary["available"]:
             status = msg(
 
                     "In prompts.yaml fehlt der Schritt decision_rule_learning. Den Block aus "
@@ -177,6 +181,7 @@ def _decision_card(self: LearningOverviewSite, session: Any) -> str:
         status,
         metric,
         more,
+        customer=customer,
     )
     return body
 

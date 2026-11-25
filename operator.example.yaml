@@ -2,10 +2,14 @@
 # Mailhelp liest sie beim Start und schreibt sie nie; weder Weboberfläche noch Import ändern sie.
 # Ohne die Datei bleibt die Instanz selbst betrieben (bisheriges Verhalten).
 #
-# Noch keine Kundenfreischaltung mit 8.7.1: siehe docs/Release-8.7.md.
+# Noch keine Kundenfreischaltung (Stand 8.7.4): siehe docs/Release-8.7.md.
 schema_version: 1
 # true: jede Websitzung erhält serverseitig die Rolle customer oder operator; rollenlose Sitzungen
 # und Codes werden beim ersten Start widerrufen. Betreiberzugang: mailhelp --pair --operator am Host.
 customer_mode: false
 # Kennung dieser Kundeninstanz (Kleinbuchstaben, Ziffern, Bindestrich); Sitzungen sind daran gebunden.
 instance: self
+# 8.7.4: Preisannahme des Betreibers für „Aus dem Postfach lernen“ in USD je Million Tokens (positiv,
+# höchstens 10000, als Text). Kunden wählen nur eine Punktegrenze; der Server rechnet sie mit dem gültigen
+# Bewertungsstand in die USD-Grenze des Laufs um. Ohne Wert bietet die Kundenansicht keinen Lernlauf an.
+# learning_usd_per_million_tokens: "0.5"

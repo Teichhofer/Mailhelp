@@ -2814,14 +2814,7 @@ EN = {
         'for="help-question">Deine Frage zu Einstellungen und '
         'Bedienung</label><textarea id="help-question" '
         'name="frage" rows="3" maxlength="8000" '
-        'required>{p6}</textarea><details '
-        'class="help-cost-hint"><summary>Kostenpflichtig</summar'
-        'y><p class="meta">Frage, kurzer Verlauf und passende '
-        'Abschnitte der Mailhelp-Dokumentation gehen an den '
-        'aktiven KI-Anbieter und können Kosten verursachen. '
-        'Keine Passwörter oder Tokens eingeben. Der Hilfschat '
-        'erklärt nur; er ändert keine '
-        'Einstellungen.</p></details><button class="button '
+        'required>{p6}</textarea>{p7}<button class="button '
         'primary" type="submit">Frage senden</button></form>'
     ): (
             '<form method="post" action="/hilfe/frage" class="stack '
@@ -2834,15 +2827,35 @@ EN = {
             'for="help-question">Your question about settings and '
             'operation</label><textarea id="help-question" '
             'name="frage" rows="3" maxlength="8000" '
-            'required>{p6}</textarea><details '
-            'class="help-cost-hint"><summary>May incur '
+            'required>{p6}</textarea>{p7}<button class="button primary" '
+            'type="submit">Send question</button></form>'
+        ),
+    (
+        '<details class="help-cost-hint"><summary>Kostenpflichtig</summary><p '
+        'class="meta">Frage, kurzer Verlauf und passende Abschnitte der '
+        'Mailhelp-Dokumentation gehen an den aktiven KI-Anbieter und '
+        'können Kosten verursachen. Keine Passwörter oder Tokens '
+        'eingeben. Der Hilfschat erklärt nur; er ändert keine '
+        'Einstellungen.</p></details>'
+    ): (
+            '<details class="help-cost-hint"><summary>May incur '
             'costs</summary><p class="meta">The question, short '
             'history, and relevant sections of the Mailhelp '
             'documentation are sent to the active AI provider and '
             'may incur costs. Do not enter passwords or tokens. The '
             'help chat only explains; it does not change '
-            'settings.</p></details><button class="button primary" '
-            'type="submit">Send question</button></form>'
+            'settings.</p></details>'
+        ),
+    (
+        '<details class="help-cost-hint"><summary>Verbraucht Punkte</summary><p class="meta">Frage, '
+        'kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an den KI-Anbieter; '
+        'jede Antwort verbraucht Punkte. Keine Passwörter oder Zugangsdaten eingeben. Der Hilfschat '
+        'erklärt nur; er ändert keine Einstellungen.</p></details>'
+    ): (
+            '<details class="help-cost-hint"><summary>Uses points</summary><p class="meta">The question, '
+            'short history and relevant sections of the Mailhelp documentation are sent to the AI provider; '
+            'every answer uses points. Do not enter passwords or credentials. The help chat only explains; '
+            'it does not change settings.</p></details>'
         ),
     (
         '<p class="meta">Einstellungen</p><ul '
@@ -10065,4 +10078,74 @@ EN = {
     'Nur für den Betreiber': 'Operator only',
     'Diese Funktion verwaltet der Betreiber deiner Mailhelp-Instanz.':
         'The operator of your Mailhelp instance manages this function.',
+    # 8.7.4: learning in points
+    '</fieldset><fieldset><legend>3. Punktegrenze</legend><label>Punktegrenze für diesen Lauf'
+    '<input name="points" type="number" min="1" max="10000000" step="1" value="{p0}" required></label>'
+    '<p>Der Lauf hält an, bevor er die Grenze überschreiten würde. Gelesen wird ohne Änderung am '
+    'Postfach. Es entstehen keine Termine oder Aufgaben.</p></fieldset><p>4. Die Schätzung zeigt den '
+    'Verbrauch in Punkten, bevor du den Lauf ausdrücklich startest.</p>'
+    '<button class="button">Schätzung anzeigen</button></form>':
+        '</fieldset><fieldset><legend>3. Points limit</legend><label>Points limit for this run'
+        '<input name="points" type="number" min="1" max="10000000" step="1" value="{p0}" required></label>'
+        '<p>The run stops before it would exceed the limit. Mail is read without changing the mailbox. '
+        'No events or tasks are created.</p></fieldset><p>4. The estimate shows the usage in points '
+        'before you explicitly start the run.</p>'
+        '<button class="button">Show estimate</button></form>',
+    '<details class="help-cost-hint"><summary>Verbraucht Punkte</summary><p>Eine Analyse '
+    'überträgt die auf der Unterseite genannten Daten an den KI-Anbieter und verbraucht '
+    'Punkte erst nach deiner ausdrücklichen Startfreigabe. Das Öffnen dieser Seite startet '
+    'keine Analyse.</p></details>':
+        '<details class="help-cost-hint"><summary>Uses points</summary><p>An analysis sends the data '
+        'named on the subpage to the AI provider and uses points only after you explicitly start it. '
+        'Opening this page does not start an analysis.</p></details>',
+    '<details class="rule-reanalyze"><summary>Neue Analyse vorbereiten (verbraucht Punkte)</summary>':
+        '<details class="rule-reanalyze"><summary>Prepare a new analysis (uses points)</summary>',
+    '<input type="hidden" name="selection" value="{p0}"><button class="button">'
+    'Lesenden Lernlauf starten (verbraucht Punkte)</button>':
+        '<input type="hidden" name="selection" value="{p0}"><button class="button">'
+        'Start read-only learning run (uses points)</button>',
+    '<p>Auswahl: Postfach {p0}, {p1} Mails, Ordner {p2}.</p>':
+        '<p>Selection: mailbox {p0}, {p1} emails, folders {p2}.</p>',
+    '<p>Die gewählten Entscheidungen werden mit den aktuellen Themenregeln analysiert. '
+    'Betreff, begrenzte Textauszüge und Korrekturen gehen an den KI-Anbieter. Die Analyse '
+    'verbraucht Punkte. Es werden keine Mails abgerufen oder externen Einträge '
+    'angelegt.</p><label><input type="checkbox" name="confirm" value="yes" required> '
+    'Datenübertragung und Analyse ausdrücklich starten (verbraucht Punkte)</label><p>Eine '
+    'neue Analyse ersetzt einen noch offenen Prüfentwurf.</p><button class="button" '
+    'type="submit">Entscheidungen analysieren</button>':
+        '<p>The chosen decisions are analysed with the current topic rules. Subject, limited text '
+        'excerpts and corrections go to the AI provider. The analysis uses points. No emails are '
+        'fetched and no external entries are created.</p><label><input type="checkbox" name="confirm" '
+        'value="yes" required> Explicitly start the data transfer and analysis (uses points)</label>'
+        '<p>A new analysis replaces a review draft that is still open.</p><button class="button" '
+        'type="submit">Analyse decisions</button>',
+    'Angehalten: Punktegrenze, Sitzung oder Konfiguration prüfen.':
+        'Stopped: check the points limit, session or configuration.',
+    'Auswahl gemeinsam gespeichert. Neue Analysen übernehmen die Themen am nächsten sicheren '
+    'Verarbeitungspunkt, neue Abrufordner beim nächsten Start.':
+        'Selection saved together. New analyses use the topics at the next safe processing point, '
+        'new fetch folders at the next start.',
+    'Bewertung geändert, bitte Schätzung prüfen.': 'Valuation changed, please check the estimate.',
+    'Die Punktegrenze reicht für die Schätzung nicht aus.': 'The points limit does not cover the estimate.',
+    'Die Punktegrenze reicht für die Schätzung nicht aus. Bitte mindestens {p0} angeben.':
+        'The points limit does not cover the estimate. Please enter at least {p0}.',
+    'Die Punktegrenze wird vor jedem Aufruf geprüft; der Lauf hält an, bevor sie überschritten würde.':
+        'The points limit is checked before every call; the run stops before it would be exceeded.',
+    'Entdecke neue Themen in vorhandenen Mails. Prüfe erst Auswahl und Verbrauch, '
+    'dann gib den lesenden Lauf ausdrücklich frei.':
+        'Discover new topics in existing emails. Check the selection and usage first, then explicitly '
+        'approve the read-only run.',
+    'Geschätzter Verbrauch: etwa {estimate}; ungünstigster Fall: höchstens {worst}.':
+        'Estimated usage: about {estimate}; worst case: at most {worst}.',
+    'Höchstens {p0}, neueste zuerst. Mehr Belege, mehr Punkte; die '
+    'Nutzlastgrenze kann ältere Belege auslassen.':
+        'At most {p0}, newest first. More evidence, more points; the payload limit may leave out '
+        'older evidence.',
+    'Lernen aus Entscheidungen ist vom Betreiber noch nicht eingerichtet.':
+        'The operator has not set up learning from decisions yet.',
+    'Lernen aus dem Postfach ist vom Betreiber noch nicht eingerichtet.':
+        'The operator has not set up learning from the mailbox yet.',
+    'Reserviert: {reserved} der Punktegrenze von {limit}.': 'Reserved: {reserved} of the points limit of {limit}.',
+    'Reserviert: {reserved}.': 'Reserved: {reserved}.',
+    'Tatsächlich verbraucht: {points}.': 'Actually used: {points}.',
 }

@@ -1290,6 +1290,18 @@
   "title": "Lernlauf in der Weboberfläche starten"
  },
  {
+  "id": "bedienung/lernen-in-einer-kundeninstanz",
+  "path": [
+   "Alltagsbedienung",
+   "Lernmodus (Lernfunktion)",
+   "Lernen in einer Kundeninstanz"
+  ],
+  "setting_ids": [],
+  "source": "docs/Bedienung.md",
+  "text": "In einer vom Betreiber geführten Kundeninstanz (Kundenmodus, ab 8.7.4) zählt der Lernlauf in\nPunkten statt in Geld. Preise, Tokens und Modelle legt der Betreiber fest; du siehst sie nicht.\n\n1. Postfach, Ordner und Anzahl wie oben wählen. Im Schritt „3. Punktegrenze“ die\n   **Punktegrenze für diesen Lauf** angeben (ganze Zahl von 1 bis 10.000.000). Die Grenze ist kein\n   Guthaben, sondern die Obergrenze dieses einen Laufs.\n2. **Schätzung anzeigen** wählen. Mailhelp nennt den geschätzten Verbrauch und den ungünstigsten\n   Fall in Punkten. Reicht die Grenze nicht, steht dort die nötige Mindestzahl an Punkten.\n3. **Lesenden Lernlauf starten (verbraucht Punkte)** wählen. Ändert der Betreiber zwischen\n   Schätzung und Start die Bewertung, wird der Start abgelehnt; die Schätzung erneut anzeigen.\n\nWährend des Laufs stehen reservierte und tatsächlich verbrauchte Punkte auf der Seite; Aufrufe, deren\nKosten noch nicht feststehen, werden gezählt und genannt. Der Lauf hält an, bevor er die Grenze\nüberschreiten würde. Nach der Übernahme gelten neue Themen ab der nächsten Analyse, neue Abrufordner\nbeim nächsten Start; ein Neuladen durch dich ist nicht nötig. Den Verbrauch zeigt auch die Seite\n„Verbrauch“ unter „Aus dem Postfach lernen“. Hat der Betreiber Lernen noch nicht\neingerichtet, sagt die Seite das und bietet keinen Start an.",
+  "title": "Lernen in einer Kundeninstanz"
+ },
+ {
   "id": "bedienung/ergebnis-pruefen-und-uebernehmen",
   "path": [
    "Alltagsbedienung",

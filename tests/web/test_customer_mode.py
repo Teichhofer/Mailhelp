@@ -4,6 +4,8 @@ Abnahme 1, 2, 4–7, 16 and 18 with synthetic sessions only; the OpenRouter key 
 """
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from mailhelp.config.configuration import AdminCommand, AdminKind, customer_may_change, file_hash
@@ -48,11 +50,13 @@ def test_the_start_applies_customer_mode_and_makes_telegram_a_customer_channel(c
     operator = session_of(customer, signed_in(customer, "operator", "Support"))
     session_of(customer, signed_in(customer))
     application = SimpleNamespace(logger=customer.logger, dialog=SimpleNamespace(web_logout=None))
-    components = SimpleNamespace(auth=customer.auth)
+    components = SimpleNamespace(auth=customer.auth, site=SimpleNamespace(learning_price=None))
     _apply_instance_mode(application, components, InstanceMode())  # type: ignore[arg-type]
     assert application.dialog.web_logout is None
-    _apply_instance_mode(application, components, InstanceMode(customer_mode=True, instance="kunde-a"))  # type: ignore[arg-type]
+    _apply_instance_mode(application, components, InstanceMode(customer_mode=True, instance="kunde-a",  # type: ignore[arg-type]
+                                                               learning_usd_per_million_tokens="0.5"))
     assert application.dialog.web_logout() == 1 and customer.auth.active(operator.id)
+    assert components.site.learning_price == Decimal("0.5")  # the operator's price assumption (8.7.4)
     assert (("INFO", "web", "customer_mode_active"), {"instance": "kunde-a", "revoked_sessions": 0}) in \
         customer.logger.events
 
@@ -173,9 +177,18 @@ def test_the_route_list_admits_customer_paths_and_nothing_unnamed():
     assert customer_may("POST", "/mail/" + "b" * 24 + "/nachanalyse") and customer_may("GET", "/verbrauch")
     assert not customer_may("POST", "/") and not customer_may("GET", "/status")
     assert not customer_may("GET", "/neue-betreiberseite") and not customer_may("POST", "/einstellungen/speichern")
-    # Until they show points instead of money (AP4):
-    assert not any(customer_may("GET", path) for path in ("/lernen", "/lernen/entscheidungen", "/themen/lernen",
-                                                          "/berichte", "/api/lernen/uebersicht"))
+    # Reports still show money (AP4); learning shows points since 8.7.4.
+    assert not customer_may("GET", "/berichte") and not customer_may("POST", "/lernen/vorschlaege")
+    assert not customer_may("GET", "/lernen/unbekannt") and not customer_may("POST", "/api/lernen")
+    for method, path in (("GET", "/lernen"), ("POST", "/lernen"), ("GET", "/api/lernen/uebersicht"),
+                         ("GET", "/lernen/postfach"), ("POST", "/lernen/postfach"), ("GET", "/api/lernen"),
+                         ("GET", "/lernen/entscheidungen"), ("POST", "/lernen/entscheidungen"),
+                         ("GET", "/lernen/vorschlaege"), ("GET", "/lernen/absender-hinweis"),
+                         ("POST", "/lernen/absender-hinweis/uebernehmen"),
+                         ("POST", "/lernen/absender-hinweis/nicht-mehr-vorschlagen"),
+                         ("POST", "/lernen/absender-hinweis/wieder-zulassen"), ("POST", "/lernen/hinweis-ausblenden"),
+                         ("GET", "/themen/lernen"), ("POST", "/themen/lernen")):
+        assert customer_may(method, path), (method, path)
     assert customer_may("GET", "/themen/relevant/school") and customer_may("POST", "/themen/speichern")
 
 
@@ -210,7 +223,19 @@ def test_the_instance_mode_is_read_only_from_operator_yaml(tmp_path):
     assert load_instance_mode(tmp_path) == InstanceMode(customer_mode=True, instance="kunde-a")
     (tmp_path / "operator.yaml").write_text("", encoding="utf-8")
     assert load_instance_mode(tmp_path) == InstanceMode()
-    for broken in ("customer_mode: [", "customer_mode: true\ninstance: Kunde A\n", "unknown: 1\n"):
+    (tmp_path / "operator.yaml").write_text('learning_usd_per_million_tokens: "0.25"\n', encoding="utf-8")
+    assert load_instance_mode(tmp_path).learning_usd_per_million_tokens == Decimal("0.25")
+    for broken in ("customer_mode: [", "customer_mode: true\ninstance: Kunde A\n", "unknown: 1\n",
+                   "learning_usd_per_million_tokens: 0\n", "learning_usd_per_million_tokens: .nan\n",
+                   "learning_usd_per_million_tokens: 10001\n"):
         (tmp_path / "operator.yaml").write_text(broken, encoding="utf-8")
         with pytest.raises(InstanceModeError):
             load_instance_mode(tmp_path)
+
+
+def test_the_help_chat_names_points_for_customers_and_costs_for_the_operator(customer):
+    # 8.7.4: the help chat on every page; its answers count as the customer's usage.
+    page = signed_in(customer).request("GET", "/api/hilfe/fenster").body.decode()
+    assert "Verbraucht Punkte" in page and "Kosten" not in page and "Tokens" not in page
+    operator = signed_in(customer, "operator", "Support").request("GET", "/api/hilfe/fenster").body.decode()
+    assert "Kostenpflichtig" in operator and "können Kosten verursachen" in operator

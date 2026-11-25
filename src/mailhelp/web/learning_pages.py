@@ -18,7 +18,15 @@ def heading(title: str, introduction: str, *, back: bool = True) -> str:
     )
 
 
-def cost_hint() -> str:
+def cost_hint(customer: bool = False) -> str:
+    if customer:
+        # 8.7.4: customers see their usage in points, never money wording.
+        return tr(
+            '<details class="help-cost-hint"><summary>Verbraucht Punkte</summary><p>Eine Analyse '
+            "überträgt die auf der Unterseite genannten Daten an den KI-Anbieter und verbraucht "
+            "Punkte erst nach deiner ausdrücklichen Startfreigabe. Das Öffnen dieser Seite startet "
+            "keine Analyse.</p></details>"
+        )
     return tr(
         '<details class="help-cost-hint"><summary>Kostenpflichtig</summary'
         "><p>Eine Analyse überträgt die auf der Unterseite genannten "

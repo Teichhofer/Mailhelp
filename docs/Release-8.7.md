@@ -1,12 +1,14 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 25. November 2026. Version 8.7.1. Grundlage: [Planung 8.7](Planung-8.7.md).
+Stand: 25. November 2026. Version 8.7.4. Grundlage: [Planung 8.7](Planung-8.7.md) und
+[Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
 > Verbrauchserfassung in Punkten. Die rechtegerechten Kundenansichten aller Einstellungs- und
 > Kostenseiten (AP4) fehlen noch. Kundenseiten, die noch nicht umgestellt sind, sperrt die zentrale
 > Prüfung für Kundensitzungen vollständig. Laut Plan §9 darf erst nach Abschluss von AP4–AP6 eine
-> Instanz für Kunden freigeschaltet werden.
+> Instanz für Kunden freigeschaltet werden. Seit 8.7.4 sind die Lernwege in Punkten umgestellt und für
+> Kundensitzungen freigegeben; Berichte und Einstellungsseiten folgen.
 
 ## Umgesetzt in 8.7.1
 
@@ -33,6 +35,27 @@ Kundeninstanz `kunde` (Plan [Lernen in Punkten](Planung-8.7-Lernen.md) §6) auf 
 Ersteinrichtungsmodus; die Ersteinrichtung mit dem Betreiber-OpenRouter-Schlüssel nimmt der
 Betreiber vor. Keine Kundenfreischaltung.
 
+## Umgesetzt in 8.7.4 – Lernen in Punkten
+
+Umsetzung von [Lernen in Punkten](Planung-8.7-Lernen.md) §4:
+
+| Thema | Umsetzung |
+| --- | --- |
+| Preisannahme | `learning_usd_per_million_tokens` in `operator.yaml` (positiv, höchstens 10000, nur beim Start gelesen). Ohne Wert oder ohne Bewertungsstand: „Lernen aus dem Postfach ist vom Betreiber noch nicht eingerichtet“, kein Start |
+| Umrechnung | `usage/budget.py`: Punktegrenze → USD-Grenze `Punkte / 1000 × Kurs / (1 + Aufschlag/100)`, abgerundet auf 10⁻¹² USD und als Gleitkommazahl nie darüber; Schätzung in Punkten über dieselbe Formel wie der Verbrauch. Die genannte Mindestgrenze ist genau der Wert, den die Startprüfung annimmt (gegebenenfalls ein Punkt mehr für die Abrundung) |
+| Kundenansicht `/lernen/postfach` | Feld „Punktegrenze für diesen Lauf“ (1–10.000.000); geschätzter Verbrauch und ungünstigster Fall in Punkten; reserviert und tatsächlich verbraucht in Punkten mit Zahl der noch nicht bewertbaren Aufrufe; keine Modell-, Preis-, Token- oder USD-Angaben, auch nicht im versteckten Feld; kein Link auf „Konfiguration neu laden“ |
+| Start | Das versteckte Feld enthält nur Postfach, Ordner, Anzahl, Punkte und Bewertungsrevision. Der Server rechnet die USD-Grenze selbst; eingeschleuste Geldfelder, Zahlen statt Text, ungültige Punkte und eine inzwischen geänderte Bewertung („Bewertung geändert, bitte Schätzung prüfen“) lehnen den Start vollständig ab |
+| Zustand | `web-learning.json` unverändert (Rückkehr auf 8.7.3 möglich); Punktegrenze und Revision in `web-learning-points.json`, an die Generation des Laufs gebunden und bei jedem Start ersetzt |
+| Verbrauch | Aufrufe eines Lernlaufs werden als `learning.<Schritt>` erfasst (gleiches Zeilenformat von `attempts.jsonl`); `/verbrauch` fasst sie als „Aus dem Postfach lernen“ zusammen und nennt „Aus Entscheidungen lernen“ und „Hilfschat“ |
+| Übernahme | Bei Kundensitzungen nur Kundenfelder in `config.yaml` (Abrufordner des gewählten Postfachs), sonst vollständige Ablehnung; die neuen Themen werden wie beim Speichern unter „Themen“ übernommen |
+| Weitere Seiten | `/lernen`, `/lernen/entscheidungen` und das Hilfschat-Formular sprechen für Kunden von Punkten statt Kosten; ein fehlender Schritt `decision_rule_learning` heißt für Kunden „vom Betreiber noch nicht eingerichtet“ ohne Verweis auf `prompts.yaml` |
+| Rechte | Für Kunden freigegeben: `/lernen`, `/lernen/postfach`, `/lernen/entscheidungen`, `/themen/lernen` (GET/POST), `/api/lernen`, `/api/lernen/uebersicht`, `/lernen/vorschlaege`, `/lernen/absender-hinweis` (GET) und deren Aktionen |
+
+Betreiber sehen weiterhin das USD-Formular und zusätzlich reservierte und verbrauchte Punkte. Selbst
+betriebene Instanzen sind unverändert. Nicht ausgeliefert; die Instanz `kunde` läuft weiter mit 8.7.2.
+Vor einer Auslieferung dort muss `learning_usd_per_million_tokens` in `/opt/mailhelp-kunde/operator.yaml`
+ergänzt werden.
+
 Protokolle, Logging-Einstellungen, Rotation und Aufbewahrung sind unverändert. Der Verbrauchsbestand ist
 eine eigene Datei und wird nicht aus Logs aufgebaut.
 
@@ -54,7 +77,9 @@ eine eigene Datei und wird nicht aus Logs aufgebaut.
 | 13 | Abgebrochener Schreibvorgang, Neustart | Keine erfundenen Kosten, später nachgewiesenes Ergebnis einmal ergänzt |
 | 16 | Sitzung einer anderen Instanz | Wird nicht angenommen |
 | 18 | Aktivierung auf bestehender Instanz | Rollenlose Sitzungen und Codes widerrufen; kein rückwirkender Verbrauch |
-| 3, 14, 15, 17, 19, 20 | – | Offen (AP4–AP6) |
+| 14 (Lernen) | Geldbegriffe, `usd_`, Tokens, Modellnamen in HTML, versteckten Feldern und JSON von `/lernen*`, `/api/lernen*` | Keine Treffer für Kundensitzungen (`tests/services/test_learning_points.py`) |
+| – | Lernen: Manipulation, Bewertungswechsel, Wiederholung, Anhalten vor der Grenze, Neustart, Übernahme | Wie Plan Lernen in Punkten §5 (`tests/services/test_learning_points.py`, `tests/usage/test_usage_budget.py`) |
+| 3, 14 (übrige Seiten), 15, 17, 19, 20 | – | Offen (AP4–AP6) |
 
 ## Auslieferung
 

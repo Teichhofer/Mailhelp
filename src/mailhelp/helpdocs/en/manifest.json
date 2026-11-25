@@ -1,9 +1,9 @@
 {
- "app_version": "8.7.3",
+ "app_version": "8.7.4",
  "locale": "en",
- "revision": "05db583f7849864c8c4baa8a26de95c1d3ce298a7580b8b7610dccc8844a4a6b",
+ "revision": "244a94cb27191e7a840c0e21e0e45a432290aa04fb7749888f50e2b10293ce05",
  "schema_version": 2,
- "sections": 133,
+ "sections": 134,
  "sources": [
   {
    "path": "docs/en/Web-Einstellungen.md",
@@ -23,7 +23,7 @@
   },
   {
    "path": "docs/en/Bedienung.md",
-   "sha256": "9962739a6234bc6884a3eeeb1a48652b65cb18c9f01b8f86a23dc330ff5190fb"
+   "sha256": "fb6c1009d278b08cfa68b4ffdd985808a7c3e89d8b10130f16bc7dbdc8f3c8ff"
   },
   {
    "path": "docs/en/Fehlerbehebung.md",

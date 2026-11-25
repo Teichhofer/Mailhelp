@@ -338,6 +338,7 @@ def _apply_instance_mode(application: Application, components: Any, mode: Instan
     if not mode.customer_mode:
         return
     revoked = components.auth.enter_customer_mode(mode.instance)
+    components.site.learning_price = mode.learning_usd_per_million_tokens
     application.logger.event("INFO", "web", "customer_mode_active", instance=mode.instance,
                              revoked_sessions=revoked)
     assert application.dialog is not None

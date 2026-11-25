@@ -14,7 +14,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
-from ..config.configuration import ConfigurationService, file_hash
+from ..config.configuration import ConfigurationService, customer_may_change, file_hash
 from ..domain.extraction import LearnedCategory
 from ..domain.relevance import IrrelevantSenders
 from ..llm.learning import _topic_id, topics_document
@@ -22,6 +22,8 @@ from ..mailbox.sender_filter import change_irrelevant_senders
 from ..persistence.storage import atomic_replace
 
 FILES = ("config.yaml", "topics.yaml", "irrelevant_topics.yaml", "irrelevant-senders.json")
+# 8.7.4: a customer's points limit lives beside web-learning.json, which keeps its 8.7.1 format.
+POINTS = "web-learning-points"
 
 
 JobStatus = Literal["empty", "running", "paused", "cancelled", "review", "committing", "done"]
@@ -35,6 +37,16 @@ class LearningSelection(BaseModel):
     budget_usd: float = Field(gt=0, le=1000, allow_inf_nan=False)
     # User-supplied ceiling, never a guessed or hard-coded provider price.
     usd_per_million_tokens: float = Field(gt=0, le=10000, allow_inf_nan=False)
+
+
+class LearningPoints(BaseModel):
+    """The points limit a customer chose for one run, bound to the valuation revision it was based on."""
+
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    generation: int = Field(ge=1)
+    points: str = Field(pattern=r"^[1-9][0-9]{0,7}$")
+    revision: int = Field(ge=1)
 
 
 class LearningCard(BaseModel):
@@ -88,6 +100,14 @@ class LearningJobs:
     def save(self, state: LearningJob) -> None:
         self.store.save("web-learning", state.model_dump(mode="json"))
 
+    def points(self, state: LearningJob) -> LearningPoints | None:
+        """The customer's points limit of the current run; none for a run started with a USD budget."""
+        found = self.store.load_model(POINTS, LearningPoints, None)
+        return found if found is not None and found.generation == state.generation else None
+
+    def save_points(self, limit: LearningPoints) -> None:
+        self.store.save(POINTS, limit.model_dump(mode="json"))
+
     def hashes(self) -> dict[str, str]:
         return {name: file_hash(self.directory / name) if (self.directory / name).exists() else "" for name in FILES}
 
@@ -112,7 +132,9 @@ class LearningJobs:
         if not self.active(actor):
             raise LearningConflict("Sitzung abgelaufen; erneut anmelden.")
 
-    def change(self, actor: str, version: int, key: str, action: str, payload: dict) -> LearningJob:
+    def change(self, actor: str, version: int, key: str, action: str, payload: dict,
+               limit: tuple[int, int] | None = None) -> LearningJob:
+        """Apply one versioned action; ``limit`` (points, valuation revision) belongs to a customer start."""
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
             raise LearningConflict("Ungültiger Idempotenzschlüssel")
         digest = hashlib.sha256(json.dumps([actor, version, action, payload], sort_keys=True).encode()).hexdigest()
@@ -131,6 +153,12 @@ class LearningJobs:
             state.operations[key] = digest
             state.operations = dict(list(state.operations.items())[-200:])
             self.save(state)
+            if action == "start":
+                # Replaced at every start: a USD run never inherits an earlier points limit.
+                self.store.delete(POINTS)
+                if limit is not None:
+                    self.save_points(LearningPoints(generation=state.generation, points=str(limit[0]),
+                                                    revision=limit[1]))
             if state.status == "committing":
                 self.finish_commit(state)
             return state
@@ -190,11 +218,12 @@ class LearningJobs:
                     "cards": [value for value in state.choices.values() if value["kind"] != "skip"],
                     "folders": [name for name, selected in state.folders.items() if selected],
                 },
+                actor,
             )
         else:
             raise LearningConflict("Ungültige Aktion")
 
-    def prepare_commit(self, state: LearningJob, payload: dict) -> None:
+    def prepare_commit(self, state: LearningJob, payload: dict, actor: str = "") -> None:
         if state.revision != self.revision() or set(payload) != {"cards", "folders"}:
             raise LearningConflict("Konfiguration oder Auswahl geändert; neu prüfen.")
         assert state.selection is not None
@@ -251,6 +280,12 @@ class LearningJobs:
             section = next(box for box in section["mailboxes"] if box["id"] == state.selection.mailbox)
         section["folders"] = list(dict.fromkeys([*section["folders"], *selected]))
         Settings.model_validate(raw)
+        if self.configuration.restricted(actor):
+            # 8.7.4: topics, exclusions and sender rules are the customer's; in config.yaml only
+            # customer fields may change, otherwise the whole adoption is refused.
+            changed = _changed(read_yaml(self.directory / "config.yaml"), raw)
+            if not all(customer_may_change(name) for name in changed):
+                raise LearningConflict("Übernahme enthält Einstellungen, die nur der Betreiber ändern darf.")
         documents["config.yaml"] = yaml.safe_dump(raw, allow_unicode=True, sort_keys=False)
         state.before, state.commit, state.status = self.hashes(), documents, "committing"
 
@@ -264,6 +299,9 @@ class LearningJobs:
                 raise LearningConflict("Übernahme unterbrochen; Datei wurde außerhalb des Lernlaufs geändert.")
         for name, content in state.commit.items():
             atomic_replace(self.directory / name, content)
+        # Like saving topics: new analyses use them at the next safe processing point.
+        self.configuration.activate_topics(
+            [Topic.model_validate(item) for item in yaml.safe_load(state.commit["topics.yaml"])["topics"]])
         state.status, state.message, state.commit = (
             "done",
             "Auswahl gemeinsam gespeichert. Konfiguration neu laden.",
@@ -272,4 +310,17 @@ class LearningJobs:
         self.save(state)
 
 
-__all__ = ["LearningJob", "LearningJobs", "LearningSelection", "LearningCard", "LearningConflict"]
+def _changed(before: Any, after: Any, prefix: str = "") -> set[str]:
+    """Dotted names whose values differ; list items are named by their index (imap.mailboxes.0.folders)."""
+    if isinstance(before, dict) and isinstance(after, dict):
+        return {name for key in before.keys() | after.keys()
+                for name in _changed(before.get(key), after.get(key), f"{prefix}{key}.")}
+    if (isinstance(before, list) and isinstance(after, list) and len(before) == len(after)
+            and all(isinstance(item, dict) for item in [*before, *after])):
+        return {name for index, (old, new) in enumerate(zip(before, after, strict=True))
+                for name in _changed(old, new, f"{prefix}{index}.")}
+    return set() if before == after else {prefix.removesuffix(".")}
+
+
+__all__ = ["POINTS", "LearningJob", "LearningJobs", "LearningPoints", "LearningSelection", "LearningCard",
+           "LearningConflict"]

@@ -30,6 +30,10 @@ FILE = "valuations.json"
 LEDGER = "attempts.jsonl"
 # Server-side purpose of the calls made in this context; a customer request can never set it.
 PURPOSE: ContextVar[Purpose] = ContextVar("usage_purpose", default=Purpose.CUSTOMER)
+# 8.7.4: the feature a call belongs to, recorded as stage prefix ("learning.relevance"). A learning
+# run uses the same steps as mail processing; only the prefix tells its usage apart.
+SCOPES = frozenset({"learning"})
+SCOPE: ContextVar[str | None] = ContextVar("usage_scope", default=None)
 
 
 class ValuationError(ValueError):
@@ -96,7 +100,9 @@ class UsageMeter:
         valuation = current(self.valuations.revisions(), self.clock())
         if valuation is None:
             return False
-        stage = stage if re.fullmatch(r"[a-z0-9_.-]{1,64}", stage) else "other"
+        stage = stage if re.fullmatch(r"[a-z0-9_-]{1,48}", stage) else "other"
+        scope = SCOPE.get()
+        stage = f"{scope}.{stage}" if scope is not None else stage
         self.ledger.begin(attempt, stage, PURPOSE.get(), valuation, mail_id)
         return True
 
@@ -114,5 +120,17 @@ def operator_purpose() -> Iterator[None]:
         PURPOSE.reset(token)
 
 
-__all__ = ["FILE", "LEDGER", "PURPOSE", "USAGE_DIRECTORY", "UsageMeter", "ValuationError", "Valuations",
-           "operator_purpose"]
+@contextmanager
+def usage_scope(scope: str) -> Iterator[None]:
+    """Calls in this block are recorded as part of ``scope`` (one of :data:`SCOPES`)."""
+    if scope not in SCOPES:
+        raise ValueError("Unbekannter Verbrauchsbereich")
+    token = SCOPE.set(scope)
+    try:
+        yield
+    finally:
+        SCOPE.reset(token)
+
+
+__all__ = ["FILE", "LEDGER", "PURPOSE", "SCOPE", "SCOPES", "USAGE_DIRECTORY", "UsageMeter", "ValuationError",
+           "Valuations", "operator_purpose", "usage_scope"]

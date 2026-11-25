@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.4 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.4: Lernen in Punkten. In einer Kundeninstanz wählt man für „Aus dem Postfach lernen“
+eine Punktegrenze statt eines USD-Budgets und sieht Schätzung, Reservierung und Verbrauch nur in
+Punkten; die Preisannahme legt der Betreiber in `operator.yaml` fest (`learning_usd_per_million_tokens`).
+Die Lernseiten sind damit für Kundensitzungen freigegeben. Selbst betriebene Instanzen bleiben unverändert.
+Noch keine Kundenfreischaltung.
 
 Version 8.7.3: Betrieb – eigene Kundeninstanz `kunde.inboxstride.de` für die Abnahme des
 Kundenmodus eingerichtet (Testinstanz, keine Kundenfreischaltung).

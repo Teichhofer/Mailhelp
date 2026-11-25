@@ -7,6 +7,7 @@ browser, a form, an import or a queued command sends can switch the mode off.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
@@ -27,6 +28,9 @@ class InstanceMode(BaseModel):
     customer_mode: bool = False
     # The identity sessions are bound to; one per customer instance (subdomain).
     instance: str = Field(default="self", pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")
+    # 8.7.4: the operator's price assumption for learning from the mailbox; customers only choose
+    # points. Without it the customer view offers no learning run.
+    learning_usd_per_million_tokens: Decimal | None = Field(default=None, gt=0, le=10000, allow_inf_nan=False)
 
 
 def load_instance_mode(config_directory: Path) -> InstanceMode:

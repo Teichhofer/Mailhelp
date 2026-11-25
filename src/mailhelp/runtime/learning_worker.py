@@ -12,6 +12,7 @@ from ..llm.learning import LearningMode, LearningSource
 from ..mailbox.imap import ImapReader
 from ..mailbox.sender_filter import sender_addresses
 from ..processing.analysis import Analyzer
+from ..usage.valuations import usage_scope
 from . import experience
 from .learning_jobs import LearningCard, LearningConflict, LearningJob, LearningJobs, LearningSelection
 
@@ -59,7 +60,9 @@ class LearningCompleter:
             state.reserved_tokens += tokens
             service.save(state)
         reported: list[dict[str, Any]] = []
-        result = self.client.complete(model, parameters, system, payload, **kwargs, usage=reported.append)
+        # 8.7.4: recorded as learning usage ("learning.<step>"), apart from mail processing.
+        with usage_scope("learning"):
+            result = self.client.complete(model, parameters, system, payload, **kwargs, usage=reported.append)
         if reported:
             self._settle(tokens, reported[-1])
         return result

@@ -161,7 +161,7 @@ class HelpSite:
         return value if any(item.key == value and value for item in catalog()) else ""
 
     def _form(self, csrf: str, version: int, setting: str, draft: str = "",
-              target: str = "/einstellungen", window_version: int = 1) -> str:
+              target: str = "/einstellungen", window_version: int = 1, customer: bool = False) -> str:
         reference = ""
         if setting:
             entry = next((item for item in catalog() if item.key == setting), None)
@@ -178,13 +178,7 @@ class HelpSite:
                 'name="window_version" value="{p5}"><label '
                 'for="help-question">Deine Frage zu Einstellungen und '
                 'Bedienung</label><textarea id="help-question" name="frage" '
-                'rows="3" maxlength="8000" required>{p6}</textarea><details '
-                'class="help-cost-hint"><summary>Kostenpflichtig</summary><p '
-                'class="meta">Frage, kurzer Verlauf und passende Abschnitte der '
-                "Mailhelp-Dokumentation gehen an den aktiven KI-Anbieter und "
-                "können Kosten verursachen. Keine Passwörter oder Tokens "
-                "eingeben. Der Hilfschat erklärt nur; er ändert keine "
-                'Einstellungen.</p></details><button class="button primary" '
+                'rows="3" maxlength="8000" required>{p6}</textarea>{p7}<button class="button primary" '
                 'type="submit">Frage senden</button></form>'
             ),
             p0=e(csrf),
@@ -194,6 +188,19 @@ class HelpSite:
             p4=e(target),
             p5=window_version,
             p6=e(draft),
+            p7=tr(
+                '<details class="help-cost-hint"><summary>Verbraucht Punkte</summary><p class="meta">Frage, '
+                "kurzer Verlauf und passende Abschnitte der Mailhelp-Dokumentation gehen an den KI-Anbieter; "
+                "jede Antwort verbraucht Punkte. Keine Passwörter oder Zugangsdaten eingeben. Der Hilfschat "
+                "erklärt nur; er ändert keine Einstellungen.</p></details>"
+            ) if customer else tr(
+                '<details class="help-cost-hint"><summary>Kostenpflichtig</summary><p '
+                'class="meta">Frage, kurzer Verlauf und passende Abschnitte der '
+                "Mailhelp-Dokumentation gehen an den aktiven KI-Anbieter und "
+                "können Kosten verursachen. Keine Passwörter oder Tokens "
+                "eingeben. Der Hilfschat erklärt nur; er ändert keine "
+                "Einstellungen.</p></details>"
+            ),
         )
 
     def page(self, request: Request, session: WebSession) -> Response:
@@ -209,7 +216,8 @@ class HelpSite:
             return (
                 notice(tr("Der Hilfschat ist in dieser Installation nicht aktiv. Die Dokumentation bleibt lesbar."))
                 + tr('<a href="/hilfe/dokumentation">Alle Abschnitte</a>')
-                + self._form(csrf, 1, setting, draft, target, self.window.state(session).version)
+                + self._form(csrf, 1, setting, draft, target, self.window.state(session).version,
+                             not self.site.auth.is_operator(session))
             )
         state = self.chat.state(session.id)
         turns = "".join(
@@ -252,7 +260,8 @@ class HelpSite:
                 p3=e(target),
             )
         return (f'<div class="help-chat" id="chat">{turns}{progress}</div>'
-                + self._form(csrf, state.version, setting, draft, target, self.window.state(session).version)
+                + self._form(csrf, state.version, setting, draft, target, self.window.state(session).version,
+                             not self.site.auth.is_operator(session))
                 + clear)
 
     def window_data(self, request: Request, session: WebSession) -> Response:
