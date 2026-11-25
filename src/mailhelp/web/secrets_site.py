@@ -120,7 +120,7 @@ class SecretsSite:
                 )
             if name not in {field for _, field in self.runtime.secret_fields()}:
                 return Response.text(422, msg("Dieser Name wird von der Konfiguration nicht verwendet."))
-            if not self.site.auth.active(session.id):
+            if not self.site.auth.active(session.id, operator=True):
                 return Response.text(403, msg("Sitzung abgelaufen."))
             try:
                 set_value(self.path, name, form.get("value", ""), form.get("expected_hash", ""))

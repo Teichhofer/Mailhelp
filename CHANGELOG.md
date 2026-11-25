@@ -1,5 +1,15 @@
 # Änderungen
 
+## 8.7.1 – Kundenmodus und Verbrauch in Punkten: Grundlagen
+
+Umsetzungsschritt nach [Planung 8.7](docs/Planung-8.7.md). Noch keine Kundenfreischaltung, siehe `docs/Release-8.7.md`.
+
+- Verbrauch in Punkten (1 Punkt = 0,1 Cent): Jeder OpenRouter-Versuch, Wiederholungen und Fallbacks eingeschlossen, wird vor dem Senden mit seinem Bewertungsstand in `usage/attempts.jsonl` gebunden und genau einmal mit den gemeldeten Kosten abgeschlossen. Fehlende oder ungültige Kosten bleiben „noch nicht bewertbar“, nie kostenlos. Rechnung mit `Decimal`, Rundung nur in der Anzeige.
+- `mailhelp --set-valuation USD_JE_EUR AUFSCHLAG_PROZENT`: neuer Bewertungsstand am Host nach Anzeige von Alt/Neu und Beispiel; ohne Bewertungsstand wird nichts erfasst.
+- Seite „Verbrauch“ (`/verbrauch`): heute, laufender Monat, Zeitraum, nach Schritt und Tag, nur in Punkten.
+- Kundenmodus über `operator.yaml` (Vorlage `operator.example.yaml`): Sitzungen tragen Rolle und Instanz. Nur `mailhelp --pair --operator` ergibt Betreiberrechte. Für Kunden gesperrt ist alles, was nicht ausdrücklich freigegeben ist. Einstellungsänderungen mit einem gesperrten Feld werden vollständig abgelehnt. Neustart, Beenden, Zugangsdaten und Neuladen prüfen beim Ausführen Betreiberrechte.
+- Selbst betriebene Instanzen bleiben unverändert, auch im gespeicherten Sitzungsformat.
+
 ## 8.6.3 – Bugfix: Vollprüfung in GitHub Actions
 
 - Ursache der seit dem 20.11.2026 scheiternden CI-Jobs `tests (ubuntu-latest)` und `tests (windows-latest)`, unter WSL-Ubuntu nachgestellt:

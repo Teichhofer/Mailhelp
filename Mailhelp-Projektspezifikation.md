@@ -3,6 +3,41 @@
 Geprüft für Mailhelp 8.1 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
+
+Stand 8.7.1, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+
+- **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
+  `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
+  Ohne Datei ist die Instanz selbst betrieben und verhält sich wie bisher.
+- **Rollen.** Im Kundenmodus trägt jede Websitzung serverseitig die Rolle `customer` oder `operator` und die
+  Instanzkennung. Sitzungen ohne Rolle oder einer anderen Instanz werden nicht angenommen und beim Start widerrufen,
+  ebenso rollenlose Codes. Browser-Code, Telegram `/web`, Web-Passwort und `mailhelp --pair` ergeben Kundenrechte,
+  nur `mailhelp --pair --operator` (signierte Anfrage am Host) eine Betreibersitzung. Kunden sehen und beenden nur
+  Kundengeräte. `/web_abmelden` und „Alle Geräte abmelden“ eines Kunden beenden nur Kundensitzungen.
+- **Rechte.** Kundenwege stehen ausdrücklich in `web/permissions.py`; jede andere angemeldete Route antwortet einer
+  Kundensitzung mit 403 („Nur für den Betreiber“, JSON `{"code": "operator_only"}`), bevor ein Formular gelesen wird.
+  Einstellungsänderungen einer Kundensitzung dürfen nur Felder aus `CUSTOMER_FIELDS` enthalten. Andernfalls wird die
+  ganze Änderung beim Ausführen und erneut vor dem Schreiben abgelehnt. Neustart, Beenden, Zugangsdaten und Neuladen
+  verlangen beim Ausführen eine Betreibersitzung.
+- **Punkte.** 1 Punkt = 0,1 Cent. Punkte = `cost_usd / usd_per_eur × (1 + markup_percent / 100) × 1000` mit
+  `Decimal` (34 Stellen), ohne Rundung je Aufruf. Die Anzeige rundet kaufmännisch auf zwei Stellen; positive
+  Werte unter 0,01 erscheinen als „< 0,01 Punkte“.
+- **Bewertungsstände.** `usage/valuations.json` im Zustandsverzeichnis, nur fortgeschrieben mit
+  `mailhelp --set-valuation USD_JE_EUR AUFSCHLAG_PROZENT` nach Anzeige von Alt/Neu, Beispiel und der Eingabe
+  `BEWERTUNG`. Ein neuer Stand muss nach dem letzten beginnen und gilt nur für danach beginnende Versuche.
+  Ohne Stand wird kein Verbrauch erfasst.
+- **Verbrauchsbestand.** `usage/attempts.jsonl` mit einer Zeile `begun` je Anbieterversuch (vor dem Senden, mit
+  gebundenem Bewertungsstand, Schritt, Zweck und gegebenenfalls Mail-ID) und höchstens einer Zeile `settled`
+  (Status `reported`, `missing`, `invalid` oder `not_sent`, Originalkosten, Punkte, Provider-ID). Ohne Mailtext,
+  Prompt oder Schlüssel. Doppelte Zeilen zählen einmal. Eine durch Absturz abgebrochene letzte Zeile wird nach
+  `attempts.jsonl.torn` verschoben. Erfasst werden nur OpenRouter-Aufrufe, lokale Modelle nie.
+  Betreiberwartung (`operator_purpose`) zählt nicht zum Kundenverbrauch. Logs bleiben unverändert und sind nie die
+  Quelle des Bestands.
+- **Seite „Verbrauch“** (`/verbrauch`): heute, laufender Monat und Zeitraum (`?von=JJJJ-MM-TT&bis=JJJJ-MM-TT`,
+  höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
+  („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
+
 ## Ergänzung 8.2: Geführtes Self-Service-Onboarding und zentrale Ziel-OAuths
 
 Plan: [docs/Planung-8.2.md](docs/Planung-8.2.md), Stand: [docs/Release-8.2.md](docs/Release-8.2.md).

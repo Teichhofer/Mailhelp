@@ -49,6 +49,28 @@ def test_host_password_reset_requires_no_provider_credentials(initial,monkeypatc
     assert not WebPassword(h.store).state().digest and not h.auth.active(h.session.id)
 
 
+def test_the_operator_sets_the_valuation_at_the_host_while_the_service_may_run(initial,monkeypatch,capsys):
+    """8.7: --set-valuation writes the usage valuation of the configured instance after confirmation."""
+    h=initial
+    (h.directory/'config.yaml').write_text(yaml.safe_dump(h.setup.state().config))
+    monkeypatch.setattr(sys,'argv',['mailhelp','--set-valuation','1.25','25','--config-directory',str(h.directory)])
+    monkeypatch.setattr('builtins.input',lambda _prompt:'BEWERTUNG')
+    assert cli.main()==0 and '10,00 Punkte' in capsys.readouterr().out
+    assert (h.store.directory/'usage'/'valuations.json').is_file()
+
+
+def test_the_operator_pairs_at_the_host_and_operator_needs_pair(tmp_path,monkeypatch,capsys):
+    """8.7: --pair --operator asks the running service for an operator code; --operator alone is refused."""
+    calls=[]
+    monkeypatch.setattr(cli,'request_local_code',lambda directory,**options:calls.append((directory,options)))
+    monkeypatch.setattr(sys,'argv',['mailhelp','--pair','--operator','--config-directory',str(tmp_path)])
+    assert cli.main()==0 and calls==[(tmp_path,{'operator':True})]
+    monkeypatch.setattr(sys,'argv',['mailhelp','--operator','--config-directory',str(tmp_path)])
+    with pytest.raises(SystemExit):
+        cli.main()
+    assert '--operator ist nur zusammen mit --pair' in capsys.readouterr().err
+
+
 def test_bootstrap_secret_generation_and_existing_secret(initial,monkeypatch):
     h=initial
     assert bootstrap.ensure_web_secret(h.directory)==h.auth._key.decode()

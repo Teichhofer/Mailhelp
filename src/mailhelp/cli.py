@@ -33,6 +33,7 @@ from .persistence.storage import AlreadyRunning, JsonStore
 from .processing.write_verification import prepare_rollback
 from .runtime import google_login
 from .runtime.web_password import WebPassword
+from .usage.operator_cli import set_valuation
 from .web.local_pairing import request_local_code
 from .web.server import WebServerError
 
@@ -227,7 +228,10 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         print(tr(DEMO_DIRECTORY, directory=args.config_directory), file=sys.stderr)
         return 2
     if args.pair:
-        request_local_code(args.config_directory)
+        if args.operator:
+            request_local_code(args.config_directory, operator=True)
+        else:
+            request_local_code(args.config_directory)
         return 0
     if args.prepare_rollback:
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
@@ -256,6 +260,12 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
             )
         )
         return 0
+    if args.set_valuation is not None:
+        # 8.7: works while the service runs; the file is replaced atomically and read before each attempt.
+        settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
+        namespace = "test" if settings.test_mode else "production"
+        return set_valuation(runtime_path(settings.data_directory, args.config_directory) / namespace,
+                             *args.set_valuation)
     if args.reset_web_password:
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
         namespace = "test" if settings.test_mode else "production"
@@ -294,11 +304,16 @@ def _parser() -> argparse.ArgumentParser:
                         help="Demo-Modus mit vorbereiteten Beispieldaten in einem eigenen, leeren Verzeichnis starten")
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
+    parser.add_argument("--operator", action="store_true",
+                        help="mit --pair im Kundenmodus: Einmalcode für eine Betreibersitzung")
     parser.add_argument("--prepare-rollback", action="store_true",
                         help=("5.2: vor der Rückkehr zu einer Version vor 5.2.0 alle Einträge „wird geprüft“ "
                               "auf „angelegt“ umstellen; nur bei beendetem Dienst"))
     parser.add_argument("--reset-web-password", action="store_true",
                         help="Am Host Web-Passwort zurücksetzen und alle Websitzungen abmelden")
+    parser.add_argument("--set-valuation", nargs=2, metavar=("USD_JE_EUR", "AUFSCHLAG_PROZENT"),
+                        help=("Betreiber: neuen Bewertungsstand für den Punkteverbrauch festlegen "
+                              "(gilt für danach beginnende KI-Aufrufe)"))
     parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")
     parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
     _add_access_arguments(parser)
@@ -613,6 +628,8 @@ def _main() -> int:
     args = parser.parse_args()
     _check_oauth_options(parser, args)
     _check_decision_test_options(parser, args)
+    if args.operator and not args.pair:
+        parser.error(tr("--operator ist nur zusammen mit --pair zulässig"))
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)

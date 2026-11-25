@@ -28,9 +28,9 @@ import re
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, ValidationError, model_serializer
 
 from ..persistence.storage import CorruptState, JsonStore
 from ..runtime.web_password import WebPassword
@@ -61,10 +61,25 @@ class PairingLimited(RuntimeError):
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    @model_serializer(mode="wrap")
+    def _without_unset_role(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """8.7: a self-operated instance stores exactly the format of before (rollback stays possible)."""
+        data: dict[str, Any] = handler(self)
+        for name in ("role", "instance"):
+            if name in data and data[name] is None:
+                del data[name]
+        return data
+
+
+# 8.7: the server-side role of a session in customer mode; None in a self-operated instance.
+Role = Literal["customer", "operator"]
+
 
 class PendingCode(_Model):
     # None: issued with the Telegram command /web and valid in any browser.
     browser_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    # 8.7: only the host-authorized local pairing issues an operator code.
+    role: Role | None = None
     code_hmac: str = Field(pattern=r"^[a-f0-9]{64}$")
     expires_at: datetime
     attempts: int = Field(default=0, ge=0)
@@ -84,6 +99,8 @@ class WebSession(_Model):
     created_at: datetime
     last_used_at: datetime
     expires_at: datetime
+    role: Role | None = None
+    instance: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 class SessionState(_Model):
@@ -126,6 +143,9 @@ class WebAuth:
         self.session_lifetime = timedelta(days=session_days)
         # 7.1: the demo admits more parallel visitors than one person has devices.
         self.max_sessions = MAX_SESSIONS
+        # 8.7: set once at start from operator.yaml (enter_customer_mode); never by a request.
+        self.customer_mode = False
+        self.instance: str | None = None
         # One reentrant lock also orders session revocation against guarded local commits.
         self._lock = store._thread_lock
         self._session_snapshot: tuple[WebSession, ...] = ()
@@ -143,7 +163,48 @@ class WebAuth:
         except ValidationError:
             return
         self._session_snapshot = tuple(item.model_copy(deep=True) for item in state.sessions
-                                       if item.expires_at.utcoffset() is not None)
+                                       if item.expires_at.utcoffset() is not None and self._belongs(item))
+
+    def _belongs(self, session: WebSession) -> bool:
+        """8.7: in customer mode only sessions with a role of this very instance authenticate."""
+        return not self.customer_mode or (session.role is not None and session.instance == self.instance)
+
+    def _role(self, requested: Role | None = None) -> Role | None:
+        """The role a new session gets: never chosen by the browser; customer unless an operator code."""
+        return (requested or "customer") if self.customer_mode else None
+
+    def enter_customer_mode(self, instance: str) -> int:
+        """Bind sessions to roles; role-less sessions and pending codes of before are revoked.
+
+        Returns the number of revoked sessions. Repeating it at every start changes nothing more.
+        """
+        with measured_lock(self._lock, "store"):
+            self.customer_mode, self.instance = True, instance
+            state = self._sessions()
+            kept = [item for item in state.sessions if self._belongs(item)]
+            for item in state.sessions:
+                if item not in kept:
+                    self.store.delete("help-window-" + _sha256(item.id)[:32])
+            revoked = len(state.sessions) - len(kept)
+            if revoked:
+                state.sessions = kept
+                self.store.save(SESSIONS, state.model_dump(mode="json"))
+            pairing = self._pairing()
+            if any(code.role is None for code in pairing.codes):
+                pairing.codes = [code for code in pairing.codes if code.role is not None]
+                self.store.save(PAIRING, pairing.model_dump(mode="json"))
+            self._publish_sessions(self.store.load(SESSIONS))
+            return revoked
+
+    def is_operator(self, session: WebSession | str) -> bool:
+        """Full rights: every session of a self-operated instance, only operator sessions in customer mode."""
+        if not self.customer_mode:
+            return True
+        if isinstance(session, str):
+            with measured_lock(self._lock, "store"):
+                found = next((item for item in self._sessions().sessions if item.id == session), None)
+            return found is not None and found.role == "operator" and self._belongs(found)
+        return session.role == "operator" and self._belongs(session)
 
     def authenticate_fast(self, token: str | None) -> WebSession | None:
         """Read the last committed session publication without any application lock."""
@@ -197,25 +258,27 @@ class WebAuth:
             browser = _sha256(browser_nonce)
             state.codes = [item for item in state.codes if item.browser_hash != browser]
             state.codes.append(PendingCode(browser_hash=browser, code_hmac=self._mac("code", code),
-                                           expires_at=self.clock() + CODE_LIFETIME))
+                                           expires_at=self.clock() + CODE_LIFETIME, role=self._role()))
             state.requests.append(self.clock())
             self.store.save(PAIRING, state.model_dump(mode="json"))
         self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code}\n"
                     "Gültig 10 Minuten. Nur eingeben, wenn du die Anmeldung selbst gestartet hast.")
 
-    def issue_code(self) -> str:
+    def issue_code(self, role: Role | None = None) -> str:
         """A code for the Telegram command /web: not bound to a browser, replaces the previous one.
 
-        Only the authorized Telegram chat receives it, exactly like a requested code.
+        Only the authorized Telegram chat receives it, exactly like a requested code. 8.7: an
+        ``operator`` code is issued only by the host-authorized local pairing, never by Telegram.
         """
         with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Codes angefordert – bitte später erneut versuchen.")
             code = f"{secrets.randbelow(10 ** 4):04d}"
-            state.codes = [item for item in state.codes if item.browser_hash is not None]
+            role = self._role(role)
+            state.codes = [item for item in state.codes if item.browser_hash is not None or item.role != role]
             state.codes.append(PendingCode(code_hmac=self._mac("code", code),
-                                           expires_at=self.clock() + CODE_LIFETIME))
+                                           expires_at=self.clock() + CODE_LIFETIME, role=role))
             state.requests.append(self.clock())
             self.store.save(PAIRING, state.model_dump(mode="json"))
         return code
@@ -246,18 +309,19 @@ class WebAuth:
                 raise PairingRefused("Der Code stimmt nicht.")
             state.codes.remove(pending)
             self.store.save(PAIRING, state.model_dump(mode="json"))
-            token = self._new_session(device)
+            token = self._new_session(device, self._role(pending.role))
         self.notify(f"🔐 Neues Gerät für die Mailhelp-Weboberfläche gekoppelt: „{device}“.\n"
                     "Warst du das nicht? /web_abmelden meldet alle Geräte ab.")
         return token
 
-    def _new_session(self, device: str) -> str:
+    def _new_session(self, device: str, role: Role | None = None) -> str:
         token = secrets.token_urlsafe(32)
         now = self.clock()
         sessions = self._sessions()
         sessions.sessions.append(WebSession(
             id=secrets.token_hex(8), token_hash=_sha256(token), device=device,
-            created_at=now, last_used_at=now, expires_at=now + self.session_lifetime))
+            created_at=now, last_used_at=now, expires_at=now + self.session_lifetime,
+            role=self._role(role), instance=self.instance if self.customer_mode else None))
         sessions.sessions = sorted(sessions.sessions, key=lambda item: item.last_used_at)[-self.max_sessions:]
         self.store.save(SESSIONS, sessions.model_dump(mode="json"))
         return token
@@ -299,7 +363,7 @@ class WebAuth:
             state = self._sessions()
             session = next((item for item in state.sessions
                             if hmac.compare_digest(item.token_hash, digest)), None)
-            if session is None:
+            if session is None or not self._belongs(session):
                 return None
             now = self.clock()
             if now - session.last_used_at >= TOUCH_INTERVAL:
@@ -307,18 +371,30 @@ class WebAuth:
                 self.store.save(SESSIONS, state.model_dump(mode="json"))
             return session
 
-    def active(self, session_id: str) -> bool:
-        """Whether a session still exists (checked again when a command runs)."""
-        with measured_lock(self._lock, "store"):
-            return any(item.id == session_id for item in self._sessions().sessions)
+    def active(self, session_id: str, *, operator: bool = False) -> bool:
+        """Whether a session still exists (checked again when a command runs).
 
-    def sessions(self) -> list[WebSession]:
+        8.7: ``operator`` additionally requires full rights, so a queued command of a customer session
+        can never continue as an operator function.
+        """
         with measured_lock(self._lock, "store"):
-            return sorted(self._sessions().sessions, key=lambda item: item.last_used_at, reverse=True)
+            found = next((item for item in self._sessions().sessions if item.id == session_id), None)
+            return found is not None and self._belongs(found) and (not operator or self.is_operator(found))
 
-    def revoke(self, session_id: str) -> bool:
+    def sessions(self, viewer: WebSession | None = None) -> list[WebSession]:
+        """All sessions; a customer sees only customer sessions, never those of the operator."""
+        with measured_lock(self._lock, "store"):
+            visible = [item for item in self._sessions().sessions if self._belongs(item)
+                       and (viewer is None or self.is_operator(viewer) or item.role == "customer")]
+            return sorted(visible, key=lambda item: item.last_used_at, reverse=True)
+
+    def revoke(self, session_id: str, viewer: WebSession | None = None) -> bool:
+        """End one session; a customer cannot end an operator session."""
         with measured_lock(self._lock, "store"):
             state = self._sessions()
+            target = next((item for item in state.sessions if item.id == session_id), None)
+            if viewer is not None and target is not None and not self.is_operator(viewer) and target.role != "customer":
+                return False
             remaining = [item for item in state.sessions if item.id != session_id]
             found = len(remaining) != len(state.sessions)
             state.sessions = remaining
@@ -326,14 +402,17 @@ class WebAuth:
             self.store.delete("help-window-" + _sha256(session_id)[:32])
             return found
 
-    def revoke_all(self) -> int:
+    def revoke_all(self, *, customers_only: bool = False) -> int:
+        """End every session; from a customer (web or Telegram) only the customer sessions."""
         with measured_lock(self._lock, "store"):
-            sessions = self._sessions().sessions
-            count = len(sessions)
-            for session in sessions:
+            state = self._sessions()
+            ended = [item for item in state.sessions if not customers_only or not self.customer_mode
+                     or item.role != "operator"]
+            for session in ended:
                 self.store.delete("help-window-" + _sha256(session.id)[:32])
-            self.store.save(SESSIONS, SessionState().model_dump(mode="json"))
-            return count
+            state.sessions = [item for item in state.sessions if item not in ended]
+            self.store.save(SESSIONS, state.model_dump(mode="json"))
+            return len(ended)
 
 
 __all__ = ["CODE_ATTEMPTS", "CODE_LIFETIME", "CODE_REQUESTS", "FAILURE_LIMIT", "MAX_SESSIONS",

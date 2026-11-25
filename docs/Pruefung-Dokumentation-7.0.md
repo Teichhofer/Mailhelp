@@ -151,6 +151,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/push/kanaele` | Bestätigte Übernahme der Web-Push-Kanäle | [Release 6.8](archiv/Release-6.8.md) |
 | `/benachrichtigungen` | Benachrichtigungen dieses Geräts | Web-Einstellungen (notifications) |
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
+| `/verbrauch` | KI-Verbrauch in Punkten | [Release 8.7](Release-8.7.md) |
 | `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/einstellungen` | Einstellungsbereiche und Suche | Web-Einstellungen |
@@ -473,7 +474,7 @@ Erzeugt mit `python -m devtools.inventory`: **297 Einstellungen**, davon **297**
 | `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | ja |
 | `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | ja |
 
-**26 Kommandozeilenoptionen** (`mailhelp --help`):
+**28 Kommandozeilenoptionen** (`mailhelp --help`):
 
 | Option | Bedeutung laut Hilfe |
 | --- | --- |
@@ -497,10 +498,12 @@ Erzeugt mit `python -m devtools.inventory`: **297 Einstellungen**, davon **297**
 | `--microsoft-login` | bei Microsoft (Outlook-Kalender, Microsoft To Do) per Gerätecode anmelden und den Refresh-Token in microsoft-token.json neben .env speichern |
 | `--ollama` | EXPERIMENTELL: alle LLM-Schritte statt über OpenRouter über den lokalen Ollama-Server HOST:PORT ausführen (IPv6 als [::1]:11434) |
 | `--ollama-model` | Ollama-Modell für --ollama; überschreibt ollama.model aus prompts.yaml |
+| `--operator` | mit --pair im Kundenmodus: Einmalcode für eine Betreibersitzung |
 | `--pair` | Lokalen Einmalcode zur Webanmeldung anzeigen |
 | `--prepare-rollback` | 5.2: vor der Rückkehr zu einer Version vor 5.2.0 alle Einträge „wird geprüft“ auf „angelegt“ umstellen; nur bei beendetem Dienst |
 | `--profile` | Zielprofil (1–99) für die OAuth-Einrichtung |
 | `--reset-web-password` | Am Host Web-Passwort zurücksetzen und alle Websitzungen abmelden |
+| `--set-valuation` | Betreiber: neuen Bewertungsstand für den Punkteverbrauch festlegen (gilt für danach beginnende KI-Aufrufe) |
 | `--show-imap-credentials` | bei --check-access den tatsächlich verwendeten IMAP-Benutzernamen und das Passwort im Terminal ausgeben |
 | `--yes` | Bestätigungsabfrage für --clear überspringen |
 

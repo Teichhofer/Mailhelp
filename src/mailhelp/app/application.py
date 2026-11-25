@@ -72,6 +72,8 @@ class Application:
     resources: Any = None
     reload: Any = None
     web_site: Any = None
+    # 8.7: the usage ledger of this instance (records once the operator set a valuation).
+    usage_meter: Any = None
     # Monotonic time of the last maintenance run; it blocks the main thread and runs at an interval.
     _maintained_at: float | None = None
     # Settings and topics saved by a web command, taken over by the mail loop at its next cycle (3.6.4).

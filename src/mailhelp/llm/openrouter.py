@@ -16,6 +16,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..logging import EventLogger, NullLogger
+from ..usage.valuations import UsageMeter
 from .adapter import RetryPolicy
 
 
@@ -88,8 +89,10 @@ class OpenRouterClient:
                  load_calls: Callable[[], list[float]] | None = None,
                  save_calls: Callable[[list[float]], None] | None = None,
                  stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None,
-                 base_url: str = "https://openrouter.ai/api/v1") -> None:
+                 base_url: str = "https://openrouter.ai/api/v1", meter: UsageMeter | None = None) -> None:
         self.calls: list[float] = []
+        # 8.7: the usage ledger of this instance; local backends never get one.
+        self.meter = meter
         self.key, self.limit, self.clock = key, calls_per_minute, clock
         self.load_calls = load_calls or (lambda: self.calls)
         self.save_calls = save_calls or (lambda calls: self.calls.__setitem__(slice(None), calls))
@@ -167,7 +170,8 @@ class OpenRouterClient:
                               **metadata, **correlation)
         def invoke() -> httpx.Response:
             before_call()
-            response = self.client.post(self.endpoint, headers=self._headers(call_id), json=request)
+            response = self._metered_post(f"{call_id}:{attempt}", stage, correlation.get("mail_id"),
+                                          call_id, request)
             self._raise_for_status(response)
             return response
         try:
@@ -273,6 +277,39 @@ class OpenRouterClient:
             raise InvalidJson() from exc
         metadata["json_parse_success"] = True
         return raw, content, token_usage
+
+    def _metered_post(self, usage_key: str, stage: str, mail_id: Any, call_id: str,
+                      request: dict[str, Any]) -> httpx.Response:
+        """8.7: bound to its valuation before the request; every attempt, retries included, is its own."""
+        metered = self.meter is not None and self.meter.begin(
+            usage_key, stage, mail_id if isinstance(mail_id, str) else None)
+        try:
+            response = self.client.post(self.endpoint, headers=self._headers(call_id), json=request)
+        except BaseException as exc:
+            if metered:
+                assert self.meter is not None
+                # Only a refused connection proves the request never left; anything else stays unclear.
+                if isinstance(exc, httpx.ConnectError):
+                    self.meter.ledger.not_sent(usage_key)
+                else:
+                    self.meter.settle(usage_key, None)
+            raise
+        if metered:
+            self._settle(usage_key, response)
+        return response
+
+    def _settle(self, usage_key: str, response: httpx.Response) -> None:
+        """Record the cost the provider reported for this attempt, also for an error or unusable answer."""
+        assert self.meter is not None
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        raw: dict[str, Any] = body if isinstance(body, dict) else {}
+        usage = raw["usage"] if isinstance(raw.get("usage"), dict) else {}
+        provider_id = raw.get("id")
+        self.meter.settle(usage_key, raw.get("cost", usage.get("cost")),
+                          provider_id if isinstance(provider_id, str) else None)
 
     def _resolve_model(self, model: str) -> str:
         return model

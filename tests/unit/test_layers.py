@@ -14,7 +14,8 @@ import mailhelp
 PACKAGE = Path(mailhelp.__file__).parent
 LAYERS = (
     ("mailhelp", "domain", "text", "state_names", "paths", "formatting", "log_reduction", "i18n"),
-    ("logging", "persistence", "support"),
+    # 8.7: the usage ledger is written by the provider clients, so it sits below them.
+    ("logging", "persistence", "support", "usage"),
     ("config",),
     ("external", "llm"),
     ("mailbox", "proposals"),

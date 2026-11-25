@@ -10022,4 +10022,47 @@ EN = {
     'wirkt sofort': 'takes effect immediately',
     'Änderungen ausdrücklich speichern': 'Explicitly save changes',
     'Öffnen': 'Open',
+    # 8.7: valuation of the usage in points (operator command at the host)
+    'kein Bewertungsstand (Verbrauch wird nicht erfasst)': 'no valuation (usage is not recorded)',
+    'Stand {revision}: {rate} USD je EUR, Aufschlag {markup} %, gültig ab {start}':
+        'Revision {revision}: {rate} USD per EUR, markup {markup} %, valid from {start}',
+    'FEHLER: Kurs muss positiv und Aufschlag mindestens 0 sein, beide endlich ({error}).':
+        'ERROR: the rate must be positive and the markup at least 0, both finite ({error}).',
+    'Bisher: {old}': 'Previously: {old}',
+    'Neu: {new}': 'New: {new}',
+    'Beispiel: {usd} USD ergeben {points}': 'Example: {usd} USD give {points}',
+    ' (bisher {points})': ' (previously {points})',
+    'Gilt nur für danach beginnende Aufrufe; erfasster Verbrauch wird nicht neu bewertet.':
+        'Applies only to calls that begin afterwards; recorded usage is not revalued.',
+    'Zum Übernehmen exakt {word} eingeben: ': 'Type exactly {word} to apply: ',
+    'Nicht geändert.': 'Not changed.',
+    'Gespeichert: {new}': 'Saved: {new}',
+    ('Betreiber: neuen Bewertungsstand für den Punkteverbrauch festlegen '
+     '(gilt für danach beginnende KI-Aufrufe)'):
+        'Operator: set a new valuation for the usage in points (applies to AI calls that begin afterwards)',
+    'mit --pair im Kundenmodus: Einmalcode für eine Betreibersitzung':
+        'with --pair in customer mode: one-time code for an operator session',
+    '--operator ist nur zusammen mit --pair zulässig': '--operator is only allowed together with --pair',
+    'Verbrauch': 'Usage',
+    'KI-Verarbeitung für dich, in Punkten. Schätzungen erscheinen getrennt davon.':
+        'AI processing for you, in points. Estimates are shown separately.',
+    'Die Verbrauchserfassung ist für diese Instanz noch nicht eingerichtet.':
+        'Usage recording has not been set up for this instance yet.',
+    'Heute': 'Today',
+    'Laufender Monat': 'This month',
+    'Zeitraum {start} bis {end}': 'Period {start} to {end}',
+    'Nach Verarbeitungsschritt': 'By processing step',
+    'Weitere KI-Schritte': 'Other AI steps',
+    'Nach Tag': 'By day',
+    'Einzelwerte gerundet; Summen aus den genauen Werten.': 'Values rounded; totals from the exact values.',
+    'Erfassung seit {start}.': 'Recorded since {start}.',
+    'Betreiber: Bewertungsstand {revision}, {rate} USD je EUR, Aufschlag {markup} %.':
+        'Operator: valuation {revision}, {rate} USD per EUR, markup {markup} %.',
+    'Bekannte Teilsumme; {count} Aufruf(e) noch nicht bewertbar.':
+        'Known partial total; {count} call(s) cannot be valued yet.',
+    'Zeitraum anzeigen': 'Show period',
+    'Punkte': 'Points',
+    'Nur für den Betreiber': 'Operator only',
+    'Diese Funktion verwaltet der Betreiber deiner Mailhelp-Instanz.':
+        'The operator of your Mailhelp instance manages this function.',
 }

@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.6.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.1: Grundlagen für den Kundenmodus. Der KI-Verbrauch wird in Punkten erfasst und unter
+„Verbrauch“ angezeigt (Bewertungsstand am Host mit `mailhelp --set-valuation`). Websitzungen können
+Rollen tragen; Betreiberzugang gibt es nur über `mailhelp --pair --operator`. Noch keine Kundenfreischaltung.
 
 Version 8.6.3: Die Vollprüfung besteht auch in GitHub Actions unter Linux und Windows wieder.
 

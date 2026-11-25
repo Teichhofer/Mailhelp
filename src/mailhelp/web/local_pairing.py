@@ -27,9 +27,10 @@ def signature(secret: str, message: str) -> str:
 
 
 def issue(auth: WebAuth, message: str, supplied: str, clock: Callable[[], float] = time.time) -> str:
+    """A one-time code for the signed host request; 8.7: ``…:operator`` asks for an operator code."""
     try:
-        stamp, nonce = message.split(":")
-        valid = abs(clock() - int(stamp)) <= 60 and len(nonce) == 32
+        stamp, nonce, *role = message.split(":")
+        valid = abs(clock() - int(stamp)) <= 60 and len(nonce) == 32 and role in ([], ["operator"])
     except (ValueError, AttributeError):
         valid = False
     if not valid or not hmac.compare_digest(
@@ -43,10 +44,10 @@ def issue(auth: WebAuth, message: str, supplied: str, clock: Callable[[], float]
             raise PermissionError("Kopplungsanforderung bereits verwendet")
         used["requests"][message] = clock()
         auth.store.save("local-pairing", used)
-    return auth.issue_code()
+    return auth.issue_code("operator") if message.endswith(":operator") else auth.issue_code()
 
 
-def request_local_code(directory: Path) -> None:
+def request_local_code(directory: Path, *, operator: bool = False) -> None:
     if (directory / "config.yaml").exists():
         settings = Settings.model_validate(read_yaml(directory / "config.yaml"))
     else:
@@ -56,7 +57,7 @@ def request_local_code(directory: Path) -> None:
     secret = env.get("MAILHELP_WEB_SECRET", "")
     if not settings.web.enabled or len(secret) < 32:
         raise ValueError("web.enabled und MAILHELP_WEB_SECRET (mindestens 32 Zeichen) erforderlich")
-    message = f"{int(time.time())}:{secrets.token_hex(16)}"
+    message = f"{int(time.time())}:{secrets.token_hex(16)}" + (":operator" if operator else "")
     with httpx.Client(trust_env=False, timeout=10) as client:
         response = client.post(f"http://127.0.0.1:{settings.web.port}/api/local-pair",
                                data={"message": message, "signature": signature(secret, message)})

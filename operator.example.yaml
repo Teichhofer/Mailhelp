@@ -1,0 +1,11 @@
+# Mailhelp 8.7: Instanzmodus – nur der Betreiber legt diese Datei als operator.yaml neben config.yaml an.
+# Mailhelp liest sie beim Start und schreibt sie nie; weder Weboberfläche noch Import ändern sie.
+# Ohne die Datei bleibt die Instanz selbst betrieben (bisheriges Verhalten).
+#
+# Noch keine Kundenfreischaltung mit 8.7.1: siehe docs/Release-8.7.md.
+schema_version: 1
+# true: jede Websitzung erhält serverseitig die Rolle customer oder operator; rollenlose Sitzungen
+# und Codes werden beim ersten Start widerrufen. Betreiberzugang: mailhelp --pair --operator am Host.
+customer_mode: false
+# Kennung dieser Kundeninstanz (Kleinbuchstaben, Ziffern, Bindestrich); Sitzungen sind daran gebunden.
+instance: self

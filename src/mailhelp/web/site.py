@@ -46,6 +46,7 @@ from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
 from .mailbox_add_site import MailboxAddSite
 from .mailbox_site import MailboxSite
 from .pages import HELP_BUTTON, HELP_WINDOW, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
+from .permissions import customer_may
 from .proposal_evaluation_site import ProposalEvaluationSite
 from .reconciliation_site import ReconciliationSite
 from .review_site import ReviewSite
@@ -58,6 +59,7 @@ from .setup_site import SetupSite
 from .status_accounts import AccountInfo, account_rows, configured_accounts
 from .status_details import StatusDetails
 from .status_pages import ServiceInfo, status_page
+from .usage_site import UsageSite
 
 FORM_TYPE = "application/x-www-form-urlencoded"
 # How long the progress page waits for a quick result before it shows "running".
@@ -142,6 +144,7 @@ class MailhelpSite:
         self.learning_overview = LearningOverviewSite(self)
         self.proposal_evaluation = ProposalEvaluationSite(self)
         self.status_details = StatusDetails(self)
+        self.usage = UsageSite(self)
         self.notification_runtime: NotificationRuntime | None = None
         # 5.1.5: set by the runtime when re-analysis is available (web.reanalysis_site).
         self.reanalysis_page: ReanalysisSite | None = None
@@ -192,6 +195,14 @@ class MailhelpSite:
             tr("Sicherheitsprüfung fehlgeschlagen"),
             tr("Die Anfrage konnte nicht bestätigt werden. Bitte die Seite neu laden und erneut versuchen.")))
 
+    @staticmethod
+    def _operator_only(request: Request) -> Response:
+        if request.wants_json() or request.path.startswith("/api/"):
+            return Response.json(403, {"code": "operator_only"})
+        return Response.html(403, error_page(
+            tr("Nur für den Betreiber"),
+            tr("Diese Funktion verwaltet der Betreiber deiner Mailhelp-Instanz.")))
+
     def signed_in(self, handler: Handler) -> Handler:
         """Require a live session; a POST also requires its CSRF token."""
 
@@ -207,6 +218,10 @@ class MailhelpSite:
                 if request.method == "GET":
                     return Response.redirect("/anmelden")
                 return self._forbidden()
+            if not self.auth.is_operator(session) and not customer_may(request.method, request.path):
+                # 8.7: deny by default; checked before any form is read or any draft is created.
+                self.logger.event("WARNING", "web", "customer_route_refused", method=request.method)
+                return self._operator_only(request)
             if request.method == "POST":
                 if (self.lifecycle is not None and self.lifecycle.state != "running"
                         and request.path not in {"/einstellungen/beenden", "/einstellungen/neustarten"}):

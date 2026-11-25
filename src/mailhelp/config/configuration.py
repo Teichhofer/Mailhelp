@@ -262,6 +262,38 @@ def offered(name: str, setup: bool) -> bool:
     return name in (SETUP_FIELDS if setup else SETTINGS_FIELDS)
 
 
+# 8.7: the settings a customer may change in customer mode – an explicit list, nothing else. AI
+# configuration, limits, logging, retention, timeouts, metrics (including the exchange rate), the web
+# server, test mode and every other technical setting stay with the operator.
+CUSTOMER_FIELDS = frozenset({
+    "language", "timezone", "personal_info", "smart_reply", "auto_draft",
+    "drafts.enabled", "drafts.folder",
+    "briefings.enabled", "briefings.times", "briefings.mailbox", "briefings.skip_empty",
+    "daily_briefing.enabled", "daily_briefing.time", "daily_briefing.include_calendar",
+    "daily_briefing.include_open", "daily_briefing.include_tasks",
+    "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
+    "telegram.chat_id", "telegram.user_id", "telegram.sequential_questions", "push.enabled",
+    "imap.host", "imap.port", "imap.connection_mode", "imap.folders", "imap.primary_folder",
+    "imap.drafts_folder", "imap.historical_start", "imap.mailboxes", "target_profiles",
+    "notifications.telegram_content",
+})
+_CUSTOMER_PREFIXES = ("targets.", "notifications.quiet_hours.", "notifications.batching.",
+                      "notifications.categories.")
+
+
+def customer_may_change(name: str) -> bool:
+    if name in CUSTOMER_FIELDS or name.startswith(_CUSTOMER_PREFIXES):
+        return True
+    match = re.fullmatch(r"imap\.mailboxes\.[0-9]\.(.+)", name)
+    return match is not None and (match.group(1) in MAILBOX_SETUP_FIELDS or match.group(1) in MAILBOX_POLICY_FIELDS)
+
+
+def customer_command_allowed(command: AdminCommand) -> bool:
+    """Topics and sender rules are the customer's; settings only with customer fields, never partially."""
+    return command.kind in {AdminKind.TOPICS, AdminKind.SENDERS} or all(
+        customer_may_change(name) for name in command.patch)
+
+
 def set_dotted(document: dict[str, Any], dotted: str, value: object) -> None:
     """Set *dotted* in *document*; numeric parts index lists (``imap.mailboxes.0.host``)."""
     *parents, name = dotted.split(".")
@@ -337,6 +369,8 @@ class ConfigurationService:
                  senders: JsonStore | None = None) -> None:
         self.directory, self.store, self.active = directory, store, active
         self.authorize, self.activate = authorize, activate
+        # 8.7: whether the actor is a customer session in customer mode (set by the composition).
+        self.restricted: Callable[[str], bool] = lambda actor: False
         self.activate_topics = activate_topics
         # Holds irrelevant-senders, which the orchestrator reads for every mail.
         self.senders = senders
@@ -528,8 +562,13 @@ class ConfigurationService:
         with self.store._thread_lock:
             return self._execute(command)
 
+    def permitted(self, command: AdminCommand) -> bool:
+        """Session still valid and, for a customer, only customer fields (checked again before writing)."""
+        return self.authorize(command.actor) and (not self.restricted(command.actor)
+                                                  or customer_command_allowed(command))
+
     def _execute(self, command: AdminCommand) -> ReviewResult:
-        if not self.authorize(command.actor):
+        if not self.permitted(command):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
         if command.context_hash is not None and command.context_hash != file_hash(self.directory / "config.yaml"):
             return ReviewResult(status=ResultStatus.STALE, message="Postfachkonfiguration inzwischen geändert.")
@@ -541,7 +580,7 @@ class ConfigurationService:
         try:
             candidate = self.candidate(command)
             content = self.render(command, candidate)
-            if not self.authorize(command.actor):
+            if not self.permitted(command):
                 return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Sitzung inzwischen abgelaufen.")
             journal = {"schema_version": 1, "command": command.model_dump(mode="json"),
                        "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"}

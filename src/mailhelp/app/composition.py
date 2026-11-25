@@ -55,6 +55,7 @@ from ..rule_learning.service import DecisionRuleLearning
 from ..runtime import experience
 from ..runtime.diagnostics import DiagnosticResult, error_code
 from ..runtime.experience import ExperienceRuntime
+from ..runtime.instance_mode import InstanceMode, load_instance_mode
 from ..runtime.learning_worker import LearningWorker
 from ..runtime.lifecycle import Lifecycle
 from ..runtime.reanalysis_worker import ReanalysisWorker, mailbox_readers
@@ -63,6 +64,7 @@ from ..support.connection_health import ConnectionHealthRecorder, used_connectio
 from ..support.metrics import DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy, metrics_directory
 from ..telegram import TelegramClient, TelegramDialogController
 from ..telegram.receiver import TelegramInbox
+from ..usage.valuations import USAGE_DIRECTORY, UsageMeter
 from ..web.factory import create_web
 from ..web.learning_site import LearningSite
 from ..web.reanalysis_site import ReanalysisSite
@@ -169,14 +171,14 @@ def _build_imap(mailbox: MailboxSettings, settings: Settings, secrets: Secrets, 
 
 
 def _build_llm(settings: Settings, secrets: Secrets, local_llm: LocalLlm | None, llm_budget: dict[str, Any],
-               logger: JsonlLogger, stack: ExitStack) -> OpenRouterClient:
+               logger: JsonlLogger, stack: ExitStack, meter: UsageMeter | None = None) -> OpenRouterClient:
     openrouter: OpenRouterClient
     if local_llm is None:
         llm_cfg = settings.timeouts.openrouter
         openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
                                       llm_cfg.retries, settings.limits.llm_calls_per_minute,
                                       initial_backoff=llm_cfg.initial_backoff_seconds,
-                                      max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+                                      max_backoff=llm_cfg.max_backoff_seconds, meter=meter, **llm_budget)
     else:
         # Experimental: every LLM stage runs on the local Ollama model.
         llm_cfg = settings.timeouts.ollama
@@ -204,7 +206,8 @@ def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str]
 
 
 def _build_analyzer(settings: Settings, secrets: Secrets, prompts: PromptConfig, openrouter: OpenRouterClient,
-                    jev_prompts: Any, llm_budget: dict[str, Any], stop_event: Event, stack: ExitStack) -> Analyzer:
+                    jev_prompts: Any, llm_budget: dict[str, Any], stop_event: Event, stack: ExitStack,
+                    meter: UsageMeter | None = None) -> Analyzer:
     analyzer_options: dict[str, Any] = {}
     analyzer_type: Callable[..., Analyzer] = Analyzer
     if jev_prompts is not None:
@@ -213,7 +216,7 @@ def _build_analyzer(settings: Settings, secrets: Secrets, prompts: PromptConfig,
             secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
             llm_cfg.retries, settings.limits.llm_calls_per_minute,
             initial_backoff=llm_cfg.initial_backoff_seconds,
-            max_backoff=llm_cfg.max_backoff_seconds, stopped=stop_event.wait, **llm_budget)
+            max_backoff=llm_cfg.max_backoff_seconds, stopped=stop_event.wait, meter=meter, **llm_budget)
         stack.callback(decision_client.close)
         # Both adapters charge the same durable budget atomically.
         shared_lock = Lock()
@@ -330,6 +333,17 @@ def _web_components(application: Application, settings: Settings, secrets: Secre
     return components
 
 
+def _apply_instance_mode(application: Application, components: Any, mode: InstanceMode) -> None:
+    """8.7: in customer mode sessions carry roles; Telegram is a customer channel."""
+    if not mode.customer_mode:
+        return
+    revoked = components.auth.enter_customer_mode(mode.instance)
+    application.logger.event("INFO", "web", "customer_mode_active", instance=mode.instance,
+                             revoked_sessions=revoked)
+    assert application.dialog is not None
+    application.dialog.web_logout = lambda: components.auth.revoke_all(customers_only=True)
+
+
 def _attach_configuration(application: Application, components: Any, settings: Settings, base_directory: Path,
                           sender_store: JsonStore) -> ConfigurationService:
     """Confirmed configuration changes and the lifecycle of the running process."""
@@ -342,7 +356,7 @@ def _attach_configuration(application: Application, components: Any, settings: S
     application.configuration = configuration
     dialog.review.configuration = configuration
     lifecycle = Lifecycle(
-        application.stop, components.authorize,
+        application.stop, components.authorize_operator,
         lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
     components.site.lifecycle = application.lifecycle = components.site.archive.lifecycle = lifecycle
     dialog.stop_requested = lambda: lifecycle.state != "running" or stop_event.is_set()
@@ -433,7 +447,10 @@ def _record_service_health(application: Application, components: Any) -> None:
 def _attach_web(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
                 jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore) -> None:
     components = _web_components(application, settings, secrets)
+    _apply_instance_mode(application, components, load_instance_mode(base_directory))
+    components.site.usage.meter = application.usage_meter
     configuration = _attach_configuration(application, components, settings, base_directory, sender_store)
+    configuration.restricted = lambda actor: not components.authorize_operator(actor)
     _attach_views(application, components, configuration, prompts, jev_prompts, local_llm)
     _attach_workers(application, components, configuration, settings, secrets, base_directory)
     _record_service_health(application, components)
@@ -564,9 +581,12 @@ def build_application(
         llm_budget: dict[str, Any] = dict(
             load_calls=lambda: store.load("llm-budget", {}).get("calls", []),
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
-        openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
+        # 8.7: usage in points is recorded once the operator set the first valuation (--set-valuation).
+        meter = UsageMeter(data / USAGE_DIRECTORY)
+        openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack, meter)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
-        analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
+        analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack,
+                                   meter)
         factory = build_profile_writers if settings.target_profiles else build_writers
         built = factory(settings, secrets, base_directory, policy=policy, logger=logger,
                         calendar_matcher=analyzer.calendar_duplicate)
@@ -589,6 +609,7 @@ def build_application(
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
                                   orchestrator, stop_event, dialog, sender_store, sources=sources)
+        application.usage_meter = meter
         _configure_mail_numbers(orchestrator, settings, prompts, secrets, sources, iserv, jev_prompts)
         _attach_mail_runtimes(application, iserv, built, web_enabled, iserv_resources, stack, secrets)
         _wire_profiles(application, dialog, writers)

@@ -170,18 +170,21 @@ class LoginSite:
 
     def devices(self, request: Request, session: WebSession) -> Response:
         return Response.html(200, devices_page(
-            self.site.auth.sessions(), session, self.site.auth.csrf_token(session.id), self.site.configured_timezone))
+            self.site.auth.sessions(session), session, self.site.auth.csrf_token(session.id),
+            self.site.configured_timezone))
 
     def revoke(self, request: Request, session: WebSession, _form: dict[str, str],
                session_id: str) -> Response:
-        self.site.auth.revoke(session_id)
+        if not self.site.auth.revoke(session_id, session):
+            # 8.7: a customer cannot end an operator session (nor an unknown one); nothing is revealed.
+            return Response.redirect("/geraete")
         self.site.logger.event("INFO", "web", "session_revoked", scope="single")
         if session_id == session.id:
             return self._signed_out(request)
         return Response.redirect("/geraete")
 
-    def revoke_all(self, request: Request, _session: WebSession, _form: dict[str, str]) -> Response:
-        self.site.auth.revoke_all()
+    def revoke_all(self, request: Request, session: WebSession, _form: dict[str, str]) -> Response:
+        self.site.auth.revoke_all(customers_only=not self.site.auth.is_operator(session))
         self.site.logger.event("INFO", "web", "session_revoked", scope="all")
         return self._signed_out(request)
 

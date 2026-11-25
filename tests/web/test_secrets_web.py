@@ -79,7 +79,7 @@ def test_repeats_conflicts_and_invalid_requests_write_nothing(profiled):
 
 def test_expired_sessions_and_read_only_files_are_reported(profiled, monkeypatch):
     form = {**form_for(profiled, "IMAP_1_PASSWORD"), "value": "x", "confirm": "yes"}
-    monkeypatch.setattr(profiled.web.auth, "active", lambda session: False)
+    monkeypatch.setattr(profiled.web.auth, "active", lambda session, **_rights: False)
     assert profiled.web.browser.request("POST", SAVE, form).status == 403
     monkeypatch.undo()
 

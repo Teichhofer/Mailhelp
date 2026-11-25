@@ -55,6 +55,10 @@ class WebComponents:
         """Review commands from the web run only while their session exists."""
         return self.auth.active(actor.removeprefix("web:"))
 
+    def authorize_operator(self, actor: str) -> bool:
+        """8.7: operator functions (restart, stop, technical settings) need full rights when they run."""
+        return actor.startswith("web:") and self.auth.active(actor.removeprefix("web:"), operator=True)
+
 
 def create_web(settings: Settings, secret: str | None, store: JsonStore,
                notify: Callable[[str], None], logger: EventLogger,

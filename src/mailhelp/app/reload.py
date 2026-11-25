@@ -38,7 +38,7 @@ class ReloadService:
         self.current, self.directory, self.secrets = app, directory, secrets
         self.store = app.store
         self.active: Callable[[str], bool] = lambda actor: (
-            actor.startswith("web:") and self.current.web_site.auth.active(actor.removeprefix("web:")))
+            actor.startswith("web:") and self.current.web_site.auth.active(actor.removeprefix("web:"), operator=True))
         self.local_llm, self.use_jev = local_llm, use_jev
         self.resources = ExitStack()
 
