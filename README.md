@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.7 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.7: In einer Kundeninstanz stehen Tätigkeitsberichte zur Verfügung, ihre Schätzung und die
+Nachanalyse sprechen nur von Punkten; Notion-Datenquelle und -Zuordnung sind für Kunden freigegeben.
 
 Version 8.7.6: In einer Kundeninstanz zeigen Navigation und Seiten nur noch, was Kunden nutzen
 dürfen; „Einstellungen“ führt Kunden zu einer Übersicht ihrer Bereiche. Die Eingabetaste im Lernformular

@@ -223,6 +223,11 @@ Bereichen (Postfächer, Zielprofile, Themen, Absender-Regeln, Benachrichtigungen
 Verbrauch, Geräte, Web-Passwort). Zugangsdaten, Modelle, Diagnose und Betrieb verwaltet der
 Betreiber; Verweise darauf entfallen auf deinen Seiten.
 
+Ab 8.7.7 stehen dir auch Tätigkeitsberichte zur Verfügung. Ihre Schätzung und die Nachanalyse einer
+Mail nennen den Verbrauch in Punkten; den tatsächlichen Verbrauch zeigt „Verbrauch“ unter
+„Tätigkeitsberichte“. Für Notion-Ziele kannst du Datenquelle und Eigenschaften selbst auswählen;
+danach geht es zurück zu „Zielprofile“.
+
 ### Ergebnis prüfen und übernehmen
 
 Nach dem Lauf zeigt **Themen, Ausschlüsse und Belege** je Vorschlag Titel, Beschreibung, die

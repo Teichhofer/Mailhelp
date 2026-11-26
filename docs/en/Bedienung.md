@@ -168,6 +168,11 @@ profiles, topics, sender rules, notifications, learning, usage, devices, web pas
 operator manages credentials, models, diagnostics and operation; links to them are left out of
 your pages.
 
+From 8.7.7 activity reports are available to you as well. Their estimate and the re-analysis of an
+email state the usage in points; “Usage” shows the actual usage under “Activity reports”. For Notion
+targets you choose the data source and the properties yourself; afterwards you return to “Target
+profiles”.
+
 ### Check and take result <!-- mailhelp-id:bedienung/ergebnis-pruefen-und-uebernehmen -->
 
 After the run, **Topics, exclusions and evidence** show per suggestion the title, description, the

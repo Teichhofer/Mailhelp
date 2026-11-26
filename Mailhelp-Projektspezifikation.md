@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.6, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.7, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -38,6 +38,13 @@ Stand 8.7.6, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischal
   höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
   („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
   Aufrufe eines Lernlaufs tragen den Schritt `learning.<Schritt>` und erscheinen als „Aus dem Postfach lernen“.
+- **Berichte, Nachanalyse und Notion in Punkten bzw. für Kunden (8.7.7).** Tätigkeitsberichte (`/berichte` mit
+  Neuanlage, Bericht, Aktionen, Mail-Korrektur und xlsx-Export) sind Kundenwege. Kunden sehen die aus Messwerten
+  hochgerechnete Schätzung in Punkten (gültiger Bewertungsstand, nie Strom- oder Geldwerte; ohne Messwerte oder
+  Bewertung ein Hinweis statt einer Zahl) und starten mit „Bericht starten (verbraucht Punkte)“. Die Nachanalyse
+  nennt Kunden KI-Aufrufe, die Punkte verbrauchen, und die Seite „Verbrauch“. `/notion/datenquelle` und
+  `/notion/zuordnung` sind Kundenwege (Betreiberentscheidung 26.11.2026); nach der Zuordnung führt die Seite
+  Kunden zu „Zielprofile“. „Verbrauch“ fasst beide Berichtsschritte als „Tätigkeitsberichte“ zusammen.
 - **Navigation und Links nach Rolle (8.7.6).** Kundensitzungen sehen in Seitenleiste, Tab-Leiste und „Mehr“
   nur Ziele, die `customer_may` erlaubt, zusätzlich „Verbrauch“; Betreibersitzungen behalten die bisherige
   Navigation. Der Seitenrahmen entfernt für Kundensitzungen jeden lokalen Link, den Kunden nicht öffnen

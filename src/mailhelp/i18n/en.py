@@ -10161,4 +10161,26 @@ EN = {
     'Anmeldung mit Passwort festlegen oder ändern.': 'Set or change sign-in with a password.',
     'Deine Bereiche. Zugangsdaten, Modelle und den Betrieb verwaltet der Betreiber.':
         'Your areas. The operator manages credentials, models and operation.',
+    ('Geschätzter Verbrauch: bis etwa {points} bei vollständig relevanten Mails. Basis: {relevance} Relevanz- '
+     'und {events} Terminmessungen; andere Textlängen und Wiederholungen verändern den Verbrauch.'):
+        ('Estimated usage: up to about {points} if all emails are relevant. Basis: {relevance} relevance and '
+         '{events} date measurements; other text lengths and retries change the usage.'),
+    'Noch keine ausreichenden Messwerte für beide Schritte; nur die Zahl der Aufrufe ist bekannt.':
+        'Not enough measurements for both steps yet; only the number of calls is known.',
+    'Der Verbrauch in Punkten lässt sich noch nicht schätzen.':
+        'The usage in points cannot be estimated yet.',
+    'Bericht starten (verbraucht Punkte)':
+        'Start report (uses points)',
+    'Tätigkeitsberichte sind in dieser Instanz ausgeschaltet; der Betreiber kann sie einschalten.':
+        'Activity reports are switched off in this instance; the operator can switch them on.',
+    ('<p>Mailhelp analysiert diese Mail (Analyserunde {p0}) mit den aktuellen Einstellungen erneut. '
+     'Bestehende Vorschläge und Entscheidungen bleiben erhalten; neue Befunde erscheinen nur als unbestätigte '
+     'Vorschläge, nichts wird automatisch angelegt.</p><p class="meta">Höchstens {p1} KI-Aufrufe, die Punkte '
+     'verbrauchen; heute noch {p2} von {p3} Nachanalysen möglich. Den tatsächlichen Verbrauch zeigt die Seite '
+     '„Verbrauch“.</p><form method="post" action="/mail/{p4}/nachanalyse">'):
+        ('<p>Mailhelp analyzes this Email (analysis round {p0}) again with the current Settings. Existing '
+         'Proposals and decisions are retained; new findings appear only as unconfirmed Proposals, nothing is '
+         'created automatically.</p><p class="meta">At most {p1} AI calls that use points; today {p2} of {p3} '
+         'reanalyses still possible. The “Usage” page shows the actual usage.</p><form method="post" '
+         'action="/mail/{p4}/nachanalyse">'),
 }

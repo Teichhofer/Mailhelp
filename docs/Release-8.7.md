@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.6. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.7. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -77,6 +77,18 @@ eine eigene Datei und wird nicht aus Logs aufgebaut.
 
 Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
+## Umgesetzt in 8.7.7 – AP4b Kostenhinweise in Punkten, Notion-Schritte
+
+| Thema | Umsetzung |
+| --- | --- |
+| Berichte | `/berichte` mit Neuanlage, Bericht, Aktionen, Mail-Korrektur und xlsx-Export für Kunden freigegeben. Schätzung aus denselben Messwerten wie für Betreiber, für Kunden in Punkten (`activity/costs.py: measure`, `consumption.report_estimate_text`); lokale Stromkosten und Geldwerte erscheinen nie. Startknopf „Bericht starten (verbraucht Punkte)“; ausgeschaltete Berichte nennen den Betreiber statt `prompts.yaml`. Der xlsx-Export enthielt schon keine Geldwerte |
+| Nachanalyse | Kunden lesen „Höchstens N KI-Aufrufe, die Punkte verbrauchen“ und den Verweis auf „Verbrauch“ statt „kostenpflichtige Modellaufrufe“ und „Auswertung“ |
+| Notion | Betreiberentscheidung 26.11.2026: `/notion/datenquelle` und `/notion/zuordnung` (GET/POST) sind Kundenwege; der Entwurf ändert nur das gewählte Zielprofil, danach führt die Seite Kunden zu „Zielprofile“ statt zu `/einrichtung` |
+| Verbrauch | Beide Berichtsschritte erscheinen als eine Zeile „Tätigkeitsberichte“ |
+| Prüfung | `tests/web/test_customer_links.py` sucht auf allen erreichbaren Kundenseiten (ohne Produktdokumentation, AP4c) nach `USD`, `EUR`, `€`, `Cent`, „Kosten“, „kostenpflichtig“ und `usd_`; `tests/web/test_customer_points_pages.py` prüft Berichtsschätzung und Nachanalyse |
+
+Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -98,7 +110,8 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 | 14 (Lernen) | Geldbegriffe, `usd_`, Tokens, Modellnamen in HTML, versteckten Feldern und JSON von `/lernen*`, `/api/lernen*` | Keine Treffer für Kundensitzungen (`tests/services/test_learning_points.py`) |
 | – | Lernen: Manipulation, Bewertungswechsel, Wiederholung, Anhalten vor der Grenze, Neustart, Übernahme | Wie Plan Lernen in Punkten §5 (`tests/services/test_learning_points.py`, `tests/usage/test_usage_budget.py`) |
 | – | Links und Formulare aller erreichbaren Kundenseiten | Nur für Kunden erlaubte Ziele (`tests/web/test_customer_links.py`) |
-| 3, 14 (übrige Seiten), 15, 17, 19, 20 | – | Offen (AP4–AP6) |
+| 14 (Seiten außer Hilfe) | Geldbegriffe auf allen erreichbaren Kundenseiten, Berichte, Nachanalyse | Keine Treffer (`tests/web/test_customer_links.py`, `tests/web/test_customer_points_pages.py`) |
+| 3, 14 (Hilfe), 15, 17, 19, 20 | – | Offen (AP4c–AP6) |
 
 ## Auslieferung
 

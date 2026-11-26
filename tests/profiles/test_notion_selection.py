@@ -147,3 +147,19 @@ def test_listing_is_read_completely_or_refused(tmp_path, monkeypatch):
     refused = httpx.MockTransport(lambda request: httpx.Response(403))
     with pytest.raises(httpx.HTTPStatusError):
         notion_sources.schema("t", SOURCE, refused)
+
+
+def test_customers_choose_source_and_mapping_of_their_profiles_and_return_to_target_profiles(notion):
+    """8.7.7 (operator decision 26.11.2026): both Notion steps are customer routes."""
+    from tests.fakes.customer_mode import signed_in
+    c = notion
+    c.web.auth.enter_customer_mode("kunde-a")
+    c.web.browser = signed_in(c.web)
+    response = submit(c, "/notion/datenquelle?profile=2", {"source": SOURCE})
+    assert response.status == 303 and response.headers["Location"] == "/notion/zuordnung?profile=2"
+    response = submit(c, "/notion/zuordnung?profile=2", {**MAPPING, "status": "s1", "open": "o1", "done_o2": "1"})
+    assert response.status == 303 and response.headers["Location"] == "/einstellungen/zielprofile"
+    patch = c.runtime.setup.state().patch
+    assert set(patch) == {"target_profiles"}  # only the customer's target profile fields
+    assert patch["target_profiles"][0]["notion_data_source_id"] == SOURCE
+    assert c.web.browser.request("GET", "/einrichtung").status == 403  # the operator's page stays closed

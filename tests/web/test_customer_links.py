@@ -122,3 +122,22 @@ def test_the_frame_removes_customer_refused_links_and_their_separators():
     finally:
         CUSTOMER_VIEW.reset(token)
     assert 'href="/diagnose"' in layout("T", page) and 'href="/verbrauch"' not in layout("T", page)
+
+
+MONEY = re.compile(r"USD|EUR|€|\bCent\b|[Kk]ostenpflichtig|Kosten|usd_")
+
+
+def test_no_customer_page_names_money_or_costs(customer):
+    """8.7.7 (AP4b, Abnahme 14): points only; the product documentation follows with AP4c."""
+    browser = signed_in(customer)
+    _refused, seen = audit(browser, start=START + ("/berichte", "/berichte/neu"))
+    found = []
+    for path in sorted(seen):
+        response = browser.request("GET", path)
+        if path.startswith("/hilfe/dokumentation"):
+            continue  # product documentation: AP4c (8.7.8)
+        if response.status == 200 and response.body.lstrip().startswith(b"<!doctype html>"):
+            html = response.body.decode()
+            found += [(path, match.group(0)) for match in MONEY.finditer(html[html.index("<main"):])]
+    assert found == []
+    assert {"/berichte", "/berichte/neu"} <= seen

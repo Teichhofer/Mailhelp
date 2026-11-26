@@ -168,4 +168,6 @@ class NotionSite:
                       int(form["version"]), form["key"])
         except Exception:
             return self.failed()
-        return Response.redirect(self.setup_path)
+        # 8.7.7: the setup page is the operator's; customers continue with their target profiles.
+        operator = self.site.auth.is_operator(session)
+        return Response.redirect(self.setup_path if operator else "/einstellungen/zielprofile")

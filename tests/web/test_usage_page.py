@@ -101,7 +101,8 @@ def test_learning_steps_form_one_row_and_named_features_keep_their_name(web, tmp
         for name, stage in (("a", "relevance"), ("b", "learning_classification"), ("c", "learning_abstraction")):
             meter.begin(name, stage)
             meter.settle(name, "0.01")
-    for name, stage in (("d", "decision_rule_learning"), ("e", "settings_help"), ("f", "summary")):
+    for name, stage in (("d", "decision_rule_learning"), ("e", "settings_help"), ("f", "summary"),
+                        ("g", "activity_relevance"), ("h", "activity_events")):
         meter.begin(name, stage)
         meter.settle(name, "0.001")
     web.site.usage.meter = meter
@@ -111,3 +112,4 @@ def test_learning_steps_form_one_row_and_named_features_keep_their_name(web, tmp
     assert "<th scope=\"row\">Aus Entscheidungen lernen</th><td>10,00 Punkte</td>" in page
     assert "<th scope=\"row\">Hilfschat</th>" in page and "<th scope=\"row\">Zusammenfassung</th>" in page
     assert page.count("Aus dem Postfach lernen</th>") == 1
+    assert "<th scope=\"row\">Tätigkeitsberichte</th><td>20,00 Punkte</td>" in page  # 8.7.7

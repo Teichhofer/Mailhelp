@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.7.7 – Kostenhinweise in Punkten, Berichte und Notion für Kunden (AP4b)
+
+- Tätigkeitsberichte sind für Kundensitzungen freigegeben. Kunden sehen die gemessene Schätzung in Punkten statt in USD bzw. Strom-EUR und starten mit „Bericht starten (verbraucht Punkte)“; ohne Messwerte oder Bewertung nennt die Seite das statt einer Zahl.
+- Die Nachanalyse nennt Kunden KI-Aufrufe, die Punkte verbrauchen, und verweist auf „Verbrauch“ statt auf die Auswertung.
+- Betreiberentscheidung 26.11.2026: Kunden dürfen „Datenquelle wählen“ und „Eigenschaften zuordnen“ für Notion aufrufen; danach geht es zu „Zielprofile“.
+- „Verbrauch“ fasst beide Berichtsschritte als „Tätigkeitsberichte“ zusammen.
+- Neue Prüfung: keine Geldbegriffe auf den erreichbaren Kundenseiten (außer der Produktdokumentation, AP4c). Nicht ausgeliefert.
+
 ## 8.7.6 – Navigation und Links nach Rolle (AP4a)
 
 - Kundensitzungen sehen in der Navigation nur für sie erlaubte Seiten und zusätzlich „Verbrauch“; Status, Auswertung, Berichte und Vorschlagsabgleich entfallen. Betreiber behalten die bisherige Navigation.

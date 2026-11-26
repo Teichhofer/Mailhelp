@@ -10,7 +10,7 @@ from ..activity.models import ActivityReport, ReportEvent, ReportMail, ReportSta
 from ..activity.presentation import ReportFilter, fingerprint, highlighted_text
 from ..i18n import msg, tr
 from .actions import new_key
-from .pages import e, layout, notice, page_head
+from .pages import CUSTOMER_VIEW, e, layout, notice, page_head
 from .settings_search import setting_href
 
 __RESULTS_TEXT_1 = msg(
@@ -41,6 +41,8 @@ ACTION_LABELS = {
     "cancel": msg("Abbrechen"),
     "delete": msg("Bericht löschen"),
 }
+# 8.7.7: customers start a report that uses points; prices and costs are the operator's.
+CUSTOMER_ACTION_LABELS = {**ACTION_LABELS, "start": msg("Bericht starten (verbraucht Punkte)")}
 ACTIONS = {ReportStatus.COUNTING: ["cancel"], ReportStatus.READY: ["start", "cancel", "delete"],
            ReportStatus.RUNNING: ["pause", "cancel"], ReportStatus.PAUSED: ["resume", "cancel", "delete"],
            ReportStatus.DONE: ["delete"], ReportStatus.CANCELLED: ["delete"], ReportStatus.FAILED: ["delete"]}
@@ -57,6 +59,9 @@ HELP = "/hilfe/dokumentation/web-einstellungen/taetigkeitsberichte"
 
 def disabled_notice() -> str:
     """6.2.4: where to switch reports on – a link to the setting, not a key in config.yaml."""
+    if CUSTOMER_VIEW.get():
+        return notice(tr(
+            "Tätigkeitsberichte sind in dieser Instanz ausgeschaltet; der Betreiber kann sie einschalten."))
     return tr(
         (
             '<p class="notice notice-info" role="status">Tätigkeitsberichte '
@@ -182,11 +187,12 @@ def new_page(csrf: str, folders: list[str], values: dict[str, str] | None = None
 
 def _actions(report: ActivityReport, csrf: str) -> str:
     forms = []
+    labels = CUSTOMER_ACTION_LABELS if CUSTOMER_VIEW.get() else ACTION_LABELS
     for action in ACTIONS[report.status]:
         kind = "primary" if action in {"start", "resume"} else "danger" if action == "delete" else ""
         forms.append(f'<form method="post" action="/berichte/{report.id}/aktion">'
                      f'{_hidden(csrf, report.version, action=action)}'
-                     f'<button class="button {kind}">{ACTION_LABELS[action]}</button></form>')
+                     f'<button class="button {kind}">{labels[action]}</button></form>')
     return f'<div class="actions">{"".join(forms)}</div>'
 
 

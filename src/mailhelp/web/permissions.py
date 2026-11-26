@@ -13,6 +13,7 @@ import re
 
 _ID = r"[a-f0-9]{24}"
 _PROPOSAL = r"/vorschlag/" + _ID + r"/[A-Za-z0-9_-]{1,64}(?:/.*)?"
+_REPORT = r"/berichte/[a-f0-9]{32}"
 
 # (methods, path) – matched against the full request path.
 CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
@@ -29,8 +30,12 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("POST", r"/aktion/[a-f0-9]{32}/gesehen"),
         ("GET", r"/status/(?:vorschlaege|relevanzfragen|web-aktionen)"),
         ("GET POST", r"/serie/.+"),
-        # Topics and sender rules. Reports (/berichte) still show money; they follow in AP4.
+        # Topics and sender rules
         ("GET", r"/themen|/themen/(?:relevant|ausschluss)/[a-z0-9_-]{1,64}|/themen/entwurf/[a-f0-9]{64}"),
+        # 8.7.7: activity reports of the instance's mailboxes, estimates in points only
+        ("GET", r"/berichte|/berichte/neu|" + _REPORT + r"(?:/export\.xlsx)?"),
+        ("POST", r"/berichte|" + _REPORT + r"/aktion"),
+        ("GET POST", _REPORT + r"/mail/[0-9]{1,6}"),
         ("POST", r"/themen/(?:pruefen|speichern)"),
         ("GET POST", r"/einstellungen/(?:absender|ignorierte-absender)(?:/.*)?"),
         # Notifications and push
@@ -41,6 +46,8 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("GET POST", r"/einstellungen/zielprofile(?:/.*)?"),
         ("GET POST", r"/auth/(?:google|microsoft|notion)(?:/.*)?"),
         ("GET POST", r"/einrichtung/(?:google|microsoft|notion)(?:/.*)?"),
+        # 8.7.7 (operator decision 26.11.2026): Notion data source and property mapping of own profiles
+        ("GET POST", r"/notion/(?:datenquelle|zuordnung)"),
         # Own devices, password and sign-out
         ("GET POST", r"/geraete(?:/.*)?|/einstellungen/web-passwort"),
         ("POST", r"/abmelden"),

@@ -177,8 +177,15 @@ def test_the_route_list_admits_customer_paths_and_nothing_unnamed():
     assert customer_may("POST", "/mail/" + "b" * 24 + "/nachanalyse") and customer_may("GET", "/verbrauch")
     assert not customer_may("POST", "/") and not customer_may("GET", "/status")
     assert not customer_may("GET", "/neue-betreiberseite") and not customer_may("POST", "/einstellungen/speichern")
-    # Reports still show money (AP4); learning shows points since 8.7.4.
-    assert not customer_may("GET", "/berichte") and not customer_may("POST", "/lernen/vorschlaege")
+    # Learning shows points since 8.7.4, reports and the Notion steps are customer routes since 8.7.7.
+    assert not customer_may("POST", "/lernen/vorschlaege")
+    report = "/berichte/" + "c" * 32
+    for method, path in (("GET", "/berichte"), ("GET", "/berichte/neu"), ("POST", "/berichte"), ("GET", report),
+                         ("POST", report + "/aktion"), ("GET", report + "/export.xlsx"), ("GET", report + "/mail/3"),
+                         ("POST", report + "/mail/3"), ("GET", "/notion/datenquelle"), ("POST", "/notion/zuordnung")):
+        assert customer_may(method, path), (method, path)
+    assert not customer_may("GET", "/berichte/kurz") and not customer_may("POST", report + "/export.xlsx")
+    assert not customer_may("GET", "/notion/verwalten")
     assert not customer_may("GET", "/lernen/unbekannt") and not customer_may("POST", "/api/lernen")
     for method, path in (("GET", "/lernen"), ("POST", "/lernen"), ("GET", "/api/lernen/uebersicht"),
                          ("GET", "/lernen/postfach"), ("POST", "/lernen/postfach"), ("GET", "/api/lernen"),

@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
-from ..activity.costs import estimate
+from ..activity.costs import estimate, measure
 from ..activity.export import filename, workbook
 from ..activity.models import ActivityReport, ReportDefinition, ReportMail
 from ..activity.presentation import ReportFilter, fingerprint
@@ -24,6 +24,7 @@ from ..domain.proposal import ProposalStatus
 from ..i18n import msg, tr
 from .activity_pages import disabled_page, list_page, mail_page, new_page, report_page
 from .auth import WebSession
+from .consumption import report_estimate_text, valuation
 from .http import Request, Response
 from .pages import layout, notice
 
@@ -158,8 +159,13 @@ class ActivitySite:
             return self._missing(request)
         metrics = self.site.archive.metrics
         records = metrics.records()[0] if metrics is not None else []
+        if self.site.auth.is_operator(session):
+            costs = estimate(report, records)
+        else:  # 8.7.7: customers see the same measured estimate in points only
+            costs = report_estimate_text(measure(report, records),
+                                         valuation(self.site.usage.meter, self.site.clock()))
         return Response.html(200, report_page(report, self.service.store.mails(report_id), self._csrf(session),
-                                              ReportFilter.parse(request.query), estimate(report, records)))
+                                              ReportFilter.parse(request.query), costs))
 
     def state(self, report_id: str) -> Response:
         if self.service is None:

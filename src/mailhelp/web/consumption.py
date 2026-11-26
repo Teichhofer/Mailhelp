@@ -13,11 +13,13 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from ..i18n import Locale, current, tr
+from ..usage.budget import usd_to_points
 from ..usage.ledger import Purpose
 from ..usage.points import Valuation, display, total
 from ..usage.points import current as current_valuation
 
 if TYPE_CHECKING:
+    from ..activity.costs import Measured
     from ..usage.valuations import UsageMeter
 
 LEARNING_PREFIX = "learning."
@@ -72,5 +74,17 @@ def actual_text(usage: RunUsage) -> str:
     return text
 
 
+def report_estimate_text(measured: Measured | None, rating: Valuation | None) -> str:
+    """8.7.7: the measured report estimate in points; local electricity is never shown to customers."""
+    if measured is None:
+        return tr("Noch keine ausreichenden Messwerte für beide Schritte; nur die Zahl der Aufrufe ist bekannt.")
+    if rating is None or not measured.totals["USD"]:
+        return tr("Der Verbrauch in Punkten lässt sich noch nicht schätzen.")
+    return tr("Geschätzter Verbrauch: bis etwa {points} bei vollständig relevanten Mails. Basis: {relevance} "
+              "Relevanz- und {events} Terminmessungen; andere Textlängen und Wiederholungen verändern den "
+              "Verbrauch.", points=points_text(usd_to_points(measured.totals["USD"], rating)),
+              relevance=measured.relevance, events=measured.events)
+
+
 __all__ = ["LEARNING_PREFIX", "RunUsage", "actual_text", "estimate_text", "learning_usage", "points_text",
-           "reserved_text", "valuation"]
+           "report_estimate_text", "reserved_text", "valuation"]

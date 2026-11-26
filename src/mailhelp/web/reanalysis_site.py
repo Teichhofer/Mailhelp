@@ -20,7 +20,28 @@ from ..processing.reanalysis import ReanalysisRefused
 from ..processing.reanalysis_adoption import Change, Comparison
 from .auth import WebSession
 from .http import Request, Response
-from .pages import e, notice
+from .pages import CUSTOMER_VIEW, e, notice
+
+_OPERATOR_OFFER = msg(
+    "<p>Mailhelp analysiert diese Mail (Analyserunde {p0}) mit den "
+    "aktuellen Einstellungen erneut. Bestehende Vorschläge und "
+    "Entscheidungen bleiben erhalten; neue Befunde erscheinen nur als "
+    "unbestätigte Vorschläge, nichts wird automatisch angelegt.</p><p "
+    'class="meta">Budget: höchstens {p1} kostenpflichtige '
+    "Modellaufrufe; heute noch {p2} von {p3} Nachanalysen möglich. "
+    "Die tatsächlichen Kosten zeigt die Auswertung.</p><form "
+    'method="post" action="/mail/{p4}/nachanalyse">'
+)
+# 8.7.7: customers read about points and their usage page, not about costs and the operator's evaluation.
+_CUSTOMER_OFFER = msg(
+    "<p>Mailhelp analysiert diese Mail (Analyserunde {p0}) mit den "
+    "aktuellen Einstellungen erneut. Bestehende Vorschläge und "
+    "Entscheidungen bleiben erhalten; neue Befunde erscheinen nur als "
+    "unbestätigte Vorschläge, nichts wird automatisch angelegt.</p><p "
+    'class="meta">Höchstens {p1} KI-Aufrufe, die Punkte verbrauchen; heute noch {p2} von {p3} '
+    "Nachanalysen möglich. Den tatsächlichen Verbrauch zeigt die Seite „Verbrauch“.</p><form "
+    'method="post" action="/mail/{p4}/nachanalyse">'
+)
 
 if TYPE_CHECKING:
     from .site import MailhelpSite
@@ -130,18 +151,10 @@ class ReanalysisSite:
             return tr("<p>Die Nachanalyse ist in den Einstellungen ausgeschaltet.</p>")
         today = sum(job.created_at.date() == self.worker.jobs.clock().date() for job in self.worker.jobs.all())
         left = max(0, settings.max_jobs_per_day - today)
+        offer = _CUSTOMER_OFFER if CUSTOMER_VIEW.get() else _OPERATOR_OFFER
         return (
             tr(
-                (
-                    "<p>Mailhelp analysiert diese Mail (Analyserunde {p0}) mit den "
-                    "aktuellen Einstellungen erneut. Bestehende Vorschläge und "
-                    "Entscheidungen bleiben erhalten; neue Befunde erscheinen nur als "
-                    "unbestätigte Vorschläge, nichts wird automatisch angelegt.</p><p "
-                    'class="meta">Budget: höchstens {p1} kostenpflichtige '
-                    "Modellaufrufe; heute noch {p2} von {p3} Nachanalysen möglich. "
-                    "Die tatsächlichen Kosten zeigt die Auswertung.</p><form "
-                    'method="post" action="/mail/{p4}/nachanalyse">'
-                ),
+                offer,
                 p0=state.analysis_round,
                 p1=settings.max_llm_calls_per_job,
                 p2=left,

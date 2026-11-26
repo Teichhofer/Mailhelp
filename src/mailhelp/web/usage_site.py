@@ -33,6 +33,9 @@ FEATURE_LABELS = {
     "learning": "Aus dem Postfach lernen",
     "decision_rule_learning": "Aus Entscheidungen lernen",
     "settings_help": "Hilfschat",
+    # 8.7.7: both steps of an activity report form one row
+    "activity_relevance": "Tätigkeitsberichte",
+    "activity_events": "Tätigkeitsberichte",
 }
 
 
