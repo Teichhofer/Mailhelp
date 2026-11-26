@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.9. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.10. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -111,6 +111,19 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
 Offen beim Betreiber: Ersteinrichtung von `kunde` mit eigenem OpenRouter-Schlüssel, Betreiber- und Kundenkopplung, synthetisches Postfach; danach AP6.
 
+## Umgesetzt in 8.7.10 – Auslieferung von 8.7.9 auf `kunde`, AP6 (automatisierter Teil)
+
+| Thema | Umsetzung |
+| --- | --- |
+| Auslieferung | `kunde` läuft seit 26.11.2026 mit `mailhelp-production:8.7.9-d15df13`; `--check-instance` am Server: Kundenmodus, Bewertungsstand und Preisannahme OK, Ersteinrichtung und Betreiberzugang fehlen; Trennung von Produktion und Demo (Netz, Mounts, Port, Benutzer) geprüft ([Betrieb](Betrieb.md)) |
+| Abnahme 15 | Rechnungsbeträge in Euro und Dollar einer Mail bleiben in der Kundensitzung unverändert sichtbar |
+| Abnahme 17 | Verbrauchssummen bleiben nach Entfernen der Logs gleich; der Bestand liegt im Zustandsverzeichnis, nicht in den Logs |
+| Abnahme 19 | Nach einem Neustart über denselben Zustand behalten Kunden- und Betreibersitzung ihre Rolle; der Verbrauch ist vollständig. Eine Wiederherstellungsprobe ist nicht Teil dieses Releases (Betreiberentscheidung zu 8.0); Rückkehr je Update dokumentiert |
+| Abnahme 20 | 2,5 Mio. Punkte Verbrauch: keine Sperre, keine Guthaben- oder Zahlungsaufforderung, alle Kundenseiten erreichbar |
+| Checkliste | Schritte nach der Ersteinrichtung (Abnahme 3, Lernlauf mit Kostenabgleich) in [Betrieb](Betrieb.md) |
+
+Tests: `tests/web/test_customer_acceptance.py`.
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -135,11 +148,12 @@ Offen beim Betreiber: Ersteinrichtung von `kunde` mit eigenem OpenRouter-Schlüs
 | 14 (Seiten außer Hilfe) | Geldbegriffe auf allen erreichbaren Kundenseiten, Berichte, Nachanalyse | Keine Treffer (`tests/web/test_customer_links.py`, `tests/web/test_customer_points_pages.py`) |
 | 14 (Hilfe) | Freigegebene Hilfeabschnitte DE/EN, Hilfeindex, Chatquellen | Keine Geldbegriffe; Betreiberabschnitte 404 (`tests/unit/test_help_roles.py`, `tests/web/test_customer_help.py`) |
 | 16 (zwei Instanzen) | Vertauschte Cookies, Codes und Referenzen zwischen zwei Instanzen mit eigenem Zustand | Nur in der eigenen Instanz wirksam (`tests/web/test_instance_isolation.py`) |
-| 3, 15, 17, 19, 20 | – | Offen (AP6, nach der Ersteinrichtung von `kunde`) |
+| 15, 17, 19, 20 | Siehe 8.7.10 | Bestanden (`tests/web/test_customer_acceptance.py`) |
+| 3 | Eigene Postfächer, Ziele, Themen, Benachrichtigungen auf `kunde` | Offen bis zur Ersteinrichtung durch den Betreiber |
 
 ## Auslieferung
 
-Nur die Betreiber-Testinstanz `kunde` läuft mit 8.7.4 (seit 26.11.2026). Produktion und Demo laufen
+Nur die Betreiber-Testinstanz `kunde` läuft mit 8.7.9 (seit 26.11.2026). Produktion und Demo laufen
 weiter mit 8.5.4 ohne Kundenmodus. Ohne `operator.yaml` und ohne
 Bewertungsstand verhält sich 8.7.1 wie 8.6.3; das Sitzungsformat einer selbst betriebenen Instanz ist
 unverändert, eine Rückkehr bleibt möglich.

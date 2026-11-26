@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.9 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.10 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.10: Die Kundeninstanz `kunde` läuft mit 8.7.9; die Abnahmepunkte 15, 17, 19 und 20 sind
+automatisiert bestanden. Die übrige Abnahme folgt nach der Ersteinrichtung durch den Betreiber.
 
 Version 8.7.9: `mailhelp --check-instance` zeigt dem Betreiber am Host, welche Einrichtungsschritte einer
 Kundeninstanz noch fehlen; zwei Instanzen bleiben nachweislich getrennt.

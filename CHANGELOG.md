@@ -1,5 +1,11 @@
 # Änderungen
 
+## 8.7.10 – `kunde` auf 8.7.9, Abnahme 15/17/19/20 (AP6, automatisierter Teil)
+
+- Betrieb: `kunde` am 26.11.2026 auf 8.7.9 aktualisiert; `--check-instance` am Server meldet nur noch Ersteinrichtung und Betreiberzugang als offen; Trennung von Produktion und Demo geprüft.
+- Abnahmetests: Beträge in Mails bleiben sichtbar (15), Verbrauch hängt nicht an Logs (17), Rollen und Verbrauch überstehen einen Neustart (19), hoher Verbrauch sperrt nichts und fordert keine Zahlung (20).
+- Checkliste für Abnahme 3 und den Lernlauf mit Kostenabgleich nach der Ersteinrichtung (Betrieb).
+
 ## 8.7.9 – Einrichtungsprüfung und Trennung der Instanzen (AP5)
 
 - Neu: `mailhelp --check-instance` meldet am Host, auch vor der Ersteinrichtung, Kundenmodus, Bewertungsstand, Preisannahme für Lernläufe, Ersteinrichtung und Betreiberzugang mit OK/FEHLT und nächstem Schritt; liest nur und gibt keine Geheimnisse aus.

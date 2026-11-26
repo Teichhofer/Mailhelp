@@ -1,6 +1,6 @@
 # Serverhandbuch Inboxstride
 
-Geprüft für Mailhelp 8.5.4 (Produktion, Demo) und 8.7.4 (Kundeninstanz `kunde`)
+Geprüft für Mailhelp 8.5.4 (Produktion, Demo) und 8.7.9 (Kundeninstanz `kunde`)
 
 Stand: 26. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
 mit den [Konfigurationsvorlagen](../ops/server/README.md). Detaillierte Änderungsnachweise
@@ -24,7 +24,7 @@ Kalenderreferenz. Der produktive Profilwechsel ist noch nicht nachgewiesen.
 | --- | --- | --- |
 | Produktion | `/opt/mailhelp/releases/`, `/opt/mailhelp/runtime` | nginx → `127.0.0.1:8765`, `stefan.inboxstride.de` |
 | Demo | `/opt/mailhelp-demo/compose.yaml`, Volume `mailhelp-demo-runtime` | nginx → `172.30.86.2:8765`, `demo.inboxstride.de` |
-| Kundeninstanz (8.7, Test) | `/opt/mailhelp-kunde/compose.yaml`, `/opt/mailhelp-kunde/runtime`, `operator.yaml` (mit Preisannahme `learning_usd_per_million_tokens`); Image `mailhelp-production:8.7.4-4e86ee4` | nginx → `127.0.0.1:8766`, `kunde.inboxstride.de` |
+| Kundeninstanz (8.7, Test) | `/opt/mailhelp-kunde/compose.yaml`, `/opt/mailhelp-kunde/runtime`, `operator.yaml` (mit Preisannahme `learning_usd_per_million_tokens`); Image `mailhelp-production:8.7.9-d15df13` | nginx → `127.0.0.1:8766`, `kunde.inboxstride.de` |
 | Landingpage | Git `landing/`; `/opt/inboxstride/current` → Release | `inboxstride.de`, `www.inboxstride.de` |
 | Formulardienst | systemd `inboxstride`, `/var/lib/inboxstride/leads` | Loopback-Port 8877, nginx |
 | OAuth | `/opt/inboxstride-auth/`, Compose `inboxstride-auth` | nginx → `127.0.0.1:8780`; intern mTLS `auth-intern:8443` |
@@ -60,7 +60,8 @@ Dateirückdownload und Archivprüfsummen wurden dagegen geprüft, siehe Backup-A
    Sie erhält weder Produktions-Mounts noch Auth-Netz oder produktive Zugangsdaten.
    Kundeninstanzen (8.7) aus `ops/server/kunde.compose.example.yaml` mit eigenem Verzeichnis,
    schreibgeschützt eingebundener `operator.yaml` und eigenem Bewertungsstand
-   (`--set-valuation` vor der Ersteinrichtung) einrichten, siehe [Betrieb](Betrieb.md).
+   (`--set-valuation` vor der Ersteinrichtung) einrichten und mit `mailhelp --check-instance` prüfen,
+   siehe [Betrieb](Betrieb.md).
 8. Landingpage aus `landing/` bauen; Quell-README und `devtools/landing_install.py`
    für die Installation verwenden. Formulardaten außerhalb der Releases wiederherstellen.
 9. DNS, nginx und TLS wie unten einrichten. Erst nach internen Gesundheitsprüfungen

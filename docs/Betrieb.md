@@ -615,7 +615,7 @@ Produktion, Demo und Auth wurden dabei nicht verändert.
 
 | Bestandteil | Istzustand (geprüft 25.11.2026) |
 | --- | --- |
-| Quelle / Image | Seit 26.11.2026 Commit `4e86ee4`, `/opt/mailhelp/releases/8.7.4-4e86ee4`, `mailhelp-production:8.7.4-4e86ee4` (vorher `8.7.2-e00a136`, bleibt als Rückkehrpunkt) |
+| Quelle / Image | Seit 26.11.2026 (zweites Update) Commit `d15df13`, `/opt/mailhelp/releases/8.7.9-d15df13`, `mailhelp-production:8.7.9-d15df13`; Rückkehrpunkte `8.7.4-4e86ee4` und `8.7.2-e00a136` |
 | Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
 | Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
 | Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`, seit 26.11.2026 `learning_usd_per_million_tokens: "1.2"`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
@@ -674,3 +674,46 @@ Lernen in Punkten selbst ist erst nach der Ersteinrichtung durch den Betreiber p
 Rückkehr: Container stoppen, `compose.yaml.before-8.7.4` und `operator.yaml.before-8.7.4` zurückkopieren
 (8.7.2 kennt `learning_usd_per_million_tokens` nicht und startet sonst nicht), `up -d`; Laufzeitdaten
 sind mit 8.7.2 kompatibel (`web-learning-points.json` wird ignoriert).
+
+### Update `kunde` auf 8.7.9 (26.11.2026)
+
+Auf Anweisung des Betreibers, 8.7.9 und die weiteren Schritte umzusetzen; nur `kunde`, Produktion, Demo
+und Auth unverändert.
+
+Schritte: `git archive d15df13 Dockerfile README.md pyproject.toml requirements.lock src ops` nach
+`/opt/mailhelp/uploads/mailhelp-8.7.9-d15df13.tar.gz` (SHA-256 `9febeeba…c6a118234`), entpackt nach
+`/opt/mailhelp/releases/8.7.9-d15df13`, `docker build -t mailhelp-production:8.7.9-d15df13` (Version 8.7.9).
+`apt-get update && apt-get upgrade -y`: nichts eingespielt (`libsqlite3-0` weiter wegen Phasing
+zurückgestellt), kein `/var/run/reboot-required`, nginx 1.28.3 mit laufendem Binary `/usr/sbin/nginx`.
+Container gestoppt, Sicherung `/opt/mailhelp/backups/kunde-upgrade-8.7.9-20261126T102954Z/mailhelp-kunde.tar.gz`,
+Vorzustand `compose.yaml.before-8.7.9`; Image umgestellt, `docker compose … config --quiet`, `up -d`.
+`operator.yaml` unverändert.
+
+Prüfungen: Container `mailhelp-production:8.7.9-d15df13`, Version 8.7.9, Ersteinrichtungsmodus;
+`https://kunde.inboxstride.de/anmelden` 200, HTTP 308, fremder Host 421; `stefan.` und `demo.` 200.
+`docker exec mailhelp-kunde-mailhelp-1 mailhelp --check-instance --config-directory /config` (Exitcode 1):
+OK Kundenmodus (Instanz `kunde`), OK Bewertungsstand 1 (1 USD je EUR, 900 %), OK Preisannahme 1.2;
+FEHLT Ersteinrichtung, FEHLT Betreiberzugang; 0 Kundensitzungen. Trennung: Container nur im Netz
+`mailhelp-kunde` (einziges Mitglied), Mounts nur `/opt/mailhelp-kunde/runtime` und schreibgeschützt
+`operator.yaml`, Port nur `127.0.0.1:8766`, Benutzer 65532, `cap_drop ALL`, 512 MB; Produktion und Demo
+binden nichts aus `/opt/mailhelp-kunde` ein.
+
+Rückkehr: Container stoppen, `compose.yaml.before-8.7.9` zurückkopieren (Image `8.7.4-4e86ee4`), `up -d`;
+Laufzeitdaten und `operator.yaml` sind mit 8.7.4 kompatibel.
+
+### Abnahme auf `kunde` nach der Ersteinrichtung (AP6, offen)
+
+Diese Schritte stehen aus, weil nur der Betreiber den eigenen OpenRouter-Schlüssel eintragen darf:
+
+1. Code mit `docker logs --tail 5 mailhelp-kunde-mailhelp-1` lesen (abgelaufen:
+   `docker restart mailhelp-kunde-mailhelp-1`), unter `https://kunde.inboxstride.de/anmelden` eingeben und die
+   Ersteinrichtung mit eigenem OpenRouter-Schlüssel und einem synthetischen Testpostfach abschließen.
+2. Nach dem automatischen Neustart im Protokoll `customer_mode_active` prüfen; Betreiberzugang mit
+   `docker exec mailhelp-kunde-mailhelp-1 mailhelp --pair --operator --config-directory /config`,
+   Kundenzugang mit `… mailhelp --pair --config-directory /config` auf einem zweiten Gerät.
+3. `… mailhelp --check-instance --config-directory /config` muss „Bereit für die Abnahme.“ melden.
+4. Abnahme 3 in der Kundensitzung: Postfach, Zielprofil, Themen und Benachrichtigungen ändern – jeweils
+   Vorschau und ausdrückliche Bestätigung; Navigation, Einstellungen und Hilfe zeigen nur Kundenbereiche.
+5. Lernlauf in Punkten mit 10 Mails: Schätzung, Start, Istverbrauch unter „Verbrauch“ gegen die gemeldeten
+   OpenRouter-Kosten (`runtime/logs/llm`) und die Preisannahme 1.2 abgleichen (Plan §4.5).
+6. Ergebnis hier und in [Release 8.7](Release-8.7.md) eintragen; danach Serverkopie aktualisieren.
