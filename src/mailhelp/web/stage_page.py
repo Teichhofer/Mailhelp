@@ -42,7 +42,7 @@ def _row(row: dict[str, Any], zone: str, subject: Callable[[str], str | None], t
     if row.get("mail_id"):
         name = subject(row["mail_id"])
         mail = (
-            f'<a href="/mail/{e(row["mail_id"])}">{e(name)}</a>'
+            f'<a class="cell-link" href="/mail/{e(row["mail_id"])}">{e(name)}</a>'
             if name is not None
             else msg("Mail nicht mehr gespeichert")
         )

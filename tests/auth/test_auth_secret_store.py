@@ -79,6 +79,17 @@ def test_on_linux_a_key_readable_by_others_is_refused_and_files_stay_private(pat
     assert modes == [0o600] and mode
 
 
+def test_on_windows_files_are_written_without_chmod(paths, monkeypatch):
+    """8.7.11: the counterpart of the Linux test; on Linux CI the branch without chmod was never taken
+    (99 % branch coverage on Ubuntu, 100 % on Windows)."""
+    state, key = paths
+    monkeypatch.setattr("inboxstride_auth.secret_store.POSIX", False)
+    modes = []
+    monkeypatch.setattr(os, "chmod", lambda path, mode: modes.append(mode))
+    SecretStore(state, key).put("refresh:a", TOKEN)
+    assert modes == [] and "refresh:a" in SecretStore(state, key).names()
+
+
 @pytest.mark.parametrize("content", ["{", '{"schema_version": 2, "secrets": {}}', '{"schema_version": 1}', "[]"])
 def test_a_damaged_secret_file_is_reported_without_content(paths, content):
     state, key = paths

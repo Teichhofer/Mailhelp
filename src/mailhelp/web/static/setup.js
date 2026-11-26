@@ -1,8 +1,10 @@
 "use strict";
 // Browser time zone is only a suggestion; manual choices survive back navigation.
-const zone = document.querySelector('input[name="timezone"]');
+// 8.7.12: only an untouched page offers the suggestion (data-suggest-zone), and a value typed before this
+// deferred script ran is a manual choice and stays.
+const zone = document.querySelector('input[name="timezone"][data-suggest-zone]');
 if (zone && !sessionStorage.getItem("mailhelp-initial-zone")) {
-  zone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (zone.value === zone.defaultValue) zone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
   sessionStorage.setItem("mailhelp-initial-zone", "shown");
 }
 for (const button of document.querySelectorAll("[data-copy-code]")) {

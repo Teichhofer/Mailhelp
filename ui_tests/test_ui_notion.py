@@ -101,7 +101,9 @@ def test_a_text_column_as_due_date_is_refused_in_the_browser(page, notion):
 def test_the_notion_mapping_works_in_webkit_on_a_phone(browser_runtime, notion):
     webkit = browser_runtime.webkit.launch()
     try:
-        context = webkit.new_context(**browser_runtime.devices["iPhone 13"])
+        # 8.7.12: German explicitly; on Ubuntu the host language was English.
+        context = webkit.new_context(**browser_runtime.devices["iPhone 13"], locale="de-DE",
+                                     timezone_id="Europe/Berlin")
         phone = context.new_page()
         phone.goto(f"{notion.url}/anmelden")
         phone.get_by_role("button", name="Code per Telegram senden").click()

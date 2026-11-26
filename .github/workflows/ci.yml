@@ -30,7 +30,7 @@ jobs:
       - name: Failed tests as annotations
         if: failure()
         shell: bash
-        run: grep -E '^(FAILED|ERROR) |Required test coverage|^TOTAL ' "$RUNNER_TEMP/check.log" | head -n 40 | sed 's/^/::error::/' || true
+        run: grep -E '^(FAILED|ERROR) |Required test coverage|^TOTAL |^[^ ]+\.py +[0-9]+ +[0-9]+ +[0-9]+ +[0-9]+ +[0-9.]+% ' "$RUNNER_TEMP/check.log" | head -n 40 | sed 's/^/::error::/' || true
 
   static-analysis:
     # Planung 2.1, A1: ruff and mypy are clean since 2.2.4; every finding fails the build.
@@ -61,6 +61,12 @@ jobs:
       - run: python -m pip install -r requirements.lock playwright==1.62.0 axe-playwright-python==0.1.8
       - run: python -m pip install --no-deps -e .
       - run: python -m playwright install --with-deps webkit
+      - name: Android-like default font for the layout checks
+        run: |
+          sudo apt-get install -y fonts-roboto
+          sudo cp .github/fontconfig/50-mailhelp-roboto.conf /etc/fonts/conf.d/
+          fc-cache -f
+          fc-match system-ui | grep -q Roboto
       - name: Browser suite
         shell: bash
         run: |

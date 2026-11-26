@@ -1,5 +1,18 @@
 # Änderungen
 
+## 8.7.12 – CI auf Linux (Querschnitt 8.7)
+
+Die öffentlichen CI-Annotationen aus 8.7.11 zeigten erstmals, woran CI seit Wochen scheiterte.
+
+- Bugfix: Die Cache-Schlüssel (`?v=…`) und die Service-Worker-Version hashen die ausgelieferten Bytes. Windows-Checkouts wandelten Stylesheet und Skripte in CRLF um, deshalb passten die unter Windows eingefrorenen Seiten auf Ubuntu nie (`app.css?v=78f1…` gegen `5a32…`), und das Docker-Image meldete andere Schlüssel als eine lokale Windows-Installation. `.gitattributes` legt LF für `src/mailhelp/web/static` fest; die Golden-Seiten enthalten nur neue Schlüssel. Regressionstest `tests/release/test_asset_line_endings.py`.
+- Bugfix Browsertests: Kontexte ohne Sprachangabe übernahmen die Sprache des Rechners; auf Ubuntu kamen die Seiten englisch, und zehn Tests warteten vergeblich auf „Code per Telegram senden“. Jeder Kontext ist jetzt deutsch mit Zeitzone Berlin, sofern ein Test nichts anderes angibt.
+- Bugfix: Links in Tabellenzellen (Betreff im Tätigkeitsbericht, Mail in der Stufenansicht) hatten keine eigene Mindesthöhe; ihre Tippfläche hing vom Zeilenumbruch der Schrift ab (43 px unter Linux). Neue Klasse `cell-link` mit mindestens 44 px.
+- Bugfix Ersteinrichtung: `setup.js` setzte die Browser-Zeitzone auch dann ein, wenn schon etwas eingegeben war, bevor das verzögert geladene Skript lief; eine solche Eingabe bleibt jetzt stehen.
+- CI-Browsersuite mit Roboto als Standardschrift wie auf Android (vorher das deutlich breitere DejaVu Sans); WebKit-Kontexte von Demo und Notion mit ausdrücklicher Sprache; die Umbruchprüfung der Breitbildseiten übergeht reine Screenreader-Beschriftungen (`.visually-hidden`).
+- Abdeckung unter Linux: Der Zweig ohne `chmod` im Geheimnisspeicher (`inboxstride_auth`) wurde unter Linux nie durchlaufen (99 % Branch-Abdeckung); ein Test erzwingt ihn jetzt auf jeder Plattform.
+- Der Lasttest `test_load_store_lock` läuft wie die übrigen Latenztests getrennt nach dem parallelen Lauf (auf dem Windows-Runner bis 410 ms bei acht Prozessen auf vier Kernen).
+- CI-Annotationen nennen zusätzlich die Datei mit fehlender Zeile oder fehlendem Zweig.
+
 ## 8.7.11 – Prüfstabilität (Querschnitt 8.7)
 
 - Bugfix: Unter Windows scheiterten der Demo-Start (Besucherbereich, Antwort 503), der Demo-Export (`devtools.demo.dataset`) und das Speichern von Zustandsdateien und Prüfberichten (`JsonStore.save`, `atomic_replace`, `write_report`; beobachtet bei `briefing_state.json` und als leeres Abrufergebnis im e2e-Lauf, weil der Abruf den Fehler abfing), wenn ein Virenscanner, der Indexer oder ein Leser die frische Datei bzw. das Ziel kurz offen hielt (`[WinError 5] Zugriff verweigert`). Alle setzen die Datei oder das Verzeichnis jetzt über `replace_path` mit bis zu acht Versuchen (zusammen etwa 1,3 s Pause) ein, danach mit der ursprünglichen Fehlermeldung. Regressionstests.

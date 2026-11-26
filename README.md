@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.12 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.12: CI auf Linux – statische Web-Dateien haben auf jedem System dieselben Bytes und damit
+dieselben Cache-Schlüssel; die Browsertests laufen unabhängig von der Systemsprache auf Deutsch, und die
+Linux-Browsersuite rechnet mit Roboto wie Android-Geräte.
 
 Version 8.7.11: Prüfstabilität – Zustandsdateien, Prüfberichte, Demo-Start und Demo-Export überstehen
 unter Windows kurz gesperrte Dateien; die Live-Suche misst ihre Antwortzeit im Browser, und CI meldet

@@ -416,6 +416,7 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-r
 /* Touch: the figure links are full-height tap targets. */
 @media (max-width: 899px), (pointer: coarse) {
   .fact-link { display: inline-flex; align-items: center; min-height: 44px; }
+.cell-link { display: inline-flex; align-items: center; min-height: 44px; }  /* 8.7.12: links in table cells */
 }
 .calls-explanation ul { margin: .25rem 0 0; padding-left: 1.2rem; }
 .calls-pages { margin: .75rem 0; }

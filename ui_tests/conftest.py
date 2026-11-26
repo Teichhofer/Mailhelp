@@ -256,11 +256,32 @@ def browser_runtime():
         yield playwright
 
 
+CONTEXT_DEFAULTS = {"locale": "de-DE", "timezone_id": "Europe/Berlin"}
+
+
+class GermanBrowser:
+    """8.7.11: every context speaks German in Berlin unless a test says otherwise.
+
+    Regression: contexts opened without ``locale`` took the language of the host. On a German Windows
+    that was German; on Ubuntu CI the pages came in English and the tests timed out waiting for
+    "Code per Telegram senden".
+    """
+
+    def __init__(self, browser):
+        self._browser = browser
+
+    def new_context(self, **options):
+        return self._browser.new_context(**{**CONTEXT_DEFAULTS, **options})
+
+    def __getattr__(self, name):
+        return getattr(self._browser, name)
+
+
 @pytest.fixture(scope="session")
 def browser(browser_runtime):
     # Without the compilation cache every load gets fresh block counters.
     instance = browser_runtime.chromium.launch(channel="chrome", args=["--js-flags=--no-compilation-cache"])
-    yield instance
+    yield GermanBrowser(instance)
     instance.close()
 
 

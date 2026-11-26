@@ -236,7 +236,9 @@ def _estimate(report: ActivityReport) -> str:
 
 
 def _mail_link(report: ActivityReport, index: int, mail: ReportMail) -> str:
-    return f'<a href="/berichte/{report.id}/mail/{index}">{e(mail.subject or msg('(ohne Betreff)'))}</a>'
+    # 8.7.12: an own tap target; inside a table cell its height otherwise depended on the font's line breaks.
+    subject = e(mail.subject or msg("(ohne Betreff)"))
+    return f'<a class="cell-link" href="/berichte/{report.id}/mail/{index}">{subject}</a>'
 
 
 def _results(report: ActivityReport, mails: list[ReportMail], csrf: str, filters: ReportFilter) -> str:

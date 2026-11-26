@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.11. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.12. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -133,6 +133,17 @@ Tests: `tests/web/test_customer_acceptance.py`.
 | JavaScript-Abdeckung | `settings.js` wieder vollständig abgedeckt: wirkungslose Prüfung versteckter Felder entfernt, Speicherleiste bis zurück auf 0 Änderungen getestet |
 | CI | Fehlgeschlagene Tests und Abdeckung als öffentliche Annotationen (`tests/release/test_ci_workflows.py`) |
 | AP6 | Ersteinrichtung, Abnahme 3 und Lernlauf auf Wunsch des Betreibers zurückgestellt |
+
+## Umgesetzt in 8.7.12 – CI auf Linux
+
+| Thema | Umsetzung |
+| --- | --- |
+| Cache-Schlüssel | Statische Web-Dateien mit LF auf jedem System (`.gitattributes`); dieselben Schlüssel unter Windows, Linux und im Docker-Image; Golden-Seiten nur im Schlüssel angepasst |
+| Browsertests | Kontexte standardmäßig deutsch und Europe/Berlin; Linux-CI mit Roboto |
+| Tabellenlinks | Betreff im Tätigkeitsbericht und Mail in der Stufenansicht mit eigener Tippfläche von mindestens 44 px (`cell-link`) |
+| Ersteinrichtung | Eine vor dem Skript eingegebene Zeitzone wird nicht mehr durch die Browser-Zeitzone ersetzt |
+| Abdeckung | Zweig ohne `chmod` im Geheimnisspeicher auf jeder Plattform getestet |
+| Lasttest | `test_load_store_lock` getrennt und seriell |
 
 ## Prüfung
 

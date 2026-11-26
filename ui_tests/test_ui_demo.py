@@ -178,7 +178,9 @@ def test_two_browser_contexts_work_separately(browser, instance):
 def test_the_demo_works_in_webkit_on_a_phone(browser_runtime, instance, locale):
     webkit = browser_runtime.webkit.launch()
     try:
-        context = webkit.new_context(**browser_runtime.devices["iPhone 13"])
+        # 8.7.12: the browser language explicitly; on Ubuntu the host language was English.
+        context = webkit.new_context(**browser_runtime.devices["iPhone 13"],
+                                     locale="de-DE" if locale == "de" else "en-US", timezone_id="Europe/Berlin")
         page = context.new_page()
         if locale == "de":
             start_demo(page, instance)

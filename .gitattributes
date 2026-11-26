@@ -3,3 +3,9 @@ src/mailhelp/defaults/demo/** -text
 # 7.9.10: the landing page is rebuilt byte for byte (tests/landing/test_landing_build.py); its fingerprinted
 # assets and pages keep their delivered line endings.
 landing/public/** -text
+# 8.7.11: the cache keys (?v=…) and the service-worker version hash the delivered bytes; with CRLF on Windows
+# checkouts they differed from Linux and the Docker image, so the frozen pages never matched on Ubuntu CI.
+src/mailhelp/web/static/*.css text eol=lf
+src/mailhelp/web/static/*.js text eol=lf
+src/mailhelp/web/static/*.html text eol=lf
+src/mailhelp/web/static/*.webmanifest text eol=lf

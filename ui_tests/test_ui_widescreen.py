@@ -23,6 +23,10 @@ PAGES = CORE_PAGES
 SPLIT_WORDS = """() => Array.from(document.querySelectorAll(
     'main thead th, main .badge, main .button, main button, main .chip, main .stat span'))
   .filter((node) => node.offsetParent !== null && node.textContent.trim())
+  // 8.7.12: a label only for screen readers (.visually-hidden, clipped to 1 px) is no visible word; with Roboto
+  // its clipped box reported several line tops ("Bearbeiten" in the head of the topic table).
+  .filter((node) => Array.from(node.querySelectorAll('.visually-hidden'))
+    .reduce((text, hidden) => text + hidden.textContent, '').trim() !== node.textContent.trim())
   .filter((node) => {
     const range = document.createRange();
     range.selectNodeContents(node);

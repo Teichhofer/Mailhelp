@@ -229,6 +229,10 @@ def initial_page(state: InitialDraft, csrf: str, step: int, *, checks: list[Chec
             )
         if step == 1:
             controls += tr(_INITIAL_PAGE_TEXT_5)
+            if values is None:
+                # 8.7.12: only an untouched page may take the browser's zone; after a check or a refused save
+                # the field holds the entered value, even when it was sent before setup.js ran.
+                controls = controls.replace('name="timezone"', 'name="timezone" data-suggest-zone', 1)
         if step == 3:
             found = _found(checks[0] if checks else None)
             models = (found or {}).get("models", [])

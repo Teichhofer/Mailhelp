@@ -46,7 +46,9 @@ class HttpsBrowser:
         port = self.server.server_port
         self.browser = runtime.chromium.launch(channel="chrome", args=["--no-proxy-server",
             f"--host-resolver-rules=MAP * 127.0.0.1:{port}", "--js-flags=--no-compilation-cache"])
+        # 8.7.11: German like every other UI context; on Ubuntu CI the host language was English.
         self.context = self.browser.new_context(ignore_https_errors=True, service_workers="block",
+            locale="de-DE", timezone_id="Europe/Berlin",
             viewport={"width": width, "height": 900}, is_mobile=width < 1000, has_touch=width < 1000)
         self.page = wrap(self.context.new_page(), "desktop" if width > 1000 else "mobile")
 

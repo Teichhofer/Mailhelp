@@ -66,8 +66,23 @@ def test_failed_tests_become_public_annotations(job):
     run = next(step for step in steps if f"| tee {log}" in str(step.get("run", "")))
     assert run["shell"] == "bash" and "set -o pipefail" in run["run"]
     report = steps[steps.index(run) + 1]
-    assert report["if"] == "failure()" and "::error::" in report["run"] and log in report["run"]
+    assert report["if"] == "failure()" and "::error::" in report["run"] and f"' {log} |" in report["run"]
     assert "^(FAILED|ERROR) " in report["run"]
+    if job == "tests":  # the file of a missing line or branch, not only the total
+        line = "src/mailhelp/x.py      10      0      4      1    96%   12->14"
+        pattern = re.search(r"\|(\^\[\^ \]\+\\\.py[^']*)'", report["run"]).group(1)
+        assert re.search(pattern, line) and not re.search(pattern, "TOTAL   42510      0  11936      0   100%")
+
+
+def test_the_browser_suite_renders_with_roboto_before_it_runs():
+    """8.7.11: Ubuntu's DejaVu fallback made rows taller and a table link 43 px high only in CI."""
+    steps = [step for name, _runners, step in _steps(ROOT / ".github" / "workflows" / "ci.yml") if name == "ui-tests"]
+    runs = [str(step.get("run", "")) for step in steps]
+    font = next(index for index, run in enumerate(runs) if "fonts-roboto" in run)
+    suite = next(index for index, run in enumerate(runs) if "pytest ui_tests" in run)
+    assert font < suite and "fc-match system-ui | grep -q Roboto" in runs[font]
+    config = (ROOT / ".github" / "fontconfig" / "50-mailhelp-roboto.conf").read_text(encoding="utf-8")
+    assert all(f"<family>{name}</family><prefer><family>Roboto</family>" in config for name in ("sans-serif", "system-ui"))
 
 
 def test_dockerfiles_share_a_current_python_312_patch_image():
