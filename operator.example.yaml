@@ -2,7 +2,7 @@
 # Mailhelp liest sie beim Start und schreibt sie nie; weder Weboberfläche noch Import ändern sie.
 # Ohne die Datei bleibt die Instanz selbst betrieben (bisheriges Verhalten).
 #
-# Noch keine Kundenfreischaltung (Stand 8.7.4): siehe docs/Release-8.7.md.
+# Noch keine Kundenfreischaltung (Stand 8.7.5): siehe docs/Release-8.7.md.
 schema_version: 1
 # true: jede Websitzung erhält serverseitig die Rolle customer oder operator; rollenlose Sitzungen
 # und Codes werden beim ersten Start widerrufen. Betreiberzugang: mailhelp --pair --operator am Host.
@@ -12,4 +12,6 @@ instance: self
 # 8.7.4: Preisannahme des Betreibers für „Aus dem Postfach lernen“ in USD je Million Tokens (positiv,
 # höchstens 10000, als Text). Kunden wählen nur eine Punktegrenze; der Server rechnet sie mit dem gültigen
 # Bewertungsstand in die USD-Grenze des Laufs um. Ohne Wert bietet die Kundenansicht keinen Lernlauf an.
-# learning_usd_per_million_tokens: "0.5"
+# Für eine sichere Grenze mindestens den teuersten Tokenpreis des Lernmodells ansetzen (Ausgabepreis);
+# Herleitung für deepseek/deepseek-v4.1-flash aus den Produktionslogs: docs/Planung-8.7-Lernen.md §4.5.
+# learning_usd_per_million_tokens: "1.2"

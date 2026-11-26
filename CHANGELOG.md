@@ -1,5 +1,11 @@
 # Änderungen
 
+## 8.7.5 – Kundeninstanz `kunde` auf 8.7.4, Preisrahmen und Arbeitspakete (Betrieb)
+
+- Preisrahmen für Lernläufe aus den LLM-Logs der Produktion (13.–25.11.2026) berechnet: `deepseek/deepseek-v4.1-flash` kostet höchstens 0,30 (Eingabe) bzw. 1,20 USD (Ausgabe) je Million Tokens, im Mittel 0,30. Für `kunde` gilt `learning_usd_per_million_tokens: "1.2"`, damit kein Lauf seine Punktegrenze überschreitet ([Planung](docs/Planung-8.7-Lernen.md) §4.5); `operator.example.yaml` nennt die Regel.
+- `kunde` am 26.11.2026 auf `mailhelp-production:8.7.4-4e86ee4` aktualisiert (Hostpakete, Sicherung, Prüfungen, Rückkehr in [Betrieb](docs/Betrieb.md)); weiterhin im Ersteinrichtungsmodus. Produktion und Demo unverändert auf 8.5.4.
+- Offene Punkte als Arbeitspakete AP4a–AP6 und Prüfstabilität geplant ([Planung](docs/Planung-8.7-Lernen.md) §8).
+
 ## 8.7.4 – Lernen in Punkten
 
 - Umsetzung von [Lernen in Punkten](docs/Planung-8.7-Lernen.md) §4: Kunden wählen für „Aus dem Postfach lernen“ eine ganze Punktegrenze (1–10.000.000) als Ausführungsgrenze des Laufs. Der Server rechnet sie mit dem gültigen Bewertungsstand und der neuen Betreibereinstellung `learning_usd_per_million_tokens` (`operator.yaml`) in die USD-Grenze um (`usage/budget.py`, abgerundet, nie darüber). Ohne Preisannahme oder Bewertungsstand bietet die Kundenansicht keinen Lauf an.

@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Lernen in Punkten und Kundeninstanz `kunde`
 
-**Stand:** 25. November 2026. **Status:** In Umsetzung; Kundeninstanz `kunde` seit 8.7.3 eingerichtet (§6), Lernen in Punkten (§4) mit 8.7.4 umgesetzt, noch nicht ausgeliefert. Ergänzt [Planung 8.7](Planung-8.7.md) (AP4 Lernen,
+**Stand:** 26. November 2026. **Status:** In Umsetzung; Kundeninstanz `kunde` seit 8.7.3 eingerichtet (§6), Lernen in Punkten (§4) mit 8.7.4 umgesetzt und am 26.11.2026 auf `kunde` ausgeliefert (Preisrahmen §4.5); weitere Arbeitspakete in §8. Ergänzt [Planung 8.7](Planung-8.7.md) (AP4 Lernen,
 AP5–AP7) um die Betreiberentscheidungen vom 25. November 2026. Der Hauptplan bleibt unverändert
 verbindlich; dieser Plan autorisiert keine Kundenfreischaltung vor Abschluss von AP4–AP6.
 
@@ -118,6 +118,34 @@ Punkten und die Rechteprüfung.
   Abweichungen werden vollständig abgelehnt.
 - Freigegeben wird erst, wenn alle Tests aus §5 bestehen. Bis dahin bleibt die Sperre aus 8.7.1.
 
+### 4.5 Preisrahmen aus den Produktionslogs (26.11.2026)
+
+Grundlage: `/opt/mailhelp/runtime/logs/llm/requests.jsonl*` der Produktion vom 13. bis 25.11.2026,
+293 Antworten mit gemeldeten Kosten (`reported_cost`, `token_usage.cost_details`), zusammen
+1,15 Mio. Eingabe- und 0,38 Mio. Ausgabetokens für 0,46 USD. Lernläufe kamen im Zeitraum nicht vor.
+Alle Lernschritte (`relevance`, `learning_classification`, `learning_abstraction`) nutzen das
+Standardmodell `deepseek/deepseek-v4.1-flash`.
+
+| Größe (deepseek-v4.1-flash) | Min. | Median | Max. |
+| --- | --- | --- | --- |
+| Eingabe ohne Cache, USD je Mio. Tokens | 0,05 | 0,13 | 0,30 |
+| Ausgabe (inkl. Reasoning), USD je Mio. Tokens | 0,42 | 0,65 | 1,20 |
+| Mischpreis je Aufruf, alle Schritte | 0,02 | – | 0,99 |
+| Mischpreis `relevance` (Median / 90 % / Max.) | – | 0,28 / 0,37 | 0,47 |
+| Mischpreis `summary` (ähnlich `learning_classification`) | – | 0,33 / 0,54 | 0,85 |
+| Mischpreis über alle Aufrufe | | 0,30 | |
+
+Die Lerngrenze rechnet gemeldete Gesamttokens × Preisannahme. Nur eine Annahme mindestens in Höhe
+des teuersten Tokenpreises garantiert, dass der tatsächliche Verbrauch die Punktegrenze nie
+übersteigt. **Festlegung für `kunde`: `learning_usd_per_million_tokens: "1.2"`** (höchster gemessener
+Ausgabepreis). Folge: Schätzung und Reservierung liegen typischerweise etwa beim Vierfachen des
+tatsächlichen Verbrauchs (Mischpreis 0,30); angezeigt und abgerechnet wird der tatsächliche Verbrauch.
+Beispiel 100 Mails: Schätzung 100 × 4 × 5.000 = 2 Mio. Tokens → 2,40 USD → 24.000 Punkte; erwarteter
+Istverbrauch etwa 0,60 USD → 6.000 Punkte. Ein knapperer Wert (0,6 = 90-%-Wert der ausgabelastigen
+Schritte) würde die Schätzung halbieren, kann die Grenze bei ausgabelastigen Aufrufen aber um bis zu
+das Doppelte überschreiten und ist deshalb verworfen. Bei einem Modellwechsel der Lernschritte ist der
+Wert neu festzulegen (z. B. `google/gemini-3.5-flash-lite`: Ausgabe 2,50 USD je Mio. Tokens).
+
 ## 5. Tests
 
 | Bereich | Fälle |
@@ -145,7 +173,7 @@ Pflichtprüfungen wie im Hauptplan: 100 % Zeilen-/Branch-Abdeckung, `python -m d
 | Compose-Projekt | `mailhelp-kunde`, eigener Container, eigenes Bridge-Netz `mailhelp-kunde` |
 | Port | `127.0.0.1:8766` → Container `8765`; nur nginx erreicht ihn |
 | Image | Jeweils geprüfte 8.7.x-Version; Produktion und Demo werden dabei nicht umgestellt |
-| Modus | `runtime/operator.yaml` mit `customer_mode: true`, `instance: kunde` |
+| Modus | `operator.yaml` mit `customer_mode: true`, `instance: kunde`, seit 8.7.4 `learning_usd_per_million_tokens: "1.2"` (§4.5) |
 | Bewertung | Revision 1: `usd_per_eur = 1`, `markup_percent = 900` |
 | Geheimnisse | Eigene `runtime/.env`; OpenRouter-Schlüssel des Betreibers wird vom Betreiber selbst über die Ersteinrichtung eingetragen, nicht aus der Produktion kopiert |
 | Anmeldedienst | Zunächst ohne `inboxstride-auth`-Netz; Google-Anbindung erst nach `register kunde` und eigenem mTLS-Zertifikat |
@@ -190,4 +218,22 @@ ohne Rollenschutz ist nur mit zuvor gesperrter nginx-Site zulässig (Plan §8).
 | 8.7.2 | Dieser Plan; Bugfix: `--set-valuation` funktioniert schon vor der Ersteinrichtung (vorher Abbruch ohne `config.yaml`); Compose-Vorlage `ops/server/kunde.compose.example.yaml` |
 | 8.7.3 | Kundeninstanz `kunde` mit 8.7.2 im Ersteinrichtungsmodus, Bewertungsstand, nginx/TLS, Sicherung; Serverhandbuch und Betrieb nach erfolgreicher Prüfung |
 | 8.7.4 | Lernen in Punkten (§4) mit Tests, Freigabe der Lernwege für Kunden |
-| 8.7.5 ff. | Restliches AP4 (Einstellungen, Berichte, Hilfe), AP5 Einrichtungsprüfung und Kundenhinweise, AP6 Abnahme auf `kunde` |
+| 8.7.5 | Auslieferung von 8.7.4 auf `kunde` mit Preisannahme 1,2 (§4.5); Arbeitspakete §8 |
+| 8.7.6 ff. | Arbeitspakete AP4a–AP6 aus §8 in dieser Reihenfolge |
+
+## 8. Weitere Arbeitspakete (Stand 26.11.2026)
+
+Aus den nach 8.7.4 offenen Punkten. Jedes Paket ist eine eigene Patch-Version mit Tests,
+Vollprüfung, Browsersuite und Dokumentation; Auslieferung auf `kunde` jeweils nach Freigabe des
+Betreibers. Produktion und Demo bleiben bis AP6 unverändert.
+
+| Paket | Version | Inhalt | Fertig, wenn |
+| --- | --- | --- | --- |
+| AP4a – Navigation und Links nach Rolle | 8.7.6 | Navigation (Seitenleiste, Tab-Leiste, „Mehr“) zeigt Kunden nur Ziele, die `customer_may("GET", …)` erlaubt (heute sichtbar, aber 403: Status, Auswertung, Berichte, Einstellungen, Vorschlagsabgleich); „Verbrauch“ in der Navigation für Kunden. Eigene Einstiegsseite `/einstellungen` für Kunden nur mit ihren Bereichen (Postfächer, Zielprofile, Absender, Benachrichtigungen, Themen, Web-Passwort, Geräte). Links innerhalb erlaubter Seiten auf Betreiberwege (`/diagnose`, `/einstellungen/zugangsdaten`, `/einstellungen/iserv`, `/einrichtung`, `/dienst/neu-laden`, `/einstellungen/neustarten`, `/auswertung…`) für Kunden ausblenden oder ersetzen. Bugfix: Enter in einem Feld des Lernformulars löst „Schätzung anzeigen“ aus statt „Ordner laden“ (Regressionstest) | Automatischer Linkprüfer: jede für Kunden erlaubte Seite in einer Kundensitzung abrufen, jeder interne Link und jedes Formularziel ist für Kunden erlaubt; Navigation für Betreiber unverändert; Smartphone und Tastatur |
+| AP4b – Kostenhinweise in Punkten | 8.7.7 | Nachanalyse (`/mail/…/nachanalyse`: „kostenpflichtige Modellaufrufe“, Verweis auf die Auswertung), Tätigkeitsberichte (`/berichte`: „kostenpflichtig starten“, Kostenschätzung `activity/costs.py` in USD/EUR Strom, xlsx-Export) und übrige Texte „Kosten“/„kostenpflichtig“ in Kundenwegen rollenabhängig auf „Verbraucht Punkte“ bzw. Schätzung in Punkten umstellen; danach `/berichte` für Kunden freigeben (Rechte-Matrix: nur eigene Postfächer) | Prüfung aller Kundenantworten (HTML, JSON, xlsx) ohne `USD`, `EUR`, `€`, `Cent`, `kostenpflichtig`, Modell- und Preisangaben (Abnahme 14 vollständig) |
+| AP4c – Hilfe und Suche nach Rolle | 8.7.8 | Hilfe DE/EN mit Kundenfassung (keine Betreiberabschnitte zu Servern, Zugangsdaten, Prompts, Kosten in USD); Suche und Hilfschat-Kontext nur aus für Kunden freigegebenen Abschnitten; Telegram-/Push-/Briefing-Texte ohne Geldwerte | Hilfeindex je Rolle; Hilfschat zitiert für Kunden keine Betreiberabschnitte; Kanaltexte geprüft |
+| AP5 – Einrichtungsprüfung und Kundenbetrieb | 8.7.9 | Betreiber schließt die Ersteinrichtung von `kunde` ab (eigener OpenRouter-Schlüssel), Betreiber- und Kundenkopplung, synthetisches Postfach; Einrichtungsprüfung zeigt Kunden fehlende Betreiberschritte (Preisannahme, Bewertungsstand) verständlich; Kundenhinweise; zweite Instanz für Isolationsprüfung (vertauschte Cookies, Referenzen, Codes); Sicherung und Rückkehr von `kunde` dokumentiert | Zwei Instanzen getrennt bedienbar; Betreiberzugriff jederzeit möglich |
+| AP6 – Abnahme auf `kunde` | 8.7.10 | Abnahmeszenarien aus [Planung 8.7](Planung-8.7.md) §10 auf `kunde` mit synthetischen Daten, darunter ein echter Lernlauf in Punkten (Abgleich Istverbrauch gegen OpenRouter-Kosten und Preisannahme §4.5) | Alle Abnahmepunkte bestanden; Ergebnis in Release 8.7 |
+| Querschnitt – Prüfstabilität | parallel | Zeitabhängige Tests, die nur unter Last scheitern (e2e-Durchlauf, `demo_visitors` mit fehlender Abdeckung von `demo_visitors.py:114`, Themeneditor schmal, Live-Suche 300 ms), deterministisch machen; Ursache der roten CI-Jobs `tests`/`ui-tests` klären (Logs benötigen `gh auth login`) | Zwei Vollprüfungen und eine Browsersuite hintereinander ohne Wiederholung grün |
+
+AP7 (Dokumentation, Serverhandbuch, Serverkopie) läuft in jedem Paket mit.

@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.5 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.5: Betrieb – die Kundeninstanz `kunde` läuft mit 8.7.4 und einer aus den
+Produktionslogs hergeleiteten Preisannahme für Lernläufe (1,2 USD je Million Tokens); die nächsten
+Arbeitspakete bis zur Abnahme stehen in [Lernen in Punkten](docs/Planung-8.7-Lernen.md) §8.
 
 Version 8.7.4: Lernen in Punkten. In einer Kundeninstanz wählt man für „Aus dem Postfach lernen“
 eine Punktegrenze statt eines USD-Budgets und sieht Schätzung, Reservierung und Verbrauch nur in

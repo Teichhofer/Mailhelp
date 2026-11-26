@@ -615,10 +615,10 @@ Produktion, Demo und Auth wurden dabei nicht verändert.
 
 | Bestandteil | Istzustand (geprüft 25.11.2026) |
 | --- | --- |
-| Quelle / Image | Commit `e00a136`, `/opt/mailhelp/releases/8.7.2-e00a136`, `mailhelp-production:8.7.2-e00a136` |
+| Quelle / Image | Seit 26.11.2026 Commit `4e86ee4`, `/opt/mailhelp/releases/8.7.4-4e86ee4`, `mailhelp-production:8.7.4-4e86ee4` (vorher `8.7.2-e00a136`, bleibt als Rückkehrpunkt) |
 | Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
 | Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
-| Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
+| Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`, seit 26.11.2026 `learning_usd_per_million_tokens: "1.2"`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
 | Bewertung | Stand 1, gültig ab 2026-11-25T10:49:25Z: 1 USD je EUR, Aufschlag 900 % (0,01 USD = 100 Punkte), `runtime/data/production/usage/valuations.json` |
 | nginx | `mailhelp-kunde-http` (ACME/Umleitung), `mailhelp-kunde-https` → `127.0.0.1:8766`; Vorlage `ops/server/nginx-kunde.example.conf` |
 | TLS | Let's Encrypt `kunde.inboxstride.de`, gültig bis 23.02.2027; `/usr/local/sbin/renew-mailhelp-kunde`, Cron `/etc/cron.d/mailhelp-kunde-cert-renew` (Minute 47, alle 6 h) |
@@ -647,3 +647,30 @@ Rückkehr: `docker compose -p mailhelp-kunde -f /opt/mailhelp-kunde/compose.yaml
 `sites-enabled/mailhelp-kunde-https` und `-http` entfernen, `nginx -t`, reload; Cron-Datei entfernen;
 Backup-Konfiguration aus `config.yaml.before-kunde-20261125` zurückspielen. Daten unter
 `/opt/mailhelp-kunde` erst nach Entscheidung des Betreibers löschen.
+
+### Update `kunde` auf 8.7.4 (26.11.2026)
+
+Auf Anweisung des Betreibers; nur `kunde`, Produktion, Demo und Auth unverändert.
+
+Schritte: `git archive 4e86ee4 Dockerfile README.md pyproject.toml requirements.lock src ops` nach
+`/opt/mailhelp/uploads/mailhelp-8.7.4-4e86ee4.tar.gz` (SHA-256 `72381550…454181885`), entpackt nach
+`/opt/mailhelp/releases/8.7.4-4e86ee4`, `docker build -t mailhelp-production:8.7.4-4e86ee4` (Version im
+Image 8.7.4). `apt-get update && apt-get upgrade -y`: `libexpat1` 2.7.4-1ubuntu0.2 → 0.3 eingespielt,
+`libsqlite3-0` wegen Phasing zurückgestellt; kein `/var/run/reboot-required`; nginx 1.28.3
+(`1.28.3-2ubuntu1.14`) mit laufendem Binary `/usr/sbin/nginx`; `needrestart` meldet aufgeschobene
+Neustarts von `dbus`, `networkd-dispatcher` und `unattended-upgrades` (nicht ausgeführt, kein
+Mailhelp-Dienst betroffen). Container gestoppt, Sicherung
+`/opt/mailhelp/backups/kunde-upgrade-8.7.4-20261126T061151Z/mailhelp-kunde.tar.gz` (ganzes
+`/opt/mailhelp-kunde`), Vorzustände `compose.yaml.before-8.7.4` und `operator.yaml.before-8.7.4`.
+`operator.yaml` um `learning_usd_per_million_tokens: "1.2"` ergänzt (Herleitung:
+[Planung](Planung-8.7-Lernen.md) §4.5), vorab mit dem neuen Image gegen das Schema geprüft; Image in
+`compose.yaml` umgestellt, `docker compose … config --quiet`, `up -d`.
+
+Prüfungen: Container `mailhelp-production:8.7.4-4e86ee4`, Version 8.7.4, weiterhin im
+Ersteinrichtungsmodus (Code im Log); `https://kunde.inboxstride.de/anmelden` 200, HTTP 308, fremder Host
+am Loopbackport 421; `stefan.` und `demo.inboxstride.de` weiterhin 200, Demo und Auth `healthy`.
+Lernen in Punkten selbst ist erst nach der Ersteinrichtung durch den Betreiber prüfbar (AP5/AP6).
+
+Rückkehr: Container stoppen, `compose.yaml.before-8.7.4` und `operator.yaml.before-8.7.4` zurückkopieren
+(8.7.2 kennt `learning_usd_per_million_tokens` nicht und startet sonst nicht), `up -d`; Laufzeitdaten
+sind mit 8.7.2 kompatibel (`web-learning-points.json` wird ignoriert).

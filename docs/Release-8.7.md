@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 25. November 2026. Version 8.7.4. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.5. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -52,12 +52,18 @@ Umsetzung von [Lernen in Punkten](Planung-8.7-Lernen.md) §4:
 | Rechte | Für Kunden freigegeben: `/lernen`, `/lernen/postfach`, `/lernen/entscheidungen`, `/themen/lernen` (GET/POST), `/api/lernen`, `/api/lernen/uebersicht`, `/lernen/vorschlaege`, `/lernen/absender-hinweis` (GET) und deren Aktionen |
 
 Betreiber sehen weiterhin das USD-Formular und zusätzlich reservierte und verbrauchte Punkte. Selbst
-betriebene Instanzen sind unverändert. Nicht ausgeliefert; die Instanz `kunde` läuft weiter mit 8.7.2.
-Vor einer Auslieferung dort muss `learning_usd_per_million_tokens` in `/opt/mailhelp-kunde/operator.yaml`
-ergänzt werden.
+betriebene Instanzen sind unverändert. Am 26.11.2026 auf `kunde` ausgeliefert (8.7.5, siehe unten).
 
 Protokolle, Logging-Einstellungen, Rotation und Aufbewahrung sind unverändert. Der Verbrauchsbestand ist
 eine eigene Datei und wird nicht aus Logs aufgebaut.
+
+## Umgesetzt in 8.7.5 – Auslieferung auf `kunde`, Arbeitspakete
+
+| Thema | Umsetzung |
+| --- | --- |
+| Preisrahmen | Aus den Produktionslogs 13.–25.11.2026 (293 bewertete Aufrufe von `deepseek/deepseek-v4.1-flash`): Eingabe höchstens 0,30, Ausgabe höchstens 1,20 USD je Mio. Tokens, Mischpreis 0,30. Festgelegt `learning_usd_per_million_tokens: "1.2"`, damit kein Lauf seine Punktegrenze überschreitet ([Planung](Planung-8.7-Lernen.md) §4.5) |
+| Auslieferung | `kunde` am 26.11.2026 auf `mailhelp-production:8.7.4-4e86ee4` mit Hostpaket-Update und Sicherung; weiterhin im Ersteinrichtungsmodus ([Betrieb](Betrieb.md)) |
+| Arbeitspakete | Offene Punkte als AP4a (Navigation und Links nach Rolle), AP4b (Kostenhinweise und Berichte in Punkten), AP4c (Hilfe und Suche nach Rolle), AP5, AP6 und Prüfstabilität ([Planung](Planung-8.7-Lernen.md) §8) |
 
 ## Prüfung
 
@@ -83,6 +89,7 @@ eine eigene Datei und wird nicht aus Logs aufgebaut.
 
 ## Auslieferung
 
-Nicht ausgeliefert. Produktion und Demo laufen weiter ohne Kundenmodus. Ohne `operator.yaml` und ohne
+Nur die Betreiber-Testinstanz `kunde` läuft mit 8.7.4 (seit 26.11.2026). Produktion und Demo laufen
+weiter mit 8.5.4 ohne Kundenmodus. Ohne `operator.yaml` und ohne
 Bewertungsstand verhält sich 8.7.1 wie 8.6.3; das Sitzungsformat einer selbst betriebenen Instanz ist
 unverändert, eine Rückkehr bleibt möglich.

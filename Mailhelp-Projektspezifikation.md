@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.4, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.5, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -41,7 +41,9 @@ Stand 8.7.4, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischal
 - **Lernen in Punkten (8.7.4).** Kunden wählen für „Aus dem Postfach lernen“ eine ganze Punktegrenze (1–10.000.000)
   als Ausführungsgrenze des Laufs. Der Server rechnet sie mit dem gültigen Bewertungsstand und der Preisannahme
   `learning_usd_per_million_tokens` aus `operator.yaml` in die USD-Grenze des Laufs um (abgerundet, nie darüber);
-  fehlt eines davon, wird kein Lauf angeboten. Das Formular trägt nur Postfach, Ordner, Anzahl, Punkte und
+  fehlt eines davon, wird kein Lauf angeboten. Die Preisannahme muss mindestens dem teuersten Tokenpreis des
+  Lernmodells entsprechen, sonst kann der Istverbrauch die Punktegrenze übersteigen (8.7.5: 1,2 für
+  `deepseek/deepseek-v4.1-flash`, hergeleitet aus den Produktionslogs). Das Formular trägt nur Postfach, Ordner, Anzahl, Punkte und
   Bewertungsrevision; Geldfelder oder eine inzwischen geänderte Revision lehnen den Start ab. Punktegrenze und
   Revision liegen getrennt von `web-learning.json` in `web-learning-points.json`. Kunden sehen auf allen Lernseiten
   und im Hilfschat nur Punkte; die Übernahme ändert bei Kunden in `config.yaml` nur Kundenfelder.
