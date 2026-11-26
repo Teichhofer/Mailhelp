@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.8. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.9. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -101,6 +101,16 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
 Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
+## Umgesetzt in 8.7.9 – AP5 Einrichtungsprüfung und Trennung der Instanzen
+
+| Thema | Umsetzung |
+| --- | --- |
+| Einrichtungsprüfung | `mailhelp --check-instance` am Host, auch vor der Ersteinrichtung: Kundenmodus, Bewertungsstand, Preisannahme für Lernläufe, Ersteinrichtung und Betreiberzugang je mit OK oder FEHLT samt nächstem Schritt, Kundensitzungen als HINWEIS; Exitcode 0/1/2; liest nur, gibt keine Geheimnisse aus |
+| Trennung | Zwei Instanzen mit eigenem Zustand: vertauschte Sitzungscookies, fremde Kopplungscodes, fremde Mail- und Vorschlagsreferenzen und das Abmelden aller Kunden wirken nur in der eigenen Instanz (`tests/web/test_instance_isolation.py`) |
+| Kundenhinweise | Fehlende Betreiberschritte erscheinen Kunden als verständliche Hinweise: Verbrauch ohne Bewertungsstand, Lernen ohne Preisannahme, ausgeschaltete Berichte |
+
+Offen beim Betreiber: Ersteinrichtung von `kunde` mit eigenem OpenRouter-Schlüssel, Betreiber- und Kundenkopplung, synthetisches Postfach; danach AP6.
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -124,7 +134,8 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 | – | Links und Formulare aller erreichbaren Kundenseiten | Nur für Kunden erlaubte Ziele (`tests/web/test_customer_links.py`) |
 | 14 (Seiten außer Hilfe) | Geldbegriffe auf allen erreichbaren Kundenseiten, Berichte, Nachanalyse | Keine Treffer (`tests/web/test_customer_links.py`, `tests/web/test_customer_points_pages.py`) |
 | 14 (Hilfe) | Freigegebene Hilfeabschnitte DE/EN, Hilfeindex, Chatquellen | Keine Geldbegriffe; Betreiberabschnitte 404 (`tests/unit/test_help_roles.py`, `tests/web/test_customer_help.py`) |
-| 3, 15, 17, 19, 20 | – | Offen (AP5–AP6) |
+| 16 (zwei Instanzen) | Vertauschte Cookies, Codes und Referenzen zwischen zwei Instanzen mit eigenem Zustand | Nur in der eigenen Instanz wirksam (`tests/web/test_instance_isolation.py`) |
+| 3, 15, 17, 19, 20 | – | Offen (AP6, nach der Ersteinrichtung von `kunde`) |
 
 ## Auslieferung
 

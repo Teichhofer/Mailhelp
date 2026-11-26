@@ -10183,4 +10183,38 @@ EN = {
          'created automatically.</p><p class="meta">At most {p1} AI calls that use points; today {p2} of {p3} '
          'reanalyses still possible. The “Usage” page shows the actual usage.</p><form method="post" '
          'action="/mail/{p4}/nachanalyse">'),
+    ('{status}: selbst betriebene Instanz ohne Kundenmodus ({file} fehlt oder customer_mode: false); nichts '
+     'weiter zu prüfen.'):
+        ('{status}: self-operated instance without customer mode ({file} missing or customer_mode: false); '
+         'nothing more to check.'),
+    'Kundenmodus aktiv, Instanz {instance}':
+        'Customer mode active, instance {instance}',
+    '{count} gültige Kundensitzung(en); Kundenzugang mit mailhelp --pair':
+        '{count} valid customer session(s); customer access with mailhelp --pair',
+    'Bereit für die Abnahme.':
+        'Ready for acceptance.',
+    '{count} Schritt(e) offen.':
+        '{count} step(s) open.',
+    '{status}: {error}':
+        '{status}: {error}',
+    'Bewertungsstand {revision}: {rate} USD je EUR, Aufschlag {markup} %':
+        'Valuation {revision}: {rate} USD per EUR, markup {markup} %',
+    'Bewertungsstand fehlt: mailhelp --set-valuation USD_JE_EUR AUFSCHLAG_PROZENT':
+        'Valuation missing: mailhelp --set-valuation USD_PER_EUR MARKUP_PERCENT',
+    'Preisannahme für Lernläufe: {price} USD je Million Tokens':
+        'Price assumption for learning runs: {price} USD per million tokens',
+    'Preisannahme für Lernläufe fehlt: learning_usd_per_million_tokens in {file}':
+        'Price assumption for learning runs missing: learning_usd_per_million_tokens in {file}',
+    'Ersteinrichtung abgeschlossen':
+        'First setup finished',
+    'Ersteinrichtung offen: Code aus dem Protokoll des Dienstes im Browser eingeben':
+        'First setup open: enter the code from the service log in the browser',
+    '{count} gültige Betreibersitzung(en)':
+        '{count} valid operator session(s)',
+    'Kein Betreiberzugang: mailhelp --pair --operator am Host':
+        'No operator access: mailhelp --pair --operator at the host',
+    ('Betreiber: Einrichtung der Kundeninstanz prüfen (Kundenmodus, Bewertungsstand, Preisannahme, '
+     'Ersteinrichtung, Betreiberzugang); ändert nichts'):
+        ('Operator: check the setup of the customer instance (customer mode, valuation, price assumption, '
+         'first setup, operator access); changes nothing'),
 }

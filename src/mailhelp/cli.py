@@ -16,6 +16,7 @@ from typing import Any, NoReturn
 
 from .app import bootstrap, demo
 from .app.composition import build_application, build_logger
+from .app.instance_check import check_instance
 from .config import LOCAL_NUM_CTX, MailboxSettings, PromptConfig, Secrets, Settings, Topic, load_all, read_yaml
 from .config.loader import MissingConfiguration
 from .external import providers
@@ -53,6 +54,16 @@ class _SignalShutdown:
             raise KeyboardInterrupt
         self.stop()
 
+
+
+def _state_directory(config_directory: Path) -> Path:
+    """Where setup and service keep their state: data/production before the first setup (8.7.2)."""
+    config = config_directory / "config.yaml"
+    if not config.exists():
+        return config_directory / "data" / "production"
+    settings = Settings.model_validate(read_yaml(config))
+    namespace = "test" if settings.test_mode else "production"
+    return runtime_path(settings.data_directory, config_directory) / namespace
 
 def _default_config_directory() -> Path:
     """Prefer a complete configuration in cwd, then an editable checkout root."""
@@ -262,15 +273,10 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         return 0
     if args.set_valuation is not None:
         # 8.7: works while the service runs; the file is replaced atomically and read before each attempt.
-        config = args.config_directory / "config.yaml"
-        if not config.exists():
-            # 8.7.2: before the first setup the valuation must already exist (Plan 8.7 §5.2); the setup and
-            # the service it starts use data/production below the configuration directory.
-            return set_valuation(args.config_directory / "data" / "production", *args.set_valuation)
-        settings = Settings.model_validate(read_yaml(config))
-        namespace = "test" if settings.test_mode else "production"
-        return set_valuation(runtime_path(settings.data_directory, args.config_directory) / namespace,
-                             *args.set_valuation)
+        return set_valuation(_state_directory(args.config_directory), *args.set_valuation)
+    if args.check_instance:
+        # 8.7.9: read-only, before and after the first setup.
+        return check_instance(args.config_directory, _state_directory(args.config_directory))
     if args.reset_web_password:
         settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
         namespace = "test" if settings.test_mode else "production"
@@ -319,6 +325,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--set-valuation", nargs=2, metavar=("USD_JE_EUR", "AUFSCHLAG_PROZENT"),
                         help=("Betreiber: neuen Bewertungsstand für den Punkteverbrauch festlegen "
                               "(gilt für danach beginnende KI-Aufrufe)"))
+    parser.add_argument("--check-instance", action="store_true",
+                        help=("Betreiber: Einrichtung der Kundeninstanz prüfen (Kundenmodus, Bewertungsstand, "
+                              "Preisannahme, Ersteinrichtung, Betreiberzugang); ändert nichts"))
     parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")
     parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
     _add_access_arguments(parser)

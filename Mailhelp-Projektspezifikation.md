@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.8, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.9, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -38,6 +38,13 @@ Stand 8.7.8, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischal
   höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
   („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
   Aufrufe eines Lernlaufs tragen den Schritt `learning.<Schritt>` und erscheinen als „Aus dem Postfach lernen“.
+- **Einrichtungsprüfung und Trennung der Instanzen (8.7.9).** `mailhelp --check-instance` liest am Host (auch vor
+  der Ersteinrichtung) `operator.yaml`, den gültigen Bewertungsstand, `config.yaml` und die gültigen Sitzungen dieser
+  Instanz und meldet je Schritt OK, FEHLT oder HINWEIS: Kundenmodus, Bewertungsstand, Preisannahme für Lernläufe,
+  Ersteinrichtung, Betreiberzugang (Pflicht) sowie die Zahl der Kundensitzungen. Exitcode 0 bereit, 1 Schritt offen,
+  2 ungültige `operator.yaml`. Die Prüfung schreibt nichts (kein Verzeichnis, keine Sperre, keine Quarantäne) und gibt
+  keine Schlüssel, Codes oder Sitzungskennungen aus. Zwei Instanzen mit eigenem Zustand teilen weder Sitzungen noch
+  Kopplungscodes noch Mail- und Vorschlagsreferenzen (auch bei gleichem HMAC-Geheimnis).
 - **Hilfe nach Rolle (8.7.8).** Kundensitzungen lesen im Hilfeindex, auf den Abschnittsseiten und als Quellen
   des Hilfschats nur die in `helpdocs/roles.py` ausdrücklich freigegebenen Abschnitte (Standardsperre: neue
   Abschnitte bleiben Betreibern vorbehalten, andere Abschnitte antworten mit 404). Der Hilfschat prüft die Rolle

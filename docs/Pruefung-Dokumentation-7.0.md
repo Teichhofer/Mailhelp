@@ -474,12 +474,13 @@ Erzeugt mit `python -m devtools.inventory`: **297 Einstellungen**, davon **297**
 | `write_verification.max_elapsed_seconds` | int | 300 | ≥ 10, ≤ 86400 | Datei | ja |
 | `write_verification.retry_delays_seconds` | list[int] | [1, 5, 15, 60] | Länge ≤ 9 | Datei | ja |
 
-**28 Kommandozeilenoptionen** (`mailhelp --help`):
+**29 Kommandozeilenoptionen** (`mailhelp --help`):
 
 | Option | Bedeutung laut Hilfe |
 | --- | --- |
 | `--check` | Konfiguration validieren und beenden |
 | `--check-access` | Zugänge prüfen, Telegram-Testnachricht senden und beenden |
+| `--check-instance` | Betreiber: Einrichtung der Kundeninstanz prüfen (Kundenmodus, Bewertungsstand, Preisannahme, Ersteinrichtung, Betreiberzugang); ändert nichts |
 | `--clear` | alle Zustandsdaten, Decision-Test-Berichte und Logs nach ausdrücklicher Bestätigung löschen |
 | `--config-directory` | Verzeichnis mit config.yaml, prompts.yaml, topics.yaml und irrelevant_topics.yaml |
 | `--decision-test` | ANZAHL Mails über Standardpfad und Ollama vergleichen; nur relevante Mails weiter analysieren |

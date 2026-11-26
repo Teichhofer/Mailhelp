@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.7.9 – Einrichtungsprüfung und Trennung der Instanzen (AP5)
+
+- Neu: `mailhelp --check-instance` meldet am Host, auch vor der Ersteinrichtung, Kundenmodus, Bewertungsstand, Preisannahme für Lernläufe, Ersteinrichtung und Betreiberzugang mit OK/FEHLT und nächstem Schritt; liest nur und gibt keine Geheimnisse aus.
+- Tests mit zwei getrennten Instanzen: vertauschte Cookies, fremde Kopplungscodes und Referenzen wirken nur in der eigenen Instanz.
+
 ## 8.7.8 – Hilfe und Suche nach Rolle (AP4c)
 
 - Kundensitzungen sehen im Hilfeindex und auf den Abschnittsseiten nur ausdrücklich freigegebene Abschnitte (`helpdocs/roles.py`); andere, auch künftige, antworten mit 404.
