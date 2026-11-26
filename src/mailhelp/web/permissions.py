@@ -47,8 +47,8 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         # Help: product documentation and the help chat (its calls count as usage)
         ("GET POST", r"/hilfe(?:/.*)?"),
         ("GET", r"/api/hilfe/(?:fenster|auftrag/[a-f0-9]{32})"),
-        # Usage in points
-        ("GET", r"/verbrauch"),
+        # Usage in points; 8.7.6: the customer's own settings overview (only customer areas)
+        ("GET", r"/verbrauch|/einstellungen"),
         # 8.7.4: learning shows points only; adoptions change only topics, sender rules and folders
         ("GET POST", r"/lernen|/lernen/postfach|/lernen/entscheidungen|/themen/lernen"),
         ("GET", r"/api/lernen|/api/lernen/uebersicht|/lernen/vorschlaege|/lernen/absender-hinweis"),
@@ -58,9 +58,19 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
 )
 
 
+# Routes without a session (language switch, sign-in); links to them work for everyone.
+PUBLIC_LINKS = re.compile(r"/sprache|/(?:de|en)/|/anmelden(?:/.*)?")
+
+
 def customer_may(method: str, path: str) -> bool:
     """Whether a customer session may call ``method path`` at all."""
     return any(method in methods and pattern.fullmatch(path) for methods, pattern in CUSTOMER_ROUTES)
 
 
-__all__ = ["CUSTOMER_ROUTES", "customer_may"]
+def customer_may_link(href: str) -> bool:
+    """Whether a local link (path with optional query or fragment) works in a customer session."""
+    path = href.split("#", 1)[0].split("?", 1)[0]
+    return bool(PUBLIC_LINKS.fullmatch(path)) or customer_may("GET", path)
+
+
+__all__ = ["CUSTOMER_ROUTES", "PUBLIC_LINKS", "customer_may", "customer_may_link"]

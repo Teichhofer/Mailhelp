@@ -2,7 +2,7 @@
 # Mailhelp liest sie beim Start und schreibt sie nie; weder Weboberfläche noch Import ändern sie.
 # Ohne die Datei bleibt die Instanz selbst betrieben (bisheriges Verhalten).
 #
-# Noch keine Kundenfreischaltung (Stand 8.7.5): siehe docs/Release-8.7.md.
+# Noch keine Kundenfreischaltung (Stand 8.7.6): siehe docs/Release-8.7.md.
 schema_version: 1
 # true: jede Websitzung erhält serverseitig die Rolle customer oder operator; rollenlose Sitzungen
 # und Codes werden beim ersten Start widerrufen. Betreiberzugang: mailhelp --pair --operator am Host.

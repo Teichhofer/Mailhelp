@@ -8,6 +8,7 @@ adds the connection indicator and the automatic refresh.
 from __future__ import annotations
 
 import html
+import re
 from collections.abc import Callable, Mapping
 from contextvars import ContextVar
 from datetime import datetime
@@ -17,6 +18,7 @@ from ..formatting import format_datetime_local
 from ..i18n import Locale, current, heading, msg, stored, tr
 from .auth import WebSession
 from .js_texts import messages
+from .permissions import customer_may_link
 
 
 def e(value: object) -> str:
@@ -35,11 +37,12 @@ NAVIGATION = (
     ("/geraete", msg("Geräte")),
     ("/abgleich", msg("Vorschlagsabgleich")),
     ("/lernen", msg("Lernen")),
+    ("/verbrauch", msg("Verbrauch")),
 )
 
 NAVIGATION_GROUPS = (
     (msg("Arbeitsbereich"), ("/", "/mails", "/abgleich")),
-    (msg("Einblicke"), ("/verlauf", "/berichte", "/auswertung", "/status")),
+    (msg("Einblicke"), ("/verlauf", "/berichte", "/auswertung", "/status", "/verbrauch")),
     (msg("Verwaltung"), ("/einstellungen", "/lernen", "/geraete")),
 )
 NAVIGATION_ICONS = {
@@ -53,7 +56,10 @@ NAVIGATION_ICONS = {
     "/einstellungen": "M4 7h16 M4 17h16 M9 4v6 M15 14v6",
     "/geraete": "M7 2h10v20H7z M10 18h4",
     "/lernen": "M3 5h8v15H3z M13 5h8v15h-8z M5 9h4 M15 9h4",
+    "/verbrauch": "M12 3a9 9 0 1 0 9 9h-9z M14 3.5A8 8 0 0 1 20.5 10H14z",
 }
+# 8.7.6: "Verbrauch" is the customer's page; operators reach it from the settings (no new link for them).
+CUSTOMER_NAVIGATION = frozenset({"/verbrauch"})
 
 
 # 5.0.1: the phone bar at the bottom shows these routes; the others are under "Mehr".
@@ -62,6 +68,33 @@ TAB_BAR = ("/", "/mails", "/abgleich", "/verlauf")
 # Labels that would not fit a fifth of a 320 px phone bar.
 TAB_LABELS = {"/abgleich": msg("Abgleich")}
 MORE_ICON = "M5 12h.01 M12 12h.01 M19 12h.01"
+
+# 8.7.6 (AP4a): whether the current request belongs to a customer session; set by the session guard.
+CUSTOMER_VIEW: ContextVar[bool] = ContextVar("customer_view", default=False)
+_ANCHOR = re.compile(r'<a\b[^>]*?\bhref="(/[^"]*)"[^>]*>.*?</a>', re.S)
+_SEPARATORS = re.compile(r'(?:\s*·\s*){2,}')
+_EDGE_SEPARATORS = re.compile(r'(<p[^>]*>)\s*·\s*|\s*·\s*(</p>)')
+
+
+def shown(href: str) -> bool:
+    """Whether the navigation shows *href* in the current request."""
+    if CUSTOMER_VIEW.get():
+        return customer_may_link(href)
+    return href not in CUSTOMER_NAVIGATION
+
+
+def customer_links(page: str) -> str:
+    """Drop every local link a customer may not open; the caller only passes trusted page markup.
+
+    Pages keep their operator links; for customers the frame removes them in one place, so no page
+    (including later ones) can point a customer at a route that answers "Nur für den Betreiber".
+    """
+    def keep(match: re.Match[str]) -> str:
+        return match.group(0) if customer_may_link(html.unescape(match.group(1))) else ""
+
+    page = _SEPARATORS.sub(" · ", _ANCHOR.sub(keep, page))
+    return _EDGE_SEPARATORS.sub(lambda match: match.group(1) or match.group(2), page)
+
 
 # Open decisions of the current request, set once by the session guard (5.0.1).
 OPEN_DECISIONS: ContextVar[int] = ContextVar("open_decisions", default=0)
@@ -107,14 +140,15 @@ def _navigation(active: str | None) -> tuple[str, str]:
     open_count = OPEN_DECISIONS.get()
     groups = []
     for title, routes in NAVIGATION_GROUPS:
-        links = "".join(_link(href, active, open_count) for href in routes)
+        links = "".join(_link(href, active, open_count) for href in routes if shown(href))
         groups.append(f'<div class="nav-section"><p class="nav-section-label">{tr(title)}</p>{links}</div>')
     described = ""
     if open_count:
         noun = tr("offene Entscheidung") if open_count == 1 else tr("offene Entscheidungen")
         described = f'<span id="offen-zahl" hidden>{open_count} {noun}</span>'
-    tabs = "".join(_link(href, active, open_count, tab=True) for href in TAB_BAR)
-    others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION if href not in TAB_BAR)
+    tabs = "".join(_link(href, active, open_count, tab=True) for href in TAB_BAR if shown(href))
+    others = "".join(_link(href, active, open_count) for href, _label in NAVIGATION
+                     if href not in TAB_BAR and shown(href))
     current = " has-current" if active is not None and active not in TAB_BAR else ""
     more = (f'<details class="tab-more{current}"><summary>{_icon(MORE_ICON)}<span class="nav-label">{tr("Mehr")}</span>'
             f'</summary><div class="tab-menu">{others}{_language_switch()}</div></details>')
@@ -167,7 +201,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
         data += f' data-state-url="{e(state_url)}"'
     window = HELP_WINDOW.get()
     widget = window() if signed_in and window is not None else ""
-    return f"""<!doctype html>
+    page = f"""<!doctype html>
 <html lang="{current().value}">
 <head>
 <meta charset="utf-8">
@@ -199,6 +233,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 </body>
 </html>
 """
+    return customer_links(page) if signed_in and CUSTOMER_VIEW.get() else page
 
 
 def notice(text: str, kind: str = "info") -> str:
@@ -357,5 +392,5 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
     )
 
 
-__all__ = ["HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR", "devices_page", "e", "error_page", "layout",
-           "login_page", "notice", "page_head"]
+__all__ = ["CUSTOMER_NAVIGATION", "CUSTOMER_VIEW", "HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR",
+           "customer_links", "devices_page", "e", "error_page", "layout", "login_page", "notice", "page_head", "shown"]

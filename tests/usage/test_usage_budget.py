@@ -6,8 +6,17 @@ from decimal import Decimal
 
 import pytest
 
-from mailhelp.usage.budget import (decimal_of, fits, limit_float, minimum_points, parse_points, points_to_usd,
-                                   tokens_to_points, tokens_to_usd, usd_to_points)
+from mailhelp.usage.budget import (
+    decimal_of,
+    fits,
+    limit_float,
+    minimum_points,
+    parse_points,
+    points_to_usd,
+    tokens_to_points,
+    tokens_to_usd,
+    usd_to_points,
+)
 from mailhelp.usage.points import Valuation
 from mailhelp.usage.valuations import SCOPE, UsageMeter, usage_scope
 

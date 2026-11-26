@@ -214,7 +214,14 @@ Kosten noch nicht feststehen, werden gezählt und genannt. Der Lauf hält an, be
 überschreiten würde. Nach der Übernahme gelten neue Themen ab der nächsten Analyse, neue Abrufordner
 beim nächsten Start; ein Neuladen durch dich ist nicht nötig. Den Verbrauch zeigt auch die Seite
 „Verbrauch“ unter „Aus dem Postfach lernen“. Hat der Betreiber Lernen noch nicht
-eingerichtet, sagt die Seite das und bietet keinen Start an.
+eingerichtet, sagt die Seite das und bietet keinen Start an. Die Eingabetaste in einem Feld des
+Formulars zeigt die Schätzung (ab 8.7.6).
+
+In einer Kundeninstanz zeigt die Navigation ab 8.7.6 nur Seiten, die du nutzen darfst: Offen,
+Mails, Verlauf, Verbrauch, Einstellungen, Lernen und Geräte. „Einstellungen“ führt zu deinen
+Bereichen (Postfächer, Zielprofile, Themen, Absender-Regeln, Benachrichtigungen, Lernen,
+Verbrauch, Geräte, Web-Passwort). Zugangsdaten, Modelle, Diagnose und Betrieb verwaltet der
+Betreiber; Verweise darauf entfallen auf deinen Seiten.
 
 ### Ergebnis prüfen und übernehmen
 

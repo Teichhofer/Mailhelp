@@ -159,7 +159,14 @@ During the run the page shows reserved and actually used points; calls whose cos
 are counted and named. The run stops before it would exceed the limit. After the adoption, new
 topics apply from the next analysis and new fetch folders from the next start; you do not need to
 reload anything. The “Usage” page also shows the usage under “Learn from mailbox”. If
-the operator has not set up learning yet, the page says so and offers no start.
+the operator has not set up learning yet, the page says so and offers no start. The Enter key in a
+field of the form shows the estimate (from 8.7.6).
+
+In a customer instance the navigation shows only pages you may use from 8.7.6: Open, Emails,
+History, Usage, Settings, Learning and Devices. “Settings” leads to your areas (mailboxes, target
+profiles, topics, sender rules, notifications, learning, usage, devices, web password). The
+operator manages credentials, models, diagnostics and operation; links to them are left out of
+your pages.
 
 ### Check and take result <!-- mailhelp-id:bedienung/ergebnis-pruefen-und-uebernehmen -->
 

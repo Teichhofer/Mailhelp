@@ -21,7 +21,7 @@ from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_auth import SECRET, Browser
 from tests.fakes.shared_web_v12 import configure
 
-OPERATOR_PAGES = ["/status", "/diagnose", "/auswertung", "/auswertung/aufrufe", "/einstellungen",
+OPERATOR_PAGES = ["/status", "/diagnose", "/auswertung", "/auswertung/aufrufe",
                   "/einstellungen/zugangsdaten", "/einstellungen/neustarten", "/einstellungen/beenden", "/abgleich",
                   "/einrichtung", "/api/einstellungen/suche"]
 

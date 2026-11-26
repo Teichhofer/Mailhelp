@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.7.6 – Navigation und Links nach Rolle (AP4a)
+
+- Kundensitzungen sehen in der Navigation nur für sie erlaubte Seiten und zusätzlich „Verbrauch“; Status, Auswertung, Berichte und Vorschlagsabgleich entfallen. Betreiber behalten die bisherige Navigation.
+- Der Seitenrahmen entfernt für Kundensitzungen jeden Link auf einen für Kunden gesperrten Weg (z. B. Zugangsdaten, IServ-Konten, Diagnose, Einrichtung) samt verwaister Trenner.
+- `/einstellungen` zeigt Kunden eine Übersicht ihrer eigenen Bereiche; Betreiberbereiche, Suche und Zugangsdaten bleiben gesperrt.
+- Bugfix: Die Eingabetaste in einem Feld des Lernformulars löste „Ordner laden“ aus statt der Schätzung (Regressionstest).
+- Neue Prüfung aller Links und Formulare der Kundenseiten (`tests/web/test_customer_links.py`). Nicht ausgeliefert.
+
 ## 8.7.5 – Kundeninstanz `kunde` auf 8.7.4, Preisrahmen und Arbeitspakete (Betrieb)
 
 - Preisrahmen für Lernläufe aus den LLM-Logs der Produktion (13.–25.11.2026) berechnet: `deepseek/deepseek-v4.1-flash` kostet höchstens 0,30 (Eingabe) bzw. 1,20 USD (Ausgabe) je Million Tokens, im Mittel 0,30. Für `kunde` gilt `learning_usd_per_million_tokens: "1.2"`, damit kein Lauf seine Punktegrenze überschreitet ([Planung](docs/Planung-8.7-Lernen.md) §4.5); `operator.example.yaml` nennt die Regel.

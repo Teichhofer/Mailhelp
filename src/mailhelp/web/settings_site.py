@@ -15,6 +15,7 @@ from ..i18n import COOKIE, msg, tr
 from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from .auth import WebSession
+from .customer_settings import customer_settings_page
 from .http import Request, Response, cookie
 from .pages import layout, notice
 from .settings_pages import (
@@ -118,6 +119,8 @@ class SettingsSite:
                          "key": item.key, "href": item.href, "path": item.path} for item in results[:LIVE_LIMIT]]})
 
     def settings(self, request: Request, session: WebSession) -> Response:
+        if not self.site.auth.is_operator(session):
+            return Response.html(200, layout(msg("Einstellungen"), customer_settings_page(), active="/einstellungen"))
         query = parse_qs(request.query)
         area = query.get("bereich", [""])[0]
         if area in LEGACY_AREAS:

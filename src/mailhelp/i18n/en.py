@@ -10148,4 +10148,17 @@ EN = {
     'Reserviert: {reserved} der Punktegrenze von {limit}.': 'Reserved: {reserved} of the points limit of {limit}.',
     'Reserviert: {reserved}.': 'Reserved: {reserved}.',
     'Tatsächlich verbraucht: {points}.': 'Actually used: {points}.',
+    'Eigene Postfächer, Abrufordner und Regeln je Postfach.': 'Your mailboxes, fetched folders and rules per mailbox.',
+    'Kalender und Aufgabenlisten, in die bestätigte Vorschläge eingetragen werden.':
+        'Calendars and task lists that confirmed proposals are added to.',
+    'Was für dich relevant ist und was ausgeblendet wird.': 'What is relevant to you and what is hidden.',
+    'Absender und Domains immer zulassen oder ignorieren.': 'Always allow or ignore senders and domains.',
+    'Kanäle, Zeiten und Push-Mitteilungen.': 'Channels, times and push notifications.',
+    'Themen und Regeln aus Postfach und Entscheidungen vorschlagen lassen.':
+        'Get topic and rule suggestions from your mailbox and decisions.',
+    'Verbrauchte Punkte nach Tag und Schritt.': 'Points used by day and step.',
+    'Angemeldete Geräte ansehen und abmelden.': 'See signed-in devices and sign them out.',
+    'Anmeldung mit Passwort festlegen oder ändern.': 'Set or change sign-in with a password.',
+    'Deine Bereiche. Zugangsdaten, Modelle und den Betrieb verwaltet der Betreiber.':
+        'Your areas. The operator manages credentials, models and operation.',
 }

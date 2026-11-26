@@ -1,7 +1,7 @@
 {
- "app_version": "8.7.5",
+ "app_version": "8.7.6",
  "locale": "en",
- "revision": "5ffc315084762f12a94ac5bc74daf36f5f0e6917cc2c405f619aaefce2da887d",
+ "revision": "bd0d74bfa932fa68e9cc9cad7b9f5e46b5a1281b0b9c76dce680057671932a90",
  "schema_version": 2,
  "sections": 135,
  "sources": [
@@ -23,7 +23,7 @@
   },
   {
    "path": "docs/en/Bedienung.md",
-   "sha256": "fb6c1009d278b08cfa68b4ffdd985808a7c3e89d8b10130f16bc7dbdc8f3c8ff"
+   "sha256": "d22f15cdf64b290d99c297c43d06191d27cde12a0dccd71770a0bf2cf08199af"
   },
   {
    "path": "docs/en/Fehlerbehebung.md",

@@ -46,7 +46,16 @@ from .learning_overview import LearningOverviewSite
 from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
 from .mailbox_add_site import MailboxAddSite
 from .mailbox_site import MailboxSite
-from .pages import HELP_BUTTON, HELP_WINDOW, OPEN_DECISIONS, error_page, layout, notice, shows_help_button
+from .pages import (
+    CUSTOMER_VIEW,
+    HELP_BUTTON,
+    HELP_WINDOW,
+    OPEN_DECISIONS,
+    error_page,
+    layout,
+    notice,
+    shows_help_button,
+)
 from .permissions import customer_may
 from .proposal_evaluation_site import ProposalEvaluationSite
 from .reconciliation_site import ReconciliationSite
@@ -251,6 +260,7 @@ class MailhelpSite:
         token = OPEN_DECISIONS.set(len(overview.open) + len(overview.relevance))
         button = HELP_BUTTON.set(shows_help_button(request.path))
         session = values[0]
+        customer = CUSTOMER_VIEW.set(isinstance(session, WebSession) and not self.auth.is_operator(session))
         window = HELP_WINDOW.set((lambda: self.archive.help.window.frame(
             session, request.path, request.query))
             if shows_help_button(request.path) and isinstance(session, WebSession) else None)
@@ -259,6 +269,7 @@ class MailhelpSite:
         finally:
             HELP_BUTTON.reset(button)
             HELP_WINDOW.reset(window)
+            CUSTOMER_VIEW.reset(customer)
             OPEN_DECISIONS.reset(token)
 
     # --- pairing ------------------------------------------------------------------

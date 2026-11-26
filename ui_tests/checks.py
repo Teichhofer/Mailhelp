@@ -7,7 +7,8 @@ SCREENSHOTS = Path(".test-tmp/ui-screens")
 
 # 6.0.2/6.2.2: the core pages – every entry of the main navigation plus its busiest subpages.
 CORE_PAGES = ("/", "/mails", "/abgleich", "/verlauf", "/berichte", "/auswertung", "/auswertung/aufrufe", "/status",
-              "/einstellungen", "/themen", "/lernen", "/lernen/entscheidungen", "/geraete")
+              "/einstellungen", "/themen", "/lernen", "/lernen/entscheidungen", "/geraete",
+              "/verbrauch")
 
 # Computes layout, tap target, font size, label and contrast findings in the page.
 _AUDIT = r"""

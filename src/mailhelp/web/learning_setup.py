@@ -44,6 +44,10 @@ _CUSTOMER_FORM_TEXT = msg(
 )
 
 
+# Chrome and WebKit submit through a hidden default button too (checked 26.11.2026).
+DEFAULT_SUBMIT = "<button hidden></button>"
+
+
 def setup_form(worker: Any, query_string: str, *, customer: bool = False) -> tuple[str, dict[str, list[str]]]:
     try:
         query = parse_qs(query_string, keep_blank_values=True, max_num_fields=120)
@@ -69,6 +73,9 @@ def setup_form(worker: Any, query_string: str, *, customer: bool = False) -> tup
         (_SETUP_FORM_TEXT_1),
         p0=options,
     )
+    # 8.7.6 bugfix: Enter submits through the first submit button, which must be the estimate, not
+    # "Ordner laden". The hidden default button is neither shown, focusable nor announced.
+    body = body.replace('class="learning-steps">', 'class="learning-steps">' + DEFAULT_SUBMIT, 1)
     for name in names:
         body += (f'<label><input type="checkbox" name="folder" value="{e(name)}"'
                  f'{" checked" if name in selected else ""}> {e(name)}</label>')

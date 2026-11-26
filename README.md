@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.6 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.6: In einer Kundeninstanz zeigen Navigation und Seiten nur noch, was Kunden nutzen
+dürfen; „Einstellungen“ führt Kunden zu einer Übersicht ihrer Bereiche. Die Eingabetaste im Lernformular
+zeigt die Schätzung.
 
 Version 8.7.5: Betrieb – die Kundeninstanz `kunde` läuft mit 8.7.4 und einer aus den
 Produktionslogs hergeleiteten Preisannahme für Lernläufe (1,2 USD je Million Tokens); die nächsten

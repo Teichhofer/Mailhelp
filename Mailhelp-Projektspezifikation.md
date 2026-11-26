@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.5, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.6, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -38,6 +38,13 @@ Stand 8.7.5, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischal
   höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
   („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
   Aufrufe eines Lernlaufs tragen den Schritt `learning.<Schritt>` und erscheinen als „Aus dem Postfach lernen“.
+- **Navigation und Links nach Rolle (8.7.6).** Kundensitzungen sehen in Seitenleiste, Tab-Leiste und „Mehr“
+  nur Ziele, die `customer_may` erlaubt, zusätzlich „Verbrauch“; Betreibersitzungen behalten die bisherige
+  Navigation. Der Seitenrahmen entfernt für Kundensitzungen jeden lokalen Link, den Kunden nicht öffnen
+  dürfen (`customer_may_link`; öffentlich bleiben Sprache und Anmeldung), samt verwaister Trenner. `/einstellungen`
+  zeigt Kunden unabhängig von `bereich` und `suche` nur die Übersicht ihrer Bereiche; die Betreiberseite mit
+  Bereichen, Suche und Zugangsdaten bleibt Betreibern vorbehalten. Im Lernformular ist der erste
+  Absendeknopf ein verborgener Standardknopf, sodass die Eingabetaste die Schätzung zeigt.
 - **Lernen in Punkten (8.7.4).** Kunden wählen für „Aus dem Postfach lernen“ eine ganze Punktegrenze (1–10.000.000)
   als Ausführungsgrenze des Laufs. Der Server rechnet sie mit dem gültigen Bewertungsstand und der Preisannahme
   `learning_usd_per_million_tokens` aus `operator.yaml` in die USD-Grenze des Laufs um (abgerundet, nie darüber);

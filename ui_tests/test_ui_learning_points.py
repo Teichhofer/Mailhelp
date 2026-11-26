@@ -32,14 +32,16 @@ def test_learning874_customer_run_in_points_with_keyboard(page, learning_server)
     limit = page.get_by_label("Punktegrenze für diesen Lauf", exact=True)
     limit.focus()
     page.keyboard.type("150")
-    page.get_by_role("button", name="Schätzung anzeigen", exact=True).focus()
-    page.keyboard.press("Enter")  # the estimate is reachable without a pointer
+    page.keyboard.press("Enter")  # 8.7.6 bugfix: Enter in the field shows the estimate, not "Ordner laden"
     expect(page.get_by_text("Bitte mindestens 201,00 Punkte angeben.", exact=False)).to_be_visible()
     expect(page.get_by_role("button", name="Lesenden Lernlauf starten (verbraucht Punkte)")).to_have_count(0)
     page.get_by_label("Punktegrenze für diesen Lauf", exact=True).fill("1000")
     page.get_by_role("button", name="Schätzung anzeigen", exact=True).click()
     expect(page.get_by_text("Geschätzter Verbrauch: etwa 200,00 Punkte", exact=False)).to_be_visible()
     assert "USD" not in page.content() and "Tokens" not in page.inner_text("main")
+    # 8.7.6 (AP4a): the navigation offers only customer pages
+    links = page.locator("nav a[href]").evaluate_all("nodes => nodes.map(node => node.getAttribute('href'))")
+    assert "/verbrauch" in links and not {"/status", "/auswertung", "/berichte", "/abgleich"} & set(links)
     assert audit(page, "learning874-estimate-" + page.device, page.mobile) == []
     page.get_by_role("button", name="Lesenden Lernlauf starten (verbraucht Punkte)", exact=True).click()
     expect(page.get_by_text("Reserviert: 0,00 Punkte der Punktegrenze von 1.000,00 Punkte.", exact=False)) \

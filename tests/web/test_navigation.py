@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 from mailhelp.web import pages
-from mailhelp.web.pages import NAVIGATION, OPEN_DECISIONS, TAB_BAR, layout
+from mailhelp.web.pages import CUSTOMER_NAVIGATION, NAVIGATION, OPEN_DECISIONS, TAB_BAR, layout
 
 
 def bar(html):
@@ -17,7 +17,8 @@ def test_the_phone_bar_holds_four_routes_and_the_rest_under_more():
     menu = tabs[tabs.index('<details class="tab-more">'):]
     assert re.findall(r'href="([^"]+)"', tabs[:tabs.index('<details')]) == list(TAB_BAR)
     # 7.8: the language switch is the last entry under "Mehr", so phones reach it, too.
-    assert re.findall(r'href="([^"]+)"', menu) == [href for href, _ in NAVIGATION if href not in TAB_BAR] + [
+    assert re.findall(r'href="([^"]+)"', menu) == [href for href, _ in NAVIGATION
+                                                   if href not in TAB_BAR and href not in CUSTOMER_NAVIGATION] + [
         "/sprache?wert=en"]
     assert '<summary>' in menu and '<span class="nav-label">Mehr</span>' in menu
     assert html.count('aria-current="page"') == 2  # sidebar and phone bar

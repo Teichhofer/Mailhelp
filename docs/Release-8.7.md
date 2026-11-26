@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.5. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.6. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -65,6 +65,18 @@ eine eigene Datei und wird nicht aus Logs aufgebaut.
 | Auslieferung | `kunde` am 26.11.2026 auf `mailhelp-production:8.7.4-4e86ee4` mit Hostpaket-Update und Sicherung; weiterhin im Ersteinrichtungsmodus ([Betrieb](Betrieb.md)) |
 | Arbeitspakete | Offene Punkte als AP4a (Navigation und Links nach Rolle), AP4b (Kostenhinweise und Berichte in Punkten), AP4c (Hilfe und Suche nach Rolle), AP5, AP6 und Prüfstabilität ([Planung](Planung-8.7-Lernen.md) §8) |
 
+## Umgesetzt in 8.7.6 – AP4a Navigation und Links nach Rolle
+
+| Thema | Umsetzung |
+| --- | --- |
+| Navigation | Kundensitzungen sehen nur Offen, Mails, Verlauf, Verbrauch, Einstellungen, Lernen und Geräte (Seitenleiste, Tab-Leiste, „Mehr“); Status, Auswertung, Berichte und Vorschlagsabgleich entfallen. Betreiber sehen die bisherige Navigation |
+| Links in Seiten | Der Seitenrahmen entfernt für Kundensitzungen jeden lokalen Link auf einen für Kunden gesperrten Weg samt verwaister Trenner (z. B. Zugangsdaten, IServ-Konten, Diagnose, Einrichtung, Notion-Datenquelle); Sprache und Anmeldung bleiben |
+| Einstellungen | `/einstellungen` zeigt Kunden eine Übersicht ihrer Bereiche, unabhängig von `bereich` und `suche`; Bereiche, Suche und Zugangsdaten des Betreibers bleiben gesperrt (`/api/einstellungen/suche` weiterhin 403) |
+| Bugfix Lernformular | Die Eingabetaste in einem Feld zeigt die Schätzung statt „Ordner laden“ (verborgener Standardknopf, in Chrome und WebKit geprüft); Regressionstest `tests/web/test_learning_setup_enter.py` und Browsertest mit Eingabetaste im Feld |
+| Prüfung | `tests/web/test_customer_links.py` folgt allen Links der erreichbaren Kundenseiten und meldet jeden Link und jedes Formularziel, das Kunden nicht nutzen dürfen |
+
+Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -85,6 +97,7 @@ eine eigene Datei und wird nicht aus Logs aufgebaut.
 | 18 | Aktivierung auf bestehender Instanz | Rollenlose Sitzungen und Codes widerrufen; kein rückwirkender Verbrauch |
 | 14 (Lernen) | Geldbegriffe, `usd_`, Tokens, Modellnamen in HTML, versteckten Feldern und JSON von `/lernen*`, `/api/lernen*` | Keine Treffer für Kundensitzungen (`tests/services/test_learning_points.py`) |
 | – | Lernen: Manipulation, Bewertungswechsel, Wiederholung, Anhalten vor der Grenze, Neustart, Übernahme | Wie Plan Lernen in Punkten §5 (`tests/services/test_learning_points.py`, `tests/usage/test_usage_budget.py`) |
+| – | Links und Formulare aller erreichbaren Kundenseiten | Nur für Kunden erlaubte Ziele (`tests/web/test_customer_links.py`) |
 | 3, 14 (übrige Seiten), 15, 17, 19, 20 | – | Offen (AP4–AP6) |
 
 ## Auslieferung
