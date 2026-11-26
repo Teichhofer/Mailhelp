@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import shutil
 import uuid
@@ -23,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from ..domain.mail import MailState
 from ..domain.proposal import Proposal
 from ..i18n import Locale
+from ..persistence.storage import replace_path
 
 DATASET = "standard-v1"
 DATASETS = {Locale.DE: DATASET, Locale.EN: "standard-en-v1"}
@@ -182,7 +182,7 @@ def install(source: Path, target: Path) -> DemoManifest:
         for name, digest in manifest.files.items():
             if _digest(staging / name) != digest:
                 raise DemoDatasetError(f"Die Kopie des Beispielbestands ist beschädigt: {name}")
-        os.replace(staging, target)
+        replace_path(staging, target)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise

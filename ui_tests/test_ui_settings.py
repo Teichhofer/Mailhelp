@@ -101,7 +101,13 @@ def test_a_section_counts_its_changes_warns_before_leaving_and_reviews_them_toge
     expect(form.locator("[data-settings-savebar]")).to_have_class(re.compile("changed"))
     form.locator('select[name="setting:test_mode"]').select_option("true")
     expect(changes).to_have_text("1 Änderung")
-    leave = ("() => { const event = new Event('beforeunload', {cancelable: true}); "
+    original = interval.evaluate("control => control.defaultValue")
+    interval.fill(original)  # back to the stored value: the bar is empty again
+    expect(changes).to_have_text("")
+    expect(form.locator("[data-settings-savebar]")).not_to_have_class(re.compile("changed"))
+    interval.fill("47")
+    expect(changes).to_have_text("1 Änderung")
+    leave =("() => { const event = new Event('beforeunload', {cancelable: true}); "
              "window.dispatchEvent(event); return event.defaultPrevented; }")
     assert page.evaluate(leave) is True  # the browser asks before unsaved changes are lost
     page.evaluate("document.querySelector('form[data-settings-form]').dispatchEvent(new Event('submit'))")

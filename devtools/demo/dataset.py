@@ -33,6 +33,7 @@ from mailhelp.config import load_all
 from mailhelp.config.loader import _dotenv
 from mailhelp.i18n import Locale
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.persistence.storage import replace_path
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.runtime.demo_dataset import STATE_FILE
 
@@ -225,12 +226,12 @@ def export(store: Path, output: Path, fingerprint: str, commit: str, model: str,
         raise FileExistsError(f"A previous export needs recovery: {backup}")
     previous = output.exists()
     if previous:
-        output.rename(backup)
+        replace_path(output, backup)
     try:
-        staging.rename(output)
+        replace_path(staging, output)
     except BaseException:
         if previous:
-            backup.rename(output)
+            replace_path(backup, output)
         raise
     if previous:
         shutil.rmtree(backup)

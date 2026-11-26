@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.10. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.11. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -123,6 +123,16 @@ Offen beim Betreiber: Ersteinrichtung von `kunde` mit eigenem OpenRouter-Schlüs
 | Checkliste | Schritte nach der Ersteinrichtung (Abnahme 3, Lernlauf mit Kostenabgleich) in [Betrieb](Betrieb.md) |
 
 Tests: `tests/web/test_customer_acceptance.py`.
+
+## Umgesetzt in 8.7.11 – Prüfstabilität
+
+| Thema | Umsetzung |
+| --- | --- |
+| Dateien und Verzeichnisse unter Windows | Kurz gesperrte Dateien oder Verzeichnisse (Virenscanner, Indexer, Leser) brachen Demo-Start (503), Demo-Export und das Speichern von Zustandsdateien und Prüfberichten mit WinError 5 ab; jetzt begrenzte Wiederholung (8 Versuche, etwa 1,3 s), danach die ursprüngliche Meldung. Regressionstests in `tests/unit/test_replace_path.py` und `tests/release/test_demo_dataset.py` |
+| Live-Suche | Antwortzeit im Browser gemessen (Eingabe bis angezeigte Treffer); Grenze unverändert 300 ms für 95 von 100 Suchen |
+| JavaScript-Abdeckung | `settings.js` wieder vollständig abgedeckt: wirkungslose Prüfung versteckter Felder entfernt, Speicherleiste bis zurück auf 0 Änderungen getestet |
+| CI | Fehlgeschlagene Tests und Abdeckung als öffentliche Annotationen (`tests/release/test_ci_workflows.py`) |
+| AP6 | Ersteinrichtung, Abnahme 3 und Lernlauf auf Wunsch des Betreibers zurückgestellt |
 
 ## Prüfung
 

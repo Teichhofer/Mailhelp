@@ -17,6 +17,7 @@ import yaml
 from ..config import PromptConfig, Topic
 from ..domain.extraction import EventExtraction, TaskExtraction
 from ..mailbox.mime import prepare
+from ..persistence.storage import replace_path
 from ..processing.analysis import Analyzer
 from ..processing.identity import addresses_in
 from ..processing.perspective import read_perspective
@@ -377,7 +378,7 @@ def write_report(path: Path, report: dict[str, Any]) -> None:
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     try:
-        os.replace(temporary, path)
+        replace_path(temporary, path)  # 8.7.11: bounded retry against brief Windows locks
     except OSError:
         temporary.unlink(missing_ok=True)
         raise

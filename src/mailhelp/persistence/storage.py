@@ -39,10 +39,27 @@ def atomic_replace(path: Path, content: str) -> None:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        replace_path(Path(temporary), path)
     except BaseException:
         Path(temporary).unlink(missing_ok=True)
         raise
+
+
+def replace_path(source: Path, target: Path, *, attempts: int = 8,
+                 pause: Callable[[float], None] = time.sleep) -> None:
+    """8.7.11: put a freshly written file or directory in place under its final name.
+
+    On Windows a virus scanner, the indexer or a concurrent reader briefly holds the new entry or the
+    target open and ``os.replace`` fails with PermissionError ("[WinError 5]"). The retry is bounded
+    (about 1.3 s of pauses); the last attempt reports a persistent block unchanged.
+    """
+    for attempt in range(attempts - 1):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            pause(0.01 * (2 ** attempt))
+    os.replace(source, target)
 
 
 @runtime_checkable
@@ -343,7 +360,7 @@ class JsonStore:
                 stream.write(content)
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.replace(temporary, path)
+            replace_path(temporary, path)
             self._changed(name)
             self.revision += not name.startswith("web-") and name != "command-inbox"
             self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))

@@ -2,5 +2,5 @@
 
 from __future__ import annotations
 
-__version__ = "8.7.10"
+__version__ = "8.7.11"
 

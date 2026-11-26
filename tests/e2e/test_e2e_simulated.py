@@ -275,3 +275,23 @@ def test_the_pipeline_completes_when_the_wall_clock_steps_back(tmp_path, monkeyp
     made the mail fail with internal_error or isolated its state as .invalid."""
     step_back_wall_clock(monkeypatch, after)
     test_imap_llm_persists_separate_raw_extractions(tmp_path)
+
+
+@pytest.mark.parametrize("blocked_call", [3, 11, 42])
+def test_regression_the_pipeline_completes_when_one_state_save_is_briefly_locked(tmp_path, monkeypatch, blocked_call):
+    """8.7.11: under the parallel full check on Windows ``poll`` returned no result because it swallowed one
+    PermissionError ("[WinError 5]") of a state save; ``replace_path`` now retries the brief lock."""
+    import os
+
+    from mailhelp.persistence import storage
+    original, calls = os.replace, {"n": 0}
+
+    def locked_once(source, target):
+        calls["n"] += 1
+        if calls["n"] == blocked_call:
+            raise PermissionError(5, "Zugriff verweigert")
+        return original(source, target)
+    monkeypatch.setattr(storage.os, "replace", locked_once)
+    monkeypatch.setattr(storage.time, "sleep", lambda _seconds: None)
+    test_imap_llm_persists_separate_raw_extractions(tmp_path)
+    assert calls["n"] > blocked_call

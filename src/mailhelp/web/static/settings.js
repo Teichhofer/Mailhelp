@@ -54,7 +54,7 @@
   if (!forms.length) return;
   var submitting = false;
   function changed(control) {
-    if (control.type === "hidden") return false;
+    // A hidden input mirrors its value attribute, so it never differs from defaultValue.
     if (control.tagName === "SELECT") {
       return Array.prototype.some.call(control.options, function (option) {
         return option.selected !== option.defaultSelected;

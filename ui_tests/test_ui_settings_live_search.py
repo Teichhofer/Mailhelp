@@ -1,7 +1,6 @@
 """Planung 5.3, step H4: live search below the settings search field."""
 import json
 import re
-import time
 
 import pytest
 from playwright.sync_api import expect
@@ -10,6 +9,20 @@ from checks import audit
 from conftest import sign_in
 
 API = re.compile(r".*/api/einstellungen/suche.*")
+MEASURE = """() => {
+  const input = document.getElementById("settings-search");
+  const list = document.getElementById("settings-live-results");
+  window.__liveSearch = {query: "", start: 0, end: 0};
+  input.addEventListener("input", () => {
+    window.__liveSearch = {query: input.value.trim(), start: performance.now(), end: 0};
+  }, true);
+  new MutationObserver(() => {
+    const state = window.__liveSearch;
+    if (!state.end && state.query && !list.hidden && list.getAttribute("data-query") === state.query) {
+      state.end = performance.now();
+    }
+  }).observe(list, {attributes: true, childList: true});
+}"""
 
 
 def open_settings(page, mailhelp):
@@ -84,6 +97,10 @@ def test_results_are_visible_within_300_ms_in_95_percent_of_100_searches(page, m
     if page.device != "desktop":
         pytest.skip("Die Laufzeit wird einmal auf der Referenzansicht gemessen")
     field, results, _status = open_settings(page, mailhelp)
+    # 8.7.11: the browser measures from the input event to the rendered results. The former wall clock in
+    # Python also counted Playwright's round trips and polling, which under parallel load exceeded 300 ms
+    # although the page itself was fast.
+    page.evaluate(MEASURE)
     terms = ["Zeitzone", "Aufbewahrung", "Telegram Benutzer", "KI", "Abruf", "Postfach", "Protokoll",
              "Zeitlimit imap", "Bild", "Kosten"]
     durations = []
@@ -91,11 +108,12 @@ def test_results_are_visible_within_300_ms_in_95_percent_of_100_searches(page, m
         term = terms[number % len(terms)]
         field.fill("")
         expect(results).to_be_hidden()
-        started = time.perf_counter()
         field.fill(term)
         expect(results.locator("li").first).to_be_visible()
         expect(results).to_have_attribute("data-query", term)
-        durations.append((time.perf_counter() - started) * 1000)
+        measured = page.evaluate("window.__liveSearch")
+        assert measured["query"] == term and measured["end"], measured
+        durations.append(measured["end"] - measured["start"])
     fast = sum(duration <= 300 for duration in durations)
     print(f"LIVE_SEARCH_LATENCY {{\"runs\": 100, \"within_300_ms\": {fast}, "
           f"\"median_ms\": {sorted(durations)[50]:.1f}, \"p95_ms\": {sorted(durations)[94]:.1f}}}")

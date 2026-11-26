@@ -1,5 +1,15 @@
 # Änderungen
 
+## 8.7.11 – Prüfstabilität (Querschnitt 8.7)
+
+- Bugfix: Unter Windows scheiterten der Demo-Start (Besucherbereich, Antwort 503), der Demo-Export (`devtools.demo.dataset`) und das Speichern von Zustandsdateien und Prüfberichten (`JsonStore.save`, `atomic_replace`, `write_report`; beobachtet bei `briefing_state.json` und als leeres Abrufergebnis im e2e-Lauf, weil der Abruf den Fehler abfing), wenn ein Virenscanner, der Indexer oder ein Leser die frische Datei bzw. das Ziel kurz offen hielt (`[WinError 5] Zugriff verweigert`). Alle setzen die Datei oder das Verzeichnis jetzt über `replace_path` mit bis zu acht Versuchen (zusammen etwa 1,3 s Pause) ein, danach mit der ursprünglichen Fehlermeldung. Regressionstests.
+- Browsertest Live-Suche: Die Antwortzeit wird im Browser vom Eingabeereignis bis zu den angezeigten Treffern gemessen statt in Python mit den Rundläufen von Playwright; die Grenze bleibt 300 ms für 95 von 100 Suchen.
+- Browser-Abdeckung `settings.js` wieder vollständig: Die wirkungslose Sonderbehandlung versteckter Felder in der
+  Änderungszählung entfällt (ein verstecktes Feld weicht nie von seinem Ausgangswert ab), und der Test der
+  Speicherleiste prüft auch die Rückkehr auf 0 Änderungen.
+- CI: Vollprüfung und Browsersuite schreiben ihre Ausgabe mit; fehlgeschlagene Tests und die Abdeckung erscheinen als Annotationen, die ohne GitHub-Anmeldung lesbar sind (die Job-Logs sind es nicht).
+- Der Rest von AP6 (Ersteinrichtung von `kunde`, Abnahme 3, Lernlauf mit Kostenabgleich) ist auf Wunsch des Betreibers zurückgestellt.
+
 ## 8.7.10 – `kunde` auf 8.7.9, Abnahme 15/17/19/20 (AP6, automatisierter Teil)
 
 - Betrieb: `kunde` am 26.11.2026 auf 8.7.9 aktualisiert; `--check-instance` am Server meldet nur noch Ersteinrichtung und Betreiberzugang als offen; Trennung von Produktion und Demo geprüft.

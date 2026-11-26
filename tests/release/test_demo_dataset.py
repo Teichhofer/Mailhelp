@@ -208,12 +208,15 @@ def test_export_retains_the_old_package_when_publication_fails(tmp_path, monkeyp
     output = tmp_path / "package"
     output.mkdir()
     (output / "old.json").write_text("old", encoding="utf-8")
-    original = Path.rename
+    import os
+
+    from mailhelp.persistence import storage
+    original = os.replace
     def fail_publish(path, target):
-        if path == output.with_name("package.neu"):
+        if Path(path) == output.with_name("package.neu"):
             raise OSError("publication failed")
         return original(path, target)
-    monkeypatch.setattr(Path, "rename", fail_publish)
+    monkeypatch.setattr(storage.os, "replace", fail_publish)
     with pytest.raises(OSError, match="publication failed"):
         dataset.export(store, output, "f" * 64, "abc1234", "model", [])
     assert (output / "old.json").read_text(encoding="utf-8") == "old"
@@ -227,12 +230,36 @@ def test_a_failed_first_publication_leaves_no_package_and_no_backup(tmp_path, mo
     store = tmp_path / "store"
     store.mkdir()
     output = tmp_path / "first"
+    from mailhelp.persistence import storage
     def fail_publish(path, target):
         raise OSError("publication failed")
-    monkeypatch.setattr(Path, "rename", fail_publish)
+    monkeypatch.setattr(storage.os, "replace", fail_publish)
     with pytest.raises(OSError, match="publication failed"):
         dataset.export(store, output, "f" * 64, "abc1234", "model", [])
     assert not output.exists() and not output.with_name("first.previous").exists()
+
+
+def test_regression_export_survives_a_briefly_locked_directory(tmp_path, monkeypatch):
+    """8.7.11: under the full check on Windows the rename of ``standard-en-v1.neu`` failed with
+    "[WinError 5] Zugriff verweigert" while a scanner held the fresh directory open."""
+    import os
+
+    from mailhelp.persistence import storage
+    store = tmp_path / "store"
+    store.mkdir()
+    output = tmp_path / "package"
+    output.mkdir()
+    original, blocked = os.replace, []
+    def locked_twice(source, target):
+        if str(source).endswith(".neu") and len(blocked) < 2:
+            blocked.append(Path(source).name)
+            raise PermissionError(5, "Zugriff verweigert")
+        return original(source, target)
+    monkeypatch.setattr(storage.os, "replace", locked_twice)
+    monkeypatch.setattr(storage.time, "sleep", lambda _seconds: None)
+    dataset.export(store, output, "f" * 64, "abc1234", "model", [])
+    assert blocked == ["package.neu", "package.neu"] and (output / "manifest.json").is_file()
+    assert not output.with_name("package.previous").exists()
 
 
 def test_the_module_runs_as_a_command(monkeypatch):

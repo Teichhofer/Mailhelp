@@ -57,6 +57,19 @@ def test_every_workflow_python_step_is_checked():
     assert len(found) == 7
 
 
+@pytest.mark.parametrize("job", ["tests", "ui-tests"])
+def test_failed_tests_become_public_annotations(job):
+    """8.7.11: job logs need a login; the failed test ids must be readable from the public annotations,
+    and the piped run must keep the exit code of the check (pipefail)."""
+    steps = [step for name, _runners, step in _steps(ROOT / ".github" / "workflows" / "ci.yml") if name == job]
+    log = '"$RUNNER_TEMP/check.log"'  # outside the checkout, which tests inspect
+    run = next(step for step in steps if f"| tee {log}" in str(step.get("run", "")))
+    assert run["shell"] == "bash" and "set -o pipefail" in run["run"]
+    report = steps[steps.index(run) + 1]
+    assert report["if"] == "failure()" and "::error::" in report["run"] and log in report["run"]
+    assert "^(FAILED|ERROR) " in report["run"]
+
+
 def test_dockerfiles_share_a_current_python_312_patch_image():
     bases = {path: re.search(r"^FROM (\S+)$", path.read_text(encoding="utf-8"), re.M).group(1)
              for path in DOCKERFILES}

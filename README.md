@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.11 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.11: Prüfstabilität – Zustandsdateien, Prüfberichte, Demo-Start und Demo-Export überstehen
+unter Windows kurz gesperrte Dateien; die Live-Suche misst ihre Antwortzeit im Browser, und CI meldet
+fehlgeschlagene Tests als öffentlich lesbare Annotationen. Der Rest von AP6 ist auf Wunsch des Betreibers zurückgestellt.
 
 Version 8.7.10: Die Kundeninstanz `kunde` läuft mit 8.7.9; die Abnahmepunkte 15, 17, 19 und 20 sind
 automatisiert bestanden. Die übrige Abnahme folgt nach der Ersteinrichtung durch den Betreiber.
