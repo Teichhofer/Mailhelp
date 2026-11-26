@@ -170,7 +170,7 @@ Alle Lernfunktionen liegen unter **Lernen** (`/lernen`). Die Lernübersicht zeig
 Zweck, aktuellem Stand und Kennzahlen: **Aus dem Postfach lernen** (der Lernlauf unten),
 **Aus Entscheidungen lernen** (Regeln aus deinen bisherigen Entscheidungen verbessern, siehe
 [Aus Entscheidungen lernen](#aus-entscheidungen-lernen)) und **Vorschläge** (Annahmequote messen nach Art, Thema und Absender, siehe [Annahmequote messen und verbessern](#annahmequote-messen-und-verbessern)). Das Öffnen der Übersicht oder einer
-Karte startet nichts und kostet nichts. Die Themen selbst werden unter Einstellungen → Themen
+Karte startet nichts und verbraucht nichts. Die Themen selbst werden unter Einstellungen → Themen
 verwaltet.
 
 ### Lernlauf in der Weboberfläche starten
@@ -199,7 +199,7 @@ lässt sich der Lauf nicht fortsetzen; ein neuer Lernlauf ersetzt ihn.
 ### Lernen in einer Kundeninstanz
 
 In einer vom Betreiber geführten Kundeninstanz (Kundenmodus, ab 8.7.4) zählt der Lernlauf in
-Punkten statt in Geld. Preise, Tokens und Modelle legt der Betreiber fest; du siehst sie nicht.
+Punkten statt in Geld. Modelle und Abrechnung legt der Betreiber fest; du siehst sie nicht.
 
 1. Postfach, Ordner und Anzahl wie oben wählen. Im Schritt „3. Punktegrenze“ die
    **Punktegrenze für diesen Lauf** angeben (ganze Zahl von 1 bis 10.000.000). Die Grenze ist kein
@@ -210,7 +210,7 @@ Punkten statt in Geld. Preise, Tokens und Modelle legt der Betreiber fest; du si
    Schätzung und Start die Bewertung, wird der Start abgelehnt; die Schätzung erneut anzeigen.
 
 Während des Laufs stehen reservierte und tatsächlich verbrauchte Punkte auf der Seite; Aufrufe, deren
-Kosten noch nicht feststehen, werden gezählt und genannt. Der Lauf hält an, bevor er die Grenze
+Verbrauch noch nicht feststeht, werden gezählt und genannt. Der Lauf hält an, bevor er die Grenze
 überschreiten würde. Nach der Übernahme gelten neue Themen ab der nächsten Analyse, neue Abrufordner
 beim nächsten Start; ein Neuladen durch dich ist nicht nötig. Den Verbrauch zeigt auch die Seite
 „Verbrauch“ unter „Aus dem Postfach lernen“. Hat der Betreiber Lernen noch nicht
@@ -227,6 +227,10 @@ Ab 8.7.7 stehen dir auch Tätigkeitsberichte zur Verfügung. Ihre Schätzung und
 Mail nennen den Verbrauch in Punkten; den tatsächlichen Verbrauch zeigt „Verbrauch“ unter
 „Tätigkeitsberichte“. Für Notion-Ziele kannst du Datenquelle und Eigenschaften selbst auswählen;
 danach geht es zurück zu „Zielprofile“.
+
+Die Hilfe zeigt dir ab 8.7.8 nur die Abschnitte, die für deine Nutzung gelten; Kapitel über
+Server, Zugangsdaten und Abrechnung verwaltet der Betreiber. Auch der Hilfschat stützt
+sich nur auf diese Abschnitte.
 
 ### Ergebnis prüfen und übernehmen
 

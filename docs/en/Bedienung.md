@@ -117,7 +117,7 @@ All learning functions are under **Learning** (`/lernen`). The learning overview
 purpose, current state and metrics: **Learn from Mailbox** (the learning run below),
 **Learn from decisions** (improve rules from your previous decisions, see
 [Learn from decisions](#aus-entscheidungen-lernen)) and **Proposals** (measure acceptance rate by Kind, topic and sender, see [Measure and improve acceptance rate](#annahmequote-messen-und-verbessern)). Opening the overview or a
-card starts nothing and costs nothing. The topics themselves are managed under Settings → Topics.
+card starts nothing and uses nothing. The topics themselves are managed under Settings → Topics.
 
 ### Start learning run in the web interface <!-- mailhelp-id:bedienung/lernlauf-in-der-weboberflaeche-starten -->
 
@@ -145,7 +145,7 @@ the run cannot be resumed; a new learning run replaces it.
 ### Learning in a customer instance <!-- mailhelp-id:bedienung/lernen-in-einer-kundeninstanz -->
 
 In a customer instance run by an operator (customer mode, from 8.7.4) the learning run counts in
-points instead of money. The operator sets prices, tokens and models; you do not see them.
+points instead of money. The operator sets models and billing; you do not see them.
 
 1. Choose mailbox, folders and number as above. In the “3. Points limit” stage, enter the
    **Points limit for this run** (a whole number from 1 to 10,000,000). The limit is not a credit
@@ -155,7 +155,7 @@ points instead of money. The operator sets prices, tokens and models; you do not
 3. Select **Start read-only learning run (uses points)**. If the operator changes the valuation
    between estimate and start, the start is refused; show the estimate again.
 
-During the run the page shows reserved and actually used points; calls whose cost is not known yet
+During the run the page shows reserved and actually used points; calls whose usage is not known yet
 are counted and named. The run stops before it would exceed the limit. After the adoption, new
 topics apply from the next analysis and new fetch folders from the next start; you do not need to
 reload anything. The “Usage” page also shows the usage under “Learn from mailbox”. If
@@ -172,6 +172,10 @@ From 8.7.7 activity reports are available to you as well. Their estimate and the
 email state the usage in points; “Usage” shows the actual usage under “Activity reports”. For Notion
 targets you choose the data source and the properties yourself; afterwards you return to “Target
 profiles”.
+
+From 8.7.8 the help shows you only the sections that apply to your use; chapters about servers,
+credentials and billing are the operator's. The help chat also draws only on these
+sections.
 
 ### Check and take result <!-- mailhelp-id:bedienung/ergebnis-pruefen-und-uebernehmen -->
 

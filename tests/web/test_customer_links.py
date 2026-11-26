@@ -128,16 +128,14 @@ MONEY = re.compile(r"USD|EUR|€|\bCent\b|[Kk]ostenpflichtig|Kosten|usd_")
 
 
 def test_no_customer_page_names_money_or_costs(customer):
-    """8.7.7 (AP4b, Abnahme 14): points only; the product documentation follows with AP4c."""
+    """8.7.7 (AP4b, Abnahme 14): points only; since 8.7.8 (AP4c) the customer's help pages, too."""
     browser = signed_in(customer)
-    _refused, seen = audit(browser, start=START + ("/berichte", "/berichte/neu"))
+    _refused, seen = audit(browser, start=START + ("/berichte", "/berichte/neu", "/hilfe/dokumentation"), skip=())
     found = []
     for path in sorted(seen):
         response = browser.request("GET", path)
-        if path.startswith("/hilfe/dokumentation"):
-            continue  # product documentation: AP4c (8.7.8)
         if response.status == 200 and response.body.lstrip().startswith(b"<!doctype html>"):
             html = response.body.decode()
             found += [(path, match.group(0)) for match in MONEY.finditer(html[html.index("<main"):])]
     assert found == []
-    assert {"/berichte", "/berichte/neu"} <= seen
+    assert {"/berichte", "/berichte/neu", "/hilfe/dokumentation/bedienung/offene-entscheidungen"} <= seen

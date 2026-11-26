@@ -20,6 +20,7 @@ from .. import __version__
 from ..i18n import Locale, current, use_locale
 from ..web.settings_search import SYNONYMS, catalog, normalize
 from .markdown import plain
+from .roles import customer_section
 
 DIRECTORY = Path(__file__).resolve().parent
 MAX_SECTIONS = 6
@@ -170,6 +171,15 @@ class HelpBase:
 
     def get(self, section_id: str) -> Section | None:
         return next((section for section in self.sections if section.id == section_id), None)
+
+    def for_customer(self) -> HelpBase:
+        """8.7.8: only the sections listed for customers; one filtered base per loaded base."""
+        cached = self.__dict__.get("_customer")
+        if cached is None:
+            cached = HelpBase(self.revision, tuple(item for item in self.sections if customer_section(item.id)),
+                              self.locale)
+            object.__setattr__(self, "_customer", cached)
+        return cached
 
     def select(self, question: str, *, setting_id: str | None = None, history: tuple[str, ...] = (),
                limit: int = MAX_SECTIONS, budget: int = 24000) -> list[Section]:

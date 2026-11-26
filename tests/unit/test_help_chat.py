@@ -322,3 +322,22 @@ def test_deactivation_after_context_selection_is_checked_before_the_actual_attem
     chat.service.analyzer = disabled_analyzer
     chat.service.run_once()
     assert chat.analyzer.calls == [] and chat.service.job("s1", job.id).error == "disabled"
+
+
+def test878_a_customer_job_draws_only_on_customer_sections_checked_when_it_runs(chat):
+    from mailhelp.helpdocs.roles import CUSTOMER_SECTIONS
+    seen = []
+    roles = {"s1": True}
+    chat.service.customer = lambda session_id: roles.get(session_id, False)
+
+    def answer(question, sources, history, settings, *, before_call):
+        before_call()
+        seen.append([item.id for item in sources])
+        return "x", HelpAnswer(answer="Benachrichtigungen stellst du unter Benachrichtigungen ein.",
+                               source_ids=[sources[0].id])
+    chat.analyzer.settings_help = answer
+    ask(chat, "Wie stelle ich Benachrichtigungen und das Abrufintervall ein?")
+    ask(chat, "Wie stelle ich Benachrichtigungen und das Abrufintervall ein?", session="s2")
+    assert chat.service.run_once() and chat.service.run_once()
+    assert seen[0] and set(seen[0]) <= CUSTOMER_SECTIONS
+    assert not set(seen[1]) <= CUSTOMER_SECTIONS  # the operator keeps the whole documentation

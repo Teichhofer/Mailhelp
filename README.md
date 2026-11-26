@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.8 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.8: In einer Kundeninstanz zeigen Hilfe und Hilfschat nur die für Kunden bestimmten
+Abschnitte; Betriebs-, Server- und Kostenkapitel bleiben dem Betreiber vorbehalten.
 
 Version 8.7.7: In einer Kundeninstanz stehen Tätigkeitsberichte zur Verfügung, ihre Schätzung und die
 Nachanalyse sprechen nur von Punkten; Notion-Datenquelle und -Zuordnung sind für Kunden freigegeben.

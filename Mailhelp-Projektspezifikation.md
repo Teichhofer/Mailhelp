@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.7, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.8, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -38,6 +38,12 @@ Stand 8.7.7, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischal
   höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
   („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
   Aufrufe eines Lernlaufs tragen den Schritt `learning.<Schritt>` und erscheinen als „Aus dem Postfach lernen“.
+- **Hilfe nach Rolle (8.7.8).** Kundensitzungen lesen im Hilfeindex, auf den Abschnittsseiten und als Quellen
+  des Hilfschats nur die in `helpdocs/roles.py` ausdrücklich freigegebenen Abschnitte (Standardsperre: neue
+  Abschnitte bleiben Betreibern vorbehalten, andere Abschnitte antworten mit 404). Der Hilfschat prüft die Rolle
+  beim Ausführen des Auftrags; unter Antworten nennt er Kunden keine Einstellungsbereiche. Freigegebene
+  Abschnitte enthalten in Deutsch und Englisch keine Geld-, Server-, Prompt- oder Hostbefehlsangaben (Test).
+  Die Einstellungssuche bleibt Betreibern vorbehalten; Telegram-, Push- und Briefingtexte enthalten keine Geldwerte.
 - **Berichte, Nachanalyse und Notion in Punkten bzw. für Kunden (8.7.7).** Tätigkeitsberichte (`/berichte` mit
   Neuanlage, Bericht, Aktionen, Mail-Korrektur und xlsx-Export) sind Kundenwege. Kunden sehen die aus Messwerten
   hochgerechnete Schätzung in Punkten (gültiger Bewertungsstand, nie Strom- oder Geldwerte; ohne Messwerte oder

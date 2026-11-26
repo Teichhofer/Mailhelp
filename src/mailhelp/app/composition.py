@@ -423,7 +423,8 @@ def _attach_workers(application: Application, components: Any, configuration: Co
         store, lambda: application.settings.help_chat, help_site.base, lambda: application.analyzer,
         components.site.auth.active, redactor(secret_values(secrets)), logger=logger,
         sessions=lambda: [session.id for session in components.site.auth.sessions()],
-        cleanup_extra=help_site.window.cleanup)
+        cleanup_extra=help_site.window.cleanup,
+        customer=lambda session_id: not components.site.auth.is_operator(session_id))
     help_site.chat.recover()
     attach_accounts(application, components.site, base_directory)
 

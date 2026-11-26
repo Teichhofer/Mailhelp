@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.7.8 – Hilfe und Suche nach Rolle (AP4c)
+
+- Kundensitzungen sehen im Hilfeindex und auf den Abschnittsseiten nur ausdrücklich freigegebene Abschnitte (`helpdocs/roles.py`); andere, auch künftige, antworten mit 404.
+- Der Hilfschat zieht für Kunden nur freigegebene Abschnitte heran (Rolle beim Ausführen geprüft) und nennt ihnen keine Einstellungsbereiche.
+- „Lernen in einer Kundeninstanz“ und die Lernübersicht sprechen nicht mehr von Preisen und Kosten.
+- Tests prüfen jeden freigegebenen Abschnitt in Deutsch und Englisch auf Geld-, Server-, Prompt- und Hostbefehlsbegriffe. Nicht ausgeliefert.
+
 ## 8.7.7 – Kostenhinweise in Punkten, Berichte und Notion für Kunden (AP4b)
 
 - Tätigkeitsberichte sind für Kundensitzungen freigegeben. Kunden sehen die gemessene Schätzung in Punkten statt in USD bzw. Strom-EUR und starten mit „Bericht starten (verbraucht Punkte)“; ohne Messwerte oder Bewertung nennt die Seite das statt einer Zahl.

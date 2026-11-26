@@ -114,8 +114,10 @@ class HelpChat:
                  analyzer: Callable[[], Any], authorized: Callable[[str], bool],
                  redact: Callable[[str], str] = lambda text: text, now: Callable[[], datetime] | None = None,
                  logger: EventLogger | None = None, sessions: Callable[[], list[str]] = lambda: [],
-                 cleanup_extra: Callable[[], None] = lambda: None) -> None:
+                 cleanup_extra: Callable[[], None] = lambda: None,
+                 customer: Callable[[str], bool] = lambda _session: False) -> None:
         self.store, self.settings, self.base, self.analyzer = store, settings, base, analyzer
+        self.customer = customer  # 8.7.8: checked when the job runs, like the session itself
         self.authorized, self.redact, self.active_sessions = authorized, redact, sessions
         self.cleanup_extra = cleanup_extra
         self.now = now or (lambda: datetime.now(UTC))
@@ -242,6 +244,8 @@ class HelpChat:
         except HelpUnavailable:
             self._finish(session_id, job, "failed", "help_unavailable")
             return
+        if self.customer(session_id):
+            base = base.for_customer()
         settings = self.settings()
         if not settings.enabled:
             self._finish(session_id, job, "failed", "disabled")

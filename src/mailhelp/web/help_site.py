@@ -14,7 +14,7 @@ from .actions import new_key
 from .auth import WebSession
 from .help_window import HelpWindow
 from .http import Request, Response
-from .pages import e, layout, notice
+from .pages import CUSTOMER_VIEW, e, layout, notice
 from .settings_search import catalog
 
 if TYPE_CHECKING:
@@ -49,6 +49,11 @@ class HelpSite:
             self._base = load()
         return self._base
 
+    def base_for(self, session: WebSession | str) -> HelpBase:
+        """8.7.8: customers read only the sections listed for them (``helpdocs/roles.py``)."""
+        base = self.base()
+        return base if self.site.auth.is_operator(session) else base.for_customer()
+
     def _unavailable(self) -> Response:
         return Response.html(
             503,
@@ -68,7 +73,7 @@ class HelpSite:
 
     def index(self, request: Request, session: WebSession) -> Response:
         try:
-            base = self.base()
+            base = self.base_for(session)
         except HelpUnavailable:
             return self._unavailable()
         groups: dict[str, list[str]] = {}
@@ -82,7 +87,7 @@ class HelpSite:
 
     def section(self, request: Request, session: WebSession, section: str) -> Response:
         try:
-            base = self.base()
+            base = self.base_for(session)
         except HelpUnavailable:
             return self._unavailable()
         item = base.get(section)
@@ -126,8 +131,10 @@ class HelpSite:
             else:
                 links.append(f'<li><a href="/hilfe/dokumentation/{e(item.id)}">{e(" › ".join(item.path))}</a></li>')
         entries = {entry.id: entry for entry in catalog()}
-        settings = [f'<li><a href="{e(entries[key].href)}">{e(entries[key].label)}</a></li>'
-                    for key in turn.setting_ids if key in entries]
+        # 8.7.8: the settings named by a source are the operator's areas; customers get none of them.
+        settings = [] if CUSTOMER_VIEW.get() else [
+            f'<li><a href="{e(entries[key].href)}">{e(entries[key].label)}</a></li>'
+            for key in turn.setting_ids if key in entries]
         parts = ""
         if links:
             parts += tr('<p class="meta">Quellen</p><ul class="help-sources">{p0}</ul>', p0=f"{''.join(links)}")

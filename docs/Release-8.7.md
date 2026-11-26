@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.7. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 26. November 2026. Version 8.7.8. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -89,6 +89,18 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
 Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 
+## Umgesetzt in 8.7.8 – AP4c Hilfe und Suche nach Rolle
+
+| Thema | Umsetzung |
+| --- | --- |
+| Hilfe | Kundensitzungen sehen im Hilfeindex und auf den Abschnittsseiten nur die 32 in `helpdocs/roles.py` freigegebenen Abschnitte (Bedienung, Lernen in der Kundeninstanz, eigene Postfächer und Ziele, Benachrichtigungen, Briefings, Fehlerbehebung ohne Hostzugriff); alle anderen, auch künftige, antworten mit 404. Betreiber sehen alle Abschnitte |
+| Hilfschat | Kundenaufträge beziehen nur freigegebene Abschnitte als Quellen; die Rolle wird beim Ausführen geprüft. Unter Antworten nennt der Chat Kunden keine Einstellungsbereiche |
+| Texte | „Lernen in einer Kundeninstanz“ spricht nicht mehr von Preisen und Kosten; die Lernübersicht „verbraucht nichts“ statt „kostet nichts“ |
+| Suche und Kanäle | Die Einstellungssuche bleibt Betreibern vorbehalten (403). Telegram-, Push- und Briefingtexte enthalten keine Geldwerte (geprüft) |
+| Prüfung | `tests/unit/test_help_roles.py` prüft jeden freigegebenen Abschnitt in Deutsch und Englisch auf Geld-, Server-, Prompt-, Geheimnis- und Hostbefehlsbegriffe; `tests/web/test_customer_help.py` Index, Abschnitte und Chatquellen nach Rolle; die Geldbegriffsprüfung der Kundenseiten schließt die Hilfe ein |
+
+Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -111,7 +123,8 @@ Nicht ausgeliefert; `kunde` läuft mit 8.7.4.
 | – | Lernen: Manipulation, Bewertungswechsel, Wiederholung, Anhalten vor der Grenze, Neustart, Übernahme | Wie Plan Lernen in Punkten §5 (`tests/services/test_learning_points.py`, `tests/usage/test_usage_budget.py`) |
 | – | Links und Formulare aller erreichbaren Kundenseiten | Nur für Kunden erlaubte Ziele (`tests/web/test_customer_links.py`) |
 | 14 (Seiten außer Hilfe) | Geldbegriffe auf allen erreichbaren Kundenseiten, Berichte, Nachanalyse | Keine Treffer (`tests/web/test_customer_links.py`, `tests/web/test_customer_points_pages.py`) |
-| 3, 14 (Hilfe), 15, 17, 19, 20 | – | Offen (AP4c–AP6) |
+| 14 (Hilfe) | Freigegebene Hilfeabschnitte DE/EN, Hilfeindex, Chatquellen | Keine Geldbegriffe; Betreiberabschnitte 404 (`tests/unit/test_help_roles.py`, `tests/web/test_customer_help.py`) |
+| 3, 15, 17, 19, 20 | – | Offen (AP5–AP6) |
 
 ## Auslieferung
 
