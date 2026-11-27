@@ -394,9 +394,12 @@ def _timeouts_table(names: list[str], raw: dict[str, Any], active: dict[str, Any
 
 
 def _section(group: str, raw: dict[str, Any], active: dict[str, Any] | None, revision: str, csrf: str,
-             area: str) -> str:
-    """8.5: one form per section; only changed values are taken over on the review page."""
-    names = _names(group)
+             area: str, names: list[str] | None = None, action: str = "/einstellungen/speichern") -> str:
+    """8.5: one form per section; only changed values are taken over on the review page.
+
+    8.8.2: *names* and *action* give the customer page ``/einstellungen/allgemein`` its own form.
+    """
+    names = _names(group) if names is None else names
     timeouts = [name for name in names if name.startswith("timeouts.")]
     fields = "".join(_field_row(name, raw, active) for name in names if name not in timeouts)
     if timeouts:
@@ -407,7 +410,7 @@ def _section(group: str, raw: dict[str, Any], active: dict[str, Any] | None, rev
     hidden = (field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
               + field("expected_hash", "", revision, hidden=True) + field("bereich", "", area, hidden=True))
     return (f'<section class="settings-section"><h2>{e(group)}</h2><form method="post" '
-            f'action="/einstellungen/speichern" class="stack settings-form" data-settings-form>{hidden}'
+            f'action="{action}" class="stack settings-form" data-settings-form>{hidden}'
             f'{fields}{bar}</form></section>')
 
 
@@ -459,6 +462,15 @@ AREAS = (
 )
 CREDENTIALS_AREA = 'zugangsdaten'
 AREA_KEYS = frozenset({key for key, *_ in AREAS} | {CREDENTIALS_AREA})
+# 8.8.2: the customer's own page; its forms carry this area and lead back to it.
+GENERAL_AREA, GENERAL_PATH = "kunde-allgemein", "/einstellungen/allgemein"
+
+
+def settings_back(area: str) -> str:
+    """Where a settings form returns to: its area, the customer page or the overview."""
+    if area == GENERAL_AREA:
+        return GENERAL_PATH
+    return "/einstellungen?bereich=" + area if area in AREA_KEYS else "/einstellungen"
 # 8.5: addresses of the former areas lead to the area that holds their settings now.
 LEGACY_AREAS = {"abruf": "allgemein", "briefing": "benachrichtigungen", "system": "erweitert"}
 _GROUPS = dict(SETTING_GROUPS)
@@ -758,7 +770,7 @@ def settings_confirmation(form: dict[str, str], route: str, csrf: str,
 
 
 def settings_review(patch: dict[str, Any], texts: dict[str, str], expected_hash: str, csrf: str,
-                    raw: dict[str, Any], area: str) -> str:
+                    raw: dict[str, Any], area: str, route: str = "/einstellungen/speichern") -> str:
     """8.5: all changes of one section form; one confirmation takes them over together."""
     rows = ""
     for name, value in patch.items():
@@ -775,7 +787,7 @@ def settings_review(patch: dict[str, Any], texts: dict[str, str], expected_hash:
              f'{e(tr("Einstellung"))}</th><th scope="col">{e(tr("Bisher"))}</th><th scope="col">{e(tr("Neu"))}'
              f'</th><th scope="col">{e(tr("Wirkt"))}</th></tr></thead><tbody>{rows}</tbody></table></div>')
     hidden = {SETTING_PREFIX + name: texts[name] for name in patch}
-    back = "/einstellungen?bereich=" + area if area in AREA_KEYS else "/einstellungen"
-    return (body + post_form("/einstellungen/speichern", csrf, "", msg("Änderungen ausdrücklich speichern"),
+    back = settings_back(area)
+    return (body + post_form(route, csrf, "", msg("Änderungen ausdrücklich speichern"),
                              primary=True, confirm="yes", expected_hash=expected_hash, bereich=area, **hidden)
             + f'<p><a href="{e(back)}">{e(tr("Abbrechen und zurück"))}</a></p>')

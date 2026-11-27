@@ -336,6 +336,15 @@ On the Email page, an error appears at the very top in the “Processing errors�
 
 Above the error list are **Try all again** and **Ignore all**. A confirmation page first states the number of affected Mails; only there is the action triggered. Afterwards the list reports how many Mails were queued. Mails that have changed in the meantime or are already queued are skipped. “Try all again” omits Mails without analysis data and already requested retries. Both buttons only change the stored state. A new Event or a Task still requires its own confirmation of the suggestion.
 
+### Own values in a customer instance <!-- mailhelp-id:bedienung/eigene-werte-in-einer-kundeninstanz -->
+
+In a customer instance **Settings → General** (since 8.8.2) holds your own values: language, time zone,
+personal details, event durations, the calendar reminder of the default profile, reply drafts and
+briefings. **Review changes** lists every changed value with its previous and new state; only
+**Explicitly save changes** takes them over together. Values that apply only after a restart are marked
+"after restart". The operator manages credentials, models and operating values; saving creates no events
+or tasks.
+
 ### Help with Settings <!-- mailhelp-id:bedienung/hilfe-beim-einstellen -->
 
 The chat icon at the bottom right opens **Settings Help** as a small window over the current Settings page. “Ask about this” adopts the reference for a setting without overwriting an existing question draft. Enter a question and select **Send question**. The answer first appears in short form; **Show detailed answer** displays all steps.

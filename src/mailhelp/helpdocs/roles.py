@@ -25,6 +25,7 @@ CUSTOMER_SECTIONS = frozenset({
     "bedienung/google-ueber-inboxstride-verbinden",
     "bedienung/fehlgeschlagene-mails",
     "bedienung/hilfe-beim-einstellen",
+    "bedienung/eigene-werte-in-einer-kundeninstanz",
     # Learning (the customer instance section explains points)
     "bedienung/lernmodus-lernfunktion",
     "bedienung/lernen-in-einer-kundeninstanz",

@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.8.2: Kunden ändern ihre persönlichen Werte (Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung, Entwürfe, Briefings) selbst unter **Einstellungen → Allgemein**, geprüft und ausdrücklich bestätigt.
 
 Version 8.8.1: Kunden verbinden eigene Ziele (Google Kalender, Microsoft, Notion) und Postfächer über Inboxstride selbst und kehren danach zu ihren Zielprofilen zurück, wo sie den Entwurf übernehmen. Eine Postfachaktivierung hält jetzt die Feldgrenzen für Kunden ein, bevor Zugangsdaten geschrieben werden.
 

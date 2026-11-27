@@ -8721,6 +8721,11 @@ EN = {
     'Entwurf speichern': 'Save draft',
     'Entwurf verwerfen': 'Discard draft',
     'Entwurf übernehmen': 'Apply draft',
+    'Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung, Entwürfe und Briefings.':
+        'Language, time zone, personal details, event durations, calendar reminder, drafts and briefings.',
+    'Deine persönlichen Werte. Sie werden nach dem Prüfen ausdrücklich gespeichert.':
+        'Your personal values. They are saved explicitly after the review.',
+    'Diese Einstellung ist hier nicht änderbar.': 'This setting cannot be changed here.',
     'Entwurf – noch nicht aktiviert': 'Draft – not yet activated',
     'Ereignisse': 'Events',
     'Erste Auswertungen nach den ersten Entscheidungen.': 'Initial statistics after the first decisions.',

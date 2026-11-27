@@ -160,6 +160,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/einstellungen/postfaecher` | Postfächer anlegen, prüfen, ändern | [Konten verwalten](Konten-verwalten.md) |
 | `/einstellungen/iserv` | IServ-Konten | [Konten verwalten](Konten-verwalten.md) |
 | `/einstellungen/zielprofile` | Zielprofile | [Ziele einrichten](Ziele-einrichten.md) |
+| `/einstellungen/allgemein` | Eigene Werte im Kundenmodus (seit 8.8.2) | [Bedienung](Bedienung.md) |
 | `/einstellungen/zugangsdaten` | Zugangsdaten und OAuth | [Ziele einrichten](Ziele-einrichten.md) |
 | `/einstellungen/benachrichtigungen` | Benachrichtigungsregeln | Web-Einstellungen (notifications) |
 | `/einstellungen/absender` | Absender-Regeln (seit 7.7.3) | Web-Einstellungen |

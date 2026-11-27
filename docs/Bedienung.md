@@ -485,6 +485,15 @@ Aufgabe benötigt weiterhin eine eigene Bestätigung des Vorschlags.
 
 ## Weitere Seiten
 
+### Eigene Werte in einer Kundeninstanz
+
+In einer Kundeninstanz führt **Einstellungen → Allgemein** (seit 8.8.2) zu den eigenen Werten:
+Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung für das Standardprofil,
+Antwortentwürfe und Briefings. **Änderungen prüfen** zeigt alle geänderten Werte mit bisherigem und
+neuem Stand; erst **Änderungen ausdrücklich speichern** übernimmt sie gemeinsam. Werte, die erst nach
+einem Neustart wirken, sind als „nach Neustart“ markiert. Zugangsdaten, Modelle und Betriebswerte
+verwaltet der Betreiber; das Speichern legt keine Termine oder Aufgaben an.
+
 ### Hilfe beim Einstellen
 
 Das Chatsymbol unten rechts öffnet **Hilfe zu Einstellungen** als kleines Fenster über der

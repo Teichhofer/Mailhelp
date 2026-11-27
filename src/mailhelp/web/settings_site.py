@@ -15,11 +15,12 @@ from ..i18n import COOKIE, msg, tr
 from ..persistence.storage import CorruptState
 from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from .auth import WebSession
-from .customer_settings import customer_settings_page
+from .customer_settings import GENERAL_FIELDS, customer_general_page, customer_settings_page
 from .http import Request, Response, cookie
 from .pages import layout, notice
 from .settings_pages import (
     AREA_KEYS,
+    GENERAL_PATH,
     LEGACY_AREAS,
     NO_DEFAULT,
     SETTING_PREFIX,
@@ -27,6 +28,7 @@ from .settings_pages import (
     _lookup,
     default_value,
     setting_label,
+    settings_back,
     settings_confirmation,
     settings_page,
     settings_review,
@@ -103,6 +105,7 @@ class SettingsSite:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/einstellungen", self.settings), ("POST", "/einstellungen/speichern", self.save_settings),
+                ("GET", GENERAL_PATH, self.general), ("POST", GENERAL_PATH, self.save_general),
                 ("POST", "/einstellungen/zugangsdaten/speichern", self.save_credentials),
                 ("POST", "/themen/speichern", self.save_topic),
                 ("GET", "/api/einstellungen/suche", self.live_search)):
@@ -128,14 +131,7 @@ class SettingsSite:
             return Response(308, headers={"Location": f"/einstellungen?bereich={LEGACY_AREAS[area]}"})
         if area and area not in AREA_KEYS:
             return self.site._reply(request, 404, msg("Unbekannter Einstellungsbereich."))
-        configuration = self.archive.configuration
-        raw = active = None
-        revision = ""
-        if configuration is not None:
-            path = configuration.directory / "config.yaml"
-            raw = _effective(yaml.safe_load(path.read_text(encoding="utf-8")))
-            active = configuration.active.model_dump(mode="json")
-            revision = file_hash(path)
+        raw, active, revision = self._saved()
         csrf = self.site.auth.csrf_token(session.id)
         service = self.credential_service()
         try:
@@ -145,6 +141,32 @@ class SettingsSite:
         page = settings_page(self.archive.models, raw, active, revision, csrf, credentials, area,
                              query.get("suche", [""])[0][:80], self.site.experience.controls(csrf, session.id))
         return Response.html(200, layout(msg("Einstellungen"), page, active="/einstellungen"))
+
+    def _saved(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None, str]:
+        configuration = self.archive.configuration
+        if configuration is None:
+            return None, None, ""
+        path = configuration.directory / "config.yaml"
+        return (_effective(yaml.safe_load(path.read_text(encoding="utf-8"))),
+                configuration.active.model_dump(mode="json"), file_hash(path))
+
+    def general(self, _request: Request, session: WebSession) -> Response:
+        """8.8.2: the customer's personal values on their own page (also open for the operator)."""
+        raw, active, revision = self._saved()
+        page = customer_general_page(raw, active, revision, self.site.auth.csrf_token(session.id))
+        return Response.html(200, layout(msg("Allgemein"), page, active="/einstellungen"))
+
+    def save_general(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """Only the page's own fields; everything else is refused before a draft or command exists."""
+        if self.archive.configuration is None:
+            return self.site._reply(request, 503, msg("Konfiguration nicht verfügbar."))
+        names = [key.removeprefix(SETTING_PREFIX) for key in form if key.startswith(SETTING_PREFIX)]
+        if form.get("zuruecksetzen"):
+            names.append(form["zuruecksetzen"])
+        if "name" in form or any(name not in GENERAL_FIELDS for name in names):
+            self.site.logger.event("WARNING", "web", "general_field_refused")
+            return self.site._reply(request, 403, msg("Diese Einstellung ist hier nicht änderbar."))
+        return self._save_section(request, session, form, GENERAL_PATH)
 
     def credential_service(self) -> CredentialService | None:
         configuration = self.archive.configuration
@@ -245,7 +267,8 @@ class SettingsSite:
             response.cookies.append(cookie(request, COOKIE, language, 31536000, http_only=False, same_site="Lax"))
         return response
 
-    def _save_section(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+    def _save_section(self, request: Request, session: WebSession, form: dict[str, str],
+                      route: str = "/einstellungen/speichern") -> Response:
         """8.5: the changed values of one section form; checked together, taken over together."""
         configuration = self.archive.configuration
         assert configuration is not None  # checked by save_settings
@@ -272,13 +295,13 @@ class SettingsSite:
             )
         if form.get("confirm") != "yes":
             body = settings_review(patch, texts, form["expected_hash"], self.site.auth.csrf_token(session.id),
-                                   saved, area)
+                                   saved, area, route)
             return Response.html(200, layout(tr("Änderungen prüfen"), body, active="/einstellungen"))
         return self._queued(request, command)
 
     @staticmethod
     def _unchanged(area: str) -> Response:
-        back = "/einstellungen?bereich=" + area if area in AREA_KEYS else "/einstellungen"
+        back = settings_back(area)
         body = (tr("<h1>Keine Änderung</h1>") + notice(tr("Alle Werte entsprechen dem gespeicherten Stand."), "info")
                 + f'<p><a class="button" href="{back}">{tr("Zurück")}</a></p>')
         return Response.html(200, layout(tr("Keine Änderung"), body, active="/einstellungen"))

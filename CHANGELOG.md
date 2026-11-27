@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.8.2 – Eigene Werte unter `/einstellungen/allgemein` (Planung 8.8 AP2)
+
+- Bugfix: Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung von Profil 1, Entwürfe und Briefings waren Kundenfelder. Ihr einziges Formular schickte aber an die Betreiberroute `/einstellungen/speichern` (403), Kunden konnten sie also nicht ändern. Neu: `GET/POST /einstellungen/allgemein` als erster Bereich der Kundenübersicht, mit demselben Prüf- und Bestätigungsablauf wie die Abschnittsformulare (CSRF, Dateistand, Idempotenzschlüssel, Sprach-Cookie).
+- Die Seite nimmt nur ihre eigenen Felder an (`GENERAL_FIELDS`); jedes andere Feld, ein Zurücksetzen fremder Felder und Einzelfeldformulare werden mit 403 abgelehnt, bevor ein Befehl entsteht. Der Befehl wird vor dem Schreiben erneut gegen die Kundenfelder geprüft.
+- Hilfe: neuer Kundenabschnitt „Eigene Werte in einer Kundeninstanz“ (DE/EN).
+- Tests: `tests/web/test_customer_general.py` (scheitern mit 8.8.1).
+
 ## 8.8.1 – Gehostete Anmeldung im Kundenmodus (Planung 8.8 AP1)
 
 - Kundensitzungen erreichen die gehosteten Anmelde- und Auswahlschritte: `/google/verbinden`, `/google/kalender(/wechseln)`, `/google/trennen`, `/microsoft|notion/verbinden|ziele|trennen`, `/postfach/oauth(/ordner|/trennen)`, `POST /einrichtung/postfach/abschluss` und `/auth/status/<64 Hex>`. Bis 8.7.16 antworteten sie mit 403. Sitzung, CSRF, Entwurfsversion und Idempotenz prüfen weiterhin die Handler.

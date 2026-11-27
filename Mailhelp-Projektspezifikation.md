@@ -15,6 +15,13 @@ Entwurf bestätigt. `/einrichtung`, `/einrichtung/start` und `/einrichtung/speic
 Postfachaktivierungen (`ConnectionActivation`) halten die Feldgrenzen für Kunden ein und prüfen sie vor dem Schreiben
 von `.env`. Für Kunden zusätzlich änderbar sind die Postfachfelder `auth_method` und `oauth_connection`.
 
+**Eigene Werte (8.8.2, AP2).** `GET/POST /einstellungen/allgemein` zeigt für Kunden (und Betreiber) ein
+Abschnittsformular mit `GENERAL_FIELDS` (`web/customer_settings.py`): `language`, `timezone`, `personal_info`,
+`event_defaults.*_duration_minutes`, `targets.calendar_reminder_enabled|minutes`, `drafts.enabled|folder`,
+`smart_reply`, `auto_draft`, `briefings.*` und `daily_briefing.include_*`. Prüfseite, Bestätigung, Dateistand,
+Idempotenzschlüssel und Sprach-Cookie wie bei `/einstellungen/speichern`; andere Felder antworten mit 403, bevor ein
+Befehl entsteht. `POST /einstellungen/speichern` bleibt für Kunden gesperrt.
+
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
 Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
