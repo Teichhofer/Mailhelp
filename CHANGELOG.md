@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.7.16 – Auslieferung von 8.7.15 auf `kunde`
+
+- `kunde` läuft seit 27.11.2026 mit `mailhelp-production:8.7.15-e63cb15` (Sicherung, Vorzustand `compose.yaml.before-8.7.15`, Rückkehr auf `8.7.9-d15df13`). Host-Update mit 15 Paketen, kein Neustart nötig. Produktion, Demo und Auth unverändert. Nachweis in `docs/Betrieb.md`.
+- Keine Codeänderung.
+
 ## 8.7.15 – Abnahme 3: Kunden übernehmen eigene Postfachentwürfe (Abschluss 8.7)
 
 - Bugfix: Eine Kundensitzung konnte Postfach-, Benachrichtigungs- und Zielentwürfe speichern, aber nie übernehmen. Die Vorschau schickte die Übernahme an die Betreiberroute `/einrichtung/uebernehmen` (403), jede `imap.`-Änderung verlangte eine Diagnose auf `/diagnose` (für Kunden gesperrt), und die Rechteprüfung lehnte die ganze Postfachliste ab. Neu: `POST /einstellungen/postfaecher/uebernehmen` mit demselben bestätigten, versionierten und idempotenten Ablauf.

@@ -1887,6 +1887,18 @@
   "title": "Update `kunde` to 8.7.9 (26 Nov 2026)"
  },
  {
+  "id": "betrieb/update-kunde-auf-8715-27112026",
+  "path": [
+   "Operation and updates",
+   "Customer instance `kunde` (25 Nov 2026)",
+   "Update `kunde` to 8.7.15 (27 Nov 2026)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "On the operator's instruction `kunde` runs `mailhelp-production:8.7.15-e63cb15` since 27 Nov 2026, after 15 host package updates (Kerberos, binutils, libpcap, python3-jwt; no reboot required) and a backup under `/opt/mailhelp/backups/kunde-upgrade-8.7.15-20261127T172930Z`. The instance stays in first-setup mode; `--check-instance` and the HTTP checks passed as for 8.7.9. Production, demo and the sign-in service are unchanged. Rollback: restore `compose.yaml.before-8.7.15` (image `8.7.9-d15df13`) and run `up -d`.",
+  "title": "Update `kunde` to 8.7.15 (27 Nov 2026)"
+ },
+ {
   "id": "betrieb/abnahme-auf-kunde-nach-der-ersteinrichtung-ap6-offen",
   "path": [
    "Operation and updates",

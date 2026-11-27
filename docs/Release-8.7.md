@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.7.15. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 27. November 2026. Version 8.7.16. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Plan abgeschlossen, noch keine Kundenfreischaltung.** AP1–AP7 sind umgesetzt (8.7.1–8.7.15), alle
@@ -226,7 +226,8 @@ nicht als bestanden zu lesen:
 
 ## Auslieferung
 
-Nur die Betreiber-Testinstanz `kunde` läuft mit 8.7.9 (seit 26.11.2026). Produktion und Demo laufen
+Nur die Betreiber-Testinstanz `kunde` läuft mit 8.7.15 (`mailhelp-production:8.7.15-e63cb15`, seit 27.11.2026,
+ausgeliefert mit 8.7.16; Nachweis in [Betrieb](Betrieb.md)), weiter im Ersteinrichtungsmodus. Produktion und Demo laufen
 weiter mit 8.5.4 ohne Kundenmodus. Ohne `operator.yaml` und ohne
 Bewertungsstand verhält sich 8.7.1 wie 8.6.3; das Sitzungsformat einer selbst betriebenen Instanz ist
 unverändert, eine Rückkehr bleibt möglich.

@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.15 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.16 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.16: 8.7.15 läuft auf der Betreiber-Testinstanz `kunde` (weiter im Ersteinrichtungsmodus); Produktion und Demo bleiben bei 8.5.4.
 
 Version 8.7.15: Kunden übernehmen eigene Postfach-, Benachrichtigungs- und Zielentwürfe selbst („Entwurf übernehmen“ auf der Postfachseite). Fehlt eine Prüfung einer Verbindung, startet die Vorschau sie direkt und nur lesend. Reine Postfachregeln wie Ruhezeiten oder Signatur brauchen keine Diagnose mehr. Damit ist der Plan 8.7 abgeschlossen; manuelle Schritte auf `kunde` entfallen, eine Kundenfreischaltung gibt es weiterhin nicht.
 

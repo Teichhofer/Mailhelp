@@ -615,7 +615,7 @@ Produktion, Demo und Auth wurden dabei nicht verändert.
 
 | Bestandteil | Istzustand (geprüft 25.11.2026) |
 | --- | --- |
-| Quelle / Image | Seit 26.11.2026 (zweites Update) Commit `d15df13`, `/opt/mailhelp/releases/8.7.9-d15df13`, `mailhelp-production:8.7.9-d15df13`; Rückkehrpunkte `8.7.4-4e86ee4` und `8.7.2-e00a136` |
+| Quelle / Image | Seit 27.11.2026 Commit `e63cb15`, `/opt/mailhelp/releases/8.7.15-e63cb15`, `mailhelp-production:8.7.15-e63cb15`; Rückkehrpunkte `8.7.9-d15df13`, `8.7.4-4e86ee4` und `8.7.2-e00a136` |
 | Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
 | Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
 | Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`, seit 26.11.2026 `learning_usd_per_million_tokens: "1.2"`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
@@ -700,6 +700,32 @@ binden nichts aus `/opt/mailhelp-kunde` ein.
 
 Rückkehr: Container stoppen, `compose.yaml.before-8.7.9` zurückkopieren (Image `8.7.4-4e86ee4`), `up -d`;
 Laufzeitdaten und `operator.yaml` sind mit 8.7.4 kompatibel.
+
+### Update `kunde` auf 8.7.15 (27.11.2026)
+
+Auf Anweisung des Betreibers vom 27.11.2026 (Commit, Push und Auslieferung); nur `kunde`, Produktion, Demo und Auth
+unverändert (weiter `8.5.4-1ea1c98` bzw. `inboxstride-auth:7.9.5-2073ef0`).
+
+Schritte: `git archive e63cb15 Dockerfile README.md pyproject.toml requirements.lock src ops` nach
+`/opt/mailhelp/uploads/mailhelp-8.7.15-e63cb15.tar.gz` (SHA-256 `791e3fcc…1d7362743b`, auf dem Server
+nachgeprüft), entpackt nach `/opt/mailhelp/releases/8.7.15-e63cb15`,
+`docker build -t mailhelp-production:8.7.15-e63cb15` (Version 8.7.15).
+`apt-get update && apt-get upgrade -y`: 15 Pakete eingespielt (Kerberos `1.22.1-2ubuntu4.3`, binutils
+`2.46-3ubuntu2.1`, `libpcap0.8t64 1.10.6-1ubuntu1.2`, `python3-jwt 2.10.1-4ubuntu1.5`), ein Paket wegen Phasing
+zurückgestellt; kein `/var/run/reboot-required`; nginx 1.28.3, laufendes Binary `/usr/sbin/nginx`. Von
+needrestart gemeldet: `networkd-dispatcher` und `unattended-upgrades` neu gestartet (aktiv); `dbus.service`
+bewusst nicht neu gestartet (beim nächsten geplanten Neustart).
+Container gestoppt, Sicherung `/opt/mailhelp/backups/kunde-upgrade-8.7.15-20261127T172930Z/mailhelp-kunde.tar.gz`,
+Vorzustand `compose.yaml.before-8.7.15`; Image umgestellt, `docker compose … config --quiet`, `up -d`.
+`operator.yaml` unverändert. Freier Plattenplatz danach 1,5 GB (93 % belegt).
+
+Prüfungen: Container `mailhelp-production:8.7.15-e63cb15`, Version 8.7.15, weiter Ersteinrichtungsmodus;
+`--check-instance` wie bei 8.7.9 (OK Kundenmodus, Bewertungsstand 1, Preisannahme 1.2; FEHLT Ersteinrichtung und
+Betreiberzugang – entfallen laut Betreiberentscheidung, siehe unten); `https://kunde.inboxstride.de/anmelden` 200,
+HTTP 308, fremder Host 421; `stefan.` und `demo.` `/anmelden` 200.
+
+Rückkehr: Container stoppen, `compose.yaml.before-8.7.15` zurückkopieren (Image `8.7.9-d15df13`), `up -d`;
+8.7.15 ändert keine Laufzeitdateiformate.
 
 ### Abnahme auf `kunde` nach der Ersteinrichtung (AP6, entfallen) <!-- mailhelp-id:betrieb/abnahme-auf-kunde-nach-der-ersteinrichtung-ap6-offen -->
 

@@ -210,6 +210,10 @@ On 26 Nov 2026 `kunde` was updated to 8.7.4 (`mailhelp-production:8.7.4-4e86ee4`
 
 On the operator's instruction `kunde` runs `mailhelp-production:8.7.9-d15df13` since 26 Nov 2026 (no host package was pending, no reboot required; backup `kunde-upgrade-8.7.9-20261126T102954Z`). `mailhelp --check-instance` inside the container reports customer mode, valuation and price assumption as OK and the first setup and operator access as missing. The container is the only member of its network, mounts only its own runtime and the read-only `operator.yaml`, listens on `127.0.0.1:8766` only and runs as user 65532 without capabilities; production and demo mount nothing of it. Rollback: restore `compose.yaml.before-8.7.9` (image `8.7.4-4e86ee4`) and run `up -d`.
 
+### Update `kunde` to 8.7.15 (27 Nov 2026) <!-- mailhelp-id:betrieb/update-kunde-auf-8715-27112026 -->
+
+On the operator's instruction `kunde` runs `mailhelp-production:8.7.15-e63cb15` since 27 Nov 2026, after 15 host package updates (Kerberos, binutils, libpcap, python3-jwt; no reboot required) and a backup under `/opt/mailhelp/backups/kunde-upgrade-8.7.15-20261127T172930Z`. The instance stays in first-setup mode; `--check-instance` and the HTTP checks passed as for 8.7.9. Production, demo and the sign-in service are unchanged. Rollback: restore `compose.yaml.before-8.7.15` (image `8.7.9-d15df13`) and run `up -d`.
+
 ### Acceptance on `kunde` after the first setup (AP6, open) <!-- mailhelp-id:betrieb/abnahme-auf-kunde-nach-der-ersteinrichtung-ap6-offen -->
 
 Only the operator enters the own OpenRouter key: read the code with `docker logs --tail 5 mailhelp-kunde-mailhelp-1`, finish the first setup with a synthetic test mailbox, check `customer_mode_active` in the log, pair an operator (`mailhelp --pair --operator`) and a customer device (`mailhelp --pair`), and run `mailhelp --check-instance` until it reports “Ready for acceptance.”. Then check acceptance 3 (mailbox, target profile, topics and notifications with preview and explicit confirmation) and a learning run of 10 emails in points, comparing the usage with the reported OpenRouter costs and the price assumption 1.2.
