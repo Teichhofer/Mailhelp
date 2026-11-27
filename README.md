@@ -13,7 +13,10 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.13 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.14 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.14: Der Lasttest mit gehaltener Speichersperre hat auf GitHub-Runnern eine eigene Grenze (Median unter
+1000 ms, höchstens 2000 ms). Lokal gilt weiter Median unter 100 ms und höchstens 300 ms.
 
 Version 8.7.13: Die Linux-Browsersuite hängt nicht mehr – das Aufräumen nach einem Test wartet nie unbegrenzt
 auf einen stummen Browser, asynchrone Wartebedingungen warten wirklich, und der CI-Schritt endet nach höchstens

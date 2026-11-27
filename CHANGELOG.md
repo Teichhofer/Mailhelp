@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.7.14 – Lastgrenze auf GitHub-Runnern (Querschnitt 8.7)
+
+- Der Lasttest `test_load_store_lock` hat auf Wunsch des Betreibers eine eigene Grenze, die nur bei `GITHUB_ACTIONS=true` gilt: Median unter 1000 ms, höchstens 2000 ms. Gemessen wurden dort für jede Annahme 323–353 ms, ohne auf die Sperre zu warten. Lokal und auf jedem anderen Rechner bleibt sie bei Median unter 100 ms und höchstens 300 ms. Beide Grenzen liegen weit unter der Sperrdauer von 5000 ms. Damit fällt jede Annahme, die auf die Speichersperre wartet, weiterhin auf.
+- Test `test_the_accept_budget_is_strict_locally_and_looser_only_on_hosted_runners` prüft, wann welche Grenze gilt. `CI=true` allein lockert sie nicht.
+
 ## 8.7.13 – Hängende Linux-Browsersuite (Querschnitt 8.7)
 
 Der CI-Job `ui-tests` lief seit 8.7.12 bis zur Abbruchgrenze von sechs Stunden; in WSL hing die Suite gelegentlich bei 98 %.

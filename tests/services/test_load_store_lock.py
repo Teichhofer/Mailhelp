@@ -1,5 +1,6 @@
 """Five authenticated browsers remain responsive during blocked analysis and delivery."""
 import json
+import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -13,6 +14,27 @@ from tests.fakes.shared_application import Imap, Orch, Telegram, app
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser, code_from
 from tests.scenarios.web_scenario import proposal, save_mail
+
+# The store lock is held for 5 s. Admission must never wait for it, so every budget stays far below that.
+# The strict budget is for the developer machine. Shared GitHub runners (2 slow vCPUs, Windows Defender)
+# measured 323-353 ms for every accept in 8.7.13, without waiting for the lock. That is why they get a
+# looser budget, which still separates "answered without the lock" from "waited 5 s for the lock".
+LOCAL_ACCEPT_BUDGET_MS = (100, 300)
+HOSTED_RUNNER_ACCEPT_BUDGET_MS = (1000, 2000)
+STORE_LOCK_HOLD_MS = 5000
+
+
+def accept_budget(environ):
+    """Return (median, maximum) in milliseconds for the machine that runs the test."""
+    hosted = environ.get("GITHUB_ACTIONS") == "true"
+    return HOSTED_RUNNER_ACCEPT_BUDGET_MS if hosted else LOCAL_ACCEPT_BUDGET_MS
+
+
+def test_the_accept_budget_is_strict_locally_and_looser_only_on_hosted_runners():
+    assert accept_budget({}) == accept_budget({"GITHUB_ACTIONS": "false"}) == (100, 300)
+    assert accept_budget({"CI": "true"}) == (100, 300)
+    assert accept_budget({"GITHUB_ACTIONS": "true"}) == (1000, 2000)
+    assert max(HOSTED_RUNNER_ACCEPT_BUDGET_MS) < STORE_LOCK_HOLD_MS / 2
 
 
 def test_five_browsers_accept_during_analysis_delivery_and_a_five_second_store_lock(web, tmp_path):
@@ -62,7 +84,7 @@ def test_five_browsers_accept_during_analysis_delivery_and_a_five_second_store_l
         def hold_store():
             with web.store.locked():
                 held.set()
-                Event().wait(5)
+                Event().wait(STORE_LOCK_HOLD_MS / 1000)
         holder = Thread(target=hold_store)
         holder.start()
         assert held.wait(5)
@@ -75,7 +97,8 @@ def test_five_browsers_accept_during_analysis_delivery_and_a_five_second_store_l
         responses = [response for response, _ in measured]
         accepts = [elapsed for _, elapsed in measured]
         assert holder.is_alive(), "The store lock was released before admission finished"
-        assert median(accepts) < 100 and max(accepts) < 300, accepts
+        median_budget, maximum_budget = accept_budget(os.environ)
+        assert median(accepts) < median_budget and max(accepts) < maximum_budget, accepts
         # Even the redirected overview must render without acquiring the held lock.
         assert browsers[0].request("GET", "/").status == 200
         holder.join(6)

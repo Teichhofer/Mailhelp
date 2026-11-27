@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.7.13. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 27. November 2026. Version 8.7.14. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -158,6 +158,14 @@ Tests: `tests/web/test_customer_acceptance.py`.
 Tests: `ui_tests/test_ui_harness_bounds.py`, `tests/release/test_ci_workflows.py`. Offen: Der Lasttest
 `test_load_store_lock` überschreitet auf dem GitHub-Windows-Runner seine Grenze (Accept bis 353 ms bei erlaubtem
 Median unter 100 ms); lokal hält er sie. Die Grenze bleibt unverändert, bis der Betreiber entscheidet.
+
+## Umgesetzt in 8.7.14 – Lastgrenze auf GitHub-Runnern
+
+| Thema | Umsetzung |
+| --- | --- |
+| Lasttest `test_load_store_lock` | Auf Wunsch des Betreibers eigene Grenze nur bei `GITHUB_ACTIONS=true`: Median unter 1000 ms, höchstens 2000 ms. Lokal und auf jedem anderen Rechner bleibt sie bei Median unter 100 ms und höchstens 300 ms. Beide Grenzen liegen weit unter der Sperrdauer von 5000 ms. Damit erkennt der Test weiterhin jede Annahme, die auf die Speichersperre wartet |
+
+Test: `test_the_accept_budget_is_strict_locally_and_looser_only_on_hosted_runners`.
 
 ## Prüfung
 
