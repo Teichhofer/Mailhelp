@@ -37,6 +37,12 @@ Verbindung nur einen Zustand (erreichbar, Anmeldung erneuern, vorübergehend nic
 eingerichtet) und den nächsten Schritt, auch bei den Prüfknöpfen eines Postfachentwurfs; die technischen Hinweise
 bleiben auf `/diagnose`.
 
+**Demo als Kundenoberfläche (8.8.5, AP5/AP6).** Die Demo-Anmeldung läuft im Kundenmodus (Instanz `demo`).
+`demo_may` erlaubt nur Kundenrouten ohne Konten-/OAuth-Abläufe, Einstellungsunterseiten, Benachrichtigungen, Geräte,
+Hilfe, Berichte, Themen, Absenderregeln, Entwürfe, Nachanalyse und Lernläufe; alle anderen Routen antworten mit 403
+„In der Demo nicht verfügbar“. Jede Demo-Antwort entfernt Links, die nicht erreichbar sind; nicht angebotene Bereiche
+erscheinen in der Einstellungsübersicht als Infokarten; der Hilfe-Chat entfällt.
+
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
 Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).

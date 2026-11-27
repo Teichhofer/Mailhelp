@@ -21,17 +21,7 @@ from mailhelp.web.auth import WebAuth
 from mailhelp.web.demo_site import DEMO_NOTICE, SESSION_SECONDS, DemoSite
 from mailhelp.web.http import Request, Response
 from tests.fakes.demo_questions import asked_dataset
-
-HOST = "localhost:8765"
-FORM = "application/x-www-form-urlencoded"
-
-
-class Log:
-    def __init__(self):
-        self.events = []
-
-    def event(self, level, area, name, **fields):
-        self.events.append(name)
+from tests.fakes.demo_web import FORM, HOST, Log, cookies_of, open_login, request, start
 
 
 @pytest.fixture
@@ -56,40 +46,6 @@ def asked(tmp_path, monkeypatch):
                                             "s" * 40, Log())
         yield SimpleNamespace(site=server.handler, runtimes=runtimes)
         runtimes.close()
-
-
-def request(method, path, cookies=None, form=None):
-    headers = {"host": HOST}
-    if cookies:
-        headers["cookie"] = "; ".join(f"{name}={value}" for name, value in cookies.items())
-    body = b""
-    if form is not None:
-        headers["content-type"] = FORM
-        body = urlencode(form).encode("utf-8")
-    return Request(method, path, headers, body=body)
-
-
-def cookies_of(response, jar):
-    for header in response.cookies:
-        name, _, rest = header.partition("=")
-        jar[name] = rest.split(";", 1)[0]
-    return jar
-
-
-def open_login(site, jar):
-    page = site(request("GET", "/anmelden", jar))
-    cookies_of(page, jar)
-    text = page.body.decode("utf-8")
-    return page, re.search(r'name="csrf" value="([^"]+)"', text).group(1), re.search(r'name="key" value="([^"]+)"',
-                                                                                    text).group(1)
-
-
-def start(site, jar=None):
-    jar = {} if jar is None else jar
-    _page, csrf, key = open_login(site, jar)
-    response = site(request("POST", "/demo/starten", jar, {"csrf": csrf, "key": key}))
-    cookies_of(response, jar)
-    return response, jar
 
 
 def test_visitor_runtimes_share_static_assets_without_sharing_routes_or_state(instance, monkeypatch):
@@ -351,6 +307,12 @@ def test_requests_without_a_demo_are_sent_to_the_start(instance):
     ("GET", "/geraete"), ("POST", "/api/push/subscribe"), ("GET", "/hilfe"), ("GET", "/api/hilfe/fenster"),
     ("GET", "/berichte/neu"), ("GET", "/lernen/entscheidungen"), ("POST", "/lernen"), ("GET", "/diagnose"),
     ("POST", f"/mail/{'a' * 24}/entwurf"), ("GET", "/einstellungen/neustarten"),
+    # 8.8.5: operator views, hosted sign-in, settings, topics and sender rules are outside the demo as well
+    ("GET", "/status"), ("GET", "/abgleich"), ("GET", "/auswertung"), ("POST", "/dienst/neu-laden"),
+    ("GET", "/google/verbinden"), ("GET", "/postfach/oauth"), ("GET", "/auth/status/" + "a" * 64),
+    ("POST", "/einstellungen/speichern"), ("POST", "/einstellungen/allgemein"), ("GET", "/themen"),
+    ("POST", "/themen/speichern"), ("POST", "/einstellungen/verbindungen/pruefen"),
+    ("POST", f"/mail/{'a' * 24}/absender-ignorieren"), ("GET", "/benachrichtigungen"),
 ])
 def test_setup_connections_and_model_calls_are_blocked_also_when_called_directly(instance, method, path):
     _response, jar = start(instance.site)
@@ -360,7 +322,8 @@ def test_setup_connections_and_model_calls_are_blocked_also_when_called_directly
 
 def test_reading_pages_stay_available(instance):
     _response, jar = start(instance.site)
-    for path in ("/lernen", "/mails", "/verlauf", "/status", "/auswertung"):
+    # 8.8.5: the customer's pages; the operator views are not part of the demo any more
+    for path in ("/", "/offen", "/lernen", "/mails", "/verlauf", "/briefing", "/verbrauch", "/einstellungen"):
         assert instance.site(request("GET", path, jar)).status == 200, path
 
 
@@ -413,9 +376,8 @@ def test_the_demo_target_refuses_every_real_write(call):
 
 def test_pages_use_demo_wording_and_carry_the_notice_with_a_restart_link(instance):
     _response, jar = start(instance.site)
-    page = instance.site(request("GET", "/status", jar)).body.decode("utf-8")
-    assert DEMO_NOTICE in page and 'href="/demo/neu-starten"' in page
-    assert "Demo – Einträge werden nur in der Demo angelegt" in page and "Testmodus" not in page
+    page = instance.site(request("GET", "/verlauf", jar)).body.decode("utf-8")
+    assert DEMO_NOTICE in page and 'href="/demo/neu-starten"' in page and "Testmodus" not in page
     overview = instance.site(request("GET", "/", jar)).body.decode("utf-8")
     assert ">In der Demo anlegen<" in overview and ">Simulieren<" not in overview
     stylesheet = instance.site(request("GET", "/static/app.css", jar))

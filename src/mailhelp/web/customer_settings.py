@@ -6,6 +6,7 @@ customer always gets this overview, whatever ``bereich`` or ``suche`` the addres
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from ..i18n import msg, tr
@@ -39,10 +40,16 @@ AREAS = (
 )
 
 
-def customer_settings_page() -> str:
-    cards = "".join(
-        f'<section class="card"><h2><a href="{href}">{e(tr(title))}</a></h2><p class="meta">{e(tr(text))}</p></section>'
-        for href, title, text in AREAS)
+def customer_settings_page(available: Callable[[str], bool] | None = None) -> str:
+    """8.8.5: an area the instance does not offer (the demo) is an info card without a link."""
+    def card(href: str, title: str, text: str) -> str:
+        if available is None or available(href):
+            return (f'<section class="card"><h2><a href="{href}">{e(tr(title))}</a></h2>'
+                    f'<p class="meta">{e(tr(text))}</p></section>')
+        return (f'<section class="card info-card"><h2>{e(tr(title))}</h2><p class="meta">{e(tr(text))}</p>'
+                f'<p class="hint">{e(tr("In deiner eigenen Mailhelp-Instanz verfügbar – in der Demo deaktiviert."))}'
+                "</p></section>")
+    cards = "".join(card(href, title, text) for href, title, text in AREAS)
     return (page_head(tr("Einstellungen"), tr("Verwaltung"),
                       tr("Deine Bereiche. Zugangsdaten, Modelle und den Betrieb verwaltet der Betreiber."))
             + cards)

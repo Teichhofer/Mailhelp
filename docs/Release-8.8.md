@@ -1,8 +1,8 @@
 # Mailhelp 8.8 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.8.4. Grundlage: [Planung 8.8](Planung-8.8.md).
+Stand: 27. November 2026. Version 8.8.5. Grundlage: [Planung 8.8](Planung-8.8.md).
 
-> **In Umsetzung.** AP1–AP4 sind mit 8.8.1–8.8.4 umgesetzt; AP5–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
+> **In Umsetzung.** AP1–AP4 sind mit 8.8.1–8.8.4 umgesetzt, AP5/AP6 bis auf Beispiel-Verbrauch und Themenansicht mit 8.8.5; AP7–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
 > 8.7.15, Produktion und Demo laufen mit 8.5.4.
 
 ## Umgesetzt in 8.8.1 – AP1 Gehostete OAuth-Routen im Kundenmodus
@@ -48,7 +48,19 @@ sonst antworten sie mit 503. Die Anmeldung schreibt nichts in Kalender oder Aufg
 | Demo | `/einstellungen/allgemein` und `/einstellungen/verbindungen/*` in `BLOCKED` |
 | Tests | `tests/web/test_own_checks.py`: Kundenablauf ohne Interna, Entwurfsknöpfe, Doppelklick und laufender Durchlauf, Gesamtlimit und hängende Prüfung, Rückweg, ungültiger Schlüssel, abgelaufene Sitzung, fehlende Laufzeit, alle Zustände, Demo-Sperre |
 
+## Umgesetzt in 8.8.5 – AP5/AP6 Demo mit Kundenoberfläche (Teil 1)
+
+| Punkt | Umsetzung |
+| --- | --- |
+| Rolle | `create_demo` schaltet die Demo-Anmeldung in den Kundenmodus (`DEMO_INSTANCE = "demo"`); Besucher sind `customer`, `CUSTOMER_VIEW` und die Routenprüfung des Kundenmodus gelten unverändert. Alte Besuchersitzungen ohne Rolle enden beim ersten Start |
+| Routen | `demo_may(method, path)` = `customer_may` minus `BLOCKED`/`BLOCKED_POST` (Konten/OAuth, `/einstellungen/*`, Benachrichtigungen, Geräte, Hilfe, Berichte, Themen, Absenderregeln, Entwürfe, Nachanalyse, Lernläufe). Einheitliche 403-Seite im Kundenrahmen, ohne Betreiberlinks |
+| Links | `filter_links` (neu, `customer_links` nutzt sie) mit `demo_may_link` auf jeder Demo-Antwort; Infokarten in der Einstellungsübersicht (`MailhelpSite.offered`); kein Hilfe-Chat in der Demo |
+| Tests | `tests/web/test_demo_customer_view.py`, erweiterte Sperrliste in `test_demo_site.py`; Browser-Demotests unverändert grün |
+| Betrieb | Rauchprüfungen der Demo nutzen ab 8.8.5 Kundenrouten (`docs/Betrieb.md`, Demo-Instanz) |
+
+Noch offen in AP5: deterministischer Beispiel-Verbrauch unter `/verbrauch` und eine schreibfreie Themenansicht (bisher 503, jetzt 403).
+
 ## Offen
 
-AP5–AP6 Demo nach Deny-by-Default, AP7 Paritäts- und
-Link-Crawler-Tests, AP8 Abschluss.
+Rest von AP5 (siehe oben); AP7 Paritäts- und Link-Crawler-Tests für den Kundenmodus (für die Demo mit 8.8.5
+vorhanden); AP8 Abschluss.

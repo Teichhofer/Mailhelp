@@ -77,6 +77,8 @@ Saving or activating never creates tasks or events; that always requires explici
 
 Starts are limited to 5 per client and 60 overall per hour. Behind your own reverse proxy, set `MAILHELP_DEMO_TRUST_PROXY=1` so the client address comes from `X-Forwarded-For` (last entry; the proxy must append its peer address, as nginx, Caddy and Traefik do). Do not set the variable without a proxy, or visitors could bypass the limit with an invented header. Visitors answer clarification questions only with prepared example answers and reset their own copy through “Restart demo”. The demo automatically removes expired copies.
 
+Since 8.8.5 the demo shows the customer interface (customer navigation, settings overview with info cards for areas only an own instance offers). Only customer routes without account, settings, messaging and AI functions are reachable; everything else answers 403 “Not available in the demo”, including `/status`, `/abgleich` and `/auswertung`. Smoke checks after a deployment therefore check `/`, `/offen`, `/verbrauch` and `/einstellungen` of a started demo. The first start of 8.8.5 ends existing visitor sessions once (they had no role yet); visitors start the demo again.
+
 ### Demo in a Docker container <!-- mailhelp-id:betrieb/demo-im-docker-container -->
 
 ```sh

@@ -3458,8 +3458,8 @@
  {
   "surface": "demo_site",
   "producer": "src/mailhelp/web/demo_site.py",
-  "line": 225,
-  "key": "Diese Funktion verbindet echte Konten oder ruft eine KI auf. In der Demo ist sie gesperrt.",
+  "line": 258,
+  "key": "Diese Funktion verbindet echte Konten, ändert Einstellungen oder ruft eine KI auf. In der Demo ist sie gesperrt.",
   "kind": "owned-interface-text",
   "test": "tests/unit/test_localization_inventory.py"
  },

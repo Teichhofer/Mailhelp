@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.8.5 – Demo mit Kundenoberfläche und Deny-by-Default (Planung 8.8 AP5/AP6)
+
+- Die Demo-Anmeldung läuft im Kundenmodus (Instanz `demo`): Besucher haben die Rolle `customer`, sehen die Kundennavigation und die Kundenübersicht der Einstellungen. Sitzungen einer früheren Demo ohne Rolle enden beim ersten Start einmalig.
+- Deny-by-Default: `demo_may` lässt nur Kundenrouten (`CUSTOMER_ROUTES`) zu und nimmt davon Konten- und OAuth-Abläufe, alle Einstellungsunterseiten, Benachrichtigungen, Geräte, Hilfe, Berichte, Themen, Absenderregeln, Entwürfe, Nachanalyse und Lernläufe aus. Alles andere, auch `/status`, `/abgleich`, `/auswertung` und `POST /einstellungen/speichern` (bisher 503), antwortet mit 403 „In der Demo nicht verfügbar“. Die Demo ist damit immer eine Teilmenge des Kundenmodus; neue Routen sind in der Demo gesperrt, bis sie ausdrücklich freigegeben werden.
+- Links: Jede Demo-Seite und die 403-Seite laufen durch `filter_links(…, demo_may_link)`; die Einstellungsübersicht zeigt nicht angebotene Bereiche als Infokarten („In deiner eigenen Mailhelp-Instanz verfügbar – in der Demo deaktiviert.“); der Hilfe-Chat erscheint in der Demo nicht mehr (seine Formulare führten auf das gesperrte `/hilfe`).
+- Tests: `tests/web/test_demo_customer_view.py` (Kundenrahmen, Infokarten DE/EN, Link- und Formular-Crawler DE/EN, Teilmenge, Sitzungen ohne Rolle; scheitern mit 8.8.4); `test_demo_site` prüft die neuen Sperren; Demo-Helfer nach `tests/fakes/demo_web.py`.
+- Offen in AP5: deterministischer Beispiel-Verbrauch unter `/verbrauch` und eine schreibfreie Themenansicht in der Demo.
+
 ## 8.8.4 – Eigene Verbindungen prüfen (Planung 8.8 AP4)
 
 - Neu: `POST /einstellungen/verbindungen/pruefen` (Kundenroute) mit Knopf **Eigene Verbindungen prüfen** auf `/einstellungen/postfaecher` und `/einstellungen/zielprofile`. Ein Durchlauf prüft lesend nur die eigenen Verbindungen (`imap`, `calendar`, `todoist`, `calendar:<n>`, `tasks:<n>`), nie KI, Telegram, Push, IServ oder Dateisystem. Jede Prüfung hat ihr Zeitlimit, der Durchlauf zusätzlich 30 Sekunden insgesamt; es läuft immer nur ein Durchlauf, und dieselbe Sitzung wartet danach 15 Sekunden (sonst 429 mit `Retry-After`).

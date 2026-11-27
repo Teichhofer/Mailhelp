@@ -21,22 +21,38 @@ from .app import WebApp
 from .auth import WebAuth
 from .http import Request, Response, rejected
 from .login_site import PAIR_COOKIE, PAIR_COOKIE_SECONDS, SESSION_COOKIE, cookie
-from .pages import e, error_page, layout, notice
+from .pages import CUSTOMER_VIEW, e, error_page, filter_links, layout, notice
+from .permissions import PUBLIC_LINKS, customer_may
 
 DEMO_NOTICE = msg("Demo – Beispieldaten. Es werden keine echten Termine oder Aufgaben angelegt.")
 SESSION_SECONDS = 2 * 60 * 60
+DEMO_INSTANCE = "demo"
 # Starts of new demos per client and in total within one hour; a running demo is never affected.
 STARTS_PER_CLIENT, STARTS_TOTAL, START_WINDOW = 5, 60, 3600.0
 PUBLIC = re.compile(
     r"/(anmelden|sprache|de/|en/|demo/starten|health|static/.*|sw\.js|"
     r"manifest(?:-en)?\.webmanifest|offline(?:-en)?\.html)"
 )
-# Setup, credentials, connections, devices, push and every model call are not part of the demo.
-BLOCKED = re.compile(r"/(einrichtung|diagnose|geraete|auth|push|api/push|api/local-pair|hilfe|api/hilfe|berichte|"
-                     r"einstellungen/(zugangsdaten|postfaecher|iserv|zielprofile|web-passwort|neustarten|beenden|"
-                     r"benachrichtigungen|allgemein|verbindungen)|lernen/(postfach|entscheidungen)|themen/lernen|mail/[^/]+/entwurf)(/.*)?")
-# Opening the learning overview is fine; starting a learning run calls a model.
-BLOCKED_POST = re.compile(r"/lernen")
+# 8.8.5 (Planung 8.8 AP5): deny by default. A visitor reaches only customer routes (CUSTOMER_ROUTES), and of
+# those not the ones that connect accounts, change settings, send messages or call a model.
+BLOCKED = re.compile(r"/(einrichtung|diagnose|auth|google|microsoft|notion|postfach|geraete|push|api/push|"
+                     r"api/local-pair|hilfe|api/hilfe|berichte|benachrichtigungen|einstellungen/.+|"
+                     r"lernen/(postfach|entscheidungen)|themen|"
+                     r"mail/[^/]+/(entwurf|nachanalyse|absender-[a-z]+|domain-ignorieren))(/.*)?")
+# Opening topics and learning is fine; saving topics, starting a learning run or re-running failed mails is not.
+BLOCKED_POST = re.compile(r"/(lernen|themen|mails/fehler)(/.*)?")
+
+
+def demo_may(method: str, path: str) -> bool:
+    """Whether a demo visitor may call ``method path`` (always a subset of the customer routes)."""
+    return (customer_may(method, path) and not BLOCKED.fullmatch(path)
+            and not (method == "POST" and BLOCKED_POST.fullmatch(path)))
+
+
+def demo_may_link(href: str) -> bool:
+    """Whether a local link works in a demo visitor's session."""
+    path = href.split("#", 1)[0].split("?", 1)[0]
+    return bool(PUBLIC_LINKS.fullmatch(path)) or path == "/demo/neu-starten" or demo_may("GET", path)
 
 VisitorApp = Callable[[Request], Response]
 # The test mode carries the demo; its fixed texts become demo texts on every visitor page (7.1, D5).
@@ -124,7 +140,7 @@ def demo_response(response: Response, prepared: Prepared | None = None) -> Respo
             notice(tr(DEMO_NOTICE), "info")
             + f'<p class="hint"><a href="/demo/neu-starten">{tr("Demo neu starten")}</a></p>'
         )
-        text = _MAIN.sub(lambda match: match.group(0) + banner, text, count=1)
+        text = filter_links(_MAIN.sub(lambda match: match.group(0) + banner, text, count=1), demo_may_link)
     response.body = text.encode("utf-8")
     return response
 
@@ -217,14 +233,8 @@ class DemoSite:
         if request.path == "/demo/neu-starten":
             assert session is not None  # visitor_app only answers for a live session
             return self.restart(request, session.id)
-        if BLOCKED.fullmatch(request.path) or request.method == "POST" and BLOCKED_POST.fullmatch(request.path):
-            return Response.html(
-                403,
-                error_page(
-                    tr("In der Demo nicht verfügbar"),
-                    tr("Diese Funktion verbindet echte Konten oder ruft eine KI auf. In der Demo ist sie gesperrt."),
-                ),
-            )
+        if not demo_may(request.method, request.path):
+            return self.refused()
         assert session is not None  # visitor_app only answers for a live session
         response = demo_response(app(request), self.answers(session.id))
         if response.content_type.startswith("text/html") and self.dataset_locale(session.id) != current():
@@ -238,6 +248,18 @@ class DemoSite:
                 lambda match: match.group(0) + hint, response.body.decode("utf-8"), count=1
             ).encode("utf-8")
         return response
+
+    @staticmethod
+    def refused() -> Response:
+        """The same 403 for every route outside the demo, framed like the visitor's customer pages."""
+        view = CUSTOMER_VIEW.set(True)
+        try:
+            page = error_page(tr("In der Demo nicht verfügbar"),
+                              tr("Diese Funktion verbindet echte Konten, ändert Einstellungen oder ruft eine KI auf. "
+                                 "In der Demo ist sie gesperrt."))
+        finally:
+            CUSTOMER_VIEW.reset(view)
+        return Response.html(403, filter_links(page, demo_may_link))
 
     def _nonce(self, request: Request, response: Response) -> str:
         nonce = request.cookies().get(PAIR_COOKIE)

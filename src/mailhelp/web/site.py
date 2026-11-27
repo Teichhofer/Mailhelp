@@ -104,6 +104,8 @@ class MailhelpSite:
         self.link_base = link_base or (lambda: f"http://127.0.0.1:{settings.port}")
         self.llm_calls_per_minute, self.clock = llm_calls_per_minute, clock
         self.settle_seconds: float | None = None
+        # 8.8.5: which of the customer's areas this instance offers; the demo leaves some out.
+        self.offered: Callable[[str], bool] | None = None
         # The web interface starts together with Mailhelp.
         self.started_at = clock()
         self.configured_timezone, self.logger = configured_timezone, logger
@@ -275,13 +277,15 @@ class MailhelpSite:
         """
         overview = self.overview()
         token = OPEN_DECISIONS.set(len(overview.open) + len(overview.relevance))
-        button = HELP_BUTTON.set(shows_help_button(request.path))
+        # 8.8.5: no help chat where the instance does not offer it (the demo)
+        helps = shows_help_button(request.path) and (self.offered is None or self.offered("/hilfe"))
+        button = HELP_BUTTON.set(helps)
         session = values[0]
         customer = CUSTOMER_VIEW.set(isinstance(session, WebSession) and not self.auth.is_operator(session))
         banners = PAGE_BANNERS.set(self.banners())
         window = HELP_WINDOW.set((lambda: self.archive.help.window.frame(
             session, request.path, request.query))
-            if shows_help_button(request.path) and isinstance(session, WebSession) else None)
+            if helps and isinstance(session, WebSession) else None)
         try:
             return handler(request, *values, **arguments)
         finally:

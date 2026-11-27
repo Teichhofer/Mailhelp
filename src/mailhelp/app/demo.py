@@ -37,7 +37,7 @@ from ..telegram import TelegramDialogController
 from ..telegram.receiver import TelegramInbox
 from ..web.app import WebApp
 from ..web.auth import WebAuth
-from ..web.demo_site import SESSION_SECONDS, DemoHooks, DemoSite, VisitorApp
+from ..web.demo_site import DEMO_INSTANCE, SESSION_SECONDS, DemoHooks, DemoSite, VisitorApp, demo_may_link
 from ..web.http import Request, Response
 from ..web.server import WebServer
 from ..web.site import MailhelpSite
@@ -190,6 +190,7 @@ class DemoRuntimes:
             )
             # HTTP responses release the lifecycle lock before the local worker takes the command.
             site.settle_seconds = 0
+            site.offered = demo_may_link  # 8.8.5: closed areas are info cards on the settings overview
             dialog.poll_once()
 
             def serve(request: Request) -> Response:
@@ -284,6 +285,9 @@ class DemoRuntimes:
 def create_demo(directory: Path, store: JsonStore, settings: WebSettings, secret: str,
                 logger: Any, *, trust_proxy: bool = False) -> tuple[WebServer, DemoRuntimes]:
     auth = WebAuth(store, secret, 1, lambda text: None)
+    # 8.8.5: visitors use the customer interface (customer navigation and routes, deny by default);
+    # sessions of an earlier demo start without a role are ended once.
+    auth.enter_customer_mode(DEMO_INSTANCE)
     auth.session_lifetime = timedelta(seconds=SESSION_SECONDS)
     auth.max_sessions = MAX_VISITORS
     visitors = DemoVisitors(store, directory / "data" / "visitors", packaged())

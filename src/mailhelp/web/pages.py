@@ -90,8 +90,13 @@ def customer_links(page: str) -> str:
     Pages keep their operator links; for customers the frame removes them in one place, so no page
     (including later ones) can point a customer at a route that answers "Nur für den Betreiber".
     """
+    return filter_links(page, customer_may_link)
+
+
+def filter_links(page: str, allowed: Callable[[str], bool]) -> str:
+    """Drop every local link whose target *allowed* refuses (8.8.5: also used by the demo)."""
     def keep(match: re.Match[str]) -> str:
-        return match.group(0) if customer_may_link(html.unescape(match.group(1))) else ""
+        return match.group(0) if allowed(html.unescape(match.group(1))) else ""
 
     page = _SEPARATORS.sub(" · ", _ANCHOR.sub(keep, page))
     return _EDGE_SEPARATORS.sub(lambda match: match.group(1) or match.group(2), page)
@@ -395,4 +400,5 @@ def error_page(title: str, text: str, *, signed_in: bool = True) -> str:
 
 
 __all__ = ["CUSTOMER_NAVIGATION", "CUSTOMER_VIEW", "HELP_BUTTON", "NAVIGATION", "OPEN_DECISIONS", "TAB_BAR",
-           "customer_links", "devices_page", "e", "error_page", "layout", "login_page", "notice", "page_head", "shown"]
+           "customer_links", "devices_page", "e", "error_page", "filter_links", "layout", "login_page", "notice",
+           "page_head", "shown"]

@@ -123,7 +123,8 @@ class SettingsSite:
 
     def settings(self, request: Request, session: WebSession) -> Response:
         if not self.site.auth.is_operator(session):
-            return Response.html(200, layout(msg("Einstellungen"), customer_settings_page(), active="/einstellungen"))
+            page = customer_settings_page(self.site.offered)
+            return Response.html(200, layout(msg("Einstellungen"), page, active="/einstellungen"))
         query = parse_qs(request.query)
         area = query.get("bereich", [""])[0]
         if area in LEGACY_AREAS:

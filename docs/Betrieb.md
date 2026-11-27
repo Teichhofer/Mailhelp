@@ -100,6 +100,13 @@ Variable nicht setzen, sonst kann ein Besucher die Grenze mit einem erfundenen K
 Besucher beantworten Rückfragen nur mit den vorbereiteten Beispielantworten und setzen über
 „Demo neu starten“ ihre eigene Kopie zurück. Abgelaufene Kopien entfernt die Demo selbst.
 
+Seit 8.8.5 zeigt die Demo die Kundenoberfläche (Kundennavigation, Einstellungsübersicht mit Infokarten für
+Bereiche, die nur eine eigene Instanz bietet). Erreichbar sind nur Kundenrouten ohne Konten-, Einstellungs-,
+Nachrichten- und KI-Funktionen; alles andere antwortet einheitlich mit 403 „In der Demo nicht verfügbar“, auch
+`/status`, `/abgleich` und `/auswertung`. Rauchprüfungen nach einer Auslieferung prüfen deshalb `/`, `/offen`,
+`/verbrauch` und `/einstellungen` einer gestarteten Demo. Beim ersten Start von 8.8.5 enden bestehende
+Besuchersitzungen einmalig (sie hatten noch keine Rolle); Besucher starten die Demo neu.
+
 ### Demo im Docker-Container
 
 ```sh

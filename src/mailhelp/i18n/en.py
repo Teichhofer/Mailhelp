@@ -1393,10 +1393,10 @@ EN = {
     'Demo – Einträge werden nur in der Demo angelegt': 'Demo – items are only created in the demo',
     'In der Demo vorbereitet: „{answer}“': 'Prepared for the demo: “{answer}”',
     (
-        'Diese Funktion verbindet echte Konten oder ruft eine '
+        'Diese Funktion verbindet echte Konten, ändert Einstellungen oder ruft eine '
         'KI auf. In der Demo ist sie gesperrt.'
     ): (
-            'This feature connects real accounts or calls an AI. It '
+            'This feature connects real accounts, changes settings or calls an AI. It '
             'is disabled in the demo.'
         ),
     (
@@ -8749,6 +8749,8 @@ EN = {
         'A check is already running. Try again in a few seconds.',
     'Diese Einstellung ist hier nicht änderbar.': 'This setting cannot be changed here.',
     'Gespeicherte Änderungen werden erst nach einem Neustart aktiv.': 'Saved changes take effect only after a restart.',
+    'In deiner eigenen Mailhelp-Instanz verfügbar – in der Demo deaktiviert.':
+        'Available in your own Mailhelp instance – disabled in the demo.',
     'Entwurf – noch nicht aktiviert': 'Draft – not yet activated',
     'Ereignisse': 'Events',
     'Erste Auswertungen nach den ersten Entscheidungen.': 'Initial statistics after the first decisions.',
