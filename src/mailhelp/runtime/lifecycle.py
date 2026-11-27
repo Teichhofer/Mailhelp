@@ -24,9 +24,12 @@ class StopRefused(ValueError):
 
 class Lifecycle:
     def __init__(self, stop: Callable[[], None], authorize: Callable[[str], bool],
-                 log: Callable[[str, str], None] = lambda state, process: None) -> None:
+                 log: Callable[[str, str], None] = lambda state, process: None,
+                 authorize_restart: Callable[[str], bool] | None = None) -> None:
         self.process = secrets.token_hex(16)
         self.stop, self.authorize, self.log = stop, authorize, log
+        # 8.8.3: a controlled restart may need fewer rights (any live session) than a stop.
+        self.authorize_restart = authorize_restart or authorize
         self.state = "running"
         self.restart_requested = False
         self._key: str | None = None
@@ -42,7 +45,7 @@ class Lifecycle:
             if process != self.process:
                 # A confirmation page from an earlier start, e.g. from before a restart.
                 raise StopRefused("stale_process", "Veraltete Stopanforderung")
-            if not self.authorize(actor):
+            if not self._allowed(actor, restart):
                 raise StopRefused("unauthorized", "Nicht autorisierte Stopanforderung")
             if len(key) != 32 or any(c not in "0123456789abcdef" for c in key):
                 raise StopRefused("invalid_key", "Ungültige Stopanforderung")
@@ -57,7 +60,7 @@ class Lifecycle:
                 if (self.state != ("restart_requested" if restart else "stop_requested")
                         or self._key != key):
                     return
-                if not self.authorize(actor):
+                if not self._allowed(actor, restart):
                     self._key = None
                     self._set("running")
                     return
@@ -65,6 +68,9 @@ class Lifecycle:
                 self._set("restarting" if restart else "stopping")
                 self.stop()
         return after_response
+
+    def _allowed(self, actor: str, restart: bool) -> bool:
+        return (self.authorize_restart if restart else self.authorize)(actor)
 
     def finished(self) -> None:
         """The run loop has ended (after a web stop or a signal)."""

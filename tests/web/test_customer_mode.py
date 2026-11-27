@@ -22,7 +22,7 @@ from tests.fakes.shared_web_auth import SECRET, Browser
 from tests.fakes.shared_web_v12 import configure
 
 OPERATOR_PAGES = ["/status", "/diagnose", "/auswertung", "/auswertung/aufrufe",
-                  "/einstellungen/zugangsdaten", "/einstellungen/neustarten", "/einstellungen/beenden", "/abgleich",
+                  "/einstellungen/zugangsdaten", "/einstellungen/beenden", "/abgleich",  # 8.8.3: restart is open
                   "/einrichtung", "/api/einstellungen/suche"]
 
 

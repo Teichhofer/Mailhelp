@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.8.3 – Hinweisbanner und Neustart für Kunden (Planung 8.8 AP3)
+
+- Neu: allgemeiner Banner-Baustein `web/banners.py` (`SystemBanner`, `PAGE_BANNERS`), den der Sitzungswächter je Anfrage befüllt; `layout()` zeigt die Banner am Anfang von `main`. Links laufen durch denselben Filter wie alle anderen, Kunden sehen also nie einen Betreiberlink.
+- Erster Anwendungsfall: Weicht `config.yaml` vom laufenden Stand ab, steht auf jeder Seite „Gespeicherte Änderungen werden erst nach einem Neustart aktiv.“ mit **Mailhelp neu starten**. Sofort wirksame Werte lösen keinen Hinweis aus, Abweichungen schon beim Start (z. B. durch Startparameter) ebenfalls nicht. Nach dem Neustart verschwindet der Hinweis. `ConfigurationService.restart_pending` merkt sich das Ergebnis, solange sich Datei und laufender Stand nicht ändern.
+- `/einstellungen/neustarten` ist eine Kundenroute; der Lifecycle erlaubt einen Neustart jeder gültigen Sitzung (`authorize_restart`) und prüft die Sitzung erneut, wenn er ausgeführt wird. `/einstellungen/beenden` bleibt dem Betreiber vorbehalten.
+- Tests: `tests/web/test_restart_banner.py`; `test_customer_mode` führt den Neustart nicht mehr unter den Betreiberseiten.
+
 ## 8.8.2 – Eigene Werte unter `/einstellungen/allgemein` (Planung 8.8 AP2)
 
 - Bugfix: Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung von Profil 1, Entwürfe und Briefings waren Kundenfelder. Ihr einziges Formular schickte aber an die Betreiberroute `/einstellungen/speichern` (403), Kunden konnten sie also nicht ändern. Neu: `GET/POST /einstellungen/allgemein` als erster Bereich der Kundenübersicht, mit demselben Prüf- und Bestätigungsablauf wie die Abschnittsformulare (CSRF, Dateistand, Idempotenzschlüssel, Sprach-Cookie).

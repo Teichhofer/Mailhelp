@@ -37,6 +37,7 @@ from .activity_site import ActivitySite
 from .app import WebApp
 from .archive_site import ArchiveSite
 from .auth import WebAuth, WebSession
+from .banners import PAGE_BANNERS, SystemBanner
 from .command_cards import anchor, visible
 from .connection_warnings import connection_warnings
 from .experience import ExperienceSite
@@ -215,6 +216,15 @@ class MailhelpSite:
             tr("Nur für den Betreiber"),
             tr("Diese Funktion verwaltet der Betreiber deiner Mailhelp-Instanz.")))
 
+    def banners(self) -> tuple[SystemBanner, ...]:
+        """8.8.3: notices for every page of this request; the frame drops links the session may not open."""
+        configuration = self.archive.configuration
+        if (self.lifecycle is None or self.lifecycle.state != "running" or configuration is None
+                or not configuration.restart_pending()):
+            return ()
+        return (SystemBanner("restart", "warn", tr("Gespeicherte Änderungen werden erst nach einem Neustart aktiv."),
+                             "/einstellungen/neustarten", tr("Mailhelp neu starten")),)
+
     def setup_return(self, session: WebSession, path: str) -> str:
         """8.8.1: after an own connection step operators continue in the setup, customers on their targets.
 
@@ -268,6 +278,7 @@ class MailhelpSite:
         button = HELP_BUTTON.set(shows_help_button(request.path))
         session = values[0]
         customer = CUSTOMER_VIEW.set(isinstance(session, WebSession) and not self.auth.is_operator(session))
+        banners = PAGE_BANNERS.set(self.banners())
         window = HELP_WINDOW.set((lambda: self.archive.help.window.frame(
             session, request.path, request.query))
             if shows_help_button(request.path) and isinstance(session, WebSession) else None)
@@ -277,6 +288,7 @@ class MailhelpSite:
             HELP_BUTTON.reset(button)
             HELP_WINDOW.reset(window)
             CUSTOMER_VIEW.reset(customer)
+            PAGE_BANNERS.reset(banners)
             OPEN_DECISIONS.reset(token)
 
     # --- pairing ------------------------------------------------------------------

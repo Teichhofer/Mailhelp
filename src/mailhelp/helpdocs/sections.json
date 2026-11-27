@@ -1445,7 +1445,7 @@
   ],
   "setting_ids": [],
   "source": "docs/Bedienung.md",
-  "text": "In einer Kundeninstanz führt **Einstellungen → Allgemein** (seit 8.8.2) zu den eigenen Werten:\nSprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung für das Standardprofil,\nAntwortentwürfe und Briefings. **Änderungen prüfen** zeigt alle geänderten Werte mit bisherigem und\nneuem Stand; erst **Änderungen ausdrücklich speichern** übernimmt sie gemeinsam. Werte, die erst nach\neinem Neustart wirken, sind als „nach Neustart“ markiert. Zugangsdaten, Modelle und Betriebswerte\nverwaltet der Betreiber; das Speichern legt keine Termine oder Aufgaben an.",
+  "text": "In einer Kundeninstanz führt **Einstellungen → Allgemein** (seit 8.8.2) zu den eigenen Werten:\nSprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung für das Standardprofil,\nAntwortentwürfe und Briefings. **Änderungen prüfen** zeigt alle geänderten Werte mit bisherigem und\nneuem Stand; erst **Änderungen ausdrücklich speichern** übernimmt sie gemeinsam. Werte, die erst nach\neinem Neustart wirken, sind als „nach Neustart“ markiert. Solange solche Änderungen warten, zeigt jede Seite\neinen Hinweis mit **Mailhelp neu starten** (seit 8.8.3); der Neustart wird ausdrücklich bestätigt. Zugangsdaten, Modelle und Betriebswerte\nverwaltet der Betreiber; das Speichern legt keine Termine oder Aufgaben an.",
   "title": "Eigene Werte in einer Kundeninstanz"
  },
  {

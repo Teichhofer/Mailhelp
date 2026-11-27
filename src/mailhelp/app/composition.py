@@ -358,7 +358,8 @@ def _attach_configuration(application: Application, components: Any, settings: S
     dialog.review.configuration = configuration
     lifecycle = Lifecycle(
         application.stop, components.authorize_operator,
-        lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
+        lambda state, process: logger.event("INFO", "lifecycle", state, process=process),
+        authorize_restart=components.authorize)  # 8.8.3: customers restart, only the operator stops
     components.site.lifecycle = application.lifecycle = components.site.archive.lifecycle = lifecycle
     dialog.stop_requested = lambda: lifecycle.state != "running" or stop_event.is_set()
     components.site.archive.configuration = configuration

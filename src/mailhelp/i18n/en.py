@@ -8726,6 +8726,7 @@ EN = {
     'Deine persönlichen Werte. Sie werden nach dem Prüfen ausdrücklich gespeichert.':
         'Your personal values. They are saved explicitly after the review.',
     'Diese Einstellung ist hier nicht änderbar.': 'This setting cannot be changed here.',
+    'Gespeicherte Änderungen werden erst nach einem Neustart aktiv.': 'Saved changes take effect only after a restart.',
     'Entwurf – noch nicht aktiviert': 'Draft – not yet activated',
     'Ereignisse': 'Events',
     'Erste Auswertungen nach den ersten Entscheidungen.': 'Initial statistics after the first decisions.',

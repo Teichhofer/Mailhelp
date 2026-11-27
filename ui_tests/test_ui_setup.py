@@ -91,7 +91,8 @@ def test_profile_requires_explicit_review_before_becoming_active(page, setup_ser
     assert setup_server.site.archive.configuration.active.notifications is None
     page.get_by_label("Gezeigte Änderungen ausdrücklich übernehmen").check()
     page.get_by_role("button", name="Einstellungen übernehmen", exact=True).click()
-    expect(page.get_by_role("status").filter(has_text="Gespeichert")).to_be_visible(timeout=10000)
+    # 8.8.3: the restart notice ("Gespeicherte Änderungen …") is a status as well; this is the result notice.
+    expect(page.locator(".notice-ok").filter(has_text="Gespeichert.")).to_be_visible(timeout=10000)
     assert setup_server.site.archive.configuration.active.notifications.quiet_hours.enabled
 
 

@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.8.3 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.8.3: Warten gespeicherte Änderungen auf einen Neustart, zeigt jede Seite einen Hinweis mit **Mailhelp neu starten**. Auch Kunden starten Mailhelp jetzt kontrolliert neu; Beenden bleibt dem Betreiber vorbehalten.
 
 Version 8.8.2: Kunden ändern ihre persönlichen Werte (Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung, Entwürfe, Briefings) selbst unter **Einstellungen → Allgemein**, geprüft und ausdrücklich bestätigt.
 

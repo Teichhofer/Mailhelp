@@ -64,6 +64,8 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("GET", r"/verbrauch|/einstellungen"),
         # 8.8.2: own personal values (language, time zone, durations, reminder, drafts, briefings)
         ("GET POST", r"/einstellungen/allgemein"),
+        # 8.8.3: the controlled restart that makes saved values active (stopping stays operator only)
+        ("GET POST", r"/einstellungen/neustarten"),
         # 8.7.4: learning shows points only; adoptions change only topics, sender rules and folders
         ("GET POST", r"/lernen|/lernen/postfach|/lernen/entscheidungen|/themen/lernen"),
         ("GET", r"/api/lernen|/api/lernen/uebersicht|/lernen/vorschlaege|/lernen/absender-hinweis"),

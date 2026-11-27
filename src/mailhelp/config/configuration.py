@@ -414,6 +414,30 @@ class ConfigurationService:
         self.activate_topics = activate_topics
         # Holds irrelevant-senders, which the orchestrator reads for every mail.
         self.senders = senders
+        # 8.8.3: sections that already differ from config.yaml at the start (e.g. start parameters) never
+        # count as a pending restart; the last comparison is reused while file and active state are the same.
+        self._started = frozenset(self._differing() or ())
+        self._pending: tuple[tuple[int, int, int], bool] | None = None
+
+    def _differing(self) -> set[str] | None:
+        try:
+            saved = Settings.model_validate(read_yaml(self.directory / "config.yaml")).model_dump(mode="json")
+        except (OSError, ValueError, yaml.YAMLError):
+            return None
+        active = self.active.model_dump(mode="json")
+        return {name for name in saved if saved[name] != active.get(name)}
+
+    def restart_pending(self) -> bool:
+        """Whether saved settings wait for a restart: config.yaml differs from what the process uses."""
+        try:
+            stat = (self.directory / "config.yaml").stat()
+        except OSError:
+            return False
+        key = (stat.st_mtime_ns, stat.st_size, id(self.active))
+        if self._pending is None or self._pending[0] != key:
+            differing = self._differing()
+            self._pending = (key, bool(differing is not None and differing - self._started))
+        return self._pending[1]
 
     def blocked_senders(self) -> IrrelevantSenders:
         """Current list for display; read without quarantining a damaged file."""

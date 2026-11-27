@@ -342,7 +342,8 @@ In a customer instance **Settings → General** (since 8.8.2) holds your own val
 personal details, event durations, the calendar reminder of the default profile, reply drafts and
 briefings. **Review changes** lists every changed value with its previous and new state; only
 **Explicitly save changes** takes them over together. Values that apply only after a restart are marked
-"after restart". The operator manages credentials, models and operating values; saving creates no events
+"after restart". While such changes wait, every page shows a notice with **Restart Mailhelp** (since 8.8.3);
+the restart is confirmed explicitly. The operator manages credentials, models and operating values; saving creates no events
 or tasks.
 
 ### Help with Settings <!-- mailhelp-id:bedienung/hilfe-beim-einstellen -->

@@ -17,6 +17,7 @@ from types import MappingProxyType
 from ..formatting import format_datetime_local
 from ..i18n import Locale, current, heading, msg, stored, tr
 from .auth import WebSession
+from .banners import PAGE_BANNERS, render_banners
 from .js_texts import messages
 from .permissions import customer_may_link
 
@@ -201,6 +202,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
         data += f' data-state-url="{e(state_url)}"'
     window = HELP_WINDOW.get()
     widget = window() if signed_in and window is not None else ""
+    banners = render_banners(PAGE_BANNERS.get()) if signed_in else ""
     page = f"""<!doctype html>
 <html lang="{current().value}">
 <head>
@@ -225,7 +227,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>
 {navigation}
 </header>
-<main id="inhalt"{' class="page-wide"' if wide else ""}>{before}
+<main id="inhalt"{' class="page-wide"' if wide else ""}>{banners}{before}
 {content}
 {after}</main>
 {tab_bar}

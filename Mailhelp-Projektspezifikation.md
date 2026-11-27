@@ -22,6 +22,14 @@ Abschnittsformular mit `GENERAL_FIELDS` (`web/customer_settings.py`): `language`
 Idempotenzschlüssel und Sprach-Cookie wie bei `/einstellungen/speichern`; andere Felder antworten mit 403, bevor ein
 Befehl entsteht. `POST /einstellungen/speichern` bleibt für Kunden gesperrt.
 
+**Hinweisbanner und Neustart (8.8.3, AP3).** `web/banners.py` stellt `SystemBanner` und `PAGE_BANNERS` bereit; der
+Sitzungswächter befüllt sie je Anfrage, `layout()` zeigt sie am Anfang von `main`, und der Linkfilter für Kunden gilt
+auch für sie. Solange `ConfigurationService.restart_pending()` gilt (gespeicherte `config.yaml` weicht vom laufenden
+Stand ab; Abweichungen schon beim Start ausgenommen) und Mailhelp läuft, zeigt jede angemeldete Seite „Gespeicherte
+Änderungen werden erst nach einem Neustart aktiv.“ mit Link auf `/einstellungen/neustarten`. Diese Route ist eine
+Kundenroute; `Lifecycle.authorize_restart` lässt jede gültige Sitzung neu starten und prüft sie bei der Ausführung
+erneut. Beenden (`/einstellungen/beenden`) bleibt dem Betreiber vorbehalten.
+
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
 Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).

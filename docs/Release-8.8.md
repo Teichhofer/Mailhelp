@@ -1,8 +1,8 @@
 # Mailhelp 8.8 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.8.2. Grundlage: [Planung 8.8](Planung-8.8.md).
+Stand: 27. November 2026. Version 8.8.3. Grundlage: [Planung 8.8](Planung-8.8.md).
 
-> **In Umsetzung.** AP1 und AP2 sind mit 8.8.1 und 8.8.2 umgesetzt; AP3–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
+> **In Umsetzung.** AP1–AP3 sind mit 8.8.1–8.8.3 umgesetzt; AP4–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
 > 8.7.15, Produktion und Demo laufen mit 8.5.4.
 
 ## Umgesetzt in 8.8.1 – AP1 Gehostete OAuth-Routen im Kundenmodus
@@ -28,10 +28,17 @@ sonst antworten sie mit 503. Die Anmeldung schreibt nichts in Kalender oder Aufg
 | Rechte | Andere Felder, Zurücksetzen fremder Felder und Einzelfeldformulare: 403 vor jedem Befehl; vor dem Schreiben prüft `ConfigurationService.permitted` erneut |
 | Tests | `tests/web/test_customer_general.py` (alle vier scheitern mit 8.8.1); Hilfeabschnitt `bedienung/eigene-werte-in-einer-kundeninstanz` in der Kundenhilfe |
 
-Der seitenübergreifende Neustart-Hinweis folgt mit AP3.
+## Umgesetzt in 8.8.3 – AP3 Banner-System und Neustart-Hinweis
+
+| Punkt | Umsetzung |
+| --- | --- |
+| Baustein | `web/banners.py`: `SystemBanner(id, severity, text, action_href, action_label)`, `PAGE_BANNERS`, `render_banners` (escaped, `role="alert"` bei Fehlern, sonst `status`). `MailhelpSite.banners()` befüllt je Anfrage; `layout()` setzt die Banner an den Anfang von `main`; der Linkfilter für Kunden gilt auch für Banner |
+| Neustart-Hinweis | Sichtbar, solange `ConfigurationService.restart_pending()` gilt, Mailhelp läuft und ein Lifecycle vorhanden ist: `config.yaml` weicht vom laufenden Stand ab. Abschnitte, die schon beim Start abwichen, zählen nicht. Zwischengespeichert nach Dateistand und laufendem Stand, eine Dateiabfrage je Anfrage; Lasttests unverändert bestanden |
+| Neustart für Kunden | `/einstellungen/neustarten` in `CUSTOMER_ROUTES`; `Lifecycle(…, authorize_restart=components.authorize)`; vor der Ausführung wird die Sitzung erneut geprüft. Beenden bleibt `authorize_operator` (403 und `StopRefused`) |
+| Tests | `tests/web/test_restart_banner.py`: Hinweis auf sechs Seiten mit Link, Neustart ohne und mit Bestätigung, kein Hinweis während des Neustarts und danach, sofort wirksame Werte, Beenden gesperrt, abgemeldete Sitzung vor der Ausführung, Start-Abweichungen, unlesbare und fehlende Datei, Escaping |
 
 ## Offen
 
-AP3 Banner-System und Neustart für Kunden, AP4 Verbindungsprüfung (die lesende
+AP4 Verbindungsprüfung (die lesende
 Prüfung aus 8.7.15 auf der Postfachseite deckt einen Teil ab), AP5–AP6 Demo nach Deny-by-Default, AP7 Paritäts- und
 Link-Crawler-Tests, AP8 Abschluss.

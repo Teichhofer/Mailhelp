@@ -491,7 +491,8 @@ In einer Kundeninstanz führt **Einstellungen → Allgemein** (seit 8.8.2) zu de
 Sprache, Zeitzone, persönliche Angaben, Termindauern, Kalendererinnerung für das Standardprofil,
 Antwortentwürfe und Briefings. **Änderungen prüfen** zeigt alle geänderten Werte mit bisherigem und
 neuem Stand; erst **Änderungen ausdrücklich speichern** übernimmt sie gemeinsam. Werte, die erst nach
-einem Neustart wirken, sind als „nach Neustart“ markiert. Zugangsdaten, Modelle und Betriebswerte
+einem Neustart wirken, sind als „nach Neustart“ markiert. Solange solche Änderungen warten, zeigt jede Seite
+einen Hinweis mit **Mailhelp neu starten** (seit 8.8.3); der Neustart wird ausdrücklich bestätigt. Zugangsdaten, Modelle und Betriebswerte
 verwaltet der Betreiber; das Speichern legt keine Termine oder Aufgaben an.
 
 ### Hilfe beim Einstellen
