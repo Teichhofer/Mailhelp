@@ -30,6 +30,13 @@ Stand ab; Abweichungen schon beim Start ausgenommen) und Mailhelp läuft, zeigt 
 Kundenroute; `Lifecycle.authorize_restart` lässt jede gültige Sitzung neu starten und prüft sie bei der Ausführung
 erneut. Beenden (`/einstellungen/beenden`) bleibt dem Betreiber vorbehalten.
 
+**Eigene Verbindungen prüfen (8.8.4, AP4).** `POST /einstellungen/verbindungen/pruefen` (Knopf auf Postfach- und
+Zielprofilseite) prüft lesend nur `imap`, `calendar`, `todoist`, `calendar:<n>` und `tasks:<n>`. Ein Durchlauf zur
+Zeit, 15 s Wartezeit je Sitzung (429), 30 s Gesamtlimit, jede Prüfung mit eigenem Zeitlimit. Kunden sehen je
+Verbindung nur einen Zustand (erreichbar, Anmeldung erneuern, vorübergehend nicht erreichbar, Einstellung prüfen, nicht
+eingerichtet) und den nächsten Schritt, auch bei den Prüfknöpfen eines Postfachentwurfs; die technischen Hinweise
+bleiben auf `/diagnose`.
+
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
 Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).

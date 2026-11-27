@@ -1,6 +1,6 @@
 {
- "app_version": "8.8.3",
- "revision": "4c1fbef9aebad76a769908eefa057e447f183b25acec21f26ae92a15318435c4",
+ "app_version": "8.8.4",
+ "revision": "eff319ac69faad75adc652fda3e13139c425b36afc2dd956b1927e31c37b64c0",
  "schema_version": 1,
  "sections": 139,
  "sources": [
@@ -14,7 +14,7 @@
   },
   {
    "path": "docs/Konten-verwalten.md",
-   "sha256": "6799dc1e6f0733c12ebe7f2b7e28845c8bae3142e15ba9baaa682648b5ef79d8"
+   "sha256": "bbbb1ada97fd022406f63b4bb883045ab5a9e032aaecc220b86e72b9aac3bba7"
   },
   {
    "path": "docs/Ziele-einrichten.md",

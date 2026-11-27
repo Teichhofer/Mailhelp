@@ -34,7 +34,7 @@ PUBLIC = re.compile(
 # Setup, credentials, connections, devices, push and every model call are not part of the demo.
 BLOCKED = re.compile(r"/(einrichtung|diagnose|geraete|auth|push|api/push|api/local-pair|hilfe|api/hilfe|berichte|"
                      r"einstellungen/(zugangsdaten|postfaecher|iserv|zielprofile|web-passwort|neustarten|beenden|"
-                     r"benachrichtigungen)|lernen/(postfach|entscheidungen)|themen/lernen|mail/[^/]+/entwurf)(/.*)?")
+                     r"benachrichtigungen|allgemein|verbindungen)|lernen/(postfach|entscheidungen)|themen/lernen|mail/[^/]+/entwurf)(/.*)?")
 # Opening the learning overview is fine; starting a learning run calls a model.
 BLOCKED_POST = re.compile(r"/lernen")
 

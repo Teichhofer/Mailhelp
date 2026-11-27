@@ -11,7 +11,7 @@ from ..config.env_file import file_hash as connection_hash
 from ..domain.proposal import Proposal
 from ..i18n import msg, tr
 from ..mailbox.mailbox_settings import effective_settings
-from . import mailbox_draft, mailbox_profiles
+from . import mailbox_draft, mailbox_profiles, own_checks
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
@@ -155,6 +155,7 @@ def control(name: str, value: object, prefix: str = "mailbox") -> str:
 class MailboxSite:
     def __init__(self, site: MailhelpSite) -> None:
         self.site = site
+        self.own_checks = own_checks.OwnChecks()
         for method, path, handler in (
             ("GET", "/einstellungen/postfaecher", self.index),
             ("GET", r"/einstellungen/postfaecher/(?P<number>[1-9][0-9]?)", self.mailbox),
@@ -165,6 +166,8 @@ class MailboxSite:
             # 8.7.15: approval and the read-only checks it needs, also for customer sessions
             ("POST", "/einstellungen/postfaecher/uebernehmen", self.apply),
             ("POST", "/einstellungen/postfaecher/pruefen", self.check),
+            # 8.8.4: one read-only pass over all own connections
+            ("POST", own_checks.PATH, self.check_own),
             ("GET", "/einstellungen/zielprofile", self.profiles),
             ("POST", "/einstellungen/zielprofile/speichern", self.save_profile),
             ("POST", "/einstellungen/zielprofile/umstellen", self.retarget),
@@ -241,7 +244,8 @@ class MailboxSite:
             action="add",
             version=self.runtime.setup.state().version,
         )
-        return self.page(msg("Postfächer"), body + "</details>" + self.preview(session))
+        return self.page(msg("Postfächer"), body + "</details>" + self.own_section(session, own_checks.BACK[0])
+                         + self.preview(session))
 
     def mailbox(self, request: Request, session: WebSession, number: str) -> Response:
         if self.runtime is None:
@@ -394,6 +398,12 @@ class MailboxSite:
 
     def check(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return mailbox_draft.check(self, request, session, form)
+
+    def check_own(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return self.own_checks.run(self.runtime, session, form)
+
+    def own_section(self, session: WebSession, back: str) -> str:
+        return own_checks.section(self.runtime, self.site.auth.csrf_token(session.id), back)
 
     def profiles(self, request: Request, session: WebSession) -> Response:
         return mailbox_profiles.profiles(self, request, session)

@@ -114,7 +114,8 @@ def profiles(site: MailboxSite, request: Request, session: WebSession) -> Respon
         action="add",
         version=site.runtime.setup.state().version,
     )
-    return site.page(msg("Zielprofile"), body + "</section>" + site.preview(session))
+    return site.page(msg("Zielprofile"), body + "</section>" + site.own_section(session, "/einstellungen/zielprofile")
+                     + site.preview(session))
 
 
 def save_profile(site: MailboxSite, request: Request, session: WebSession, form: dict[str, str]) -> Response:

@@ -8725,6 +8725,28 @@ EN = {
         'Language, time zone, personal details, event durations, calendar reminder, drafts and briefings.',
     'Deine persönlichen Werte. Sie werden nach dem Prüfen ausdrücklich gespeichert.':
         'Your personal values. They are saved explicitly after the review.',
+    '<h1>Bitte kurz warten</h1>': '<h1>Please wait a moment</h1>',
+    'Bitte kurz warten': 'Please wait a moment',
+    'Kalender (Zielprofil {p0})': 'Calendar (target profile {p0})',
+    'Aufgaben (Zielprofil {p0})': 'Tasks (target profile {p0})',
+    'erreichbar': 'reachable',
+    'nicht eingerichtet': 'not set up',
+    'eingeschränkt erreichbar': 'partly reachable',
+    'Später erneut prüfen.': 'Check again later.',
+    'Anmeldung erneuern': 'Renew sign-in',
+    'Die Verbindung erneut verbinden oder das Passwort neu eintragen.': 'Connect again or enter the password again.',
+    'vorübergehend nicht erreichbar': 'temporarily unreachable',
+    'Einstellung prüfen': 'Check the setting',
+    'Adresse, Ordner oder Ziel der Verbindung prüfen.': 'Check the address, folders or target of the connection.',
+    ('<section class="card"><h2>Eigene Verbindungen</h2><p>Prüft lesend, ob Postfächer, Kalender und '
+     'Aufgabenlisten erreichbar sind. Es wird nichts angelegt oder gesendet.</p>'):
+        ('<section class="card"><h2>Own connections</h2><p>Checks read-only whether mailboxes, calendars and '
+         'task lists are reachable. Nothing is created or sent.</p>'),
+    'Eigene Verbindungen prüfen': 'Check own connections',
+    'Die Verbindungen wurden gerade geprüft. In einigen Sekunden erneut versuchen.':
+        'The connections were just checked. Try again in a few seconds.',
+    'Eine Prüfung läuft bereits. In einigen Sekunden erneut versuchen.':
+        'A check is already running. Try again in a few seconds.',
     'Diese Einstellung ist hier nicht änderbar.': 'This setting cannot be changed here.',
     'Gespeicherte Änderungen werden erst nach einem Neustart aktiv.': 'Saved changes take effect only after a restart.',
     'Entwurf – noch nicht aktiviert': 'Draft – not yet activated',

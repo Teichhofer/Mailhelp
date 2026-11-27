@@ -88,6 +88,11 @@ affected Google or Microsoft mailbox. Restart the flow after a configuration or
 credential change. For iCloud, start with the suggested name before `@`; if sign-in
 fails, try the full iCloud address as described in Apple's instructions.
 
+**Check own connections** (since 8.8.4, on **Mailboxes** and **Target profiles**) checks all own
+mailboxes, calendars and task lists read-only. Each connection then shows "reachable", "Renew sign-in",
+"temporarily unreachable", "Check the setting" or "not set up". Nothing is created or sent. A new check is
+possible a few seconds after the last one.
+
 | Situation | Next Stage |
 | --- | --- |
 | “There are already … Mailboxes set up.” | Remove or change an existing Mailbox |

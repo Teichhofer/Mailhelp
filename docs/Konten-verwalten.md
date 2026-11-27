@@ -106,6 +106,11 @@ Nach einer zwischenzeitlichen Änderung an Konfiguration oder Zugangsdaten den
 Vorgang neu beginnen. Bei iCloud zunächst den vorgeschlagenen Namen vor `@` nutzen;
 falls die Anmeldung scheitert, die vollständige iCloud-Adresse gemäß Anbieteranleitung testen.
 
+**Eigene Verbindungen prüfen** (seit 8.8.4, auf **Postfächer** und **Zielprofile**) prüft lesend alle
+eigenen Postfächer, Kalender und Aufgabenlisten. Je Verbindung steht danach „erreichbar“, „Anmeldung
+erneuern“, „vorübergehend nicht erreichbar“, „Einstellung prüfen“ oder „nicht eingerichtet“. Es wird nichts
+angelegt oder gesendet. Nach einer Prüfung ist eine neue erst nach einigen Sekunden möglich.
+
 | Lage | Nächster Schritt |
 | --- | --- |
 | „Es sind bereits … Postfächer eingerichtet.“ | Ein vorhandenes Postfach entfernen oder ändern |

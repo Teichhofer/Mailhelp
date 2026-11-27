@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import TYPE_CHECKING, Any
 
 from ..config import Topic, read_yaml
@@ -13,12 +12,13 @@ from ..i18n import msg, tr
 from ..llm.decisions import relevance_fingerprint
 from ..mailbox.mailbox_settings import mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
-from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
+from ..runtime.diagnostics import DiagnosticResult
 from ..state_names import mail_state_names
 from . import mailbox_site as mailbox_site_module
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response
+from .own_checks import OWN_CHECKS, label, status
 from .pages import e
 
 _PREVIEW_TEXT_1 = msg(
@@ -105,7 +105,6 @@ def preview(site: MailboxSite, session: WebSession) -> str:
 
 # 8.7.15: the read-only checks of the instance's own connections that a mailbox draft may need. Paid
 # (LLM), message-sending and operator-only checks (IServ, file system, channels) stay on /diagnose.
-OWN_CHECKS = re.compile(r"imap|calendar|todoist|(?:calendar|tasks):[1-9][0-9]?")
 
 
 def checks(site: MailboxSite, csrf: str) -> str:
@@ -117,9 +116,10 @@ def checks(site: MailboxSite, csrf: str) -> str:
     diagnostics = site.runtime.diagnostics.state()
     text = tr("<p>Vor dem Übernehmen diese Verbindungen lesend prüfen:</p>")
     for name in missing:
-        result = diagnostics.results.get(name, DiagnosticResult())
-        text += f'<p role="status">{e(name)}: {e(STATES[result.status])} · {e(HELP[result.code])}</p>'
-        text += post_form("/einstellungen/postfaecher/pruefen", csrf, "", tr("{p0} prüfen", p0=name),
+        # 8.8.4: the customer's words only; the technical hints (credential names, .env) stay on /diagnose.
+        shown, step = status(diagnostics.results.get(name, DiagnosticResult()))
+        text += f'<p role="status">{e(label(name))}: {e(shown)}' + (f' · {e(step)}' if step else "") + "</p>"
+        text += post_form("/einstellungen/postfaecher/pruefen", csrf, "", tr("{p0} prüfen", p0=label(name)),
                           name=name, version=diagnostics.version)
     return text
 

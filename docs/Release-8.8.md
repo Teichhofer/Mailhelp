@@ -1,8 +1,8 @@
 # Mailhelp 8.8 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.8.3. Grundlage: [Planung 8.8](Planung-8.8.md).
+Stand: 27. November 2026. Version 8.8.4. Grundlage: [Planung 8.8](Planung-8.8.md).
 
-> **In Umsetzung.** AP1–AP3 sind mit 8.8.1–8.8.3 umgesetzt; AP4–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
+> **In Umsetzung.** AP1–AP4 sind mit 8.8.1–8.8.4 umgesetzt; AP5–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
 > 8.7.15, Produktion und Demo laufen mit 8.5.4.
 
 ## Umgesetzt in 8.8.1 – AP1 Gehostete OAuth-Routen im Kundenmodus
@@ -37,8 +37,18 @@ sonst antworten sie mit 503. Die Anmeldung schreibt nichts in Kalender oder Aufg
 | Neustart für Kunden | `/einstellungen/neustarten` in `CUSTOMER_ROUTES`; `Lifecycle(…, authorize_restart=components.authorize)`; vor der Ausführung wird die Sitzung erneut geprüft. Beenden bleibt `authorize_operator` (403 und `StopRefused`) |
 | Tests | `tests/web/test_restart_banner.py`: Hinweis auf sechs Seiten mit Link, Neustart ohne und mit Bestätigung, kein Hinweis während des Neustarts und danach, sofort wirksame Werte, Beenden gesperrt, abgemeldete Sitzung vor der Ausführung, Start-Abweichungen, unlesbare und fehlende Datei, Escaping |
 
+## Umgesetzt in 8.8.4 – AP4 Lesende Kunden-Verbindungsprüfung
+
+| Punkt | Umsetzung |
+| --- | --- |
+| Aktion | `POST /einstellungen/verbindungen/pruefen` (`web/own_checks.py`), Knopf auf Postfach- und Zielprofilseite, Rückweg nur auf diese beiden Seiten |
+| Umfang | Nur `imap`, `calendar`, `todoist`, `calendar:<n>`, `tasks:<n>` über `DiagnosticsService.run` (lesend, `check_access`); kein LLM-Test, keine Nachrichten, kein Dateisystem |
+| Drosselung | Ein Durchlauf zur Zeit, 15 s Wartezeit je Sitzung (429 mit `Retry-After`), 30 s Gesamtlimit; jede Prüfung behält ihr eigenes Zeitlimit (Zeitüberschreitung: „vorübergehend nicht erreichbar“) |
+| Anzeige | Nur Zustand und nächster Schritt; keine Anbieter-, Token-, Pfad- oder Geheimnisnamen. Gilt jetzt auch für die Prüfknöpfe eines Postfachentwurfs (Bugfix: sie zeigten den `.env`-Hinweis der Diagnose) |
+| Demo | `/einstellungen/allgemein` und `/einstellungen/verbindungen/*` in `BLOCKED` |
+| Tests | `tests/web/test_own_checks.py`: Kundenablauf ohne Interna, Entwurfsknöpfe, Doppelklick und laufender Durchlauf, Gesamtlimit und hängende Prüfung, Rückweg, ungültiger Schlüssel, abgelaufene Sitzung, fehlende Laufzeit, alle Zustände, Demo-Sperre |
+
 ## Offen
 
-AP4 Verbindungsprüfung (die lesende
-Prüfung aus 8.7.15 auf der Postfachseite deckt einen Teil ab), AP5–AP6 Demo nach Deny-by-Default, AP7 Paritäts- und
+AP5–AP6 Demo nach Deny-by-Default, AP7 Paritäts- und
 Link-Crawler-Tests, AP8 Abschluss.

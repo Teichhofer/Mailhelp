@@ -44,6 +44,8 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         # Own mailboxes and targets, with their connection flows (no generic credential editor)
         ("GET POST", r"/einstellungen/postfaecher(?:/.*)?"),
         ("GET POST", r"/einstellungen/zielprofile(?:/.*)?"),
+        # 8.8.4: read-only pass over the own mailboxes and targets (cooldown, time limits, no model call)
+        ("POST", r"/einstellungen/verbindungen/pruefen"),
         ("GET POST", r"/auth/(?:google|microsoft|notion)(?:/.*)?"),
         ("GET POST", r"/einrichtung/(?:google|microsoft|notion)(?:/.*)?"),
         # 8.8.1: hosted sign-in through Inboxstride for own targets and mailboxes (each step needs session + CSRF)

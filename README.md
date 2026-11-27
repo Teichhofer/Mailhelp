@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.8.4 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.8.4: **Eigene Verbindungen prüfen** auf den Seiten Postfächer und Zielprofile prüft alle eigenen Postfächer, Kalender und Aufgabenlisten lesend und zeigt je Verbindung einen verständlichen Zustand, ohne technische Interna.
 
 Version 8.8.3: Warten gespeicherte Änderungen auf einen Neustart, zeigt jede Seite einen Hinweis mit **Mailhelp neu starten**. Auch Kunden starten Mailhelp jetzt kontrolliert neu; Beenden bleibt dem Betreiber vorbehalten.
 

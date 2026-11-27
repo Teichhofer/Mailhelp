@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.8.4 – Eigene Verbindungen prüfen (Planung 8.8 AP4)
+
+- Neu: `POST /einstellungen/verbindungen/pruefen` (Kundenroute) mit Knopf **Eigene Verbindungen prüfen** auf `/einstellungen/postfaecher` und `/einstellungen/zielprofile`. Ein Durchlauf prüft lesend nur die eigenen Verbindungen (`imap`, `calendar`, `todoist`, `calendar:<n>`, `tasks:<n>`), nie KI, Telegram, Push, IServ oder Dateisystem. Jede Prüfung hat ihr Zeitlimit, der Durchlauf zusätzlich 30 Sekunden insgesamt; es läuft immer nur ein Durchlauf, und dieselbe Sitzung wartet danach 15 Sekunden (sonst 429 mit `Retry-After`).
+- Ergebnisse erscheinen nur als Zustand und nächster Schritt: erreichbar, Anmeldung erneuern, vorübergehend nicht erreichbar, Einstellung prüfen, nicht eingerichtet (`web/own_checks.py`).
+- Bugfix: Die Prüfknöpfe eines Postfachentwurfs (8.7.15) zeigten Kunden die Diagnose-Hinweise, etwa „Zugangsdaten oder App-Passwort in .env … prüfen“. Sie zeigen jetzt dieselben Kundenzustände; die technischen Hinweise bleiben auf `/diagnose`.
+- Demo: `/einstellungen/allgemein` und `/einstellungen/verbindungen/*` stehen in der Sperrliste (bis zur Umstellung auf Deny-by-Default in AP5).
+- Tests: `tests/web/test_own_checks.py` (Regressionstest scheitert mit 8.8.3).
+
 ## 8.8.3 – Hinweisbanner und Neustart für Kunden (Planung 8.8 AP3)
 
 - Neu: allgemeiner Banner-Baustein `web/banners.py` (`SystemBanner`, `PAGE_BANNERS`), den der Sitzungswächter je Anfrage befüllt; `layout()` zeigt die Banner am Anfang von `main`. Links laufen durch denselben Filter wie alle anderen, Kunden sehen also nie einen Betreiberlink.
