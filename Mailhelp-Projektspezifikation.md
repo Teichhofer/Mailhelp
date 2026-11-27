@@ -3,6 +3,18 @@
 Geprüft für Mailhelp 8.1 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
+
+Nach [Planung 8.8](docs/Planung-8.8.md) AP1. Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele
+und Postfächer aufrufen (`/google/verbinden`, `/google/kalender`, `/google/kalender/wechseln`, `/google/trennen`,
+`/microsoft|notion/verbinden|ziele|trennen`, `/postfach/oauth`, `/postfach/oauth/ordner`, `/postfach/oauth/trennen`,
+`POST /einrichtung/postfach/abschluss`, `GET /auth/status/<64 Hex>`). Jeder Schritt verlangt weiterhin Sitzung und
+CSRF, und die Übernahme entsteht nur als Entwurf. Nach Übernehmen, Wechseln oder Trennen führt der Ablauf Betreiber
+zur Einrichtung, Kunden auf `/einstellungen/zielprofile` (`MailhelpSite.setup_return`); dort übernehmen sie den
+Entwurf bestätigt. `/einrichtung`, `/einrichtung/start` und `/einrichtung/speichern` bleiben gesperrt.
+Postfachaktivierungen (`ConnectionActivation`) halten die Feldgrenzen für Kunden ein und prüfen sie vor dem Schreiben
+von `.env`. Für Kunden zusätzlich änderbar sind die Postfachfelder `auth_method` und `oauth_connection`.
+
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
 Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).

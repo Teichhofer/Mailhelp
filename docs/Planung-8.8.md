@@ -1,7 +1,7 @@
 # Mailhelp 8.8 – Kundenmodus-OAuth vervollständigen und Demo an Kundenmodus angleichen
 
-**Stand:** 26. November 2026. **Status:** Geplant. Noch keine Änderung am
-Anwendungscode oder an laufenden Serverinstanzen.
+**Stand:** 27. November 2026. **Status:** In Umsetzung; AP1 mit 8.8.1 umgesetzt
+([Release 8.8](Release-8.8.md)). Noch keine Änderung an laufenden Serverinstanzen.
 
 **Zielversion:** 8.8, erste Auslieferung 8.8.1; weitere Commits mit
 fortlaufenden Patchversionen gemäß [Entwicklungsregeln](../AGENTS.md).

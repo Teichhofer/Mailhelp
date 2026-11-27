@@ -215,6 +215,13 @@ class MailhelpSite:
             tr("Nur für den Betreiber"),
             tr("Diese Funktion verwaltet der Betreiber deiner Mailhelp-Instanz.")))
 
+    def setup_return(self, session: WebSession, path: str) -> str:
+        """8.8.1: after an own connection step operators continue in the setup, customers on their targets.
+
+        The setup is operator only; a customer approves the saved draft on the target profiles page.
+        """
+        return path if self.auth.is_operator(session) else "/einstellungen/zielprofile"
+
     def signed_in(self, handler: Handler) -> Handler:
         """Require a live session; a POST also requires its CSRF token."""
 

@@ -46,6 +46,12 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("GET POST", r"/einstellungen/zielprofile(?:/.*)?"),
         ("GET POST", r"/auth/(?:google|microsoft|notion)(?:/.*)?"),
         ("GET POST", r"/einrichtung/(?:google|microsoft|notion)(?:/.*)?"),
+        # 8.8.1: hosted sign-in through Inboxstride for own targets and mailboxes (each step needs session + CSRF)
+        ("GET POST", r"/google/(?:verbinden|kalender(?:/wechseln)?)|/(?:microsoft|notion)/(?:verbinden|ziele)"),
+        ("POST", r"/(?:google|microsoft|notion)/trennen"),
+        ("GET POST", r"/postfach/oauth(?:/ordner)?"),
+        ("POST", r"/postfach/oauth/trennen|/einrichtung/postfach/abschluss"),
+        ("GET", r"/auth/status/[a-f0-9]{64}"),
         # 8.7.7 (operator decision 26.11.2026): Notion data source and property mapping of own profiles
         ("GET POST", r"/notion/(?:datenquelle|zuordnung)"),
         # Own devices, password and sign-out

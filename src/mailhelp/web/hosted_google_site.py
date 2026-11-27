@@ -159,9 +159,9 @@ class HostedGoogleSite:
                                    "starten; die bisherige Verbindung bleibt unverändert."))
         except (HostedUnavailable, httpx.HTTPError):
             return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))
 
-    def disconnect(self, _request: Request, _session: WebSession, form: dict[str, str]) -> Response:
+    def disconnect(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Stop the token issue for this profile's access; entries already written stay.
 
         The reference stays in the profile so it remains valid without own Google secrets; the
@@ -182,7 +182,7 @@ class HostedGoogleSite:
                                    "starten; die bisherige Verbindung bleibt unverändert."))
         except HostedUnavailable:
             return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))
 
     def start(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         client = self.client()
@@ -332,7 +332,7 @@ class HostedGoogleSite:
             entries = self.store.load(PENDING, {})
             entries.pop(session_reference(session), None)
             self.store.save(PENDING, entries)
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))
 
 
 __all__ = ["LIFETIME", "PENDING", "HostedGoogleSite", "HostedProfiles", "session_reference"]

@@ -261,9 +261,9 @@ class HostedTargetsSite:
             return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
         if provider == "notion" and self.navigation:
             return Response.redirect(f'/notion/zuordnung?profile={pending["profile"]}')
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))
 
-    def disconnect(self, provider: str, _request: Request, _session: WebSession, form: dict[str, str]) -> Response:
+    def disconnect(self, provider: str, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
         purpose, field_name, _host = PROVIDERS[provider]
         try:
             client = self._hub(purpose)
@@ -278,7 +278,7 @@ class HostedTargetsSite:
                                    "starten; die bisherige Verbindung bleibt unverändert."))
         except HostedUnavailable:
             return self._failed(tr("Der Inboxstride-Anmeldedienst ist gerade nicht erreichbar."), 503)
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))
 
 
 __all__ = ["PROVIDERS", "HostedTargetContext", "HostedTargetsSite"]

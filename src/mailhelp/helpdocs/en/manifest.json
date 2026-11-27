@@ -1,7 +1,7 @@
 {
- "app_version": "8.7.16",
+ "app_version": "8.8.1",
  "locale": "en",
- "revision": "8d20863239ec70882f231cd74848fd4a9e5cb79963cfdb6fbdd75c2ce1b2f3a8",
+ "revision": "a563ec9184e43a53db55a055276c0f55251d0382272464c120afe0ec9c56c93b",
  "schema_version": 2,
  "sections": 138,
  "sources": [
@@ -19,7 +19,7 @@
   },
   {
    "path": "docs/en/Ziele-einrichten.md",
-   "sha256": "af2b9564aaa7613cd816ebf5bf3781d430b7d747292d90c007165a59d5df186e"
+   "sha256": "d0aab861cda89f16dc4fcad4077df13c548aa34b5cd45faed38de13715679372"
   },
   {
    "path": "docs/en/Bedienung.md",

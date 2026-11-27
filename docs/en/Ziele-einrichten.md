@@ -4,7 +4,8 @@ Hosted Inboxstride instances use **Connect with Google**, then select a calendar
 with write access and explicitly **Adopt connection**. The operator manages client
 credentials centrally. Changing only the calendar uses the existing grant;
 disconnecting stops token issuance without deleting events. Mailbox access requires
-its own grant. The direct self-hosted calendar setup below remains supported.
+its own grant. In a customer instance (since 8.8.1) these steps lead customers back to
+**Target profiles**; confirm the draft there with **Apply draft**. The direct self-hosted calendar setup below remains supported.
 
 Verified for Mailhelp 8.1; provider documentation compared on 11 and 16 November 2026. A **target profile** determines into which calendar and which task list
 confirmed proposals of a mailbox are entered. Profile 1 is the `targets` section

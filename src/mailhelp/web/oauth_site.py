@@ -277,4 +277,4 @@ class OAuthSite:
                                "google_tasks_list" if tasks else "google_calendar")
         except Exception:
             return self.failed()
-        return Response.redirect(self.setup_path)
+        return Response.redirect(self.site.setup_return(session, self.setup_path))

@@ -9,34 +9,9 @@ from mailhelp.external.hosted_oauth import HostedUnavailable
 from mailhelp.web.hosted_google_site import PENDING, HostedGoogleSite, HostedProfiles, session_reference
 from mailhelp.web.http import SECURITY_HEADERS
 from tests.fakes.hosted_google import Central
-from tests.fakes.hosted_web import central, fields  # noqa: F401
+from tests.fakes.hosted_web import Profiles, central, connect, fields  # noqa: F401
 from tests.fakes.shared_web_actions import web as web  # noqa: F401 - the fixture
 from tests.fakes.shared_web_auth import Browser
-
-
-class Profiles:
-    """Setup drafts of target profiles 1 and 2 as a test double of the setup flows."""
-
-    def __init__(self):
-        self.connections = {1: "", 2: ""}
-        self.version = 1
-        self.saved: list[tuple] = []
-
-    def draft(self, profile):
-        if profile not in self.connections:
-            raise LookupError(profile)
-        return self.connections[profile], self.version
-
-    def save(self, actor, profile, values, version, key):
-        if version != self.version:
-            raise ValueError("Entwurf geändert")
-        self.saved.append((actor, profile, values, version))
-        self.connections[profile] = values.get("google_connection", self.connections[profile])
-        self.version += 1
-
-    def target(self, profile):
-        self.draft(profile)
-        return f"profile:{profile}"
 
 
 @pytest.fixture
@@ -50,17 +25,6 @@ def hosted(web, central):
     web.profiles, web.central, web.hosted_state = profiles, central, state
     yield web
     client.close()
-
-
-def connect(web, profile=1, code="good"):
-    """Start, Google's consent and the return to the instance; returns the completion page."""
-    page = web.browser.request("GET", f"/google/verbinden?profile={profile}").body.decode()
-    started = web.browser.request("POST", "/google/verbinden", fields(page, "/google/verbinden"))
-    assert started.status == 303 and started.headers["Cache-Control"] == "no-store"
-    back = web.central.google_return(started.headers["Location"], code)
-    assert back.startswith("https://anna.inboxstride.example/einrichtung/google/abschluss?")
-    parts = urlsplit(back)
-    return web.browser.request("GET", f"{parts.path}?{parts.query}")
 
 
 def test_a_first_connection_needs_no_google_secret_and_ends_with_an_explicit_adoption(hosted):

@@ -35,7 +35,8 @@ wählen. Nach der Rückkehr einen Kalender mit Schreibrecht auswählen und
 **Verbindung übernehmen** bestätigen. Clientdaten und Tokens verwaltet der Betreiber.
 **Anderen Kalender wählen** verwendet den bestehenden Zugang. **Verbindung trennen**
 beendet dessen Tokenausgabe; Termine bleiben erhalten. Postfachzugriff ist eine eigene
-Freigabe. Für direkten Selbstbetrieb mit eigenen Clientdaten gilt:
+Freigabe. In einer Kundeninstanz (seit 8.8.1) führen diese Schritte auch für Kunden zurück zu
+**Zielprofile**; dort den Entwurf mit **Entwurf übernehmen** bestätigen. Für direkten Selbstbetrieb mit eigenen Clientdaten gilt:
 
 1. Unter **Einstellungen → Zugangsdaten** Client-ID und Client-Geheimnis des
    Webanwendungs-Clients hinterlegen; die **Google-Rückleitungsadresse (Webanwendungs-Client)**

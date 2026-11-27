@@ -248,6 +248,8 @@ MAILBOX_POLICY_FIELDS = {
         for name in ("decisions", "action_results", "daily_briefing", "system_errors")
     ),
 }
+# 8.8.1: the sign-in of an own mailbox through Inboxstride (a connection reference, never a token).
+MAILBOX_SIGN_IN_FIELDS = ("auth_method", "oauth_connection")
 _MAILBOX_SETUP_FIELD = re.compile(r"^imap\.mailboxes\.[0-9]\.(?:" + "|".join(MAILBOX_SETUP_FIELDS) + r")$")
 
 
@@ -285,7 +287,8 @@ def customer_may_change(name: str) -> bool:
     if name in CUSTOMER_FIELDS or name.startswith(_CUSTOMER_PREFIXES):
         return True
     match = re.fullmatch(r"imap\.mailboxes\.[0-9]\.(.+)", name)
-    return match is not None and (match.group(1) in MAILBOX_SETUP_FIELDS or match.group(1) in MAILBOX_POLICY_FIELDS)
+    return match is not None and (match.group(1) in MAILBOX_SETUP_FIELDS or match.group(1) in MAILBOX_POLICY_FIELDS
+                                  or match.group(1) in MAILBOX_SIGN_IN_FIELDS)
 
 
 def changed_fields(patch: dict[str, Any], current: list[dict[str, Any]]) -> list[str]:

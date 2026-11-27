@@ -1,5 +1,12 @@
 # Änderungen
 
+## 8.8.1 – Gehostete Anmeldung im Kundenmodus (Planung 8.8 AP1)
+
+- Kundensitzungen erreichen die gehosteten Anmelde- und Auswahlschritte: `/google/verbinden`, `/google/kalender(/wechseln)`, `/google/trennen`, `/microsoft|notion/verbinden|ziele|trennen`, `/postfach/oauth(/ordner|/trennen)`, `POST /einrichtung/postfach/abschluss` und `/auth/status/<64 Hex>`. Bis 8.7.16 antworteten sie mit 403. Sitzung, CSRF, Entwurfsversion und Idempotenz prüfen weiterhin die Handler.
+- Nach Übernehmen, Kalenderwechsel oder Trennen kommen Kunden auf `/einstellungen/zielprofile` statt auf die Betreiberseite `/einrichtung`; dort übernehmen sie den Entwurf. Für Betreiber und im Selbstbetrieb bleibt der Weg unverändert.
+- Sicherheitsfix: Eine Postfachaktivierung (Anmeldung über Inboxstride oder Passwort) nutzte eine Kopie des Konfigurationsdienstes ohne die Feldgrenzen für Kunden. Kunden konnten dadurch Betreiberfelder eines Postfachs ändern (etwa `own_addresses`). Die Kopie übernimmt jetzt die Grenzen, und die Rechteprüfung läuft, bevor `.env` geschrieben wird. Neu für Kunden änderbar sind nur `auth_method` und `oauth_connection` (Verbindungsverweis, kein Token).
+- Tests: `tests/web/test_customer_oauth.py` (Regressionstests scheitern mit 8.7.16), darunter ein Konsistenztest für alle registrierten Anmelderouten.
+
 ## 8.7.16 – Auslieferung von 8.7.15 auf `kunde`
 
 - `kunde` läuft seit 27.11.2026 mit `mailhelp-production:8.7.15-e63cb15` (Sicherung, Vorzustand `compose.yaml.before-8.7.15`, Rückkehr auf `8.7.9-d15df13`). Host-Update mit 15 Paketen, kein Neustart nötig. Produktion, Demo und Auth unverändert. Nachweis in `docs/Betrieb.md`.

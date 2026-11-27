@@ -56,6 +56,11 @@ class InitialSite:
     def _forbidden() -> Response:
         return Response.text(403, msg("Sicherheitsprüfung fehlgeschlagen."))
 
+    @staticmethod
+    def setup_return(_session: WebSession, path: str) -> str:
+        """8.8.1: the first setup has no customer sessions; every step continues in the setup."""
+        return path
+
     def signed_in(self, handler: Callable[..., Response]) -> Callable[..., Response]:
         def guarded(request: Request, **arguments: str) -> Response:
             session = self.auth.authenticate(request.cookies().get(SESSION_COOKIE))

@@ -34,6 +34,8 @@ class ConnectionActivation[Item: (MailboxSettings, IServAccountSettings)](ABC):
         # Persist using the ordinary journal, but install adapters and settings only in the mail loop.
         self.configuration = ConfigurationService(original.directory, original.store, original.active,
                                                    original.authorize, lambda settings: None)
+        # 8.8.1: the copy keeps the customer's field limits (until then it allowed every field).
+        self.configuration.restricted = original.restricted
         self.store = runtime.app.store
 
     @abstractmethod
@@ -109,8 +111,11 @@ class ConnectionActivation[Item: (MailboxSettings, IServAccountSettings)](ABC):
             content = self.configuration.render(command, self.configuration.candidate(command))
             self.store.save(name, {"signature": signature,
                                   "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"})
-            # Recheck authorization immediately before the credential/configuration writes.
+            # Recheck authorization immediately before the credential/configuration writes; 8.8.1: also the
+            # customer's field limits, so a refused change never leaves new credentials in .env.
             self._current(actor, version, revision, env_revision)
+            if not self.configuration.permitted(command):
+                raise PermissionError("Nicht autorisiert")
             set_values(self.configuration.directory / ".env", values, env_revision)
             result = self.configuration.execute(command)
             if result.status != ResultStatus.DONE:
