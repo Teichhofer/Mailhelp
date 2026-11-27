@@ -27,6 +27,14 @@ if TYPE_CHECKING:
     from .site import MailhelpSite
 
 PATH = "/verbrauch"
+# 8.8.6 (Planung 8.8 AP5): the demo's fixed example – no ledger, no prices, the same in German and English.
+SAMPLE_USAGE: tuple[tuple[str, str, Decimal], ...] = (
+    ("2026-11-23", "relevance", Decimal("18")), ("2026-11-23", "summary", Decimal("24")),
+    ("2026-11-23", "task_extraction", Decimal("11")), ("2026-11-24", "relevance", Decimal("15")),
+    ("2026-11-24", "summary", Decimal("20")), ("2026-11-24", "event_extraction", Decimal("9")),
+    ("2026-11-25", "relevance", Decimal("21")), ("2026-11-25", "summary", Decimal("27")),
+    ("2026-11-25", "learning.topics", Decimal("40")),
+)
 MAX_DAYS = 366
 # 8.7.4: steps outside mail processing; a learning run's calls carry the prefix "learning.".
 FEATURE_LABELS = {
@@ -50,6 +58,8 @@ class UsageSite:
     def __init__(self, site: MailhelpSite) -> None:
         self.site = site
         self.meter: UsageMeter | None = None
+        # Set by the demo: example values instead of a ledger.
+        self.sample: tuple[tuple[str, str, Decimal], ...] | None = None
         site.app.route("GET", PATH, site.signed_in(self.page))
 
     def _period(self, query: str, today: date) -> tuple[date, date, bool]:
@@ -70,6 +80,8 @@ class UsageSite:
         now = self.site.clock().astimezone(zone)
         head = page_head(tr("Verbrauch"), tr("Übersicht"),
                          tr("KI-Verarbeitung für dich, in Punkten. Schätzungen erscheinen getrennt davon."))
+        if self.sample is not None:
+            return Response.html(200, layout(tr("Verbrauch"), head + self._sample(english), active=PATH))
         if self.meter is None or not self.meter.valuations.revisions():
             body = head + "<p>" + tr("Die Verbrauchserfassung ist für diese Instanz noch nicht eingerichtet.") + "</p>"
             return Response.html(200, layout(tr("Verbrauch"), body, active=PATH))
@@ -111,6 +123,22 @@ class UsageSite:
                     revision=valuation.revision, rate=e(str(valuation.usd_per_eur)),
                     markup=e(str(valuation.markup_percent))) + "</p>"
         return Response.html(200, layout(tr("Verbrauch"), body, active=PATH))
+
+    def _sample(self, english: bool) -> str:
+        """The demo's example: same layout as the real page, clearly marked, without a period form."""
+        assert self.sample is not None
+        steps: dict[str, Decimal] = {}
+        days: dict[str, Decimal] = {}
+        for day, stage, value in self.sample:
+            label = stage_label(stage)
+            steps[label] = total([steps.get(label, Decimal(0)), value])
+            days[day] = total([days.get(day, Decimal(0)), value])
+        example = Summary(total([value for _day, _stage, value in self.sample]), len(self.sample), 0)
+        hint = tr("Beispielwerte der Demo. In deiner eigenen Instanz stehen hier deine verbrauchten Punkte.")
+        return (f'<p class="notice notice-info" role="status">{e(hint)}</p>'
+                + '<div class="tiles">' + self._tile(tr("Beispielzeitraum"), example, english)
+                + "</div>" + self._table(tr("Nach Verarbeitungsschritt"), list(steps.items()), english)
+                + self._table(tr("Nach Tag"), list(days.items()), english))
 
     @staticmethod
     def _tile(label: str, summary: Summary, english: bool) -> str:

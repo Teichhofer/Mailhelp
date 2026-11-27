@@ -8749,6 +8749,9 @@ EN = {
         'A check is already running. Try again in a few seconds.',
     'Diese Einstellung ist hier nicht änderbar.': 'This setting cannot be changed here.',
     'Gespeicherte Änderungen werden erst nach einem Neustart aktiv.': 'Saved changes take effect only after a restart.',
+    'Beispielwerte der Demo. In deiner eigenen Instanz stehen hier deine verbrauchten Punkte.':
+        'Example values of the demo. In your own instance this page shows the points you used.',
+    'Beispielzeitraum': 'Example period',
     'In deiner eigenen Mailhelp-Instanz verfügbar – in der Demo deaktiviert.':
         'Available in your own Mailhelp instance – disabled in the demo.',
     'Entwurf – noch nicht aktiviert': 'Draft – not yet activated',

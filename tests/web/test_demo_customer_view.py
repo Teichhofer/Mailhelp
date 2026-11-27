@@ -143,3 +143,16 @@ def test_an_earlier_visitor_session_without_a_role_ends_at_the_next_start(tmp_pa
             assert get(server.handler, "/mails", {"mh_session": old}).headers["Location"] == "/anmelden"
         finally:
             runtimes.close()
+
+
+def test_acceptance_9_the_demo_usage_is_a_fixed_example_in_points(instance):
+    """8.8.6: until 8.8.5 the demo said that usage recording was not set up."""
+    site, *_rest = instance
+    pages = {}
+    for language in ("de", "en"):
+        body = get(site, "/verbrauch", visitor(site, language)).body.decode()
+        assert not any(word in body for word in ("USD", "EUR", "Wechselkurs", "exchange rate", "nicht eingerichtet"))
+        pages[language] = re.findall(r"<td>([^<]+)</td>", body)
+    assert "Beispielwerte der Demo" in get(site, "/verbrauch", visitor(site, "de")).body.decode()
+    assert pages["de"][0] == "54,00 Punkte" and len(pages["de"]) == len(pages["en"]) == 8
+    assert [value.replace(",", ".").split()[0] for value in pages["de"]] == [value.split()[0] for value in pages["en"]]

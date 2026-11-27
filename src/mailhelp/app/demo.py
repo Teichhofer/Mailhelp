@@ -41,6 +41,7 @@ from ..web.demo_site import DEMO_INSTANCE, SESSION_SECONDS, DemoHooks, DemoSite,
 from ..web.http import Request, Response
 from ..web.server import WebServer
 from ..web.site import MailhelpSite
+from ..web.usage_site import SAMPLE_USAGE
 from .bootstrap import console
 
 MARKER = "mailhelp-demo.json"
@@ -191,6 +192,7 @@ class DemoRuntimes:
             # HTTP responses release the lifecycle lock before the local worker takes the command.
             site.settle_seconds = 0
             site.offered = demo_may_link  # 8.8.5: closed areas are info cards on the settings overview
+            site.usage.sample = SAMPLE_USAGE  # 8.8.6: example usage in points, never a ledger or a price
             dialog.poll_once()
 
             def serve(request: Request) -> Response:

@@ -60,7 +60,8 @@ CUSTOMER_ROUTES: tuple[tuple[frozenset[str], re.Pattern[str]], ...] = tuple(
         ("GET POST", r"/geraete(?:/.*)?|/einstellungen/web-passwort"),
         ("POST", r"/abmelden"),
         # Help: product documentation and the help chat (its calls count as usage)
-        ("GET POST", r"/hilfe(?:/.*)?"),
+        # 8.8.6: not the operator's guide to own Google client credentials (it names .env entries)
+        ("GET POST", r"/hilfe(?:/(?!google-playground$).*)?"),
         ("GET", r"/api/hilfe/(?:fenster|auftrag/[a-f0-9]{32})"),
         # Usage in points; 8.7.6: the customer's own settings overview (only customer areas)
         ("GET", r"/verbrauch|/einstellungen"),

@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.8.6 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.8.6: Die Demo zeigt unter **Verbrauch** feste Beispielwerte in Punkten statt des Hinweises, die Erfassung sei nicht eingerichtet.
 
 Version 8.8.5: Die Demo zeigt die Kundenoberfläche und lässt nur noch freigegebene Kundenrouten zu (Deny-by-Default); in der Demo nicht verfügbare Bereiche erscheinen als Infokarten, Betreiberansichten antworten mit 403.
 

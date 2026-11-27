@@ -39,7 +39,8 @@ BLOCKED = re.compile(r"/(einrichtung|diagnose|auth|google|microsoft|notion|postf
                      r"api/local-pair|hilfe|api/hilfe|berichte|benachrichtigungen|einstellungen/.+|"
                      r"lernen/(postfach|entscheidungen)|themen|"
                      r"mail/[^/]+/(entwurf|nachanalyse|absender-[a-z]+|domain-ignorieren))(/.*)?")
-# Opening topics and learning is fine; saving topics, starting a learning run or re-running failed mails is not.
+# 8.8.6: topics stay an info card – the demo has no topic files of its own. Opening learning is fine;
+# saving topics, starting a learning run or re-running failed mails is not.
 BLOCKED_POST = re.compile(r"/(lernen|themen|mails/fehler)(/.*)?")
 
 

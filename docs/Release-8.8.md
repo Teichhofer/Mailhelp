@@ -1,8 +1,8 @@
 # Mailhelp 8.8 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.8.5. Grundlage: [Planung 8.8](Planung-8.8.md).
+Stand: 27. November 2026. Version 8.8.6. Grundlage: [Planung 8.8](Planung-8.8.md).
 
-> **In Umsetzung.** AP1–AP4 sind mit 8.8.1–8.8.4 umgesetzt, AP5/AP6 bis auf Beispiel-Verbrauch und Themenansicht mit 8.8.5; AP7–AP8 sind offen. Nicht ausgeliefert: `kunde` läuft mit
+> **In Umsetzung.** AP1–AP7 sind mit 8.8.1–8.8.6 umgesetzt; AP8 (Abschluss) ist offen. Nicht ausgeliefert: `kunde` läuft mit
 > 8.7.15, Produktion und Demo laufen mit 8.5.4.
 
 ## Umgesetzt in 8.8.1 – AP1 Gehostete OAuth-Routen im Kundenmodus
@@ -58,9 +58,26 @@ sonst antworten sie mit 503. Die Anmeldung schreibt nichts in Kalender oder Aufg
 | Tests | `tests/web/test_demo_customer_view.py`, erweiterte Sperrliste in `test_demo_site.py`; Browser-Demotests unverändert grün |
 | Betrieb | Rauchprüfungen der Demo nutzen ab 8.8.5 Kundenrouten (`docs/Betrieb.md`, Demo-Instanz) |
 
-Noch offen in AP5: deterministischer Beispiel-Verbrauch unter `/verbrauch` und eine schreibfreie Themenansicht (bisher 503, jetzt 403).
+## Umgesetzt in 8.8.6 – AP5 Beispiel-Verbrauch
+
+`/verbrauch` zeigt in der Demo `SAMPLE_USAGE` (`web/usage_site.py`): neun feste Einträge über drei Tage, in Punkten,
+gleiche Werte in Deutsch und Englisch, ohne Ledger, Preise oder Wechselkurse; ein Hinweis kennzeichnet die Werte als
+Beispiel. Bisher stand dort „Die Verbrauchserfassung ist für diese Instanz noch nicht eingerichtet.“
+
+**Abweichung vom Plan:** Themen bleiben in der Demo eine Infokarte statt einer Ansicht. Die Demo hat keine eigenen
+Themendateien (die Seite antwortete schon vorher mit 503), und die mitgelieferten Standardthemen gibt es nur auf Deutsch;
+eine englische Demo zeigte sonst deutsche Themennamen.
+
+## Umgesetzt in 8.8.6 – AP7 Paritäts- und Link-Crawler (Kundenmodus)
+
+`tests/web/test_customer_crawl.py` startet in einer Kundensitzung auf Start-, Einstellungs-, Postfach-, Zielprofil-,
+Verbrauchs-, Lern-, Themen- und Hilfeseite und folgt jedem lokalen Link (Deutsch und Englisch, über 150 Seiten). Kein
+Link führt auf 403 oder 404, jedes Formular zielt auf eine Kundenroute, und keine Seite enthält Preise, Wechselkurse,
+Aufschläge, `.env`-Hinweise oder Schlüsselnamen. Befund und Fix: `/hilfe/google-playground` (Betreiberanleitung mit
+`.env`-Einträgen) ist keine Kundenroute mehr. Den Demo-Crawler und die Teilmengenprüfung `DEMO ⊆ CUSTOMER` enthält
+`tests/web/test_demo_customer_view.py`.
 
 ## Offen
 
-Rest von AP5 (siehe oben); AP7 Paritäts- und Link-Crawler-Tests für den Kundenmodus (für die Demo mit 8.8.5
-vorhanden); AP8 Abschluss.
+AP8 Abschluss: Hilfeseiten (Web-Einstellungen, Ziele einrichten) gegenprüfen, Vollprüfung und Browsersuite ohne
+Fehler hintereinander, Status der Planung auf „abgeschlossen“. Keine Auslieferung ohne ausdrückliche Freigabe.

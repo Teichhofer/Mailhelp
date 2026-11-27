@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.8.6 – Beispiel-Verbrauch in der Demo und Kunden-Crawler (Planung 8.8 AP5 und AP7)
+
+- Bugfix: `/verbrauch` meldete in der Demo „Die Verbrauchserfassung ist für diese Instanz noch nicht eingerichtet.“ Jetzt zeigt die Seite einen festen Beispielsatz (`SAMPLE_USAGE`) in Punkten mit demselben Aufbau wie die echte Seite: Gesamtwert, nach Verarbeitungsschritt und nach Tag, deutlich als Beispiel markiert. Kein Ledger, keine Preise oder Wechselkurse; Deutsch und Englisch zeigen dieselben Werte.
+- Entscheidung: Themen bleiben in der Demo eine Infokarte (403 statt bisher 503). Die Demo hat keine eigenen Themendateien, und die mitgelieferten Standardthemen gibt es nur auf Deutsch.
+- Bugfix: Kundensitzungen erreichten `/hilfe/google-playground`, die Betreiberanleitung für eigene Google-Clientdaten mit `.env`-Einträgen; die Zielprofilseite verlinkte sie. Die Seite ist keine Kundenroute mehr, der Link entfällt für Kunden.
+- AP7: `tests/web/test_customer_crawl.py` läuft in Deutsch und Englisch über alle von einer Kundensitzung erreichbaren Seiten (mit den Verbindungsabläufen und dem Lernlauf wie im Betrieb): kein Link auf 403/404, jedes Formular auf eine Kundenroute, keine Preise, Wechselkurse, `.env`-Hinweise oder Schlüsselnamen. Für die Demo prüft das `test_demo_customer_view.py` (8.8.5).
+- Tests: `test_acceptance_9_the_demo_usage_is_a_fixed_example_in_points` (scheitert mit 8.8.5); der Kunden-Crawler fand die Google-Anleitung.
+
 ## 8.8.5 – Demo mit Kundenoberfläche und Deny-by-Default (Planung 8.8 AP5/AP6)
 
 - Die Demo-Anmeldung läuft im Kundenmodus (Instanz `demo`): Besucher haben die Rolle `customer`, sehen die Kundennavigation und die Kundenübersicht der Einstellungen. Sitzungen einer früheren Demo ohne Rolle enden beim ersten Start einmalig.

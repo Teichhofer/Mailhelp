@@ -41,7 +41,8 @@ bleiben auf `/diagnose`.
 `demo_may` erlaubt nur Kundenrouten ohne Konten-/OAuth-Abläufe, Einstellungsunterseiten, Benachrichtigungen, Geräte,
 Hilfe, Berichte, Themen, Absenderregeln, Entwürfe, Nachanalyse und Lernläufe; alle anderen Routen antworten mit 403
 „In der Demo nicht verfügbar“. Jede Demo-Antwort entfernt Links, die nicht erreichbar sind; nicht angebotene Bereiche
-erscheinen in der Einstellungsübersicht als Infokarten; der Hilfe-Chat entfällt.
+erscheinen in der Einstellungsübersicht als Infokarten; der Hilfe-Chat entfällt. Seit 8.8.6 zeigt `/verbrauch` in der Demo
+feste Beispielwerte in Punkten (`SAMPLE_USAGE`); Themen bleiben eine Infokarte.
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
