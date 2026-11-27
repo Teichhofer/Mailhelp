@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 26. November 2026. Version 8.7.12. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 27. November 2026. Version 8.7.13. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
 > **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
@@ -144,6 +144,20 @@ Tests: `tests/web/test_customer_acceptance.py`.
 | Ersteinrichtung | Eine vor dem Skript eingegebene Zeitzone wird nicht mehr durch die Browser-Zeitzone ersetzt |
 | Abdeckung | Zweig ohne `chmod` im Geheimnisspeicher auf jeder Plattform getestet |
 | Lasttest | `test_load_store_lock` getrennt und seriell |
+
+## Umgesetzt in 8.7.13 – hängende Linux-Browsersuite
+
+| Thema | Umsetzung |
+| --- | --- |
+| Aufräumen nach Tests | Abdeckung nur von einer Seite, die binnen 5 s antwortet (`Page.settle`); vorher wartete die DevTools-Abfrage ohne Zeitlimit auf einen stummen Renderer, und der CI-Job lief bis zur Abbruchgrenze von sechs Stunden |
+| Asynchrone Wartebedingungen | `wait_until` statt `wait_for_function`, das ein Promise auch bei `false` als erfüllt zählt; betroffen waren Hilfefenster- und Service-Worker-Tests. Eine Quelltextprüfung verhindert neue Fälle |
+| Service Worker | test78 nutzt je Sprache einen frischen Kontext; der Wechsel des laufenden Workers blockierte Chrome unter Playwright gelegentlich |
+| Hilfefenster bei gesperrtem Speicher | Der Test wartet auf die Navigation der Suche, bevor er die neue Seite prüft |
+| CI | Browserschritt mit `timeout-minutes: 45` |
+
+Tests: `ui_tests/test_ui_harness_bounds.py`, `tests/release/test_ci_workflows.py`. Offen: Der Lasttest
+`test_load_store_lock` überschreitet auf dem GitHub-Windows-Runner seine Grenze (Accept bis 353 ms bei erlaubtem
+Median unter 100 ms); lokal hält er sie. Die Grenze bleibt unverändert, bis der Betreiber entscheidet.
 
 ## Prüfung
 

@@ -3,7 +3,7 @@ import hashlib
 
 from playwright.sync_api import expect
 
-from conftest import DEVICES, Page, sign_in
+from conftest import DEVICES, Page, sign_in, wait_until
 
 
 def test_regression_v632_first_navigation_uses_new_css_with_old_worker(browser, mailhelp):
@@ -20,7 +20,8 @@ def test_regression_v632_first_navigation_uses_new_css_with_old_worker(browser, 
     page = Page(context.new_page(), "mobile")
     try:
         sign_in(page, mailhelp)
-        page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        # 8.7.13: bounded, unlike evaluate, which waits for a worker that never activates without a limit.
+        wait_until(page, "() => navigator.serviceWorker.ready.then(() => true)")
         page.reload()
         marker = "getComputedStyle(document.documentElement).getPropertyValue('--v632-marker').trim()"
         assert page.evaluate(marker) == "old"

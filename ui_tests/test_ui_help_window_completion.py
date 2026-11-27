@@ -3,7 +3,7 @@ import re
 
 from playwright.sync_api import expect
 
-from conftest import navigate_collected, sign_in
+from conftest import navigate_collected, sign_in, wait_until
 from mailhelp.helpdocs import HelpAnswer
 from tests.fakes.help_window54 import Analyzer, chat_service
 
@@ -66,7 +66,9 @@ def test_window54_blocked_storage_autosaves_then_preserves_a_search_form_submiss
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     question = page.get_by_label("Deine Frage zu Einstellungen und Bedienung")
     question.fill("Entwurf vor Formularnavigation")
-    page.wait_for_function("""async () => {
+    # 8.7.13: wait_until, because wait_for_function counted these async conditions as true at once; the
+    # reload then sometimes came before the closing reached the server (Linux browser suite).
+    wait_until(page, """async () => {
       const r = await fetch('/api/hilfe/fenster'); const s = await r.json();
       return s.ui.draft === 'Entwurf vor Formularnavigation';
     }""")
@@ -75,7 +77,7 @@ def test_window54_blocked_storage_autosaves_then_preserves_a_search_form_submiss
     page.wait_for_url(mailhelp.url + "/einstellungen?suche=Zeitzone")
     expect(question).to_have_value("Entwurf vor Formularnavigation")
     page.get_by_role("button", name="Hilfschat schließen", exact=True).click()
-    page.wait_for_function("async () => !(await (await fetch('/api/hilfe/fenster')).json()).ui.opened")
+    wait_until(page, "async () => !(await (await fetch('/api/hilfe/fenster')).json()).ui.opened")
     expect(page.locator("#help-window")).to_be_hidden()
     page.reload()
     expect(page.locator("#help-window")).to_be_hidden()

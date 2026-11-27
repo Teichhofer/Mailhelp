@@ -111,6 +111,9 @@ def test_window54_blocked_storage_keeps_state_and_draft_across_navigation(page, 
     page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Entwurf bei gesperrtem Speicher")
     page.get_by_role("searchbox", name="Einstellung suchen").fill("Zeitzone")
     page.get_by_role("button", name="Suchen", exact=True).click()
+    # 8.7.13: the search navigates only after the asynchronous fallback save. Checked before that, the
+    # assertions below still saw the old page, and closing there was lost with it (Linux browser suite).
+    page.wait_for_url(mailhelp.url + "/einstellungen?suche=Zeitzone")
     expect(page.get_by_role("region", name="Hilfe zu Einstellungen", exact=True)).to_be_visible()
     expect(page.get_by_label("Deine Frage zu Einstellungen und Bedienung")).to_have_value(
         "Entwurf bei gesperrtem Speicher")

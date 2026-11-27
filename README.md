@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.12 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.13 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.13: Die Linux-Browsersuite hängt nicht mehr – das Aufräumen nach einem Test wartet nie unbegrenzt
+auf einen stummen Browser, asynchrone Wartebedingungen warten wirklich, und der CI-Schritt endet nach höchstens
+45 Minuten. Keine Änderung an der Anwendung selbst.
 
 Version 8.7.12: CI auf Linux – statische Web-Dateien haben auf jedem System dieselben Bytes und damit
 dieselben Cache-Schlüssel; die Browsertests laufen unabhängig von der Systemsprache auf Deutsch, und die

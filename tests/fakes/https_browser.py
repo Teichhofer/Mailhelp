@@ -53,7 +53,7 @@ class HttpsBrowser:
         self.page = wrap(self.context.new_page(), "desktop" if width > 1000 else "mobile")
 
     def close(self):
-        self.page.collect()
+        self.page.settle()  # 8.7.13: never wait on a renderer that no longer answers
         self.browser.close()
         self.server.shutdown()
         self.server.server_close()

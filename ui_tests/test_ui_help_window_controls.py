@@ -5,7 +5,7 @@ from urllib.parse import parse_qs
 import pytest
 from playwright.sync_api import expect
 
-from conftest import sign_in
+from conftest import sign_in, wait_until
 
 BLOCKED_STORAGE = "Object.defineProperty(window, 'sessionStorage', {get() {throw Error('blocked')}});"
 # Outside a secure context (http://192.168.…) Chrome offers no crypto.randomUUID.
@@ -28,7 +28,7 @@ def test_window55_fallback_keys_work_without_crypto_random_uuid(page, mailhelp, 
             if request.method == "POST" and request.url.endswith("/hilfe/fenster") else None)
     page.get_by_label("Hilfschat öffnen", exact=True).click()
     page.get_by_label("Deine Frage zu Einstellungen und Bedienung").fill("Entwurf über HTTP")
-    page.wait_for_function("""async () => {
+    wait_until(page, """async () => {
       const state = await (await fetch('/api/hilfe/fenster')).json();
       return state.ui.draft === 'Entwurf über HTTP';
     }""")

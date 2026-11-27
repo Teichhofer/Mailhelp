@@ -85,6 +85,15 @@ def test_the_browser_suite_renders_with_roboto_before_it_runs():
     assert all(f"<family>{name}</family><prefer><family>Roboto</family>" in config for name in ("sans-serif", "system-ui"))
 
 
+def test_regression_a_hung_browser_suite_ends_long_before_the_runner_limit():
+    """8.7.13: a hung browser test held the ui-tests job for six hours; the step now has its own limit and the
+    failure annotations still run afterwards."""
+    steps = [step for name, _runners, step in _steps(ROOT / ".github" / "workflows" / "ci.yml") if name == "ui-tests"]
+    suite = next(step for step in steps if "pytest ui_tests" in str(step.get("run", "")))
+    assert 30 <= suite["timeout-minutes"] <= 60
+    assert steps[steps.index(suite) + 1]["if"] == "failure()"
+
+
 def test_dockerfiles_share_a_current_python_312_patch_image():
     bases = {path: re.search(r"^FROM (\S+)$", path.read_text(encoding="utf-8"), re.M).group(1)
              for path in DOCKERFILES}

@@ -68,6 +68,9 @@ jobs:
           fc-cache -f
           fc-match system-ui | grep -q Roboto
       - name: Browser suite
+        # 8.7.13: a hung browser test ends the step after 45 minutes (normal run about 21) instead of
+        # holding the runner for six hours; the annotations below still name the failed tests.
+        timeout-minutes: 45
         shell: bash
         run: |
           set -o pipefail

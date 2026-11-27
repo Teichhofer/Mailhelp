@@ -7,7 +7,7 @@ import pytest
 from playwright.sync_api import expect
 
 from checks import audit
-from conftest import COVERAGE, DEVICES, Page, item, sign_in
+from conftest import COVERAGE, DEVICES, Page, item, sign_in, wait_until
 
 SHELL = ["/offline.html", "/offline-en.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"]
 
@@ -18,13 +18,28 @@ def new_page(browser, device, **options):
     return Page(context.new_page(), device)
 
 
+def wait_for_worker(page, locale: str | None = None) -> None:
+    """Wait (bounded) until the worker, optionally the one for ``locale``, is activated and controls the page.
+
+    8.7.13 (Linux browser suite): ``registration.active`` already names a worker that is still activating, and
+    ``evaluate(serviceWorker.ready)`` waits without a time limit. Going offline before the activation ended
+    left the navigation waiting for the worker until the context was closed. The condition is async, so it
+    goes through ``wait_until`` (``wait_for_function`` would count its promise as true at once).
+    """
+    wait_until(page, """locale => navigator.serviceWorker.getRegistration().then(r => {
+      const worker = r && r.active, controller = navigator.serviceWorker.controller;
+      const matches = script => !locale || new URL(script.scriptURL).searchParams.get('lang') === locale;
+      return !!worker && worker.state === 'activated' && matches(worker) && !!controller && matches(controller);
+    })""", locale)
+
+
 @pytest.mark.smoke
 def test_installed_app_shows_the_offline_page_and_caches_no_data(browser, mailhelp):
     for device in DEVICES:
         page = new_page(browser, device, service_workers="allow")
         try:
             sign_in(page, mailhelp)
-            assert page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+            wait_for_worker(page)
             page.reload()
             cached = page.evaluate("""caches.keys().then((keys) => Promise.all(keys.map((key) =>
                 caches.open(key).then((cache) => cache.keys())
@@ -58,24 +73,36 @@ def test_a_failed_worker_registration_is_harmless(browser, mailhelp):
 
 
 def test78_real_worker_switches_the_offline_language_with_the_browser_choice(browser, mailhelp):
-    page = new_page(browser, "desktop", service_workers="allow")
-    try:
-        sign_in(page, mailhelp)
-        assert page.evaluate("navigator.serviceWorker.ready.then(() => true)")
-        for locale, heading in [("en", "Computer unreachable"), ("de", "PC nicht erreichbar")]:
+    """The worker registered by a page in a language serves the offline page in that language.
+
+    8.7.13: one fresh browser context per language, whose first worker is the one of that language. Replacing
+    the running worker inside one context (a browser mechanism, not Mailhelp code) stalled Linux Chrome under
+    Playwright now and then: the new worker waited for the debugger and the next navigation never finished.
+    """
+    for locale, heading in [("en", "Computer unreachable"), ("de", "PC nicht erreichbar")]:
+        # The login pages are German; their worker would be replaced by the one of the chosen language, so
+        # the session moves into a context whose first page already has that language.
+        login = new_page(browser, "desktop", service_workers="block")
+        try:
+            sign_in(login, mailhelp)
+            session = login.context.storage_state()
+        finally:
+            login.context.close()
+        page = new_page(browser, "desktop", service_workers="allow", storage_state=session)
+        try:
             page.goto(mailhelp.url + "/" + locale + "/")
-            page.wait_for_function("""locale => navigator.serviceWorker.getRegistration().then(r =>
-              r && r.active && new URL(r.active.scriptURL).searchParams.get('lang') === locale)""", arg=locale)
+            wait_for_worker(page, locale)
             page.reload()
+            wait_for_worker(page, locale)
             expect(page.locator("html")).to_have_attribute("lang", locale)
             page.context.set_offline(True)
             page.page.goto(mailhelp.url + "/status")
             expect(page.get_by_role("heading", name=heading)).to_be_visible()
             page.context.set_offline(False)
-        page.errors[:] = [error for error in page.errors if "ERR_INTERNET_DISCONNECTED" not in error]
-        assert page.errors == []
-    finally:
-        page.context.close()
+            page.errors[:] = [error for error in page.errors if "ERR_INTERNET_DISCONNECTED" not in error]
+            assert page.errors == []
+        finally:
+            page.context.close()
 
 
 # The worker's handlers run in a test page with stubbed worker globals, so that
@@ -247,7 +274,7 @@ def test_an_action_sent_offline_is_neither_executed_nor_replayed_later(browser, 
     page = new_page(browser, "desktop", service_workers="allow")
     try:
         sign_in(page, mailhelp)
-        assert page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        wait_for_worker(page)
         page.reload()
         button = item(page, f"#v-{mail_id(1)}-elternabend").get_by_role("button", name="Im Kalender anlegen")
         page.context.set_offline(True)

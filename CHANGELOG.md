@@ -1,5 +1,16 @@
 # Änderungen
 
+## 8.7.13 – Hängende Linux-Browsersuite (Querschnitt 8.7)
+
+Der CI-Job `ui-tests` lief seit 8.7.12 bis zur Abbruchgrenze von sechs Stunden; in WSL hing die Suite gelegentlich bei 98 %.
+
+- Bugfix Browsertests: Das Aufräumen eines Tests holte die JavaScript-Abdeckung über eine DevTools-Abfrage ohne Zeitlimit. Blieb eine Navigation hinter dem Service Worker stehen, antwortete der Renderer nicht mehr, und aus einem Fehlschlag nach 30 s wurde ein Hänger ohne Ende. `Page.settle` sammelt nur noch von einer Seite, die binnen 5 s antwortet; nach einem Fehlschlag zählt die Abdeckung ohnehin nicht.
+- Bugfix Browsertests: `wait_for_function` zählt ein zurückgegebenes Promise als erfüllt, auch wenn es `false` ergibt. Fünf asynchrone Wartebedingungen warteten deshalb nicht: Ein Neuladen überholte das Schließen des Hilfefensters, und test78 ging offline, während der neue Service Worker noch aktiviert wurde. Neuer Helfer `wait_until`; eine Quelltextprüfung verhindert neue Fälle.
+- test78 prüft die Offline-Sprache je Sprache in einem frischen Browserkontext. Den laufenden Worker im selben Kontext zu ersetzen (Browsermechanismus, kein Mailhelp-Code) blockierte Chrome unter Playwright gelegentlich; der neue Worker wartete auf den Debugger.
+- Der Hilfefenster-Test mit gesperrtem Speicher wartet auf die Navigation der Suche; vorher prüfte er oft noch die alte Seite.
+- CI: Der Browserschritt endet nach höchstens 45 Minuten (normal etwa 21), die Annotationen nennen danach die fehlgeschlagenen Tests.
+- Regressionstests `ui_tests/test_ui_harness_bounds.py` und `tests/release/test_ci_workflows.py`. Offen: `test_load_store_lock` überschreitet auf dem GitHub-Windows-Runner seine Grenze (bis 353 ms); die Grenze bleibt bis zu einer Entscheidung des Betreibers unverändert.
+
 ## 8.7.12 – CI auf Linux (Querschnitt 8.7)
 
 Die öffentlichen CI-Annotationen aus 8.7.11 zeigten erstmals, woran CI seit Wochen scheiterte.

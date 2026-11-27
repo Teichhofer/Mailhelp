@@ -18,6 +18,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -335,10 +336,30 @@ class Page:
             "callCount": True, "detailed": True, "allowTriggeredUpdates": True})
         self.cdp.on("Page.frameRequestedNavigation", lambda event: self.collect())
         self.cdp.on("Page.frameStartedLoading", lambda event: self.collect())
-        self.context = MeasuredContext(page.context, self.collect)
+        self.context = MeasuredContext(page.context, self.settle)
 
     def collect(self) -> None:
         COVERAGE.add(self.cdp.send("Profiler.takePreciseCoverage"))
+
+    def responsive(self) -> bool:
+        """Whether the renderer still answers within five seconds.
+
+        8.7.13 (Linux browser suite): a renderer stuck in a navigation answers no DevTools command, and a
+        DevTools call has no time limit, so a collection there turned a failed test into a hung run.
+        """
+        try:
+            self.page.wait_for_function("true", timeout=5000)
+        except PlaywrightError:
+            return False
+        return True
+
+    def settle(self) -> None:
+        """Collect before the page goes away, unless the renderer no longer answers.
+
+        A page that stops answering only follows a failure, and a failed run reports no script coverage.
+        """
+        if self.responsive():
+            self.collect()
 
     def goto(self, url: str, **kwargs):
         # Coverage of the current document is lost once it is replaced.
@@ -367,8 +388,31 @@ def page(request, browser):
     try:
         yield wrapped
     finally:
-        wrapped.collect()
+        wrapped.settle()
         context.close()
+
+
+def wait_until(page, predicate: str, arg=None, timeout: float = 10000) -> None:
+    """Wait, with a time limit, until the JavaScript ``predicate`` (which may be async) is true.
+
+    8.7.13: ``wait_for_function`` counts a returned promise as true, even one that resolves to false, so async
+    conditions passed at once and the tests raced the browser. Here the predicate runs in the background and
+    the synchronous poll only reads its last result. It becomes part of the polled function, so no ``eval``
+    is needed under the pages' Content-Security-Policy.
+    """
+    key = json.dumps([predicate, arg])
+    page.wait_for_function(f"""arg => {{
+      const waits = window.__mailhelpWaits || (window.__mailhelpWaits = {{}});
+      const state = waits[{json.dumps(key)}] || (waits[{json.dumps(key)}] = {{busy: false, done: false}});
+      if (state.done) {{ delete waits[{json.dumps(key)}]; return true; }}
+      if (!state.busy) {{
+        state.busy = true;
+        Promise.resolve().then(() => ({predicate})(arg))
+          .then(value => {{ state.done = !!value; }}, () => {{ state.done = false; }})
+          .finally(() => {{ state.busy = false; }});
+      }}
+      return false;
+    }}""", arg=arg, timeout=timeout)
 
 
 def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
@@ -526,4 +570,4 @@ def pytest_sessionfinish(session, exitstatus):
         print("\nJavaScript-Abdeckung: 100 % der Blöcke in " + ", ".join(COVERED_SCRIPTS))
 
 
-__all__ = ["DEVICES", "Mailhelp", "Page", "act", "hold", "item", "navigate_collected", "sign_in"]
+__all__ = ["DEVICES", "Mailhelp", "Page", "act", "hold", "item", "navigate_collected", "sign_in", "wait_until"]
