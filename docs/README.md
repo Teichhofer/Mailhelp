@@ -65,7 +65,7 @@ Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git ge
 | [Planung 8.4](Planung-8.4.md), [Release 8.4](Release-8.4.md) | Automatische Erinnerungen für neue Kalendereinträge, standardmäßig fünf Minuten vor Beginn |
 | [Planung 8.5](Planung-8.5.md), [Release 8.5](Release-8.5.md) | Übersichtliche Einstellungen: Bereiche nach Aufgaben, Abschnittsformulare mit gemeinsamer Prüfung, verständliche Werte |
 | [Planung 8.6](Planung-8.6.md), [Release 8.6](Release-8.6.md) | Stabile Python-3.12-CI für Ubuntu 26.04, saubere Workflow-Artefakte und aktualisierte Docker-Basisimages |
-| [Planung 8.7](Planung-8.7.md), [Release 8.7](Release-8.7.md) | Kundenmodus mit Rollen und Verbrauch in Punkten (in Umsetzung, noch keine Kundenfreischaltung) |
+| [Planung 8.7](Planung-8.7.md), [Release 8.7](Release-8.7.md) | Kundenmodus mit Rollen und Verbrauch in Punkten (abgeschlossen mit 8.7.15, noch keine Kundenfreischaltung) |
 | [Planung 8.7 – Lernen in Punkten](Planung-8.7-Lernen.md) | Lernfunktionen in Punkten, Kundeninstanz `kunde`, Bewertung Kurs 1 / Aufschlag 900 % |
 | [Planung 8.8](Planung-8.8.md) | Gehostete OAuth-Routen im Kundenmodus vervollständigen und Demo-Modus per Deny-by-Default an den Kundenmodus angleichen |
 

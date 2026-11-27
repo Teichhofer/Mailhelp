@@ -1,6 +1,6 @@
 # Mailhelp 8.7 – Kundenmodus und Verbrauch in Punkten
 
-**Stand:** 24. November 2026. **Status:** In Umsetzung; AP1–AP3 und Teile von AP4 in 8.7.1 ([Release 8.7](Release-8.7.md)).
+**Stand:** 27. November 2026. **Status:** Abgeschlossen mit 8.7.15; AP1–AP7 umgesetzt, Abnahme §10 automatisiert bestanden. Manuelle Betreiberschritte (Ersteinrichtung und Abnahme auf `kunde`, echter Lernlauf) entfallen auf Entscheidung des Betreibers vom 27.11.2026; keine Kundenfreischaltung ([Release 8.7](Release-8.7.md)).
 
 **Zielversion:** 8.7, erste Auslieferung 8.7.1; weitere Umsetzungsschritte mit fortlaufenden Patchversionen gemäß den [Entwicklungsregeln](../AGENTS.md).
 

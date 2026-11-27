@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING, Any
 
 from ..config import Topic, read_yaml
@@ -12,6 +13,7 @@ from ..i18n import msg, tr
 from ..llm.decisions import relevance_fingerprint
 from ..mailbox.mailbox_settings import mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
+from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
 from ..state_names import mail_state_names
 from . import mailbox_site as mailbox_site_module
 from .auth import WebSession
@@ -82,8 +84,9 @@ def preview(site: MailboxSite, session: WebSession) -> str:
             )
         text += tr('</dl><p><a href="/diagnose">Zugriffe prüfen</a></p>')
         csrf = site.site.auth.csrf_token(session.id)
+        text += checks(site, csrf)
         text += post_form(
-            "/einrichtung/uebernehmen",
+            "/einstellungen/postfaecher/uebernehmen",
             csrf,
             tr(
                 '<label><input type="checkbox" name="confirm" value="yes" '
@@ -98,6 +101,41 @@ def preview(site: MailboxSite, session: WebSession) -> str:
         )
         text += "</section>"
     return text
+
+
+# 8.7.15: the read-only checks of the instance's own connections that a mailbox draft may need. Paid
+# (LLM), message-sending and operator-only checks (IServ, file system, channels) stay on /diagnose.
+OWN_CHECKS = re.compile(r"imap|calendar|todoist|(?:calendar|tasks):[1-9][0-9]?")
+
+
+def checks(site: MailboxSite, csrf: str) -> str:
+    """A check button for each connection the draft still needs; customers cannot open /diagnose."""
+    site.runtime.update_profile_checks()
+    missing = [name for name in site.runtime.setup.missing_checks() if OWN_CHECKS.fullmatch(name)]
+    if not missing:
+        return ""
+    diagnostics = site.runtime.diagnostics.state()
+    text = tr("<p>Vor dem Übernehmen diese Verbindungen lesend prüfen:</p>")
+    for name in missing:
+        result = diagnostics.results.get(name, DiagnosticResult())
+        text += f'<p role="status">{e(name)}: {e(STATES[result.status])} · {e(HELP[result.code])}</p>'
+        text += post_form("/einstellungen/postfaecher/pruefen", csrf, "", tr("{p0} prüfen", p0=name),
+                          name=name, version=diagnostics.version)
+    return text
+
+
+def check(site: MailboxSite, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+    """Run one read-only check of an own connection; nothing is written or sent."""
+    if site.runtime is None:
+        return site.unavailable()
+    try:
+        if not OWN_CHECKS.fullmatch(form.get("name", "")):
+            raise ValueError("Keine Prüfung einer eigenen Verbindung")
+        site.runtime.update_profile_checks()
+        site.runtime.diagnostics.run(session.id, form["name"], int(form["version"]), form["key"])
+    except (ValueError, KeyError, PermissionError):
+        return Response.text(409, msg("Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen."))
+    return Response.redirect("/einstellungen/postfaecher")
 
 
 def affected(site: MailboxSite) -> dict[int, int]:

@@ -162,6 +162,9 @@ class MailboxSite:
             ("POST", "/einstellungen/postfaecher/thema", self.topic),
             ("POST", "/einstellungen/postfaecher/filter", self.filter),
             ("POST", "/einstellungen/postfaecher/verwerfen", self.discard),
+            # 8.7.15: approval and the read-only checks it needs, also for customer sessions
+            ("POST", "/einstellungen/postfaecher/uebernehmen", self.apply),
+            ("POST", "/einstellungen/postfaecher/pruefen", self.check),
             ("GET", "/einstellungen/zielprofile", self.profiles),
             ("POST", "/einstellungen/zielprofile/speichern", self.save_profile),
             ("POST", "/einstellungen/zielprofile/umstellen", self.retarget),
@@ -384,6 +387,13 @@ class MailboxSite:
 
     def discard(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return mailbox_draft.discard(self, request, session, form)
+
+    def apply(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """The same session-bound, confirmed and versioned approval as /einrichtung/uebernehmen."""
+        return self.site.setup_page.apply(request, session, form)
+
+    def check(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        return mailbox_draft.check(self, request, session, form)
 
     def profiles(self, request: Request, session: WebSession) -> Response:
         return mailbox_profiles.profiles(self, request, session)

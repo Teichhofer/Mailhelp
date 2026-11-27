@@ -701,9 +701,11 @@ binden nichts aus `/opt/mailhelp-kunde` ein.
 Rückkehr: Container stoppen, `compose.yaml.before-8.7.9` zurückkopieren (Image `8.7.4-4e86ee4`), `up -d`;
 Laufzeitdaten und `operator.yaml` sind mit 8.7.4 kompatibel.
 
-### Abnahme auf `kunde` nach der Ersteinrichtung (AP6, offen)
+### Abnahme auf `kunde` nach der Ersteinrichtung (AP6, entfallen) <!-- mailhelp-id:betrieb/abnahme-auf-kunde-nach-der-ersteinrichtung-ap6-offen -->
 
-Diese Schritte stehen aus, weil nur der Betreiber den eigenen OpenRouter-Schlüssel eintragen darf:
+Auf Entscheidung des Betreibers vom 27.11.2026 entfallen diese Schritte für den Abschluss von 8.7; Abnahme 3 ist
+automatisiert geprüft (8.7.15, [Release 8.7](Release-8.7.md)). `kunde` bleibt unverändert im Ersteinrichtungsmodus
+mit 8.7.9. Die Checkliste bleibt als Ablauf für eine spätere Freischaltung erhalten:
 
 1. Code mit `docker logs --tail 5 mailhelp-kunde-mailhelp-1` lesen (abgelaufen:
    `docker restart mailhelp-kunde-mailhelp-1`), unter `https://kunde.inboxstride.de/anmelden` eingeben und die

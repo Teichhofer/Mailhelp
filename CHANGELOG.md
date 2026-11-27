@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.7.15 – Abnahme 3: Kunden übernehmen eigene Postfachentwürfe (Abschluss 8.7)
+
+- Bugfix: Eine Kundensitzung konnte Postfach-, Benachrichtigungs- und Zielentwürfe speichern, aber nie übernehmen. Die Vorschau schickte die Übernahme an die Betreiberroute `/einrichtung/uebernehmen` (403), jede `imap.`-Änderung verlangte eine Diagnose auf `/diagnose` (für Kunden gesperrt), und die Rechteprüfung lehnte die ganze Postfachliste ab. Neu: `POST /einstellungen/postfaecher/uebernehmen` mit demselben bestätigten, versionierten und idempotenten Ablauf.
+- Die Postfachliste zählt nach den tatsächlich geänderten Feldern. Kunden ändern nur Kundenfelder und dürfen eigene Postfächer hinzufügen oder entfernen; ein Entwurf mit Betreiberfeldern bleibt für sie gesperrt.
+- Eine Diagnose verlangen nur Verbindungsfelder; Bezeichnung und Postfachregeln (Signatur, Ruhezeiten, Kategorien, Aufbewahrung) nicht. Fehlende Prüfungen eigener Verbindungen startet die Vorschau selbst (`/einstellungen/postfaecher/pruefen`; nur lesend, kein LLM-Test).
+- Plan 8.7 abgeschlossen: Abnahme 3 automatisiert bestanden. Ersteinrichtung, Abnahme vor Ort und echter Lernlauf auf `kunde` entfallen auf Entscheidung des Betreibers vom 27.11.2026. Keine Kundenfreischaltung, keine Serveränderung.
+- Tests: `tests/web/test_customer_acceptance_3.py` (Regressionstest schlägt mit 8.7.14 fehl).
+
 ## 8.7.14 – Lastgrenze auf GitHub-Runnern (Querschnitt 8.7)
 
 - Der Lasttest `test_load_store_lock` hat auf Wunsch des Betreibers eine eigene Grenze, die nur bei `GITHUB_ACTIONS=true` gilt: Median unter 1000 ms, höchstens 2000 ms. Gemessen wurden dort für jede Annahme 323–353 ms, ohne auf die Sperre zu warten. Lokal und auf jedem anderen Rechner bleibt sie bei Median unter 100 ms und höchstens 300 ms. Beide Grenzen liegen weit unter der Sperrdauer von 5000 ms. Damit fällt jede Annahme, die auf die Speichersperre wartet, weiterhin auf.

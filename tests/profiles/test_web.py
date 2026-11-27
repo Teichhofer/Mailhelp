@@ -29,8 +29,8 @@ def apply(configured):
     for name in runtime.diagnostics.checks:
         runtime.diagnostics.checks[name] = lambda _: ("ready", "")
         runtime.diagnostics.run(web.auth.sessions()[0].id, name, runtime.diagnostics.state().version, "probe-" + name.replace(":", "-"))
-    form = web.form("/einstellungen/postfaecher", action="/einrichtung/uebernehmen")
-    assert web.browser.request("POST", "/einrichtung/uebernehmen", {**form, "confirm": "yes"}).status == 303
+    form = web.form("/einstellungen/postfaecher", action="/einstellungen/postfaecher/uebernehmen")
+    assert web.browser.request("POST", "/einstellungen/postfaecher/uebernehmen", {**form, "confirm": "yes"}).status == 303
     web.run()
 
 

@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.7.14 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.7.15 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.7.15: Kunden übernehmen eigene Postfach-, Benachrichtigungs- und Zielentwürfe selbst („Entwurf übernehmen“ auf der Postfachseite). Fehlt eine Prüfung einer Verbindung, startet die Vorschau sie direkt und nur lesend. Reine Postfachregeln wie Ruhezeiten oder Signatur brauchen keine Diagnose mehr. Damit ist der Plan 8.7 abgeschlossen; manuelle Schritte auf `kunde` entfallen, eine Kundenfreischaltung gibt es weiterhin nicht.
 
 Version 8.7.14: Der Lasttest mit gehaltener Speichersperre hat auf GitHub-Runnern eine eigene Grenze (Median unter
 1000 ms, höchstens 2000 ms). Lokal gilt weiter Median unter 100 ms und höchstens 300 ms.

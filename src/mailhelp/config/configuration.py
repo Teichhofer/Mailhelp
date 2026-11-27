@@ -288,10 +288,47 @@ def customer_may_change(name: str) -> bool:
     return match is not None and (match.group(1) in MAILBOX_SETUP_FIELDS or match.group(1) in MAILBOX_POLICY_FIELDS)
 
 
-def customer_command_allowed(command: AdminCommand) -> bool:
-    """Topics and sender rules are the customer's; settings only with customer fields, never partially."""
-    return command.kind in {AdminKind.TOPICS, AdminKind.SENDERS} or all(
-        customer_may_change(name) for name in command.patch)
+def changed_fields(patch: dict[str, Any], current: list[dict[str, Any]]) -> list[str]:
+    """The patch's fields; a whole mailbox list counts by what really differs (8.7.15).
+
+    The mailbox pages always save the complete list. Compared with *current* (the configured
+    mailboxes), only an added or removed mailbox counts as ``imap.mailboxes``; otherwise each
+    differing field of a mailbox is named by its list position, like ``imap.mailboxes.1.label``.
+    """
+    fields = [name for name in patch if name != "imap.mailboxes"]
+    if "imap.mailboxes" not in patch:
+        return fields
+    before = {box["id"]: box for box in current}
+    proposed = patch["imap.mailboxes"]
+    if sorted(before) != sorted(box["id"] for box in proposed):
+        return [*fields, "imap.mailboxes"]
+    for index, box in enumerate(proposed):
+        fields += _differences(f"imap.mailboxes.{index}", before[box["id"]], box)
+    return fields
+
+
+def _differences(prefix: str, old: Any, new: Any) -> list[str]:
+    """Dotted names of the differing leaves; an unset section (``None``) compares as empty."""
+    if isinstance(old, dict) or isinstance(new, dict):
+        if (old is None or isinstance(old, dict)) and (new is None or isinstance(new, dict)):
+            old, new = old or {}, new or {}
+            return [name for key in sorted({*old, *new})
+                    for name in _differences(f"{prefix}.{key}", old.get(key), new.get(key))]
+    return [prefix] if old != new else []
+
+
+def customer_command_allowed(command: AdminCommand, current: list[dict[str, Any]] | None = None) -> bool:
+    """Topics and sender rules are the customer's; settings only with customer fields, never partially.
+
+    A mailbox list (8.7.15) counts by its changed fields against *current*; adding or removing one
+    of the instance's own mailboxes is a customer change as well.
+    """
+    if command.kind in {AdminKind.TOPICS, AdminKind.SENDERS}:
+        return True
+    if "imap.mailboxes" in command.patch and current is None:
+        return False
+    fields = changed_fields(command.patch, current or [])
+    return all(name == "imap.mailboxes" or customer_may_change(name) for name in fields)
 
 
 def set_dotted(document: dict[str, Any], dotted: str, value: object) -> None:
@@ -564,8 +601,19 @@ class ConfigurationService:
 
     def permitted(self, command: AdminCommand) -> bool:
         """Session still valid and, for a customer, only customer fields (checked again before writing)."""
-        return self.authorize(command.actor) and (not self.restricted(command.actor)
-                                                  or customer_command_allowed(command))
+        if not self.authorize(command.actor):
+            return False
+        if not self.restricted(command.actor):
+            return True
+        current = None
+        if "imap.mailboxes" in command.patch and command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
+            current = self.configured_mailboxes()
+        return customer_command_allowed(command, current)
+
+    def configured_mailboxes(self) -> list[dict[str, Any]]:
+        """The mailboxes of config.yaml as the mailbox pages write them (also the 3.0 single format)."""
+        settings = Settings.model_validate(read_yaml(self.directory / "config.yaml"))
+        return [box.model_dump(mode="json") for box in settings.imap.configured_mailboxes()]
 
     def _execute(self, command: AdminCommand) -> ReviewResult:
         if not self.permitted(command):

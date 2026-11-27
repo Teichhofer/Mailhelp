@@ -3458,6 +3458,9 @@ EN = {
         ),
     '<section class="card"><h2>Entwurf prüfen</h2><dl>': '<section class="card"><h2>Review draft</h2><dl>',
     '</dl><p><a href="/diagnose">Zugriffe prüfen</a></p>': '</dl><p><a href="/diagnose">Check accesses</a></p>',
+    '<p>Vor dem Übernehmen diese Verbindungen lesend prüfen:</p>': (
+        '<p>Before applying, check these connections (read-only):</p>'
+    ),
     (
         '<dt>Laufende Mails in Postfach {p0}</dt><dd>{p1} '
         'werden mit configuration_changed zurückgehalten.</dd>'

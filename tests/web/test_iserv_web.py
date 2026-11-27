@@ -42,8 +42,8 @@ def approve(profiled, diagnosed: bool = True):
             runtime.diagnostics.checks[name] = lambda _: ("ready", "")
             runtime.diagnostics.run(web.auth.sessions()[0].id, name, runtime.diagnostics.state().version,
                                     f"probe-{name.replace(':', '-')}-{uuid4().hex[:8]}")
-    form = web.form(ROUTE, action="/einrichtung/uebernehmen")
-    status = web.browser.request("POST", "/einrichtung/uebernehmen", {**form, "confirm": "yes"}).status
+    form = web.form(ROUTE, action="/einstellungen/postfaecher/uebernehmen")
+    status = web.browser.request("POST", "/einstellungen/postfaecher/uebernehmen", {**form, "confirm": "yes"}).status
     web.run()
     return status
 

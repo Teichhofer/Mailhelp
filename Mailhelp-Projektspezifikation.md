@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.7: Kundenmodus und Verbrauch in Punkten
 
-Stand 8.7.14, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
+Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch keine Kundenfreischaltung ([Release 8.7](docs/Release-8.7.md)).
 
 - **Instanzmodus.** `operator.yaml` neben `config.yaml` (Vorlage `operator.example.yaml`) mit `customer_mode` und
   `instance`. Mailhelp liest die Datei nur beim Start und schreibt sie nie. Eine ungültige Datei verhindert den Start.
@@ -38,6 +38,17 @@ Stand 8.7.14, nach [Planung 8.7](docs/Planung-8.7.md); noch keine Kundenfreischa
   höchstens 366 Tage), nach Schritt und Tag in der Instanzzeitzone. Nicht bewertbare Aufrufe werden gezählt
   („Bekannte Teilsumme“). Kunden sehen keine Geldwerte; der Betreiber sieht zusätzlich den gültigen Bewertungsstand.
   Aufrufe eines Lernlaufs tragen den Schritt `learning.<Schritt>` und erscheinen als „Aus dem Postfach lernen“.
+- **Postfachentwürfe übernehmen (8.7.15).** Die Seiten „Postfächer“, „Zielprofile“ und „IServ-Konten“ übernehmen
+  ihren Entwurf über `POST /einstellungen/postfaecher/uebernehmen` (Bestätigung, CSRF, Entwurfsversion, Dateistand,
+  Idempotenzschlüssel; derselbe Ablauf wie `/einrichtung/uebernehmen`), auch in einer Kundensitzung. Die Liste
+  `imap.mailboxes` zählt dabei nach ihren tatsächlich geänderten Blattfeldern (`imap.mailboxes.<Position>.<Feld>`);
+  ein hinzugefügtes oder entferntes eigenes Postfach zählt als `imap.mailboxes`. Für Kunden gelten dieselben
+  `CUSTOMER_FIELDS`; ein Entwurf mit Betreiberfeldern bleibt für Kunden gesperrt. Eine Diagnose verlangen nur
+  Verbindungsfelder (Host, Port, Verbindungsart, Ordner, Aktivierung, neue oder entfernte Postfächer, Kalender- und
+  Aufgabenziele); Bezeichnung und Postfachregeln (Signatur, Ruhezeiten, Kategorien, Aufbewahrung …) nicht. Fehlt eine
+  Prüfung, zeigt die Vorschau je Verbindung einen Knopf für `POST /einstellungen/postfaecher/pruefen`. Erlaubt sind
+  dort nur lesende Prüfungen eigener Verbindungen (`imap`, `calendar`, `todoist`, `calendar:<n>`, `tasks:<n>`), nie
+  der kostenpflichtige LLM-Test, Nachrichtentests, IServ oder Dateisystem.
 - **Einrichtungsprüfung und Trennung der Instanzen (8.7.9).** `mailhelp --check-instance` liest am Host (auch vor
   der Ersteinrichtung) `operator.yaml`, den gültigen Bewertungsstand, `config.yaml` und die gültigen Sitzungen dieser
   Instanz und meldet je Schritt OK, FEHLT oder HINWEIS: Kundenmodus, Bewertungsstand, Preisannahme für Lernläufe,

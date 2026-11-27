@@ -10,12 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import Settings, read_yaml
 from ..config.configuration import (
+    MAILBOX_POLICY_FIELDS,
     AdminCommand,
     AdminKind,
     ConfigurationConflict,
     ConfigurationService,
     SenderChange,
     apply_settings,
+    changed_fields,
     file_hash,
 )
 from ..config.notifications import effective_profile
@@ -57,6 +59,19 @@ DIAGNOSED = {"imap": ("imap.",),
              "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
                          "targets.microsoft_todo_list", "targets.google_tasks_list"),
              "iserv": ("iserv.",)}
+_MAILBOX_FIELD = re.compile(r"imap\.mailboxes\.[0-9]\.(.+)")
+
+
+def changes_connection(field: str, prefixes: tuple[str, ...]) -> bool:
+    """Whether *field* belongs to a diagnosed connection (8.7.15).
+
+    A mailbox's name and its policies (signature, quiet hours, categories, retention …) change no
+    connection; until 8.7.15 every ``imap.`` field needed an IMAP diagnosis, which customers cannot run.
+    """
+    if not field.startswith(prefixes):
+        return False
+    match = _MAILBOX_FIELD.fullmatch(field)
+    return match is None or not (match.group(1) == "label" or match.group(1) in MAILBOX_POLICY_FIELDS)
 
 
 class SetupService:
@@ -69,28 +84,41 @@ class SetupService:
     def diagnosis_gaps(self) -> list[str]:
         """Why the current draft cannot be approved yet; empty when the checks are current."""
         state = self.state()
-        return self._diagnosis_gaps(state) if state.kind == "settings" else []
+        return [reason for _name, reason in self._missing(state)] if state.kind == "settings" else []
+
+    def missing_checks(self) -> list[str]:
+        """8.7.15: the checks the current draft still needs, each once, in the order they are named."""
+        state = self.state()
+        names = [name for name, _reason in self._missing(state)] if state.kind == "settings" else []
+        return list(dict.fromkeys(names))
 
     def _diagnosis_gaps(self, state: SetupState) -> list[str]:
+        return [reason for _name, reason in self._missing(state)]
+
+    def _missing(self, state: SetupState) -> list[tuple[str, str]]:
         diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
         fingerprint = self.fingerprint()
         gaps = []
+        changed = self._changed_fields(state.patch)
         for name, prefixes in DIAGNOSED.items():
-            if any(field.startswith(prefixes) for field in state.patch):
+            if any(changes_connection(field, prefixes) for field in changed):
                 result = diagnostics.results.get(name)
                 # Without enabled IServ accounts the check reports "disabled", e.g. after removing the last.
                 accepted = {"ready", "limited", "disabled"} if name == "iserv" else {"ready", "limited"}
                 if result is None or result.status not in accepted or result.config_revision != fingerprint:
-                    gaps.append("Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose")
-        if "target_profiles" in state.patch or "imap.mailboxes" in state.patch or any(
-                name.endswith(".target_profile") for name in state.patch):
+                    gaps.append((name, "Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose"))
+        if "target_profiles" in changed or "imap.mailboxes" in changed or any(
+                name.endswith(".target_profile") for name in changed):
             for number in active_profiles(self.draft_settings()):
                 components = ("calendar", "todoist") if number == 1 else (f"calendar:{number}", f"tasks:{number}")
                 for name in components:
                     result = diagnostics.results.get(name)
                     if result is None or result.status != "ready" or result.config_revision != fingerprint:
-                        gaps.append("Zielprofil benötigt eine aktuelle erfolgreiche Diagnose")
+                        gaps.append((name, "Zielprofil benötigt eine aktuelle erfolgreiche Diagnose"))
         return gaps
+
+    def _changed_fields(self, patch: dict[str, Any]) -> list[str]:
+        return changed_fields(patch, self.configuration.configured_mailboxes())
 
     def draft_settings(self) -> Settings:
         state = self.state()

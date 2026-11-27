@@ -1,14 +1,13 @@
 # Mailhelp 8.7 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.7.14. Grundlage: [Planung 8.7](Planung-8.7.md) und
+Stand: 27. November 2026. Version 8.7.15. Grundlage: [Planung 8.7](Planung-8.7.md) und
 [Lernen in Punkten](Planung-8.7-Lernen.md).
 
-> **Noch keine Kundenfreischaltung.** 8.7.1 liefert Rollen, zentrale Rechteprüfung und die
-> Verbrauchserfassung in Punkten. Die rechtegerechten Kundenansichten aller Einstellungs- und
-> Kostenseiten (AP4) fehlen noch. Kundenseiten, die noch nicht umgestellt sind, sperrt die zentrale
-> Prüfung für Kundensitzungen vollständig. Laut Plan §9 darf erst nach Abschluss von AP4–AP6 eine
-> Instanz für Kunden freigeschaltet werden. Seit 8.7.4 sind die Lernwege in Punkten umgestellt und für
-> Kundensitzungen freigegeben; Berichte und Einstellungsseiten folgen.
+> **Plan abgeschlossen, noch keine Kundenfreischaltung.** AP1–AP7 sind umgesetzt (8.7.1–8.7.15), alle
+> Abnahmeszenarien aus Plan §10 sind automatisiert mit synthetischen Daten bestanden. Auf Entscheidung des
+> Betreibers vom 27.11.2026 entfallen alle Schritte, die eine manuelle Eingabe erfordern (siehe „Entfallen“).
+> Abnahme 3 ist deshalb automatisiert geprüft. Dabei fiel ein Fehler auf, den 8.7.15 behebt. Eine Instanz wird
+> erst freigeschaltet, wenn der Betreiber das ausdrücklich veranlasst (Plan §8).
 
 ## Umgesetzt in 8.7.1
 
@@ -167,6 +166,37 @@ Median unter 100 ms); lokal hält er sie. Die Grenze bleibt unverändert, bis de
 
 Test: `test_the_accept_budget_is_strict_locally_and_looser_only_on_hosted_runners`.
 
+## Umgesetzt in 8.7.15 – Abnahme 3: Kunden übernehmen eigene Postfachentwürfe
+
+| Thema | Umsetzung |
+| --- | --- |
+| Befund | Ein Kunde konnte Postfach-, Benachrichtigungs- und Zielentwürfe speichern, aber nie übernehmen: Die Vorschau schickte die Übernahme an `/einrichtung/uebernehmen` (für Kunden 403). Jedes `imap.`-Feld, auch eine Ruhezeit, verlangte eine IMAP-Diagnose auf `/diagnose`, die Kunden nicht öffnen dürfen. Die Rechteprüfung lehnte die ganze Liste `imap.mailboxes` ab, weil sie kein Kundenfeld ist |
+| Übernahme | `POST /einstellungen/postfaecher/uebernehmen` mit demselben Ablauf wie `/einrichtung/uebernehmen` (Bestätigung, CSRF, Version, Dateistand, Idempotenz, Ausführung erst im Hauptablauf) |
+| Rechte | `imap.mailboxes` zählt nach den tatsächlich geänderten Blattfeldern; Kunden dürfen nur `CUSTOMER_FIELDS` ändern und eigene Postfächer hinzufügen oder entfernen. Ein Entwurf des Betreibers mit Betreiberfeldern bleibt für Kunden gesperrt (bei der Ausführung abgelehnt, Entwurf bleibt erhalten) |
+| Diagnose | Nur Verbindungsfelder verlangen eine Diagnose, Postfachregeln und Bezeichnung nicht. Fehlende Prüfungen eigener Verbindungen startet die Vorschau selbst (`/einstellungen/postfaecher/pruefen`, nur `imap`, `calendar`, `todoist`, `calendar:<n>`, `tasks:<n>`; lesend, kein LLM-Test) |
+
+Tests: `tests/web/test_customer_acceptance_3.py` (Regressionstest schlägt mit 8.7.14 fehl).
+
+Prüfung am 27.11.2026 (lokal, Windows 11, 12 Threads): `python -m devtools.check full --workers 12` mit 6.664
+bestandenen Tests und 100 % Zeilen- und Branch-Abdeckung. Rot blieb nur
+`tests/evaluation/test_prompt_gate.py`, und zwar wegen der noch nicht versionierten Promptentwürfe für 8.9 in
+`prompts.yaml`, die nicht zu 8.7.15 gehören. Lasttests einzeln bestanden (4), ruff und mypy ohne Befund. Browsersuite
+`python -m pytest ui_tests -n 6 --dist worksteal --no-cov`: 1.013 bestanden, 234 übersprungen, JavaScript-Abdeckung
+100 %. Das Kriterium der Prüfstabilität („zwei Vollprüfungen und eine Browsersuite hintereinander ohne Wiederholung
+grün“) ist damit nicht formal belegt. Die erste Vollprüfung scheiterte an einer verschobenen Hilfekennung in
+`docs/Betrieb.md` (behoben), die zweite am fremden Promptentwurf. Keine Wiederholung eines Tests war nötig.
+
+## Entfallen (Betreiberentscheidung 27.11.2026)
+
+Folgende Schritte erfordern eine manuelle Eingabe des Betreibers und entfallen für den Abschluss von 8.7. Sie sind
+nicht als bestanden zu lesen:
+
+| Schritt | Ersatz |
+| --- | --- |
+| Ersteinrichtung von `kunde` mit eigenem OpenRouter-Schlüssel, Betreiber- und Kundenkopplung, synthetisches Postfach (AP5) | Einrichtungsprüfung und Trennung automatisiert (8.7.9, `tests/web/test_instance_isolation.py`); `kunde` bleibt im Ersteinrichtungsmodus |
+| Abnahme 3 vor Ort auf `kunde` (AP6) | Automatisiert in der Kundensitzung (8.7.15) |
+| Echter Lernlauf in Punkten mit Kostenabgleich gegen OpenRouter (AP6) | Lernen in Punkten automatisiert mit simuliertem Anbieter (`tests/services/test_learning_points.py`); Preisannahme aus Produktionslogs ([Plan](Planung-8.7-Lernen.md) §4.5) |
+
 ## Prüfung
 
 | Nr. (Plan §10) | Szenario | Ergebnis |
@@ -192,7 +222,7 @@ Test: `test_the_accept_budget_is_strict_locally_and_looser_only_on_hosted_runner
 | 14 (Hilfe) | Freigegebene Hilfeabschnitte DE/EN, Hilfeindex, Chatquellen | Keine Geldbegriffe; Betreiberabschnitte 404 (`tests/unit/test_help_roles.py`, `tests/web/test_customer_help.py`) |
 | 16 (zwei Instanzen) | Vertauschte Cookies, Codes und Referenzen zwischen zwei Instanzen mit eigenem Zustand | Nur in der eigenen Instanz wirksam (`tests/web/test_instance_isolation.py`) |
 | 15, 17, 19, 20 | Siehe 8.7.10 | Bestanden (`tests/web/test_customer_acceptance.py`) |
-| 3 | Eigene Postfächer, Ziele, Themen, Benachrichtigungen auf `kunde` | Offen bis zur Ersteinrichtung durch den Betreiber |
+| 3 | Eigene Postfächer, Ziele, Themen, Benachrichtigungen in einer Kundensitzung | Nur nach Bestätigung übernommen, Wiederholung ohne Doppelwirkung, Prüfung eigener Verbindungen ohne Betreiberweg (`tests/web/test_customer_acceptance_3.py`, 8.7.15); vor Ort auf `kunde` entfallen |
 
 ## Auslieferung
 
