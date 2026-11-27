@@ -103,6 +103,9 @@ If a property is later missing or its type changes, Mailhelp blocks new creation
 3. **Check access**: Mailhelp checks in read-only mode whether the address is a calendar collection and accepts the
    matching entry type.
 
+In a customer instance the operator stores the credentials. You enter the addresses in the target profile and check
+them with **Check own connections** on the target profiles page.
+
 ## Switch target safely <!-- mailhelp-id:ziele-einrichten/ziel-sicher-wechseln -->
 
 A changed target applies to new Proposals. Proposals already displayed remain bound to the target for which they were created; after a target switch, Mailhelp locks their creation and requires a new confirmation. A target profile can only be removed when no Mailbox uses it anymore. Instructions for assignment: [Manage accounts](Konten-verwalten.md).

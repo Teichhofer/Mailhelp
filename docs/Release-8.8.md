@@ -1,8 +1,8 @@
 # Mailhelp 8.8 – Umsetzung und Freigabestand
 
-Stand: 27. November 2026. Version 8.8.6. Grundlage: [Planung 8.8](Planung-8.8.md).
+Stand: 27. November 2026. Version 8.8.7. Grundlage: [Planung 8.8](Planung-8.8.md).
 
-> **In Umsetzung.** AP1–AP7 sind mit 8.8.1–8.8.6 umgesetzt; AP8 (Abschluss) ist offen. Nicht ausgeliefert: `kunde` läuft mit
+> **Plan abgeschlossen, nicht ausgeliefert.** AP1–AP8 sind mit 8.8.1–8.8.7 umgesetzt. Nicht ausgeliefert: `kunde` läuft mit
 > 8.7.15, Produktion und Demo laufen mit 8.5.4.
 
 ## Umgesetzt in 8.8.1 – AP1 Gehostete OAuth-Routen im Kundenmodus
@@ -77,7 +77,41 @@ Aufschläge, `.env`-Hinweise oder Schlüsselnamen. Befund und Fix: `/hilfe/googl
 `.env`-Einträgen) ist keine Kundenroute mehr. Den Demo-Crawler und die Teilmengenprüfung `DEMO ⊆ CUSTOMER` enthält
 `tests/web/test_demo_customer_view.py`.
 
-## Offen
+## Umgesetzt in 8.8.7 – AP8 Abschluss
 
-AP8 Abschluss: Hilfeseiten (Web-Einstellungen, Ziele einrichten) gegenprüfen, Vollprüfung und Browsersuite ohne
-Fehler hintereinander, Status der Planung auf „abgeschlossen“. Keine Auslieferung ohne ausdrückliche Freigabe.
+Die Kundenhilfe nannte bei Zielen und Verbindungsproblemen nur **Zugriffe prüfen** (`/diagnose`, für Kunden gesperrt)
+und das Hinterlegen von Zugangsdaten. „Weitere Ziele“, „Wenn etwas nicht klappt“ und „CalDAV und Apple Erinnerungen“
+nennen jetzt in Deutsch und Englisch **Eigene Verbindungen prüfen** und dass der Betreiber die Zugangsdaten hinterlegt.
+
+## Abnahme (Plan §5)
+
+| Nr. | Szenario | Nachweis |
+| --- | --- | --- |
+| 1 | Google über Inboxstride als Kunde | `tests/web/test_customer_oauth.py` (vollständiger Ablauf, Rückweg auf Zielprofile) |
+| 2 | Microsoft, Notion, Postfach-OAuth, `/auth/status/<id>` | `test_customer_oauth.py` (Schritte, Konsistenz aller Anmelderouten, Postfachanmeldung mit Konfigurationstransaktion) |
+| 3 | `/einstellungen/allgemein` | `tests/web/test_customer_general.py` (Prüfseite, Bestätigung, Sprach-Cookie, kein Schreibzugriff auf Ziele) |
+| 4 | Neustart-Hinweis auf allen Seiten | `tests/web/test_restart_banner.py` (sechs Seiten, verschwindet nach dem Neustart) |
+| 5 | Neustart erlaubt, Beenden gesperrt | `test_restart_banner.py` |
+| 6 | Betreiberfeld bzw. `POST /einstellungen/speichern` | `test_customer_general.py::test_acceptance_6_*`, Aktivierungsgrenzen in `test_customer_oauth.py` |
+| 7 | Eigene Verbindungen prüfen, Doppelklick, Zeitlimit | `tests/web/test_own_checks.py` |
+| 8 | Betreiberrouten für Kunden | `tests/web/test_customer_mode.py`, `tests/web/test_customer_crawl.py` |
+| 9 | Demo-Seiten, Infokarten, Beispiel-Verbrauch | `tests/web/test_demo_customer_view.py`; Abweichung: Themen bleiben Infokarte (8.8.6) |
+| 10 | Demo-Sperren mit 403 | `tests/web/test_demo_site.py` (erweiterte Liste, kein 503 mehr) |
+| 11 | Link- und Paritäts-Crawler DE/EN | `test_customer_crawl.py`, `test_demo_customer_view.py` (`DEMO ⊆ CUSTOMER`) |
+| 12 | Vollprüfung und Browsersuite | siehe „Prüfergebnis“ |
+
+## Prüfergebnis
+
+Je Version Vollprüfung (`python -m devtools.check full --workers 12`) mit 100 % Zeilen- und Branch-Abdeckung,
+Lasttests einzeln und Browsersuite (`ui_tests -n 6`, JavaScript-Abdeckung 100 %). Rot war in jeder Vollprüfung nur
+`tests/evaluation/test_prompt_gate.py`, wegen nicht committeter Promptentwürfe für 8.9 im Arbeitsverzeichnis (nicht Teil
+von 8.8). Sporadisch: ein Verbindungsabbruch in `test_ui_mailbox_oauth` (8.8.2, einzeln und parallel wiederholt grün).
+Prüflauf 8.8.7 (27.11.2026, nacheinander): Vollprüfung 6.711 bestanden, 1 übersprungen, 100 % Zeilen- und
+Branch-Abdeckung, rot nur `test_prompt_gate` (s. o.); Lasttests 4 bestanden; Browsersuite 1.013 bestanden,
+234 übersprungen, JavaScript-Abdeckung 100 %.
+
+## Auslieferung
+
+Nicht ausgeliefert. `kunde` läuft mit 8.7.15, Produktion und Demo mit 8.5.4. Bei der Auslieferung der Demo prüfen
+Rauchtests Kundenrouten (`/`, `/offen`, `/verbrauch`, `/einstellungen`), weil `/status` dort 403 liefert; laufende
+Demo-Besuchersitzungen enden beim ersten Start einmalig.

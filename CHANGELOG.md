@@ -1,5 +1,10 @@
 # Änderungen
 
+## 8.8.7 – Abschluss Planung 8.8 (AP8)
+
+- Hilfe: „Weitere Ziele“, „Wenn etwas nicht klappt“ und „CalDAV und Apple Erinnerungen“ verwiesen Kunden nur auf **Zugriffe prüfen** (`/diagnose`, für Kunden gesperrt) bzw. auf das Hinterlegen von Zugangsdaten. Sie nennen jetzt in Deutsch und Englisch den Kundenweg **Eigene Verbindungen prüfen** und dass der Betreiber die Zugangsdaten hinterlegt.
+- Plan 8.8 abgeschlossen: Abnahmeszenarien 1–12 automatisiert (Zuordnung in `docs/Release-8.8.md`), Vollprüfung und Browsersuite grün. Keine Auslieferung; `kunde` läuft mit 8.7.15, Produktion und Demo mit 8.5.4.
+
 ## 8.8.6 – Beispiel-Verbrauch in der Demo und Kunden-Crawler (Planung 8.8 AP5 und AP7)
 
 - Bugfix: `/verbrauch` meldete in der Demo „Die Verbrauchserfassung ist für diese Instanz noch nicht eingerichtet.“ Jetzt zeigt die Seite einen festen Beispielsatz (`SAMPLE_USAGE`) in Punkten mit demselben Aufbau wie die echte Seite: Gesamtwert, nach Verarbeitungsschritt und nach Tag, deutlich als Beispiel markiert. Kein Ledger, keine Preise oder Wechselkurse; Deutsch und Englisch zeigen dieselben Werte.

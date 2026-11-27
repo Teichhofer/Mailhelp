@@ -67,7 +67,8 @@ Profile 1 is the target from the initial setup (**Edit default profile 1**). Add
 2. Enter the identifiers; for Google or Microsoft, sign in via **Connect Google** or
    **Connect Microsoft** and for Google **Select Google Calendar** or
    **Select Google Tasks list**. The target selection is saved as a setup draft.
-3. **Check accesses**: The diagnostic only reads and creates nothing.
+3. **Check accesses**: The diagnostic only reads and creates nothing. In a customer instance choose
+   **Check own connections** on the target profiles page instead (since 8.8.4).
 4. Check the draft and take it.
 
 ## Change, deactivate, and remove <!-- mailhelp-id:konten-verwalten/aendern-deaktivieren-und-entfernen -->
@@ -98,5 +99,5 @@ possible a few seconds after the last one.
 | “There are already … Mailboxes set up.” | Remove or change an existing Mailbox |
 | Check reports incorrect login credentials | Username is usually the full Address; with two-factor protection use an app password |
 | Folder missing | Enter the folder name exactly as the server reports it; the check shows the found list |
-| Target unreachable | **Check access**; for Google or Microsoft, renew the sign-in |
+| Target unreachable | **Check access** (in a customer instance **Check own connections**); for Google or Microsoft, renew the sign-in |
 | Target profile cannot be removed | First assign Mailboxes listed under “Used by” to another profile |

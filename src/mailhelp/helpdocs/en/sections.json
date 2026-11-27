@@ -1025,7 +1025,7 @@
   ],
   "setting_ids": [],
   "source": "docs/en/Konten-verwalten.md",
-  "text": "Profile 1 is the target from the initial setup (**Edit default profile 1**). Additional profiles\n(number 2–99) under **Settings → Target profiles**:\n\n1. **Add target profile**, choose designation, calendar service (Google, CalDAV, Outlook) and\n   task service (Todoist, Microsoft To Do, CalDAV, Apple Reminders).\n2. Enter the identifiers; for Google or Microsoft, sign in via **Connect Google** or\n   **Connect Microsoft** and for Google **Select Google Calendar** or\n   **Select Google Tasks list**. The target selection is saved as a setup draft.\n3. **Check accesses**: The diagnostic only reads and creates nothing.\n4. Check the draft and take it.",
+  "text": "Profile 1 is the target from the initial setup (**Edit default profile 1**). Additional profiles\n(number 2–99) under **Settings → Target profiles**:\n\n1. **Add target profile**, choose designation, calendar service (Google, CalDAV, Outlook) and\n   task service (Todoist, Microsoft To Do, CalDAV, Apple Reminders).\n2. Enter the identifiers; for Google or Microsoft, sign in via **Connect Google** or\n   **Connect Microsoft** and for Google **Select Google Calendar** or\n   **Select Google Tasks list**. The target selection is saved as a setup draft.\n3. **Check accesses**: The diagnostic only reads and creates nothing. In a customer instance choose\n   **Check own connections** on the target profiles page instead (since 8.8.4).\n4. Check the draft and take it.",
   "title": "Additional targets (Calendars and task lists)"
  },
  {
@@ -1047,7 +1047,7 @@
   ],
   "setting_ids": [],
   "source": "docs/en/Konten-verwalten.md",
-  "text": "For a rejected mailbox OAuth sign-in, “Reconnect mailbox” in the warning opens the\naffected Google or Microsoft mailbox. Restart the flow after a configuration or\ncredential change. For iCloud, start with the suggested name before `@`; if sign-in\nfails, try the full iCloud address as described in Apple's instructions.\n\n**Check own connections** (since 8.8.4, on **Mailboxes** and **Target profiles**) checks all own\nmailboxes, calendars and task lists read-only. Each connection then shows \"reachable\", \"Renew sign-in\",\n\"temporarily unreachable\", \"Check the setting\" or \"not set up\". Nothing is created or sent. A new check is\npossible a few seconds after the last one.\n\n| Situation | Next Stage |\n| --- | --- |\n| “There are already … Mailboxes set up.” | Remove or change an existing Mailbox |\n| Check reports incorrect login credentials | Username is usually the full Address; with two-factor protection use an app password |\n| Folder missing | Enter the folder name exactly as the server reports it; the check shows the found list |\n| Target unreachable | **Check access**; for Google or Microsoft, renew the sign-in |\n| Target profile cannot be removed | First assign Mailboxes listed under “Used by” to another profile |",
+  "text": "For a rejected mailbox OAuth sign-in, “Reconnect mailbox” in the warning opens the\naffected Google or Microsoft mailbox. Restart the flow after a configuration or\ncredential change. For iCloud, start with the suggested name before `@`; if sign-in\nfails, try the full iCloud address as described in Apple's instructions.\n\n**Check own connections** (since 8.8.4, on **Mailboxes** and **Target profiles**) checks all own\nmailboxes, calendars and task lists read-only. Each connection then shows \"reachable\", \"Renew sign-in\",\n\"temporarily unreachable\", \"Check the setting\" or \"not set up\". Nothing is created or sent. A new check is\npossible a few seconds after the last one.\n\n| Situation | Next Stage |\n| --- | --- |\n| “There are already … Mailboxes set up.” | Remove or change an existing Mailbox |\n| Check reports incorrect login credentials | Username is usually the full Address; with two-factor protection use an app password |\n| Folder missing | Enter the folder name exactly as the server reports it; the check shows the found list |\n| Target unreachable | **Check access** (in a customer instance **Check own connections**); for Google or Microsoft, renew the sign-in |\n| Target profile cannot be removed | First assign Mailboxes listed under “Used by” to another profile |",
   "title": "If something does not work"
  },
  {
@@ -1138,7 +1138,7 @@
   ],
   "setting_ids": [],
   "source": "docs/en/Ziele-einrichten.md",
-  "text": "1. Store `CALDAV_USERNAME` and `CALDAV_PASSWORD`; for iCloud, use an app password.\n2. Enter the **CalDAV calendar address** or **CalDAV task address** as the full address of the\n   collection.\n3. **Check access**: Mailhelp checks in read-only mode whether the address is a calendar collection and accepts the\n   matching entry type.",
+  "text": "1. Store `CALDAV_USERNAME` and `CALDAV_PASSWORD`; for iCloud, use an app password.\n2. Enter the **CalDAV calendar address** or **CalDAV task address** as the full address of the\n   collection.\n3. **Check access**: Mailhelp checks in read-only mode whether the address is a calendar collection and accepts the\n   matching entry type.\n\nIn a customer instance the operator stores the credentials. You enter the addresses in the target profile and check\nthem with **Check own connections** on the target profiles page.",
   "title": "CalDAV and Apple Reminders"
  },
  {

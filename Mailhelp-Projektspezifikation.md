@@ -5,7 +5,7 @@ Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
-Nach [Planung 8.8](docs/Planung-8.8.md) AP1. Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele
+Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele
 und Postfächer aufrufen (`/google/verbinden`, `/google/kalender`, `/google/kalender/wechseln`, `/google/trennen`,
 `/microsoft|notion/verbinden|ziele|trennen`, `/postfach/oauth`, `/postfach/oauth/ordner`, `/postfach/oauth/trennen`,
 `POST /einrichtung/postfach/abschluss`, `GET /auth/status/<64 Hex>`). Jeder Schritt verlangt weiterhin Sitzung und

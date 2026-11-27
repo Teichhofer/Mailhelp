@@ -125,6 +125,9 @@ erledigte Notion-Aufgaben nicht erkennen.
 3. **Zugriffe prüfen**: Mailhelp prüft lesend, ob die Adresse eine Kalendersammlung ist und den
    passenden Eintragstyp annimmt.
 
+In einer Kundeninstanz hinterlegt der Betreiber die Zugangsdaten. Die Adressen trägst du im Zielprofil ein
+und prüfst sie mit **Eigene Verbindungen prüfen** auf der Zielprofilseite.
+
 ## Ziel sicher wechseln
 
 Ein geändertes Ziel gilt für neue Vorschläge. Bereits angezeigte Vorschläge bleiben an das Ziel

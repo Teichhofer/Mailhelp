@@ -84,7 +84,8 @@ Profil 1 ist das Ziel aus der Ersteinrichtung (**Standardprofil 1 bearbeiten**).
 2. Die Kennungen eintragen; bei Google bzw. Microsoft über **Google verbinden** bzw.
    **Microsoft verbinden** anmelden und bei Google **Google-Kalender auswählen** beziehungsweise
    **Google-Tasks-Liste auswählen**. Die Zielauswahl wird als Einrichtungsentwurf gespeichert.
-3. **Zugriffe prüfen**: Die Diagnose liest nur und legt nichts an.
+3. **Zugriffe prüfen**: Die Diagnose liest nur und legt nichts an. In einer Kundeninstanz stattdessen
+   **Eigene Verbindungen prüfen** auf der Zielprofilseite wählen (seit 8.8.4).
 4. Den Entwurf prüfen und übernehmen.
 
 ## Ändern, deaktivieren und entfernen
@@ -116,5 +117,5 @@ angelegt oder gesendet. Nach einer Prüfung ist eine neue erst nach einigen Seku
 | „Es sind bereits … Postfächer eingerichtet.“ | Ein vorhandenes Postfach entfernen oder ändern |
 | Prüfung meldet falsche Anmeldedaten | Benutzername meist die vollständige Adresse; bei Zwei-Faktor-Schutz ein App-Passwort verwenden |
 | Ordner fehlt | Ordnernamen genau so eintragen, wie der Server sie meldet; die Prüfung zeigt die gefundene Liste |
-| Ziel nicht erreichbar | **Zugriffe prüfen**; bei Google oder Microsoft die Anmeldung erneuern |
+| Ziel nicht erreichbar | **Zugriffe prüfen** (in einer Kundeninstanz **Eigene Verbindungen prüfen**); bei Google oder Microsoft die Anmeldung erneuern |
 | Zielprofil lässt sich nicht entfernen | Unter „Verwendet von“ genannte Postfächer erst einem anderen Profil zuordnen |
