@@ -40,6 +40,8 @@ behält die Quellenstelle (auch nach Neustart und erneuter Verarbeitung), eine b
 eine Antwort ohne neuen Tag (etwa nur eine Endzeit) lässt die Frage offen. „Wochentag, den TT.MM.JJJJ“ ist ein
 unterstütztes Datumsformat. Bestehende externe Termine werden nicht nachträglich geändert.
 
+**Suchlatenz und Berichtsimport (8.9.4, AP5).** Die Grenze der Sofortsuche bleibt 95 von 100 Suchläufen in 300 ms im vollständigen Browserlauf, gemessen ab dem Eingabeereignis (Betreiberentscheidung vom 28.11.2026); der Test weist zusätzlich Wartezeit (150 ms Debounce), Anfrage und Darstellung aus der Resource Timing API sowie die Python-Wanduhr aus und nennt sie bei einer Überschreitung. `mailhelp-quality-report` liest Berichte von `mailhelp-evaluate` direkt.
+
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
 Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele

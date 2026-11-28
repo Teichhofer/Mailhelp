@@ -90,8 +90,13 @@ def case_source(case: dict[str, Any], timezone_name: str) -> tuple[str, MailDate
     return mail_source(mail), mail_context(mail)
 
 
+# 8.9.4: articles, prepositions and possessives do not name a place ("meinem Büro" ~ "Büro von Jonas Weber").
+_PLACE_FILLERS = frozenset("in im am an der die das dem den des mein meinem meinen meiner meines dein deinem deinen "
+                           "deiner ihr ihrem ihren ihrer unser unserem unseren unserer euer eurem".split())
+
+
 def _place(value: str | None) -> frozenset[str] | None:
-    return None if value is None else frozenset(normalize(value).replace(",", " ").split()) - {"in", "der", "im"}
+    return None if value is None else frozenset(normalize(value).replace(",", " ").split()) - _PLACE_FILLERS
 
 
 def task_facts(task: ExtractedTask, context: MailDateContext) -> dict[str, Any]:
@@ -286,11 +291,21 @@ def gate(after: dict[str, Any], baseline: dict[str, Any], before: dict[str, Any]
     return reasons
 
 
+def answers_from_run(run: dict[str, Any]) -> dict[str, Any]:
+    """8.9.6: the answers of a ``mailhelp-evaluate`` report: each case's observed outputs, or its technical error.
+
+    A case the run did not reach (budget used up) has no answer and counts as a technical failure.
+    """
+    return {case["id"]: {"error": case["error"]} if case["error"] else {"result": case["review_outputs"]}
+            for case in run["cases"]}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Erkennungsqualität getrennt nach Aufgaben und Terminen.")
     parser.add_argument("corpus", type=Path)
     parser.add_argument("answers", type=Path,
-                        help="JSON: Fall-ID → {result: …} oder {error: …}, auch unter dem Schlüssel answers")
+                        help="JSON: Fall-ID → {result: …} oder {error: …}, auch unter dem Schlüssel answers, "
+                             "oder ein Bericht von mailhelp-evaluate")
     parser.add_argument("output", type=Path)
     parser.add_argument("--source", choices=["recorded", "model"], default="recorded")
     parser.add_argument("--baseline", type=Path, help="eingefrorene Baseline; Abbruch mit 1 bei Verstoß")
@@ -298,8 +313,10 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     corpus = json.loads(arguments.corpus.read_text(encoding="utf-8"))
     answers = json.loads(arguments.answers.read_text(encoding="utf-8"))
-    # A recorded file documents its answers next to a description.
+    # A recorded file documents its answers next to a description; an evaluation report carries them per case.
     answers = answers.get("answers", answers)
+    if isinstance(answers.get("cases"), list) and "prompt_fingerprint" in answers:
+        answers = answers_from_run(answers)
     result = report(corpus, answers, arguments.source)
     arguments.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(result["statement"])

@@ -13,13 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.9.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.9.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Geplant für [Version 9.0](docs/Planung-9.0.md): Erfolgreiche Anmeldungen bei
 Google, Microsoft, Notion und weiteren unterstützten OAuth-Anbietern aktivieren
 den jeweiligen Zugang direkt, ohne zusätzliche Entwurfsübernahme oder manuellen
 Neustart. Notwendige Zielauswahl und ausdrückliche Freigaben von Kalender- und
 Aufgabenaktionen bleiben erhalten. Noch nicht umgesetzt oder bereitgestellt.
+
+Version 8.9.4: Der Latenztest der Sofortsuche zeigt, wo die Zeit bleibt; der Qualitätsbericht liest Evaluationsberichte direkt und vergleicht Orte ohne Füllwörter.
 
 Version 8.9.3: Widerspricht ein in der Mail genannter Wochentag dem Datum, fragt Mailhelp zuerst nach dem richtigen Tag, auch wenn die KI den Wochentag weggelassen hat; Zitate älterer Mails zählen dabei nicht.
 

@@ -278,7 +278,7 @@ Ende-zu-Ende-Verlusten, fehlender Relevanzstufe und Berichten eines anderen Bewe
 des Falls, Zeitangaben der Zusammenfassung nach Tag, Uhrzeit und Wortlaut (jede zusätzliche Angabe
 muss in der Quelle stehen) und die Extraktionen über die Aktionsidentität; `end_to_end_lost` nennt
 die Fälle, die der Relevanzfilter beenden würde. Ältere Berichte bleiben nach ihrem Vertrag gültig
-und werden nicht mit v5-Messungen verglichen.
+und werden nicht mit v5-Messungen verglichen. Seit 8.9.4 liest `mailhelp-quality-report` als `ANTWORTEN` auch einen Bericht von `mailhelp-evaluate` direkt (beobachtete Ausgaben je Fall, Fehler als technischer Ausfall); Ortsangaben werden ohne Artikel, Präpositionen und Possessivpronomen verglichen.
 
 Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
 Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche

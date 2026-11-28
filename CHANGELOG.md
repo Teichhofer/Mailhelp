@@ -11,6 +11,13 @@
   Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
   Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
 
+## 8.9.4 – Latenzphasen und Berichtsimport (Planung 8.9 AP5)
+
+- AP5: Der Latenztest der Sofortsuche weist Wartezeit, Anfrage und Darstellung (Resource Timing) sowie die Python-Wanduhr aus; die Grenze bleibt 95 von 100 in 300 ms ab dem Eingabeereignis (Entscheidung des Betreibers vom 28.11.2026). Die JavaScript-Abdeckung ist seit 8.7.11 vollständig.
+- Bugfix: Der Qualitätsbericht wertete „meinem Büro“ gegen „Büro von Jonas Weber“ als falschen Ort (Vorher-Messung vom 28.11.2026, Fall 08). Ortsangaben werden ohne Artikel, Präpositionen und Possessivpronomen verglichen; „Raum 12“ bleibt verschieden von „Raum 14“.
+- Neu: `mailhelp-quality-report` liest einen Bericht von `mailhelp-evaluate` direkt (`answers_from_run`).
+- Regressionstests: `tests/evaluation/test_quality_report_runs.py`.
+
 ## 8.9.3 – Wochentag der Quelle bleibt erhalten (Planung 8.9 AP3)
 
 - Bugfix (Auditfall 45): Stand in der Mail „Dienstag, den 19.11.2026“ (ein Donnerstag) und lieferte die Extraktion nur „19.11.2026“ mit `certain`, fragte Mailhelp nur nach der Endzeit und übernahm den 19.11. als bekanntes Datum. Jetzt prüft die Anwendung den Wochentag selbst an der aktuellen Quellenstelle (Mailtext ohne Zitat und Anhänge) und fragt zuerst nach dem Datum; das gilt für einzelne Termine, Zeiträume und Aufgabenfristen. Zitate, Kopfzeilen und andere Tabellenzeilen erzeugen keinen Widerspruch.

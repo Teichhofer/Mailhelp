@@ -1,6 +1,7 @@
 """Planung 5.3, step H4: live search below the settings search field."""
 import json
 import re
+import time
 
 import pytest
 from playwright.sync_api import expect
@@ -23,6 +24,20 @@ MEASURE = """() => {
     }
   }).observe(list, {attributes: true, childList: true});
 }"""
+# 8.9.5 (Planung 8.9 AP5): the phases of one search from the browser's resource timing: waiting for the debounce,
+# request and server answer, and drawing the results.
+PHASES = """(state) => {
+  const entry = performance.getEntriesByType("resource").filter(
+    (item) => item.name.includes("/api/einstellungen/suche") && item.startTime >= state.start).pop();
+  return entry ? {debounce: entry.startTime - state.start, request: entry.responseEnd - entry.startTime,
+                  render: state.end - entry.responseEnd} : null;
+}"""
+
+
+def summary(values):
+    ordered = sorted(values)
+    return {"median_ms": round(ordered[len(ordered) // 2], 1),
+            "p95_ms": round(ordered[int(len(ordered) * 0.95) - 1], 1)}
 
 
 def open_settings(page, mailhelp):
@@ -103,18 +118,27 @@ def test_results_are_visible_within_300_ms_in_95_percent_of_100_searches(page, m
     page.evaluate(MEASURE)
     terms = ["Zeitzone", "Aufbewahrung", "Telegram Benutzer", "KI", "Abruf", "Postfach", "Protokoll",
              "Zeitlimit imap", "Bild", "Kosten"]
-    durations = []
+    durations, phases, walls = [], {"debounce": [], "request": [], "render": []}, []
     for number in range(100):
         term = terms[number % len(terms)]
         field.fill("")
         expect(results).to_be_hidden()
+        started = time.perf_counter()
         field.fill(term)
         expect(results.locator("li").first).to_be_visible()
         expect(results).to_have_attribute("data-query", term)
+        walls.append((time.perf_counter() - started) * 1000)
         measured = page.evaluate("window.__liveSearch")
         assert measured["query"] == term and measured["end"], measured
         durations.append(measured["end"] - measured["start"])
+        split = page.evaluate(PHASES, measured)
+        assert split is not None, term  # every search reached the endpoint
+        for name, value in split.items():
+            phases[name].append(value)
     fast = sum(duration <= 300 for duration in durations)
-    print(f"LIVE_SEARCH_LATENCY {{\"runs\": 100, \"within_300_ms\": {fast}, "
-          f"\"median_ms\": {sorted(durations)[50]:.1f}, \"p95_ms\": {sorted(durations)[94]:.1f}}}")
-    assert fast >= 95
+    # The wall clock in Python adds Playwright's round trips; it is reported, the limit applies to the page.
+    report = {"runs": 100, "within_300_ms": fast, **summary(durations),
+              "phases": {name: summary(values) for name, values in phases.items()},
+              "python_wall_clock": summary(walls)}
+    print("LIVE_SEARCH_LATENCY", json.dumps(report))
+    assert fast >= 95, report
