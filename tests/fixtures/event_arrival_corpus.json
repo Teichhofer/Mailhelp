@@ -1,0 +1,308 @@
+{
+  "schema_version": 3,
+  "description": "Synthetische Anwesenheitszeiten; keine Produktionsmails oder Kundendaten.",
+  "user_timezone": "Europe/Berlin",
+  "topics": [
+    {
+      "id": "arbeit",
+      "name": "Arbeit",
+      "enabled": true,
+      "description": "Berufliche Vorgänge der Nutzerin oder des Nutzers: Aufgaben, Fristen, Besprechungen, Protokolle, Abrechnungen, Projekte und Fachveranstaltungen aus dem Arbeitsumfeld, auch von Kolleginnen und Kollegen, Vorgesetzten, Personalabteilung, IT-Service, Fachverbänden oder Geschäftspartnern.",
+      "examples": [
+        "Bitte um Unterlagen bis zu einer Frist",
+        "Einladung zu einer Besprechung",
+        "Verschiebung oder Absage eines Arbeitstermins"
+      ],
+      "exclusions": [
+        "Werbung und Newsletter von Händlern"
+      ]
+    },
+    {
+      "id": "kommune",
+      "name": "Kommune",
+      "enabled": true,
+      "description": "Mitteilungen der Gemeinde- oder Stadtverwaltung, Gemeinderatssitzungen und amtliche Bekanntmachungen.",
+      "examples": [
+        "Einladung zur Gemeinderatssitzung"
+      ],
+      "exclusions": []
+    },
+    {
+      "id": "jimdo-anfragen-und-nachrichten",
+      "name": "Jimdo-Anfragen und Nachrichten",
+      "enabled": true,
+      "description": "Anfragen und persönliche Nachrichten, die über die eigene Jimdo-Webseite oder deren Kontaktformular per E-Mail eingehen.",
+      "examples": [
+        "Neue Kontaktanfrage über das Jimdo-Kontaktformular",
+        "Über Jimdo übermittelte Frage zu einem Angebot",
+        "Persönliche Nachricht eines Besuchers der Jimdo-Webseite"
+      ],
+      "exclusions": [
+        "Allgemeine Werbung und Newsletter von Jimdo ohne konkrete Anfrage eines Webseitenbesuchers"
+      ]
+    },
+    {
+      "id": "camping-und-stellplatzbuchungen",
+      "name": "Camping- und Stellplatzbuchungen",
+      "enabled": true,
+      "description": "Buchungen der eigenen Camping- und Stellplätze über Nomady, Campspace oder Roadsurfer, einschließlich Buchungsbestätigungen, Buchungsänderungen und Stornierungen.",
+      "examples": [
+        "Neue Stellplatzbuchung über Nomady mit Anreise und Abreise",
+        "Bestätigung einer Campingplatzbuchung über Campspace",
+        "Änderung oder Stornierung einer Stellplatzbuchung über Roadsurfer"
+      ],
+      "exclusions": [
+        "Allgemeine Werbung und Newsletter der Buchungsplattformen ohne konkrete Buchung"
+      ]
+    },
+    {
+      "id": "persoenliche-termine-und-terminhinweise",
+      "name": "Persönliche Termine und Terminhinweise",
+      "enabled": true,
+      "description": "Mails, die dir persönlich einen konkreten Termin mitteilen, bestätigen, ändern oder absagen, oder einen Plan mit eigenen Einsätzen enthalten, etwa Terminbestätigungen von Praxen, Handwerkern oder Behörden, Einsatz-, Dienst-, Stunden- oder Blockpläne mit deinem Namen sowie Erinnerungen an vereinbarte Termine, auch wenn die Termine nur im Anhang stehen.",
+      "examples": [
+        "Blockplan im PDF-Anhang, in dem du an zwei Tagen als Dozent eingeteilt bist",
+        "Terminbestätigung einer Praxis oder Werkstatt mit Datum und Uhrzeit",
+        "Mitteilung, dass ein vereinbarter Vor-Ort-Termin auf einen anderen Tag verlegt wird"
+      ],
+      "exclusions": [
+        "Werbung, Rabattaktionen oder Newsletter mit Fristen ohne persönlich vereinbarten Termin",
+        "Allgemeine Veranstaltungshinweise ohne eigene Einladung, Anmeldung oder Einteilung",
+        "Liefer- und Paketankündigungen"
+      ]
+    }
+  ],
+  "own_addresses": [
+    "alex.muster@example.test"
+  ],
+  "cases": [
+    {
+      "id": "arrival_arrival_before_opening",
+      "raw_email": "From: Fachverband Beispiel <einladung@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Mon, 15 Mar 2027 09:00:00 +0100\nMessage-ID: <arrival-arrival_before_opening@example.test>\nSubject: Berufliche Fachveranstaltung - Ankommen vor dem Beginn\nContent-Type: text/plain; charset=utf-8\n\nWir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 14:00 Uhr bis 18:00 Uhr ein.\nProgramm: 13:40 Uhr: Ankommen; 14:00 Uhr: Begrüßung; 18:00 Uhr: Ende.\n",
+      "received_at": "2027-03-15T09:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Berufliche Fachveranstaltung."
+        },
+        "summary": {
+          "sentences": [
+            "Einladung zur beruflichen Fachveranstaltung."
+          ],
+          "deadlines": [
+            "18.03.2027"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Einladung.",
+          "reply_needed": false,
+          "reply_reason": null
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Berufliche Fachveranstaltung",
+              "description": "Ankommen um 13:40 Uhr; Begrüßung um 14:00 Uhr.",
+              "evidence": "Wir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 14:00 Uhr bis 18:00 Uhr ein.\nProgramm: 13:40 Uhr: Ankommen; 14:00 Uhr: Begrüßung; 18:00 Uhr: Ende.",
+              "date_text": "18.03.2027",
+              "time_text": "13:40 Uhr",
+              "end_time_text": "18:00 Uhr",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "original_date_text": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arrival_checkin_before_conference",
+      "raw_email": "From: Fachverband Beispiel <einladung@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Mon, 15 Mar 2027 09:00:00 +0100\nMessage-ID: <arrival-checkin_before_conference@example.test>\nSubject: Berufliche Fachveranstaltung - Check-in und Fachprogramm\nContent-Type: text/plain; charset=utf-8\n\nWir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 09:45 Uhr bis 16:00 Uhr ein.\n09:10 Uhr: Registrierung und Check-in der Teilnehmenden; 09:45 Uhr: erster Vortrag; 16:00 Uhr: Ende.\n",
+      "received_at": "2027-03-15T09:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Berufliche Fachveranstaltung."
+        },
+        "summary": {
+          "sentences": [
+            "Einladung zur beruflichen Fachveranstaltung."
+          ],
+          "deadlines": [
+            "18.03.2027"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Einladung.",
+          "reply_needed": false,
+          "reply_reason": null
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Berufliche Fachveranstaltung",
+              "description": "Registrierung um 09:10 Uhr; Vorträge beginnen um 09:45 Uhr.",
+              "evidence": "Wir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 09:45 Uhr bis 16:00 Uhr ein.\n09:10 Uhr: Registrierung und Check-in der Teilnehmenden; 09:45 Uhr: erster Vortrag; 16:00 Uhr: Ende.",
+              "date_text": "18.03.2027",
+              "time_text": "09:10 Uhr",
+              "end_time_text": "16:00 Uhr",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "original_date_text": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arrival_optional_coffee",
+      "raw_email": "From: Fachverband Beispiel <einladung@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Mon, 15 Mar 2027 09:00:00 +0100\nMessage-ID: <arrival-optional_coffee@example.test>\nSubject: Berufliche Fachveranstaltung - Freiwilliger Kaffee\nContent-Type: text/plain; charset=utf-8\n\nWir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 10:00 Uhr bis 16:30 Uhr ein.\nFreiwilliger Kaffee schon um 09:20 Uhr. Ihre Teilnahme am Programm beginnt um 10:00 Uhr.\n",
+      "received_at": "2027-03-15T09:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Berufliche Fachveranstaltung."
+        },
+        "summary": {
+          "sentences": [
+            "Einladung zur beruflichen Fachveranstaltung."
+          ],
+          "deadlines": [
+            "18.03.2027"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Einladung.",
+          "reply_needed": false,
+          "reply_reason": null
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Berufliche Fachveranstaltung",
+              "description": "Programmbeginn um 10:00 Uhr; freiwilliger Kaffee ab 09:20 Uhr.",
+              "evidence": "Wir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 10:00 Uhr bis 16:30 Uhr ein.\nFreiwilliger Kaffee schon um 09:20 Uhr. Ihre Teilnahme am Programm beginnt um 10:00 Uhr.",
+              "date_text": "18.03.2027",
+              "time_text": "10:00 Uhr",
+              "end_time_text": "16:30 Uhr",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "original_date_text": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arrival_crew_only_preparation",
+      "raw_email": "From: Fachverband Beispiel <einladung@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Mon, 15 Mar 2027 09:00:00 +0100\nMessage-ID: <arrival-crew_only_preparation@example.test>\nSubject: Berufliche Fachveranstaltung - Ankunft als Gast\nContent-Type: text/plain; charset=utf-8\n\nWir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 11:00 Uhr bis 15:00 Uhr ein.\nNur das Technikteam baut um 09:30 Uhr auf. Sie nehmen als Gast ab 11:00 Uhr teil.\n",
+      "received_at": "2027-03-15T09:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Berufliche Fachveranstaltung."
+        },
+        "summary": {
+          "sentences": [
+            "Einladung zur beruflichen Fachveranstaltung."
+          ],
+          "deadlines": [
+            "18.03.2027"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Einladung.",
+          "reply_needed": false,
+          "reply_reason": null
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Berufliche Fachveranstaltung",
+              "description": "Teilnahme ab 11:00 Uhr; Aufbau um 09:30 Uhr nur für das Technikteam.",
+              "evidence": "Wir laden Sie zur beruflichen Fachveranstaltung am 18.03.2027 von 11:00 Uhr bis 15:00 Uhr ein.\nNur das Technikteam baut um 09:30 Uhr auf. Sie nehmen als Gast ab 11:00 Uhr teil.",
+              "date_text": "18.03.2027",
+              "time_text": "11:00 Uhr",
+              "end_time_text": "15:00 Uhr",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "original_date_text": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

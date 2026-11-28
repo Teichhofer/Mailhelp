@@ -63,9 +63,14 @@ def test_the_corpus_expects_a_reply_only_where_the_sender_asks_for_one():
 
 
 def test_the_router_prompt_defines_the_reply_need():
-    prompt = " ".join(yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"][
-        "action_router"]["system_prompt"].split())
+    raw = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["action_router"]["system_prompt"]
+    prompt = " ".join(raw.split())
     assert "genau sechs Feldern" in prompt and '"reply_needed": true oder false' in prompt
     assert "ausdrücklich eine schriftliche Antwort per Mail erwartet" in prompt
     assert "er ändert weder action_state noch die Zähler" in prompt
-    assert prompt.count('"reply_needed":false,"reply_reason":null') == 2  # both examples show the new fields
+    examples = [json.loads(line.removeprefix("Ausgabe: ")) for line in raw.splitlines()
+                if line.startswith("Ausgabe: ")]
+    assert len(examples) >= 2
+    for example in examples:
+        assert {"reply_needed", "reply_reason"} <= example.keys()
+        ActionRouteAnswer.model_validate(example)

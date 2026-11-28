@@ -68,7 +68,7 @@ Geheimnisse und private Schlüssel werden getrennt gesichert und nicht in Git ge
 | [Planung 8.7](Planung-8.7.md), [Release 8.7](Release-8.7.md) | Kundenmodus mit Rollen und Verbrauch in Punkten (abgeschlossen mit 8.7.15, noch keine Kundenfreischaltung) |
 | [Planung 8.7 – Lernen in Punkten](Planung-8.7-Lernen.md) | Lernfunktionen in Punkten, Kundeninstanz `kunde`, Bewertung Kurs 1 / Aufschlag 900 % |
 | [Planung 8.8](Planung-8.8.md), [Release 8.8](Release-8.8.md) | Gehostete OAuth-Routen im Kundenmodus vervollständigen und Demo-Modus per Deny-by-Default an den Kundenmodus angleichen (abgeschlossen mit 8.8.7, ausgeliefert am 28.11.2026) |
-| [Planung 8.9](Planung-8.9.md), [Bewertungsvertrag v5](Bewertungsvertrag-v5.md) | Bewertungsvertrag, Aktionszuordnung, Quellen-/Datumsvalidierung, Relevanz, Promptregeln und vollständige Abnahme reparieren (in Umsetzung, AP1 mit 8.9.1) |
+| [Planung 8.9](Planung-8.9.md), [Bewertungsvertrag v5](Bewertungsvertrag-v5.md) | Bewertungsvertrag, Aktionszuordnung, Quellen-/Datumsvalidierung, Relevanz, Promptregeln und vollständige Abnahme reparieren (abgeschlossen mit 8.9.5, [Release 8.9](Release-8.9.md)) |
 
 Außerhalb dieses Ordners: [README](../README.md) (Einstieg), [Spezifikation](../Mailhelp-Projektspezifikation.md),
 [Änderungen](../CHANGELOG.md), [Datenschutz](../DATENSCHUTZ.md),

@@ -128,6 +128,10 @@ _DATE_RANGE_NUMERIC = re.compile(
 # "07./08.01.2027", "07.-08.01.2027", "Do 07. \u2013 Fr 08.01.2027", "7./8.1.2027"
 _DATE_RANGE_SHORT = re.compile(
     rf"(?i)(?<![\d.]){_WEEKDAY}(\d{{1,2}})\.{_SEPARATOR}{_WEEKDAY}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})(?!\d)")
+# 8.9.5: a booking names its range by arrival and departure: "Anreise 14.05.2027, Abreise 17.05.2027".
+_DATE_RANGE_STAY = re.compile(
+    r"(?i)(?:\banreise\b:?\s*)?(?<![\d.])(\d{1,2})\.(\d{1,2})\.(\d{4})\s*[,;]?\s*\babreise\b:?\s*"
+    r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)")
 # Approximate times ("ca. 15:30 Uhr") are taken at face value; a dot as the
 # separator ("13.00 Uhr") is accepted only together with "Uhr", so that a date
 # such as "07.10" in the time field is never read as a clock time.
@@ -216,6 +220,9 @@ def _date_ranges(raw: str) -> list[_Range]:
         month, year = int(match.group(5)), int(match.group(6))
         found.append(_range(match, (year, month, int(match.group(2))), (year, month, int(match.group(4))),
                             (match.group(1), match.group(3))))
+    for match in _DATE_RANGE_STAY.finditer(raw):
+        found.append(_range(match, (int(match.group(3)), int(match.group(2)), int(match.group(1))),
+                            (int(match.group(6)), int(match.group(5)), int(match.group(4))), (None, None)))
     # Repeated mentions are one range; overlapping patterns matching the same text agree.
     distinct = {(item.start, item.end): item for item in found if item is not None}
     return list(distinct.values())

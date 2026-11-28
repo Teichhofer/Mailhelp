@@ -11,6 +11,13 @@
   Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
   Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
 
+## 8.9.5 – Promptregeln nach Vertrag v5 und Abnahme (Planung 8.9 AP4 und AP6)
+
+- Promptregeln (`prompts.yaml`, `decisions_prompts.yaml` und Paketvorlagen): frühere Anwesenheit (Einlass, Check-in), eigene Belegungen ganztägig mit `user`, Kalenderbehandlung ohne zweite Aufgabe (die widersprüchliche Regel über administrative Folgeaufgaben entfällt), Teilnahme an Gruppen und Listen, Namen in Einsatzplänen, Relevanz von Änderungen und Absagen eigener Termine (auch Jev-Präzisierung), Wiederholungen, Bezugsdatum bei Änderung am selben Tag, Wochentag im Datumsfeld, „online“ ist kein Ort, zusammenhängender Beleg, Antwortbedarf nur bei belegtem Mailkanal, Fremdberichte und versandte Bitten ohne Aktion. Beispiele sind neutral formuliert und stammen nicht aus dem Bewertungskorpus.
+- Bugfix: „14.05.2027, Abreise 17.05.2027“ und „Anreise …, Abreise …“ wurden nicht als Zeitraum erkannt (Nachher-Lauf vom 28.11.2026, K11); Regressionstest `tests/unit/test_stay_ranges.py`.
+- Abnahme (AP6) auf Korpus v5 nach Vertrag 5 mit `deepseek/deepseek-v4.1-flash` und Jev: Vorher-Lauf mit den bisherigen Prompts 19/0/4 Aufgaben (erkannt/übersehen/Fehlalarme), 50/1/2 Termine, 54 Feldfehler, 2 Ende-zu-Ende-Verluste; unabhängiger Nachher-Lauf 20/0/0 und 51/0/2, 0 Feldfehler, 0 Reviews, 0 Verluste, 0 Ausfälle – Gate bestanden. Aktive Baseline `quality-reports/prompt-baseline-8.9.json` über `quality-reports/active-baseline.json`. Verbrauch 1.085 von 1.200 freigegebenen Aufrufen, 0,74 USD. Offen ausgewiesen: Zusatzthemen in sechs Fällen und zwei Zusammenfassungen.
+- Übernommen aus der Vorarbeit vom 26.11.2026: Promptentwurf, angepasste Vertragstests (`test_perspective`, `test_reply_needed`), Prüfkorpora und -tests für Ankunftszeiten und Verfeinerung sowie die Entwurfsberichte als historische Nachweise nach Vertrag 4.
+
 ## 8.9.4 – Latenzphasen und Berichtsimport (Planung 8.9 AP5)
 
 - AP5: Der Latenztest der Sofortsuche weist Wartezeit, Anfrage und Darstellung (Resource Timing) sowie die Python-Wanduhr aus; die Grenze bleibt 95 von 100 in 300 ms ab dem Eingabeereignis (Entscheidung des Betreibers vom 28.11.2026). Die JavaScript-Abdeckung ist seit 8.7.11 vollständig.

@@ -1,0 +1,3054 @@
+{
+  "schema_version": 2,
+  "created_at": "2026-11-28T09:12:46.826869+00:00",
+  "source": "model",
+  "contract_version": 5,
+  "model_quality_proven": true,
+  "statement": "Tatsächliche Modellausgaben auf dem eingefrorenen synthetischen Korpus.",
+  "corpus_schema_version": 5,
+  "cases_total": 68,
+  "technical_failures": 0,
+  "unreadable": 0,
+  "end_to_end_unchecked": 0,
+  "totals": {
+    "task": {
+      "recognized": 19,
+      "review": 0,
+      "missed": 0,
+      "false_positive": 4,
+      "field_errors": 0,
+      "end_to_end_lost": 0,
+      "fields": {
+        "classification": {
+          "correct": 19,
+          "checked": 19
+        },
+        "responsibility": {
+          "correct": 19,
+          "checked": 19
+        },
+        "certainty": {
+          "correct": 19,
+          "checked": 19
+        },
+        "due": {
+          "correct": 19,
+          "checked": 19
+        },
+        "evidence": {
+          "correct": 19,
+          "checked": 19
+        }
+      }
+    },
+    "event": {
+      "recognized": 50,
+      "review": 0,
+      "missed": 1,
+      "false_positive": 2,
+      "field_errors": 54,
+      "end_to_end_lost": 2,
+      "fields": {
+        "classification": {
+          "correct": 50,
+          "checked": 50
+        },
+        "responsibility": {
+          "correct": 35,
+          "checked": 50
+        },
+        "certainty": {
+          "correct": 39,
+          "checked": 50
+        },
+        "time_requirement": {
+          "correct": 36,
+          "checked": 50
+        },
+        "when": {
+          "correct": 48,
+          "checked": 50
+        },
+        "timezone_offset_text": {
+          "correct": 50,
+          "checked": 50
+        },
+        "location": {
+          "correct": 48,
+          "checked": 50
+        },
+        "video_link": {
+          "correct": 50,
+          "checked": 50
+        },
+        "original_date": {
+          "correct": 50,
+          "checked": 50
+        },
+        "evidence": {
+          "correct": 40,
+          "checked": 50
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "01_no_action",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "02_task_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "03_council_event",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "04_task_and_event",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "05_unclear_action",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 1,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "06_unclear_responsibility",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "07_relative_deadline",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "08_invalid_date",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 1,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "09_change",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "10_cancellation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "11_recurring",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "12_prompt_injection",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "13_pure_invitation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "14_invitation_registration",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 1,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "17_optional_booking",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "18_meeting_access_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "19_invitation_time_pending",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "20_quoted_old_task_after_reschedule",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 1,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "18_shortlink_bait",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "21_jimdo_inquiry",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "22_jimdo_newsletter",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "23_booking_confirmation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 2,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": true,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "24_booking_cancellation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 1,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "25_booking_platform_offer",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "26_personal_schedule_plan",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 2,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 2,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "27_deadline_advertising",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "28_registration_optional_forward_download",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "29_marketing_download_forward_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "30_council_series",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 11,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 43,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": false
+          },
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": false,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            10
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "32_self_note_photo_invitation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "33_forwarded_invitation_please_add",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "34_self_note_task",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "35_change_one_week_later",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "36_change_later_start",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "37_change_new_room",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 1
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "38_cancellation_without_replacement",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 1
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "39_meeting_with_preparation",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "40_meeting_information_only",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "41_two_tasks_registration_documents",
+      "outcome": "scored",
+      "task": {
+        "recognized": 2,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          },
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "42_foreign_responsibility",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "43_sent_request_to_others",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "44_all_day_without_time",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 1,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "45_contradictory_date",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 1,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "46_fake_write_approval",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K01_calendar_hold",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 1,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K02_change_with_feedback",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 1,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            1
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K03_room_change_own_appointment",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K04_cancellation_own",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K05_general_schedule_list",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 2,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K06_roster_own_and_other",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 3,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": false,
+            "when": false,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": false,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K07_documents_by_house_post",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K08_reply_by_mail",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K09_arrival_before_start",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 1,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": false,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K10_optional_pre_program",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K11_resource_booking",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 2,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": false,
+            "certainty": true,
+            "time_requirement": false,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K12_date_without_time",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K13_weekday_contradiction",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K14_weekday_with_den_consistent",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K15_recurring_weekday",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 1,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": false,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K16_advertising_deadline",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K17_report_about_others",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K18_check_not_pay",
+      "outcome": "scored",
+      "task": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K19_two_tasks_sign_return",
+      "outcome": "scored",
+      "task": {
+        "recognized": 2,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          },
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "due": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K20_quoted_old_weekday",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 1,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [
+          {
+            "classification": true,
+            "responsibility": true,
+            "certainty": true,
+            "time_requirement": true,
+            "when": true,
+            "timezone_offset_text": true,
+            "video_link": true,
+            "original_date": true,
+            "location": true,
+            "evidence": true
+          }
+        ],
+        "pairs": [
+          [
+            0,
+            0
+          ]
+        ],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K21_month_only_info",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    },
+    {
+      "id": "K22_injection_in_body",
+      "outcome": "scored",
+      "task": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "event": {
+        "recognized": 0,
+        "review": 0,
+        "missed": 0,
+        "false_positive": 0,
+        "field_errors": 0,
+        "fields": [],
+        "pairs": [],
+        "alternative": 0,
+        "end_to_end_lost": 0
+      },
+      "end_to_end_checked": true
+    }
+  ]
+}

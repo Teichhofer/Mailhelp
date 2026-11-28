@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "model_approved_baseline",
+  "contract_version": 5,
+  "created": "2026-11-28",
+  "model_quality_proven": true,
+  "fingerprints": {
+    "prompts.yaml": "652b642b9a78b233e387794101b3ae5d12a8b5f139328464c66570ee5bdbae68",
+    "topics.yaml": "dcd2e16437ee9aaec2a55ea6cbe0959fe1d96c2ec05bcf04e8247223ec38dfda",
+    "decisions_prompts.yaml": "75934f0b5874a4f89e944d37e92067c82928c13c847e4f479736b28db1306a44",
+    "tests/fixtures/mail_corpus_v3/corpus.json": "aa35b176ca3f8648e5338f9b92c88c3e4ff0bfd11c3db94442baefe436831252",
+    "tests/fixtures/mail_corpus_v5/corpus.json": "eb386c63c79f21251f207d4b63a75ce0c1bbd2905daa72fec70882200daab515"
+  },
+  "quality_baseline": "quality-reports/baseline-8.9.json",
+  "evaluation": {
+    "before": "quality-reports/v5-before-metrics-2026-11-28.json",
+    "after": "quality-reports/v5-after-final-metrics-2026-11-28.json",
+    "after_run": "quality-reports/v5-after-final-2026-11-28.json",
+    "before_run": "quality-reports/v5-before-2026-11-28.json"
+  },
+  "approved": {
+    "by": "Betreiber",
+    "date": "2026-11-28",
+    "basis": "Freigabe des Modellbudgets (bis 1.200 Aufrufe) und des unabhängigen Nachher-Laufs am 28.11.2026; Qualitätsgate nach Bewertungsvertrag 5 offline bestanden."
+  },
+  "predecessor": "quality-reports/prompt-baseline.json"
+}

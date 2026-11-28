@@ -13,13 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.9.4 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.9.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Geplant für [Version 9.0](docs/Planung-9.0.md): Erfolgreiche Anmeldungen bei
 Google, Microsoft, Notion und weiteren unterstützten OAuth-Anbietern aktivieren
 den jeweiligen Zugang direkt, ohne zusätzliche Entwurfsübernahme oder manuellen
 Neustart. Notwendige Zielauswahl und ausdrückliche Freigaben von Kalender- und
 Aufgabenaktionen bleiben erhalten. Noch nicht umgesetzt oder bereitgestellt.
+
+Version 8.9.5: Planung 8.9 abgeschlossen. Neue Promptregeln für Termine und Aufgaben (Einlasszeiten, eigene Belegungen, keine zweite Aufgabe fürs Eintragen, Änderungen und Absagen eigener Termine sind relevant, Antwortbedarf nur bei belegtem Mailkanal) sind mit einem Vorher-/Nachher-Vergleich auf 68 synthetischen Fällen abgenommen: keine Fehlalarme bei Aufgaben, keine falschen Fakten, keine verlorenen Termine; siehe [Release 8.9](docs/Release-8.9.md).
 
 Version 8.9.4: Der Latenztest der Sofortsuche zeigt, wo die Zeit bleibt; der Qualitätsbericht liest Evaluationsberichte direkt und vergleicht Orte ohne Füllwörter.
 

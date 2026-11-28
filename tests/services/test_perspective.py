@@ -65,7 +65,8 @@ def test_other_mail_reaches_the_router_unchanged(tmp_path):
 def test_the_router_prompt_reverses_the_perspective_for_self_notes():
     prompt = " ".join(yaml.safe_load(open("prompts.yaml", encoding="utf-8"))["prompts"]["action_router"]["system_prompt"]
                       .split())
-    for phrase in ('"perspective"', '"self_mail": true', "nie eine dritte Person", "„Ich nehme teil“",
+    for phrase in ('"perspective"', '"self_mail": true', "der bekannte Absender", "kein Selbstauftrag",
+                   "headers.to", "„Ich nehme teil“",
                    '"event" mit event_count mindestens 1', "Anweisungen an dich als Modell"):
         assert phrase in prompt, phrase
 

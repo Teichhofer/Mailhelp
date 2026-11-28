@@ -273,7 +273,9 @@ def test_action_prompts_share_invitation_candidate_boundaries():
     assert 'nicht "certain"' in task
     assert 'nicht "user"' in task
     flat_event = " ".join(event.split())
-    assert 'grundsätzlich selbst und erhält responsibility "user"' in flat_event
+    # 8.9.5 (contract v5, rule 2): an addressed appointment is the user's own, a bare list is not.
+    assert 'Terminmitteilung, Änderung oder Absage eines ihrer Termine erhält responsibility "user"' in flat_event
+    assert "grundsätzlich selbst" not in flat_event and "Eine bloße Termin- oder Sitzungsliste" in flat_event
     assert '"other" nur, wenn' in flat_event and '"unclear" nur bei ausdrücklichen' in flat_event
     assert 'Bedingte Teilnahme ist nicht "certain"' in flat_event
     assert "aktuelle Einladung" in prompts["action_router"]["system_prompt"]

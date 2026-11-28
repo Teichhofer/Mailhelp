@@ -68,8 +68,14 @@ def test_regression_new_fingerprints_in_the_historical_baseline_are_refused(tmp_
         prompt_guard.verify_baseline(root)
 
 
-def test_the_repository_keeps_the_historical_baseline_until_a_model_run_is_approved():
-    assert not (ROOT / prompt_guard.ACTIVE).exists() and prompt_guard.active_baseline(ROOT) == prompt_guard.LEGACY
+def test_the_repository_selects_the_model_approved_baseline_of_8_9():
+    """8.9.5: the comparison of 28.11.2026 passed the gate; the historical baseline stays pinned in the history."""
+    selection = json.loads((ROOT / prompt_guard.ACTIVE).read_text(encoding="utf-8"))
+    assert prompt_guard.active_baseline(ROOT) == "quality-reports/prompt-baseline-8.9.json" == selection["active"]
+    assert prompt_guard.LEGACY in selection["history"]
+    baseline = json.loads((ROOT / selection["active"]).read_text(encoding="utf-8"))
+    assert baseline["kind"] == "model_approved_baseline" and baseline["approved"]["by"]
+    prompt_guard.verify_baseline(ROOT)
 
 
 def test_only_a_model_approved_baseline_with_passing_reports_can_be_active(tmp_path):

@@ -42,6 +42,47 @@ unterstütztes Datumsformat. Bestehende externe Termine werden nicht nachträgli
 
 **Suchlatenz und Berichtsimport (8.9.4, AP5).** Die Grenze der Sofortsuche bleibt 95 von 100 Suchläufen in 300 ms im vollständigen Browserlauf, gemessen ab dem Eingabeereignis (Betreiberentscheidung vom 28.11.2026); der Test weist zusätzlich Wartezeit (150 ms Debounce), Anfrage und Darstellung aus der Resource Timing API sowie die Python-Wanduhr aus und nennt sie bei einer Überschreitung. `mailhelp-quality-report` liest Berichte von `mailhelp-evaluate` direkt.
 
+**Abnahme (8.9.5, AP4/AP6).** Aktiv ist die modellgeprüfte Baseline `quality-reports/prompt-baseline-8.9.json` (`quality-reports/active-baseline.json`); `prompt-baseline.json` bleibt eingefroren in der Historie. Der Vorher-/Nachher-Vergleich vom 28.11.2026 auf Korpus v5 besteht das Gate nach Vertrag 5 (Ergebnisse in [Release 8.9](docs/Release-8.9.md)).
+
+## Promptregeln der Extraktion (seit 8.9.5)
+
+Die Regeln gelten in `prompts.yaml`, `decisions_prompts.yaml` und den gleichlautenden Paketvorlagen; abgenommen mit
+dem Vorher-/Nachher-Vergleich vom 28.11.2026 nach [Bewertungsvertrag v5](docs/Bewertungsvertrag-v5.md)
+([Release 8.9](docs/Release-8.9.md)).
+
+- **Frühere Anwesenheit.** Ausdrücklich genannte Ankommens-, Einlass-, Registrierungs- und Check-in-Zeiten am
+  selben Veranstaltungstag zählen als Beginn, wenn sie zur Teilnahme der nutzenden Person gehören (Ankommen 12:30,
+  Begrüßung 13:00, Ende 17:00 ergibt einen Vorschlag 12:30–17:00); die Beschreibung unterscheidet Ankommen und
+  Programmbeginn. Freiwilliges Vorprogramm, eine nur mögliche frühere Ankunft und Vorbereitung nur für andere
+  Personen verschieben den Beginn nicht; es werden keine Fahrtzeiten oder Puffer berechnet.
+- **Belegungen.** Bestätigte Buchungen und Stornierungen eigener verwalteter Ressourcen (Stellplatz, Unterkunft)
+  sind Termine mit `responsibility` `user`; ein Belegungszeitraum ohne Uhrzeit ist `all_day`, die Datumsgrenzen
+  bleiben wörtlich, benannte Ressourcen stehen im Ort. Plattformwerbung ist keine Buchung; ein bloßes
+  Veranstaltungsdatum bleibt `required_unknown`. Seit 8.9.5 erkennt die Anwendung auch „Anreise …, Abreise …“ als
+  Zeitraum.
+- **Kalenderbehandlung (Regel 1).** Einen in derselben Mail genannten Termin anzulegen, anzupassen, vorzumerken oder
+  zu löschen ist keine Aufgabe; zusätzliche Anmeldung, Rückmeldung, Vorbereitung oder Benachrichtigung bleiben eigene
+  Aufgaben. Die frühere Regel über administrative Kalender-Folgeaufgaben ist entfallen.
+- **Teilnahme und Pläne (Regel 2).** Eine an die nutzende Person oder an eine Gruppe, der sie angehört, gerichtete
+  Mitteilung über einen bestimmten Termin ist ein eigener Termin; eine bloße Termin- oder Sitzungsliste ohne eigene
+  Einladung oder Einteilung bleibt `unclear`/`uncertain`. In Einsatzplänen ist ein Einsatz eigener, wenn der Name zur
+  nutzenden Person passt; eine unklare Zuordnung bleibt `unclear`, nie `other`; Einsätze anderer werden nicht
+  extrahiert.
+- **Relevanz.** Verschiebung, Orts-/Zeitänderung und Absage eines bestimmten eigenen Termins sind persönliche
+  Terminhinweise, keine Veranstaltungswerbung (`relevant`, bei mehrdeutigem Bezug `unclear`).
+- **Weitere Regeln.** Wiederholungen („jeden Montag“) stehen wörtlich in `date_text`; bei einer Änderung am selben Tag
+  sind `date_text` und `original_date_text` gleich; ein genannter Wochentag bleibt im Datumsfeld (die Anwendung prüft
+  ihn, 8.9.3); „online“ ohne Raum ist kein Ort; `evidence` ist genau eine zusammenhängende wörtliche Textstelle (bei
+  Tabellen die Zeile des Termins). `reply_needed` gilt nur bei belegter Antwort per Mail; Unterlagen ohne genannten
+  Kanal oder per Post sind eine Aufgabe ohne Antwortbedarf. Rückmeldungen anderer Personen zur eigenen Einladung
+  bleiben `other`; reine Fremdberichte, ein ausdrückliches „Du musst nichts tun“ und versandte Bitten an andere
+  erzeugen keine Aktion; Aufgabentitel nennen Handlung und Gegenstand.
+
+Bestehende Kalendereinträge werden durch diese Regeln nicht nachträglich verändert; jede Anlage braucht weiterhin die
+versionsbezogene Freigabe. Die Entwurfsberichte vom 26.11.2026 (`quality-reports/event-arrival-2026-11-26.md`,
+`prompt-refinement-2026-11-26.md`, `remaining-tests-2026-11-26.md`, `quality-audit-2026-11-26.md`) bleiben als
+historische Nachweise nach Vertrag 4 erhalten.
+
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
 Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele
