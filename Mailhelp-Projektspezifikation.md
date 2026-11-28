@@ -3,6 +3,18 @@
 Geprüft für Mailhelp 8.1 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
+## Ergänzung 8.9: Bewertungsvertrag v5 und Extraktionsqualität (8.9.1)
+
+Stand 8.9.1, nach [Planung 8.9](docs/Planung-8.9.md). Der [Bewertungsvertrag v5](docs/Bewertungsvertrag-v5.md)
+legt vor jedem Modelllauf fest, wann eine Modellantwort richtig ist: sechs Fachregeln (Kalenderbehandlung ohne zweite
+Aufgabe, Teilnahme, mehrere Themen, Zeitangaben in der Zusammenfassung, Antwortbedarf nur bei belegtem Mailkanal,
+Ankunft und Belegung), die getrennte Bewertung von Identität, Fakten und Formulierung einer Aktion, Reviews für
+mehrdeutige Zuordnungen und die Ende-zu-Ende-Wirkung eines Relevanzstopps. Referenz ist der eingefrorene Korpus v5
+(`tests/fixtures/mail_corpus_v5/`, 46 migrierte v4-Fälle mit begründeten Änderungen und 22 neue Kontrollfälle);
+Prüfsumme, Grenzen und kritische Keine-Aktion-Fälle stehen in `quality-reports/baseline-8.9.json`. Korpus v4 und
+`baseline-5.1.json` bleiben unverändert als historische Grundlage. Prompts, Modelle und Prüfer sind in 8.9.1
+unverändert.
+
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
 Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele

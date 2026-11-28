@@ -1,0 +1,13 @@
+{
+  "source": ".test-tmp\\ui-js-coverage\\e658f1709a0d4b1b9b3ca0ac6e1936a4",
+  "worker_reports": 6,
+  "invalid_reports": [],
+  "uncovered": {
+    "settings.js": [
+      57,
+      75
+    ]
+  },
+  "passed": false,
+  "method": "Unchanged suite merge_worker_coverage and COVERAGE.uncovered on the six full-run reports"
+}

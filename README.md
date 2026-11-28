@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.8 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.9.1 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.9.1: Beginn von Planung 8.9 (Extraktionsqualität). Der [Bewertungsvertrag v5](docs/Bewertungsvertrag-v5.md) und der eingefrorene Korpus v5 mit 22 neuen Kontrollfällen legen fest, wann eine Modellantwort richtig ist; Prompts und Modelle sind unverändert.
 
 Version 8.8.8: Produktion, Demo und die Testinstanz `kunde` laufen mit 8.8.7. Google lehnt seit dem 25.11.2026 die Erneuerung des produktiven Kalenderzugangs ab; der Betreiber muss Google neu verbinden.
 

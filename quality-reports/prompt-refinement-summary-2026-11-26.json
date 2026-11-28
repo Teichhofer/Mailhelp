@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-26",
+  "actual_model_outputs": true,
+  "synthetic_only": true,
+  "refinement_calls": 248,
+  "refinement_reported_cost_usd": 0.155045,
+  "additional_budget_authorized": 600,
+  "additional_budget_used": 597,
+  "total_calls_including_first_evaluation": 636,
+  "total_reported_cost_usd": 0.392999,
+  "full_refinement_revision_rejected": true,
+  "final_prompt_fingerprint": "e02fb44541d91778f487cf9b16abcbc28011512d28a081f4c65d28e652b63d52",
+  "final_focused_stage_pass_counts": {
+    "relevance": 9,
+    "summary": 6,
+    "action_router": 9,
+    "task_extraction": 9,
+    "event_extraction": 9
+  },
+  "final_focused_overall_passed": false,
+  "final_full_v4_evaluation_performed": false,
+  "global_quality_approved": false,
+  "baseline_updated": false,
+  "deployed": false,
+  "observations": [
+    "Both rechecked critical cases produce no actions.",
+    "Named resource is preserved in location.",
+    "Invitation plus third-party reply accepts omission of that task; the model omitted it.",
+    "Three final summary comparisons differ; no full final quality acceptance."
+  ],
+  "runs": [
+    {
+      "report": "prompt-refinement-v4-2026-11-26.json",
+      "calls": 175,
+      "usage": {
+        "prompt_tokens": 503728,
+        "completion_tokens": 81048,
+        "total_tokens": 584776,
+        "reported_cost": 0.106896,
+        "responses_without_usage": 0
+      },
+      "stage_pass_counts": {
+        "relevance": 36,
+        "summary": 41,
+        "action_router": 41,
+        "task_extraction": 43,
+        "event_extraction": 41
+      }
+    },
+    {
+      "report": "prompt-refinement-controls-2026-11-26.json",
+      "calls": 41,
+      "usage": {
+        "prompt_tokens": 120340,
+        "completion_tokens": 17153,
+        "total_tokens": 137493,
+        "reported_cost": 0.020809,
+        "responses_without_usage": 0
+      },
+      "stage_pass_counts": {
+        "relevance": 10,
+        "summary": 6,
+        "action_router": 10,
+        "task_extraction": 10,
+        "event_extraction": 10
+      }
+    },
+    {
+      "report": "prompt-refinement-final-controls-2026-11-26.json",
+      "calls": 32,
+      "usage": {
+        "prompt_tokens": 106171,
+        "completion_tokens": 18626,
+        "total_tokens": 124797,
+        "reported_cost": 0.02734,
+        "responses_without_usage": 0
+      },
+      "stage_pass_counts": {
+        "relevance": 9,
+        "summary": 6,
+        "action_router": 9,
+        "task_extraction": 9,
+        "event_extraction": 9
+      }
+    }
+  ]
+}

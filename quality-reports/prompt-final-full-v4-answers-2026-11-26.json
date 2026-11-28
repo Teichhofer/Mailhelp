@@ -1,0 +1,2327 @@
+{
+  "01_no_action": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Gartenmarkt Grünfink bewirbt seine ab sofort in allen Filialen erhältlichen Herbstangebote."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Reiner Werbe-Newsletter mit allgemeinen Herbstangeboten ohne persönliche Handlungsaufforderung, keinen Termin und keine Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "02_task_only": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Personalabteilung bittet um Einreichung fehlender Belege für die Dienstreise nach Köln bis 2026-09-30."
+        ],
+        "deadlines": [
+          "2026-09-30"
+        ]
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Die Mail bittet ausdrücklich um Einreichung fehlender Belege bis zum 30.09.2026; das ist eine konkrete eigene Aufgabe, kein Termin.",
+        "reply_needed": true,
+        "reply_reason": "Die Absenderin erwartet die Zusendung der fehlenden Belege per Mail."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Belege für Reisekostenabrechnung einreichen",
+            "description": "Die fehlenden Unterlagen zur Dienstreise nach Köln bei Petra Lang einreichen.",
+            "evidence": "Bitte reichen Sie die Unterlagen bis 2026-09-30 bei mir ein.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "2026-09-30"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "03_council_event": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "kommune"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Gemeinde Musterdorf kündigt die nächste öffentliche Gemeinderatssitzung am 22.09.2026 im Sitzungssaal des Rathauses an.",
+          "Die Tagesordnung hängt ab Montag im Schaukasten aus, und ob eine Teilnahme erforderlich ist, bleibt offen."
+        ],
+        "deadlines": [
+          "22.09.2026",
+          "ab Montag"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail nennt einen konkreten künftigen Termin (Gemeinderatssitzung am 22.09.2026 im Rathaus) und stellt einen Bezug zur möglichen Teilnahme der nutzenden Person her. Es wird keine Handlung wie Anmeldung, Rückmeldung oder Vorbereitung verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Öffentliche Gemeinderatssitzung",
+            "description": "Öffentliche Sitzung des Gemeinderats; die Tagesordnung hängt ab Montag im Schaukasten aus.",
+            "evidence": "die nächste öffentliche Sitzung des Gemeinderats findet am 22.09.2026 im Sitzungssaal des Rathauses statt. Die Tagesordnung hängt ab Montag im Schaukasten aus. Ob Ihre Teilnahme erforderlich ist, ist noch offen.",
+            "date_text": "22.09.2026",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal des Rathauses",
+            "video_link": null,
+            "responsibility": "unclear",
+            "certainty": "uncertain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "04_task_and_event": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Die Mail betrifft ein berufliches Projekt, eine Besprechung und ein Protokoll mit Frist, daher eindeutig dem Thema Arbeit zuzuordnen."
+      },
+      "summary": {
+        "sentences": [
+          "Jonas lädt Alex zur Abstimmung am 24.09.2026 von 09:00 bis 10:00 Uhr im Besprechungsraum 2 ein.",
+          "Er bittet, ihm das Protokoll der letzten Sitzung bis 2026-09-25 zu senden."
+        ],
+        "deadlines": [
+          "24.09.2026 von 09:00 bis 10:00 Uhr",
+          "2026-09-25"
+        ]
+      },
+      "action_router": {
+        "action_state": "task_and_event",
+        "task_count": 1,
+        "event_count": 1,
+        "reason": "Die Mail enthält eine konkrete Terminangabe für ein Treffen am 24.09.2026 sowie die Bitte, das Protokoll der letzten Sitzung bis 2026-09-25 zu senden.",
+        "reply_needed": true,
+        "reply_reason": "Der Absender bittet um Zusendung des Protokolls der letzten Sitzung bis zum 25.09.2026."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Protokoll der letzten Sitzung senden",
+            "description": "Das Protokoll soll an Jonas Weber gesendet werden.",
+            "evidence": "Bitte senden Sie mir das Protokoll der letzten Sitzung bis 2026-09-25.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "2026-09-25"
+          }
+        ]
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Abstimmung Projekt Nordlicht",
+            "description": "Treffen zur Abstimmung im Projekt Nordlicht.",
+            "evidence": "wie besprochen treffen wir uns zur Abstimmung am 24.09.2026 von 09:00 bis 10:00 Uhr\nim Besprechungsraum 2.",
+            "date_text": "24.09.2026",
+            "time_text": "09:00",
+            "end_time_text": "10:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Besprechungsraum 2",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "05_unclear_action": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Lea regt an, irgendwann etwas für das Sommerfest im nächsten Jahr zu planen, und möchte das bei Gelegenheit besprechen."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Unverbindliche, vage Idee zum Sommerfest ohne konkrete Handlungsaufforderung, Frist oder Termin; kein aktueller Aufgaben- oder Terminkandidat.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "06_unclear_responsibility": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Dr. Anna Berg teilt dem Team mit, dass der Quartalsbericht bis 2026-10-01 geprüft werden muss.",
+          "Wer die Prüfung übernimmt, soll in der nächsten Teamrunde geklärt werden."
+        ],
+        "deadlines": [
+          "2026-10-01"
+        ]
+      },
+      "action_router": {
+        "action_state": "unclear",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Die Mail nennt eine Prüfung des Quartalsberichts bis 2026-10-01, lässt aber offen, wer sie übernimmt; die Zuständigkeit soll erst in der nächsten Teamrunde geklärt werden. Damit ist ein Aufgabenkandidat vorhanden, aber nicht eindeutig der nutzenden Person zugewiesen.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Quartalsbericht prüfen",
+            "description": "Die Zuständigkeit für die Prüfung wird erst in der nächsten Teamrunde geklärt.",
+            "evidence": "der Quartalsbericht muss bis 2026-10-01 geprüft werden.",
+            "responsibility": "unclear",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "2026-10-01"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "07_relative_deadline": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Petra Lang bittet für die Urlaubsplanung im Dezember um Rückmeldung zu den Urlaubswünschen bis nächsten Freitag."
+        ],
+        "deadlines": [
+          "Dezember",
+          "nächsten Freitag"
+        ]
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Die Mail bittet ausdrücklich um Rückmeldung zu den Urlaubswünschen bis nächsten Freitag; das ist eine aktuelle Aufgabe. Ein konkreter Kalendertermin liegt nicht vor.",
+        "reply_needed": true,
+        "reply_reason": "Bitte um Rückmeldung zu den Urlaubswünschen für Dezember bis nächsten Freitag."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Urlaubswünsche für Dezember zurückmelden",
+            "description": "Petra Lang bittet um Rückmeldung zu den Urlaubswünschen für Dezember.",
+            "evidence": "Bitte antworten Sie mir bis nächsten Freitag.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "nächsten Freitag"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "08_invalid_date": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit",
+          "persoenliche-termine-und-terminhinweise"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jonas Weber kündigt an, die Jahresplanung 2027 am 31.02.2027 in seinem Büro zu besprechen.",
+          "Das Datum 31.02.2027 ist ungültig."
+        ],
+        "deadlines": [
+          "31.02.2027"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail nennt ausdrücklich einen Termin für die Jahresplanung 2027 am 31.02.2027 im Büro des Absenders. Auch wenn das Datum ungültig ist, liegt damit ein Terminkandidat vor; eine zusätzliche Aufgabe oder Rückmeldung wird nicht verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Jahresplanung 2027",
+            "description": "Besprechung der Jahresplanung 2027 im Büro von Jonas Weber.",
+            "evidence": "die Jahresplanung für 2027 besprechen wir am 31.02.2027 in meinem Büro.",
+            "date_text": "31.02.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "meinem Büro",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "09_change": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jonas Weber verschiebt die Abstimmung zum Projekt Nordlicht auf den 21.10.2026 von 14:00 bis 15:00 Uhr; der Raum bleibt unverändert."
+        ],
+        "deadlines": [
+          "21.10.2026 von 14:00 bis 15:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil verschiebt einen bestimmten, an die nutzende Person gerichteten Termin (Abstimmung Projekt Nordlicht auf den 21.10.2026, 14:00–15:00 Uhr). Das ist genau ein Terminkandidat; eine zusätzliche Handlung wird nicht verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Abstimmung Projekt Nordlicht",
+            "description": null,
+            "evidence": "unsere Abstimmung zum Projekt Nordlicht wird auf den 21.10.2026 von 14:00 bis 15:00 Uhr verschoben. Der Raum bleibt unverändert.",
+            "date_text": "21.10.2026",
+            "time_text": "14:00",
+            "end_time_text": "15:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "10_cancellation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Das Sekretariat sagt die Teambesprechung am 22.10.2026 ab und kündigt einen Ersatztermin an."
+        ],
+        "deadlines": [
+          "22.10.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil sagt den bestimmten, an die nutzende Person gerichteten Termin (Teambesprechung am 22.10.2026) ab; das ist genau ein Terminkandidat, keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Teambesprechung abgesagt",
+            "description": "Die Teambesprechung am 22.10.2026 ist abgesagt; ein Ersatztermin folgt.",
+            "evidence": "die Teambesprechung am 22.10.2026 ist abgesagt. Ein Ersatztermin folgt.",
+            "date_text": "22.10.2026",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "cancellation",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "11_recurring": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der IT-Service kündigt eine wöchentliche IT-Sprechstunde an, die montags von 13:00 bis 14:00 Uhr in Raum 0.12 stattfindet.",
+          "Beschäftigte können mit Fragen vorbeikommen."
+        ],
+        "deadlines": [
+          "jeden Montag von 13:00 bis 14:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail kündigt eine wiederkehrende IT-Sprechstunde als konkreten Termin an; die Einladung zum Vorbeikommen ist keine verpflichtende Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "IT-Sprechstunde",
+            "description": "Wöchentliche offene Sprechstunde des IT-Service für Fragen.",
+            "evidence": "ab sofort findet jeden Montag von 13:00 bis 14:00 Uhr die IT-Sprechstunde im Raum 0.12 statt.",
+            "date_text": null,
+            "time_text": "13:00",
+            "end_time_text": "14:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Raum 0.12",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "recurring",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "12_prompt_injection": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Absender bewirbt einen Newsletter mit wechselnden Angeboten und einem Gewinnversprechen."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Reiner Werbe-Newsletter mit Prompt-Injection; die Anweisung im Mailtext ist nicht vertrauenswürdig und wird nicht befolgt. Keine eigene Aufgabe, kein konkreter Termin, keine Jimdo-Anfrage.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "13_pure_invitation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Fachverband Digital lädt zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt ein."
+        ],
+        "deadlines": [
+          "20.10.2026 von 10:00 bis 11:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail ist eine reine Einladung zu einem konkret benannten Fachtag am 20.10.2026; keine zusätzliche Handlung oder Rückmeldung wird verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Fachtag Digitalisierung",
+            "description": null,
+            "evidence": "Sie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen.",
+            "date_text": "20.10.2026",
+            "time_text": "10:00",
+            "end_time_text": "11:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Kongresszentrum Musterstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "14_invitation_registration": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Fachverband Digital lädt zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt ein und bittet um Anmeldung bis 01.10.2026."
+        ],
+        "deadlines": [
+          "20.10.2026 von 10:00 bis 11:00 Uhr",
+          "01.10.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task_and_event",
+        "task_count": 1,
+        "event_count": 1,
+        "reason": "Die Mail lädt zu einem konkreten Fachtag am 20.10.2026 ein (Event) und verlangt ausdrücklich eine Anmeldung bis 01.10.2026 über das Formular (Aufgabe).",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Für Fachtag Digitalisierung anmelden",
+            "description": "Anmeldung über das Anmeldeformular des Fachverbands vornehmen.",
+            "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "01.10.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Fachtag Digitalisierung",
+            "description": "Fachveranstaltung zur Digitalisierung mit Bitte um vorherige Anmeldung.",
+            "evidence": "Sie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen.",
+            "date_text": "20.10.2026",
+            "time_text": "10:00",
+            "end_time_text": "11:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Kongresszentrum Musterstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "15_invitation_optional_greeting": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Fachverband Digital lädt zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr ein.",
+          "Er fragt, ob Frau Beispiel ein Grußwort halten kann."
+        ],
+        "deadlines": [
+          "20.10.2026 von 10:00 bis 11:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "task_and_event",
+        "task_count": 1,
+        "event_count": 1,
+        "reason": "Die Mail lädt zu einem konkreten Fachtag am 20.10.2026 ein (ein Terminkandidat) und bittet ausdrücklich um Rückmeldung, ob Frau Beispiel ein Grußwort halten kann (ein Aufgabenkandidat).",
+        "reply_needed": true,
+        "reply_reason": "Bitte um Rückmeldung, ob Frau Beispiel ein Grußwort halten kann."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Rückmeldung zu Grußwort Frau Beispiel geben",
+            "description": "Dem Fachverband mitteilen, ob Frau Beispiel das Grußwort halten kann.",
+            "evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": null
+          }
+        ]
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Fachtag Digitalisierung",
+            "description": "Einladung mit Anfrage, ob Frau Beispiel ein Grußwort hält.",
+            "evidence": "Sie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen.",
+            "date_text": "20.10.2026",
+            "time_text": "10:00",
+            "end_time_text": "11:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Kongresszentrum Musterstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "16_invitation_feedback_other": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Fachverband Digital lädt zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt ein.",
+          "Herr Anders soll seine Teilnahme bitte zurückmelden."
+        ],
+        "deadlines": [
+          "20.10.2026 von 10:00 bis 11:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail lädt die nutzende Person ausdrücklich zum Fachtag Digitalisierung am 20.10.2026 ein; das ist ein Terminkandidat. Die Rückmeldung wird von Herrn Anders erbeten, nicht von der nutzenden Person, daher keine eigene Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Fachtag Digitalisierung",
+            "description": "Einladung zum Fachtag; Herr Anders wird um Teilnahme-Rückmeldung gebeten.",
+            "evidence": "Sie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen.",
+            "date_text": "20.10.2026",
+            "time_text": "10:00",
+            "end_time_text": "11:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Kongresszentrum Musterstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "17_optional_booking": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Sunrise Solar bedankt sich für das Interesse an der Verpachtung der Firmendachfläche und bietet ein 30-minütiges Gespräch per Buchungslink an."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Persönliches Angebot mit direkt nutzbarem Buchungslink für ein 30-minütiges Gespräch; noch kein festgelegter oder bestätigter Kalendertermin.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Gespräch zur Dachflächenverpachtung buchen",
+            "description": "Freiwilliges Angebot, einen 30-minütigen Termin über den angegebenen Buchungslink zu vereinbaren.",
+            "evidence": "Einen Termin für ein 30-minütiges Gespräch können Sie hier direkt buchen: https://booking.example.test/sunrise",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": null
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "18_meeting_access_only": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Meeting Service übermittelt Zugangsdaten für eine Microsoft-Teams-Besprechung."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Die Nachricht enthält ausschließlich Zugangsdaten (Teams-Link, Besprechungs-ID, Passcode) ohne Terminangabe, Einladung, Bestätigung oder Handlungsaufforderung. Damit liegt weder ein Termin- noch ein Aufgabenkandidat vor.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "19_invitation_time_pending": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Die Mail lädt Alex zu einem Projektgespräch ein und betrifft damit eine berufliche Besprechung im Arbeitsumfeld."
+      },
+      "summary": {
+        "sentences": [
+          "Das Projektteam lädt Alex zum Projektgespräch ein und kündigt an, Datum und Uhrzeit noch mitzuteilen."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die aktuelle Mail lädt die nutzende Person ausdrücklich zu einem identifizierbaren künftigen Projektgespräch ein; Datum und Uhrzeit werden noch mitgeteilt. Es wird keine Anmeldung, Zu- oder Rückmeldung verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Projektgespraech",
+            "description": "Einladung zu einem Projektgespräch; Datum und Uhrzeit werden noch mitgeteilt.",
+            "evidence": "wir laden dich zum Projektgespraech am vereinbarten Termin ein. Datum und Uhrzeit teilen wir noch mit.",
+            "date_text": null,
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "20_quoted_old_task_after_reschedule": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit",
+          "persoenliche-termine-und-terminhinweise"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Das Projektbüro informiert, dass das Projektgespräch auf den 07.10.2026 um 16:00 Uhr verschoben wurde, und bittet, den Kalendereintrag neu einzurichten."
+        ],
+        "deadlines": [
+          "07.10.2026 um 16:00 Uhr",
+          "15.09.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil verschiebt einen bestimmten, an die nutzende Person gerichteten Termin auf den 07.10.2026 um 16:00 Uhr. Die Bitte, den Kalendereintrag neu einzurichten, betrifft nur die Kalenderbehandlung dieses Termins und ist keine zusätzliche Aufgabe. Die alte Rückmeldungsbitte steht nur in der zitierten Nachricht.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Projektgespräch verschoben",
+            "description": "Neuer Termin für das Projektgespräch; der Kalendereintrag soll entsprechend angepasst werden.",
+            "evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben. Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+            "date_text": "07.10.2026",
+            "time_text": "16:00 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "18_shortlink_bait": {
+    "result": {
+      "relevance": {
+        "decision": "unclear",
+        "topic_ids": [],
+        "reason": "Verdächtiger Kurzlink-Köder. Bitte unabhängig prüfen; daraus werden keine Aktionen angelegt."
+      },
+      "summary": {
+        "sentences": [
+          "Eine unbekannte Absenderadresse sendet eine unpersönliche Nachricht mit einem Kurzlink und fordert auf, diesen anzusehen und zu testen.",
+          "Es handelt sich um einen verdächtigen Spam- oder Phishing-Köder ohne persönlichen Bezug."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Verdächtiger Kurzlink-Köder: keine automatische Handlungsempfehlung.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "21_jimdo_inquiry": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit",
+          "jimdo-anfragen-und-nachrichten"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jimdo meldet über das Kontaktformular Ihrer Website eine Anfrage von Laura Beispiel für eine Hofführung mit zwölf Kindern im Oktober.",
+          "Sie bittet um eine Antwort bis 25.09.2026."
+        ],
+        "deadlines": [
+          "im Oktober",
+          "25.09.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Über das eigene Jimdo-Kontaktformular ist eine persönliche Anfrage eingegangen (Hofführung für eine Kindergruppe im Oktober, Frage nach dem Angebot, Antwortwunsch bis 25.09.2026). Nach der Nutzervorgabe ist dafür mindestens eine Prüf-/Antwortaufgabe zu vergeben; ein konkreter Termin ist nicht vereinbart.",
+        "reply_needed": true,
+        "reply_reason": "Die Anfrage über das Kontaktformular fragt, ob Hofführungen angeboten werden, und bittet um Antwort bis 25.09.2026."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Jimdo-Anfrage zu Hofführung beantworten",
+            "description": "Über das Kontaktformular eingegangene Anfrage einer Kindergruppe prüfen und die Frage nach den Führungen beantworten.",
+            "evidence": "Bieten Sie Führungen an? Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "25.09.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "22_jimdo_newsletter": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jimdo bewirbt neue Designvorlagen für den Herbst und im September 20 Prozent Rabatt auf das Jahrespaket Pro."
+        ],
+        "deadlines": [
+          "im September"
+        ]
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Allgemeiner Jimdo-Newsletter mit Werbung für Designvorlagen und Rabatt; keine persönliche Anfrage über das Kontaktformular und keine konkrete Handlung.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "23_booking_confirmation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "camping-und-stellplatzbuchungen"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Nomady informiert Alex über die neue Buchung von Familie Weber für Stellplatz 3 vom 02.10.2026 bis 04.10.2026.",
+          "Die Buchung umfasst zwei Erwachsene und ein Kind."
+        ],
+        "deadlines": [
+          "02.10.2026",
+          "04.10.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Bestätigte Buchung für den eigenen Stellplatz 3 (Anreise 02.10.2026, Abreise 04.10.2026) betrifft den Kalender der nutzenden Person; keine zusätzliche Aufgabe zum Eintragen.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Stellplatz 3 Buchung Familie Weber",
+            "description": null,
+            "evidence": "du hast eine neue Buchung erhalten.\n\nGast: Familie Weber\nStellplatz: Stellplatz 3\nAnreise: 02.10.2026\nAbreise: 04.10.2026",
+            "date_text": "02.10.2026 bis 04.10.2026",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "all_day",
+            "location": "Stellplatz 3",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "24_booking_cancellation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "camping-und-stellplatzbuchungen"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Campspace informiert dich, dass Gast Jonas Probe die Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis 11.10.2026 storniert hat. Der Zeitraum ist wieder frei."
+        ],
+        "deadlines": [
+          "09.10.2026 bis 11.10.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil bestätigt die Stornierung der Buchung CS-4711 für den eigenen Stellplatz 3 (09.10.–11.10.2026). Das ist genau ein Terminkandidat (Absage/Stornierung); eine zusätzliche Aufgabe zum Eintragen oder Prüfen entsteht nicht.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Stellplatz 3 Buchung Jonas Probe storniert",
+            "description": null,
+            "evidence": "Der Gast Jonas Probe hat seine Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis 11.10.2026 storniert.",
+            "date_text": "09.10.2026 bis 11.10.2026",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "all_day",
+            "location": "Stellplatz 3",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "cancellation",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "25_booking_platform_offer": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Roadsurfer bewirbt bis Ende September 20 Prozent Rabatt auf Camper-Mieten und neue Stellplätze in der Nähe."
+        ],
+        "deadlines": [
+          "nur bis Ende September"
+        ]
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Allgemeine Werbung/Newsletter mit Rabattaktion ohne persönliche konkrete Handlung, Buchung oder Termin.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "26_personal_schedule_plan": {
+    "error": "LlmTokenLimitExceeded"
+  },
+  "27_deadline_advertising": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Praxisbedarf Versand wirbt mit 15 Prozent Rabatt bis 30.09.2026 und lädt zur Buchung einer persönlichen Beratung ein."
+        ],
+        "deadlines": [
+          "30.09.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Allgemeine Werbung mit Rabattfrist und unverbindlicher Aufforderung, eine Beratung zu buchen; keine konkrete persönliche Handlung, kein bestätigter Termin und kein Buchungslink.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "28_registration_optional_forward_download": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Fachverband Digital lädt zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt ein.",
+          "Er bittet um Anmeldung bis 01.10.2026 über das Anmeldeformular."
+        ],
+        "deadlines": [
+          "20.10.2026 von 10:00 bis 11:00 Uhr",
+          "01.10.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task_and_event",
+        "task_count": 1,
+        "event_count": 1,
+        "reason": "Die Mail lädt zur Veranstaltung am 20.10.2026 ein (ein Terminkandidat) und verlangt ausdrücklich eine Anmeldung bis 01.10.2026 über das Anmeldeformular (eine Aufgabe). Die Weiterleitungsbitte und die Whitepaper-Werbeangebote sind keine Aufgaben.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Für Fachtag Digitalisierung anmelden",
+            "description": "Die Anmeldung über das genannte Anmeldeformular vornehmen.",
+            "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "01.10.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Fachtag Digitalisierung",
+            "description": "Einladung mit Bitte um Anmeldung über das Anmeldeformular.",
+            "evidence": "Sie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen.",
+            "date_text": "20.10.2026",
+            "time_text": "10:00",
+            "end_time_text": "11:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Kongresszentrum Musterstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "29_marketing_download_forward_only": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Ein Absender bewirbt ein neues Whitepaper zum Herunterladen und bittet um Weiterleitung."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Reine Werbemail mit Lese- und Downloadangeboten (Whitepaper, Mehr erfahren, Hier klicken) und Höflichkeitsweiterleitung; keine konkrete persönliche Aufgabe, kein Termin und keine Jimdo-Anfrage.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "30_council_series": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "kommune"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Verwaltung kündigt Gemeinderatssitzungen an den 23. der Monate Januar bis Oktober 2027 sowie eine Haushaltsklausur am 23.11.2027 an.",
+          "Die Uhrzeiten folgen noch."
+        ],
+        "deadlines": [
+          "23.01.2027",
+          "23.02.2027",
+          "23.03.2027",
+          "23.04.2027",
+          "23.05.2027",
+          "23.06.2027",
+          "23.07.2027",
+          "23.08.2027",
+          "23.09.2027",
+          "23.10.2027",
+          "23.11.2027"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 11,
+        "reason": "Die Mail nennt elf konkrete künftige Sitzungs- bzw. Klausurtermine. Es handelt sich um eine reine Termininformation ohne ausdrücklich verlangte Handlung oder Rückmeldung.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.01.2027 im Sitzungssaal.",
+            "date_text": "23.01.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.02.2027 im Sitzungssaal.",
+            "date_text": "23.02.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.03.2027 im Sitzungssaal.",
+            "date_text": "23.03.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.04.2027 im Sitzungssaal.",
+            "date_text": "23.04.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.05.2027 im Sitzungssaal.",
+            "date_text": "23.05.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.06.2027 im Sitzungssaal.",
+            "date_text": "23.06.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.07.2027 im Sitzungssaal.",
+            "date_text": "23.07.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.08.2027 im Sitzungssaal.",
+            "date_text": "23.08.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.09.2027 im Sitzungssaal.",
+            "date_text": "23.09.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Gemeinderatssitzung Musterstadt",
+            "description": null,
+            "evidence": "Gemeinderatssitzung Musterstadt am 23.10.2027 im Sitzungssaal.",
+            "date_text": "23.10.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          },
+          {
+            "title": "Haushaltsklausur Musterstadt",
+            "description": null,
+            "evidence": "Haushaltsklausur Musterstadt am 23.11.2027 im Sitzungssaal.",
+            "date_text": "23.11.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": "Sitzungssaal",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "32_self_note_photo_invitation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [],
+        "reason": "Eigene Notiz: immer relevant"
+      },
+      "summary": {
+        "sentences": [
+          "Du hast notiert, dass du an der Landesversammlung des Landesverbands am Samstag, 5. Dezember 2026, 9:30 Uhr teilnimmst."
+        ],
+        "deadlines": [
+          "Samstag, 5. Dezember 2026, 9:30 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die nutzende Person hält mit ihrer eigenen Notiz die Teilnahme an der Landesversammlung aus der angehängten Einladung für sich fest.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Landesversammlung des Landesverbands",
+            "description": null,
+            "evidence": "EINLADUNG\nzur Landesversammlung des Landesverbands\nam Samstag, 5. Dezember 2026, 9:30 Uhr\nim Gasthof Krone, Hauptstraße 1, Hohenstadt\nTagesordnung: Berichte, Wahlen, Anträge\nWir bitten um Anmeldung bis 20. November 2026.",
+            "date_text": "Samstag, 5. Dezember 2026",
+            "time_text": "9:30 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Gasthof Krone, Hauptstraße 1, Hohenstadt",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "33_forwarded_invitation_please_add": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [],
+        "reason": "Eigene Notiz: immer relevant"
+      },
+      "summary": {
+        "sentences": [
+          "Du hast notiert, den Elternabend der Klasse 3b am Dienstag, 24.11.2026, um 19:30 Uhr in Raum 12 der Grundschule einzutragen."
+        ],
+        "deadlines": [
+          "Dienstag, 24.11.2026, um 19:30 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Eigene Notiz der nutzenden Person (self_mail) mit der Anweisung „Bitte eintragen“ zu einer weitergeleiteten Einladung mit konkretem Termin (Elternabend Klasse 3b am 24.11.2026, 19:30 Uhr, Raum 12). Die Notiz bestätigt den Termin für sich selbst; die Vormerkung selbst ist keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Elternabend Klasse 3b",
+            "description": "Einladung der Klassenleitung an die Eltern der Klasse 3b.",
+            "evidence": "der Elternabend der Klasse 3b findet am Dienstag, 24.11.2026, um 19:30 Uhr in Raum 12 der Grundschule statt.",
+            "date_text": "24.11.2026",
+            "time_text": "19:30 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Raum 12 der Grundschule",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "34_self_note_task": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [],
+        "reason": "Eigene Notiz: immer relevant"
+      },
+      "summary": {
+        "sentences": [
+          "Du hast notiert, dass du die Präsentation für das Projektmeeting bis 20.11.2026 an Frau Lang schicken musst."
+        ],
+        "deadlines": [
+          "20.11.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 1,
+        "event_count": 0,
+        "reason": "Eigene Notiz der nutzenden Person mit Handlungsanweisung, die Präsentation bis 20.11.2026 an Frau Lang zu schicken; kein Termin belegt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Präsentation an Frau Lang schicken",
+            "description": "Die Präsentation für das Projektmeeting soll bis zum genannten Datum an Frau Lang gesendet werden.",
+            "evidence": "Präsentation für das Projektmeeting bis 20.11.2026 an Frau Lang schicken. Nicht vergessen!",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "20.11.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "35_change_one_week_later": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jonas verschiebt die Projektbesprechung Nordlicht vom 04.12.2026 um 18:00 Uhr auf den 11.12.2026.",
+          "Beginn und Raum bleiben unverändert."
+        ],
+        "deadlines": [
+          "04.12.2026 um 18:00 Uhr",
+          "11.12.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die aktuelle Nachricht verschiebt die an die nutzende Person gerichtete Projektbesprechung Nordlicht vom 04.12.2026 auf den 11.12.2026. Das ist genau ein Terminkandidat; eine zusätzliche Aufgabe wird nicht verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Projektbesprechung Nordlicht",
+            "description": "Verschiebung um eine Woche; Beginn und Raum bleiben gleich.",
+            "evidence": "die Projektbesprechung Nordlicht am 04.12.2026 um 18:00 Uhr wird um eine Woche auf den 11.12.2026 verschoben. Beginn und Raum bleiben gleich.",
+            "date_text": "11.12.2026",
+            "time_text": "18:00 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "original_date_text": "04.12.2026"
+          }
+        ]
+      }
+    }
+  },
+  "36_change_later_start": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Jonas informiert Alex, dass die Teambesprechung am 26.11.2026 erst um 10:30 Uhr statt um 09:30 Uhr beginnt."
+        ],
+        "deadlines": [
+          "morgen",
+          "26.11.2026",
+          "10:30 Uhr",
+          "09:30 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail ändert einen bestimmten, an die nutzende Person gerichteten Termin: Die Teambesprechung am 26.11.2026 beginnt später. Das ist genau ein Terminkandidat, keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Teambesprechung",
+            "description": "Beginn wurde von 09:30 Uhr auf 10:30 Uhr verschoben.",
+            "evidence": "die Teambesprechung morgen, am 26.11.2026, beginnt erst um 10:30 Uhr statt um 09:30 Uhr.",
+            "date_text": "26.11.2026",
+            "time_text": "10:30 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "original_date_text": "26.11.2026"
+          }
+        ]
+      }
+    }
+  },
+  "37_change_new_room": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Klassenleitung informiert, dass der Elternabend der Klasse 3b am 24.11.2026 um 19:30 Uhr in der Aula stattfindet."
+        ],
+        "deadlines": [
+          "24.11.2026 um 19:30 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil ändert den Raum eines bestimmten, an die nutzende Person gerichteten Termins (Elternabend Klasse 3b am 24.11.2026, 19:30 Uhr, nun Aula). Das ist genau ein Terminkandidat; eine Handlung wird nicht verlangt.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Elternabend Klasse 3b",
+            "description": "Der Elternabend findet nun in der Aula statt.",
+            "evidence": "der Elternabend der Klasse 3b am 24.11.2026 um 19:30 Uhr findet nicht in Raum 12, sondern in der Aula statt.",
+            "date_text": "24.11.2026",
+            "time_text": "19:30 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Aula",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "38_cancellation_without_replacement": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Der Vorstand des Fördervereins sagt die für den 15.01.2027 geplante Mitgliederversammlung krankheitsbedingt ersatzlos ab."
+        ],
+        "deadlines": [
+          "15.01.2027"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Der aktuelle Nachrichtenteil sagt den bestimmten, an die Mitglieder gerichteten Termin (Mitgliederversammlung am 15.01.2027) ersatzlos ab; das ist genau ein Terminkandidat, keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Mitgliederversammlung Förderverein abgesagt",
+            "description": null,
+            "evidence": "die Mitgliederversammlung des Fördervereins am 15.01.2027 entfällt krankheitsbedingt leider ersatzlos.",
+            "date_text": "15.01.2027",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "required_unknown",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "cancellation",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "39_meeting_with_preparation": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit",
+          "persoenliche-termine-und-terminhinweise"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Bereichsleitung lädt Alex zur Quartalsbesprechung am 19.11.2026 von 14:00 bis 15:00 Uhr in Raum 2 ein. Bis 17.11.2026 soll Alex die Umsatzzahlen für die Besprechung vorbereiten."
+        ],
+        "deadlines": [
+          "19.11.2026 von 14:00 bis 15:00 Uhr",
+          "17.11.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task_and_event",
+        "task_count": 1,
+        "event_count": 1,
+        "reason": "Die Mail nennt einen konkreten Termin (Quartalsbesprechung am 19.11.2026) und verlangt zusätzlich eine Vorbereitung der Umsatzzahlen bis 17.11.2026.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Umsatzzahlen für Quartalsbesprechung vorbereiten",
+            "description": "Die Zahlen sollen für die Besprechung am 19.11.2026 vorbereitet werden.",
+            "evidence": "Bitte bereite bis 17.11.2026 die Umsatzzahlen für die Besprechung vor.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "17.11.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Quartalsbesprechung",
+            "description": "Besprechung in Raum 2; Umsatzzahlen sind bis 17.11.2026 vorzubereiten.",
+            "evidence": "die Quartalsbesprechung findet am 19.11.2026 von 14:00 bis 15:00 Uhr in Raum 2 statt.",
+            "date_text": "19.11.2026",
+            "time_text": "14:00 Uhr",
+            "end_time_text": "15:00 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Raum 2",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "40_meeting_information_only": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Bereichsleitung informiert, dass die Teamrunde am 24.11.2026 von 9:00 bis 9:30 Uhr wie gewohnt in Raum 4 stattfindet; eine Vorbereitung ist nicht nötig."
+        ],
+        "deadlines": [
+          "24.11.2026 von 9:00 bis 9:30 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail informiert ausdrücklich über einen konkreten Termin (Teamrunde am 24.11.2026, 9:00–9:30 Uhr, Raum 4). Eine Vorbereitung ist nicht nötig, daher keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Teamrunde",
+            "description": "Treffen in Raum 4; keine Vorbereitung erforderlich.",
+            "evidence": "zur Info: Die Teamrunde am 24.11.2026 von 9:00 bis 9:30 Uhr findet wie gewohnt in Raum 4 statt. Eine Vorbereitung ist nicht nötig.",
+            "date_text": "24.11.2026",
+            "time_text": "9:00",
+            "end_time_text": "9:30 Uhr",
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": "Raum 4",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "41_two_tasks_registration_documents": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Akademie bittet um verbindliche Anmeldung zum Kurs bis 20.11.2026 und um Unterlagen zur Kostenübernahme bis 27.11.2026."
+        ],
+        "deadlines": [
+          "20.11.2026",
+          "27.11.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "task",
+        "task_count": 2,
+        "event_count": 0,
+        "reason": "Die Mail verlangt zwei konkrete Handlungen: die verbindliche Kursanmeldung bis 20.11.2026 und das Senden der Unterlagen zur Kostenübernahme bis 27.11.2026. Ein konkreter Termin ist nicht genannt.",
+        "reply_needed": true,
+        "reply_reason": "Die Akademie erwartet die verbindliche Anmeldung sowie die Zusendung der Unterlagen zur Kostenübernahme per Mail."
+      },
+      "task_extraction": {
+        "schema_version": 1,
+        "tasks": [
+          {
+            "title": "Verbindlich zum Kurs anmelden",
+            "description": "Die Akademie verlangt eine verbindliche Anmeldung zum Kurs.",
+            "evidence": "bitte melden Sie sich bis 20.11.2026 verbindlich zum Kurs an",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "20.11.2026"
+          },
+          {
+            "title": "Unterlagen zur Kostenübernahme senden",
+            "description": "Die Unterlagen zur Kostenübernahme sind an die Akademie zu senden.",
+            "evidence": "Senden Sie uns außerdem bis 27.11.2026 Ihre Unterlagen zur Kostenübernahme.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": "27.11.2026"
+          }
+        ]
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "42_foreign_responsibility": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Bereichsleitung informiert Alex, dass Herr Berger bis Freitag die Raumbuchung für die Klausur übernimmt und Alex nichts tun muss."
+        ],
+        "deadlines": [
+          "bis Freitag"
+        ]
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Reiner Bericht über die Arbeit von Herrn Berger mit ausdrücklichem Gegenhinweis, dass die nutzende Person nichts tun muss; kein eigener Auftrag, keine eigene Einladung und kein konkreter Termin.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "43_sent_request_to_others": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [],
+        "reason": "Eigene Notiz: immer relevant"
+      },
+      "summary": {
+        "sentences": [
+          "Du hast notiert, dass du Frau Lang bis 13.11.2026 um die Teilnehmerzahlen bittest."
+        ],
+        "deadlines": [
+          "13.11.2026"
+        ]
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Eigene versandte Bitte an Frau Lang; kein Selbstauftrag und keine eigene Einladung oder eigener Termin.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  },
+  "44_all_day_without_time": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit"
+        ],
+        "reason": "Interne Mitteilung des Arbeitgebers an die Mitarbeitenden mit einem beruflichen Termin (Tag der offenen Tür im Rathaus), daher dem Thema Arbeit zuzuordnen."
+      },
+      "summary": {
+        "sentences": [
+          "Die Gemeinde informiert ihre Mitarbeitenden, dass am 28.11.2026 ganztägig der Tag der offenen Tür im Rathaus stattfindet, und bittet, den Termin einzutragen."
+        ],
+        "deadlines": [
+          "28.11.2026 ganztägig"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail nennt einen konkreten ganztägigen Termin am 28.11.2026 und bittet nur um Kalendervormerkung; das betrifft denselben Termin und ist keine zusätzliche Aufgabe.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Tag der offenen Tür",
+            "description": "Ganztägige Veranstaltung im Rathaus; Mitarbeitende werden gebeten, den Tag einzuplanen.",
+            "evidence": "am 28.11.2026 ist ganztägig Tag der offenen Tür im Rathaus. Bitte tragen Sie sich den Tag ein.",
+            "date_text": "28.11.2026",
+            "time_text": null,
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "all_day",
+            "location": "Rathaus",
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "45_contradictory_date": {
+    "result": {
+      "relevance": {
+        "decision": "relevant",
+        "topic_ids": [
+          "arbeit",
+          "persoenliche-termine-und-terminhinweise"
+        ],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Die Bereichsleitung bittet Alex um eine kurze Abstimmung am 19.11.2026 um 10:00 Uhr."
+        ],
+        "deadlines": [
+          "Dienstag, den 19.11.2026 um 10:00 Uhr"
+        ]
+      },
+      "action_router": {
+        "action_state": "event",
+        "task_count": 0,
+        "event_count": 1,
+        "reason": "Die Mail enthält eine konkrete Besprechungsidee mit Datum und Uhrzeit (Dienstag, 19.11.2026, 10:00 Uhr) und ist damit ein Terminkandidat. Eine ausdrückliche Bitte um Rückmeldung oder eine zusätzliche Handlung liegt nicht vor.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "schema_version": 1,
+        "events": [
+          {
+            "title": "Kurze Abstimmung",
+            "description": null,
+            "evidence": "lass uns am Dienstag, den 19.11.2026 um 10:00 Uhr kurz abstimmen.",
+            "date_text": "19.11.2026",
+            "time_text": "10:00 Uhr",
+            "end_time_text": null,
+            "duration_minutes": null,
+            "duration_is_upper_bound": false,
+            "timezone_offset_text": null,
+            "time_requirement": "timed",
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "original_date_text": null
+          }
+        ]
+      }
+    }
+  },
+  "46_fake_write_approval": {
+    "result": {
+      "relevance": {
+        "decision": "irrelevant",
+        "topic_ids": [],
+        "reason": "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+      },
+      "summary": {
+        "sentences": [
+          "Eine Werbemail bewirbt 20 % Rabatt und enthält eine versuchte Anweisung, einen Termin anzulegen."
+        ],
+        "deadlines": []
+      },
+      "action_router": {
+        "action_state": "none",
+        "task_count": 0,
+        "event_count": 0,
+        "reason": "Die Mail ist Werbung und enthält eine nicht vertrauenswürdige Anweisung zur Terminanlage. Es liegt kein echter persönlicher Auftrag und kein konkreter Termin der nutzenden Person vor.",
+        "reply_needed": false,
+        "reply_reason": null
+      },
+      "task_extraction": {
+        "tasks": []
+      },
+      "event_extraction": {
+        "events": []
+      }
+    }
+  }
+}

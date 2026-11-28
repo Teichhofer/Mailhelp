@@ -1,0 +1,162 @@
+{
+  "date": "2026-11-26",
+  "source": "model",
+  "synthetic_only": true,
+  "additional_calls_authorized": 600,
+  "additional_calls_used": 349,
+  "additional_reported_cost_usd": 0.202496,
+  "previous_targeted_calls": 39,
+  "previous_targeted_reported_cost_usd": 0.035458,
+  "total_calls_used": 388,
+  "total_reported_cost_usd": 0.237954,
+  "cases_per_run": 46,
+  "max_calls_per_run": 300,
+  "same_corpus_and_decision_configuration": true,
+  "before_gate_reasons": [
+    "task: Erkennungsrate unter 90%",
+    "task: mehr als 2 Fehlalarme"
+  ],
+  "after_gate_reasons": [
+    "task: Erkennungsrate unter 90%",
+    "task: mehr als 2 Fehlalarme",
+    "event: mehr als 2 Fehlalarme",
+    "event: mehr false_positive als vor der Änderung"
+  ],
+  "passed": false,
+  "baseline_updated": false,
+  "deployed": false,
+  "runs": {
+    "before": {
+      "raw_report": "event-arrival-v4-before-2026-11-26.json",
+      "metrics_report": "event-arrival-v4-before-metrics-2026-11-26.json",
+      "calls": 175,
+      "usage": {
+        "prompt_tokens": 410549,
+        "completion_tokens": 84914,
+        "total_tokens": 495463,
+        "reported_cost": 0.106811,
+        "responses_without_usage": 0
+      },
+      "totals": {
+        "task": {
+          "recognized": 7,
+          "missed": 9,
+          "false_positive": 8,
+          "fields": {
+            "due": {
+              "correct": 7,
+              "checked": 7
+            },
+            "responsibility": {
+              "correct": 7,
+              "checked": 7
+            },
+            "evidence": {
+              "correct": 7,
+              "checked": 7
+            },
+            "assignment": {
+              "correct": 7,
+              "checked": 7
+            }
+          }
+        },
+        "event": {
+          "recognized": 35,
+          "missed": 3,
+          "false_positive": 2,
+          "fields": {
+            "date": {
+              "correct": 34,
+              "checked": 35
+            },
+            "time": {
+              "correct": 35,
+              "checked": 35
+            },
+            "responsibility": {
+              "correct": 24,
+              "checked": 35
+            },
+            "evidence": {
+              "correct": 35,
+              "checked": 35
+            },
+            "assignment": {
+              "correct": 35,
+              "checked": 35
+            }
+          }
+        }
+      },
+      "technical_failures": 0,
+      "unreadable": 0
+    },
+    "after": {
+      "raw_report": "event-arrival-v4-after-2026-11-26.json",
+      "metrics_report": "event-arrival-v4-after-metrics-2026-11-26.json",
+      "calls": 174,
+      "usage": {
+        "prompt_tokens": 440836,
+        "completion_tokens": 85801,
+        "total_tokens": 526637,
+        "reported_cost": 0.095685,
+        "responses_without_usage": 0
+      },
+      "totals": {
+        "task": {
+          "recognized": 8,
+          "missed": 8,
+          "false_positive": 7,
+          "fields": {
+            "due": {
+              "correct": 8,
+              "checked": 8
+            },
+            "responsibility": {
+              "correct": 8,
+              "checked": 8
+            },
+            "evidence": {
+              "correct": 8,
+              "checked": 8
+            },
+            "assignment": {
+              "correct": 8,
+              "checked": 8
+            }
+          }
+        },
+        "event": {
+          "recognized": 35,
+          "missed": 3,
+          "false_positive": 3,
+          "fields": {
+            "date": {
+              "correct": 34,
+              "checked": 35
+            },
+            "time": {
+              "correct": 35,
+              "checked": 35
+            },
+            "responsibility": {
+              "correct": 24,
+              "checked": 35
+            },
+            "evidence": {
+              "correct": 35,
+              "checked": 35
+            },
+            "assignment": {
+              "correct": 35,
+              "checked": 35
+            }
+          }
+        }
+      },
+      "technical_failures": 0,
+      "unreadable": 0
+    }
+  }
+}

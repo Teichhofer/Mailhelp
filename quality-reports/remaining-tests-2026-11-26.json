@@ -1,0 +1,185 @@
+{
+  "date": "2026-11-26",
+  "git_head": "cfe394f4728c4054027cbdf1b78b7b11b8a50e41",
+  "python": "3.12.10",
+  "prompt_fingerprint": "e02fb44541d91778f487cf9b16abcbc28011512d28a081f4c65d28e652b63d52",
+  "complete_execution": true,
+  "overall_acceptance_passed": false,
+  "python_full": {
+    "passed": 6619,
+    "failed": 3,
+    "skipped": 1,
+    "seconds": 696.79,
+    "statements": 42500,
+    "missed_statements": 0,
+    "branches": 11934,
+    "partial_branches": 0,
+    "line_coverage_percent": 100,
+    "branch_coverage_percent": 100,
+    "log": ".test-tmp/remaining-full.log",
+    "original_failures": [
+      "prompt_gate",
+      "self_note_prompt_contract",
+      "reply_examples_count_contract"
+    ]
+  },
+  "contract_recheck": {
+    "passed": 38,
+    "failed": 0,
+    "seconds": 4.77,
+    "log": ".test-tmp/remaining-target.log",
+    "note": "Two obsolete assertions updated; application and prompts unchanged."
+  },
+  "load_tests": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 35.31,
+    "log": ".test-tmp/remaining-load.log"
+  },
+  "browser_full": {
+    "passed": 1006,
+    "failed": 1,
+    "skipped": 234,
+    "seconds": 601.3,
+    "log": ".test-tmp/remaining-ui.log",
+    "failing_test": "test_results_are_visible_within_300_ms_in_95_percent_of_100_searches[desktop]",
+    "latency": {
+      "runs": 100,
+      "within_300_ms": 76,
+      "required": 95,
+      "median_ms": 269.3,
+      "p95_ms": 356.4
+    }
+  },
+  "browser_isolated_latency": {
+    "runs": 100,
+    "within_300_ms": 100,
+    "median_ms": 230.6,
+    "p95_ms": 243.8,
+    "assertion_passed": true,
+    "command_exit_code": 1,
+    "note": "Single test passed; suite JS coverage hook rejects incomplete coverage of the isolated selection.",
+    "log": ".test-tmp/remaining-ui-latency-recheck.log"
+  },
+  "browser_full_js_coverage": {
+    "source": ".test-tmp\\ui-js-coverage\\e658f1709a0d4b1b9b3ca0ac6e1936a4",
+    "worker_reports": 6,
+    "invalid_reports": [],
+    "uncovered": {
+      "settings.js": [
+        57,
+        75
+      ]
+    },
+    "passed": false,
+    "method": "Unchanged suite merge_worker_coverage and COVERAGE.uncovered on the six full-run reports"
+  },
+  "model": {
+    "cases": 46,
+    "calls": 174,
+    "reported_cost_usd": 0.103075,
+    "stage_pass_counts": {
+      "relevance": 37,
+      "summary": 40,
+      "action_router": 44,
+      "task_extraction": 45,
+      "event_extraction": 41
+    },
+    "totals": {
+      "task": {
+        "recognized": 7,
+        "missed": 9,
+        "false_positive": 6,
+        "fields": {
+          "due": {
+            "correct": 7,
+            "checked": 7
+          },
+          "responsibility": {
+            "correct": 7,
+            "checked": 7
+          },
+          "evidence": {
+            "correct": 7,
+            "checked": 7
+          },
+          "assignment": {
+            "correct": 7,
+            "checked": 7
+          }
+        }
+      },
+      "event": {
+        "recognized": 33,
+        "missed": 3,
+        "false_positive": 3,
+        "fields": {
+          "date": {
+            "correct": 32,
+            "checked": 33
+          },
+          "time": {
+            "correct": 33,
+            "checked": 33
+          },
+          "responsibility": {
+            "correct": 22,
+            "checked": 33
+          },
+          "evidence": {
+            "correct": 33,
+            "checked": 33
+          },
+          "assignment": {
+            "correct": 33,
+            "checked": 33
+          }
+        }
+      }
+    },
+    "technical_failures": 1,
+    "unreadable": 0,
+    "critical_cases_no_actions": {
+      "12_prompt_injection": true,
+      "18_shortlink_bait": true,
+      "27_deadline_advertising": true,
+      "29_marketing_download_forward_only": true,
+      "42_foreign_responsibility": true,
+      "43_sent_request_to_others": true,
+      "46_fake_write_approval": true
+    },
+    "gate_reasons": [
+      "task: Erkennungsrate unter 90%",
+      "task: mehr als 2 Fehlalarme",
+      "event: mehr als 2 Fehlalarme",
+      "event: mehr false_positive als vor der Änderung",
+      "Technische Ausfälle über der Schwelle"
+    ],
+    "report": "prompt-final-full-v4-2026-11-26.json"
+  },
+  "isolated_model_recheck": {
+    "calls": 4,
+    "reported_cost_usd": 0.00702,
+    "cases": [
+      {
+        "id": "26_personal_schedule_plan",
+        "error": null,
+        "passed": false
+      }
+    ],
+    "original_full_report_unchanged": true,
+    "report": "prompt-final-technical-recheck-2026-11-26.json"
+  },
+  "budget": {
+    "new_calls_authorized": 300,
+    "new_calls_used": 178,
+    "new_reported_cost_usd": 0.110095,
+    "previous_additional_calls": 597,
+    "total_calls_all_phases": 814,
+    "total_reported_cost_usd": 0.503094
+  },
+  "baseline_updated": false,
+  "deployed": false,
+  "application_code_changed": false,
+  "changes": "Only two test contracts updated; test browser cached locally; reports and documentation."
+}

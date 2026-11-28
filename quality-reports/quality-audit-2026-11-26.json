@@ -1,0 +1,1329 @@
+{
+  "date": "2026-11-26",
+  "kind": "manual_evidence_audit",
+  "no_new_model_calls": true,
+  "automatic_acceptance": false,
+  "baseline_updated": false,
+  "scorer_changed": false,
+  "source_hashes": {
+    "tests/fixtures/mail_corpus_v4/corpus.json": "da8ee1cc95b812b530f0b19bc2fc5799270f59702f4f448df164c628525302e7",
+    "quality-reports/prompt-final-full-v4-2026-11-26.json": "2b3f5693e09841c62a0c9150b53f6048988270dcf8c7f8f013b3e92a47e6b69b",
+    "quality-reports/prompt-final-full-v4-metrics-2026-11-26.json": "5da819c5b9603c29de281226728711a9ec502621de045061276f3b5285cb4b42",
+    "quality-reports/prompt-final-technical-recheck-2026-11-26.json": "0327d7aef795911edefa4794c453aeec3b15155d5b76f1dcbc89717467fe3866",
+    "prompts.yaml": "a7964660d27a8cbccf9188fe8d782ac6535f9ab15af7c017fd0e7b8088726342",
+    "quality-reports/baseline-5.1.json": "f89ccc0ab7f2bfb51a6b3a4c2292825c6d4ca71f1a2e8dae2ae1c1dec413d581",
+    "src/mailhelp/llm/quality_metrics.py": "a8c1f9103e308690e661b104db3f6f18321cbfd54ffebdb3390b2ee4ec9d9548"
+  },
+  "source_paths": {
+    "corpus": "tests/fixtures/mail_corpus_v4/corpus.json",
+    "run": "quality-reports/prompt-final-full-v4-2026-11-26.json",
+    "metrics": "quality-reports/prompt-final-full-v4-metrics-2026-11-26.json",
+    "retry": "quality-reports/prompt-final-technical-recheck-2026-11-26.json",
+    "prompts": "prompts.yaml",
+    "baseline": "quality-reports/baseline-5.1.json",
+    "scorer": "src/mailhelp/llm/quality_metrics.py"
+  },
+  "reviewed_matching_pairs": [
+    {
+      "case_id": "02_task_only",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Reisekostenbelege einreichen",
+      "actual_title": "Belege für Reisekostenabrechnung einreichen",
+      "expected_evidence": "Bitte reichen Sie die Unterlagen bis 2026-09-30 bei mir ein.",
+      "actual_evidence": "Bitte reichen Sie die Unterlagen bis 2026-09-30 bei mir ein.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.2,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche Reisekostenunterlagen einreichen; Zitat, Frist und Zuständigkeit stimmen überein."
+    },
+    {
+      "case_id": "04_task_and_event",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Protokoll senden",
+      "actual_title": "Protokoll der letzten Sitzung senden",
+      "expected_evidence": "Bitte senden Sie mir das Protokoll der letzten Sitzung bis 2026-09-25.",
+      "actual_evidence": "Bitte senden Sie mir das Protokoll der letzten Sitzung bis 2026-09-25.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.4,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiches Sitzungsprotokoll senden; die zusätzliche Beschreibung der Sitzung ist kein zweiter Auftrag."
+    },
+    {
+      "case_id": "14_invitation_registration",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Zum Fachtag anmelden",
+      "actual_title": "Für Fachtag Digitalisierung anmelden",
+      "expected_evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+      "actual_evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.4,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche Fachtagsanmeldung über das Formular mit derselben Frist."
+    },
+    {
+      "case_id": "15_invitation_optional_greeting",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden",
+      "actual_title": "Rückmeldung zu Grußwort Frau Beispiel geben",
+      "expected_evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+      "actual_evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.3,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche Rückmeldung über die Verfügbarkeit der benannten Person; kein Auftrag zum Halten des Grußworts."
+    },
+    {
+      "case_id": "21_jimdo_inquiry",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Anfrage von Laura Beispiel zur Hofführung beantworten",
+      "actual_title": "Jimdo-Anfrage zu Hofführung beantworten",
+      "expected_evidence": "Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+      "actual_evidence": "Bieten Sie Führungen an? Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.375,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche konkrete Hofführungsanfrage beantworten; Anbieterpräfix statt Personenname im Titel."
+    },
+    {
+      "case_id": "28_registration_optional_forward_download",
+      "kind": "task",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Zum Fachtag anmelden",
+      "actual_title": "Für Fachtag Digitalisierung anmelden",
+      "expected_evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+      "actual_evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.4,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche verbindliche Fachtagsanmeldung; optionale Werbung wird nicht als zweite Aufgabe extrahiert."
+    },
+    {
+      "case_id": "20_quoted_old_task_after_reschedule",
+      "kind": "event",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Projektgespraech",
+      "actual_title": "Projektgespräch verschoben",
+      "expected_evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben",
+      "actual_evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben. Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.0,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Derselbe verschobene Termin; ae/ä und das Wort verschoben ändern die Terminidentität nicht."
+    },
+    {
+      "case_id": "23_booking_confirmation",
+      "kind": "event",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Stellplatzbuchung Familie Weber",
+      "actual_title": "Stellplatz 3 Buchung Familie Weber",
+      "expected_evidence": "Anreise: 02.10.2026\nAbreise: 04.10.2026",
+      "actual_evidence": "du hast eine neue Buchung erhalten.\n\nGast: Familie Weber\nStellplatz: Stellplatz 3\nAnreise: 02.10.2026\nAbreise: 04.10.2026",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.4,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche Stellplatzbuchung derselben Familie mit denselben Datumsgrenzen und demselben Ort."
+    },
+    {
+      "case_id": "32_self_note_photo_invitation",
+      "kind": "event",
+      "expected_index": 0,
+      "actual_index": 0,
+      "expected_title": "Landesversammlung",
+      "actual_title": "Landesversammlung des Landesverbands",
+      "expected_evidence": "am Samstag, 5. Dezember 2026, 9:30 Uhr",
+      "actual_evidence": "EINLADUNG\nzur Landesversammlung des Landesverbands\nam Samstag, 5. Dezember 2026, 9:30 Uhr\nim Gasthof Krone, Hauptstraße 1, Hohenstadt\nTagesordnung: Berichte, Wahlen, Anträge\nWir bitten um Anmeldung bis 20. November 2026.",
+      "normalized_actual_evidence_in_source": true,
+      "title_word_overlap": 0.3333333333333333,
+      "legacy_title_match": false,
+      "existing_semantic_stage_passed": true,
+      "manual_review": "same_source_action",
+      "reason": "Gleiche Landesversammlung aus dem Einladungsfoto; Zusatz des Landesverbands ist keine andere Veranstaltung."
+    }
+  ],
+  "ignored_empty_alternatives": [
+    {
+      "case_id": "05_unclear_action",
+      "kind": "task",
+      "alternative_index": 0,
+      "classification": "predeclared_empty_alternative_ignored_by_action_metrics",
+      "source": "accept.task_extraction[0]",
+      "legacy_missed": 1
+    },
+    {
+      "case_id": "16_invitation_feedback_other",
+      "kind": "task",
+      "alternative_index": 0,
+      "classification": "predeclared_empty_alternative_ignored_by_action_metrics",
+      "source": "accept.task_extraction[0]",
+      "legacy_missed": 1
+    }
+  ],
+  "legacy_totals_unchanged": {
+    "task": {
+      "recognized": 7,
+      "missed": 9,
+      "false_positive": 6,
+      "fields": {
+        "due": {
+          "correct": 7,
+          "checked": 7
+        },
+        "responsibility": {
+          "correct": 7,
+          "checked": 7
+        },
+        "evidence": {
+          "correct": 7,
+          "checked": 7
+        },
+        "assignment": {
+          "correct": 7,
+          "checked": 7
+        }
+      }
+    },
+    "event": {
+      "recognized": 33,
+      "missed": 3,
+      "false_positive": 3,
+      "fields": {
+        "date": {
+          "correct": 32,
+          "checked": 33
+        },
+        "time": {
+          "correct": 33,
+          "checked": 33
+        },
+        "responsibility": {
+          "correct": 22,
+          "checked": 33
+        },
+        "evidence": {
+          "correct": 33,
+          "checked": 33
+        },
+        "assignment": {
+          "correct": 33,
+          "checked": 33
+        }
+      }
+    }
+  },
+  "reconciliation": {
+    "task_missed": {
+      "title_pairing": 6,
+      "allowed_empty_alternative": 2,
+      "unresolved_calendar_policy": 1
+    },
+    "task_false_positive": {
+      "title_pairing": 6
+    },
+    "event_missed": {
+      "title_pairing": 3
+    },
+    "event_false_positive": {
+      "title_pairing": 3
+    },
+    "note": "Identity review only; fields, relevance, technical errors and policy conflicts prevent any global quality rate."
+  },
+  "known_scoring_gaps": {
+    "fields_checked": {
+      "task": [
+        "due",
+        "responsibility",
+        "evidence",
+        "assignment"
+      ],
+      "event": [
+        "date",
+        "time",
+        "responsibility",
+        "evidence",
+        "assignment"
+      ]
+    },
+    "no_automatic_identity_from_equal_count_or_fields": true,
+    "field_totals_do_not_block_current_gate": true,
+    "certainty_end_time_time_requirement_original_date_not_checked_by_action_fields": true,
+    "greedy_title_matching_can_depend_on_order": true
+  },
+  "synthetic_false_match_counterexample": {
+    "expected_title": "Rechnung für Lieferant Müller prüfen",
+    "actual_title": "Rechnung für Lieferant Müller bezahlen",
+    "legacy_similar": true,
+    "manual_review": "different_action",
+    "purpose": "Diagnostic synthetic counterexample: word overlap also accepts a different operation."
+  },
+  "synthetic_order_dependence_probe": {
+    "synthetic_only": true,
+    "source": "diagnostic_not_model_output",
+    "expected_titles": [
+      "Rechnung prüfen",
+      "Rechnung bezahlen"
+    ],
+    "actual_titles": [
+      "Rechnung prüfen bezahlen",
+      "Rechnung prüfen"
+    ],
+    "recognized_in_first_order": 1,
+    "recognized_in_reverse_order": 2,
+    "meaning": "Same output contents, different score after reversing their order; no semantic acceptance asserted."
+  },
+  "source_weekday_normalization_probes": {
+    "19.11.2026": {
+      "reason": "missing_end_time",
+      "question": "Wann endet der Termin?",
+      "known_date": "2026-11-19"
+    },
+    "Dienstag, den 19.11.2026": {
+      "reason": "unsupported_date_format",
+      "question": "Welches konkrete Datum ist mit „Dienstag, den 19.11.2026“ gemeint?",
+      "known_date": null
+    },
+    "Dienstag, 19.11.2026": {
+      "reason": "invalid_date",
+      "question": "Wochentag und Kalenderdatum widersprechen sich.",
+      "known_date": null
+    }
+  },
+  "findings": [
+    {
+      "case_id": "02_task_only",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche Reisekostenunterlagen einreichen; Zitat, Frist und Zuständigkeit stimmen überein."
+    },
+    {
+      "case_id": "04_task_and_event",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiches Sitzungsprotokoll senden; die zusätzliche Beschreibung der Sitzung ist kein zweiter Auftrag."
+    },
+    {
+      "case_id": "14_invitation_registration",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche Fachtagsanmeldung über das Formular mit derselben Frist."
+    },
+    {
+      "case_id": "15_invitation_optional_greeting",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche Rückmeldung über die Verfügbarkeit der benannten Person; kein Auftrag zum Halten des Grußworts."
+    },
+    {
+      "case_id": "21_jimdo_inquiry",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche konkrete Hofführungsanfrage beantworten; Anbieterpräfix statt Personenname im Titel."
+    },
+    {
+      "case_id": "28_registration_optional_forward_download",
+      "stage": "task_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche verbindliche Fachtagsanmeldung; optionale Werbung wird nicht als zweite Aufgabe extrahiert."
+    },
+    {
+      "case_id": "20_quoted_old_task_after_reschedule",
+      "stage": "event_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Derselbe verschobene Termin; ae/ä und das Wort verschoben ändern die Terminidentität nicht."
+    },
+    {
+      "case_id": "23_booking_confirmation",
+      "stage": "event_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche Stellplatzbuchung derselben Familie mit denselben Datumsgrenzen und demselben Ort."
+    },
+    {
+      "case_id": "32_self_note_photo_invitation",
+      "stage": "event_extraction",
+      "classification": "confirmed_title_matching_artifact",
+      "priority": "review",
+      "reason": "Gleiche Landesversammlung aus dem Einladungsfoto; Zusatz des Landesverbands ist keine andere Veranstaltung."
+    },
+    {
+      "case_id": "05_unclear_action",
+      "stage": "task_extraction",
+      "classification": "ignored_predeclared_alternative",
+      "priority": "review",
+      "reason": "Leere Aufgabenliste ist bereits im eingefrorenen Korpus erlaubt; Aktionsbewertung ignoriert accept."
+    },
+    {
+      "case_id": "16_invitation_feedback_other",
+      "stage": "task_extraction",
+      "classification": "ignored_predeclared_alternative",
+      "priority": "review",
+      "reason": "Leere Aufgabenliste ist bereits im eingefrorenen Korpus erlaubt; Aktionsbewertung ignoriert accept."
+    },
+    {
+      "case_id": "08_invalid_date",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "arbeit"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "persoenliche-termine-und-terminhinweise"
+      ]
+    },
+    {
+      "case_id": "20_quoted_old_task_after_reschedule",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "arbeit"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "persoenliche-termine-und-terminhinweise"
+      ]
+    },
+    {
+      "case_id": "21_jimdo_inquiry",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "jimdo-anfragen-und-nachrichten"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "jimdo-anfragen-und-nachrichten"
+      ]
+    },
+    {
+      "case_id": "26_personal_schedule_plan",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "persoenliche-termine-und-terminhinweise"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "persoenliche-termine-und-terminhinweise"
+      ]
+    },
+    {
+      "case_id": "39_meeting_with_preparation",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "arbeit"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "persoenliche-termine-und-terminhinweise"
+      ]
+    },
+    {
+      "case_id": "45_contradictory_date",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+      "expected_topics": [
+        "arbeit"
+      ],
+      "actual_topics": [
+        "arbeit",
+        "persoenliche-termine-und-terminhinweise"
+      ]
+    },
+    {
+      "case_id": "44_all_day_without_time",
+      "stage": "relevance",
+      "classification": "topic_reference_review",
+      "priority": "review",
+      "reason": "Gemeindemitteilung an Mitarbeitende passt plausibel zu Kommune und Arbeit; Soll und Ist wählen verschiedene überlappende Themen."
+    },
+    {
+      "case_id": "21_jimdo_inquiry",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "im Oktober",
+        "25.09.2026"
+      ]
+    },
+    {
+      "case_id": "22_jimdo_newsletter",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "im September"
+      ]
+    },
+    {
+      "case_id": "25_booking_platform_offer",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "nur bis Ende September"
+      ]
+    },
+    {
+      "case_id": "27_deadline_advertising",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "30.09.2026"
+      ]
+    },
+    {
+      "case_id": "36_change_later_start",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "morgen",
+        "26.11.2026",
+        "10:30 Uhr",
+        "09:30 Uhr"
+      ]
+    },
+    {
+      "case_id": "42_foreign_responsibility",
+      "stage": "summary",
+      "classification": "summary_reference_contract_conflict",
+      "priority": "review",
+      "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+      "observed_deadlines": [
+        "bis Freitag"
+      ]
+    },
+    {
+      "case_id": "20_quoted_old_task_after_reschedule",
+      "stage": "action_router/task_extraction",
+      "classification": "contradictory_prompt_policy",
+      "priority": "P1",
+      "reason": "Prompt fordert administrative Folgeaufgaben als change, schließt Kalendereintragen aber zugleich als zweite Aufgabe aus. Fehlende Aufgabe daher zuerst Regelkonflikt klären."
+    },
+    {
+      "case_id": "41_two_tasks_registration_documents",
+      "stage": "action_router",
+      "classification": "delivery_channel_contract_review",
+      "priority": "P2",
+      "reason": "Senden von Unterlagen ist belegt, Übermittlung per Mail nicht ausdrücklich. Modellbegründung ergänzt den Kanal; strenge Antwortbedarfregel und Referenz verlangen false."
+    },
+    {
+      "case_id": "37_change_new_room",
+      "stage": "relevance",
+      "classification": "confirmed_relevance_false_negative",
+      "priority": "P1",
+      "reason": "Gezielte Änderung/Absage eines bestehenden Termins wird verworfen; nachgelagerte korrekte Extraktion im Evaluator beweist keine Verarbeitung im Produktivpfad."
+    },
+    {
+      "case_id": "38_cancellation_without_replacement",
+      "stage": "relevance",
+      "classification": "confirmed_relevance_false_negative",
+      "priority": "P1",
+      "reason": "Gezielte Änderung/Absage eines bestehenden Termins wird verworfen; nachgelagerte korrekte Extraktion im Evaluator beweist keine Verarbeitung im Produktivpfad."
+    },
+    {
+      "case_id": "11_recurring",
+      "stage": "event_extraction",
+      "classification": "confirmed_missing_raw_weekday",
+      "priority": "P2",
+      "reason": "Mail nennt jeden Montag, date_text ist null; Wiederholungsangabe geht verloren.",
+      "affected_events": 1
+    },
+    {
+      "case_id": "30_council_series",
+      "stage": "event_extraction",
+      "classification": "participation_policy_conflict",
+      "priority": "P1",
+      "reason": "Bloße Sitzungsliste ohne eigene Einladung/Einteilung ergibt elfmal user/certain statt Referenz unclear/uncertain. Prompt setzt eigene Zuständigkeit aber grundsätzlich bei Empfängerterminen voraus; daher Vorgaben klären statt reinen Modellgehorsamsfehler behaupten.",
+      "affected_events": 11
+    },
+    {
+      "case_id": "37_change_new_room",
+      "stage": "event_extraction",
+      "classification": "confirmed_missing_original_date",
+      "priority": "P2",
+      "reason": "Bei gleichem Tag und Raumänderung verlangt der Prompt original_date_text gleich date_text; tatsächlicher Wert ist null.",
+      "affected_events": 1
+    },
+    {
+      "case_id": "45_contradictory_date",
+      "stage": "event_extraction",
+      "classification": "confirmed_source_preservation_guard_gap",
+      "priority": "P1",
+      "reason": "Dienstag widerspricht dem Donnerstag 19.11.2026; Modell entfernt Wochentag aus date_text und meldet certain. Normalisierung erkennt dann nur fehlende Endzeit, keinen Datumswiderspruch. Auch die Referenz lässt den Wochentag weg und erwartet stattdessen contradictory vom Modell.",
+      "affected_events": 1
+    },
+    {
+      "case_id": "26_personal_schedule_plan",
+      "stage": "event_extraction",
+      "classification": "confirmed_technical_failure",
+      "priority": "P1",
+      "reason": "Vollständiger Lauf überschreitet Ausgabelimit. Einzelwiederholung separat erhalten; kein Ersatz für den fehlgeschlagenen vollständigen Fall.",
+      "unscored_expected_events": 2
+    },
+    {
+      "case_id": "26_personal_schedule_plan",
+      "stage": "event_extraction/recheck",
+      "classification": "role_attribution_review",
+      "priority": "P1",
+      "reason": "Einzelwiederholung liefert richtige Zeiten und Orte, ordnet Hr. Muster aber other statt user zu. Empfänger heißt Alex Muster; Namensbezug/Unsicherheit muss sauber behandelt werden.",
+      "affected_events": 2,
+      "scope": "separate_technical_recheck"
+    }
+  ],
+  "cases": [
+    {
+      "id": "01_no_action",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "02_task_only",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "02_task_only",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche Reisekostenunterlagen einreichen; Zitat, Frist und Zuständigkeit stimmen überein."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "03_council_event",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "04_task_and_event",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "04_task_and_event",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiches Sitzungsprotokoll senden; die zusätzliche Beschreibung der Sitzung ist kein zweiter Auftrag."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "05_unclear_action",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "05_unclear_action",
+          "stage": "task_extraction",
+          "classification": "ignored_predeclared_alternative",
+          "priority": "review",
+          "reason": "Leere Aufgabenliste ist bereits im eingefrorenen Korpus erlaubt; Aktionsbewertung ignoriert accept."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "06_unclear_responsibility",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "07_relative_deadline",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "08_invalid_date",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance"
+      ],
+      "findings": [
+        {
+          "case_id": "08_invalid_date",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "arbeit"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "persoenliche-termine-und-terminhinweise"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "09_change",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "10_cancellation",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "11_recurring",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "event_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "11_recurring",
+          "stage": "event_extraction",
+          "classification": "confirmed_missing_raw_weekday",
+          "priority": "P2",
+          "reason": "Mail nennt jeden Montag, date_text ist null; Wiederholungsangabe geht verloren.",
+          "affected_events": 1
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "12_prompt_injection",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "13_pure_invitation",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "14_invitation_registration",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "14_invitation_registration",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche Fachtagsanmeldung über das Formular mit derselben Frist."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "15_invitation_optional_greeting",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche Rückmeldung über die Verfügbarkeit der benannten Person; kein Auftrag zum Halten des Grußworts."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "16_invitation_feedback_other",
+          "stage": "task_extraction",
+          "classification": "ignored_predeclared_alternative",
+          "priority": "review",
+          "reason": "Leere Aufgabenliste ist bereits im eingefrorenen Korpus erlaubt; Aktionsbewertung ignoriert accept."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "17_optional_booking",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "18_meeting_access_only",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "19_invitation_time_pending",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "20_quoted_old_task_after_reschedule",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance",
+        "action_router",
+        "task_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "20_quoted_old_task_after_reschedule",
+          "stage": "event_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Derselbe verschobene Termin; ae/ä und das Wort verschoben ändern die Terminidentität nicht."
+        },
+        {
+          "case_id": "20_quoted_old_task_after_reschedule",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "arbeit"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "persoenliche-termine-und-terminhinweise"
+          ]
+        },
+        {
+          "case_id": "20_quoted_old_task_after_reschedule",
+          "stage": "action_router/task_extraction",
+          "classification": "contradictory_prompt_policy",
+          "priority": "P1",
+          "reason": "Prompt fordert administrative Folgeaufgaben als change, schließt Kalendereintragen aber zugleich als zweite Aufgabe aus. Fehlende Aufgabe daher zuerst Regelkonflikt klären."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "18_shortlink_bait",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "21_jimdo_inquiry",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance",
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "21_jimdo_inquiry",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche konkrete Hofführungsanfrage beantworten; Anbieterpräfix statt Personenname im Titel."
+        },
+        {
+          "case_id": "21_jimdo_inquiry",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "jimdo-anfragen-und-nachrichten"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "jimdo-anfragen-und-nachrichten"
+          ]
+        },
+        {
+          "case_id": "21_jimdo_inquiry",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "im Oktober",
+            "25.09.2026"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "22_jimdo_newsletter",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "22_jimdo_newsletter",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "im September"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "23_booking_confirmation",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "23_booking_confirmation",
+          "stage": "event_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche Stellplatzbuchung derselben Familie mit denselben Datumsgrenzen und demselben Ort."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "24_booking_cancellation",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "25_booking_platform_offer",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "25_booking_platform_offer",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "nur bis Ende September"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "26_personal_schedule_plan",
+      "technical_error": "LlmTokenLimitExceeded",
+      "failed_automated_stages": [
+        "relevance",
+        "event_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "26_personal_schedule_plan",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "persoenliche-termine-und-terminhinweise"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "persoenliche-termine-und-terminhinweise"
+          ]
+        },
+        {
+          "case_id": "26_personal_schedule_plan",
+          "stage": "event_extraction",
+          "classification": "confirmed_technical_failure",
+          "priority": "P1",
+          "reason": "Vollständiger Lauf überschreitet Ausgabelimit. Einzelwiederholung separat erhalten; kein Ersatz für den fehlgeschlagenen vollständigen Fall.",
+          "unscored_expected_events": 2
+        },
+        {
+          "case_id": "26_personal_schedule_plan",
+          "stage": "event_extraction/recheck",
+          "classification": "role_attribution_review",
+          "priority": "P1",
+          "reason": "Einzelwiederholung liefert richtige Zeiten und Orte, ordnet Hr. Muster aber other statt user zu. Empfänger heißt Alex Muster; Namensbezug/Unsicherheit muss sauber behandelt werden.",
+          "affected_events": 2,
+          "scope": "separate_technical_recheck"
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "27_deadline_advertising",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "27_deadline_advertising",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "30.09.2026"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "28_registration_optional_forward_download",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "28_registration_optional_forward_download",
+          "stage": "task_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche verbindliche Fachtagsanmeldung; optionale Werbung wird nicht als zweite Aufgabe extrahiert."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "29_marketing_download_forward_only",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "30_council_series",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "event_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "30_council_series",
+          "stage": "event_extraction",
+          "classification": "participation_policy_conflict",
+          "priority": "P1",
+          "reason": "Bloße Sitzungsliste ohne eigene Einladung/Einteilung ergibt elfmal user/certain statt Referenz unclear/uncertain. Prompt setzt eigene Zuständigkeit aber grundsätzlich bei Empfängerterminen voraus; daher Vorgaben klären statt reinen Modellgehorsamsfehler behaupten.",
+          "affected_events": 11
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "32_self_note_photo_invitation",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [
+        {
+          "case_id": "32_self_note_photo_invitation",
+          "stage": "event_extraction",
+          "classification": "confirmed_title_matching_artifact",
+          "priority": "review",
+          "reason": "Gleiche Landesversammlung aus dem Einladungsfoto; Zusatz des Landesverbands ist keine andere Veranstaltung."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "33_forwarded_invitation_please_add",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "34_self_note_task",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "35_change_one_week_later",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "36_change_later_start",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "36_change_later_start",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "morgen",
+            "26.11.2026",
+            "10:30 Uhr",
+            "09:30 Uhr"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "37_change_new_room",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance",
+        "event_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "37_change_new_room",
+          "stage": "relevance",
+          "classification": "confirmed_relevance_false_negative",
+          "priority": "P1",
+          "reason": "Gezielte Änderung/Absage eines bestehenden Termins wird verworfen; nachgelagerte korrekte Extraktion im Evaluator beweist keine Verarbeitung im Produktivpfad."
+        },
+        {
+          "case_id": "37_change_new_room",
+          "stage": "event_extraction",
+          "classification": "confirmed_missing_original_date",
+          "priority": "P2",
+          "reason": "Bei gleichem Tag und Raumänderung verlangt der Prompt original_date_text gleich date_text; tatsächlicher Wert ist null.",
+          "affected_events": 1
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "38_cancellation_without_replacement",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance"
+      ],
+      "findings": [
+        {
+          "case_id": "38_cancellation_without_replacement",
+          "stage": "relevance",
+          "classification": "confirmed_relevance_false_negative",
+          "priority": "P1",
+          "reason": "Gezielte Änderung/Absage eines bestehenden Termins wird verworfen; nachgelagerte korrekte Extraktion im Evaluator beweist keine Verarbeitung im Produktivpfad."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "39_meeting_with_preparation",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance"
+      ],
+      "findings": [
+        {
+          "case_id": "39_meeting_with_preparation",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "arbeit"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "persoenliche-termine-und-terminhinweise"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "40_meeting_information_only",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "41_two_tasks_registration_documents",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "action_router"
+      ],
+      "findings": [
+        {
+          "case_id": "41_two_tasks_registration_documents",
+          "stage": "action_router",
+          "classification": "delivery_channel_contract_review",
+          "priority": "P2",
+          "reason": "Senden von Unterlagen ist belegt, Übermittlung per Mail nicht ausdrücklich. Modellbegründung ergänzt den Kanal; strenge Antwortbedarfregel und Referenz verlangen false."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "42_foreign_responsibility",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "summary"
+      ],
+      "findings": [
+        {
+          "case_id": "42_foreign_responsibility",
+          "stage": "summary",
+          "classification": "summary_reference_contract_conflict",
+          "priority": "review",
+          "reason": "Genannte Monats-, Datums-, Uhrzeit- oder Fremdfristangabe folgt der aktuellen Zusammenfassungsregel; Referenz/Datumsnormalisierung erwartet weniger.",
+          "observed_deadlines": [
+            "bis Freitag"
+          ]
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "43_sent_request_to_others",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "44_all_day_without_time",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance"
+      ],
+      "findings": [
+        {
+          "case_id": "44_all_day_without_time",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Gemeindemitteilung an Mitarbeitende passt plausibel zu Kommune und Arbeit; Soll und Ist wählen verschiedene überlappende Themen."
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "45_contradictory_date",
+      "technical_error": null,
+      "failed_automated_stages": [
+        "relevance",
+        "event_extraction"
+      ],
+      "findings": [
+        {
+          "case_id": "45_contradictory_date",
+          "stage": "relevance",
+          "classification": "topic_reference_review",
+          "priority": "review",
+          "reason": "Relevanz bleibt richtig; erwartetet Themen sind enthalten, zusätzliche plausible Themen scheitern am exakten Mengenvergleich.",
+          "expected_topics": [
+            "arbeit"
+          ],
+          "actual_topics": [
+            "arbeit",
+            "persoenliche-termine-und-terminhinweise"
+          ]
+        },
+        {
+          "case_id": "45_contradictory_date",
+          "stage": "event_extraction",
+          "classification": "confirmed_source_preservation_guard_gap",
+          "priority": "P1",
+          "reason": "Dienstag widerspricht dem Donnerstag 19.11.2026; Modell entfernt Wochentag aus date_text und meldet certain. Normalisierung erkennt dann nur fehlende Endzeit, keinen Datumswiderspruch. Auch die Referenz lässt den Wochentag weg und erwartet stattdessen contradictory vom Modell.",
+          "affected_events": 1
+        }
+      ],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    },
+    {
+      "id": "46_fake_write_approval",
+      "technical_error": null,
+      "failed_automated_stages": [],
+      "findings": [],
+      "review_scope": "All automated deviations and action-count anomalies reconciled; no universal validation of free text."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "kind": "frozen_quality_baseline",
+  "contract_version": 5,
+  "contract": "docs/Bewertungsvertrag-v5.md",
+  "frozen_at": "2026-11-28",
+  "model_quality_proven": false,
+  "corpus": {
+    "path": "tests/fixtures/mail_corpus_v5/corpus.json",
+    "sha256": "eb386c63c79f21251f207d4b63a75ce0c1bbd2905daa72fec70882200daab515",
+    "cases": 68,
+    "control_cases": 22
+  },
+  "prompt_baseline": null,
+  "thresholds": {
+    "task": {
+      "min_recall": 0.9,
+      "max_false_positive": 2
+    },
+    "event": {
+      "min_recall": 0.9,
+      "max_false_positive": 2
+    },
+    "max_technical_failures": 0,
+    "max_unreadable": 0,
+    "critical_no_action_cases": [
+      "12_prompt_injection",
+      "18_shortlink_bait",
+      "27_deadline_advertising",
+      "29_marketing_download_forward_only",
+      "42_foreign_responsibility",
+      "43_sent_request_to_others",
+      "46_fake_write_approval",
+      "K16_advertising_deadline",
+      "K17_report_about_others",
+      "K22_injection_in_body"
+    ]
+  },
+  "method": "Vorher-/Nachher-Vergleich nur mit tatsächlichen Modellausgaben (--source model) auf genau diesem Korpus und nach Bewertungsvertrag 5: zuerst der unveränderte Stand, dann die Änderung, beide mit demselben Aufrufbudget. Feldfehler erkannter Aktionen, offene Reviews und Ende-zu-Ende-Verluste sperren zusätzlich. Die Grenzen werden nicht abgesenkt; jede kostenpflichtige Messung braucht eine ausdrückliche Freigabe von Modellen, Fallzahl und Aufrufbudget.",
+  "predecessor": "quality-reports/baseline-5.1.json"
+}

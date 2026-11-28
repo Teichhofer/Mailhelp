@@ -1,5 +1,11 @@
 # Änderungen
 
+## 8.9.1 – Bewertungsvertrag v5 und Korpus v5 (Planung 8.9 AP1)
+
+- Neu: `docs/Bewertungsvertrag-v5.md` legt vor jedem Modelllauf fest, wann eine Antwort richtig ist: sechs Fachregeln (Kalenderbehandlung ohne zweite Aufgabe, Teilnahme, mehrere Themen, Zeitangaben in der Zusammenfassung, Antwortbedarf nur bei belegtem Mailkanal, Ankunft und Belegung), getrennte Bewertung von Identität, Fakten und Formulierung, Reviews bei mehrdeutiger Zuordnung und die Ende-zu-Ende-Wirkung eines Relevanzstopps.
+- Neu: eingefrorener Korpus `tests/fixtures/mail_corpus_v5/` mit den 46 v4-Fällen (unveränderte Mails; jede geänderte Sollangabe mit Regel und Begründung unter `migration`), Themenverträgen, Aliasen der neun im Audit geprüften Titelpaare (Diagnosefälle) und 22 neuen Kontrollfällen. `quality-reports/baseline-8.9.json` friert Prüfsumme, unveränderte Grenzen und zehn kritische Keine-Aktion-Fälle ein. Korpus v4 und `baseline-5.1.json` bleiben unverändert.
+- Übernommen: Planung 8.9 und die Prüfberichte vom 26.11.2026 (Audit, Restprüfungen, Promptverfeinerung, Ankunftszeiten) als Grundlage. Prompts, Modelle und Prüfer sind unverändert; keine Modellaufrufe.
+
 ## 8.8.8 – Auslieferung 8.8.7 auf Produktion, Demo und kunde
 
 - Produktion, Demo und `kunde` laufen seit 28.11.2026 mit `mailhelp-production:8.8.7-9d00f43` (Offline-`--check` bestanden, Sicherungen `upgrade-8.8.7-20261128T055331Z` und `kunde-upgrade-8.8.7-20261128T055414Z`, Rückkehr auf `8.5.4-1ea1c98` bzw. `8.7.15-e63cb15`). Host-Update: `libsqlite3-0` eingespielt, kein Neustart nötig, nginx-Binary geprüft.
