@@ -28,6 +28,18 @@ v5-Korpus nach Themenvertrag, Zeitangaben-Bestandteilen und Aktionsidentität. `
 `quality-reports/active-baseline.json`, mit offline erneut bestehendem Gate der gespeicherten Berichte, gleichem
 Prompt-Fingerprint des Laufs und benannter Freigabe.
 
+**Wochentag der Quelle (8.9.3, AP3).** `MailDateContext.source_text` enthält den aktuellen Teil der Mail (ohne
+zitierte ältere Nachricht ab „--- Ursprüngliche Nachricht ---“, „-----Original Message-----“, „Am … schrieb …:“,
+„On … wrote:“ oder „Von:“ und ohne „>“-Zeilen) und die Anhangstexte (`text/source_dates.py`). Nennt eine Stelle
+dort den extrahierten Kalendertag mit einem anderen Wochentag („Dienstag, den 19.11.2026“ für einen Donnerstag),
+wird der Tag zur Rückfrage „Wochentag und Kalenderdatum widersprechen sich.“ (`invalid_date`), auch wenn die
+Extraktion nur „19.11.2026“ und `certain` liefert; geprüft werden einzelne Termine, beide Grenzen eines
+Zeitraums und Aufgabenfristen. Nur Stellen mit demselben Tag zählen; Kopfzeilen, Zitate und andere Tabellenzeilen
+erzeugen keinen Widerspruch. Die Rückfrage steht vor der Frage nach einer fehlenden Endzeit, `temporal_fact.raw_text`
+behält die Quellenstelle (auch nach Neustart und erneuter Verarbeitung), eine bekannte Uhrzeit bleibt erhalten, und
+eine Antwort ohne neuen Tag (etwa nur eine Endzeit) lässt die Frage offen. „Wochentag, den TT.MM.JJJJ“ ist ein
+unterstütztes Datumsformat. Bestehende externe Termine werden nicht nachträglich geändert.
+
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
 Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele

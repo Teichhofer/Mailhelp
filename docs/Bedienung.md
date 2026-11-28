@@ -89,6 +89,11 @@ oder „20:30 Uhr übernehmen“ setzt den Wert mit einem Klick und erzeugt eine
 Version bestätigst. Für einen ganz anderen Wert änderst du den Vorschlag oder antwortest frei.
 In Telegram stehen dieselben Werte in der Nachricht und als Schaltflächen darunter.
 
+Nennt die Mail einen Wochentag, der nicht zum Datum passt (etwa Dienstag, den 19.11.2026, für einen
+Donnerstag), fragt Mailhelp zuerst „Wochentag und Kalenderdatum widersprechen sich.“ Die Frage bleibt
+offen, bis du den richtigen Tag nennst; eine Endzeit allein beantwortet sie nicht. Wochentage in zitierten
+älteren Mails zählen dabei nicht.
+
 ### Videolink für einen bestehenden Termin
 
 Steht ein Online-Termin schon ohne Einwahllink im Kalender und liefert eine spätere Mail den Link,

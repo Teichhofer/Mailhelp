@@ -2,7 +2,7 @@
 
 **Stand:** 28.11.2026. **Status:** In Umsetzung (Auftrag des Betreibers vom 28.11.2026). Umgesetzt: AP1 mit
 8.9.1 ([Bewertungsvertrag v5](Bewertungsvertrag-v5.md), Korpus v5, `quality-reports/baseline-8.9.json`), AP2 mit
-8.9.2 (Prüfer, Evaluation und Prompt-Gate nach Vertrag v5). Vorhandene
+8.9.2 (Prüfer, Evaluation und Prompt-Gate nach Vertrag v5), AP3 mit 8.9.3 (Wochentag der Quelle). Vorhandene
 lokale Promptentwürfe und Audits bilden die Ausgangsbasis, keine erfolgreiche Abnahme von Version 8.9.
 
 **Zielversion:** 8.9, erste Auslieferung 8.9.1. Weitere Commits in `main` und

@@ -33,6 +33,10 @@ class YearSource(StrEnum):
     UNKNOWN = "unknown"
 
 
+# 8.9.3: the question of a weekday that contradicts its calendar day; only a new date answers it.
+WEEKDAY_MISMATCH_QUESTION = "Wochentag und Kalenderdatum widersprechen sich."
+
+
 class TemporalFact(StrictModel):
     """Structured date fact created at the raw-extraction trust boundary."""
 

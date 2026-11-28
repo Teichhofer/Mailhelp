@@ -32,6 +32,7 @@ from ..proposals.action_normalization import (
     recover_task_due,
     resolve_day,
 )
+from ..text.source_dates import date_source
 from .action_matching import match, normalize, verified
 
 Source = Literal["recorded", "model"]
@@ -63,7 +64,21 @@ def mail_context(mail: dict[str, Any]) -> MailDateContext:
     return MailDateContext(date_context_status=str(mail.get("date_context_status", "missing")),
                            date_header_parsed=mail.get("date_header_parsed"),
                            imap_received_at=mail.get("imap_received_at"),
-                           user_timezone=mail.get("user_timezone"))
+                           user_timezone=mail.get("user_timezone"),
+                           source_text=date_source(str(mail.get("text") or ""), [
+                               str(item.get("text") or "") for item in mail.get("extracted_attachments", [])]))
+
+
+def recognized_images(mail: dict[str, Any], recognized: dict[str, str]) -> None:
+    """Stand in for vision OCR: the corpus supplies the text read from an image attachment.
+
+    The update has the same shape as the one ``processing.vision`` stores.
+    """
+    for index, attachment in enumerate(mail.get("extracted_attachments", [])):
+        text = recognized.get(attachment.get("filename", ""))
+        if text is not None:
+            mail["extracted_attachments"][index] = {**attachment, "text": text, "extraction_status": "success",
+                                                    "character_count": len(text), "vision": "read"}
 
 
 def case_source(case: dict[str, Any], timezone_name: str) -> tuple[str, MailDateContext]:
@@ -71,8 +86,8 @@ def case_source(case: dict[str, Any], timezone_name: str) -> tuple[str, MailDate
     received = case.get("received_at")
     mail: dict[str, Any] = prepare(case["raw_email"].encode("utf-8"), 100_000, user_timezone=timezone_name,
                                    received_at=datetime.fromisoformat(received) if received else None)
-    parts = [mail_source(mail), *(str(text) for text in case.get("vision", {}).values())]
-    return "\n".join(parts), mail_context(mail)
+    recognized_images(mail, case.get("vision", {}))
+    return mail_source(mail), mail_context(mail)
 
 
 def _place(value: str | None) -> frozenset[str] | None:

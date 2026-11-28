@@ -97,7 +97,7 @@ def test_a_leading_weekday_does_not_change_the_compared_date():
 
 
 def test_only_named_image_attachments_receive_recognized_text():
-    from mailhelp.llm.evaluation import _recognized_images
+    from mailhelp.llm.quality_metrics import recognized_images as _recognized_images
     mail = {"extracted_attachments": [
         {"filename": "foto.jpg", "text": "", "extraction_status": "unsupported_format", "character_count": 0},
         {"filename": "plan.pdf", "text": "Plan", "extraction_status": "success", "character_count": 4}]}

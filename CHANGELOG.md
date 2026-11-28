@@ -1,5 +1,23 @@
 # Änderungen
 
+## Geplant – Version 9.0: Zugänge direkt aktivieren
+
+- [Planung 9.0](docs/Planung-9.0.md) beschreibt die unmittelbare Aktivierung nach
+  erfolgreicher OAuth-Anmeldung für Zielprofile und Postfächer, einschließlich
+  gehosteter und direkter Verfahren. Kein zusätzlicher Entwurfsübernahmeschritt
+  oder manueller Neustart; notwendige Zielauswahl bleibt erhalten.
+- Vorgesehen sind wiederaufnehmbare Aktivierung, verbindungsgenauer Status,
+  sichere Migration sowie Regressionen für den Fall „zentral aktiv, lokal nur
+  Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
+  Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
+
+## 8.9.3 – Wochentag der Quelle bleibt erhalten (Planung 8.9 AP3)
+
+- Bugfix (Auditfall 45): Stand in der Mail „Dienstag, den 19.11.2026“ (ein Donnerstag) und lieferte die Extraktion nur „19.11.2026“ mit `certain`, fragte Mailhelp nur nach der Endzeit und übernahm den 19.11. als bekanntes Datum. Jetzt prüft die Anwendung den Wochentag selbst an der aktuellen Quellenstelle (Mailtext ohne Zitat und Anhänge) und fragt zuerst nach dem Datum; das gilt für einzelne Termine, Zeiträume und Aufgabenfristen. Zitate, Kopfzeilen und andere Tabellenzeilen erzeugen keinen Widerspruch.
+- Bugfix: „Dienstag, den 19.11.2026“ im Datumsfeld war ein nicht unterstütztes Format; jetzt wird es wie „Dienstag, 19.11.2026“ geprüft.
+- Bugfix: Eine Antwort, die nur eine Endzeit nennt, beantwortete die Wochentagsfrage; jetzt bleibt sie offen, bis ein Tag genannt ist. Quellenstelle, Rückfrage und bekannte Uhrzeit bleiben über Neustart und erneute Verarbeitung erhalten; eine Revision einer veralteten Version wird abgelehnt.
+- Regressionstests: `tests/unit/test_source_weekday.py`. Keine Modellaufrufe; Prompts unverändert.
+
 ## 8.9.2 – Prüfer nach Bewertungsvertrag v5 (Planung 8.9 AP2)
 
 - Bugfix (Audit vom 26.11.2026): Der Qualitätsbericht zählte einen anders formulierten, belegten Titel derselben Handlung als übersehen und als Fehlalarm, ignorierte vorab erlaubte leere Alternativen, ließ „Rechnung prüfen“ als „Rechnung bezahlen“ gelten und hing von der Ausgabereihenfolge ab. Neu: `llm/action_matching.py` mit Verbgruppen, Vereinheitlichung des Gegenstands, Aliasen, verifiziertem Quellenbeleg und reihenfolgeunabhängiger bester Zuordnung; mehrdeutige Paare werden zum Review.

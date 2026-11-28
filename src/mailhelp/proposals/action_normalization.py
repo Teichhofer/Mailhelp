@@ -27,7 +27,13 @@ from enum import StrEnum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ..domain.extraction import ExtractedEvent, ExtractedTask
-from ..domain.temporal import TemporalFact, TemporalResolutionStatus, TimeRequirement, YearSource
+from ..domain.temporal import (
+    WEEKDAY_MISMATCH_QUESTION,
+    TemporalFact,
+    TemporalResolutionStatus,
+    TimeRequirement,
+    YearSource,
+)
 from ..text.german_dates import (
     MONTH_PATTERN,
     MONTHS,
@@ -36,6 +42,7 @@ from ..text.german_dates import (
     explicit_years,
     weekday_contradicts,
 )
+from ..text.source_dates import weekday_conflict
 
 
 class NormalizationReason(StrEnum):
@@ -61,6 +68,9 @@ class MailDateContext:
     date_header_parsed: str | None
     imap_received_at: str | None
     user_timezone: str | None
+    # 8.9.3: the current part of the mail and its attachment texts (``source_dates.date_source``); a weekday
+    # written there next to the extracted day is checked even when the extraction dropped it.
+    source_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -97,7 +107,7 @@ class NormalizationResult:
 
 _DATE_ISO = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 _DATE_DE = re.compile(
-    rf"(?i)(?:({WEEKDAY_OR_ABBREVIATION_PATTERN})(?:,\s*|\s+))?(\d{{2}})\.(\d{{2}})\.(\d{{4}})\Z")
+    rf"(?i)(?:({WEEKDAY_OR_ABBREVIATION_PATTERN})(?:,\s*|\s+))?(?:den\s+)?(\d{{2}})\.(\d{{2}})\.(\d{{4}})\Z")
 _DATE_YEARLESS = re.compile(rf"(?i)(\d{{1,2}})\.?\s+({MONTH_PATTERN})\Z")
 _DATE_NAMED = re.compile(
     rf"(?i)(?:({WEEKDAY_PATTERN}),?\s+)?(?:den\s+)?(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})\Z")
@@ -252,9 +262,18 @@ def _yearless_range(event: ExtractedEvent, context: MailDateContext) -> _Range |
 
 
 _INVALID_DATE = "Bitte ein gültiges Kalenderdatum angeben."
-_WEEKDAY_MISMATCH = "Wochentag und Kalenderdatum widersprechen sich."
+_WEEKDAY_MISMATCH = WEEKDAY_MISMATCH_QUESTION
 _CONFLICTING_YEARS = "Welche der widersprüchlichen Jahreszahlen gilt?"
 _DateResult = tuple[date, TemporalFact] | NormalizationResult
+
+
+def _source_weekday(day: date, context: MailDateContext, responsibility: str) -> NormalizationResult | None:
+    """8.9.3: a passage of the source naming *day* with another weekday makes the day a question."""
+    passage = weekday_conflict(day, context.source_text)
+    if passage is None:
+        return None
+    return replace(_failure(NormalizationReason.INVALID_DATE, passage, responsibility, _WEEKDAY_MISMATCH),
+                   temporal_fact=TemporalFact(raw_text=passage, status=TemporalResolutionStatus.UNRESOLVED))
 
 
 def _resolved(raw: str, day: date, source: YearSource) -> tuple[date, TemporalFact]:
@@ -586,6 +605,9 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
                                     _WEEKDAY_MISMATCH),
                            temporal_fact=TemporalFact(raw_text=date_range.text,
                                                       status=TemporalResolutionStatus.UNRESOLVED))
+        for boundary in (date_range.start, date_range.end):
+            if (conflict := _source_weekday(boundary, context, event.responsibility)) is not None:
+                return conflict
         if event.time_requirement == TimeRequirement.ALL_DAY or (
                 event.time_text is None and event.end_time_text is None):
             return _normalize_date_range(event, context, date_range)
@@ -595,6 +617,8 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     if isinstance(parsed_day, NormalizationResult):
         return _unresolved_event_day(event, parsed_day)
     day, fact = parsed_day
+    if (conflict := _source_weekday(day, context, event.responsibility)) is not None:
+        return _unresolved_event_day(event, conflict)
     if event.time_requirement == TimeRequirement.ALL_DAY:
         return _normalize_all_day(event, context, day, fact)
     return _normalize_timed(event, context, day, fact)
@@ -648,6 +672,8 @@ def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> Normali
     if isinstance(parsed, NormalizationResult):
         return parsed
     parsed_day, fact = parsed
+    if (conflict := _source_weekday(parsed_day, context, responsibility)) is not None:
+        return conflict
     fact = fact.model_copy(update={"raw_text": task.due_text})
     checked = _context_zone(context, responsibility)
     if isinstance(checked, NormalizationResult):

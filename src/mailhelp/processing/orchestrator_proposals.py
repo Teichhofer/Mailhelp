@@ -18,6 +18,7 @@ from ..mailbox.sender_filter import prefilter
 from ..proposals.action_normalization import DEADLINE_DATE_PATTERN, MailDateContext, resolve_day
 from ..proposals.proposal_builder import ProposalBuilder
 from ..telegram.formatting import mail_line
+from ..text.source_dates import date_source
 from .attachments import AttachmentCache
 
 if TYPE_CHECKING:
@@ -33,6 +34,7 @@ def build_proposals(orchestrator: Orchestrator, state: MailState) -> list[Propos
         date_header_parsed=mail.date_header_parsed,
         imap_received_at=mail.imap_received_at,
         user_timezone=mail.user_timezone or orchestrator.user_timezone,
+        source_text=date_source(mail.text or "", [item.text for item in mail.extracted_attachments]),
     )
     headers = state.display_headers
     return ProposalBuilder(

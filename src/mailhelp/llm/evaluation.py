@@ -41,7 +41,7 @@ from .decisions import (
     load_relevance_prompts,
 )
 from .openrouter import OpenRouterClient
-from .quality_metrics import contract_version, mail_context, mail_source
+from .quality_metrics import contract_version, mail_context, mail_source, recognized_images
 from .stage_contract import compare_stages
 
 _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_extraction")
@@ -244,18 +244,6 @@ def _received_at(case: dict[str, Any]) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
-def _recognized_images(mail: dict[str, Any], recognized: dict[str, str]) -> None:
-    """Stand in for vision OCR: the corpus supplies the text read from an image attachment.
-
-    The update has the same shape as the one ``processing.vision`` stores.
-    """
-    for index, attachment in enumerate(mail.get("extracted_attachments", [])):
-        text = recognized.get(attachment.get("filename", ""))
-        if text is not None:
-            mail["extracted_attachments"][index] = {**attachment, "text": text, "extraction_status": "success",
-                                                    "character_count": len(text), "vision": "read"}
-
-
 def _evaluation_analyzer(bounded: BoundedCompleter, prompts: PromptConfig, decision_prompts: DecisionPrompts | None,
                          decision_client: DecisionClient | None) -> Analyzer:
     """The analyzer of the pipeline, without retries and limited to the call budget."""
@@ -303,7 +291,7 @@ def _evaluate_case(case: dict[str, Any], analyzer: Analyzer, topics: list[Topic]
     """Run one corpus case through every stage and compare each answer with the accepted ones."""
     mail = prepare(case["raw_email"].encode("utf-8"), 100_000,
                    received_at=_received_at(case), user_timezone=timezone_name)
-    _recognized_images(mail, case.get("vision", {}))
+    recognized_images(mail, case.get("vision", {}))
     # Routing and extraction receive what the pipeline sends, including the perspective.
     perspective = read_perspective(mail, own)
     routed = perspective.model_input(mail)

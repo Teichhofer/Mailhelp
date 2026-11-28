@@ -10,7 +10,7 @@ from pydantic import AnyHttpUrl, Field, model_validator
 from ._base import CalendarDate, StrictModel
 from .event_series import series_key
 from .proposal_sources import ProposalReference, ProposalSource
-from .temporal import TemporalFact
+from .temporal import WEEKDAY_MISMATCH_QUESTION, TemporalFact
 
 # An old confirmation without a durable channel receipt cannot invent a live web session.
 UNVERIFIED_LEGACY_ACTOR = "web:unverified-legacy"
@@ -632,11 +632,13 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
         raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
     changes = delta.changes.model_dump(exclude_unset=True)
     _check_revision_permissions(previous, changes, allow_create_fallback)
+    # 8.9.3: a weekday contradiction is settled only by a day; an end time alone leaves it open.
+    dated = bool({"start", "due", "temporal_date"} & set(changes))
     known = _revision_day(previous, changes)
     _revision_interval(previous, changes, known)
     settled = settled_conflict_questions(previous, set(changes))
     remaining = [question for question in previous.open_questions if question not in settled]
-    if delta.answered_question in remaining:
+    if delta.answered_question in remaining and (delta.answered_question != WEEKDAY_MISMATCH_QUESTION or dated):
         remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)
     for question in required_revision_questions(provisional):

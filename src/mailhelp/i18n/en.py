@@ -112,6 +112,7 @@ EN = {
     'Ist nur ein Hinweis – trotzdem anlegen?': 'This is only a note – create it anyway?',
     'Wann beginnt der Termin?': 'When does the event start?',
     'Wann endet der Termin?': 'When does the event end?',
+    'Wochentag und Kalenderdatum widersprechen sich.': 'Weekday and calendar date contradict each other.',
     'Welches Datum ist gemeint?': 'Which date is meant?',
     'Als irrelevant eingestuft': 'Rated as irrelevant',
     'Als relevant eingestuft': 'Rated as relevant',
