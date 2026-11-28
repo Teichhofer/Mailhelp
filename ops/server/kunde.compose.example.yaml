@@ -1,5 +1,5 @@
 # Mailhelp 8.7: Kundeninstanz „kunde“ (Betreiber-Testinstanz, Planung-8.7-Lernen.md §6).
-# Verifizierter Stand 28.11.2026, Mailhelp 8.8.7, Commit 9d00f43 (eingerichtet 25.11.2026).
+# Verifizierter Stand 28.11.2026, Mailhelp 8.9.5, Commit c0635c4 (eingerichtet 25.11.2026).
 # Zielpfad auf dem Host: /opt/mailhelp-kunde/compose.yaml, Compose-Projekt mailhelp-kunde.
 # Laufzeitdaten: /opt/mailhelp-kunde/runtime (Eigentümer 65532, 0700) mit eigener privater .env.
 # operator.yaml liegt außerhalb der Laufzeitdaten (root, 0644) und wird schreibgeschützt eingebunden,
@@ -7,7 +7,7 @@
 # Keine Produktions-Mounts, kein Auth-Netz, keine produktiven Zugangsdaten.
 services:
   mailhelp:
-    image: mailhelp-production:8.8.7-9d00f43
+    image: mailhelp-production:8.9.5-c0635c4
     restart: unless-stopped
     init: true
     stop_grace_period: 45s

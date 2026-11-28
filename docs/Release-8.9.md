@@ -2,8 +2,8 @@
 
 Stand: 28. November 2026. Grundlage: [Planung 8.9](Planung-8.9.md), [Bewertungsvertrag v5](Bewertungsvertrag-v5.md).
 
-> **Plan abgeschlossen mit 8.9.5, nicht ausgeliefert.** AP1–AP6 sind mit 8.9.1–8.9.5 umgesetzt; der Vorher-/Nachher-
-> Vergleich besteht das Qualitätsgate nach Vertrag 5. Produktion, Demo und `kunde` laufen mit 8.8.7.
+> **Plan abgeschlossen mit 8.9.5, am 28.11.2026 ausgeliefert.** AP1–AP6 sind mit 8.9.1–8.9.5 umgesetzt; der
+> Vorher-/Nachher-Vergleich besteht das Qualitätsgate nach Vertrag 5. Produktion, Demo und `kunde` laufen mit 8.9.5.
 
 ## Entscheidungen des Betreibers (28.11.2026)
 
@@ -109,6 +109,7 @@ Lasttests 4 bestanden. `python -m pytest ui_tests -n 6 --dist worksteal --no-cov
 
 ## Auslieferung
 
-Nicht ausgeliefert. Produktion, Demo und `kunde` laufen mit 8.8.7; eine Auslieferung von 8.9.5 braucht die
-Freigabe des Betreibers.
+Am 28.11.2026 auf Anweisung des Betreibers ausgeliefert: Produktion, Demo und `kunde` laufen mit
+`mailhelp-production:8.9.5-c0635c4` (Nachweis, Sicherungen und Rückkehr in [Betrieb](Betrieb.md)). Die Produktion nutzt
+eigene Promptdateien in `runtime/`; die Promptregeln von 8.9.5 wirken dort erst, wenn diese bewusst ersetzt werden.
 

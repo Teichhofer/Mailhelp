@@ -622,7 +622,7 @@ Produktion, Demo und Auth wurden dabei nicht verändert.
 
 | Bestandteil | Istzustand (geprüft 25.11.2026) |
 | --- | --- |
-| Quelle / Image | Seit 28.11.2026 Commit `9d00f43`, `/opt/mailhelp/releases/8.8.7-9d00f43`, `mailhelp-production:8.8.7-9d00f43`; Rückkehrpunkte `8.7.15-e63cb15`, `8.7.9-d15df13`, `8.7.4-4e86ee4` und `8.7.2-e00a136` |
+| Quelle / Image | Seit 28.11.2026 Commit `c0635c4`, `/opt/mailhelp/releases/8.9.5-c0635c4`, `mailhelp-production:8.9.5-c0635c4`; Rückkehrpunkte `8.8.7-9d00f43`, `8.7.15-e63cb15`, `8.7.9-d15df13`, `8.7.4-4e86ee4` und `8.7.2-e00a136` |
 | Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
 | Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
 | Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`, seit 26.11.2026 `learning_usd_per_million_tokens: "1.2"`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
@@ -789,3 +789,33 @@ Rückkehr: Produktion und Demo mit den Compose-Dateien aus `upgrade-8.8.7-202611
 `mailhelp-production:8.5.4-1ea1c98` (Laufzeitarchive derselben Sicherung bei gestoppten Containern zurückspielen, falls
 8.8.7 Daten geschrieben hat, die 8.5.4 nicht liest); `kunde` mit `compose.yaml.before-8.8.7` (Image
 `8.7.15-e63cb15`) und `up -d`. Demo-Besuchersitzungen von vor dem Update haben keine Rolle und enden einmalig.
+
+## Update aller Instanzen auf 8.9.5 (28.11.2026)
+
+Auf Anweisung des Betreibers vom 28.11.2026: Produktion, Demo und `kunde` auf Planung 8.9; Anmeldedienst unverändert
+`inboxstride-auth:7.9.5-2073ef0`.
+
+Schritte: `git archive c0635c4 Dockerfile README.md pyproject.toml requirements.lock src ops` nach
+`/opt/mailhelp/uploads/mailhelp-8.9.5-c0635c4.tar.gz` (SHA-256 `a9dc620e…c3a9afaf`, auf dem Server nachgeprüft),
+entpackt nach `/opt/mailhelp/releases/8.9.5-c0635c4`, `docker build -t mailhelp-production:8.9.5-c0635c4`
+(Version 8.9.5). Offline-`--check` gegen `/opt/mailhelp/runtime`: „Konfiguration ist gültig.“
+`apt-get update && apt-get upgrade -y`: nichts ausstehend; kein `/var/run/reboot-required`; laufendes Binary
+`/usr/sbin/nginx`, `nginx -t` erfolgreich. Wegen nur 540 MB freien Platzes ungenutzten Build-Cache mit
+`docker builder prune -f` entfernt (1,49 GB; Images und Rückkehrpunkte unverändert), danach 1,8 GB frei.
+
+Produktion und Demo mit `uploads/deploy_mailhelp_895.py`: Sicherung `/opt/mailhelp/backups/upgrade-8.9.5-20261128T100804Z`
+(Container gestoppt), Health und Version 8.9.5 beider Container geprüft. `kunde`: Sicherung
+`/opt/mailhelp/backups/kunde-upgrade-8.9.5-20261128T100852Z/mailhelp-kunde.tar.gz`, Vorzustand `compose.yaml.before-8.9.5`,
+`config --quiet`, `up -d`; `--check-instance` wie bisher.
+
+Prüfungen: `stefan.`/`kunde.inboxstride.de/anmelden`, `inboxstride.de/`, `auth.inboxstride.de/health` 200; `kunde` 308 und
+fremder Host 421; neue Demo-Besuchersitzung: `/`, `/mails`, `/verbrauch`, `/einstellungen` 200 ohne Betreiberangaben,
+`/status` und `/hilfe` 403. Produktion: LLM, Telegram, Todoist und IServ `access_confirmed`, keine weiteren Fehler.
+Weiter offen: Google lehnt die Erneuerung des Kalenderzugangs ab (`token_refresh_denied`, seit 25.11.2026).
+
+Hinweis: Die Produktion verwendet eigene `runtime/prompts.yaml` (Stand 13.11.2026) und `runtime/decisions_prompts.yaml`
+(Stand 11.10.2026). Das Update ändert sie nicht; die Promptregeln von 8.9.5 wirken dort erst nach einem bewussten
+Ersetzen dieser Dateien. `kunde` und Demo nutzen die Vorlagen des Images.
+
+Rückkehr: Produktion und Demo mit den Compose-Dateien aus `upgrade-8.9.5-20261128T100804Z` (Image `8.8.7-9d00f43`);
+`kunde` mit `compose.yaml.before-8.9.5` und `up -d`. 8.9.5 ändert keine Laufzeitdateiformate.

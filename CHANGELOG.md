@@ -2,7 +2,7 @@
 
 ## Geplant – Version 9.0: Zugänge direkt aktivieren
 
-- [Planung 9.0](docs/Planung-9.0.md) beschreibt die unmittelbare Aktivierung nach
+- Planung 9.0 (`docs/Planung-9.0.md`, noch nicht versioniert) beschreibt die unmittelbare Aktivierung nach
   erfolgreicher OAuth-Anmeldung für Zielprofile und Postfächer, einschließlich
   gehosteter und direkter Verfahren. Kein zusätzlicher Entwurfsübernahmeschritt
   oder manueller Neustart; notwendige Zielauswahl bleibt erhalten.
@@ -10,6 +10,13 @@
   sichere Migration sowie Regressionen für den Fall „zentral aktiv, lokal nur
   Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
   Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
+
+## 8.9.6 – Auslieferung 8.9.5 auf Produktion, Demo und kunde
+
+- Produktion, Demo und `kunde` laufen seit 28.11.2026 mit `mailhelp-production:8.9.5-c0635c4` (Offline-`--check` bestanden, Sicherungen `upgrade-8.9.5-20261128T100804Z` und `kunde-upgrade-8.9.5-20261128T100852Z`, Rückkehr auf `8.8.7-9d00f43`). Keine Host-Updates ausstehend; ungenutzter Docker-Build-Cache entfernt (1,49 GB).
+- Rauchtests bestanden; Produktion bestätigt LLM, Telegram, Todoist und IServ. Google lehnt weiter die Erneuerung des Kalenderzugangs ab.
+- Bugfix: README und CHANGELOG verlinkten seit 8.9.3 die noch unversionierte `docs/Planung-9.0.md`; in einem sauberen Checkout schlug `tests/release/test_documentation_links.py` fehl. Der Verweis entfällt im README und steht im CHANGELOG nur noch als Pfadangabe.
+- Hinweis: Die Produktion nutzt eigene `runtime/prompts.yaml` und `decisions_prompts.yaml`; die Promptregeln von 8.9.5 wirken dort erst nach bewusstem Ersetzen. Nachweis in `docs/Betrieb.md` (DE/EN), Serverhandbuch, `ops/server/`, Release 8.9.
 
 ## 8.9.5 – Promptregeln nach Vertrag v5 und Abnahme (Planung 8.9 AP4 und AP6)
 

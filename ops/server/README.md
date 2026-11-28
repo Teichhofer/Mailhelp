@@ -1,14 +1,14 @@
 # Verifizierte Servervorlagen
 
-Stand: 28. November 2026. Produktion, Demo und `kunde`: Mailhelp 8.8.7, Quellcommit
-`9d00f43`, Image `mailhelp-production:8.8.7-9d00f43`; zentraler Anmeldedienst
+Stand: 28. November 2026. Produktion, Demo und `kunde`: Mailhelp 8.9.5, Quellcommit
+`c0635c4`, Image `mailhelp-production:8.9.5-c0635c4`; zentraler Anmeldedienst
 `inboxstride-auth:7.9.5-2073ef0` (unverändert).
 
 | Vorlage | Installationsort | Compose-Projekt |
 | --- | --- | --- |
 | `production.compose.example.yaml` | `/opt/mailhelp/compose.setup.yaml` | `mailhelp-update` |
 | `demo.compose.example.yaml` | `/opt/mailhelp-demo/compose.yaml` | `mailhelp-demo` |
-| `kunde.compose.example.yaml` | `/opt/mailhelp-kunde/compose.yaml` (8.8.7 seit 28.11.2026, eingerichtet 25.11.2026, [Planung](../../docs/Planung-8.7-Lernen.md)) | `mailhelp-kunde` |
+| `kunde.compose.example.yaml` | `/opt/mailhelp-kunde/compose.yaml` (8.9.5 seit 28.11.2026, eingerichtet 25.11.2026, [Planung](../../docs/Planung-8.7-Lernen.md)) | `mailhelp-kunde` |
 
 Vorlagen beschreiben den erfolgreich geprüften aktuellen Stand, kein vollständiges
 Serverhandbuch. DNS, nginx/TLS, Host-Firewall und Secret-/Backupbereitstellung werden
