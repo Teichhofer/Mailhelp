@@ -1,8 +1,8 @@
 # Serverhandbuch Inboxstride
 
-Geprüft für Mailhelp 8.5.4 (Produktion, Demo) und 8.7.9 (Kundeninstanz `kunde`)
+Geprüft für Mailhelp 8.8.7 (Produktion, Demo und Kundeninstanz `kunde`)
 
-Stand: 26. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
+Stand: 28. November 2026. Diese Anleitung verbindet den bestätigten Serverbestand
 mit den [Konfigurationsvorlagen](../ops/server/README.md). Detaillierte Änderungsnachweise
 und ältere Rückkehrpunkte stehen in [Betrieb](Betrieb.md). Private Dateien werden
 aus der getrennten Sicherung bereitgestellt, niemals aus Git.
@@ -12,8 +12,8 @@ aus der getrennten Sicherung bereitgestellt, niemals aus Git.
 Centron, Deutschland; Ubuntu 26.04.1 LTS. Zuletzt ermittelt: Docker 29.1.3,
 Compose 2.40.3, nginx 1.28.3. Update und Kontrolle am 22.11.2026: nginx und Formulardienst
 aktiv, drei Container aktiv, Produktion, Demo und Auth gesund.
-Produktion und Demo verwenden nach dem Update vom 24.11.2026 tatsächlich
-`mailhelp-production:8.5.4-1ea1c98` (Commit `1ea1c98`), der Auth-Dienst unverändert
+Produktion, Demo und `kunde` verwenden nach dem Update vom 28.11.2026 tatsächlich
+`mailhelp-production:8.8.7-9d00f43` (Commit `9d00f43`, Rückkehrpunkt `8.5.4-1ea1c98`), der Auth-Dienst unverändert
 `inboxstride-auth:7.9.5-2073ef0`. Änderungen im lokalen Checkout sind damit
 nicht automatisch produktiv. Der Betreiber bestätigt am 20.11.2026 den erfolgreichen
 Google-Pilotabschluss einschließlich Übernehmen der Verbindung. Der anschließende
@@ -24,7 +24,7 @@ Kalenderreferenz. Der produktive Profilwechsel ist noch nicht nachgewiesen.
 | --- | --- | --- |
 | Produktion | `/opt/mailhelp/releases/`, `/opt/mailhelp/runtime` | nginx → `127.0.0.1:8765`, `stefan.inboxstride.de` |
 | Demo | `/opt/mailhelp-demo/compose.yaml`, Volume `mailhelp-demo-runtime` | nginx → `172.30.86.2:8765`, `demo.inboxstride.de` |
-| Kundeninstanz (8.7, Test) | `/opt/mailhelp-kunde/compose.yaml`, `/opt/mailhelp-kunde/runtime`, `operator.yaml` (mit Preisannahme `learning_usd_per_million_tokens`); Image `mailhelp-production:8.7.9-d15df13` | nginx → `127.0.0.1:8766`, `kunde.inboxstride.de` |
+| Kundeninstanz (8.7, Test) | `/opt/mailhelp-kunde/compose.yaml`, `/opt/mailhelp-kunde/runtime`, `operator.yaml` (mit Preisannahme `learning_usd_per_million_tokens`); Image `mailhelp-production:8.8.7-9d00f43` | nginx → `127.0.0.1:8766`, `kunde.inboxstride.de` |
 | Landingpage | Git `landing/`; `/opt/inboxstride/current` → Release | `inboxstride.de`, `www.inboxstride.de` |
 | Formulardienst | systemd `inboxstride`, `/var/lib/inboxstride/leads` | Loopback-Port 8877, nginx |
 | OAuth | `/opt/inboxstride-auth/`, Compose `inboxstride-auth` | nginx → `127.0.0.1:8780`; intern mTLS `auth-intern:8443` |

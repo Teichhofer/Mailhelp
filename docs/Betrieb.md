@@ -622,7 +622,7 @@ Produktion, Demo und Auth wurden dabei nicht verändert.
 
 | Bestandteil | Istzustand (geprüft 25.11.2026) |
 | --- | --- |
-| Quelle / Image | Seit 27.11.2026 Commit `e63cb15`, `/opt/mailhelp/releases/8.7.15-e63cb15`, `mailhelp-production:8.7.15-e63cb15`; Rückkehrpunkte `8.7.9-d15df13`, `8.7.4-4e86ee4` und `8.7.2-e00a136` |
+| Quelle / Image | Seit 28.11.2026 Commit `9d00f43`, `/opt/mailhelp/releases/8.8.7-9d00f43`, `mailhelp-production:8.8.7-9d00f43`; Rückkehrpunkte `8.7.15-e63cb15`, `8.7.9-d15df13`, `8.7.4-4e86ee4` und `8.7.2-e00a136` |
 | Compose | `/opt/mailhelp-kunde/compose.yaml` (root, 0600), Projekt `mailhelp-kunde`, Netz `mailhelp-kunde`, Port `127.0.0.1:8766`; Vorlage `ops/server/kunde.compose.example.yaml` |
 | Laufzeitdaten | `/opt/mailhelp-kunde/runtime` (65532, 0700) |
 | Kundenmodus | `/opt/mailhelp-kunde/operator.yaml` (root, 0644; `customer_mode: true`, `instance: kunde`, seit 26.11.2026 `learning_usd_per_million_tokens: "1.2"`), schreibgeschützt nach `/config/operator.yaml` eingebunden |
@@ -752,3 +752,40 @@ mit 8.7.9. Die Checkliste bleibt als Ablauf für eine spätere Freischaltung erh
 5. Lernlauf in Punkten mit 10 Mails: Schätzung, Start, Istverbrauch unter „Verbrauch“ gegen die gemeldeten
    OpenRouter-Kosten (`runtime/logs/llm`) und die Preisannahme 1.2 abgleichen (Plan §4.5).
 6. Ergebnis hier und in [Release 8.7](Release-8.7.md) eintragen; danach Serverkopie aktualisieren.
+
+## Update aller Instanzen auf 8.8.7 (28.11.2026)
+
+Auf Anweisung des Betreibers vom 28.11.2026, alles auszuliefern: Produktion, Demo und `kunde` auf
+Planung 8.8; der Anmeldedienst bleibt `inboxstride-auth:7.9.5-2073ef0`.
+
+Schritte: `git archive 9d00f43 Dockerfile README.md pyproject.toml requirements.lock src ops` nach
+`/opt/mailhelp/uploads/mailhelp-8.8.7-9d00f43.tar.gz` (SHA-256 `780fcb47…ea18d35b0`, auf dem Server
+nachgeprüft), entpackt nach `/opt/mailhelp/releases/8.8.7-9d00f43`, `docker build -t mailhelp-production:8.8.7-9d00f43`
+(Version 8.8.7). Offline-`--check` gegen `/opt/mailhelp/runtime` (ohne Netz, schreibgeschützt): „Konfiguration ist
+gültig.“ `apt-get update && apt-get upgrade -y`: `libsqlite3-0` 3.46.1-9ubuntu0.4 eingespielt (bisher wegen Phasing
+zurückgestellt); kein `/var/run/reboot-required`; nginx 1.28.3 (`1.28.3-2ubuntu1.14`), laufendes Binary
+`/usr/sbin/nginx`, `nginx -t` erfolgreich. Von needrestart gemeldet `fwupd` und `packagekit` danach neu gestartet
+(aktiv), `dbus.service` weiter aufgeschoben.
+
+Produktion und Demo mit `uploads/deploy_mailhelp_887.py` (Ablauf wie 8.5.4): Compose-Dateien gesichert, Image und
+Buildkontext umgestellt, beide Container gestoppt, konsistente Sicherung
+`/opt/mailhelp/backups/upgrade-8.8.7-20261128T055331Z`, gestartet; Health beider Instanzen und Version 8.8.7 in
+`mailhelp-update-mailhelp-1` und `mailhelp-demo-mailhelp-demo-1` geprüft. `kunde`: Container gestoppt, Sicherung
+`/opt/mailhelp/backups/kunde-upgrade-8.8.7-20261128T055414Z/mailhelp-kunde.tar.gz`, Vorzustand
+`compose.yaml.before-8.8.7`, Image umgestellt, `config --quiet`, `up -d`; `operator.yaml` unverändert.
+
+Prüfungen: `stefan.inboxstride.de/anmelden`, `kunde.inboxstride.de/anmelden`, `inboxstride.de/` und
+`auth.inboxstride.de/health` 200; `kunde` HTTP 308, fremder Host am Loopbackport 421. Demo: neue Besuchersitzung über
+`/demo/starten`, Kundenseiten `/`, `/mails`, `/lernen`, `/verbrauch`, `/einstellungen` 200 ohne USD, Wechselkurs oder
+`.env`; `/status`, `/abgleich`, `/auswertung`, `/diagnose`, `/hilfe` und `/einstellungen/allgemein` 403 (Deny-by-Default).
+`kunde`: Version 8.8.7, `--check-instance` wie bei 8.7.15. Produktion: IServ, Todoist und Zielprofil melden
+`access_confirmed`. Freier Plattenplatz danach 868 MB (96 % belegt).
+
+Befund unabhängig vom Update: Google lehnt seit 25.11.2026 20:33 UTC die Erneuerung des Kalenderzugangs der Produktion
+ab (`token_refresh_denied`, HTTP 400; letzte Bestätigung 20:18 UTC). Der Betreiber muss Google neu verbinden; bis dahin
+legt die Produktion keine Kalendertermine an.
+
+Rückkehr: Produktion und Demo mit den Compose-Dateien aus `upgrade-8.8.7-20261128T055331Z` und Image
+`mailhelp-production:8.5.4-1ea1c98` (Laufzeitarchive derselben Sicherung bei gestoppten Containern zurückspielen, falls
+8.8.7 Daten geschrieben hat, die 8.5.4 nicht liest); `kunde` mit `compose.yaml.before-8.8.7` (Image
+`8.7.15-e63cb15`) und `up -d`. Demo-Besuchersitzungen von vor dem Update haben keine Rolle und enden einmalig.

@@ -1,8 +1,8 @@
-# Verifizierter Stand 19.11.2026, Zielpfad /opt/mailhelp-demo/compose.yaml.
+# Verifizierter Stand 28.11.2026 (Mailhelp 8.8.7), Zielpfad /opt/mailhelp-demo/compose.yaml.
 # Nur synthetische Demo-Daten; kein Produktiv-Mount und keine Secrets.
 services:
   mailhelp-demo:
-    image: mailhelp-production:8.5.4-1ea1c98
+    image: mailhelp-production:8.8.7-9d00f43
     command: ["--demo", "--config-directory", "/config"]
     restart: unless-stopped
     init: true

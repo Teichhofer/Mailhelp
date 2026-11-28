@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.8.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.8.8 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.8.8: Produktion, Demo und die Testinstanz `kunde` laufen mit 8.8.7. Google lehnt seit dem 25.11.2026 die Erneuerung des produktiven Kalenderzugangs ab; der Betreiber muss Google neu verbinden.
 
 Version 8.8.7: Plan 8.8 abgeschlossen (Kundenmodus-OAuth, eigene Werte, Neustart-Hinweis, eigene Verbindungsprüfung, Demo als Kundenoberfläche); die Kundenhilfe nennt den Kundenweg **Eigene Verbindungen prüfen**. Noch nicht ausgeliefert.
 

@@ -112,6 +112,7 @@ Branch-Abdeckung, rot nur `test_prompt_gate` (s. o.); Lasttests 4 bestanden; Bro
 
 ## Auslieferung
 
-Nicht ausgeliefert. `kunde` läuft mit 8.7.15, Produktion und Demo mit 8.5.4. Bei der Auslieferung der Demo prüfen
-Rauchtests Kundenrouten (`/`, `/offen`, `/verbrauch`, `/einstellungen`), weil `/status` dort 403 liefert; laufende
-Demo-Besuchersitzungen enden beim ersten Start einmalig.
+Am 28.11.2026 auf Anweisung des Betreibers ausgeliefert: Produktion, Demo und `kunde` laufen mit
+`mailhelp-production:8.8.7-9d00f43` (Nachweis, Sicherungen und Rückkehr in [Betrieb](Betrieb.md)). Die Rauchtests der
+Demo prüften Kundenrouten in einer neuen Besuchersitzung (`/`, `/mails`, `/lernen`, `/verbrauch`, `/einstellungen` 200;
+Betreiberseiten und `/hilfe` 403); Besuchersitzungen von vor dem Update endeten einmalig.

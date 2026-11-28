@@ -1921,5 +1921,16 @@
   "source": "docs/en/Betrieb.md",
   "text": "Only the operator enters the own OpenRouter key: read the code with `docker logs --tail 5 mailhelp-kunde-mailhelp-1`, finish the first setup with a synthetic test mailbox, check `customer_mode_active` in the log, pair an operator (`mailhelp --pair --operator`) and a customer device (`mailhelp --pair`), and run `mailhelp --check-instance` until it reports “Ready for acceptance.”. Then check acceptance 3 (mailbox, target profile, topics and notifications with preview and explicit confirmation) and a learning run of 10 emails in points, comparing the usage with the reported OpenRouter costs and the price assumption 1.2.",
   "title": "Acceptance on `kunde` after the first setup (AP6, open)"
+ },
+ {
+  "id": "betrieb/update-aller-instanzen-auf-887-28112026",
+  "path": [
+   "Operation and updates",
+   "Update of all instances to 8.8.7 (28 Nov 2026)"
+  ],
+  "setting_ids": [],
+  "source": "docs/en/Betrieb.md",
+  "text": "On the operator's instruction of 28 Nov 2026, production, demo and `kunde` run `mailhelp-production:8.8.7-9d00f43` (plan 8.8); the sign-in service stays `inboxstride-auth:7.9.5-2073ef0`. The offline `--check` against the production configuration passed. Host packages: `libsqlite3-0` was upgraded, no reboot required, nginx 1.28.3 runs from `/usr/sbin/nginx`, `nginx -t` passed; `fwupd` and `packagekit` were restarted. Backups: `upgrade-8.8.7-20261128T055331Z` (production and demo, containers stopped) and `kunde-upgrade-8.8.7-20261128T055414Z`. Checks: health and version 8.8.7 in all three containers; HTTPS 200 for `stefan.`, `kunde.`, the landing page and `auth.`; `kunde` HTTP 308 and unknown host 421; in a new demo visitor session the customer pages return 200 without operator details, while `/status`, `/abgleich`, `/auswertung`, `/diagnose`, `/hilfe` and `/einstellungen/allgemein` return 403. Unrelated to the update: since 25 Nov 2026 20:33 UTC Google has rejected the renewal of the production calendar access (`token_refresh_denied`, HTTP 400); the operator has to reconnect Google. Rollback: the compose files of the production/demo backup with image `8.5.4-1ea1c98`; for `kunde` `compose.yaml.before-8.8.7` (image `8.7.15-e63cb15`). Demo visitor sessions from before the update end once.",
+  "title": "Update of all instances to 8.8.7 (28 Nov 2026)"
  }
 ]

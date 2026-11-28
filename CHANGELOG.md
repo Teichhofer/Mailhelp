@@ -1,5 +1,11 @@
 # Änderungen
 
+## 8.8.8 – Auslieferung 8.8.7 auf Produktion, Demo und kunde
+
+- Produktion, Demo und `kunde` laufen seit 28.11.2026 mit `mailhelp-production:8.8.7-9d00f43` (Offline-`--check` bestanden, Sicherungen `upgrade-8.8.7-20261128T055331Z` und `kunde-upgrade-8.8.7-20261128T055414Z`, Rückkehr auf `8.5.4-1ea1c98` bzw. `8.7.15-e63cb15`). Host-Update: `libsqlite3-0` eingespielt, kein Neustart nötig, nginx-Binary geprüft.
+- Rauchtests der Demo über eine neue Besuchersitzung: Kundenseiten 200 ohne Betreiberangaben, Betreiberseiten und Hilfe 403. Nachweis in `docs/Betrieb.md` (DE/EN); Serverhandbuch, `ops/server/` und Release 8.8 nennen den neuen Istzustand.
+- Befund unabhängig vom Update: Google lehnt seit 25.11.2026 die Erneuerung des produktiven Kalenderzugangs ab (HTTP 400); der Betreiber muss Google neu verbinden.
+
 ## 8.8.7 – Abschluss Planung 8.8 (AP8)
 
 - Hilfe: „Weitere Ziele“, „Wenn etwas nicht klappt“ und „CalDAV und Apple Erinnerungen“ verwiesen Kunden nur auf **Zugriffe prüfen** (`/diagnose`, für Kunden gesperrt) bzw. auf das Hinterlegen von Zugangsdaten. Sie nennen jetzt in Deutsch und Englisch den Kundenweg **Eigene Verbindungen prüfen** und dass der Betreiber die Zugangsdaten hinterlegt.
