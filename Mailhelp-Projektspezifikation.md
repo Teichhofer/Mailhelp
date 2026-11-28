@@ -15,6 +15,19 @@ Prüfsumme, Grenzen und kritische Keine-Aktion-Fälle stehen in `quality-reports
 `baseline-5.1.json` bleiben unverändert als historische Grundlage. Prompts, Modelle und Prüfer sind in 8.9.1
 unverändert.
 
+**Prüfer nach Vertrag v5 (8.9.2, AP2).** `llm/action_matching.py` bestimmt die Identität einer Aktion aus
+Handlungsverb (feste Verbgruppen; verschiedene Gruppen sind verschiedene Handlungen), Gegenstand nach
+Vereinheitlichung (Umlaute, Füllwörter, Zusammensetzungen, gemeinsamer Wortstamm), vorab festgelegten Aliasen und
+einem wörtlich in der Quelle stehenden Beleg; die beste Gesamtzuordnung ist reihenfolgeunabhängig (ungarische
+Methode), gleich gute Zuordnungen mit anderen Paaren ergeben Reviews. `quality_metrics` bewertet jede Alternative
+einer Stufe als Ganzes, prüft alle Fakten erkannter Aktionen nach der Normalisierung der Anwendung und zählt
+Ende-zu-Ende-Verluste bei `irrelevant`; `gate()` sperrt zusätzlich bei Feldfehlern, Reviews, Verlusten, fehlender
+Relevanzstufe und fremdem Vertrag. `llm/stage_contract.py` vergleicht in `mailhelp-evaluate` die Stufen eines
+v5-Korpus nach Themenvertrag, Zeitangaben-Bestandteilen und Aktionsidentität. `devtools/prompt_guard.py` friert
+`prompt-baseline.json` ein; aktiv wird eine neue Prompt-Baseline nur als `model_approved_baseline` über
+`quality-reports/active-baseline.json`, mit offline erneut bestehendem Gate der gespeicherten Berichte, gleichem
+Prompt-Fingerprint des Laufs und benannter Freigabe.
+
 ## Ergänzung 8.8: Gehostete Anmeldung im Kundenmodus (8.8.1)
 
 Nach [Planung 8.8](docs/Planung-8.8.md) AP1; Plan abgeschlossen mit 8.8.7 ([Release 8.8](docs/Release-8.8.md)). Kundensitzungen dürfen die gehosteten Anmeldeschritte für eigene Ziele

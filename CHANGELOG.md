@@ -1,5 +1,13 @@
 # Änderungen
 
+## 8.9.2 – Prüfer nach Bewertungsvertrag v5 (Planung 8.9 AP2)
+
+- Bugfix (Audit vom 26.11.2026): Der Qualitätsbericht zählte einen anders formulierten, belegten Titel derselben Handlung als übersehen und als Fehlalarm, ignorierte vorab erlaubte leere Alternativen, ließ „Rechnung prüfen“ als „Rechnung bezahlen“ gelten und hing von der Ausgabereihenfolge ab. Neu: `llm/action_matching.py` mit Verbgruppen, Vereinheitlichung des Gegenstands, Aliasen, verifiziertem Quellenbeleg und reihenfolgeunabhängiger bester Zuordnung; mehrdeutige Paare werden zum Review.
+- Bugfix: Das Gate prüfte die Fakten erkannter Aktionen nicht. Jetzt werden Klassifikation, Zuständigkeit, Sicherheit, Frist, Beginn/Ende/Tagesbereich, Zeitart, Zeitzone, Ort, Link, Bezugsdatum und Beleg geprüft; Feldfehler, offene Reviews und Ende-zu-Ende-Verluste (`irrelevant` beendet wie im Produktivpfad die Verarbeitung) sperren die Freigabe. Grenzen unverändert.
+- Bugfix: `mailhelp-evaluate` ignorierte in den Extraktionsstufen die Handlung, verlangte exakt gleiche Themenmengen und machte Monate und Uhrzeiten der Zusammenfassung zu einem `<ohne Datum>`. Für einen v5-Korpus gelten jetzt Themenvertrag, Bestandteile der Zeitangaben (jede zusätzliche muss in der Quelle stehen) und Aktionsidentität; `end_to_end_lost` nennt verlorene Fälle.
+- Bugfix: Neue Fingerprints in `quality-reports/prompt-baseline.json` genügten, um geänderte Prompts freizugeben. Die Datei ist eingefroren; eine neue Prompt-Baseline wird nur als `model_approved_baseline` über `quality-reports/active-baseline.json` aktiv, wenn die gespeicherten Modellberichte das Gate offline erneut bestehen, der Lauf dieselben Prompts nutzte und eine Freigabe benannt ist.
+- Regressionstests: `tests/evaluation/test_action_identity.py`, `test_evaluation_contract_v5.py`, `test_prompt_baselines.py`, `test_action_matching.py` (vor dem Fix 23 von 24 Fällen des Prüfers rot). Keine Modellaufrufe; Prompts unverändert.
+
 ## 8.9.1 – Bewertungsvertrag v5 und Korpus v5 (Planung 8.9 AP1)
 
 - Neu: `docs/Bewertungsvertrag-v5.md` legt vor jedem Modelllauf fest, wann eine Antwort richtig ist: sechs Fachregeln (Kalenderbehandlung ohne zweite Aufgabe, Teilnahme, mehrere Themen, Zeitangaben in der Zusammenfassung, Antwortbedarf nur bei belegtem Mailkanal, Ankunft und Belegung), getrennte Bewertung von Identität, Fakten und Formulierung, Reviews bei mehrdeutiger Zuordnung und die Ende-zu-Ende-Wirkung eines Relevanzstopps.

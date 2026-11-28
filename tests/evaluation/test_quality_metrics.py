@@ -4,9 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from mailhelp.domain.extraction import ActionRoute, EventExtraction, Summary, TaskExtraction
+from mailhelp.domain.extraction import ActionRoute, EventExtraction, ExtractedTask, Summary, TaskExtraction
 from mailhelp.domain.relevance import Relevance
-from mailhelp.llm.quality_metrics import _clock, _day, main, report, score_case
+from mailhelp.llm.quality_metrics import main, report, score_case, task_facts
+from mailhelp.proposals.action_normalization import MailDateContext
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 CORPUS = json.loads((FIXTURES / "mail_corpus_v4/corpus.json").read_text(encoding="utf-8"))
@@ -46,12 +47,15 @@ def test_recorded_answers_report_exactly_their_known_errors_and_prove_no_model_q
     assert "Modellqualität ist damit nicht nachgewiesen" in result["statement"]
     assert (result["technical_failures"], result["unreadable"]) == (1, 1)
     tasks, events = result["totals"]["task"], result["totals"]["event"]
-    assert (tasks["recognized"], tasks["missed"], tasks["false_positive"]) == (15, 1, 1)
-    assert tasks["fields"]["due"] == {"correct": 14, "checked": 15}
+    assert (tasks["recognized"], tasks["missed"], tasks["false_positive"], tasks["field_errors"]) == (15, 1, 1, 1)
+    assert tasks["fields"]["due"] == {"correct": 14, "checked": 15}  # the wrong deadline of case 39
     assert all(tasks["fields"][name] == {"correct": 15, "checked": 15}
-               for name in ("responsibility", "evidence", "assignment"))
-    assert (events["recognized"], events["missed"], events["false_positive"]) == (38, 0, 0)
-    assert events["fields"]["time"] == {"correct": 37, "checked": 38}
+               for name in ("classification", "responsibility", "certainty", "evidence"))
+    assert (events["recognized"], events["missed"], events["false_positive"], events["field_errors"]) == (38, 0, 0, 1)
+    assert events["fields"]["when"] == {"correct": 37, "checked": 38}  # the invented clock of case 44
+    assert (tasks["review"], events["review"]) == (0, 0)
+    # Recorded v4 answers have no relevance stage: the end-to-end effect is not checked, and the contract is 4.
+    assert (result["contract_version"], result["end_to_end_unchecked"]) == (4, 44)
     outcomes = {case["id"]: case["outcome"] for case in result["cases"]}
     assert (outcomes["46_fake_write_approval"], outcomes["12_prompt_injection"]) == ("technical_failure", "unreadable")
     assert result["corpus_schema_version"] == 4
@@ -68,14 +72,14 @@ def test_perfect_model_answers_score_fully_and_a_missing_answer_is_a_failure():
     assert score_case(CORPUS["cases"][0], {"result": {}})["outcome"] == "unreadable"
 
 
-@pytest.mark.parametrize(("text", "day"), [("bis 17.11.2026", "2026-11-17"), ("2026-11-17T10:00", "2026-11-17"),
-                                           ("Freitag ", "freitag"), (None, None)])
-def test_dates_are_compared_by_the_day_they_name(text, day):
-    assert _day(text) == day
-
-
-def test_times_are_compared_by_the_clock_they_name():
-    assert (_clock("9.00 Uhr"), _clock("09:00"), _clock("abends"), _clock(None)) == ("09:00", "09:00", "abends", None)
+@pytest.mark.parametrize(("due", "fact"), [("bis 17.11.2026", "2026-11-17"), ("17. November 2026", "2026-11-17"),
+                                          ("nächsten Freitag", "naechsten freitag"), (None, None)])
+def test_deadlines_are_compared_by_the_day_the_application_resolves(due, fact):
+    context = MailDateContext(date_context_status="valid", date_header_parsed="2026-11-10T09:00:00+01:00",
+                              imap_received_at="2026-11-10T09:01:00+01:00", user_timezone="Europe/Berlin")
+    task = ExtractedTask(title="Bericht senden", description="", evidence="Bericht", responsibility="user",
+                         certainty="certain", classification="new", due_text=due)
+    assert task_facts(task, context)["due"] == fact
 
 
 def test_the_command_writes_the_report(tmp_path, capsys):

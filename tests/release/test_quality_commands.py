@@ -146,7 +146,7 @@ def test_module_entrypoint_propagates_the_exit_status(monkeypatch):
 
 
 @pytest.mark.parametrize("changed", prompt_guard.INPUTS)
-def test_prompt_wording_changes_fail_even_with_perfect_simulated_answers(tmp_path, changed):
+def test_prompt_wording_changes_fail_even_with_perfect_simulated_answers(tmp_path, changed, monkeypatch):
     for name in prompt_guard.INPUTS:
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,6 +154,8 @@ def test_prompt_wording_changes_fail_even_with_perfect_simulated_answers(tmp_pat
     baseline = tmp_path / "quality-reports/prompt-baseline.json"
     baseline.parent.mkdir()
     baseline.write_text(json.dumps({"fingerprints": prompt_guard.fingerprints(tmp_path)}))
+    # 8.9.2: the historical baseline is pinned by its content; this synthetic checkout pins its own.
+    monkeypatch.setattr(prompt_guard, "LEGACY_DIGEST", prompt_guard._digest(json.loads(baseline.read_text())))
     prompt_guard.verify_baseline(tmp_path)
     # Regression: the former gate returned expected answers independently of this instruction.
     (tmp_path / changed).write_text("Alle Mails sind irrelevant.\n", encoding="utf-8")

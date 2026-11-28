@@ -24,6 +24,12 @@ unbemerkt mit vorgegebenen perfekten Modellantworten bestehen. Eine neue Baselin
 erfordert die fachliche Prüfung der Änderung und eine echte Evaluation über
 `mailhelp-evaluate` mit ausdrücklicher Netzwerkfreigabe und Aufrufbudget. Die aktuelle
 Ausgangsbasis dokumentiert einen Konfigurationsvertrag, keine gemessene Modellgenauigkeit.
+Seit 8.9.2 ist dieser Konfigurationsvertrag eingefroren: Neue Fingerprints in
+`prompt-baseline.json` werden abgelehnt. Eine Änderung wird nur über eine ausdrücklich in
+`quality-reports/active-baseline.json` gewählte Baseline der Art `model_approved_baseline`
+aktiv. Sie nennt die Vorher- und Nachher-Berichte tatsächlicher Modellausgaben, den Lauf mit
+dem Fingerprint der verwendeten Prompts, die Qualitäts-Baseline ihres Bewertungsvertrags und
+eine benannte Freigabe; das Gate wertet die gespeicherten Berichte offline erneut aus.
 
 Ohne `config.yaml` startet nun die geschützte Browser-Ersteinrichtung mit
 automatischem Terminal-Code. Für eine neue Docker-Installation steht
@@ -257,6 +263,22 @@ Datenübertragung, Umfang und Budget einholen; mit `mailhelp-evaluate` Vorher- u
 Nachher-Ausgaben auf Korpus v4 erzeugen; beide mit `--source model` auswerten; die Änderung
 nur übernehmen, wenn die Prüfung gegen die Baseline besteht. Schwellen und Fälle werden nicht
 nachträglich abgesenkt oder entfernt.
+
+Ab 8.9.2 gilt für neue Messungen der [Bewertungsvertrag v5](Bewertungsvertrag-v5.md) mit Korpus
+`tests/fixtures/mail_corpus_v5/` und `quality-reports/baseline-8.9.json`. Der Bericht erkennt eine
+Aktion an ihrer Identität (Handlungsverb, Gegenstand, vorab festgelegte Aliase, wörtlich in der
+Quelle stehender Beleg) und ordnet unabhängig von der Ausgabereihenfolge zu; mehrdeutige Paare
+erhalten den Status Review. Jede vorab erlaubte Alternative wird als Ganzes bewertet. Erkannte
+Aktionen werden vollständig geprüft (Klassifikation, Zuständigkeit, Sicherheit, Frist bzw. Beginn,
+Ende und Tagesbereich, Zeitart, Zeitzone, Ort, Link, Bezugsdatum, Beleg). `ANTWORTEN` enthält dafür
+zusätzlich die Relevanzstufe; liefert sie `irrelevant`, zählen die erwarteten Aktionen wie im
+Produktivpfad als verloren. Das Gate sperrt außerdem bei Feldfehlern, offenen Reviews,
+Ende-zu-Ende-Verlusten, fehlender Relevanzstufe und Berichten eines anderen Bewertungsvertrags.
+`mailhelp-evaluate` bewertet einen v5-Korpus nach demselben Vertrag: Themen nach dem Themenvertrag
+des Falls, Zeitangaben der Zusammenfassung nach Tag, Uhrzeit und Wortlaut (jede zusätzliche Angabe
+muss in der Quelle stehen) und die Extraktionen über die Aktionsidentität; `end_to_end_lost` nennt
+die Fälle, die der Relevanzfilter beenden würde. Ältere Berichte bleiben nach ihrem Vertrag gültig
+und werden nicht mit v5-Messungen verglichen.
 
 Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
 Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche

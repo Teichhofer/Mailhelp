@@ -13,7 +13,9 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.9.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.9.2 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 8.9.2: Der Qualitätsbericht erkennt Aktionen an ihrer Identität statt an Titelwörtern, prüft alle Fakten erkannter Aktionen und den tatsächlichen Verarbeitungsweg; geänderte Prompts gelten erst mit einer modellgeprüften, ausdrücklich gewählten Baseline.
 
 Version 8.9.1: Beginn von Planung 8.9 (Extraktionsqualität). Der [Bewertungsvertrag v5](docs/Bewertungsvertrag-v5.md) und der eingefrorene Korpus v5 mit 22 neuen Kontrollfällen legen fest, wann eine Modellantwort richtig ist; Prompts und Modelle sind unverändert.
 

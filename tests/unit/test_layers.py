@@ -32,6 +32,8 @@ MODULE_LEVELS = {
     # adapters of the same package stay low.
     "mailhelp.llm.decision_test": 5, "mailhelp.llm.evaluation": 5, "mailhelp.llm.learning": 5,
     "mailhelp.llm.decisions": 5, "mailhelp.llm.laya": 5,
+    # 8.9.2: the quality report and the v5 stage comparison read prepared mails and normalize like the builder.
+    "mailhelp.llm.quality_metrics": 5, "mailhelp.llm.stage_contract": 5,
     # Catalogue of every stored schema for the checking tools; no application module imports it.
     "mailhelp.persistence.schemas": 8,
 }

@@ -41,6 +41,8 @@ from .decisions import (
     load_relevance_prompts,
 )
 from .openrouter import OpenRouterClient
+from .quality_metrics import contract_version, mail_context, mail_source
+from .stage_contract import compare_stages
 
 _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_extraction")
 _EXPECTED_KEY = {"action_router": "action_route"}
@@ -242,16 +244,6 @@ def _received_at(case: dict[str, Any]) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
-def _context(mail: dict[str, Any]) -> MailDateContext:
-    """The same mail date context the orchestrator passes to the builder."""
-    return MailDateContext(
-        date_context_status=str(mail.get("date_context_status", "missing")),
-        date_header_parsed=mail.get("date_header_parsed"),
-        imap_received_at=mail.get("imap_received_at"),
-        user_timezone=mail.get("user_timezone"),
-    )
-
-
 def _recognized_images(mail: dict[str, Any], recognized: dict[str, str]) -> None:
     """Stand in for vision OCR: the corpus supplies the text read from an image attachment.
 
@@ -289,7 +281,7 @@ def _report_head(corpus: dict[str, Any], prompts: PromptConfig, decision_prompts
             decision_prompts.model_dump_json().encode()).hexdigest(),
         "prompt_fingerprint": hashlib.sha256(prompts.model_dump_json().encode()).hexdigest(),
         "corpus_fingerprint": hashlib.sha256(json.dumps(corpus, sort_keys=True).encode()).hexdigest(),
-        "corpus_schema_version": corpus.get("schema_version"),
+        "corpus_schema_version": corpus.get("schema_version"), "contract_version": contract_version(corpus),
         "routes": {stage: [route.model_dump(mode="json") for route in prompts.resolved_routes(stage)[0]]
                    for stage in _STAGES},
         "max_calls": max_calls, "calls": 0, "cases_total": len(corpus["cases"]),
@@ -298,8 +290,16 @@ def _report_head(corpus: dict[str, Any], prompts: PromptConfig, decision_prompts
     }
 
 
+def _end_to_end(case: dict[str, Any], observed: dict[str, Any]) -> dict[str, Any]:
+    """8.9.2: like ``mail_pipeline``, "irrelevant" ends the analysis; later stages cannot rescue its actions."""
+    expected = case["expected"]
+    lost = (len(expected["task_extraction"]["tasks"]) + len(expected["event_extraction"]["events"])
+            if observed.get("relevance", {}).get("decision") == "irrelevant" else 0)
+    return {"passed": lost == 0, "lost_actions": lost}
+
+
 def _evaluate_case(case: dict[str, Any], analyzer: Analyzer, topics: list[Topic], timezone_name: str,
-                   own: frozenset[str]) -> dict[str, Any]:
+                   own: frozenset[str], contract: int = 4) -> dict[str, Any]:
     """Run one corpus case through every stage and compare each answer with the accepted ones."""
     mail = prepare(case["raw_email"].encode("utf-8"), 100_000,
                    received_at=_received_at(case), user_timezone=timezone_name)
@@ -307,7 +307,7 @@ def _evaluate_case(case: dict[str, Any], analyzer: Analyzer, topics: list[Topic]
     # Routing and extraction receive what the pipeline sends, including the perspective.
     perspective = read_perspective(mail, own)
     routed = perspective.model_input(mail)
-    context = _context(mail)
+    context = mail_context(mail)
     observed = {}
     error = None
     try:
@@ -330,13 +330,20 @@ def _evaluate_case(case: dict[str, Any], analyzer: Analyzer, topics: list[Topic]
     except Exception as exc:
         error = type(exc).__name__  # Provider messages may contain credentials.
     comparisons = {}
+    if contract >= 5:
+        # 8.9.2: the evaluation contract v5 compares topics, summary facts and action identity.
+        comparisons = compare_stages(case, observed, mail_source(mail), context)
     for stage, actual in observed.items():
+        if stage in comparisons:
+            continue
         key = _EXPECTED_KEY.get(stage, stage)
         accepted = [semantic_result(stage, item, context)
                     for item in [case["expected"][key], *case.get("accept", {}).get(key, [])]]
         actual = semantic_result(stage, actual, context)
         comparisons[stage] = {"passed": actual in accepted, "expected": accepted[0],
                               "accepted_alternatives": accepted[1:], "actual": actual}
+    if "relevance" in observed:
+        comparisons["end_to_end"] = _end_to_end(case, observed)
     result = {"id": case["id"], "error": error, "stages": comparisons,
               "review_outputs": observed,
               "passed": error is None and all(item["passed"] for item in comparisons.values())}
@@ -357,8 +364,9 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
     # No expected answer is ever supplied to the provider.
     # 4.5: the corpus names the user's own addresses, as configured for a mailbox.
     own = addresses_in(corpus.get("own_addresses", []))
+    contract = contract_version(corpus)
     for case in corpus["cases"]:
-        result = _evaluate_case(case, analyzer, topics, timezone_name, own)
+        result = _evaluate_case(case, analyzer, topics, timezone_name, own, contract)
         results.append(result)
         report["calls"] = bounded.calls
         if progress is not None:
@@ -370,6 +378,9 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
     report["stage_pass_counts"] = {
         stage: sum(item["stages"].get(stage, {}).get("passed", False) for item in results)
         for stage in _STAGES}
+    # 8.9.2: cases whose actions the relevance stage would drop in production.
+    report["end_to_end_lost"] = [item["id"] for item in results
+                                 if not item["stages"].get("end_to_end", {"passed": True})["passed"]]
     return report
 
 
