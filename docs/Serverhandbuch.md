@@ -10,8 +10,8 @@ aus der getrennten Sicherung bereitgestellt, niemals aus Git.
 ## Bestätigter Bestand und Grenzen
 
 Centron, Deutschland; Ubuntu 26.04.1 LTS. Zuletzt ermittelt: Docker 29.1.3,
-Compose 2.40.3, nginx 1.28.3. Update und Kontrolle am 22.11.2026: nginx und Formulardienst
-aktiv, drei Container aktiv, Produktion, Demo und Auth gesund.
+Compose 2.40.3, nginx 1.28.3. Stand 28.11.2026: nginx und Formulardienst aktiv,
+vier Container aktiv – Produktion, Demo, Kundeninstanz `kunde` und Auth gesund.
 Produktion, Demo und `kunde` verwenden nach dem Update vom 28.11.2026 tatsächlich
 `mailhelp-production:8.9.5-c0635c4` (Commit `c0635c4`, Rückkehrpunkt `8.8.7-9d00f43`), der Auth-Dienst unverändert
 `inboxstride-auth:7.9.5-2073ef0`. Änderungen im lokalen Checkout sind damit
@@ -119,7 +119,7 @@ laufenden Auth-Container mounten.
 Mit `register` werden Instanz-ID, erlaubter Host und Zertifikatsfingerabdruck gebunden.
 
 Betreiberkommandos mit Zustands-/Secretänderungen (`register`, `disable`, `set-client`,
-`set-mail-client`, `sweep`, Schlüsselrotation) im Wartungsfenster bei gestopptem
+`set-mail-client`, `set-notion-client`, `sweep`, Schlüsselrotation) im Wartungsfenster bei gestopptem
 Auth-Dienst ausführen. Es gibt genau einen zustandsschreibenden Dienstprozess;
 die Sperren koordinieren seine Threads, nicht unabhängig gestartete Container.
 Vorher Zustand und Schlüssel getrennt sichern, danach Dienst wieder starten und
@@ -186,8 +186,8 @@ auch ein Update aller installierten Host-Programme und Systempakete durchzuführ
 Quellen und Images zunächst separat bauen. Mit `docker compose -p <Projekt>
 -f <Datei> config --quiet` prüfen; Aufruf gegebenenfalls mit privater Env-Datei,
 deren Werte nicht ausgeben. Danach konsistenten Sicherungspunkt und vorherige
-Compose-/Image-Zuordnung festhalten. Auth, Produktion und Demo sind getrennte
-Projekte; Images und Konfiguration jeweils ausdrücklich auswählen.
+Compose-/Image-Zuordnung festhalten. Auth, Produktion, Demo und Kundeninstanz `kunde`
+(`mailhelp-kunde`) sind getrennte Projekte; Images und Konfiguration jeweils ausdrücklich auswählen.
 
 Nach Wechsel Containerzustand, HTTPS mit richtigem Host, Anmeldeseite und lesende
 Verbindungsprüfungen kontrollieren. Demo mit `Host: demo.inboxstride.de` testen,

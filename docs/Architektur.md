@@ -1,8 +1,8 @@
 # Architektur
 
-Geprüft für Mailhelp 8.1 (Stand 16. November 2026)
-Dieses Dokument beschreibt den Aufbau des Pakets `mailhelp`, den Weg einer Mail, den
-Bestätigungsweg für externe Schreibzugriffe und die gespeicherten Zustände. Es ersetzt die
+Geprüft für Mailhelp 8.9.6 (Stand 28. November 2026)
+Dieses Dokument beschreibt den Aufbau der Pakete `mailhelp` und `inboxstride_auth`, den Weg einer Mail, den
+Bestätigungsweg für externe Schreibzugriffe, das Rollen- und Betriebsmodell sowie die gespeicherten Zustände. Es ersetzt die
 früheren Dokumente `Architektur-1.6`, `-2.1`, `-2.4` und `Paketstruktur` (jetzt im
 [Archiv](archiv/)). Wie die Regeln im Einzelnen getestet werden, steht in
 [Zustandsregeln 3.6](Zustandsregeln-3.6.md); wie Weboberfläche und Abruf sich die Ressourcen
@@ -16,28 +16,36 @@ mit Begründung, und eine nicht mehr benötigte Ausnahme lässt den Test ebenfal
 
 | Schicht | Pakete und Module | Aufgabe |
 | ---: | :--- | :--- |
-| 0 | `domain`, `text`, `state_names`, `paths`, `formatting`, `log_reduction` | Fachmodelle (Mail, Vorschlag, Befund, Serie), deutsche Datums- und Zeitangaben, Namen der Zustandsdateien |
-| 1 | `logging`, `persistence`, `support` | JSONL-Protokolle, JSON-Ablage mit Sperren und Migrationen, Kennzahlen |
-| 2 | `config` | Einstellungsmodelle (`base`, `mail_settings`, `target_settings`, `runtime_settings`, `topics`, `prompts`), Laden, bestätigte Konfigurationsänderungen |
-| 3 | `external`, `llm` | Kalender- und Aufgabenanbieter, OAuth, bestätigtes Schreiben; OpenRouter, Ollama, Laya |
+| 0 | `domain`, `text`, `i18n`, `state_names`, `paths`, `formatting`, `log_reduction` | Fachmodelle (Mail, Vorschlag, Befund, Serie), Lokalisierung (DE/EN), Datums- und Zeitangaben, Namen der Zustandsdateien |
+| 1 | `logging`, `persistence`, `support`, `usage` | JSONL-Protokolle, JSON-Ablage mit Sperren und Migrationen, Kennzahlen, append-only Verbrauchsledger (Punkte/Budget, ab 8.7) |
+| 2 | `config` | Einstellungsmodelle (`base`, `mail_settings`, `target_settings`, `runtime_settings`, `notifications`, `topics`, `prompts`), Laden, bestätigte Konfigurationsänderungen |
+| 3 | `external`, `llm` | Kalender- und Aufgabenanbieter (Google Kalender, Google Tasks, Outlook, Microsoft To Do, CalDAV, Apple Erinnerungen, Notion), Erinnerungen (`reminders.py`), OAuth & Hosted-OAuth-Client (`hosted_oauth.py`), bestätigtes Schreiben; OpenRouter, Ollama, Laya |
 | 4 | `mailbox`, `proposals` | IMAP und IServ, Postfachlauf; Vorschläge bauen, normalisieren, abgleichen, Zielprofile |
-| 5 | `processing`, `review`, `rule_learning`, `notifications`, `activity` | Verarbeitung einer Mail, Prüfbefehle, Regellernen, Benachrichtigungen und Push, Aktivitätsberichte |
-| 6 | `runtime` | Betrieb: Einrichtung, Diagnose, Aufbewahrung, Lernläufe, Erlebnisdienste |
-| 7 | `telegram`, `web`, `helpdocs` | Bedienoberflächen und Hilfe |
-| 8 | `app` | Zusammenbau (`composition`), laufende Anwendung, Zugangsprüfungen, Nachladen der Konfiguration |
+| 5 | `processing`, `review`, `rule_learning`, `notifications`, `activity` | Verarbeitung einer Mail (inkl. Vision-OCR mit JPEG/MPO/PNG/WebP), Prüfbefehle, Regellernen, Benachrichtigungen und Push, Aktivitätsberichte |
+| 6 | `runtime` | Betrieb: Instanzmodus (`instance_mode.py` / `operator.yaml`), Einrichtung, Diagnose, Aufbewahrung, Lern- und Nachanalyse-Worker, Erlebnisdienste |
+| 7 | `telegram`, `web`, `helpdocs` | Bedienoberflächen (inkl. Rollen/Berechtigungen `permissions.py`, Demo Deny-by-Default `demo_site.py`, seitenübergreifende Systembanner `banners.py`) und Hilfe |
+| 8 | `app` | Zusammenbau (`composition`), laufende Anwendung (`run_loop.py`), Zugangsprüfungen, Nachladen der Konfiguration |
 | 9 | `cli` | Einstieg `mailhelp` |
 
-Ausnahmen innerhalb eines Pakets: Bewertung, Entscheidungstest, Lernen und die
-Entscheidungs-Clients in `llm` gehören zur Schicht 5, weil sie die Analyse ausführen;
-`persistence/schemas.py` (Katalog aller Schemata für die Prüfwerkzeuge) zur Schicht 8.
+Ausnahmen innerhalb eines Pakets: Bewertung (`evaluation`, `quality_metrics`, `stage_contract`),
+Entscheidungstest, Lernen und die Entscheidungs-Clients in `llm` gehören zur Schicht 5, weil sie
+die Analyse ausführen; `persistence/schemas.py` (Katalog aller Schemata für die Prüfwerkzeuge)
+zur Schicht 8.
+
+Daneben liegt der zentrale gehostete Anmeldedienst als eigenständiges Top-Level-Paket
+`src/inboxstride_auth/` (`service`, `http_api`, `google`, `microsoft`, `notion`, `ca`,
+`secret_store`, `state_file`, `models`). Er verwaltet zentrale OAuth-Zugänge getrennt vom
+Anwendungscode und spricht mit Mailhelp-Instanzen intern über mTLS (`external/hosted_oauth.py`).
 
 Weitere dauerhafte Grenzen:
 
 - **Größe.** Keine Funktion über 80 Zeilen, höchstens 10 Parameter; benannte Ausnahmen mit
-  Begründung (`tests/unit/test_limits.py`).
-- **Typen.** Jede Funktion ist vollständig annotiert (`mypy` mit `disallow_untyped_defs`,
-  `disallow_incomplete_defs`, `disallow_untyped_calls`); der bisherige strenge Kern verbietet
-  zusätzlich `Any` als Rückgabe und unparametrisierte Generika.
+  Begründung (`tests/unit/test_limits.py`). Verzögerte Importe sind auf höchstens 25 Stellen
+  mit `# Late: `-Begründung begrenzt (`tests/unit/test_layers.py`).
+- **Typen.** Jede Funktion ist vollständig annotiert (`mypy` prüft `mailhelp`, `devtools` und
+  `inboxstride_auth` mit `disallow_untyped_defs`, `disallow_incomplete_defs`,
+  `disallow_untyped_calls`); der bisherige strenge Kern verbietet zusätzlich `Any` als Rückgabe
+  und unparametrisierte Generika.
 - **Einstieg.** `mailhelp.cli` bleibt im Wurzelpaket (Konsolenbefehl, Neustart per
   `-c "from mailhelp.cli import main"`, Docker).
 
@@ -64,8 +72,12 @@ auslösen.
 
 ## 3. Bestätigungsweg für Schreibzugriffe
 
-Nichts wird in Google Kalender, Microsoft, CalDAV oder Todoist geschrieben, ohne dass eine
-bestimmte Version eines Vorschlags ausdrücklich bestätigt wurde.
+Nichts wird in Google Kalender, Google Tasks, Microsoft (Outlook / To Do), CalDAV,
+Apple Erinnerungen, Notion oder Todoist geschrieben, ohne dass eine bestimmte Version
+eines Vorschlags ausdrücklich bestätigt wurde. Für neue zeitgebundene Kalendereinträge
+speist `external.reminders` sowohl die Vorschau als auch den anbieterspezifischen
+Erinnerungs-Payload (Google `reminders.overrides`, Microsoft `isReminderOn`, CalDAV
+`VALARM`) und die Nachleseprüfung.
 
 1. **Befehl.** Telegram und Weboberfläche erzeugen einen Prüfbefehl (`review.commands`) mit
    Postfach, Vorschlag, Version und Idempotenzschlüssel. Die Weboberfläche verlangt dazu eine
@@ -104,9 +116,11 @@ entsprechen. Protokolle sind getrennte JSONL-Dateien. Die Namen bildet `state_na
 | `action-ledger` | einmalige Buchung jeder geschriebenen Vorschlagsversion |
 | `mailbox-folders` | erkannte Ordner je Postfach |
 
-Weitere Dateien (Sitzungen, Befehlseingang, Einrichtung, Lernstand, Push-Abonnements) tragen
-feste Namen in ihren Modulen. Gespeicherte Zustände enthalten keine Modulpfade; ein Umzug von
-Code ändert kein Dateiformat.
+Weitere Dateien (Sitzungen mit optionaler Rolle `customer`/`operator` und Instanzbindung aus
+`operator.yaml`, Befehlseingang, Einrichtung, Lernstand, Nachanalyse-Aufträge, Serienbelege,
+Vorfilter-Treffer, Aktivierungsjournal, Push-Abonnements) tragen feste Namen in ihren Modulen;
+der Punkteverbrauch ab 8.7 liegt in einem eigenen append-only JSONL-Ledger (`usage/ledger.py`).
+Gespeicherte Zustände enthalten keine Modulpfade; ein Umzug von Code ändert kein Dateiformat.
 
 ## 5. Altformate
 

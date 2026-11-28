@@ -1,13 +1,15 @@
 # Einrichtung und Qualitätsprüfung
 
-Geprüft für Mailhelp 8.1. Die Einrichtungshinweise gelten
+Geprüft für Mailhelp 8.9.6. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
 Für die Entwicklung stehen seit 4.1.11 `python -m devtools.check tdd <Testauswahl>`, `fast`, `full`, `ui`
 und `prompts` sowie entsprechende VS-Code-Tasks bereit. `full` benötigt zusätzlich
-`hatchling==1.27.0`, baut die aktuellen Release-Pakete und prüft 100 % Zeilen- und
-Branch-Abdeckung. Die 15-Sekunden-Grenze für gezielte TDD-Tests wird über die gesamte
+`hatchling==1.27.0`, unterstützt `--workers` (lokal `--workers 12`), baut die aktuellen
+Release-Pakete, trennt die Latenztests in einen sequentiellen Lauf und prüft 100 % Zeilen- und
+Branch-Abdeckung über alle vier Pakete (`mailhelp`, `devtools`, `inboxstride_auth`, `landing`).
+Die 15-Sekunden-Grenze für gezielte TDD-Tests wird über die gesamte
 Befehlslaufzeit gemessen. Die gesamte Schnellsuite wird ohne starre Zeitgrenze gemessen.
 Messwerte und Mutationsabnahme stehen in
 [Qualität 4.1](archiv/Qualitaet-4.1.md).
@@ -18,18 +20,19 @@ Unter Linux beziehungsweise WSL werden Mutationstests zusätzlich mit
 Tests mit Dateirechten müssen unter einem unprivilegierten Benutzer laufen.
 
 Das kostenlose Prompt-Gate vergleicht neben dem synthetischen Verarbeitungspfad die
-Fingerprints von Prompts, Themen, Relevanzkonfiguration und Qualitätskorpus mit
-`quality-reports/prompt-baseline.json`. Eine geänderte Formulierung kann deshalb nicht
-unbemerkt mit vorgegebenen perfekten Modellantworten bestehen. Eine neue Baseline
-erfordert die fachliche Prüfung der Änderung und eine echte Evaluation über
-`mailhelp-evaluate` mit ausdrücklicher Netzwerkfreigabe und Aufrufbudget. Die aktuelle
-Ausgangsbasis dokumentiert einen Konfigurationsvertrag, keine gemessene Modellgenauigkeit.
-Seit 8.9.2 ist dieser Konfigurationsvertrag eingefroren: Neue Fingerprints in
-`prompt-baseline.json` werden abgelehnt. Eine Änderung wird nur über eine ausdrücklich in
-`quality-reports/active-baseline.json` gewählte Baseline der Art `model_approved_baseline`
-aktiv. Sie nennt die Vorher- und Nachher-Berichte tatsächlicher Modellausgaben, den Lauf mit
-dem Fingerprint der verwendeten Prompts, die Qualitäts-Baseline ihres Bewertungsvertrags und
-eine benannte Freigabe; das Gate wertet die gespeicherten Berichte offline erneut aus.
+Fingerprints von Prompts, Themen, Relevanzkonfiguration und Qualitätskorpus mit der
+über `quality-reports/active-baseline.json` gewählten aktiven Baseline. Eine geänderte
+Formulierung kann deshalb nicht unbemerkt mit vorgegebenen perfekten Modellantworten
+bestehen. Eine neue Baseline erfordert die fachliche Prüfung der Änderung und eine echte
+Evaluation über `mailhelp-evaluate` mit ausdrücklicher Netzwerkfreigabe und Aufrufbudget.
+Seit 8.9.2 ist der frühere Konfigurationsvertrag `quality-reports/prompt-baseline.json`
+eingefroren: Neue Fingerprints dort werden abgelehnt. Aktiv ist seit 8.9.5 die
+modellgeprüfte Baseline `quality-reports/prompt-baseline-8.9.json` (`kind: "model_approved_baseline"`,
+`model_quality_proven: true`). Jede weitere Änderung wird nur über eine neue
+`model_approved_baseline` in `quality-reports/active-baseline.json` aktiv; sie nennt
+Vorher- und Nachher-Berichte tatsächlicher Modellausgaben, den Lauf mit dem Fingerprint
+der verwendeten Prompts, die Qualitäts-Baseline ihres Bewertungsvertrags und eine
+benannte Freigabe; das Gate wertet die gespeicherten Berichte offline erneut aus.
 
 Ohne `config.yaml` startet nun die geschützte Browser-Ersteinrichtung mit
 automatischem Terminal-Code. Für eine neue Docker-Installation steht
@@ -92,9 +95,13 @@ versionsbezogene Konfigurationsentwürfe und `/diagnose` sichere Einzelprüfunge
 Passwörter und Tokens liegen in `.env` oder der Prozessumgebung; unter
 **Einstellungen → Zugangsdaten** lassen sie sich nur schreibend eintragen. Postfächer und IServ-Konten
 werden unter **Einstellungen → Postfächer** bzw. **→ IServ-Konten** geprüft und direkt aktiviert
-oder als Entwurf angelegt. Erststart, Google- und Microsoft-Anmeldung und der Lernmodus sind
+oder als Entwurf angelegt. Erststart, Google-, Microsoft- und Notion-Anmeldung (direkt oder über
+den zentralen Hosted-OAuth-Dienst `inboxstride_auth`, ab 8.0/8.2) sowie der Lernmodus sind
 vollständig im Browser möglich ([Ersteinrichtung](Ersteinrichtung.md),
 [Kalender und Aufgaben verbinden](Ziele-einrichten.md), [Bedienung](Bedienung.md#lernmodus-lernfunktion)).
+Im Kundenmodus (`operator.yaml` mit `customer_mode: true`, ab 8.7/8.8) trennt Mailhelp
+Kunden- und Betreibersitzungen (`--pair --operator` am Host) und beschränkt Kunden auf
+freigegebene Routen (`web/permissions.py`) sowie eigene Einstellungen (`/einstellungen/allgemein`).
 
 ## IServ-Elternbriefe einrichten (ab 3.3.7)
 
@@ -219,7 +226,9 @@ neben `prompts.yaml` oder aus der Paketvorlage geladen. `--legacy-relevance`
 prüft ausdrücklich nur den früheren Pfad und zählt nicht als Standardpfad-Abnahme.
 Jev und generative Aufrufe teilen sich `--max-calls`; Berichte in Schema 3 enthalten
 zusätzlich den geprüften Modus und einen Fingerprint der Jev-Konfiguration.
-Für die Release-Abnahme `tests/fixtures/mail_corpus_v3/corpus.json` verwenden.
+Für aktuelle Release-Abnahmen ab 8.9.2 `tests/fixtures/mail_corpus_v5/corpus.json` mit
+`quality-reports/baseline-8.9.json` verwenden (siehe unten; `mail_corpus_v3` und `v4` bleiben
+als historische Korpora erhalten).
 Gleichbedeutende Uhrzeitangaben werden auch bei unvollständigen Terminen normalisiert.
 
 Die folgenden historischen Ergebnisse beschreiben frühere Stände. Maßgeblich für
@@ -232,7 +241,7 @@ Kalenderadapter. Den API-Key ausdrücklich als `OPENROUTER_API_KEY` in der
 Prozessumgebung bereitstellen; der Befehl liest keine persönliche `.env` automatisch.
 
 ```sh
-mailhelp-evaluate --allow-network --max-calls 100 --corpus tests/fixtures/mail_corpus_v3/corpus.json --prompts prompts.yaml --output evaluation-report.json
+mailhelp-evaluate --allow-network --max-calls 300 --corpus tests/fixtures/mail_corpus_v5/corpus.json --prompts prompts.yaml --output evaluation-report.json
 ```
 
 Der Aufruf ist kostenpflichtige OpenRouter-Nutzung. Ohne `--allow-network`,
@@ -280,11 +289,10 @@ muss in der Quelle stehen) und die Extraktionen über die Aktionsidentität; `en
 die Fälle, die der Relevanzfilter beenden würde. Ältere Berichte bleiben nach ihrem Vertrag gültig
 und werden nicht mit v5-Messungen verglichen. Seit 8.9.4 liest `mailhelp-quality-report` als `ANTWORTEN` auch einen Bericht von `mailhelp-evaluate` direkt (beobachtete Ausgaben je Fall, Fehler als technischer Ausfall); Ortsangaben werden ohne Artikel, Präpositionen und Possessivpronomen verglichen.
 
-Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
-Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche
-Grenzfälle ausdrücklich erlaubte Alternativen (`accept`). `mail_corpus_v1` bleibt
-unverändert die Grundlage der simulierten Standardtests. `mail_corpus_v2` bleibt
-für die Wiederholung der historischen Läufe vom 7. und 8. Oktober erhalten.
+Für aktuelle reale Modellläufe ab 8.9.2 ist `mail_corpus_v5` (Vertrag v5, 68 Fälle)
+maßgeblich. `mail_corpus_v3` und `mail_corpus_v4` bleiben für historische Vergleiche und
+Fingerprints erhalten; `mail_corpus_v1` bleibt unverändert die Grundlage der simulierten
+Standardtests, `mail_corpus_v2` für die Wiederholung der historischen Läufe vom 7. und 8. Oktober.
 
 Der Zielpfad des Berichts wird vor dem ersten kostenpflichtigen Aufruf geprüft.
 Nach jedem Fall schreibt der Befehl den Zwischenstand atomar in die Ausgabedatei

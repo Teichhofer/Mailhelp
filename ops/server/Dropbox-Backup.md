@@ -1,6 +1,6 @@
 # Tägliches Backup nach Dropbox
 
-Stand: 19. November 2026. Ziel des Betreibers: Dropbox-Ordner
+Stand: 28. November 2026. Ziel des Betreibers: Dropbox-Ordner
 `Backup/Mailhelpserver`, einschließlich Zugangsdaten und ohne zusätzliche
 Archivverschlüsselung. Die Verbindung verwendet HTTPS. Der Ordner darf nicht
 öffentlich oder mit unberechtigten Personen geteilt werden.
@@ -27,24 +27,24 @@ Aktivierung erst nach erfolgreicher erster Sicherung und Wiederherstellungsprüf
 **Verifiziert am 19.11.2026:** erster Upload von 298.662.689 Bytes erfolgreich;
 Rückdownload mit identischer SHA-256, 17.731 gelesene Archiveinträge und private
 Testwiederherstellung der benötigten Konfigurations-/Zugangsdaten erfolgreich.
-Der Timer ist aktiviert, der nächste Lauf ist am 20.11.2026 um 03:30 Uhr MEZ.
+Der Timer ist aktiviert und läuft täglich um 03:30 Uhr (`Europe/Berlin`).
 Die vollständige Wiederherstellung des VPS wurde dadurch noch nicht geprüft.
 
 ## Umfang
 
 Das Archiv enthält die in der Konfiguration ausdrücklich aufgeführten Verzeichnisse,
 darunter Produktions-Runtime einschließlich `.env`, Postfach-/Google-/Todoist-/KI-
-Zugangsdaten, JSON-Zustände, Schreibnachweise, Sitzungen und Logs; aktive Compose-Dateien,
-Releasequellen, Demo-Volume, Landingpage-Releases und Interessentendaten; nginx,
-TLS-Zertifikate/private Schlüssel, systemd/cron, Firewall, SSH- und Benutzerkonfiguration.
+Zugangsdaten, JSON-Zustände, Schreibnachweise, Sitzungen und Logs; die Kundeninstanz
+`/opt/mailhelp-kunde` (`mailhelp-kunde-mailhelp-1`, inkl. `operator.yaml` und Runtime);
+den zentralen Auth-Dienst `/opt/inboxstride-auth` (`inboxstride-auth-auth-1`); aktive
+Compose-Dateien, Releasequellen, Demo-Volume, Landingpage-Releases und Interessentendaten;
+nginx, TLS-Zertifikate/private Schlüssel, systemd/cron, Firewall, SSH- und Benutzerkonfiguration.
 Die private Dropbox-Verbindung selbst und das Backupwerkzeug werden mitgesichert.
 Die aktuelle geheimnisfreie Dokumentationskopie unter `/opt/mailhelp/server-docs`
 ist eine erforderliche Quelle: Fehlt sie, scheitert die Sicherung vor dem Anhalten
 der Anwendungen. Sie enthält Betriebsanleitungen, Servervorlagen, Entwicklungsregeln
 und einen Dateiprüfsummen-/Versionsnachweis. Sie ist nach bestätigten Serveränderungen
 gemäß `AGENTS.md` zu aktualisieren und ersetzt nicht die Git-Versionierung.
-Ein künftig vorhandenes `/opt/inboxstride-auth` ist als optionale Quelle vorgesehen;
-nach dessen Einrichtung tatsächlichen Dienstnamen und Datenpfade erneut prüfen.
 
 Nicht enthalten sind Docker-Layer, das vollständige Betriebssystem, der alte lokale
 Backupbestand `/opt/mailhelp/backups` und das Stagingverzeichnis selbst. Images

@@ -115,5 +115,6 @@ Je Fall legt `topics` die erforderlichen (`required`), alternativ erforderlichen
 eines) und zusätzlich zulässigen (`allowed`) Themen fest; jedes andere Thema ist ausgeschlossen.
 
 Die Prüfsumme des Korpus, die Grenzen und die kritischen Keine-Aktion-Fälle (die sieben aus v4 sowie
-K16, K17 und K22) stehen in `quality-reports/baseline-8.9.json`. Eine aktive Prompt-Baseline nach diesem
-Vertrag gibt es erst nach dem Vorher-/Nachher-Vergleich aus AP6.
+K16, K17 und K22) stehen in `quality-reports/baseline-8.9.json`. Seit Abschluss des
+Vorher-/Nachher-Vergleichs aus AP6 (8.9.5) ist `quality-reports/prompt-baseline-8.9.json` über
+`quality-reports/active-baseline.json` als modellgeprüfte Prompt-Baseline nach diesem Vertrag aktiv.

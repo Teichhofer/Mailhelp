@@ -11,6 +11,16 @@
   Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
   Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
 
+## 8.9.7 – Architekturdokumentation auf Stand 8.9.6 aktualisiert
+
+- `docs/Architektur.md`, `docs/Zustandsregeln-3.6.md`, `docs/Einrichtung-und-Qualitaetspruefung.md`,
+  `docs/Entkopplung-Web-und-Abruf.md`, `Mailhelp-Projektspezifikation.md`, `AGENTS.md`,
+  `docs/Serverhandbuch.md`, `ops/server/Dropbox-Backup.md`, `docs/Bewertungsvertrag-v5.md`
+  und `docs/Pruefung-Dokumentation-7.0.md` gegen den Stand 8.9.6 geprüft und bereinigt
+  (Schichtenmodell, `src/inboxstride_auth/`, Rollen-/Kundenmodus, Demo Deny-by-Default,
+  Bewertungsvertrag v5 / aktive `prompt-baseline-8.9.json`, vier aktive Server-Container
+  inkl. `kunde` im Serverhandbuch und Dropbox-Backup).
+
 ## 8.9.6 – Auslieferung 8.9.5 auf Produktion, Demo und kunde
 
 - Produktion, Demo und `kunde` laufen seit 28.11.2026 mit `mailhelp-production:8.9.5-c0635c4` (Offline-`--check` bestanden, Sicherungen `upgrade-8.9.5-20261128T100804Z` und `kunde-upgrade-8.9.5-20261128T100852Z`, Rückkehr auf `8.8.7-9d00f43`). Keine Host-Updates ausstehend; ungenutzter Docker-Build-Cache entfernt (1,49 GB).

@@ -1,6 +1,6 @@
 # Zustandsregeln und Testnachweise für 3.6
 
-Geprüft für Mailhelp 8.1 (Stand der Regeln: 3. November 2026). Verbindlicher Bestandteil der
+Geprüft für Mailhelp 8.9.6 (Stand der Regeln: 28. November 2026). Verbindlicher Bestandteil der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md), Schritte 1.1 und 1.2.
 
 ## Review und Command-Inbox
@@ -14,7 +14,7 @@ Dialog → Store → Blattsperren. Sitzungsprüfungen erfolgen außerhalb der St
 
 | Zustand | Bedeutung und nächste Grenze |
 | --- | --- |
-| HTTP-Anfrage | Sitzung, sitzungsgebundenes CSRF, Version und Idempotenzschlüssel prüfen; keine fachliche Freigabe |
+| HTTP-Anfrage | Sitzung (im Kundenmodus mit serverseitiger `role` und `instance` aus `operator.yaml`), sitzungsgebundenes CSRF, Routenfreigabe (`CUSTOMER_ROUTES` bzw. Demo Deny-by-Default), Version und Idempotenzschlüssel prüfen; keine fachliche Freigabe |
 | `queued` | Befehl einschließlich Akteur und Version dauerhaft angenommen; reserviert noch keine Vorschlagsversion |
 | `running` | Vor dem ersten fachlichen Effekt gespeichert; Sitzung und Vorschlagsstand erneut prüfen |
 | `done` / `rejected` / `failed` | Ergebnis, Abschlusszeit und Status dauerhaft anzeigen |
@@ -44,7 +44,10 @@ erzeugen keine externe Freigabe. Neue Versionen müssen separat ausdrücklich be
 | `confirmed` | Dauerhafte Freigabe; aktuelle Akte, Ziel und Autorisierung vor Schreibbeginn erneut prüfen |
 | `writing` | Schreibgrenze dauerhaft überschritten; ausschließlich abgleichen |
 | `uncertain` | Resultat unbekannt; auch leerer oder fehlerhafter Abgleich erlaubt keine automatische Wiederholung |
-| `created` | Externe ID gespeichert; Mailprojektion und Ledger idempotent vervollständigen |
+| `verifying` | Eintrag geschrieben, Nachlesequittung (`write-verification-*`) gespeichert; erst ein frisches Lesen beim Anbieter hebt den Vorschlag auf `created` |
+| `created` | Externe ID gespeichert und (bei lesefähigen Anbietern) bestätigt; Mailprojektion und Ledger idempotent vervollständigen |
+| `removed` | Zuvor angelegter Eintrag innerhalb der Entfernen-Frist ausdrücklich wieder entfernt |
+| `already_exists` / `simulated` | Bestehende Dublette ohne Schreibvorgang bzw. rein simulierte Bestätigung im Test-/Demo-Modus |
 | `failed` / `rejected` / `merged` | Keine automatische Neuanlage |
 
 `confirmed_web_actor` bindet neue Web-Freigaben dauerhaft an die nicht geheime Sitzungs-ID.
@@ -62,8 +65,10 @@ gesperrt; Einreihen allein ersetzt keinen Ausführungsbeleg. Bereits erfolgte An
 weiterhin lesend abgeglichen. Eine ungültige Freigabe wird pro Version und Prozess nur einmal gemeldet.
 
 Externe Identität: `mailhelp:<mail>:<vorschlag>:v<version>`, unabhängig vom HTTP-Schlüssel.
-Reihenfolge: Abgleich → Provider-Vorbereitung → Autorisierung prüfen → `writing` speichern →
-Provider-Aufruf → `created` speichern → Verlauf/Mailprojektion → Ledger.
+Reihenfolge: Abgleich → Provider-Vorbereitung → Autorisierung prüfen → Verifikations-Intent
+(bei lesefähigen Anbietern) und `writing` speichern → Provider-Aufruf → `verifying` (bzw. direkt
+`created` bei nicht lesefähigen Anbietern) speichern → frisches Nachlesen → `created` speichern →
+Verlauf/Mailprojektion → Ledger.
 Bei einer Operation ohne Schreibbedarf entfällt die `writing`-Grenze. Ungültige Antworten
 oder temporäre Lesefehler erzeugen keine neue Freigabe. Nur ein noch `confirmed` gespeicherter
 Auftrag darf bei gültiger Autorisierung erstmals schreiben.
@@ -149,8 +154,9 @@ den vollständigen synthetischen `command_finished`-Datensatz aus.
 
 ## Ausführen
 
-Gesamtabnahme: `python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100`,
-`python -m ruff check` und `python -m mypy`. Die bestehende CI-Matrix prüft Windows und Ubuntu.
+Gesamtabnahme: `python -m devtools.check full --workers 12` (umfasst 100 % Zeilen- und
+Branch-Abdeckung über alle vier Pakete `mailhelp`, `devtools`, `inboxstride_auth` und `landing`,
+`ruff`, `mypy`, Paketbau sowie getrennte Latenztests). Die bestehende CI-Matrix prüft Windows und Ubuntu.
 Gezielt: `python -m pytest tests/services/test_parallel_safety.py
 tests/services/test_process_safety.py tests/services/test_safety_harness.py
 tests/services/test_safety_regressions.py --no-cov`.

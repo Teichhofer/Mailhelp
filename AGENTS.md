@@ -1,13 +1,15 @@
 # Entwicklungsregeln für Mailhelp
 
-Geprüft für Mailhelp 8.1.
+Geprüft für Mailhelp 8.9.6.
 
 - Entwickle in Python für lokale Nutzung unter Windows 11 und Docker auf Linux.
-- Halte Prompts/Modelle/LLM-Parameter in prompts.yaml, Themen in topics.yaml,
-  Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.
+- Halte Prompts/Modelle/LLM-Parameter in `prompts.yaml` und `decisions_prompts.yaml`,
+  Themen in `topics.yaml` und `irrelevant_topics.yaml`, Anwendungseinstellungen in
+  `config.yaml`, Instanzmodus in `operator.yaml` und Geheimnisse außerhalb des Codes.
 - Verwende lesbare JSON-Dateien für den Zustand und separate JSONL-Logs.
-- Erzwinge vor jedem Schreibzugriff auf Google Kalender oder Todoist eine
-  ausdrückliche, versionsbezogene Bestätigung über Telegram oder die authentifizierte
+- Erzwinge vor jedem Schreibzugriff auf Kalender- oder Aufgabendienste (Google Kalender,
+  Google Tasks, Outlook, Microsoft To Do, CalDAV, Apple Erinnerungen, Notion, Todoist)
+  eine ausdrückliche, versionsbezogene Bestätigung über Telegram oder die authentifizierte
   Weboberfläche. Bearbeiten und Speichern allein autorisieren keine externe Anlage.
   Webaktionen benötigen eine gültige, auch bei Ausführung erneut geprüfte Sitzung,
   CSRF-Schutz, Versionsprüfung und einen Idempotenzschlüssel.
@@ -34,8 +36,8 @@ Geprüft für Mailhelp 8.1.
   Arbeit als abgeschlossen gemeldet wird. Dies gilt auch für manuelle Reparaturen,
   Updates, Migrationen, Rücksetzungen und Änderungen außerhalb des Anwendungscodes
   (DNS, nginx, TLS, Docker, systemd, Firewall, Ports, Rechte, Sicherung, OAuth und Dienste).
-  Maßgeblich ist nach Umsetzung von 8.0 das geplante Serverhandbuch docs/Serverhandbuch.md mit `ops/server/`;
-  bis dahin den bestätigten Stand in `docs/Betrieb.md` dokumentieren.
+  Maßgeblich sind das Serverhandbuch `docs/Serverhandbuch.md` mit `ops/server/` sowie
+  der fortlaufende Betriebsnachweis in `docs/Betrieb.md`.
 - Bei jedem Deployment einer neuen Mailhelp-Version auf dem Server ist zusätzlich ein
   Update aller installierten Host-Programme und Systempakete (`apt-get update && apt-get upgrade -y`,
   inkl. `nginx`-Binary-Prüfung und Kontrolle von `/var/run/reboot-required`) durchzuführen

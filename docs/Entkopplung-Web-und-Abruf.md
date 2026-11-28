@@ -1,6 +1,6 @@
 # Entkopplung von Bedienung und Mailabruf – Analyse
 
-**Stand:** 3. November 2026 (Version 3.6.3); Geprüft für Mailhelp 8.1
+**Stand:** 3. November 2026 (Version 3.6.3); Geprüft für Mailhelp 8.9.6 (Stand 28. November 2026)
 **Zweck:** Grundlage für [Planung 3.6](archiv/Planung-3.6.md), Schritte 0.5 (Arbeitsthread) und 0.6 (Nachweis)  
 **Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Tests in 3.6.5 (Abschnitt 8); protokollierter synthetischer Betriebsnachweis in 3.6.17
 
@@ -81,9 +81,10 @@ Threads übergeben ihm Arbeit, statt ihn direkt aufzurufen.
 
 ## 7. Umsetzung in 3.6.4
 
-- `OperatorThread` (`operator_thread.py`) bedient `poll_once`, sobald die `TelegramInbox` neue
-  Eingaben meldet oder die `CommandInbox` einen Befehl einreiht, sonst spätestens nach dem
-  Abrufintervall; nach einem fehlgeschlagenen Telegram-Abruf wartet er höchstens 30 Sekunden.
+- `OperatorThread` (`src/mailhelp/runtime/operator_thread.py`) bedient `poll_once`, sobald die
+  `TelegramInbox` neue Eingaben meldet oder die `CommandInbox` einen Befehl einreiht, sonst
+  nach kurzer Wartezeit (`min(idle_seconds, 0.1)`, also höchstens 100 ms); nach einem
+  fehlgeschlagenen Telegram-Abruf wartet er höchstens 30 Sekunden.
   Er startet nach Empfänger und Weboberfläche, nur wenn ein Empfangs-Thread läuft, und wird
   vor der Weboberfläche und den Adaptern beendet; `Application.stop` weckt ihn.
 - `TelegramDialogController.lock` (reentrant) umschließt `poll_once`, `send`, `send_relevance`,
@@ -92,9 +93,13 @@ Threads übergeben ihm Arbeit, statt ihn direkt aufzurufen.
   die Analyse sah dafür eine Warteschlange vor, die Sperre erhält aber die bestehende
   Reihenfolge und Fehlerbehandlung.
 - `ConfigurationService` meldet Live-Einstellungen und Themen an `Application.request_settings`
-  und `request_topics`; der Hauptthread übernimmt sie mit `_apply_requested_configuration`
-  am Beginn jedes Zyklus.
-- `_wait_for_telegram_decision` wartet auf `OperatorThread.served` statt selbst zu pollen.
+  und `request_topics`; der Hauptthread (`src/mailhelp/app/run_loop.py`) übernimmt sie mit
+  `_apply_requested_configuration` am Beginn jedes Zyklus und führt zusätzlich
+  `app.reload.advance()` sowie `app.oauth_activation.advance()` aus. Ergänzend laufen
+  asynchrone Hintergrund-Worker für Lernläufe (`src/mailhelp/runtime/learning_worker.py`)
+  und Nachanalysen (`src/mailhelp/runtime/reanalysis_worker.py`).
+- `_wait_for_telegram_decision` (in `src/mailhelp/app/run_loop.py`) wartet auf
+  `OperatorThread.served` statt selbst zu pollen.
 
 **Prüfliste der Schreibpfade (Abschnitt 3):**
 

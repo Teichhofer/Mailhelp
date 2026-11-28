@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Geprüft für Mailhelp 8.1 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
+Geprüft für Mailhelp 8.9.6 (Prüfprotokoll: [docs/Pruefung-Dokumentation-7.0.md](docs/Pruefung-Dokumentation-7.0.md)).
 Den Aufbau des Pakets beschreibt [docs/Architektur.md](docs/Architektur.md).
 
 ## Ergänzung 8.9: Bewertungsvertrag v5 und Extraktionsqualität (8.9.1)
@@ -139,7 +139,7 @@ Stand 8.7.15, nach [Planung 8.7](docs/Planung-8.7.md); Plan abgeschlossen, noch 
 - **Rechte.** Kundenwege stehen ausdrücklich in `web/permissions.py`; jede andere angemeldete Route antwortet einer
   Kundensitzung mit 403 („Nur für den Betreiber“, JSON `{"code": "operator_only"}`), bevor ein Formular gelesen wird.
   Einstellungsänderungen einer Kundensitzung dürfen nur Felder aus `CUSTOMER_FIELDS` enthalten. Andernfalls wird die
-  ganze Änderung beim Ausführen und erneut vor dem Schreiben abgelehnt. Neustart, Beenden, Zugangsdaten und Neuladen
+  ganze Änderung beim Ausführen und erneut vor dem Schreiben abgelehnt. Beenden, Zugangsdaten und Neuladen (seit 8.8.3 ohne Neustart, da `/einstellungen/neustarten` eine Kundenroute ist)
   verlangen beim Ausführen eine Betreibersitzung.
 - **Punkte.** 1 Punkt = 0,1 Cent. Punkte = `cost_usd / usd_per_eur × (1 + markup_percent / 100) × 1000` mit
   `Decimal` (34 Stellen), ohne Rundung je Aufruf. Die Anzeige rundet kaufmännisch auf zwei Stellen; positive
@@ -303,7 +303,26 @@ Plan: [docs/Planung-8.0.md](docs/Planung-8.0.md), Stand: [docs/Release-8.0.md](d
   muss die ausgelieferten Dateien Byte für Byte erzeugen (`tests/landing/test_landing_build.py`).
 - **Zentraler Dienst**: gleichzeitige Tokenanfragen derselben Verbindung teilen sich eine
   Erneuerung. Eigenes Image `ops/auth/Dockerfile` (nur `inboxstride_auth` und
-  `ops/auth/requirements.lock`); Servervorlagen unter `ops/server/` sind als geplant markiert.
+  `ops/auth/requirements.lock`); verifizierte Servervorlagen liegen unter `ops/server/`.
+
+## Ergänzungen 8.3, 8.4 und 8.6 (Überblick)
+
+- **Sprachausgabe & Sprachvorrang (8.3.1–8.3.2):** Vollständige Bereinigung der DE/EN-Oberfläche
+  ([Planung 8.3](docs/Planung-8.3.md)). In konfigurierten Instanzen (`create_web()`) hat die in
+  `config.yaml` eingestellte `language` Vorrang vor dem Browser-`Accept-Language`-Header (bewusste
+  Umschaltung über `mailhelp_lang`-Cookie bleibt möglich; die öffentliche Demo wertet weiter
+  `Accept-Language` aus).
+- **Automatische Kalendererinnerungen & MPO-Vision (8.4.1–8.4.2):** Jedes Zielprofil
+  (`TargetSettings`/`TargetProfileSettings`) konfiguriert `calendar_reminder_enabled` (Standard `true`)
+  und `calendar_reminder_minutes` (Standard `5`, `0`–`1440`, `0` = zum Beginn). Gemeinsame Hilfsfunktionen
+  in `external/reminders.py` speisen Web-/Telegram-Vorschau, Google (`reminders.overrides`), Outlook
+  (`isReminderOn`/`reminderMinutesBeforeStart`), CalDAV (`VALARM`) und die Nachleseprüfung; Ganztagstermine,
+  Absagen und reine Dubletten erhalten keinen minutengenauen Alarm ([Release 8.4](docs/Release-8.4.md)).
+  `processing/vision.py` akzeptiert seit 8.4.2 zusätzlich das `MPO`-Format für Smartphone-HDR-JPEGs.
+- **CI & Docker-Basisimages (8.6.1):** Alle GitHub-Actions-Workflows nutzen den Minor-Kanal
+  `python-version: '3.12'` für Ubuntu 26.04 und Windows sowie `if-no-files-found: ignore` für
+  `always()`-Artefakt-Uploads; `Dockerfile` und `ops/auth/Dockerfile` nutzen `python:3.12.16-slim`
+  ([Release 8.6](docs/Release-8.6.md)).
 
 ## Ergänzung 7.9: Konferenzlink für bestehende Kalendertermine
 
