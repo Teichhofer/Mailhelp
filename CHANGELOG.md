@@ -11,6 +11,12 @@
   Entwurf“. Die Freigabe externer Kalender-/Aufgabenaktionen bleibt unverändert.
   Nur Planung, noch keine Implementierung oder Änderung der Anwendungsversion.
 
+## 8.9.8 – Hilfe-Manifest und Seitenliste für 8.9.7 nachgezogen
+
+- `src/mailhelp/helpdocs/manifest.json` und `src/mailhelp/helpdocs/en/manifest.json`
+  auf den aktuellen Versionsstand nachgezogen sowie `/onboarding` in
+  `docs/Pruefung-Dokumentation-7.0.md` ergänzt.
+
 ## 8.9.7 – Architekturdokumentation auf Stand 8.9.6 aktualisiert
 
 - `docs/Architektur.md`, `docs/Zustandsregeln-3.6.md`, `docs/Einrichtung-und-Qualitaetspruefung.md`,

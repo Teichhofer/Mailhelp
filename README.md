@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 8.9.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 8.9.8 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Geplant für Version 9.0 (Planung in Vorbereitung): Erfolgreiche Anmeldungen bei
 Google, Microsoft, Notion und weiteren unterstützten OAuth-Anbietern aktivieren

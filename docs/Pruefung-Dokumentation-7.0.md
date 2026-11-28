@@ -153,6 +153,7 @@ Teil der genannten Seiten und haben keine eigene Bedienung.
 | `/geraete` | Gekoppelte Geräte | Web-Einstellungen (web) |
 | `/verbrauch` | KI-Verbrauch in Punkten | [Release 8.7](Release-8.7.md) |
 | `/einrichtung` | Ersteinrichtung | [Ersteinrichtung](Ersteinrichtung.md) |
+| `/onboarding` | Geführtes Self-Service-Onboarding (seit 8.2) | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/anmelden` | Anmeldung, Geräte koppeln | [Ersteinrichtung](Ersteinrichtung.md) |
 | `/einstellungen` | Einstellungsbereiche und Suche | Web-Einstellungen |
 | `/hilfe` | Hilfschat zu Einstellungen und Bedienung | Web-Einstellungen (Hilfschat) |
